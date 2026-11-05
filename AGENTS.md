@@ -1,9 +1,7 @@
 # AGENTS.md
 
 ## Project
-This project aims to rewrite the game **King's Quest: Mask of Eternity** in the Rust programming language,
-to make it playable in modern computers and operating systems, and to potentially improve certain aspects
-of the game, like controls, graphics, gameplay elements and more.
+This fork recreates **King's Quest: Mask of Eternity** in Rust for Windows. Use the original GOG release as the reference for gameplay, controls, timing and presentation. Follow the M0–M7 milestones in the [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05). Use automated checks during implementation. Manual testing starts after the recreation is feature-complete.
 
 ## Hard rules, never break these
 

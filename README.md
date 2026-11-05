@@ -1,246 +1,53 @@
-# King's Quest: Mask of Eternity reimplementation in Rust
+# King's Quest: Mask of Eternity — Rust recreation for Windows
 
-A fan rewrite of *King's Quest: Mask of Eternity* (Sierra, 1998) in Rust,
-to make it run well on modern computers and, later, to improve its
-controls, graphics and gameplay.
+KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The engine reads the original levels, models, scripts, audio and interface assets from your own GOG installation. The target is the original Windows game, including its controls, timing, 4:3 presentation, and the full campaign from New Game through the ending.
 
-> [!IMPORTANT]
-> This project requires an original copy of *King's Quest: Mask of Eternity* to run.
-> It will not start without one. It will not modify any of the original game's files,
-> only read them. **This repository contains no game files.**
+**Development build.** Daventry is the most complete region. The engine can load all 12 worlds, but a full campaign with working saves is still in development. The fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb), including work on revisiting regions and the Dead City puzzles.
 
-Unofficial fan project, not affiliated with or endorsed by the game's owners.
+## Project status
 
-The code is written with an AI coding agent (Claude Code);
-see [CREDITS.md](CREDITS.md).
-
-## Current state
-
-A rough picture of how far the project has come.
-The detailed plans are in [docs/DESIGN.md](docs/DESIGN.md), and
-the full list of what works is in [docs/FEATURES.md](docs/FEATURES.md).
-
-So far everything is built and tested (mostly) in the first world, **Daventry**.
-
-| Milestone | What it means | Status |
+| Stage | Current implementation | Remaining work |
 | --- | --- | --- |
-| M0 | Read the game's files | ✅ Done |
-| M1 | See Daventry | ✅ Done |
-| M2 | Walk Connor around Daventry | ✅ Done |
-| M3 | Daventry comes alive | ✅ Done |
-| M4 | Talk, listen, use the menus | 🟡 Under way |
-| M5 | Fight | 🟡 Under way |
-| M6 | The whole game | 🟡 Under way |
-| M7 | Match the original, then improve | ⬜ Not started |
+| M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
+| M4 · Interface and dialogue | HUD, item selection, speech, captions, lip sync and some conversations. | Finish the original menus, inventory interactions and dialogue behavior. |
+| M5 · Combat | Enemy pursuit, melee, some ranged attacks, damage, drops and potions. | Complete the original inputs, weapons, encounter rules, death and game over. |
+| M6 · Campaign and saves | Region travel, maps, some returning-world state and region-specific puzzles. | Complete disk saves, remaining scripts, optional branches, bosses, movies and the ending. |
+| M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
 
-### Done
+The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
 
-- **M0 – Reading the game's files.** Terrain, buildings, pictures and
-  colour palettes are read straight from your own copy of the game.
-- **M1 – Seeing Daventry.** The ground, buildings, trees and objects are
-  drawn with the original's lighting and distance fog. All 12 worlds load.
-- **M2 – Walking around.** Connor walks, runs, steps back, turns, jumps
-  and wades through water. He falls, slides off steep slopes and bumps
-  into walls the way he does in the original.
-- **M3 – Daventry comes alive.** Doors, chests, items to pick
-  up, traps, animated objects (windmill, signs, fountain), falling
-  leaves, flowing water, sound effects and music. The game's own puzzle
-  scripts run, scripted cutscenes play, and the first puzzle (pushing
-  the bricks to block the waterfall) works. The camera follows Connor
-  as in the original.
-- **M4 – So far.** Connor's remarks and other spoken lines play with
-  their captions and lip sync. The on-screen interface works: the bottom
-  bar (health, experience, weapons, potions), the top bar (quest items,
-  gold) and holding an item on the mouse pointer to use it. Daventry's
-  people and creatures are drawn and animated: they breathe, gesture
-  and move their mouths while they speak, and can be clicked.
-  Conversations with the wizard and the beast at the pond work: Connor
-  walks to his spot, the camera cuts between fixed views, and walking
-  away ends the talk with a goodbye. Characters stand on the ground
-  and on building floors, and cast shadows on the ground and on buildings.
-  Connor can't walk through characters: he slides round them.
-- **M5 – So far.** Daventry's creatures move on their own as in the original: they wander, fidget, notice Connor, chase him up to striking distance and give up; zombies rise from the ground. They fight: they swing at Connor, he can punch back, they flinch, die, drop items (weapons lie where they fall) and leave bodies; the bow spriggans shoot (first version, checked in the logs only). Health items and the four potions work, with their timer icons (checked in the logs only).
-- **M6 – So far.** The Rope and Hook: Connor climbs up and down at rope places (checked by eye). Azriel's Hammer: thrown, hits one thing, flies back and is caught (checked in the logs only). The magic map: fog, arrow, zoom and pan, the mini-map, other worlds' maps and the teleporter button (checked in the logs only). Moving between worlds: walking exits and teleporters ask "load a new region?", show the loading screen and arrive with Connor's things; a world you come back to keeps its map, its story progress and what was taken from it (loading screen checked by eye, the rest in the logs only). Many script commands and scene details added from the study session's answers: the roof-jump choice and kill, the ravens' caw, the experience sound, the bell that calls the Lady of the Lake, the Shadow's foggy home, walking speeds as traced (checked in the logs only). Dead City's death-hall stone puzzle and Death's scene run (the hall checked by the user, the rest in the logs only).
+## Build and run
 
-### Next
+Use Windows, the stable Rust toolchain for MSVC, the Visual Studio C++ build tools and Windows SDK, and a GOG installation of the game (version 1.3, also called 1.03). Run these commands in PowerShell from the repository root. Set the path to the game directory that contains `data` and `Mask.exe`.
 
-- **M5 – Fighting:** check the fight and the potions by eye against the original; Connor's controls and weapons (the click-to-swing is a stand-in for now).
-
-### Later
-
-- **The main menu** (postponed: the viewer starts straight in Daventry,
-  which keeps testing quick).
-
-- **M5 – Fighting.** Connor's other weapons and bows, game over.
-- **M6 – The whole game.** Saving and loading (with worlds kept in full),
-  all 12 worlds playable, the cutscene videos, the options screen.
-- **M7 – Match the original, then improve.** Play the original side by
-  side with ours and fix every difference. After that, the improvements
-  this project was started for: better controls, better graphics and
-  gameplay fixes. (First ones are already in: the bottom bar's corner
-  panels can sit at the window's edges on wide screens, and smooth
-  animation with `--smooth`.)
-
-## What you need
-
-- Windows (only tested on Windows 11).
-- [Rust](https://www.rust-lang.org/tools/install), stable, with the MSVC
-  toolchain (the default on Windows).
-- *King's Quest: Mask of Eternity*, installed in a `MASK` folder inside this repository. The game is
-  only read, never changed. If it is somewhere else, add
-  `--game <folder>` to the commands below, or set the `KQ8_GAME_DIR`
-  environment variable. *Tested only with GOG.com copy (version 1.3, also called
-  1.03).*
-
-To run the *original* game for comparison on Windows 11 we use the
-[KQ8FixWin11](https://github.com/SegMash/KQ8FixWin11) compatibility
-fix (also used as a no-CD patch).
-
-## Try it
-
-Open a terminal in this folder and run:
-
-```sh
-cargo play
+```powershell
+$env:KQ8_GAME_DIR = "C:\Games\King's Quest 8"
+cargo build --locked --release -p kq8-viewer
+.\target\release\kq8-viewer.exe --world Daventry
 ```
 
-This opens Daventry's ground with its objects and lets you walk Connor arund.
+The command above launches Daventry directly for development. The viewer also accepts `--game <folder>` instead of the environment variable. To see its supported arguments, run `cargo play --help`. The [viewer reference](docs/FEATURES.md) covers controls, diagnostic options, and console commands.
 
-To spawn Connor in a different world, e.g. in the Swamp, run:
+## Automated checks
 
-```sh
-cargo play --world swamp
+Use the same game-data path for these commands. The workspace command includes the viewer tests. The archive check reads the local game data. The last command launches Daventry and exits after 120 rendered frames.
+
+```powershell
+cargo test --locked --workspace
+cargo run --locked --release -p kq8-cli -- vol-verify
+.\target\release\kq8-viewer.exe --world Daventry --frames 120
 ```
 
-Other worlds:
-`Swamp, DeadCity, Gnome, Barren, IceWorld, Snowexit,
-temple1–temple4, CastleD`
+A world loading successfully verifies that it can be opened. Campaign completion also requires ordinary controls to advance the quests, save and restore their consequences, defeat the final boss and reach the ending. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.
 
-For smoother animation (drawn between the original's 15 frames a second,
-and blended across a change of movement), add `--smooth`; type `smooth` in
-the console to switch it while playing (`smooth join 0` turns the blending
-off).
+## Source and research
 
-There are other launch options, mostly for debugging.
-You can find them in
-[docs/FEATURES.md](docs/FEATURES.md#launch-options-viewer),
-or by running:
-
-```sh
-cargo play --help
-```
-
-### Command console
-
-While the game runs, you can go back to the terminal you started the game from
-and use console commands. Type `help` to get a list of commands.
-
-### Key bindings
-
-Follows original game's default keybindings, plus extra debugging keys.
-
-| Debug key | What it does |
+| Component | Responsibility |
 | --- | --- |
-| F6 | Switch UI between centered (4:3) or widescreen |
-| F | Free flying camera (W/A/S/D, Q/E, right mouse to look) and back |
-| H | Show hidden and unused objects (traps, sound sources...) |
-| U | Show the ground under the water |
-| F7 | Light of the ground and objects |
-| F8 | Haze (distance fog) on / off |
-| F9 | Dynamic lights on / off |
-| G / B | Test: lift Connor high / a little and let him fall |
-| F3 | Test: god mode on / off (Connor can't be hurt or die from a fall) |
-| F4 | Test: creatures' AI off / on (they don't notice or attack Connor) |
+| `kq8-data` | Reads and decodes files from the original game. |
+| `kq8-core` | Implements game rules, scripts, movement and combat. |
+| `kq8-viewer` | Runs the game window, input, rendering and interface. |
+| `kq8-audio` | Mixes and plays audio. |
+| `kq8-cli` | Inspects game data and runs verification tools. |
 
-Fighting (first version): click the hand-weapon slot in the bottom bar
-(or press Delete) to ready Connor's fists, then left-click a creature to
-swing (Shift: the big swing, Ctrl: a normal click). Delete swaps between
-the hand and the ranged weapon, Alt puts the weapon away. With the
-crossbow ready a left click shoots where you point; with Azriel's Hammer
-ready it throws the hammer.
-
-## How the work is done
-
-To keep the rewrite our own, this project is developed in two separate
-sessions:
-
-- One session studies the original game's files and program,
- and writes its behaviour in plain-language notes in
-[docs/behaviour/](docs/behaviour/);
-- The other session writes Rust code from those notes only,
-and has **no access to the original game's files**. Every rule
-records where it came from in
-[docs/provenance/README.md](docs/provenance/README.md). More in
-[docs/DESIGN.md](docs/DESIGN.md#working-method-for-studying-the-original).
-
-## How the repository is organised
-
-The code is a Cargo *workspace*: one repository holding several Rust
-packages, called *crates*.
-
-```text
-crates/
-  kq8-data/     reads the game's files (archives, images, models, ground,
-                object lists, scripts) into plain data
-  kq8-core/     the game's rules, without drawing (Connor's movement,
-                camera, scripts, doors, chests, traps, items, sound rules,
-                speech queues)
-  kq8-audio/    plays sounds: our mixer and the sound card (cpal)
-  kq8-viewer/   the window: draws a world and runs the rules; also our
-                test tool (H and U keys, free camera, test options)
-  kq8-cli/      the `kq8` command-line tool for the file checks above
-docs/
-  DESIGN.md     how the project works, and the roadmap
-  FEATURES.md   what works and what doesn't, in detail
-  milestones/   step-by-step plans of finished milestones
-  behaviour/    notes on how the original game behaves, and open questions
-  provenance/   where each piece of knowledge came from
-  RESEARCH.md   existing tools and documentation for this game
-MODLOG.md       every change, with how it was tested
-```
-
-Not in the repository (kept only on your machine): `MASK/` (the game),
-`target/` (build output) and `kq8-artifacts/` (logs).
-
-### Checking the game files
-
-These commands read the whole game and report any file they can't
-understand (each also writes a log to `kq8-artifacts/logs/`):
-
-```sh
-cargo run --release -- vol-verify
-cargo run --release -- bitmap-verify
-cargo run --release -- shape-verify
-cargo run --release -- terrain-verify
-cargo run --release -- lightmap-verify
-cargo run --release -- lighting-verify
-cargo run --release -- building-verify
-cargo run --release -- item-verify
-cargo run --release -- aud-verify
-cargo run --release -- msg-verify
-cargo run --release -- character-verify
-cargo run --release -- map-verify
-```
-
-Other debugging tools: `cargo run --release -- text <file>` prints one of the
-game's text files; `cargo run --release -- shape-parts <file>` prints a model's
-named parts; `cargo run --release -- script-coverage --out docs/SCRIPT-COVERAGE.md`
-lists what the game's scripts ask of the program and what we have built;
-`cargo play --model smlchest.KQS` shows one model on its own.
-
-## More
-
-- [STATUS.md](STATUS.md): current state of the project, used for session hand-over
-- [MODLOG.md](MODLOG.md): change log
-- [CREDITS.md](CREDITS.md): sources and licences
-- [docs/DESIGN.md](docs/DESIGN.md): how the project works and the plan
-- [docs/milestones/](docs/milestones/): step-by-step plans of finished milestones
-- [docs/FEATURES.md](docs/FEATURES.md): what works, in detail
-- [docs/SESSIONS.md](docs/SESSIONS.md): two session workflow, in detail
-- [docs/RESEARCH.md](docs/RESEARCH.md): existing tools and documentation
-- [docs/behaviour/QUESTIONS.md](docs/behaviour/QUESTIONS.md): open
-  questions about the original's behaviour
-- [docs/SCRIPT-COVERAGE.md](docs/SCRIPT-COVERAGE.md): what the game's
-  scripts use, and what we have built (generated)
-- [docs/provenance/README.md](docs/provenance/README.md): where each rule
-  comes from and how it was checked
+This fork builds on [Eric Peracchi Pisoni's KQ8R](https://github.com/Eric-lz/KQ8R). The [research workflow](docs/SESSIONS.md) explains how behavior observed in the original becomes a written specification for the Rust implementation. See [provenance](docs/provenance/README.md), the [development log](MODLOG.md) and [credits](CREDITS.md) for sources and contributions. This is an unofficial fan project. Players supply their own original game files.
