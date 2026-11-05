@@ -9,6 +9,8 @@ The original altar script can replace Lucreto’s movement list while an animati
 
 ## 2026-11-05 Temple 4 scripted final movements
 
+An unattended Windows renderer check started the first original movement and its end listener. All four successive models acquired drawable geometry, including Connor's final movement. The log records model creation and mesh counts. Exact camera framing and rendered pixels still need comparison.
+
 The original vortex script creates a sequence of animated models at runtime and uses the end of each movement to start the next. The installed-data scenario checks the four winning models and the two losing models for each of Connor’s three weapon modes. It verifies sequence, duration and removal. The generated objects use the viewer’s existing animation renderer. Movie playback and credits are separate parts of the ending.
 
 ## 2026-11-05 Original keyboard bindings
