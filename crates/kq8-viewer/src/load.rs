@@ -1476,6 +1476,7 @@ pub struct Objects {
     pub contact_scripts: Vec<(String, String)>,
     /// Carried state read by destination Init scripts (e.g. Daventry's girl.cs).
     pub arriving_flags: Option<(BTreeMap<String, bool>, bool)>,
+    pub kept_interactions: kq8_core::kept_interactions::KeptInteractions,
     /// The world's animations packed for the graphics card (step 4),
     /// made after reading (`world_build::pack_world`).
     pub pack: Option<crate::anim_gpu::WorldPack>,
@@ -4743,6 +4744,7 @@ impl Placer<'_> {
                 .filter_map(|((placed, _, _), info)| Some((placed.name.clone(), info.script.clone()?)))
                 .collect(),
             arriving_flags: None,
+            kept_interactions: Default::default(),
             map: self.map,
             shadow_world_mask,
             shapes: self.shapes,

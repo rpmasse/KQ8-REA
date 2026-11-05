@@ -81,6 +81,9 @@ impl Snapshot {
                 && !s.split(['/', '\\']).any(|p| matches!(p, "." | ".."))
         };
         for (world, kept) in &self.kept {
+            if !kept.interactions.valid_loot() {
+                return Err("save has inconsistent chest contents".into());
+            }
             if !known(world)
                 || *world != world.to_ascii_lowercase()
                 || kept.came_in.iter().any(|f| !safe_path(f))
@@ -403,6 +406,7 @@ mod tests {
         kept.insert(
             "swamp".into(),
             KeptWorld {
+                interactions: Default::default(),
                 gone: ["usedkey".to_string()].into_iter().collect(),
                 came_in: vec!["waterfall.kq".into()],
                 vars: vec![("Swamp::Gate".into(), "opened".into())],
@@ -456,6 +460,13 @@ mod tests {
         assert_eq!(fs::read(path).unwrap(), before);
         fs::write(slot_path(&dir, 3).unwrap(), b"{").unwrap();
         let mut newer: serde_json::Value = serde_json::from_slice(&before).unwrap();
+        // Version-1 slots predate the door/chest fields. All previously
+        // supported state still loads; these objects use asset defaults.
+        for world in newer["kept"].as_object_mut().unwrap().values_mut() {
+            world.as_object_mut().unwrap().remove("interactions");
+        }
+        fs::write(slot_path(&dir, 5).unwrap(), serde_json::to_vec(&newer).unwrap()).unwrap();
+        assert_eq!(read_slot(&dir, 5).unwrap().label, "Second checkpoint");
         newer["version"] = 2.into();
         fs::write(
             slot_path(&dir, 4).unwrap(),
@@ -497,7 +508,8 @@ mod tests {
             [
                 (2, "Second checkpoint".into()),
                 (3, "Unreadable save 3".into()),
-                (4, "Unsupported save 4".into())
+                (4, "Unsupported save 4".into()),
+                (5, "Second checkpoint".into()),
             ]
         );
         assert!(read_slot(&directory(), 4)

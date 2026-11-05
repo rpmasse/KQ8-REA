@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Door and chest state across saves
+
+Two Windows processes used Daventry's original door and pub chest. The door remained open on load and the chest kept the same three-crystal item. The first click collected it, the second produced the empty-chest response, and saving again recorded one copy in Connor's inventory. A separate two-return test resumed a door from the middle of its movement. An earlier version-1 slot without the added fields loaded with the original starting states. Run the `kept_interactions` test listed in the README.
+
 ## 2026-11-05 Scripted hazards and object contacts
 
 The engine dispatches the original attack event to Connor, characters and damageable objects. Gnome's rolling-rock script calculates damage from Connor's level and queues its hit. A real-data regression crossed Dead City's loaded bridge trap, ran its own On script and delivered lethal damage. Contact-enabled objects now receive direction-specific callbacks from Connor's mover, and a moving ball-shaped object checks its own path against Connor. A core test covers repeated touch, separation and independent directions. Original moving-object update order and the axes used for rotated side contacts remain open. Reproduction commands are in the README.

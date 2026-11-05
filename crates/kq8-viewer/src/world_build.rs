@@ -162,6 +162,9 @@ pub struct KeptWorld {
     pub came_in: Vec<String>,
     /// Animated and scripted objects whose state changed (DESIGN K-2).
     pub states: Vec<kq8_core::active::KeptState>,
+    /// Older version-1 slots did not store door or chest state.
+    #[serde(default)]
+    pub interactions: kq8_core::kept_interactions::KeptInteractions,
 }
 
 impl KeptWorld {
@@ -179,6 +182,7 @@ impl KeptWorld {
         Self {
             vars: active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, from)).map(|(n, v)| (n.to_owned(), v.to_owned())).collect(),
             gone, came_in, states: active.world.kept_states_including(&prior_states),
+            interactions: kq8_core::kept_interactions::KeptInteractions::take(&active.world),
         }
     }
 }
@@ -835,6 +839,9 @@ pub fn world_change_step(world: &mut World) {
                 }
             };
             read.objects.arriving_flags = journey.as_ref().map(|j| (j.flags.clone(), j.in_temple4));
+            if let Some(kept) = world.resource::<WorldChange>().kept.get(&request.world.to_ascii_lowercase()) {
+                read.objects.kept_interactions = kept.interactions.clone();
+            }
             let mut light = object_light(&read, &opts);
             light.scene_lights = world.resource::<crate::scene_lights::SceneLights>().buffer.clone();
             light.anim = world.get_resource::<crate::anim_gpu::AnimBuffers>().cloned();

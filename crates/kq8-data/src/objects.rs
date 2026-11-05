@@ -319,7 +319,7 @@ pub struct CurrentLoop {
 /// `transitionN=<from phase> <to movement> <to phase> <transition movement>`
 /// (`connor-movement.md` "Starting and stopping"; a from phase of −1 means
 /// "at once").
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransitionLine {
     pub from: f32,
     pub to: String,

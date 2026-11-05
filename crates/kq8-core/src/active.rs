@@ -6665,6 +6665,45 @@ endif
     /// Connor 1,000 in front of the chest.
     const BY_CHEST: [f32; 3] = [0.0, -1310.0, 0.0];
 
+    #[test]
+    fn returning_twice_resumes_a_door_and_collects_remembered_chest_loot_once() {
+        use crate::kept_interactions::KeptInteractions;
+        let world = || {
+            let mut a = with_chest(Some("INVITEM_Crystal"));
+            a.world.doors = active("", &[]).world.doors;
+            a
+        };
+        let mut first = world();
+        first.click("smlchst3", BY_CHEST, 2350.0, None);
+        let door = &mut first.world.doors[0];
+        door.door.state = DoorState::Opening;
+        door.door.play("open").unwrap();
+        door.collision_type = 32;
+        for _ in 0..7 { first.update(); }
+        let phase = first.world.doors[0].door.player.phase;
+        assert!(phase > 0.0 && phase < 1.0);
+        let kept = KeptInteractions::take(&first.world);
+        let mut second = world();
+        kept.restore_door(&mut second.world.doors[0]);
+        kept.restore_chest(&mut second.world.chests[0], &mut second.world.items);
+        assert_eq!(second.world.doors[0].door.player.phase, phase);
+        assert_eq!(second.world.doors[0].door.state, DoorState::Opening);
+        assert_eq!(second.world.doors[0].collision_type, 32);
+        assert!(second.world.items.get("NoName0").unwrap().in_world());
+        second.click("smlchst3", BY_CHEST, 2350.0, None);
+        assert_eq!(second.world.items.count("Connor", "INVITEM_Crystal"), 3);
+        for _ in 0..12 { second.update(); }
+        assert_eq!(second.world.doors[0].door.state, DoorState::Opened);
+        let kept = KeptInteractions::take(&second.world);
+        let mut third = world();
+        kept.restore_door(&mut third.world.doors[0]);
+        kept.restore_chest(&mut third.world.chests[0], &mut third.world.items);
+        assert_eq!(third.world.doors[0].door.state, DoorState::Opened);
+        assert_eq!(third.world.chests[0].chest.state, ChestState::Empty);
+        third.click("smlchst3", BY_CHEST, 2350.0, None);
+        assert!(third.world.items.objects.is_empty(), "an empty chest cannot mint its loot again");
+    }
+
     fn chest_state(a: &Active) -> ChestState {
         a.world.chests[0].chest.state
     }
