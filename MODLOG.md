@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 A saved Dead City laser puzzle resumes on its next cue
+
+Version-2 slots store the ordered script-event queue with time remaining and end-of-animation listeners. Loading replaces the queue produced during world initialization. An unattended two-process test ran the original laser controller, saved after its first cue, and restored with 0.4667 seconds until the next cue. The two doors unlocked without replaying the first explosion. Older version-1 slots still load. The [README](README.md) gives the test command. Combat and cutscene playback still need separate state.
+
 ## 2026-11-05 Dead City Weeper life drain
 
 An automated encounter with the placed Dead City Weeper followed its ordinary attack cue, projectile impact, both actors' movements, chain models, original drain sound and cooldown. Connor lost twelve health over three seconds. Regional sound lookup now checks the clean GOG layout as well as an unpacked installation. Exact rounding between chain links and resuming an active drain from a save remain open. The README gives the unattended Weeper test command.

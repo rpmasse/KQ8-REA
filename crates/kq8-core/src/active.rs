@@ -1037,6 +1037,15 @@ impl WorldState {
         self.updates as f64 / crate::UPDATES_PER_SECOND
     }
 
+    pub fn saved_events(&self) -> crate::events::SavedEvents {
+        self.queue.checkpoint(self.now(), &self.held_for_load, &self.end_loop_listeners)
+    }
+
+    pub fn restore_events(&mut self, saved: crate::events::SavedEvents) {
+        self.held_for_load.clear();
+        self.end_loop_listeners = self.queue.restore(self.now(), saved);
+    }
+
     /// `potions.md` rule 26 (M5 5g-6, 5g-9): where the characters are
     /// told Connor is: 100,000 below his place while Invisible runs, he is
     /// in the rope state (`ropeandhook.md` rule 29, M6 6a-6) or a cutscene
@@ -3720,12 +3729,24 @@ impl Active {
     /// split at spaces (no variables, no quotes), run as if a script did.
     /// Returns its result, or `None` for a command the world doesn't know.
     pub fn test_command(&mut self, line: &str, at: &str) -> Option<String> {
+        let words = self.command_words(line, at)?;
+        ScriptHost::world_command(&mut self.world, &words, at)
+    }
+
+    /// The interactive viewer must complete side effects before returning
+    /// to the player. Raw host probes above can inspect the emitted values.
+    pub fn console_command(&mut self, line: &str, at: &str) -> Option<String> {
+        let words = self.command_words(line, at)?;
+        self.scripts.console_world_command(&words, &mut self.world, at)
+    }
+
+    fn command_words(&mut self, line: &str, at: &str) -> Option<Vec<String>> {
         let words: Vec<String> = line.split_whitespace().map(str::to_string).collect();
         if words.is_empty() {
             return None;
         }
         self.world.note(format!("{at}: {line}"));
-        ScriptHost::world_command(&mut self.world, &words, at)
+        Some(words)
     }
 }
 
@@ -6326,7 +6347,8 @@ endif
         assert_eq!(a.scripts.vars.get("T::Init"), None, "no Init before its loadKQ");
         assert!(connor_at(&mut a, 0.0).is_empty(), "switched off: Connor walks through");
         connor_at(&mut a, 5000.0);
-        assert_eq!(a.test_command("loadKQ henchtp.kq", "t").as_deref(), Some("0"));
+        assert_eq!(a.console_command("loadKQ henchtp.kq", "t").as_deref(), Some("0"));
+        assert_eq!(a.scripts.vars.get("T::Init"), Some("1"), "console loadKQ completes its script before returning");
         assert!(!a.world.traps[0].gone, "its box is in place");
         assert!(a.take_log().join("
 ").contains("its trap box is in place now"));

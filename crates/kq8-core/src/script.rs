@@ -316,17 +316,7 @@ impl Scripts {
                 host.log(format!("{at}: stub (later milestone, nothing done): {}", words.join(" ")));
                 Some("0".into())
             }
-            _ => {
-                let r = host.world_command(words, at);
-                for (var, value) in host.take_vars() {
-                    self.vars.set(&var, value);
-                }
-                for (script, args) in host.take_calls() {
-                    host.log(format!("{at}: runs {script} {} at once", args.join(" ")));
-                    self.run(&script, &args, host, depth + 1);
-                }
-                r
-            }
+            _ => self.host_command(words, host, at, depth),
         };
         if let Some(r) = result {
             self.vars.set(RETURN, r);
@@ -342,6 +332,27 @@ impl Scripts {
             host.log(format!("{at}: ERROR unknown command '{first}': {}", words.join(" ")));
             self.vars.set(RETURN, "1".into());
         }
+    }
+
+    /// A command may set variables and synchronously call scripts, e.g.
+    /// loadKQ calls the new object's Init before the next command runs.
+    fn host_command(&mut self, words: &[String], host: &mut dyn ScriptHost, at: &str, depth: usize) -> Option<String> {
+        let result = host.world_command(words, at);
+        for (var, value) in host.take_vars() {
+            self.vars.set(&var, value);
+        }
+        for (script, args) in host.take_calls() {
+            host.log(format!("{at}: runs {script} {} at once", args.join(" ")));
+            self.run(&script, &args, host, depth + 1);
+        }
+        result
+    }
+
+    pub(crate) fn console_world_command(&mut self, words: &[String], host: &mut dyn ScriptHost, at: &str) -> Option<String> {
+        let result = self.host_command(words, host, at, 0);
+        if let Some(r) = &result { self.vars.set(RETURN, r.clone()); }
+        host.event_done();
+        result
     }
 }
 

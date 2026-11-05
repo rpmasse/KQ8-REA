@@ -189,7 +189,7 @@ pub fn run(line: &str, sim: &mut DoorSim, connor: Option<&ConnorSim>) -> Option<
 /// result.
 pub fn script(sim: &mut DoorSim, line: &str) -> Vec<String> {
     let before = sim.active.world.log.len();
-    let result = sim.active.test_command(line, "console");
+    let result = sim.active.console_command(line, "console");
     let mut out: Vec<String> = sim.active.world.log.get(before..).unwrap_or_default().iter().map(|w| format!("  {w}")).collect();
     let first = line.split_whitespace().next().unwrap_or("");
     out.push(match result {
