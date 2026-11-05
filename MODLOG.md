@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Prepare script-created Dead City monster assets
+
+The world loader now reads `KQMonster::add` type names from the installed world scripts and resolves them through the original `GAME/Kq/Monstats.mtl` before play. It keeps unplaced type files at the origin available for model and movement loading. The GOG-backed Dead City check passed: its 16 commands resolve to six type files; five already have monster-list actors, and the script-only Snake is now prepared as an unplaced character. `cargo check --locked -p kq8-viewer`, the focused original-data test, and `git diff --check` passed. Runtime creation, AI and save/restore for these commands are still open. Next, carry a prepared character recipe into the script command and instantiate a live actor.
+
 ## 2026-11-05 Dead City runtime monster command groundwork
 
 The owned GOG `DeadCity/kq.vol` contains 16 `KQMonster::add` commands in five karma and Weeper scripts. A new parser reads their 20 fields through the same `MonsterLine` rules used for `monsters.kq`; the documented two-word form receives type defaults. An original-data regression parsed all 16 commands, resolved their types through `GAME/Kq/Monstats.mtl`, found each type file in the archive and confirmed the movement field remains `@`. The scripts put their `patrol,2,…` text in dependents instead. The focused unit and original-data tests passed. Runtime character creation, AI, rendering and save/restore are still open; the command remains missing in the coverage report.
