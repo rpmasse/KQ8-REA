@@ -5,6 +5,8 @@ Format: date and title, then Changed / Why / Tested how / Result / Still broken 
 
 ## 2026-11-05 Connor on the Scales of Justice
 
+The refreshed script inventory covers all 12 installed worlds and shared scripts. It now identifies the Scales state, `doCredits` and `loadAnim` in the Rust implementation. The game uses `loadAnim` to create visible models. The report counts its 20 calls as gameplay commands. These counts identify dispatch coverage. The separate scenario tests exercise outcomes.
+
 Normal movement input now selects either dish or the walk out. Connor uses the four movements in the original `conscale.anm`. Dish collision runs the installed object's script. An item click on the opposite dish creates the feather named by the script, then the win callback changes the five river sections. Two unattended Windows tests verified the solution and the separate walk off and exit. Both start at the portal arrival cue. The winning test supplies the feather. Exact camera pitch, gravity-switch timing and saving during the sequence still need verification. Run the `regions` test with the filters `a_feather_and_connors_weight` and `connor_steps_onto` and the `--ignored` argument.
 
 ## 2026-11-05 Original staff credits
