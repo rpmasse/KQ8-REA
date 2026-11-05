@@ -76,7 +76,7 @@ The GOG installation supplies two kinds of evidence. Files such as `Options.cs` 
 cargo run --locked -p kq8-cli -- text vol:DeadCity/kq/SCALE.CS
 ```
 
-The original engine ships as `Mask.exe`. Where a script calls an engine command, the Rust implementation follows the [documented engine behavior](docs/behaviour/terrain.md) and checks the result against the installed data. The [research workflow](docs/SESSIONS.md) keeps investigation of the executable separate from writing the Rust code.
+The original engine ships as `Mask.exe`. The [Lucreto study](docs/behaviour/lucreto-forms.md) shows how executable research and game data work together. His character file specifies a switching distance of 2,000. The executable supplies the three-dimensional comparison, its behavior at exactly 2,000 and how one form takes the other's place. The [research workflow](docs/SESSIONS.md) keeps that investigation separate from writing the Rust code.
 
 | Component | Responsibility |
 | --- | --- |
