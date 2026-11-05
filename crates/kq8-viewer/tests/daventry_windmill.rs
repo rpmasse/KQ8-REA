@@ -118,4 +118,81 @@ fn wizard_to_windmill_archer_bale_and_axe() {
     assert_eq!(end["journey"]["ai_off"], false);
     assert_eq!(end["journey"]["god_mode"], false);
     assert!(end["journey"]["stats"]["stats"][0].as_i64().unwrap() > 0);
+    let props = &end["kept"]["daventry"]["prop_placements"];
+    assert_eq!(
+        props["ax"]["position"],
+        serde_json::json!([150910.0, 249914.0, 17670.0])
+    );
+    let final_push = connor
+        .lines()
+        .rev()
+        .find(|line| line.contains("pushed haybail.01 by "))
+        .unwrap();
+    let xyz = final_push
+        .split_once("now at (")
+        .unwrap()
+        .1
+        .trim_end_matches(')');
+    let logged: Vec<f64> = xyz.split(", ").map(|v| v.parse().unwrap()).collect();
+    for (saved, logged) in props["haybail.01"]["position"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(logged)
+    {
+        assert!(
+            (saved.as_f64().unwrap() - logged).abs() < 0.11,
+            "{final_push}"
+        );
+    }
+    verify_reloaded_windmill(&game, &root, &slots.join("slot-3.json"), &end);
+}
+
+fn verify_reloaded_windmill(game: &Path, root: &Path, earned_slot: &Path, end: &Value) {
+    let dir = root.join("windmill-reloaded");
+    let slots = dir.join("slots");
+    fs::create_dir_all(&slots).unwrap();
+    fs::copy(earned_slot, slots.join("slot-3.json")).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+        .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(game)
+        .args(["--sound", "off", "--menu-input", "down,enter,release,enter,release",
+            "--console", "KQObject::getLoc ax,10", "--click", "ax,18",
+            "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Restored:enter:release:escape,38",
+            "--key", "menu:up:enter:release:left:enter:release,48", "--frames", "500"])
+        .output().unwrap();
+    fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+    let logs = dir.join("kq8-artifacts/logs");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    assert!(
+        output.status.success()
+            && viewer.contains("save restored in Daventry without replaying Begin")
+            && viewer.contains("RESULT: PASS"),
+        "inspect {}",
+        dir.display()
+    );
+    let locations = fs::read_to_string(logs.join("console.log")).unwrap();
+    assert!(
+        locations.contains("getLoc ax: 150910 249914 17670"),
+        "{locations}"
+    );
+    let movement = fs::read_to_string(logs.join("connor.log")).unwrap();
+    let feet = movement.lines().find(|l| l.starts_with("17 ")).unwrap();
+    let fields: Vec<_> = feet.split_whitespace().collect();
+    assert!(
+        fields[4].parse::<f32>().unwrap() > 16_000.
+            && fields[5] == "true"
+            && feet.contains(" haybail.01 "),
+        "the restored bale must support Connor: {feet}"
+    );
+    let again: Value = fs::read_dir(slots)
+        .unwrap()
+        .filter_map(|entry| serde_json::from_slice(&fs::read(entry.ok()?.path()).ok()?).ok())
+        .find(|slot: &Value| slot["label"] == "Restored")
+        .expect("saved again after reloading");
+    assert_eq!(quantity(&again, "INVITEM_SmallAx"), 1);
+    assert_eq!(again["journey"]["stats"], end["journey"]["stats"]);
+    assert_eq!(
+        again["kept"]["daventry"]["prop_placements"],
+        end["kept"]["daventry"]["prop_placements"]
+    );
 }

@@ -692,6 +692,9 @@ pub struct WorldState {
     /// Each animated (not a character) and scripted object as added, by
     /// lower-case name: movement name, place, collision type (K-1).
     start_states: BTreeMap<String, (String, Placement, Option<u32>)>,
+    /// Named KQObject props loaded while the persist manager was active.
+    /// Only props moved while playing have a saved placement.
+    pub prop_placements: BTreeMap<String, Option<Placement>>,
     /// Names deleted during the event running now: free only once it has
     /// finished (`clicking.md` rule 22, 3l-7).
     deleted_this_event: BTreeSet<String>,
@@ -1012,6 +1015,13 @@ impl WorldState {
     /// first visit.
     pub fn kept_states(&self) -> Vec<KeptState> {
         self.kept_states_including(&BTreeSet::new())
+    }
+
+    /// Called after a physical push or a script move has actually moved a prop.
+    pub fn record_prop_placement(&mut self, name: &str, placement: Placement) {
+        if let Some(saved) = self.prop_placements.get_mut(&name.to_ascii_lowercase()) {
+            *saved = Some(placement);
+        }
     }
 
     /// An object restored on a prior visit started this visit in its
@@ -3297,6 +3307,9 @@ impl WorldState {
         };
         self.note(format!("{at}: deleteObject {name}: {what} deleted (not drawn, not clickable, no collision; events to it dropped)"));
         self.requests.push(Request::Delete { name: name.to_string(), at: at.to_string() });
+        if let Some(place) = self.prop_placements.get_mut(&key) {
+            *place = None;
+        }
         self.deleted_this_event.insert(key.clone());
         self.deleted.insert(key);
         true
@@ -4202,6 +4215,7 @@ impl Active {
                 dormant: BTreeMap::new(),
                 came_in: Vec::new(),
                 start_states: BTreeMap::new(),
+                prop_placements: BTreeMap::new(),
                 deleted_this_event: BTreeSet::new(),
                 loading: BTreeSet::new(),
                 held_for_load: Vec::new(),

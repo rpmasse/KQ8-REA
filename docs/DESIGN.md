@@ -55,6 +55,8 @@ Inventory the original weapons, ammunition, enemy attacks, damage rules and diff
 
 ### M6 · Complete saves and the campaign
 
+The windmill checkpoint also covers movable props. Push the bale, collect the axe, save while standing on the bale and relaunch. Check that the bale still supports Connor, the axe remains at its scripted location, and a second save preserves both positions. Permanent scenery reloads from the original world files.
+
 1. **Persist the world.** Restore Connor, inventory, quest flags, doors, containers, items, bodies, timers, terrain and map progress across travel and disk saves according to the original's rules. Automate opening the cottage door, collecting five mushrooms, consuming one, saving, quitting, launching a new process and loading. Verify four mushrooms, the expected door state and a working next interaction. Repeat across a Daventry–CastleD round trip.
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.

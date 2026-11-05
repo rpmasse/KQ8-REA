@@ -739,6 +739,7 @@ pub fn spawn_doors(
         std::mem::take(&mut objects.known).into_iter().chain(["Connor".to_string()]),
         sources,
     );
+    active.world.prop_placements = std::mem::take(&mut objects.prop_placements);
     // Traps (3d-2): loaded where the start-up scripts left them.
     let mut trap_log = match Log::create("traps") {
         Ok(l) => Some(l),
@@ -1616,11 +1617,13 @@ pub fn trap_step(
                     (_, Some(placement)) => {
                         let (new, note) = kq8_core::active::moved_placement(*placement, flags, position, turn);
                         *placement = new;
+                        sim.active.world.record_prop_placement(&who, new);
                         let p = new.position;
                         format!("{at}: applied: moved {who} (a new copy, not drawn yet) to ({:.0}, {:.0}, {:.0}){}", p[0], p[1], p[2], note.map_or(String::new(), |n| format!("; {n}")))
                     }
                     (Some(old), _) => {
                         let (new, note) = kq8_core::active::moved_placement(old, flags, position, turn);
+                        sim.active.world.record_prop_placement(&who, new);
                         let d: [f32; 3] = std::array::from_fn(|k| new.position[k] - old.position[k]);
                         let mut boxes = 0;
                         for list in [colliders.as_mut().map(|c| &mut c.0), view.as_mut().map(|v| &mut v.boxes)].into_iter().flatten() {

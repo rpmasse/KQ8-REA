@@ -147,6 +147,8 @@ pub trait Host {
     /// on characters entering the world get the combat level's factor.
     /// By default nothing is done.
     fn apply_combat_level(&mut self, _on: bool, _at: &str) {}
+    /// Permanent scenery is loaded with persistence disabled.
+    fn activate_persist_manager(&mut self, _on: bool) {}
     /// `setLoadProgress <percent>` (no number: one step on;
     /// `world-change.md` rule 24). By default nothing is done.
     fn load_progress(&mut self, _percent: Option<f32>) {}
@@ -283,7 +285,7 @@ fn run_script(name: &str, args: &[String], host: &mut dyn Host, out: &mut Script
             }
             "set" | "loadkq" | "getloc" | "kqobject::getloc" | "move" | "kqobject::sethidden" => {}
             "kqmonster::inventory" | "give" | "kqobject::setscript" | "kqobject::setdontlook" => {}
-            "applycombatlevel" | "kqconner::setlevel" | "sendevent" => {}
+            "applycombatlevel" | "activatepersistmgr" | "kqconner::setlevel" | "sendevent" => {}
             c if c.ends_with(".cs") => {}
             // Not run: counted without looking at its variables.
             _ => {
@@ -320,6 +322,10 @@ fn run_script(name: &str, args: &[String], host: &mut dyn Host, out: &mut Script
                     out.sets += 1;
                 }
                 None => out.bad_lines.push(format!("{at}: {cmd} without a name")),
+            },
+            "activatepersistmgr" => match words.get(1).and_then(|v| v.parse::<i64>().ok()) {
+                Some(value) => host.activate_persist_manager(value != 0),
+                None => out.bad_lines.push(format!("{at}: activatePersistMgr needs a whole number")),
             },
             "loadkq" => match parse_load(&words[1..]) {
                 Ok((file, name_arg, position, angles, ignored_numbers)) => {
@@ -446,11 +452,13 @@ mod tests {
         kq_values: Vec<String>,
         hidden: Vec<(String, bool)>,
         items: Vec<String>,
+        persist: bool,
+        persistent_loads: Vec<String>,
     }
 
     impl TestHost {
         fn new(files: Vec<(&'static str, &'static str)>) -> Self {
-            TestHost { files, placed: Vec::new(), moves: Vec::new(), kq_values: Vec::new(), hidden: Vec::new(), items: Vec::new() }
+            TestHost { files, placed: Vec::new(), moves: Vec::new(), kq_values: Vec::new(), hidden: Vec::new(), items: Vec::new(), persist: true, persistent_loads: Vec::new() }
         }
     }
 
@@ -459,6 +467,9 @@ mod tests {
             self.files.iter().find(|(n, _)| n.eq_ignore_ascii_case(name)).map(|(_, t)| t.as_bytes().to_vec())
         }
         fn load(&mut self, load: &LoadKq, vars: &Vars) {
+            if self.persist {
+                self.persistent_loads.push(load.file.clone());
+            }
             let name = match &load.name {
                 LoadName::Rename(n) => n.clone(),
                 _ => load.file.trim_end_matches(".kq").to_string(),
@@ -471,6 +482,9 @@ mod tests {
         }
         fn move_object(&mut self, m: &Move) {
             self.moves.push(m.clone());
+        }
+        fn activate_persist_manager(&mut self, on: bool) {
+            self.persist = on;
         }
         fn set_hidden(&mut self, name: &str, hidden: bool, _at: &str) {
             self.hidden.push((name.to_string(), hidden));
@@ -493,6 +507,16 @@ mod tests {
                 "loadKQ\tstool.kq\tstool.02\t260045\t225746\t13981\t0\t0\t-0.81\nloadKQ a.kq @ 5 6 7\nif test $1 == yes\nloadKQ hidden.kq\nendif\nloadKQ bad.kq x 1 2\n",
             ),
         ])
+    }
+
+    #[test]
+    fn permanent_scenery_is_excluded_until_the_manager_is_reenabled() {
+        let mut host = TestHost::new(vec![
+            ("newworld.cs", "loadKQ first.kq\npermwrld.cs\nloadKQ ax.kq"),
+            ("permwrld.cs", "activatePersistMgr 0\nloadKQ scenery.kq\nactivatePersistMgr 1"),
+        ]);
+        run("newworld.cs", &mut host);
+        assert_eq!(host.persistent_loads, ["first.kq", "ax.kq"]);
     }
 
     #[test]

@@ -428,6 +428,7 @@ mod tests {
             "swamp".into(),
             KeptWorld {
                 terrain_changes: Default::default(),
+                prop_placements: Default::default(),
                 interactions: Default::default(),
                 gone: ["usedkey".to_string()].into_iter().collect(),
                 came_in: vec!["waterfall.kq".into()],
@@ -487,11 +488,13 @@ mod tests {
         // supported state still loads; these objects use asset defaults.
         for world in newer["kept"].as_object_mut().unwrap().values_mut() {
             world.as_object_mut().unwrap().remove("interactions");
+            world.as_object_mut().unwrap().remove("prop_placements");
         }
         newer["version"] = 1.into();
         newer.as_object_mut().unwrap().remove("script_events");
         fs::write(slot_path(&dir, 5).unwrap(), serde_json::to_vec(&newer).unwrap()).unwrap();
         let mut old = read_slot(&dir, 5).unwrap();
+        assert!(old.kept.values().all(|w| w.prop_placements.is_empty()));
         assert_eq!(old.label, "Second checkpoint");
         let mut initial = active();
         initial.world.queue.send(0.0, 2.0, "gate", "KQDoorEvent", &[], "Init");

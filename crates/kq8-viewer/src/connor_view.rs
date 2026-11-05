@@ -2183,9 +2183,12 @@ pub fn push_apply(
                 for (p, v) in b.placement.position.iter_mut().zip(d) {
                     *p += v;
                 }
-                at = Some(b.placement.position);
+                at = Some(b.placement);
                 boxes += 1;
             }
+        }
+        if let (Some(world), Some(place)) = (doors.as_mut(), at) {
+            world.active.world.record_prop_placement(&name, place);
         }
         // The world's own box of it moves too (its clicks, Connor's
         // swings and `getLoc` go by it; the user's check after M5 5d: a
@@ -2208,7 +2211,7 @@ pub fn push_apply(
             d[0],
             d[1],
             d[2],
-            at.map_or("?".into(), |p| format!("({:.1}, {:.1}, {:.1})", p[0], p[1], p[2]))
+            at.map_or("?".into(), |p| format!("({:.1}, {:.1}, {:.1})", p.position[0], p.position[1], p.position[2]))
         );
         if sim.updates % 15 == 0 {
             shared.log.lock().unwrap().detail(&line);

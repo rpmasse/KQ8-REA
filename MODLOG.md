@@ -3,6 +3,14 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Save moved windmill props
+
+The original Daventry `permwrld.cs` turns the persistence manager off for permanent scenery and back on before ordinary props load. The Rust loader now honors those commands. For persistent `KQObject` props, a physical push or script move records the resulting position and orientation in the kept world. World restoration applies those positions before building the graphics, collision and click geometry. Older Rust saves without this field use the original placement.
+
+The separate GOG-backed Windows replay loaded Connor standing on the bale in a fresh process. The bale still supported him at z 16,210; the axe stayed at (150910, 249914, 17670). A second axe click preserved the single Small Axe and experience, and another save kept both positions. The full replay took 176.54 seconds. The permanent-scenery script check and old-save/failed-overwrite regressions also passed. Save fidelity for other moved props across the campaign remains to be checked.
+
+The script-coverage generator now marks `activatePersistMgr` as handled by the startup loader. The regenerated report also reflects the previously added Help popup and Temple 4 `Die` paths.
+
 ## 2026-11-05 Current GOG reference path
 
 The contributor instructions now name the sibling `King's Quest 8 GOG` directory and use `KQ8_GAME_DIR` for the study and implementation workflows. The earlier `MASK/` path referred to a previous local layout. The current reference was read directly: `Options.cs` specifies `D3D-display`, brightness 49 and `set800mode 0`; `temple4/kq.vol` contains three live `Connor Die Now` requests in `vortrap.cs`. `Mask.exe` has SHA-256 `6114236b0990655476f0af974cc4cff713a427397c3aa98e50dd0744c2f5965d`. No game files were changed or copied into this repository.
