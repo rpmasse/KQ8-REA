@@ -10,8 +10,16 @@ Source types:
   that allows reuse (MIT, Apache, ...).
 - **Documented (GPL)**: from a GPL project. Used only for *facts about file
   layouts*, never code or wording, so our code is not a derivative of it.
-- **Disassembly**: from studying `Mask.exe`. Not used yet. See the working
-  method in `docs/DESIGN.md` before using this source.
+- **Executable study**: a separate research session investigates rules built into
+  `Mask.exe` and records their observable behavior in [the study notes](../behaviour/).
+  The Rust implementation uses those descriptions and the installed game data.
+  The [session workflow](../SESSIONS.md) defines what can pass between the two.
+
+The Windows executable in the local GOG reference installation reports file
+version `1.0.0.3`. Its SHA-256 is
+`6114236b0990655476f0af974cc4cff713a427397c3aa98e50dd0744c2f5965d`.
+In the same installation, `data/DeadCity/kq.vol` supplies the authored scripts
+for the two scale dishes, the feather and the river.
 
 ## Campaign script variables and payments
 
