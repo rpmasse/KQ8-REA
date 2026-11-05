@@ -3,6 +3,161 @@ use std::{fs, path::Path, process::Command};
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn conversation_camera_center_and_suppressed_cuts_survive_reload() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let original_options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/conversation-camera/{nonce}"));
+    let slots = root.join("slots");
+    let run = |name: &str, args: &[&str]| {
+        let dir = root.join(name);
+        fs::create_dir_all(&dir).unwrap();
+        let result = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+            .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
+            .args(["--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
+        fs::write(dir.join("stderr.log"), &result.stderr).unwrap();
+        fs::write(dir.join("stdout.log"), &result.stdout).unwrap();
+        let logs = dir.join("kq8-artifacts/logs");
+        let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+        assert!(result.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+        (viewer, fs::read_to_string(logs.join("conversation.log")).unwrap())
+    };
+    let read = |n| -> serde_json::Value {
+        serde_json::from_slice(&fs::read(slots.join(format!("slot-{n}.json"))).unwrap_or_else(|e| panic!("{e}; inspect {}", root.display()))).unwrap()
+    };
+    let quit = "down:down:down:enter:release:left:enter:release";
+    let save = format!("menu:down:down:enter:release:enter:release:escape:type=Camera:enter:release:{quit},45");
+    let (_, first_log) = run("save", &["--world", "Daventry", "--frames", "1200", "--right", "25",
+        "--command", "set Daventry::Wizard::Clicked true,3", "--command", "move Connor 0 192171 198091 6700 0 0 0,5",
+        "--command", "setLowerGui 1,8", "--command", "KQConner::conversation Wizard 1000 4 14 27 1 2 0,12", "--key", &save]);
+    assert_eq!(first_log.matches("the right button is held during the stay test:").count(), 1);
+    let first = read(1);
+    assert_eq!(first["conversation"]["active"]["cuts_stopped"], true);
+    let around = first["camera"]["around"].as_array().unwrap();
+    for (axis, spot) in [192171.0, 198091.0, 6700.0].into_iter().enumerate() {
+        let partner = first["conversation"]["active"]["partner_at"][axis].as_f64().unwrap();
+        assert!((around[axis].as_f64().unwrap() - (partner + spot) / 2.0).abs() < 0.02);
+    }
+    let finish = format!("menu:down:down:down:enter:release:enter:release:escape:type=Done:enter:release:{quit},350");
+    let (_, resumed) = run("restore", &["--menu-input", "down,enter,release,enter,release", "--frames", "2600",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Resumed:enter:release:escape,3",
+        "--command", "move Connor 0 192450 198140 6700 0 0 0,10",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Moved:enter:release:escape,20",
+        "--hold", "1,0,0,310,330", "--key", &finish]);
+    assert!(!resumed.contains("the right button is held during the stay test:"), "camera entry replayed");
+    assert_eq!(resumed.matches("camera 3: ignored (the player moved the camera, rule 14)").count(), 1);
+    assert_eq!(resumed.matches("Wizard: TalkExit:").count(), 1);
+    let early = read(2); let moved = read(3); let last = read(4);
+    for slot in [&early, &moved] {
+        assert_eq!(slot["conversation"]["active"]["cuts_stopped"], true);
+        assert_eq!(slot["camera"]["around"], first["camera"]["around"]);
+    }
+    assert_ne!(moved["position"], early["position"]);
+    assert_eq!(moved["camera"]["cam"]["position"], early["camera"]["cam"]["position"], "the conversation camera followed Connor's movement");
+    assert!(last["conversation"]["active"].is_null() && last["camera"]["around"].is_null());
+    assert_eq!(last["camera"]["following"], true);
+    assert_eq!(last["panels"]["slides"][1]["shown"], true);
+    assert_ne!(last["position"], moved["position"], "movement did not resume after dialogue");
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), original_options);
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn goodbye_paused_queue_and_welcome_back_survive_fresh_processes() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let original_options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/conversation-return/{nonce}"));
+    let slots = root.join("slots");
+    let run = |name: &str, args: &[&str]| {
+        let dir = root.join(name);
+        fs::create_dir_all(dir.join("kq8-artifacts")).unwrap();
+        fs::write(dir.join("kq8-artifacts/Options.cs"), b"set Options::Captions true\n").unwrap();
+        let result = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+            .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
+            .args(["--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
+        fs::write(dir.join("stderr.log"), &result.stderr).unwrap();
+        fs::write(dir.join("stdout.log"), &result.stdout).unwrap();
+        let logs = dir.join("kq8-artifacts/logs");
+        let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+        assert!(result.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+        (viewer, fs::read_to_string(logs.join("talk.log")).unwrap(), fs::read_to_string(logs.join("conversation.log")).unwrap())
+    };
+    let read = |n| -> serde_json::Value {
+        serde_json::from_slice(&fs::read(slots.join(format!("slot-{n}.json"))).unwrap_or_else(|e| panic!("{e}; inspect {}", root.display()))).unwrap()
+    };
+    fn wizard(s: &serde_json::Value) -> &serde_json::Value {
+        s["speech"]["queues"].as_array().unwrap().iter().find(|q| q["conv"] == true && q["issuer"] == "Wizard").unwrap()
+    }
+    let quit = "down:down:down:enter:release:left:enter:release";
+    let save_goodbye = format!("menu:down:down:enter:release:enter:release:escape:type=Goodbye:enter:release:{quit},45");
+    run("goodbye", &["--world", "Daventry", "--frames", "1200",
+        "--command", "set Daventry::Wizard::Clicked true,3", "--command", "move Connor 0 192171 198091 6700 0 0 0,5",
+        "--command", "setLowerGui 1,8", "--command", "KQConner::conversation Wizard 1000 4 14 27 1 2 0,12",
+        "--command", "move Connor 0 193000 201000 6700 0 0 0,35", "--key", &save_goodbye]);
+    let first = read(1);
+    let goodbye = &wizard(&first)["playing"];
+    assert_eq!(goodbye["kind"], "Goodbye", "save missed goodbye; inspect {}", root.display());
+    assert_eq!(goodbye["tuple"]["case"], 7);
+    assert!(first["conversation"]["active"].is_null() && first["talk_pose"].is_null());
+    let waiting = wizard(&first)["lines"].clone();
+    assert_eq!(waiting.as_array().unwrap().iter().map(|e| e["tuple"]["seq"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 2]);
+    let save_paused = format!("menu:down:down:down:enter:release:enter:release:escape:type=Paused:enter:release:{quit},100");
+    let (_, talk, conversation) = run("pause", &["--menu-input", "down,enter,release,enter,release", "--frames", "1600", "--key", &save_paused]);
+    let goodbye_id = goodbye["id"].as_u64().unwrap();
+    let goodbye_elapsed = -goodbye["started"].as_f64().unwrap();
+    assert!(talk.contains(&format!("line #{goodbye_id}: resume 1000 4 0 7 1 voice at {goodbye_elapsed:.3} seconds")));
+    assert_eq!(talk.matches(&format!("goodbye #{goodbye_id} 1000 4 0 7 1 finished")).count(), 1);
+    assert!(!talk.contains("TalkComplete 1000 4 0 7 1"));
+    assert_eq!(conversation.matches("Wizard: TalkExit:").count(), 1);
+    let paused = read(2);
+    assert_eq!(wizard(&paused)["paused"], true);
+    assert!(wizard(&paused)["playing"].is_null());
+    assert_eq!(wizard(&paused)["lines"], waiting);
+    let save_welcome = format!("menu:down:down:down:enter:release:enter:release:escape:type=Welcome:enter:release:{quit},45");
+    let (_, returned, _) = run("return", &["--menu-input", "down,enter,release,down,enter,release", "--frames", "1400",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=StillPaused:enter:release:escape,3",
+        "--command", "move Connor 0 192171 198091 6700 0 0 0,15",
+        "--command", "KQConner::conversation Wizard 1000 4 14 27 1 2 0,17", "--key", &save_welcome]);
+    let still_paused = read(3);
+    assert_eq!(wizard(&still_paused), wizard(&paused), "loading the pause started or changed the queue");
+    assert!(!returned.contains("resume 1000 4 0 7 1"));
+    let welcome_saved = read(4);
+    let welcome = &wizard(&welcome_saved)["playing"];
+    assert_eq!(welcome["kind"], "WelcomeBack", "return missed welcome back; inspect {}", root.display());
+    assert_eq!(wizard(&welcome_saved)["lines"], waiting, "return duplicated or lost waiting lines");
+    let welcome_id = welcome["id"].as_u64().unwrap();
+    let welcome_elapsed = -welcome["started"].as_f64().unwrap();
+    assert!(welcome_elapsed > 0.5 && welcome["ends"].as_f64().unwrap() > 1.0);
+    let save_finished = format!("menu:down:down:down:enter:release:enter:release:escape:type=Finished:enter:release:{quit},500");
+    let (viewer, finished, exits) = run("finish", &["--menu-input", "down,enter,release,down,down,down,enter,release", "--frames", "3000",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=ResumedWelcome:enter:release:escape,3",
+        "--hold", "1,0,0,450,470", "--key", &save_finished]);
+    assert!(viewer.contains("save restored in Daventry without replaying Begin"));
+    assert!(finished.contains(&format!("line #{welcome_id}: resume 1000 4 0 8 1 voice at {welcome_elapsed:.3} seconds")));
+    assert!(!finished.contains("TalkComplete 1000 4 0 8 1"));
+    assert!(!finished.contains("1000 4 0 8 1 starts:"), "welcome back restarted on load");
+    for seq in [1, 2] {
+        assert_eq!(finished.matches(&format!("1000 4 14 27 {seq} starts:")).count(), 1);
+        assert_eq!(finished.matches(&format!("Wizard: TalkComplete 1000 4 14 27 {seq} ")).count(), 1);
+    }
+    assert_eq!(exits.matches("Wizard: TalkExit:").count(), 1);
+    let early = read(5);
+    assert_eq!(wizard(&early)["playing"]["id"], welcome["id"]);
+    assert!(-wizard(&early)["playing"]["started"].as_f64().unwrap() > welcome_elapsed);
+    let last = read(6);
+    assert!(last["conversation"]["active"].is_null() && last["talk_pose"].is_null());
+    assert!(wizard(&last)["playing"].is_null() && wizard(&last)["lines"].as_array().unwrap().is_empty());
+    assert_eq!(last["panels"]["slides"][1]["shown"], true);
+    assert_eq!(last["camera"]["following"], true);
+    let moved: f64 = last["position"].as_array().unwrap().iter().zip(early["position"].as_array().unwrap())
+        .map(|(a, b)| (a.as_f64().unwrap() - b.as_f64().unwrap()).abs()).sum();
+    assert!(moved > 100.0, "control did not return; inspect {}", root.display());
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), original_options);
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
 fn conversation_weapon_away_out_and_list_boundary_resume_after_reload() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let original_options = fs::read(game.join("Options.cs")).unwrap();
