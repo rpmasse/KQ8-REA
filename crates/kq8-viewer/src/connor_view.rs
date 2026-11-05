@@ -343,6 +343,26 @@ pub struct SavedSwing {
     transition_playing: Option<SavedSwingTransition>,
 }
 
+/// A standing ranged attack or its pending turn, resolved from the installed
+/// animation list after a disk load. The phase is the cue cursor: restoring
+/// after `do` must not release the projectile a second time.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedShot {
+    movement: String,
+    aim: [f32; 3],
+    waiting: bool,
+    started: bool,
+    walker_mode: Mode,
+    walker_movement: String,
+    phase: f32,
+    bank: f32,
+    fresh: bool,
+    auto: Option<kq8_core::connor_auto::AutoMove>,
+    wanted: Option<String>,
+    transition_waiting: Option<SavedSwingTransition>,
+    transition_playing: Option<SavedSwingTransition>,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct SavedSwingTransition {
     from: f32,
@@ -389,7 +409,75 @@ impl SavedSwing {
     }
 }
 
+impl SavedShot {
+    pub fn valid(&self) -> bool {
+        valid_swing_name(&self.movement) && valid_swing_name(&self.walker_movement)
+            && self.aim.iter().all(|p| p.is_finite())
+            && self.waiting != self.started
+            && matches!(self.walker_mode, Mode::Free | Mode::Special)
+            && self.waiting == (self.walker_mode == Mode::Free)
+            && (self.waiting || self.walker_movement.eq_ignore_ascii_case(&self.movement))
+            && (!self.waiting || self.auto.as_ref().is_some_and(|auto| auto.target == [self.aim[0], self.aim[1]]))
+            && self.phase.is_finite() && (0.0..=1.0).contains(&self.phase) && self.bank.is_finite()
+            && self.wanted.as_ref().is_none_or(|name| valid_swing_name(name))
+            && [self.transition_waiting.as_ref(), self.transition_playing.as_ref()].into_iter().flatten().all(SavedSwingTransition::valid)
+            && self.auto.as_ref().is_none_or(|auto| {
+                use kq8_core::connor_auto::AutoPhase;
+                auto.target.iter().all(|n| n.is_finite())
+                    && auto.turn_updates < u32::MAX / 2
+                    && auto.cue.as_ref().is_none_or(|cue| [cue.who.as_str(), cue.c.as_str(), cue.d.as_str()].into_iter().all(valid_swing_name))
+                    && match auto.phase {
+                        AutoPhase::Turning => true,
+                        AutoPhase::Walking { from, distance } => from.iter().all(|n| n.is_finite()) && distance.is_finite(),
+                    }
+            })
+    }
+}
+
 impl ConnorSim {
+    pub fn saved_shot(&self) -> Option<SavedShot> {
+        let shot = self.shot.as_ref()?;
+        let walker = &self.walker;
+        let saved = SavedShot {
+            movement: shot.movement.into(), aim: shot.aim, waiting: shot.waiting, started: shot.started,
+            walker_mode: walker.mode, walker_movement: walker.movement.into(), phase: walker.phase,
+            bank: walker.bank, fresh: walker.fresh, auto: walker.auto.clone(),
+            wanted: walker.wanted.map(str::to_owned),
+            transition_waiting: walker.waiting.map(SavedSwingTransition::take),
+            transition_playing: walker.playing.map(SavedSwingTransition::take),
+        };
+        saved.valid().then_some(saved)
+    }
+
+    pub fn restore_shot(&mut self, saved: &SavedShot) -> Result<(), String> {
+        if !saved.valid() { return Err("invalid ranged shot checkpoint".into()); }
+        let resolve = |name: &str| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
+            .ok_or_else(|| format!("ranged shot movement '{name}' is missing from the installed game data"));
+        let movement = resolve(&saved.movement)?;
+        let walker_movement = resolve(&saved.walker_movement)?;
+        let wanted = saved.wanted.as_deref().map(&resolve).transpose()?;
+        let transition = |t: &SavedSwingTransition| -> Result<kq8_core::connor::Transition, String> {
+            Ok(kq8_core::connor::Transition { from: t.from, to: resolve(&t.to)?, to_phase: t.to_phase, via: resolve(&t.via)? })
+        };
+        let waiting = saved.transition_waiting.as_ref().map(&transition).transpose()?;
+        let playing = saved.transition_playing.as_ref().map(&transition).transpose()?;
+        if saved.walker_mode == Mode::Special {
+            self.walker.start_special(vec![kq8_core::connor::SpecialStep::Play(movement, "attack".into())]);
+        }
+        self.walker.mode = saved.walker_mode;
+        self.walker.movement = walker_movement;
+        self.walker.phase = saved.phase;
+        self.walker.bank = saved.bank;
+        self.walker.fresh = saved.fresh;
+        self.walker.auto = saved.auto.clone();
+        self.walker.wanted = wanted;
+        self.walker.waiting = waiting;
+        self.walker.playing = playing;
+        self.shot = Some(Shot { movement, aim: saved.aim, waiting: saved.waiting, started: saved.started });
+        self.redraw_from_walker();
+        Ok(())
+    }
+
     pub fn saved_swing(&self) -> Option<SavedSwing> {
         let swing = self.swing.as_ref()?;
         let walker = &self.walker;

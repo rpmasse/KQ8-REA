@@ -36,6 +36,8 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     swing: Option<connor_view::SavedSwing>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    shot: Option<connor_view::SavedShot>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     fight_rng: Option<kq8_core::emitter::Rng>,
 }
 
@@ -52,6 +54,9 @@ impl Snapshot {
         }
         if self.swing.as_ref().is_some_and(|s| !s.valid()) || (self.swing.is_some() && self.fight_rng.is_none()) {
             return Err("save has an invalid melee swing".into());
+        }
+        if self.shot.as_ref().is_some_and(|s| !s.valid()) || (self.shot.is_some() && self.swing.is_some()) {
+            return Err("save has an invalid ranged shot".into());
         }
         let known = |name: &str| {
             kq8_data::game_dir::WORLDS
@@ -190,8 +195,11 @@ impl Snapshot {
             if let Some(swing) = &self.swing {
                 connor.restore_swing(swing)?;
             }
-        } else if self.swing.is_some() {
-            return Err("Connor is unavailable while restoring his melee swing".into());
+            if let Some(shot) = &self.shot {
+                connor.restore_shot(shot)?;
+            }
+        } else if self.swing.is_some() || self.shot.is_some() {
+            return Err("Connor is unavailable while restoring his attack".into());
         }
         Ok(())
     }
@@ -347,6 +355,10 @@ pub fn save_slot_with_thumbnail(
     if connor.swing.is_some() && swing.is_none() {
         return Err("Connor's current melee swing cannot be saved".into());
     }
+    let shot = connor.saved_shot();
+    if connor.shot.is_some() && shot.is_none() {
+        return Err("Connor's current ranged shot cannot be saved".into());
+    }
     let snapshot = Snapshot {
         version: VERSION,
         world: change.current.clone(),
@@ -361,6 +373,7 @@ pub fn save_slot_with_thumbnail(
         inventory_order: sim.active.world.items.inventory_order_counter(),
         script_events: Some(sim.active.world.saved_events()),
         swing,
+        shot,
         fight_rng: Some(sim.active.world.fight_rng.clone()),
     };
     write_slot(&directory(), slot, &snapshot)
@@ -492,6 +505,7 @@ mod tests {
             inventory_order: 47,
             script_events: Some(sim.world.saved_events()),
             swing: None,
+            shot: None,
             fight_rng: None,
             journey: take_journey(&sim, "Daventry"),
             kept,
