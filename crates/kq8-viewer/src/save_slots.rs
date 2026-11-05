@@ -71,6 +71,16 @@ pub(super) struct Snapshot {
 }
 
 impl Snapshot {
+    // A conversation finishes `away` in trap_step after weapon synchronization.
+    // Keep the old drawn list until the next door_step switches to bare hands.
+    fn conversation_weapon_change_pending(&self) -> bool {
+        self.journey.weapon_mode == kq8_core::weapons::WeaponMode::None && self.journey.weapon_ready.is_none()
+            && self.special.is_none() && self.swing.is_none() && self.shot.is_none()
+            && self.conversation.as_ref().is_some_and(|c| c.beginning_bare_hand_out())
+            && self.talk_pose.as_ref().is_some_and(|p| p.finished_weapon_away())
+            && self.weapon_state.as_ref().is_some_and(|w| w.retains_drawn_list())
+    }
+
     fn validate(&self) -> Result<(), String> {
         if self.conversation.as_ref().is_some_and(|s| !s.valid()) || self.talk_pose.as_ref().is_some_and(|s| !s.valid())
             || self.camera.as_ref().is_some_and(|s| !s.valid()) || self.panels.as_ref().is_some_and(|s| !s.valid_checkpoint()) {
@@ -106,7 +116,8 @@ impl Snapshot {
             return Err("save has an invalid Special movement".into());
         }
         if self.weapon_state.as_ref().is_some_and(|w| !w.valid(self.special.as_ref()))
-            || self.weapon_state.as_ref().is_some_and(|w| !w.matches_ready(self.journey.weapon_ready.as_deref(), self.journey.weapon_mode)) {
+            || (self.weapon_state.as_ref().is_some_and(|w| !w.matches_ready(self.journey.weapon_ready.as_deref(), self.journey.weapon_mode))
+                && !self.conversation_weapon_change_pending()) {
             return Err("save has an invalid Connor weapon state".into());
         }
         if self.combat_cues.as_ref().is_some_and(|cues| !cues.valid()) {
@@ -255,7 +266,8 @@ impl Snapshot {
                 let captions = sim.active.scripts.vars.get("Options::Captions") == Some("true");
                 sim.active.world.talk.restore(speech, now, captions)?;
             }
-            if self.weapon_state.as_ref().is_some_and(|state| !state.matches_list(crate::door_view::weapon_list(&sim.active.world).as_deref())) {
+            if self.weapon_state.as_ref().is_some_and(|state| !state.matches_list(crate::door_view::weapon_list(&sim.active.world).as_deref()))
+                && !self.conversation_weapon_change_pending() {
                 return Err("saved weapon movement list does not match the restored world".into());
             }
             if let Some(rng) = &self.fight_rng { sim.active.world.fight_rng = rng.clone(); }
@@ -560,6 +572,39 @@ mod tests {
 
     fn active() -> Active {
         Active::new(Default::default(), vec![], vec![], [], [])
+    }
+
+    #[test]
+    fn only_the_completed_conversation_away_accepts_a_pending_weapon_list_change() {
+        let mut sim = active();
+        sim.world.conversation = Some(kq8_core::conversation::Conversation { partner: "Partner".into(), partner_at: [0.0; 3], info: None,
+            lines: kq8_core::talk::Speak { issuer: "Partner".into(), first: kq8_data::msg::Tuple::new(1000, 1, 0, 0, 1), last: 1, nofade: false },
+            keep_weapon: false, case: Some(kq8_core::conversation::Case::There), stage: kq8_core::conversation::Stage::Out,
+            walk_from: [0.0; 3], approach_updates: 0, at: "test".into(), cuts_stopped: false });
+        let mut json = serde_json::to_value(fixture()).unwrap();
+        json["conversation"] = serde_json::to_value(sim.world.saved_conversation()).unwrap();
+        json["weapon_state"] = serde_json::json!({"weapon_set":"conAxe.anm","weapon_target":"conAxe.anm","pending_set":null,
+            "readying":false,"target_mode":"Hand","ready_item":"INVITEM_SmallAx","set_mode":"Hand","held_walk":null});
+        json["talk_pose"] = serde_json::json!({"movement":"away","phase":1.0,"bank":0.0,"fresh":false,"talk_play":"out",
+            "wanted":null,"auto":null,"waiting":null,"playing":null,"hand_mode":4,"hands_off":false,"turn_by_script":false,
+            "turn_press":false,"blocked":[false,false],"moving":{"state":"Normal","on_ground":true,"use_gravity":true,
+                "keep_on_ground":true,"fall_timer":0.0,"air_updates":0,"pull":[0.0,0.0,-1.0],"submerged":false}});
+        let saved: Snapshot = serde_json::from_value(json.clone()).unwrap();
+        assert!(saved.conversation_weapon_change_pending());
+        saved.validate().unwrap();
+        for change in 0..5 {
+            let mut invalid = json.clone();
+            match change {
+                0 => invalid["conversation"]["active"]["stage"] = "Away".into(),
+                1 => invalid["conversation"]["active"]["approach_updates"] = 1.into(),
+                2 => invalid["talk_pose"]["phase"] = 0.5.into(),
+                3 => invalid["talk_pose"]["hand_mode"] = 0.into(),
+                _ => invalid["talk_pose"]["talk_play"] = "stop".into(),
+            }
+            let invalid: Snapshot = serde_json::from_value(invalid).unwrap();
+            assert!(!invalid.conversation_weapon_change_pending());
+            assert!(invalid.validate().is_err(), "unrelated weapon mismatch was accepted: {change}");
+        }
     }
 
     #[test]

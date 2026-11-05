@@ -32,6 +32,12 @@ pub struct SavedTalkPose {
 }
 
 impl SavedTalkPose {
+    pub fn finished_weapon_away(&self) -> bool {
+        self.movement.eq_ignore_ascii_case("away") && self.phase == 1.0
+            && self.talk_play.as_deref().is_some_and(|s| s.eq_ignore_ascii_case("out"))
+            && self.hand_mode == kq8_core::connor::EMPTY_HANDS
+    }
+
     pub fn valid(&self) -> bool {
         valid_swing_name(&self.movement) && self.phase.is_finite() && (0.0..=1.0).contains(&self.phase) && self.bank.is_finite()
             && [&self.talk_play, &self.wanted].into_iter().flatten().all(|s| valid_swing_name(s))
