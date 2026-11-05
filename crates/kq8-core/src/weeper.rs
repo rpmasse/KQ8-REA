@@ -15,7 +15,106 @@ pub struct Drain {
     links: Vec<usize>,
 }
 
+/// A post-impact Weeper drain in a disk slot. Link names and positions are
+/// saved instead of indices, which change when the world is read again.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct SavedDrain {
+    bolt: String,
+    shooter: String,
+    target: String,
+    keys: DrainKeys,
+    ticks: u32,
+    pulses: u32,
+    links: Vec<SavedDrainLink>,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+struct SavedDrainLink {
+    name: String,
+    position: [f32; 3],
+    end: bool,
+}
+
+impl SavedDrain {
+    pub fn bolt_name(&self) -> &str { &self.bolt }
+
+    pub fn valid(&self) -> bool {
+        fn name(s: &str) -> bool {
+            !s.is_empty() && s.len() <= 256 && !s.chars().any(char::is_control)
+                && !s.starts_with(['/', '\\']) && !s.contains(':')
+                && !s.split(['/', '\\']).any(|part| matches!(part, "." | ".."))
+        }
+        if ![&self.bolt, &self.shooter, &self.target, &self.keys.segment,
+            &self.keys.end, &self.keys.sound, &self.keys.fire_anim, &self.keys.hurt_anim,
+            &self.keys.done_anim].into_iter().all(|s| name(s))
+            || ![self.keys.duration, self.keys.shoot_height, self.keys.hit_height].into_iter().all(f32::is_finite)
+            || !(0.0..=1000.0).contains(&self.keys.duration)
+            || self.ticks > (self.keys.duration * crate::UPDATES_PER_SECOND as f32).ceil() as u32
+            || self.pulses > (self.keys.duration * 4.0).ceil() as u32
+            || self.links.len() > 512
+        {
+            return false;
+        }
+        let mut names = std::collections::BTreeSet::new();
+        self.links.iter().all(|link| {
+            name(&link.name) && names.insert(link.name.to_ascii_lowercase())
+                && link.position.iter().all(|p| p.is_finite())
+                && if link.end {
+                    link.name.eq_ignore_ascii_case(&format!("WeepEnd.{}", self.shooter))
+                } else {
+                    link.name.to_ascii_lowercase().starts_with(&format!("weeplink.{}.", self.shooter.to_ascii_lowercase()))
+                }
+        }) && self.links.iter().filter(|link| link.end).count() <= 1
+    }
+}
+
 impl WorldState {
+    pub fn saved_drains(&self) -> Result<Vec<SavedDrain>, String> {
+        self.weeper_drains.iter().map(|d| {
+            let links = d.links.iter().map(|&i| {
+                let a = self.anims.get(i).ok_or("Weeper drain has a missing link")?;
+                Ok(SavedDrainLink {
+                    name: a.player.name.clone(), position: a.player.base.position,
+                    end: a.player.name.eq_ignore_ascii_case(&format!("WeepEnd.{}", d.shooter)),
+                })
+            }).collect::<Result<Vec<_>, String>>()?;
+            let saved = SavedDrain {
+                bolt: d.bolt.clone(), shooter: d.shooter.clone(), target: d.target.clone(),
+                keys: d.keys.clone(), ticks: d.ticks, pulses: d.pulses, links,
+            };
+            if !saved.valid() { return Err("Weeper drain cannot form a valid checkpoint".into()); }
+            Ok(saved)
+        }).collect()
+    }
+
+    pub fn restore_drains(&mut self, saved: &[SavedDrain]) -> Result<(), String> {
+        if saved.len() > 64 || saved.iter().any(|d| !d.valid()) {
+            return Err("invalid Weeper drain checkpoint".into());
+        }
+        self.weeper_drains.clear();
+        self.weeper_links.clear();
+        for d in saved {
+            if self.drain_actor_position(&d.shooter).is_none() || self.drain_actor_position(&d.target).is_none() {
+                return Err(format!("Weeper drain {} has a missing actor", d.bolt));
+            }
+            let mut links = Vec::with_capacity(d.links.len());
+            for link in &d.links {
+                let file = if link.end { &d.keys.end } else { &d.keys.segment };
+                let i = self.place_drain_link(file, link.name.clone(), link.position)
+                    .ok_or_else(|| format!("Weeper drain {} is missing link template {file}", d.bolt))?;
+                links.push(i);
+            }
+            if d.target.eq_ignore_ascii_case("Connor") {
+                self.requests.push(Request::ConnorSpecial { items: d.keys.hurt_anim.clone(), at: "restored Weeper drain".into() });
+            }
+            self.weeper_drains.push(Drain {
+                bolt: d.bolt.clone(), shooter: d.shooter.clone(), target: d.target.clone(),
+                keys: d.keys.clone(), ticks: d.ticks, pulses: d.pulses, links,
+            });
+        }
+        Ok(())
+    }
+
     fn drain_actor_position(&self, name: &str) -> Option<[f32; 3]> {
         if name.eq_ignore_ascii_case("Connor") {
             return self.connor_at.filter(|_| !self.connor_dying);
