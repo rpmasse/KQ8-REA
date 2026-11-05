@@ -110,6 +110,9 @@ fn dead_city_script_created_monster_types_are_live_and_drawn() {
         "--command", "KQMonster::add testSpirit spirit,13",
         "--command", "KQMonster::add testSkeleton skeleton,14",
         "--command", "KQMonster::add testSkelbow skelbow,15",
+        // Connor starts near (182221, 45000); this copy must receive the
+        // character distance test so core actually updates its movement.
+        "--command", "KQMonster::add closeRat rat @ @ @ @ @ 184221 45000 -1 0 @ @ @ @ @ @ @ @ @,16",
         "--frames", "90",
     ]);
     let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
@@ -120,6 +123,11 @@ fn dead_city_script_created_monster_types_are_live_and_drawn() {
         assert!(doors.contains(&format!("KQMonster::add {name} type {kind}")), "{name} missing from live world; see {}", logs.display());
         assert!(viewer.contains(&format!("copy {name} of {file}: drawn")), "{name} has no rendered model; see {}", logs.display());
     }
+    let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
+    assert!(viewer.contains("copy closeRat of rat.kq: drawn") && viewer.contains("character distance radius"), "missing copy distance test; see {}", logs.display());
+    assert!(viewer.lines().any(|line| line.contains("copy testSkeleton of skelbs.kq: drawn") && line.contains("face 9 material(s)")), "the copy missed its face materials; see {}", logs.display());
+    assert!(characters.contains("closeRat: solid for Connor: cylinder"), "copy has no core character collider; see {}", logs.display());
+    assert!(characters.contains("closeRat: start-up (first update"), "copy never entered the near/far character set; see {}", logs.display());
     assert!(viewer.contains("RESULT: PASS"));
 }
 

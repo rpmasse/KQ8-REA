@@ -82,6 +82,9 @@ pub fn spawn_copies(
     let spawns = std::mem::take(&mut sim.spawns);
     for (file, name, placement) in spawns {
         let p = placement.position;
+        let actor_index = sim.active.world.anim_index(&name);
+        let actor_character = actor_index.and_then(|i| sim.active.world.anims[i].character.as_deref());
+        let unborn = actor_character.is_some_and(|c| c.unborn);
         let line = match draw.as_ref().and_then(|d| d.stills.get(&file)) {
             Some(t) => {
                 let transform = bevy_transform_from(placement.rotation, placement.position);
@@ -91,18 +94,19 @@ pub fn spawn_copies(
                 let collider = add_collider(&name, placement, (t.bounds, t.collider_type, t.collider_mask), colliders.as_deref_mut(), order.as_deref_mut());
                 format!("copy {name} of {file} drawn at ({:.0}, {:.0}, {:.0}), {} part(s); {collider} (M5 5d-3)", p[0], p[1], p[2], t.parts.len())
             }
-            None => match (draw.as_ref().and_then(|d| d.anims.get(&file)), anim.as_mut(), sim.active.world.anim_index(&name)) {
+            None => match (draw.as_ref().and_then(|d| d.anims.get(&file)), anim.as_mut(), actor_index) {
                 // 5d-4: an animated copy, played by core's object.
                 (Some(t), Some(a), Some(index)) => {
-                    let line = a.spawn_copy(&mut commands, &t.name, &name, placement, index, (gpu.as_deref(), &mut materials));
-                    let collider = add_collider(&name, placement, (t.bounds, t.collider_type, t.collider_mask), colliders.as_deref_mut(), order.as_deref_mut());
+                    let line = a.spawn_copy(&mut commands, &t.name, &name, placement, index, unborn, (gpu.as_deref(), &mut materials));
+                    let collider = if actor_character.is_some() { "character collider belongs to core".to_string() }
+                        else { add_collider(&name, placement, (t.bounds, t.collider_type, t.collider_mask), colliders.as_deref_mut(), order.as_deref_mut()) };
                     format!("{line} at ({:.0}, {:.0}, {:.0}); {collider}", p[0], p[1], p[2])
                 }
                 (None, Some(a), Some(index)) if file.ends_with(".kqs") => {
-                    a.spawn_copy(&mut commands, &file, &name, placement, index, (gpu.as_deref(), &mut materials))
+                    a.spawn_copy(&mut commands, &file, &name, placement, index, unborn, (gpu.as_deref(), &mut materials))
                 }
                 (None, Some(a), Some(index)) if file.ends_with(".kq") && a.has_recipe(&file) => {
-                    a.spawn_copy(&mut commands, &file, &name, placement, index, (gpu.as_deref(), &mut materials))
+                    a.spawn_copy(&mut commands, &file, &name, placement, index, unborn, (gpu.as_deref(), &mut materials))
                 }
                 _ => format!("copy {name} of {file} at ({:.0}, {:.0}, {:.0}): no template drawn here; not drawn", p[0], p[1], p[2]),
             },
