@@ -333,6 +333,35 @@ pub struct Bolt {
     /// Azriel's Hammer (a `KQHammer` file): it flies back instead of
     /// being removed (`azriel-hammer.md` rules 7–9; M6 6b-2).
     pub hammer: Option<HammerFlight>,
+    pub script: Option<String>,
+    pub arc: Option<RockArc>,
+}
+
+/// The files give upward velocity and peak height, but do not describe the
+/// integration. Use constant gravity and aim the horizontal motion at the
+/// clicked point on the descending part of the arc, limited by file speed.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RockArc {
+    velocity: [f32; 3],
+    gravity: f32,
+}
+
+impl RockArc {
+    fn new(from: [f32; 3], aim: [f32; 3], peak: f32, up: f32, speed: f32) -> Self {
+        let gravity = up * up / (2. * peak);
+        let time = (up + (up * up - 2. * gravity * (aim[2] - from[2])).max(0.).sqrt()) / gravity;
+        let dx = aim[0] - from[0];
+        let dy = aim[1] - from[1];
+        let duration = time.max(dx.hypot(dy) / speed.max(1.));
+        Self { velocity: [dx / duration, dy / duration, up], gravity }
+    }
+
+    fn advance(&mut self, from: [f32; 3], dt: f32) -> [f32; 3] {
+        let mut next = std::array::from_fn(|i| from[i] + self.velocity[i] * dt);
+        next[2] -= 0.5 * self.gravity * dt * dt;
+        self.velocity[2] -= self.gravity * dt;
+        next
+    }
 }
 
 /// Azriel's Hammer in flight (`azriel-hammer.md` rules 6–9).
@@ -1421,7 +1450,7 @@ impl crate::active::WorldState {
         let balls = p.bounds.map(|(min, max)| crate::collide::BallStack::from_box(min, max));
         let hammer = p.hammer.then_some(HammerFlight { back: false, modifier: p.modifier, min_damage: p.min_damage, max_damage: p.max_damage });
         let bolt = Bolt {
-            name: format!("{}{}", if hammer.is_some() { "hammer" } else { "bolt" }, self.bolts_shot),
+            name: format!("{}{}", if hammer.is_some() { "hammer" } else if p.parabola.is_some() { "rock" } else { "bolt" }, self.bolts_shot),
             shooter: shooter.to_string(),
             shape: p.shape.clone(),
             position: from,
@@ -1433,11 +1462,13 @@ impl crate::active::WorldState {
             max: p.max_distance,
             damage,
             // azriel-hammer.md rule 8: the hammer's hits are `Projectile`.
-            kind: if hammer.is_some() { HitKind::Projectile } else { bolt_kind(p.weapon_type) },
+            kind: if p.parabola.is_some() { HitKind::Normal } else if hammer.is_some() { HitKind::Projectile } else { bolt_kind(p.weapon_type) },
             mask: p.collider_mask,
             balls,
             updates: 0,
             hammer,
+            script: p.script.clone(),
+            arc: p.parabola.map(|(peak, up)| RockArc::new(from, aim, peak, up, p.speed)),
         };
         let shape = match &bolt.balls {
             Some(b) => format!("box {:?} as {} ball(s) of radius {:.0} at {:?} above it (Q140 a)", p.bounds.unwrap_or_default(), b.heights.len(), b.radius, b.heights),
@@ -1500,7 +1531,11 @@ impl crate::active::WorldState {
             let back = b.hammer.as_ref().is_some_and(|h| h.back);
             let from = b.position;
             let step = b.speed * dt;
-            let to: [f32; 3] = std::array::from_fn(|k| from[k] + b.direction[k] * step);
+            let to = if let Some(arc) = &mut b.arc {
+                arc.advance(from, dt)
+            } else {
+                std::array::from_fn(|k| from[k] + b.direction[k] * step)
+            };
             let point = BallStack { radius: 0.0, heights: vec![0.0] };
             let balls = b.balls.as_ref().unwrap_or(&point);
             let dist = |p: [f32; 3]| ((p[0] - from[0]).powi(2) + (p[1] - from[1]).powi(2) + (p[2] - from[2]).powi(2)).sqrt();
@@ -1561,14 +1596,17 @@ impl crate::active::WorldState {
                 continue;
             }
             let Some((d, what, p)) = best else {
-                b.travelled += step;
+                b.travelled += if b.arc.is_some() { (to[0] - from[0]).hypot(to[1] - from[1]) } else { step };
                 b.position = to;
                 let floor = ground.ground(to[0], to[1]).map(|(h, _)| h);
                 let line = format!("{} update {}: at ({:.0}, {:.0}, {:.0}), {:.0} travelled", b.name, b.updates, to[0], to[1], to[2], b.travelled);
                 if let Some(h) = floor.filter(|h| to[2] <= *h) {
                     self.fight_note(&b.shooter, format!("{line}; at or below the floor grid ({h:.0}): removed, no damage (rule 29)"));
+                    b.position[2] = h;
+                    self.projectile_event(&b, "Die");
                 } else if b.travelled > b.max {
                     self.fight_note(&b.shooter, format!("{line}; more than its range {:.0}: removed (rule 28)", b.max));
+                    self.projectile_event(&b, "Die");
                 } else {
                     self.fight_note(&b.shooter, line);
                     kept.push(b);
@@ -1579,8 +1617,16 @@ impl crate::active::WorldState {
             b.position = p;
             let at = format!("{} update {}: touches {{}} at ({:.0}, {:.0}, {:.0}), {:.0} travelled; removed there (rule 30)", b.name, b.updates, p[0], p[1], p[2], b.travelled);
             self.bolt_hits(&b, what, &at);
+            self.projectile_event(&b, "Die");
         }
         self.bolts.extend(kept);
+    }
+
+    fn projectile_event(&mut self, bolt: &Bolt, event: &'static str) {
+        if let Some(script) = &bolt.script {
+            let placement = crate::collide::Placement { position: bolt.position, rotation: kq8_data::objects::rotation([bolt.pitch, 0., bolt.heading]) };
+            self.projectile_calls.push((bolt.name.clone(), script.clone(), event, placement));
+        }
     }
 
     /// Rule 30: what a bolt's touch does. `at`: the log line, with `{}`
@@ -1600,6 +1646,7 @@ impl crate::active::WorldState {
                     self.fight_note(&shooter, at.replace("{}", &who) + &format!(": its type 0x{t:X} has the immune bit 0x4000: a hit of 0, its script gets ProjImmune"));
                     self.hit_character(j, &shooter, 0, b.kind);
                     self.immune_calls.push(who);
+                    self.projectile_event(b, "ProjImmune");
                 } else {
                     self.fight_note(&shooter, at.replace("{}", &who) + &format!(": a hit of {}, {} (fighting.md rules 16-33)", b.damage, b.kind.name()));
                     self.hit_character(j, &shooter, b.damage, b.kind);
@@ -1609,6 +1656,7 @@ impl crate::active::WorldState {
                 if t & IMMUNE_TO_PROJECTILES != 0 {
                     self.fight_note(&shooter, at.replace("{}", &format!("object {n}")) + &format!(": its type 0x{t:X} has the immune bit 0x4000: a hit of 0, its script gets ProjImmune"));
                     self.immune_calls.push(n);
+                    self.projectile_event(b, "ProjImmune");
                 } else if self.object_at(&n).is_some() {
                     self.fight_note(&shooter, at.replace("{}", &format!("object {n}")) + &format!(": a hit of {}, {}", b.damage, b.kind.name()));
                     let line = self.object_takes(&n, b.damage, b.kind);

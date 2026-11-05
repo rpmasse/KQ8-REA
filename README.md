@@ -2,16 +2,16 @@
 
 KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The engine reads the original levels, models, scripts, audio and interface assets from your own GOG installation. The target is the original Windows game, including its controls, timing, 4:3 presentation, and the full campaign from New Game through the ending.
 
-**Development build.** Daventry is the most complete region. The engine can load all 12 worlds, but a full campaign with working saves is still in development. The fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb), including work on revisiting regions and the Dead City puzzles.
+**Development build.** Daventry is the most complete region. All 12 worlds open in the Windows build. You can save in Daventry, quit, and load the slot from a fresh launch. The complete campaign and saving during encounters are still in development. The fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb).
 
 ## Project status
 
 | Stage | Current implementation | Remaining work |
 | --- | --- | --- |
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
-| M4 · Interface and dialogue | Original main menu, New Game and difficulty selection, pause/resume, restart, HUD, speech, captions and some conversations. | Finish Load, Save, Options, Replay Intro, remaining inventory and dialogue behavior. |
-| M5 · Combat | Enemy pursuit, melee and some ranged attacks, damage, potions, scripted equipment drops and a death-menu entry. | Complete weapon controls, projectiles, enemy-specific encounters and death recovery. |
-| M6 · Campaign and saves | Region travel, maps, some returning-world state, scripted terrain changes and Temple 4's final actors load. | Complete disk saves, remaining scripts, optional branches, boss sequences, movies and the ending. |
+| M4 · Interface and dialogue | New Game and difficulty, pause/resume, restart, original Save and Load screens with names and thumbnails, HUD, speech, captions and some conversations. | Options, Replay Intro, remaining inventory and dialogue behavior, and full menu fidelity. |
+| M5 · Combat | Enemy pursuit, melee and some ranged attacks, throwing and retrieving rocks, damage, potions, scripted equipment drops and a death-menu entry. | Verify weapon controls and trajectories, enemy-specific encounters and death recovery. |
+| M6 · Campaign and saves | Disk slots restore Connor, inventory and supported quest and region state. Travel, maps, selected terrain switches and Temple 4's final actor loading work. | Restore active scripts, combat and cutscenes. Complete region quests, optional branches, boss sequences, movies and the ending. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
@@ -28,6 +28,8 @@ cargo build --locked --release -p kq8-viewer
 
 The game opens at the main menu. Choose **New** and a difficulty to enter Daventry. Escape opens the menu during play. For a development run, add `--world Daventry` to start directly in the region. The viewer also accepts `--game <folder>` instead of the environment variable. Run `cargo play --help` for supported arguments. The [viewer reference](docs/FEATURES.md) covers controls and console commands.
 
+Choose **Save** from the pause menu and name the slot. **Load** is available from the title or pause menu. The recreation stores its own saves in `kq8-artifacts/saves` under the launch directory. Set `KQ8_SAVE_DIR` to use a fixed location across launches. Support for importing original Sierra saves is still open.
+
 ## Automated checks
 
 Use the same game-data path for these commands. The workspace command includes the viewer tests. The archive check reads the local game data. The last command launches Daventry and exits after 120 rendered frames.
@@ -43,6 +45,7 @@ The following checks use the installed game assets and run unattended. The menu 
 ```powershell
 cargo test --locked -p kq8-viewer campaign_tests -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test regions -- --ignored --nocapture
 cargo test --locked -p kq8-core original_barren_dock_script -- --ignored
 ```

@@ -20,6 +20,8 @@ const ITEMS: [(u32, u8); 7] = [
 ];
 const ACTIVE: [usize; 4] = [0, 3, 4, 5];
 const ACTIVE_DURING_GAME: [usize; 6] = [0, 2, 3, 4, 5, 6];
+const ACTIVE_WITH_SAVES: [usize; 5] = [0, 1, 3, 4, 5];
+const ACTIVE_DURING_GAME_WITH_SAVES: [usize; 7] = [0, 1, 2, 3, 4, 5, 6];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Key {
@@ -31,12 +33,19 @@ pub enum Key {
     Release,
     Escape,
     Click(i32, i32),
+    Drag(i32, i32),
+    MouseUp,
+    Tab,
+    Delete,
+    Backspace,
+    Character(char),
 }
 
 #[derive(Default, Debug, PartialEq, Clone)]
 pub struct Choice {
     game: bool,
     row: usize,
+    saves: bool,
     dialog: Option<Dialog>,
     button: usize,
     pressed: bool,
@@ -47,13 +56,14 @@ enum Dialog {
     Difficulty,
     Quit,
     Restart,
+    Corrupt(u16),
 }
 
 impl Dialog {
     fn buttons(self) -> &'static [(i32, u8)] {
         match self {
             Self::Difficulty => &[(158, 121), (274, 122), (392, 123)],
-            Self::Quit | Self::Restart => &[(188, 29), (361, 14)],
+            Self::Quit | Self::Restart | Self::Corrupt(_) => &[(188, 29), (361, 14)],
         }
     }
 }
@@ -67,6 +77,8 @@ pub enum Action {
     Replay,
     Resume,
     Save,
+    Load,
+    DeleteCorrupt(u16),
 }
 
 impl Choice {
@@ -88,11 +100,27 @@ impl Choice {
     }
 
     fn available(&self) -> &'static [usize] {
-        if self.game {
-            &ACTIVE_DURING_GAME
-        } else {
-            &ACTIVE
+        match (
+            self.game,
+            self.saves && !matches!(self.dialog, Some(Dialog::Corrupt(_))),
+        ) {
+            (true, true) => &ACTIVE_DURING_GAME_WITH_SAVES,
+            (true, false) => &ACTIVE_DURING_GAME,
+            (false, true) => &ACTIVE_WITH_SAVES,
+            (false, false) => &ACTIVE,
         }
+    }
+    pub fn set_saves(&mut self, available: bool) {
+        self.saves = available;
+        if !available && self.row == 1 {
+            self.row = 0;
+        }
+    }
+
+    pub fn ask_corrupt(&mut self, slot: u16) {
+        self.dialog = Some(Dialog::Corrupt(slot));
+        self.button = 1; // No
+        self.pressed = false;
     }
     /// Rule 15 and rules 18–21. Highlight movement clicks even at the
     /// edge of a popup; selecting a list item plays the selection sound.
@@ -123,6 +151,7 @@ impl Choice {
             4 => return Action::Replay,
             6 => return Action::Resume,
             2 => return Action::Save,
+            1 => return Action::Load,
             _ => return Action::Stay,
         };
         self.dialog = Some(popup);
@@ -136,6 +165,7 @@ impl Choice {
         match self.dialog.take() {
             Some(Dialog::Difficulty) => Action::Start(self.button as i64 + 1),
             Some(Dialog::Quit) if self.button == 0 => Action::Quit,
+            Some(Dialog::Corrupt(slot)) if self.button == 0 => Action::DeleteCorrupt(slot),
             Some(Dialog::Restart) if self.button == 0 => {
                 self.dialog = Some(Dialog::Difficulty);
                 self.button = 1;
@@ -200,7 +230,7 @@ impl Choice {
 }
 
 pub struct Art {
-    palette: [kq8_data::palette::Rgb; 256],
+    pub(crate) palette: [kq8_data::palette::Rgb; 256],
     layout: Control,
     pub rows: [[i32; 4]; 7],
     pictures: BTreeMap<&'static str, Vec<Bitmap>>,
@@ -280,7 +310,7 @@ impl Art {
         })
     }
 
-    fn label(&self, id: u8) -> &str {
+    pub(crate) fn label(&self, id: u8) -> &str {
         self.texts.get(&id).map_or("", |s| s.trim())
     }
 
@@ -370,6 +400,7 @@ impl Art {
                 Dialog::Quit => 159,
                 Dialog::Difficulty => 120,
                 Dialog::Restart => 158,
+                Dialog::Corrupt(_) => 157,
             });
             let split = (text.chars().count() > 38)
                 .then(|| {
@@ -434,6 +465,25 @@ impl Art {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn corrupt_slot_blocks_load_until_the_default_no_or_explicit_delete() {
+        let rows = [[0; 4]; 7];
+        let mut menu = Choice::default();
+        menu.set_saves(true);
+        menu.ask_corrupt(4);
+        assert!(!menu.available().contains(&1));
+        for key in [Key::Enter, Key::Release] {
+            assert_eq!(menu.input(key, &rows), Action::Stay);
+        }
+        assert!(menu.available().contains(&1));
+        menu.ask_corrupt(4);
+        assert_eq!(
+            menu.input(Key::Click(210, 265), &rows),
+            Action::DeleteCorrupt(4)
+        );
+        menu.set_saves(false);
+        assert!(!menu.available().contains(&1));
+    }
     #[test]
     fn in_game_escape_resumes_and_restarting_requires_confirmation_then_difficulty() {
         let rows = [[0; 4]; 7];

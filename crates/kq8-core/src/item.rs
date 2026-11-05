@@ -84,7 +84,7 @@ impl Accepts {
 }
 
 /// Where an item object is.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Place {
     /// Lying in the world.
     World { position: [f32; 3], angles: [f32; 3] },
@@ -94,7 +94,7 @@ pub enum Place {
     Gone,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ItemObject {
     pub name: String,
     /// The type's `IDName`, e.g. `INVITEM_Crystal`.
@@ -269,6 +269,18 @@ impl Items {
     /// `world-change.md` rule 18).
     pub fn no_name_counter(&self) -> usize {
         self.next_no_name
+    }
+
+    pub fn inventory_order_counter(&self) -> u64 {
+        self.last_added
+    }
+
+    /// Replace runtime objects, keeping the type definitions, click boxes
+    /// and body transforms loaded from this installation's assets.
+    pub fn restore_objects(&mut self, objects: Vec<ItemObject>, next_name: usize, order: u64) {
+        self.last_added = objects.iter().map(|o| o.added).max().unwrap_or(0).max(order);
+        self.next_no_name = next_name;
+        self.objects = objects;
     }
 
     /// Numbers below `n` are not used again (`world-change.md` rule 18).

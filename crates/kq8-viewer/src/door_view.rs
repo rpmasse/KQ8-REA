@@ -979,6 +979,10 @@ pub fn spawn_doors(
     main_log.summary(format!("talk: {} conversation info object(s): {:?}", active.world.conv_infos.len(), active.world.conv_infos.iter().map(|i| i.name.as_str()).collect::<Vec<_>>()));
     // Rule 22: each door's script gets Init as the door enters the world;
     // then each trap's (traps.md rule 13).
+    if let Some((flags, in_temple4)) = objects.arriving_flags.take() {
+        active.world.connor_flags = flags;
+        active.world.connor_in_temple4 = in_temple4;
+    }
     active.start();
     let mut sim = DoorSim { active, spawns: Vec::new(), drawn, collider, attack_dist, pending: Vec::new(), world_clicks: Vec::new(), swing_clicks: Vec::new(), shot_clicks: Vec::new(), click_states: Default::default(), log, trap_log, connor_checked_at: None, item_log, talk_log, conversation_log, chest_drawn, chest_collider, object_drawn, object_collider, rope_log: Log::create("rope").ok(), rope_clicks: Vec::new(), rope_asked: None };
     for line in sim.active.take_log() {
@@ -1274,6 +1278,19 @@ pub fn trap_step(
             asked = true;
         }
         let line = match r {
+            Request::ConnorThrowRock { aim } => {
+                let w = &mut sim.active.world;
+                let p = connor.mover.position;
+                let h = connor.walker.heading;
+                let aim = aim.unwrap_or([p[0] + 2000. * h.sin(), p[1] - 2000. * h.cos(), p[2]]);
+                let started = w.rock_file().is_some_and(|file| connor.start_rock_throw(file, aim));
+                if started {
+                    w.hand = None;
+                }
+                let line = format!("ThrowRock: started={started}, aim {aim:?}");
+                w.fight_note("Connor", &line);
+                line
+            }
             Request::ConnorHurt { roll_over, special, at } => {
                 let ouch = sim.active.world.connor_fight.as_ref().map_or(kq8_core::fight::DEFAULT_OUCH.to_string(), |f| f.ouch_sound.clone());
                 let now = sim.active.world.now();
@@ -1707,7 +1724,7 @@ pub fn door_click_input(
     }
     use kq8_core::weapons::WorldClick;
     let ctrl = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
-    let blocked = connor.as_ref().is_some_and(|c| c.hands_off || matches!(c.walker.mode, kq8_core::connor::Mode::Dying | kq8_core::connor::Mode::Dead));
+    let blocked = connor.as_ref().is_some_and(|c| c.hands_off || c.rock.is_some() || matches!(c.walker.mode, kq8_core::connor::Mode::Dying | kq8_core::connor::Mode::Dead));
     let action = sim.active.world.world_click_action(ctrl, blocked);
     if action == WorldClick::Blocked {
         return;
@@ -1781,14 +1798,16 @@ pub fn door_click_input(
     }
     // Rules 14-16: the shot click (Ctrl: the plain click).
     let mut line = line;
-    if action == WorldClick::Shoot {
+    let throw_rock = action == WorldClick::ThrowRock;
+    let offer_rock = throw_rock && picked.as_ref().is_some_and(|name| sim.active.world.accepts_rock(name));
+    if action == WorldClick::Shoot || (throw_rock && !offer_rock) {
         use kq8_core::weapons::{AIM_PICK, ICEWATER, PLAIN_CLICK_BIT, TALK_PICK};
         let w = &sim.active.world;
         let objs = objects.as_deref().map_or(&[][..], |o| &o.0[..]);
         let blds = buildings.as_deref().map_or(&[][..], |b| &b.0[..]);
         let talk = w.mask_pick(origin, dir, TALK_PICK, objs, blds);
         let plain = talk.as_ref().is_some_and(|h| (h.character.is_some() && h.collision_type & PLAIN_CLICK_BIT != 0) || h.name.eq_ignore_ascii_case(ICEWATER));
-        if plain {
+        if plain && !throw_rock {
             line += &format!("; the ranged weapon is ready, the talk pick meets {} (type 0x{:X}): the plain click (ranged-weapons.md rule 15)", talk.as_ref().map_or("", |h| h.name.as_str()), talk.as_ref().map_or(0, |h| h.collision_type));
         } else {
             let far: [f32; 3] = std::array::from_fn(|k| origin[k] + dir[k] * kq8_core::active::CLICK_LINE_LENGTH);
@@ -1806,8 +1825,12 @@ pub fn door_click_input(
                     None => (far, "nothing: the line's far end (the sky)".to_string()),
                 },
             };
-            let line = format!("{line}; the ranged weapon is ready: the aim pick meets {what} at ({:.0}, {:.0}, {:.0}) (ranged-weapons.md rule 16)", aim[0], aim[1], aim[2]);
-            sim.shot_clicks.push(ShotClick { aim, what, how: how.clone() });
+            let line = format!("{line}; the aim pick meets {what} at ({:.0}, {:.0}, {:.0}) (ranged-weapons.md rule 16)", aim[0], aim[1], aim[2]);
+            if throw_rock {
+                sim.active.world.requests.push(Request::ConnorThrowRock { aim: Some(aim) });
+            } else {
+                sim.shot_clicks.push(ShotClick { aim, what, how: how.clone() });
+            }
             shared.log.lock().unwrap().summary(&line);
             sim.log.detail(line);
             return;
@@ -2074,6 +2097,12 @@ pub fn door_step(
         // `catch`; the throw's movements follow each other.
         for (m, phase) in std::mem::take(&mut c.throw_cues) {
             let w = &mut sim.active.world;
+            if let Some(r) = &c.rock {
+                let mesh = w.projectiles.get(&r.file.to_ascii_lowercase()).and_then(|p| p.mesh_name.as_deref());
+                let part = mesh.and_then(|name| c.part_at(m, phase, name));
+                w.shoot_with_file(&r.file, c.mover.position, c.turn_matrix(), part, r.aim, m);
+                continue;
+            }
             let aim = c.throw.as_ref().map_or(c.mover.position, |t| t.aim);
             let what = format!("{m} at the cue's phase {phase:.4}; the hammer starts at his shoot offset, never the part (azriel-hammer.md rule 5, the user's check)");
             w.connor_shoot(c.mover.position, c.turn_matrix(), None, aim, &what);
@@ -2082,6 +2111,7 @@ pub fn door_step(
             let line = if who.eq_ignore_ascii_case(kq8_core::talk::CONNOR) { c.throw_caught(&how) } else { format!("{how}: thrown by {who}, not Connor: nothing") };
             sim.active.world.fight_note("Connor", line);
         }
+        c.rock_step();
         if let Some(line) = c.throw_step() {
             sim.active.world.fight_note("Connor", line);
         }

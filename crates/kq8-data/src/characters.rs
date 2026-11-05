@@ -1015,6 +1015,10 @@ pub struct ProjectileKeys {
     pub collider_mask: u32,
     /// `weaponType`: 2 Fire, 3 Ice, otherwise the hit is `Projectile`.
     pub weapon_type: Option<i64>,
+    /// Arc parameters for a thrown rock: height above its start, initial
+    /// upward speed. Straight-flying bolts have no arc.
+    pub parabola: Option<(f32, f32)>,
+    pub script: Option<String>,
     /// Its shape's `BOUNDS.KQ` box, filled in by the loader (rule 29).
     pub bounds: Option<([f32; 3], [f32; 3])>,
     /// `classType=KQHammer` (`azriel-hammer.md` rule 6): Azriel's Hammer,
@@ -1055,6 +1059,8 @@ impl ProjectileKeys {
             mesh_name: s.get("meshName").map(|v| v.trim().to_string()).filter(|v| !v.is_empty()),
             collider_mask: number("colliderMask").map_or(if hammer { HAMMER_MASK } else { PROJECTILE_MASK }, |v| v as u32),
             weapon_type: number("weaponType").map(|v| v as i64),
+            parabola: (whole("parabola") != 0).then(|| (number("peakHeightOffset").unwrap_or(0.) as f32, number("upVelocity").unwrap_or(0.) as f32)).filter(|(h, v)| *h > 0. && *v > 0.),
+            script: s.get("script").map(str::trim).filter(|s| !s.is_empty() && !s.eq_ignore_ascii_case("none")).map(str::to_owned),
             bounds: None,
             hammer,
             modifier: if hammer { whole("modifier") } else { 0 },

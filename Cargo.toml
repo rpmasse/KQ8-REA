@@ -11,6 +11,8 @@ edition = "2021"
 publish = false
 
 [workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 kq8-data = { path = "crates/kq8-data" }
 kq8-core = { path = "crates/kq8-core" }
 kq8-audio = { path = "crates/kq8-audio" }

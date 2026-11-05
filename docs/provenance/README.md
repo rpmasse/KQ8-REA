@@ -19,6 +19,10 @@ Source types:
 | --- | --- |
 | `inc` advances a named counter by one. `setcat` joins expanded words with no separator. | Observed in the GOG archives. Barren's `dockup.cs` constructs the old trigger name, advances the gong number, selects the next position and constructs the next trigger name. Temple 4 uses the counter for altar progression. The original `mask.cs` constructs volume paths by concatenation. |
 | Shops deduct a specified item quantity. The command returns 1 when paid. | [Door and script behavior notes](../behaviour/doors.md) and observed GOG scripts including Daventry's `poorbox.cs`, Gnome's `armorgnm.cs` and Barren's `tw_weird.cs`. Merchant scripts inspect the result before delivering a purchase. |
+| A merchant can collect an item through its scripted click callback. | Gnome's `armorgnm.cs` and Barren's `tw_weird.cs` use `conClickItem`. Barren's weapon callback checks a variable the merchant resets immediately after that command. |
+| A returning quest character depends on a flag carried between regions. | The Dead City girl's exit callback sets `MetGirlInDC`. Daventry's `girl.cs` checks it during initialization before moving the girl to her home. Temple 2's cauldron uses the same query for an earlier vision. |
+| Rock throwing uses Connor's animation release and the world's landing script. | Observed in the GOG Connor animation, rock object and Daventry's `rockHit.cs`. The Windows throw-and-recover test checks the resulting item. Exact aiming, arc and damage remain open. |
+| Save and Load screen layout, art, font, confirmation controls and thumbnail dimensions. | Original GOG interface assets and [main menu behavior](../behaviour/main-menu.md). The versioned Rust disk format is a project design. |
 
 ## VOL archives — `crates/kq8-data/src/vol.rs`
 

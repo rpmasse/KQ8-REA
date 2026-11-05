@@ -78,7 +78,7 @@ impl BallStack {
 
 /// Where an object stands: `world = own × rotation + position` (row
 /// vectors, the same as drawing; `kq8_data::objects::rotation`).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Placement {
     pub rotation: [[f32; 3]; 3],
     pub position: [f32; 3],

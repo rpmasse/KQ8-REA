@@ -28,7 +28,7 @@
 use crate::active::WorldState;
 
 /// What Connor has ready (rule 1's words).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum WeaponMode {
     Hand,
     Ranged,
@@ -220,6 +220,7 @@ pub enum WorldClick {
     Blocked,
     Interact,
     Climb,
+    ThrowRock,
     Swing,
     Shoot,
 }
@@ -233,10 +234,11 @@ impl WorldState {
             return WorldClick::Interact;
         }
         if let Some(item) = self.hand.as_deref().and_then(|name| self.items.get(name)).filter(|o| o.carried_by("Connor")) {
-            if self.items.kind(&item.kind).is_some_and(|t| t.category == crate::rope::ROPE_CATEGORY) {
-                return WorldClick::Climb;
-            }
-            return WorldClick::Interact;
+            return match self.items.kind(&item.kind).map(|t| t.category.as_str()) {
+                Some(crate::rope::ROPE_CATEGORY) => WorldClick::Climb,
+                Some("Rock") => WorldClick::ThrowRock,
+                _ => WorldClick::Interact,
+            };
         }
         match (ctrl, self.weapon_mode) {
             (true, _) | (_, WeaponMode::None) => WorldClick::Interact,
@@ -468,14 +470,31 @@ impl WorldState {
             self.fight_note("Connor", format!("do ({movement}): he has no bolt file (NoRanged): no shot (rule 21)"));
             return;
         };
+        self.shoot_with_file(&file, feet, rotation, part, aim, movement);
+    }
+
+    /// Projectiles are defined per world. A rock uses its own item file
+    /// for this throw; the equipped crossbow's projectile and offset survive.
+    pub fn rock_file(&self) -> Option<String> {
+        let item = self.items.objects.iter().filter(|o| o.carried_by("Connor") && o.quantity > 0).find_map(|o| {
+            self.items.kind(&o.kind).filter(|t| t.category == "Rock")
+        })?;
+        item.extra.clone().filter(|f| self.projectiles.contains_key(&f.to_ascii_lowercase()))
+    }
+
+    pub fn shoot_with_file(&mut self, file: &str, feet: [f32; 3], rotation: [[f32; 3]; 3], part: Option<([f32; 3], String)>, aim: [f32; 3], movement: &str) {
         let Some(p) = self.projectiles.get(&file.to_ascii_lowercase()).cloned() else {
             self.fight_note("Connor", format!("do ({movement}): projectile file {file} not read: no shot"));
             return;
         };
         let (offset, how) = match part {
             Some((o, how)) => {
-                self.connor_shoot_offset = o;
-                (o, format!("{how} (kept as his shoot offset)"))
+                if p.parabola.is_none() {
+                    self.connor_shoot_offset = o;
+                    (o, format!("{how} (kept as his shoot offset)"))
+                } else {
+                    (o, how)
+                }
             }
             None => (self.connor_shoot_offset, "no such part in the frame: his shoot offset".to_string()),
         };
@@ -483,7 +502,7 @@ impl WorldState {
         let from: [f32; 3] = std::array::from_fn(|k| feet[k] + offset[0] * r[0][k] + offset[1] * r[1][k] + offset[2] * r[2][k]);
         let damage = self.connor_stats.map_or(0, |c| c.stats.0[2]);
         let why = format!("do ({movement}): start offset ({:.0}, {:.0}, {:.0}): {how} (rule 24); aim point ({:.0}, {:.0}, {:.0}), no lead (rule 25); ranged damage {damage} (rule 22)", offset[0], offset[1], offset[2], aim[0], aim[1], aim[2]);
-        self.launch_bolt(crate::talk::CONNOR, &file, &p, from, aim, damage, &why);
+        self.launch_bolt(crate::talk::CONNOR, file, &p, from, aim, damage, &why);
     }
 
     /// A weapon readied or put away outside a request (the `--swing` test,

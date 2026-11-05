@@ -1,6 +1,6 @@
 # STATUS
 
-**Windows fork, November 5.** Work on M4–M6 is active. New Game and difficulty, pause/resume, and restart have bounded executable scenarios. The final Temple 4 actors and the Dead City terrain switches have original-data loader regressions. The remaining priorities include full saves across process restarts, unresolved menu screens, combat/quest behaviors and end-to-end campaign coverage. See the fork README for the current entry points. The notes below retain upstream history.
+**Windows fork, November 5.** M4–M6 are in progress. The Save and Load screens now support named slots with thumbnails. An unattended three-process scenario saves in Daventry, restores from the title on a fresh launch, and checks cancellation and confirmed deletion. A separate scenario throws and recovers a rock using the original animation and landing script. Open work includes active script, combat and cutscene state across saves, Options, movie playback, encounter behavior and the uninterrupted campaign. The [README](README.md) gives the current checks. The notes below retain upstream history.
 
 Hand-over in case the chat is lost. Brought up to date 2026-10-20 after
 B built the fight (M5 5c, `fighting.md`). Read with `AGENTS.md`, `docs/DESIGN.md`, `docs/SESSIONS.md`,

@@ -34,6 +34,10 @@ use crate::log::Log;
 use kq8_core::journey::{connor_summary, Journey};
 use crate::{connor_view, gui_view, light_view, load, map_view, object_light, sound_view, talk_view, terrain_view, Shared};
 
+#[path = "save_slots.rs"]
+mod save_slots;
+pub use save_slots::{delete_slot, list_slots, load_slot, save_slot_with_thumbnail, scan_slots, thumbnail};
+
 /// The start-up systems that spawn a world (were `Startup` until 6e-1).
 #[derive(ScheduleLabel, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BuildWorld;
@@ -138,11 +142,16 @@ pub struct WorldChange {
     options: Option<Options>,
     /// Kept worlds, first stage (6e-8): by lower-case world name.
     kept: std::collections::BTreeMap<String, KeptWorld>,
+    /// A save being restored through the ordinary world builder. This is
+    /// a continuation in the saved world, so it must not run its Begin.
+    restoring: Option<Box<save_slots::Snapshot>>,
+    /// Initial NoName counter used when placing this world's objects.
+    name_start: usize,
 }
 
 /// What is kept of a world Connor left (6e-8, `world-change.md` rules
 /// 12-13; the map goes with the journey's other maps, rule 16).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct KeptWorld {
     /// Variables named after the world or `KQWorld` (rule 13).
     pub vars: Vec<(String, String)>,
@@ -153,6 +162,35 @@ pub struct KeptWorld {
     pub came_in: Vec<String>,
     /// Animated and scripted objects whose state changed (DESIGN K-2).
     pub states: Vec<kq8_core::active::KeptState>,
+}
+
+impl KeptWorld {
+    fn take(active: &kq8_core::active::Active, from: &str, previous: Option<&Self>) -> Self {
+        // Objects absent at load cannot report themselves as newly gone on
+        // the next departure. Retain prior removals and loaded files over
+        // repeated visits. The loader excludes gone objects in these files.
+        let mut gone = previous.map(|p| p.gone.clone()).unwrap_or_default();
+        gone.extend(active.world.gone_names());
+        let mut came_in = previous.map(|p| p.came_in.clone()).unwrap_or_default();
+        for file in active.world.came_in_files() {
+            if !came_in.contains(&file) { came_in.push(file); }
+        }
+        let prior_states = previous.into_iter().flat_map(|p| &p.states).map(|s| s.name.to_ascii_lowercase()).collect();
+        Self {
+            vars: active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, from)).map(|(n, v)| (n.to_owned(), v.to_owned())).collect(),
+            gone, came_in, states: active.world.kept_states_including(&prior_states),
+        }
+    }
+}
+
+fn take_journey(active: &kq8_core::active::Active, from: &str) -> Journey {
+    let mut journey = Journey::take(&active.world, &active.scripts.vars, from);
+    if let Some(map) = &active.world.map {
+        if let Some(index) = map.index {
+            journey.other_maps.insert(index, (map.file.clone(), map.saved_keys(), format!("kept when Connor left {from}")));
+        }
+    }
+    journey
 }
 
 impl WorldChange {
@@ -453,6 +491,7 @@ pub fn first_world(world: &mut World) {
         change.current.clear();
         change.kept.clear();
         change.asked = None;
+        change.name_start = 0;
         world.resource_mut::<connor_view::StartAt>().0 = None;
     }
     crate::loading_screen::open(world, &request.world, &log);
@@ -622,22 +661,12 @@ pub fn world_change_step(world: &mut World) {
             // world's resources go.
             let journey = world.get_resource::<crate::door_view::DoorSim>().map(|sim| {
                 let w = &sim.active.world;
-                let mut j = Journey::take(w, &sim.active.scripts.vars, &from);
-                // Rule 16: the world's map kept as it is now.
-                if let Some(m) = &w.map {
-                    if let Some(i) = m.index {
-                        j.other_maps.insert(i, (m.file.clone(), m.saved_keys(), format!("kept when Connor left {from}")));
-                    }
-                }
+                let j = take_journey(&sim.active, &from);
                 (Box::new(j), connor_summary(w))
             });
             // Rules 12-13 (6e-8): the world's variables and what left it.
-            let kept = world.get_resource::<crate::door_view::DoorSim>().map(|sim| KeptWorld {
-                vars: sim.active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, &from)).map(|(n, v)| (n.to_string(), v.to_string())).collect(),
-                gone: sim.active.world.gone_names().into_iter().collect(),
-                came_in: sim.active.world.came_in_files(),
-                states: sim.active.world.kept_states(),
-            });
+            let previous = world.resource::<WorldChange>().kept.get(&from.to_ascii_lowercase());
+            let kept = world.get_resource::<crate::door_view::DoorSim>().map(|sim| KeptWorld::take(&sim.active, &from, previous));
             if let Some(k) = kept {
                 log.lock().unwrap().summary(format!(
                     "world change: {from} kept: {} variables (rule 13), {} objects gone (rule 12), {} loaded while playing {:?} (rule 12), {} object states (K-2): {}; its map (rule 16)",
@@ -708,13 +737,18 @@ pub fn world_change_step(world: &mut World) {
             let exit_movement = request.portal.as_ref().and_then(|p| Some((p.exit_list.clone()?, p.exit_anim.clone()?)));
             // Rule 8.1: arriving in Temple 1 drops every kept world (the
             // maps stay).
-            if request.world.eq_ignore_ascii_case("temple1") {
+            if request.world.eq_ignore_ascii_case("temple1") && world.resource::<WorldChange>().restoring.is_none() {
                 let n = std::mem::take(&mut world.resource_mut::<WorldChange>().kept).len();
                 log.lock().unwrap().summary(format!("world change: to Temple 1: {n} kept worlds dropped, the maps kept (world-change.md rule 8.1)"));
             }
             let kept = world.resource::<WorldChange>().kept.get(&request.world.to_ascii_lowercase()).cloned().unwrap_or_default();
+            let name_start = world.resource::<WorldChange>().restoring.as_ref()
+                .map_or_else(|| journey.as_ref().map_or(0, |j| j.next_no_name), |save| save.world_name_start);
+            world.resource_mut::<WorldChange>().name_start = name_start;
             let arrival = journey.as_ref().map(|j| load::Arrival {
-                no_name_from: j.next_no_name,
+                // Loading a saved world reconstructs its originally generated
+                // names before restoring its item table and live counter.
+                no_name_from: name_start,
                 exit_movement,
                 kept_vars: kept.vars.clone(),
                 gone: kept.gone.clone(),
@@ -770,8 +804,20 @@ pub fn world_change_step(world: &mut World) {
             let sizes = crate::loading_screen::close(world);
             log.lock().unwrap().summary(format!("world change: loading screen closed: {sizes}"));
             let Some(opts) = world.resource::<WorldChange>().options.clone() else { return };
-            let read = match read {
+            let mut read = match read {
                 Ok(r) => r,
+                Err(e) if world.resource::<WorldChange>().restoring.is_some() => {
+                    let mut change = world.resource_mut::<WorldChange>();
+                    change.restoring = None;
+                    change.kept.clear();
+                    change.name_start = 0;
+                    log.lock().unwrap().summary(format!("could not restore {}: {e}; returning to the title menu", request.world));
+                    if let Err(e) = crate::startup_menu::return_to_title(world) {
+                        log.lock().unwrap().summary(format!("could not reopen the title menu: {e}"));
+                        world.write_message(AppExit::error());
+                    }
+                    return;
+                }
                 Err(e) if !from.is_empty() && request.world != from => {
                     // Back to the world we came from (still no world in,
                     // so the game's systems keep waiting).
@@ -788,6 +834,7 @@ pub fn world_change_step(world: &mut World) {
                     return;
                 }
             };
+            read.objects.arriving_flags = journey.as_ref().map(|j| (j.flags.clone(), j.in_temple4));
             let mut light = object_light(&read, &opts);
             light.scene_lights = world.resource::<crate::scene_lights::SceneLights>().buffer.clone();
             light.anim = world.get_resource::<crate::anim_gpu::AnimBuffers>().cloned();
@@ -810,6 +857,11 @@ pub fn world_change_step(world: &mut World) {
             world.resource_mut::<PendingWorld>().0 = Some((read, opts));
             build_pending(world);
             give_journey(world, journey.as_deref(), &request.world, &log);
+            if let Some(save) = world.resource_mut::<WorldChange>().restoring.take() {
+                save.restore_current(world);
+                log.lock().unwrap().summary(format!("save restored in {} without replaying Begin", request.world));
+                return;
+            }
             // Rule 9: `Begin` on every arrival.
             world.insert_resource(BeginNow(request.world.clone()));
             if let Some(p) = request.portal {
@@ -829,12 +881,17 @@ fn combat_level_number(factor: f32) -> Option<i64> {
 /// things on arrival (`world.log`): the same as on leaving.
 fn give_journey(world: &mut World, journey: Option<&Journey>, to: &str, log: &std::sync::Arc<std::sync::Mutex<Log>>) {
     let Some(j) = journey else { return };
+    let restoring = world.resource::<WorldChange>().restoring.is_some();
     let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() else {
         log.lock().unwrap().summary("world change: no rules running in the new world: the journey is lost");
         return;
     };
     let active = &mut sim.active;
-    let lines = j.give(&mut active.world, &mut active.scripts.vars);
+    let lines = if restoring {
+        j.give(&mut active.world, &mut active.scripts.vars)
+    } else {
+        j.give_after_flags(&mut active.world, &mut active.scripts.vars)
+    };
     let arrived = connor_summary(&active.world);
     let after = Counts::of(world);
     let mut log = log.lock().unwrap();

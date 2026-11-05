@@ -253,6 +253,7 @@ pub struct ConnorSim {
     pub rope_was_climbing: bool,
     /// The hammer-throw state (`azriel-hammer.md` rules 2-4; M6 6b-3).
     pub throw: Option<Throw>,
+    pub rock: Option<RockThrow>,
     /// His throw's `do` cue passed this update (movement, the cue's
     /// phase): the hammer leaves, taken by `door_view`.
     pub throw_cues: Vec<(&'static str, f32)>,
@@ -291,6 +292,15 @@ pub struct Throw {
     pub back: bool,
     /// His update at the click, for the log's times.
     pub from_update: u64,
+}
+
+pub struct RockThrow {
+    pub file: String,
+    pub aim: [f32; 3],
+    throw: &'static str,
+    out: Option<&'static str>,
+    saved_list: Option<String>,
+    saved_mode: WeaponMode,
 }
 
 /// One of Connor's swings (M5 5c-5).
@@ -856,6 +866,7 @@ pub fn spawn_connor(
         rope_ended: Vec::new(),
         rope_was_climbing: false,
         throw: None,
+        rock: None,
         throw_cues: Vec::new(),
         throw_ended: Vec::new(),
         late,
@@ -1180,6 +1191,7 @@ impl ConnorSim {
             Mode::Push => PUSH,
             Mode::Talk => TALK,
             Mode::Rope => ROPE,
+            Mode::Throw if self.rock.is_some() => THROW_ROCK,
             Mode::Throw => HAMMER_THROW,
         }
     }
@@ -1218,6 +1230,10 @@ impl ConnorSim {
         // azriel-hammer.md rule 3 (M6 6b-3): the throw state can't be left
         // before `catch` has ended; tried again next update (STAND-IN, as a
         // jump's refusal; Q148 d).
+        if self.rock.is_some() {
+            self.log.detail(format!("connor update {}: {what}: waiting for rock throw ({at})", self.updates));
+            return false;
+        }
         if self.throw.is_some() {
             self.log.detail(format!("connor update {}: {what}: refused, the hammer throw goes on (azriel-hammer.md rule 3); tried again next update (stand-in, Q148 d) ({at})", self.updates));
             return false;
@@ -1628,6 +1644,49 @@ impl ConnorSim {
         );
         self.log.detail(format!("connor update {}: throw: {line}", self.updates));
         line
+    }
+
+    /// ranged-weapons.md section 8: away in his current set, throw in his
+    /// own set, and (if armed on entry) out in the remembered set.
+    pub fn start_rock_throw(&mut self, file: String, aim: [f32; 3]) -> bool {
+        if self.may_ready().is_err() || self.hands_off {
+            return false;
+        }
+        let Some(away) = self.drawn("away").map(|m| m.name) else { return false };
+        let Some(throw) = find(&self.movements, None, "throw").map(|m| m.name) else { return false };
+        let out = (self.set_mode != WeaponMode::None).then(|| self.drawn("out").map(|m| m.name)).flatten();
+        let turn = kq8_core::connor_auto::AutoMove::new(kq8_core::connor_auto::AutoKind::Point, [aim[0], aim[1]], None);
+        self.walker.start_auto(turn);
+        self.swing = None;
+        self.shot = None;
+        self.rock = Some(RockThrow { file, aim, throw, out, saved_list: self.weapon_set.clone(), saved_mode: self.set_mode });
+        self.walker.throw_play(away);
+        true
+    }
+
+    pub fn rock_step(&mut self) {
+        let Some(r) = self.rock.take() else { return };
+        let ended = std::mem::take(&mut self.throw_ended);
+        if !ended.contains(&self.walker.movement) {
+            self.rock = Some(r);
+            return;
+        }
+        if Some(self.walker.movement) == r.out {
+            self.walker.throw_leave();
+        } else if self.walker.movement == r.throw {
+            self.switch_set(r.saved_list.clone(), r.saved_mode);
+            if let Some(out) = r.out {
+                self.walker.throw_play(out);
+                self.rock = Some(r);
+            } else {
+                self.walker.throw_leave();
+            }
+        } else {
+            self.switch_set(None, WeaponMode::None);
+            self.walker.throw_play(r.throw);
+            self.rock = Some(r);
+        }
+        self.redraw_from_walker();
     }
 
     /// Rule 9 (M6 6b-3): the hammer came back: `catch` at once, from
@@ -2539,6 +2598,10 @@ pub fn connor_step(
                 "do" if sim.shot.as_ref().is_some_and(|w| w.started && w.movement == s.played) => {
                     sim.shot_cues.push((s.played, s.played_to, false));
                     "his bolt leaves (ranged-weapons.md rule 23)".to_string()
+                }
+                "do" if sim.rock.as_ref().is_some_and(|r| r.throw == s.played) && sim.walker.mode == Mode::Throw => {
+                    sim.throw_cues.push((s.played, s.played_to));
+                    "the rock leaves (ranged-weapons.md section 8)".into()
                 }
                 // azriel-hammer.md rules 3, 5 (M6 6b-3): the hammer leaves.
                 "do" if sim.throw.as_ref().is_some_and(|t| t.attack == s.played) && sim.walker.mode == Mode::Throw => {

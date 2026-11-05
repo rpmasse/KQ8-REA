@@ -294,7 +294,7 @@ pub struct Gui {
     root: Control,
     screen: [u32; 2],
     scale: f32,
-    palette: [Rgb; 256],
+    pub(crate) palette: [Rgb; 256],
     /// Pictures by lower-case file name (a `.pbm` is one, a `.pba` many);
     /// `None`: not found or not readable (logged once).
     files: HashMap<String, Option<Vec<Bitmap>>>,
@@ -1135,7 +1135,7 @@ pub fn gui_step(
         match name.to_ascii_lowercase().as_str() {
             "menu" => menu.0 = true,
             k if k.starts_with("menu:") => {
-                match crate::startup_menu::parse_keys(&k[5..].replace(':', ",")) {
+                match crate::startup_menu::parse_keys(&name[5..].replace(':', ",")) {
                     Ok(inputs) => { menu.0 = true; menu.1 = inputs; }
                     Err(e) => gui.note(e),
                 }

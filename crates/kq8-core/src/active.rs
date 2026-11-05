@@ -138,6 +138,7 @@ pub enum Request {
     /// `KQMonster::setState Connor special <list>` (`anim-scripts.md`
     /// rule 16): the comma-separated items as written.
     ConnorSpecial { items: String, at: String },
+    ConnorThrowRock { aim: Option<[f32; 3]> },
     /// `setHaze <n>` (`object-lighting.md` rule 33a, Q161): the caller
     /// sets `hazeDistance` n and `visibleDistance` 1.5 n at once.
     SetHaze { haze: f32, at: String },
@@ -396,7 +397,7 @@ pub struct AnimObject {
 /// "kept worlds keep animated objects' state", K-1): put back into its
 /// `.kq` values (`currAnimName`, `animPos`, its place, `colliderType`)
 /// when it loads on a return.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct KeptState {
     pub name: String,
     /// The current movement's name.
@@ -717,7 +718,7 @@ pub struct WorldState {
     /// game time, amount, the item type.
     pub pickup_experience: Vec<(f64, i64, String)>,
     /// The help pop-ups of rule 41 already asked for (logged only).
-    pub helps_asked: BTreeSet<&'static str>,
+    pub helps_asked: BTreeSet<String>,
     /// The objects whose `groupsAlways` has bit 2048 (`potions.md` rule
     /// 31), set by the loader (M5 5g-7).
     pub reveal_objects: Vec<String>,
@@ -902,6 +903,8 @@ pub struct WorldState {
     /// Scripts to call with `ProjImmune`: a bolt hit them and their type
     /// has bit 0x4000 (`ranged-weapons.md` rule 30; M5 5f-1).
     pub immune_calls: Vec<String>,
+    pub(crate) projectile_calls: Vec<(String, String, &'static str, Placement)>,
+    projectile_caller: Option<(String, Placement)>,
     /// Scripts to call with `ConnorAction`: Azriel's Hammer touched the
     /// Dead City lever (`azriel-hammer.md` rule 8; M6 6b-2).
     pub hammer_calls: Vec<String>,
@@ -988,12 +991,19 @@ impl WorldState {
     /// left out (the original keeps every object): they load as on a
     /// first visit.
     pub fn kept_states(&self) -> Vec<KeptState> {
+        self.kept_states_including(&BTreeSet::new())
+    }
+
+    /// An object restored on a prior visit started this visit in its
+    /// modified state. Keep tracking it even if its movement stays there.
+    pub fn kept_states_including(&self, previously_kept: &BTreeSet<String>) -> Vec<KeptState> {
         let anims = self.anims.iter().filter(|a| !a.gone && a.character.is_none()).map(|a| (&a.player, None));
         let objects = self.objects.iter().filter(|o| !o.gone).map(|o| (&o.player, Some(o.collision_type)));
         anims
             .chain(objects)
             .filter(|(p, collision_type)| {
-                self.start_states.get(&p.name.to_ascii_lowercase()).is_some_and(|(movement, placement, start_type)| {
+                let name = p.name.to_ascii_lowercase();
+                previously_kept.contains(&name) || self.start_states.get(&name).is_some_and(|(movement, placement, start_type)| {
                     !p.movement_name().eq_ignore_ascii_case(movement) || p.base != *placement || collision_type != start_type
                 })
             })
@@ -1879,6 +1889,12 @@ impl WorldState {
         self.accepts_entry(name).clone()
     }
 
+    /// Rock puzzles handle an offered rock in their own ConnorAction
+    /// scripts. A rock clicked elsewhere can be thrown directly.
+    pub fn accepts_rock(&mut self, name: &str) -> bool {
+        self.accepts_of(name).takes("INVITEM_Rock", &self.items.types)
+    }
+
     /// `KQObject::setAccepts <object> <value>` (`clicking.md` rule 16):
     /// adds to what the object accepts.
     fn set_accepts(&mut self, words: &[String], at: &str) -> String {
@@ -2423,6 +2439,33 @@ impl WorldState {
         "1".into()
     }
 
+    /// Shared inventory transfer for a world click and a merchant script
+    /// reclaiming equipment. Both run the item's callback after equipping it.
+    fn collect_world_item(&mut self, i: usize, position: [f32; 3], context: &str) -> Option<(String, Vec<String>)> {
+        let o = self.items.objects[i].clone();
+        let before = self.items.count("Connor", &o.kind);
+        crate::connor_inventory::receive(self, &o.name, Some(position), "picked up");
+        let after = self.items.count("Connor", &o.kind);
+        let sound = self.pickup_sound(&o.kind);
+        self.item_note(format!("{context}: picked up; Connor's {} {before} -> {after}; {sound}; gone from the world", o.kind));
+        let script = o.script?;
+        let args = vec![o.name, "ConnorAction".into(), "do".into(), "do".into()];
+        self.item_note(format!("script {script} {}", args.join(" ")));
+        Some((script, args))
+    }
+
+    fn con_click_item(&mut self, words: &[String], at: &str) -> String {
+        let [_, name] = words else { return "1".into() };
+        let Some(i) = self.items.index(name) else { return "1".into() };
+        let Some(placement) = self.items.objects[i].placement() else { return "1".into() };
+        if let Some(call) = self.collect_world_item(i, placement.position, at) {
+            // The merchant clears ClickFromCode on the very next line.
+            // The interpreter drains calls_out before executing that line.
+            self.calls_out.push(call);
+        }
+        "0".into()
+    }
+
     fn gold_coin_persists(&mut self, words: &[String], at: &str) -> String {
         let Some(v) = words.get(1).filter(|v| looks_like_number(v)) else {
             self.note(format!("{at}: usage: goldCoinPersists 0|1; nothing"));
@@ -2568,6 +2611,9 @@ impl WorldState {
 
     /// Where an object stands, for `getLoc` and `tossItems`.
     pub fn place_of(&self, who: &str) -> Option<Placement> {
+        if let Some((_, p)) = self.projectile_caller.as_ref().filter(|(n, _)| n.eq_ignore_ascii_case(who)) {
+            return Some(*p);
+        }
         if let Some(i) = self.object_index(who) {
             Some(self.objects[i].player.base)
         } else if let Some(i) = self.anim_index(who) {
@@ -2836,6 +2882,9 @@ impl WorldState {
     /// stubs).
     fn set_state(&mut self, words: &[String], at: &str) -> String {
         match words {
+            [_, who, state] if who.eq_ignore_ascii_case("Connor") && state.eq_ignore_ascii_case("ThrowRock") => {
+                self.requests.push(Request::ConnorThrowRock { aim: None });
+            }
             [_, who, state, items @ ..] if who.eq_ignore_ascii_case("Connor") && state.eq_ignore_ascii_case("special") => {
                 // One word in the data; several are joined as more items.
                 let items = items.join(",");
@@ -3778,8 +3827,13 @@ impl ScriptHost for WorldState {
             "KQMap::activate" | "KQMap::deactivate" | "KQMap::stopLoc" | "KQMap::useFog" | "KQMap::setFogRadius" | "addMapIcon" | "removeMapIcon" => Some(self.map_command(words, at)),
             "onTeleport" | "offTeleport" | "earnTeleport" | "teleportersEarned" => Some(self.teleport_command(words, at)),
             "KQConner::pay" => Some(self.pay(words, at)),
+            "conClickItem" => Some(self.con_click_item(words, at)),
             "goldCoinPersists" => Some(self.gold_coin_persists(words, at)),
             "setConnorFlag" => Some(self.set_connor_flag(words, at)),
+            "getConnorFlag" => Some(match &words[1..] {
+                [flag] if self.connor_flags.get(flag).copied().unwrap_or(false) => "1".into(),
+                _ => "0".into(),
+            }),
             "KQObject::dither" => Some(self.dither(words, at)),
             "KQObject::changeBmp" => Some(self.change_bmp(words, at)),
             "KQConner::checkInvisible" => {
@@ -3966,6 +4020,8 @@ impl Active {
                 corpses: Vec::new(),
                 die_calls: Vec::new(),
                 immune_calls: Vec::new(),
+                projectile_calls: Vec::new(),
+                projectile_caller: None,
                 hammer_calls: Vec::new(),
                 hammers_back: Vec::new(),
                 kill_tip: false,
@@ -4618,6 +4674,18 @@ impl Active {
     /// `attack_dist`: his `attackDist` (reach = twice that); `item`: what
     /// he holds.
     pub fn click(&mut self, name: &str, feet: [f32; 3], attack_dist: f32, item: Option<&Item>) -> ClickResult {
+        let pending = self.world.requests.len();
+        let position = self.world.place_of(name).map(|p| p.position);
+        let result = self.click_target(name, feet, attack_dist, item);
+        for r in self.world.requests.iter_mut().skip(pending) {
+            if let Request::ConnorThrowRock { aim } = r {
+                *aim = position;
+            }
+        }
+        result
+    }
+
+    fn click_target(&mut self, name: &str, feet: [f32; 3], attack_dist: f32, item: Option<&Item>) -> ClickResult {
         let reach = 2.0 * attack_dist;
         // conversation.md rule 19 (M4 4e-4): in the talk state a world click
         // does nothing, except one on the partner with an item held.
@@ -4966,17 +5034,10 @@ impl Active {
             self.world.item_note(format!("{head}: holds {} ({}): items accept nothing: {remark}; no call: no turn (clicking.md rule 26)", it.object, it.kind));
             return ClickResult::Refused;
         }
-        let before = self.world.items.count("Connor", &o.kind);
-        crate::connor_inventory::receive(&mut self.world, &o.name, Some(placement.position), "picked up");
-        let after = self.world.items.count("Connor", &o.kind);
-        let sound = self.world.pickup_sound(&o.kind);
-        self.world.item_note(format!("{head}: IN REACH: picked up; Connor's {} {before} -> {after}; {sound}; gone from the world", o.kind));
-        // Rule 7: then its script, as a normal click.
-        let called = o.script.clone().map(|script| {
-            let args: Vec<String> = [o.name.as_str(), "ConnorAction", "do", "do"].map(String::from).to_vec();
-            self.world.item_note(format!("script {script} {}", args.join(" ")));
-            self.scripts.call(&script, &args, &mut self.world);
-        });
+        let called = self.world.collect_world_item(i, placement.position, &format!("{head}: IN REACH"));
+        if let Some((script, args)) = &called {
+            self.scripts.call(script, args, &mut self.world);
+        }
         let do_args = ["ConnorAction".to_string(), "do".into(), "do".into()];
         self.click_turn(&o.name, &do_args, called.is_some(), placement.position, o.do_not_point_at);
         ClickResult::PickedUp(o.name)
@@ -5354,6 +5415,14 @@ impl Active {
             if !self.call_named(&name, &["ProjImmune"]) {
                 self.world.fight_note(&name, "no script: ProjImmune not called (ranged-weapons.md rule 30)");
             }
+        }
+        // rockHit.cs asks for the projectile's final placement before
+        // dropping one inventory rock there. Keep it resolvable only
+        // during its callback, even when several land on the same tick.
+        for (name, script, event, position) in std::mem::take(&mut self.world.projectile_calls) {
+            self.world.projectile_caller = Some((name.clone(), position));
+            self.scripts.call(&script, &[name, event.into()], &mut self.world);
+            self.world.projectile_caller = None;
         }
         // azriel-hammer.md rule 8 (M6 6b-2): the hammer on the lever.
         for name in std::mem::take(&mut self.world.hammer_calls) {
@@ -6274,6 +6343,14 @@ endif
         a.world.heights = Some(Box::new(|_, _, floor| Some(if floor { 100.0 } else { 800.0 })));
         a.scripts.call("s.cs", &[], &mut a.world);
         a
+    }
+
+    #[test]
+    fn merchant_click_equips_item_and_calls_its_script_before_continuing() {
+        let a = with_items("KQMonster::inventory world Crystal 2 1000 2000 3000\nset Item $NewInvItem\nKQObject::setScript $Item coin.cs\nconClickItem $Item\nset PaidFor $Coin::Said\nconClickItem $Item");
+        assert_eq!(a.scripts.vars.get("PaidFor"), a.scripts.vars.get("Item"));
+        assert_eq!(a.world.items.count("Connor", "INVITEM_Crystal"), 2);
+        assert_eq!(a.scripts.vars.get(crate::script::RETURN), Some("1"));
     }
 
     #[test]
@@ -8288,6 +8365,60 @@ deleteObject waterfall2
         a.world.bolts_step(&FlatGround, &[], &[]);
     }
 
+    #[test]
+    fn a_rock_from_the_bar_can_trigger_a_puzzle_throw_land_and_be_picked_up() {
+        use crate::connor_inventory::{bar_click, BarResult};
+        let mut a = active("if test $4 == INVITEM_Rock\n KQMonster::setState Connor ThrowRock\nendif\n", &[]);
+        a.world.doors[0].accepts_inventory = Some("Rock".into());
+        a.world.items = crate::item::tests::items();
+        let t = &mut a.world.items.types.types[0];
+        t.name = "INVITEM_Rock".into();
+        t.category = "Rock".into();
+        t.cursor = Some("rock-cursor".into());
+        t.extra = Some("prrock.kq".into());
+        t.stats = [0; 5];
+        a.world.sources.insert("land.cs".into(), b"if test $2 == Die\n getLoc $1\n set impact $KQObject::loc\n KQMonster::dropItem Connor Rock $impact\nendif\n".to_vec());
+        let p = kq8_data::kq_text::parse(b"[Rock]\nclassType=KQProjectile\nscript=land.cs\nvelocity=2500\nmaxDistance=2500\nparabola=1\nupVelocity=2500\npeakHeightOffset=500\n");
+        a.world.projectiles.insert("prrock.kq".into(), kq8_data::characters::ProjectileKeys::from_section(&p[0]).unwrap());
+        a.world.connor_projectile = Some("bow.kq".into());
+        a.start();
+        a.test_command("give Rock 2", "setup");
+        let carried = a.world.items.find("Connor", "Rock").unwrap().name.clone();
+        assert_eq!(bar_click(&mut a.world, &carried, true, false, "rock slot"), BarResult::Hold);
+        assert_eq!(a.world.world_click_action(false, false), crate::weapons::WorldClick::ThrowRock);
+        assert!(a.world.accepts_rock("Condoor"));
+        let feet = [0., -1000., 100.];
+        let held = Item { object: carried, kind: "INVITEM_Rock".into() };
+        a.click("Condoor", feet, 2350., Some(&held));
+        let aim = a.world.requests.iter().find_map(|r| if let Request::ConnorThrowRock { aim } = r { *aim } else { None }).unwrap();
+        crate::connor_inventory::after_world_click(&mut a.world, &held.object, true);
+        let file = a.world.rock_file().unwrap();
+        a.world.shoot_with_file(&file, feet, kq8_data::objects::rotation([0.; 3]), Some(([0., 0., 600.], "throwing hand".into())), aim, "throw do");
+        assert_eq!(a.world.bolts[0].kind, crate::fight::HitKind::Normal);
+        assert_eq!(a.world.bolts[0].position, [0., -1000., 700.]);
+        assert_eq!(a.world.connor_projectile.as_deref(), Some("bow.kq"));
+        let mut apex = 0_f32;
+        for _ in 0..45 {
+            fly(&mut a);
+            a.update();
+            if let Some(b) = a.world.bolts.first() {
+                apex = apex.max(b.position[2]);
+            } else {
+                break;
+            }
+        }
+        assert!((1190. ..=1201.).contains(&apex));
+        assert!(a.world.bolts.is_empty());
+        assert_eq!(a.world.items.count("Connor", "INVITEM_Rock"), 1);
+        let landed = a.world.items.find("world", "Rock").unwrap();
+        let (stone, p) = (landed.name.clone(), landed.placement().unwrap().position);
+        assert_eq!(p[2], 100.);
+        assert!((p[1] - aim[1]).abs() < 200.);
+        a.click(&stone, p, 2350., None);
+        assert_eq!(a.world.items.count("Connor", "INVITEM_Rock"), 2);
+        assert!(a.world.items.find("world", "Rock").is_none());
+    }
+
     /// Daventry's `prhammer.kq` with `hammer.kqs`'s `BOUNDS.KQ` box (data).
     fn prhammer() -> kq8_data::characters::ProjectileKeys {
         let mut p = kq8_data::characters::ProjectileKeys::from_section(&kq8_data::kq_text::parse(b"[Hammer]\nclassType=KQHammer\nshapeName=hammer.kqs\nvelocity=24000\nmaxDistance=15000\nmeshName=hammer\nmodifier=30\nminDamage=0\nmaxDamage=300\n")[0]).unwrap();
@@ -8576,6 +8707,26 @@ deleteObject waterfall2
         assert_eq!(a.world.die_calls, vec![(name, "Normal")]);
         a.update();
         assert_eq!(a.scripts.vars.get("C::Last"), Some("Die Normal"));
+    }
+
+    #[test]
+    fn a_world_item_gets_its_hit_script_only_while_it_is_in_the_world() {
+        let mut a = with_items("if test $2 == Die\n set I::hit $1 $3\nendif\n");
+        a.test_command("KQMonster::inventory world Crystal 1 0 0 100 0 0 0", "t");
+        let name = a.world.items.objects[0].name.clone();
+        a.test_command(&format!("KQObject::setScript {name} s.cs"), "t");
+        a.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
+        let hit = a.world.mask_pick([0., -1000., 200.], [0., 1., 0.], crate::weapons::SWING_PICK, &[], &[]).unwrap();
+        let (target, p) = a.world.melee_pick_target(&hit, &[]).unwrap();
+        assert_eq!((target.as_str(), p), (name.as_str(), [0., 0., 100.]));
+        a.world.connor_do([0., -1000., 100.], std::f32::consts::PI, 2350., Some(&target), false, "attack");
+        a.update();
+        assert_eq!(a.scripts.vars.get("I::hit"), Some(format!("{name} Normal").as_str()));
+        a.test_command(&format!("KQObject::setScript {name} none"), "t");
+        a.click(&name, p, 2350., None);
+        assert!(a.world.items.get(&name).unwrap().carried_by("Connor"));
+        a.world.connor_do([0., -1000., 100.], std::f32::consts::PI, 2350., Some(&target), false, "attack");
+        assert!(a.world.die_calls.is_empty(), "the retained target has been picked up");
     }
 
     #[test]

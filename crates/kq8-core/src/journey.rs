@@ -39,7 +39,7 @@ use crate::potions::{Running, StatusIcon};
 use crate::talk::CONNOR;
 
 /// Everything that goes with Connor (rules 17–19).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Journey {
     /// The world left.
     pub from: String,
@@ -67,7 +67,7 @@ pub struct Journey {
     /// The next `NoName<n>` number (rule 18).
     pub next_no_name: usize,
     /// The one-off tips already given (game-wide).
-    pub helps_asked: std::collections::BTreeSet<&'static str>,
+    pub helps_asked: std::collections::BTreeSet<String>,
     pub connor_tips: [bool; 2],
     pub kill_tip: bool,
     pub god_mode: bool,
@@ -123,6 +123,14 @@ impl Journey {
     /// world's start already set are kept (it runs after them in the
     /// original). Returns lines for the log.
     pub fn give(&self, w: &mut WorldState, vars: &mut Vars) -> Vec<String> {
+        w.connor_flags = self.flags.clone();
+        w.connor_in_temple4 = self.in_temple4;
+        self.give_after_flags(w, vars)
+    }
+
+    /// On ordinary travel the destination already received Connor's flags
+    /// before its object Init callbacks. Keep any changes they made.
+    pub fn give_after_flags(&self, w: &mut WorldState, vars: &mut Vars) -> Vec<String> {
         let mut lines = Vec::new();
         // His start items in this world (`Connor.kq`'s inventory) go.
         let dropped: Vec<String> = w.items.objects.iter().filter(|o| o.carried_by(CONNOR)).map(|o| o.name.clone()).collect();
@@ -162,8 +170,6 @@ impl Journey {
         }
         let now = w.now();
         w.pickup_experience = self.pickup_experience.iter().map(|(t, n, k)| (now + t, *n, k.clone())).collect();
-        w.connor_flags = self.flags.clone();
-        w.connor_in_temple4 = self.in_temple4;
         w.map_marks = self.map_marks.clone();
         w.map_view = self.map_view;
         w.other_maps = self.other_maps.clone();
