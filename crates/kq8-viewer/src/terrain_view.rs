@@ -337,13 +337,14 @@ pub fn setup_objects(
     // Animated objects whose movement plays or can be switched (3c,
     // 3i-4): drawn by anim_view, played by the world's rules.
     let animated: std::collections::BTreeSet<usize> = objects.animated.iter().map(|a| a.placed).collect();
-    let (anims, own_players) = crate::anim_view::spawn_animated(
+    let (anims, own_players, monster_recipes) = crate::anim_view::spawn_animated(
         &mut commands,
         std::mem::take(&mut objects.animated),
         std::mem::take(&mut objects.object_animations),
         &objects.script_shapes,
         &objects.placed,
         &objects.templates.iter().map(|t| t.placed).collect(),
+        &objects.monster_add_targets,
         &mut object_materials,
         &light,
         &mut images,
@@ -353,7 +354,7 @@ pub fn setup_objects(
         &gpu,
         &std::mem::take(&mut objects.swap_looks),
     );
-    crate::door_view::spawn_doors(&mut commands, &mut objects, &mut colliders, (held.0.clone(), held.1), (anims, own_players), &mut object_materials, &light, &mut images, &balls, &mut log, &gpu);
+    crate::door_view::spawn_doors(&mut commands, &mut objects, &mut colliders, (held.0.clone(), held.1), (anims, own_players, monster_recipes), &mut object_materials, &light, &mut images, &balls, &mut log, &gpu);
     // 3l-4: doors, chests and scripted objects were added after the
     // plain objects; the sweep tests them all in load order.
     let load_index = |name: &str| objects.placed.iter().position(|(p, _, _)| p.name.eq_ignore_ascii_case(name)).unwrap_or(usize::MAX);

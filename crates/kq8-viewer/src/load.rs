@@ -1510,6 +1510,9 @@ pub struct MapFile {
 }
 
 pub struct Objects {
+    /// The original type table and files used by scripts' `KQMonster::add`.
+    pub monster_types: Option<kq8_data::characters::MonsterTypes>,
+    pub monster_add_targets: std::collections::BTreeSet<String>,
     pub terrain_changes: kq8_core::ground_anim::GroundChanges,
     pub contact_scripts: Vec<(String, String)>,
     /// Carried state read by destination Init scripts (e.g. Daventry's girl.cs).
@@ -1670,6 +1673,8 @@ pub struct Objects {
 /// objects at load"). It stays in `Objects::placed` (collision, logs) but
 /// is drawn by `anim_view.rs`, not as a still model.
 pub struct AnimatedAssets {
+    /// The .kq file supplying this actor, including monster-list actors.
+    pub source_file: String,
     /// Index into `Objects::placed`.
     pub placed: usize,
     /// Every movement in list order (M3 step 3i-4): name, `loop=` line
@@ -3702,7 +3707,7 @@ impl Placer<'_> {
                     c.movement
                 ));
             } else {
-                self.place_animated(&label, &file, c, flags.as_deref(), character.clone());
+                self.place_animated(base, &label, &file, c, flags.as_deref(), character.clone());
             }
         }
         if let (false, Some(l)) = (unused, self.located.get_mut(&key)) {
@@ -4341,6 +4346,7 @@ impl Placer<'_> {
     /// still (as before for its current movement).
     fn place_animated(
         &mut self,
+        source_file: &str,
         label: &str,
         file: &[kq8_data::kq_text::Section],
         c: &kq8_data::objects::CurrentLoop,
@@ -4435,6 +4441,7 @@ impl Placer<'_> {
             }
         }
         self.animated.push(AnimatedAssets {
+            source_file: source_file.to_ascii_lowercase(),
             placed: self.placed.len() - 1,
             movements,
             alternate_lists,
@@ -4936,6 +4943,8 @@ impl Placer<'_> {
             self.game.find("Options.cs").and_then(|p| std::fs::read(p).ok()).and_then(|b| kq8_data::characters::shadow_mask_setting(&b)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
         });
         Objects {
+            monster_types: self.monster_types,
+            monster_add_targets: self.monster_add_targets,
             terrain_changes: Default::default(),
             contact_scripts: self.placed.iter().zip(&self.collision)
                 .filter(|((_, _, unused), info)| !*unused && info.calls_on_connor_contact && info.collider_mask & kq8_core::collide::CONNOR_TYPE != 0)
@@ -5522,7 +5531,7 @@ mod campaign_tests {
         // Five type files already have a live monster-list instance. Snake
         // has only a script-created instance, so its unplaced file must be
         // kept as the missing movement/model recipe.
-        for name in ["rat1", "rat5", "snake", "spirit1", "weeper1", "weepy"] {
+        for name in ["rat1", "rat5", "snake", "spirit1", "skeleton4", "skeleton2"] {
             assert!(prepared.contains(name), "{name} not prepared: {prepared:?}");
         }
         let snake = objects.animated.iter().find(|a| objects.placed[a.placed].0.name.eq_ignore_ascii_case("Snake")).unwrap();

@@ -51,6 +51,8 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 **Runtime monster creation.** Dead City's karma scripts call `KQMonster::add` after play has begun. Reuse the existing `MonsterLine` parser and `Monstats.mtl` type lookup rather than interpreting those lines as `loadKQ`. Prepare each referenced type's model and movements while the world loads, then instantiate a character with the command's name, placement, fight fields, inventory, wandering and script behavior at the script tick. Check the 20-field form against the owned GOG data and the documented two-word form with a focused fixture. Verify that its AI, collision, damage, deletion and save/restore all work after a fresh relaunch, including the scripts' field-12 patrol quirk. Unknown types must create nothing and log the original error. Do this as a separate change before claiming the Dead City encounters are complete.
 
+The loader now prepares the six type files named by Dead City's 16 add commands. The command creates a live actor with its type's movements, a fresh AI and fight, a collider mover and a model copy. Automated original-data and Windows runs cover the 20-field rat, the short form and all six type models. Saving and restoring a live scripted enemy, face and shadow presentation of the new copy, and a continuous karma encounter remain open.
+
 Inventory the original weapons, ammunition, enemy attacks, damage rules and difficulty settings. Replace temporary controls and complete equipping, aiming, attack timing, hit detection, projectiles, consumables, experience, drops, death and game over. Verify special enemies in their M6 encounters.
 
 **Completion check.** Replay controlled melee and ranged encounters. Check hits and misses, ammunition, health before and after impact, potion expiry, rewards, drops and game-over transitions. Link every weapon and enemy rule to a passing scenario.
@@ -3433,10 +3435,10 @@ each step logs its numbers to `kq8-artifacts/logs/`.
    `KQObject::lightOnFire` (`object-lighting.md` rule 37: kept, logged),
    `KQCamera::setCamRelConner` / `setCamRelObj` (`camera.md`),
    `KQMonster::walkSlope` (`character-movement.md`), `KQMonster::add`
-   (`characters.md` 4: logged as read).
-   **Done** 2026-10-30 except `KQMonster::add` (it adds monsters while
-   playing: its own step later). Also Connor's own flinch percent 0.5.
-   Logs and a unit test.
+   (`characters.md` 4).
+   **Done** 2026-10-30 for the other commands. `KQMonster::add` creates a
+   live character as of 2026-11-05; save restoration and full encounter
+   behavior remain open. Also Connor's own flinch percent 0.5.
 8. **D-8: `matchHeights` and `terAnimSwitch`** (`terrain.md`,
    `emitters.md`): the blood drains after the scales.
 9. **D-9: the `Lookup` call and spirit traps** (`traps.md` 15a,

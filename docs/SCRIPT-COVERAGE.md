@@ -15,7 +15,7 @@ What the game's scripts (`.cs`) and object files (`.kq`) ask of the program, fro
 | --- | ---: | ---: | --- | --- | --- |
 | Daventry | 174 | 92 | 8 (11) | 1 (1) | — |
 | CastleD | 17 | 29 | 4 (6) | 0 (0) | — |
-| DeadCity | 281 | 97 | 7 (28) | 1 (1) | — |
+| DeadCity | 281 | 97 | 6 (12) | 1 (1) | — |
 | Swamp | 93 | 82 | 9 (10) | 0 (0) | Tile2 |
 | Gnome | 111 | 79 | 8 (14) | 1 (1) | — |
 | Barren | 118 | 84 | 7 (12) | 0 (0) | Tile3 |
@@ -38,7 +38,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `KQObject::preloadResources` | **missing** (loading hint?) | 46 (37) | Daventry 18, DeadCity 16, Gnome 6, Barren 6 | `Daventry/AX.CS` |
 | `allowShadows` | **missing** | 28 (0) | Daventry 1, CastleD 1, DeadCity 7, Swamp 1, Gnome 1, Barren 4, IceWorld 6, Snowexit 2, temple1 1, temple2 1, temple3 1, temple4 1, Common 1 | `Daventry/WORLD.CS` |
 | `preloadResource` | **missing** (loading hint?) | 27 (0) | Daventry 23, DeadCity 2, Swamp 2 | `Daventry/WIZARD.CS` |
-| `KQMonster::add` | **missing** | 16 (0) | DeadCity 16 | `DeadCity/RATKARMA.CS` |
 | `KQGame::selectScreen` | **missing** | 13 (0) | Daventry 1, CastleD 2, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `Daventry/WORLD.CS` |
 | `blackOut` | **missing** | 13 (0) | Daventry 1, CastleD 2, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `Daventry/WORLD.CS` |
 | `loadPalette` | **missing** (loading hint?) | 12 (0) | Daventry 1, CastleD 1, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `Daventry/WORLD.CS` |
@@ -132,6 +131,7 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `KQObject::setAccepts` | built | 17 (3) | Gnome 17 | `Gnome/ARMORGNM.CS` |
 | `setActiveCamera` | built | 17 (0) | DeadCity 16, temple4 1 | `DeadCity/DEATH.CS` |
 | `setDeleteWhenDone` | built | 17 (0) | Swamp 6, temple4 9, Common 2 | `Swamp/fienfir2.cs` |
+| `KQMonster::add` | built | 16 (0) | DeadCity 16 | `DeadCity/RATKARMA.CS` |
 | `terAnimSwitch` | built | 16 (0) | Daventry 1, DeadCity 5, Swamp 10 | `Daventry/MILLTREE.CS` |
 | `KQConner::setRopeCam` | built | 14 (0) | Daventry 2, Swamp 1, Gnome 6, Barren 3, temple1 2 | `Daventry/churchr3.cs` |
 | `KQMonster::walkSlope` | built | 14 (8) | DeadCity 14 | `DeadCity/snkarma.cs` |

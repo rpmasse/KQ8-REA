@@ -397,6 +397,16 @@ pub struct AnimObject {
     pub translucency: Option<f32>,
 }
 
+/// A character file and its original type, prepared before a script calls
+/// `KQMonster::add`. The actor is still at its initial state, not in play.
+#[derive(Debug, Clone)]
+pub struct MonsterTemplate {
+    pub actor: AnimObject,
+    pub keys: kq8_data::characters::CharacterKeys,
+    pub kind: kq8_data::characters::MonsterType,
+    pub combat_scaled: bool,
+}
+
 /// What a kept world keeps of an animated or scripted object whose state
 /// changed while Connor was there (`world-change.md` rules 12, 15; DESIGN
 /// "kept worlds keep animated objects' state", K-1): put back into its
@@ -709,6 +719,8 @@ pub struct WorldState {
     /// The files scripts may load while playing, by lower-case base name
     /// (M5 5d-2).
     pub(crate) templates: BTreeMap<String, Template>,
+    /// Original monster type name to its prepared model and character.
+    monster_templates: BTreeMap<String, MonsterTemplate>,
     /// KQS models used by scripts' loadAnim commands in the current world.
     pub script_shapes: BTreeMap<String, crate::door::DoorMovement>,
     /// Scripts a world command asked to run at once (`ScriptHost::take_calls`).
@@ -2242,6 +2254,80 @@ impl WorldState {
     /// The template files (M5 5d-2), from the viewer at the start.
     pub fn set_templates(&mut self, t: impl IntoIterator<Item = (String, Template)>) {
         self.templates.extend(t.into_iter().map(|(f, t)| (f.to_ascii_lowercase(), t)));
+    }
+
+    pub fn set_monster_templates(&mut self, t: impl IntoIterator<Item = (String, MonsterTemplate)>) {
+        self.monster_templates.extend(t.into_iter().map(|(name, t)| (name.to_ascii_lowercase(), t)));
+    }
+
+    /// `KQMonster::add`: the same 20-field line as monsters.kq, or the
+    /// documented name/type form. The prepared actor supplies its model and
+    /// collision shape; this command creates fresh AI and fight state.
+    fn add_monster(&mut self, words: &[String], at: &str) -> String {
+        let line = match kq8_data::characters::MonsterLine::from_command(&words[1..]) {
+            Ok(line) => line,
+            Err(e) => { self.note(format!("{at}: {e}; nothing made")); return "1".into(); }
+        };
+        let Some(template) = self.monster_templates.get(&line.type_name.to_ascii_lowercase()).cloned() else {
+            self.note(format!("{at}: KQMonster::add - Monster type undefined ('{}'); nothing made", line.type_name));
+            return "1".into();
+        };
+        let lower = line.name.to_ascii_lowercase();
+        if (self.known.contains(&lower) && !self.deleted.contains(&lower)) || self.deleted_this_event.contains(&lower) {
+            self.note(format!("{at}: KQMonster::add {}: name still in use; nothing made", line.name));
+            return "1".into();
+        }
+        let mut position = line.position;
+        if position[2] == -1.0 {
+            if let Some(z) = self.heights.as_ref().and_then(|h| h(position[0], position[1], true)) { position[2] = z; }
+        }
+        let placement = Placement { rotation: kq8_data::objects::rotation([0.0, 0.0, line.heading]), position };
+        let mut actor = template.actor;
+        actor.player.name = line.name.clone();
+        actor.player.base = placement;
+        actor.gone = false;
+        let Some(character) = actor.character.as_deref_mut() else {
+            self.note(format!("{at}: KQMonster::add {}: type has no character model; nothing made", line.type_name));
+            return "1".into();
+        };
+        character.reseed_for(&line.name);
+        character.birth_delay = line.birth_delay.or(template.kind.birth_delay);
+        character.ai = Some(crate::character_ai::Ai::new(
+            kq8_data::characters::AiSettings::from_line(&template.keys, &line, &template.kind),
+            position,
+            character.bounds.map_or(1000.0, |(_, max)| max[2]),
+            actor.player.available().iter().any(|m| m.name.eq_ignore_ascii_case("hide")),
+        ));
+        if let Some(ai) = character.ai.as_mut() {
+            ai.has_birth = actor.player.available().iter().any(|m| m.name.eq_ignore_ascii_case("Birth"));
+        }
+        if let Some(old) = character.mover.as_ref() {
+            if let Some((min, max)) = character.bounds {
+                let keep = if old.keep_on_surface { 1 } else if old.keep_on_ground { -1 } else { 0 };
+                character.mover = Some(Box::new(crate::connor_mover::Mover::character(position, character.gravity, min, max,
+                    (character.collision_type, character.collision_mask), (old.step_up, old.step_down), keep)));
+            }
+        }
+        let mut fight = crate::fight::Fight::new(kq8_data::characters::FightSettings::from_line(&template.keys, &line, &template.kind, &self.items.types));
+        fight.combat_scaled = template.combat_scaled;
+        if fight.combat_scaled { fight.apply_combat_level(self.combat_level); }
+        character.fight = Some(fight);
+        if let Some((from, to)) = line.skin.clone() {
+            self.bmp_swaps.insert(lower.clone(), (from, to));
+        }
+        self.deleted.remove(&lower);
+        self.known.insert(lower);
+        self.monsters.retain(|m| !m.name.eq_ignore_ascii_case(&line.name));
+        self.monsters.push(Monster { name: line.name.clone(), position, script: actor.script.clone(),
+            goodbye: template.keys.goodbye, welcome_back: template.keys.welcome_back });
+        self.anims.push(actor);
+        self.requests.push(Request::Spawn { file: template.kind.file.to_ascii_lowercase(), name: line.name.clone(), placement, at: at.to_string() });
+        if let Some(script) = self.anims.last().and_then(|a| a.script.clone()) {
+            self.calls_out.push((script, vec![line.name.clone(), "Init".into()]));
+        }
+        self.vars_out.push(("ObjectName".into(), line.name.clone()));
+        self.note(format!("{at}: KQMonster::add {} type {} at {:?}: live character, AI and fight created", line.name, template.kind.name, position));
+        "0".into()
     }
 
     /// `loadObject <name> <file> [x y z [rx ry rz]]` (`anim-scripts.md`
@@ -4037,6 +4123,7 @@ impl ScriptHost for WorldState {
             "getEndLoop" => Some(self.get_end_loop(words, at)),
             "setDeleteWhenDone" => Some(self.set_delete_when_done(words, at)),
             "KQMonster::setState" => Some(self.set_state(words, at)),
+            "KQMonster::add" => Some(self.add_monster(words, at)),
             "setCombatLevel" => Some(self.set_combat_level(words, at)),
             "KQMonster::setHome" => Some(self.set_home(words, at)),
             "KQObject::getLoc" | "getLoc" | "getloc" => Some(self.get_loc(words, at)),
@@ -4221,6 +4308,7 @@ impl Active {
                 held_for_load: Vec::new(),
                 calls_out: Vec::new(),
                 templates: BTreeMap::new(),
+                monster_templates: BTreeMap::new(),
                 script_shapes: BTreeMap::new(),
                 first_person_locked: false,
                 was_first_person: false,
@@ -8989,6 +9077,48 @@ deleteObject waterfall2
             assert_eq!(t.flinch_pause, pause);
             assert!((t.move_time - a.world.now() - 1.5).abs() < 0.001);
         }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_dead_city_add_creates_a_live_rat_and_handles_short_form() {
+        use kq8_data::characters::{CharacterKeys, MonsterTypes};
+        let game = kq8_data::GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let volume = kq8_data::VolArchive::open(&game.volume_path("DeadCity", "kq").unwrap()).unwrap();
+        let read = |name: &str| std::fs::read(game.find(name).unwrap()).unwrap();
+        let types = MonsterTypes::parse(&read("GAME/Kq/Monstats.mtl")).0;
+        let kind = types.find("rat").unwrap().0.clone();
+        let file = volume.unpack(volume.find(&kind.file).unwrap()).unwrap().data;
+        let keys = CharacterKeys::from_section(&kq8_data::kq_text::parse(&file)[0]).unwrap();
+        let script = volume.unpack(volume.find("ratkarma.cs").unwrap()).unwrap().data;
+        let source = String::from_utf8_lossy(&script);
+        let add = source.lines().map(str::trim).find(|line| line.starts_with("KQMonster::add rat1 ")).unwrap();
+        let mut a = fighter();
+        let actor = a.world.anims[0].clone();
+        a.world.set_monster_templates([("rat".into(), MonsterTemplate { actor, keys, kind, combat_scaled: false })]);
+        a.world.heights = Some(Box::new(|_, _, floor| floor.then_some(100.0)));
+        assert_eq!(a.test_command(add, "ratkarma.cs").as_deref(), Some("0"));
+        let rat = a.world.anims.iter().find(|a| a.player.name == "rat1").unwrap();
+        let c = rat.character.as_deref().unwrap();
+        assert_eq!(rat.player.base.position, [1000.0, 1000.0, 100.0]);
+        assert_eq!(c.ai.as_ref().unwrap().home, [1000.0, 1000.0, 100.0]);
+        assert!(!c.ai.as_ref().unwrap().settings.wanders, "the original line's patrol text is dependents, not movement");
+        assert_eq!(c.fight.as_ref().unwrap().stats.0[0], 5);
+        assert_eq!(c.mover.as_ref().unwrap().position, rat.player.base.position);
+        assert!(a.world.requests.iter().any(|r| matches!(r, Request::Spawn { name, .. } if name == "rat1")));
+        a.world.hit_character(1, "Connor", 5, crate::fight::HitKind::Normal);
+        assert!(a.world.anims[1].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0] < 5,
+            "the new actor must receive combat damage");
+        assert_eq!(a.test_command("KQMonster::add simple rat", "short").as_deref(), Some("0"));
+        assert!(a.world.anims.iter().any(|a| a.player.name == "simple" && a.character.is_some()));
+        assert_eq!(a.test_command("KQMonster::add none missingtype", "unknown").as_deref(), Some("1"));
+        assert!(!a.world.anims.iter().any(|a| a.player.name == "none"));
+        assert_eq!(a.test_command("deleteObject rat1", "delete").as_deref(), Some("0"));
+        assert!(a.world.is_deleted("rat1"));
+        ScriptHost::event_done(&mut a.world);
+        assert_eq!(a.test_command(add, "ratkarma.cs again").as_deref(), Some("0"));
+        assert!(!a.world.is_deleted("rat1"));
+        assert_eq!(a.world.character_index("rat1"), Some(3), "the replacement is live after the old actor was deleted");
     }
 
     #[test]

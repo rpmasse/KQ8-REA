@@ -113,6 +113,14 @@ struct Playing {
     at_load: Option<Box<NamedAnimPlayer>>,
 }
 
+/// The built character and movement player for one original .kq type file.
+pub struct PreparedMonster {
+    pub file: String,
+    pub keys: kq8_data::characters::CharacterKeys,
+    pub combat_scaled: bool,
+    pub actor: AnimObject,
+}
+
 /// What a new copy of an unused object needs (M5 5d-4): each movement's
 /// frames as (mesh, material) lists, its whole-object steps, its script.
 struct Recipe {
@@ -235,6 +243,10 @@ impl AnimSim {
         line
     }
 
+    pub fn has_recipe(&self, file: &str) -> bool {
+        self.recipes.contains_key(&file.to_ascii_lowercase())
+    }
+
     /// The draw-distance test of a character that just came in (M4 4d-3),
     /// with its body, to be put on it.
     pub fn take_test(&mut self, name: &str) -> Option<(Entity, crate::draw_distance::DistanceTest)> {
@@ -268,6 +280,7 @@ pub fn spawn_animated(
     script_shapes: &std::collections::BTreeMap<String, (usize, DoorMovement)>,
     placed: &[(kq8_data::objects::Placement, usize, bool)],
     templates: &std::collections::BTreeSet<usize>,
+    monster_targets: &std::collections::BTreeSet<String>,
     materials: &mut Assets<ObjectMaterial>,
     light: &ObjectLight,
     images: &mut Assets<Image>,
@@ -276,12 +289,12 @@ pub fn spawn_animated(
     main_log: &mut Log,
     gpu: &crate::anim_gpu::AnimGpu,
     swap_looks: &[(String, crate::load::Look)],
-) -> (Vec<AnimObject>, Vec<NamedAnimPlayer>) {
+) -> (Vec<AnimObject>, Vec<NamedAnimPlayer>, Vec<PreparedMonster>) {
     let mut log = match Log::create("anim") {
         Ok(l) => l,
         Err(e) => {
             main_log.summary(format!("animated objects: cannot create anim.log: {e}; not started"));
-            return (Vec::new(), Vec::new());
+            return (Vec::new(), Vec::new(), Vec::new());
         }
     };
     // Per animation: its number of frames, the materials by index, its
@@ -330,6 +343,7 @@ pub fn spawn_animated(
     let mut core = Vec::new();
     // M5 5d-4: the unused objects' players and recipes (templates).
     let mut own_players = Vec::new();
+    let mut monster_recipes = Vec::new();
     let mut recipes = std::collections::BTreeMap::new();
     for (file, (index, _)) in script_shapes {
         let model = &built[*index];
@@ -591,6 +605,13 @@ pub fn spawn_animated(
         // its drawing's materials are.
         let texture_names: Vec<((usize, i32), String)> =
             a.movements.iter().flat_map(|(_, _, i)| built[*i].textures.iter().filter_map(move |(m, t)| t.as_ref().map(|t| ((*i, *m), t.clone())))).collect();
+        if monster_targets.contains(&a.source_file) && !monster_recipes.iter().any(|r: &PreparedMonster| r.file == a.source_file) {
+            if let (Some(keys), Some(ch)) = (a.character.as_ref(), character.as_ref()) {
+                recipes.insert(a.source_file.clone(), Recipe { movements: recipe.clone(), script: a.script.clone(), slots: (slot_movements.clone(), own.clone()), textures: texture_names.clone() });
+                monster_recipes.push(PreparedMonster { file: a.source_file.clone(), keys: keys.keys.clone(), combat_scaled: keys.combat_scaled,
+                    actor: AnimObject { player: player.clone(), script: a.script.clone(), gone: false, character: Some(ch.clone()), translucency: None } });
+            }
+        }
         if (*unused || template) && a.character.is_none() {
             recipes.insert(p.name.to_ascii_lowercase(), Recipe { movements: recipe, script: a.script.clone(), slots: (slot_movements, own), textures: texture_names.clone() });
         }
@@ -728,7 +749,7 @@ pub fn spawn_animated(
         })
         .collect();
     commands.insert_resource(AnimSim { playing, recipes, swap_images, updates: 0, log, characters: clog, fight });
-    (core, own_players)
+    (core, own_players, monster_recipes)
 }
 
 /// One update (15 per second), after `door_step` has run core's update:
