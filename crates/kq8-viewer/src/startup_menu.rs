@@ -800,6 +800,9 @@ fn graphics_key(world: &mut World, key: Key) {
     };
     if graphics != old {
         world.resource_mut::<Preferences>().settings.graphics = graphics.clone();
+        if graphics.dynamic_lighting != old.dynamic_lighting {
+            crate::light_view::apply_menu_dynamic(world, graphics.dynamic_lighting);
+        }
         log.lock().unwrap().summary(format!("graphics: {key:?} -> {graphics:?}"));
     }
     if action == graphics_menu::Action::Back {
