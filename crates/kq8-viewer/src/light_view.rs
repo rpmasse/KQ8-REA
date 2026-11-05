@@ -309,6 +309,32 @@ pub fn toggle_dynamic(
     ));
 }
 
+/// Apply the Graphics menu's choice to the current world immediately. The
+/// title menu has no loaded world, so its saved choice takes effect on load.
+pub fn apply_menu_dynamic(world: &mut World, on: bool) -> bool {
+    let Some(mut light) = world.get_resource_mut::<GroundLight>() else { return false };
+    if light.dynamic == on { return false; }
+    light.toggle_dynamic();
+    let image = light.image.as_ref().map(|handle| (handle.clone(), light_image(&light.map)));
+    let (inv_spacing, side) = light.lookup();
+    let label_text = label_text(light.mode, light.dynamic);
+    drop(light);
+    if let Some((handle, image)) = image {
+        if let Some(mut target) = world.resource_mut::<Assets<Image>>().get_mut(&handle) { *target = image; }
+    }
+    for (_, material) in world.resource_mut::<Assets<crate::ground_haze::GroundMaterial>>().iter_mut() {
+        material.settings.light_inv_spacing = inv_spacing;
+        material.settings.light_side = side;
+    }
+    let mut labels = world.query_filtered::<&mut Text, With<LightLabel>>();
+    for mut label in labels.iter_mut(world) { label.0 = label_text.clone(); }
+    world.resource::<Shared>().log.lock().unwrap().summary(format!(
+        "Graphics menu: dynamic lighting {} applied live (ground shows its {} map, {} x {} points)",
+        if on { "on" } else { "off" }, if on { "shadow" } else { "light" }, side as usize, side as usize
+    ));
+    true
+}
+
 /// Every frame (rule 26): put last frame's patches back, paint this
 /// frame's, and rewrite the touched texels of the picture. Logs once a
 /// second what each light painted.
