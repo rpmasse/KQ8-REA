@@ -55,6 +55,8 @@ pub struct DrawnMovement {
     pub parts: Vec<kq8_data::shape::FrameParts>,
 }
 
+pub mod route;
+
 /// Keys from `Connor.sae`, and which of them are held, oldest first.
 pub struct Controls {
     forward: Option<KeyCode>,

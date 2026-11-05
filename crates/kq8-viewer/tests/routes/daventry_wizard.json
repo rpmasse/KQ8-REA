@@ -1,0 +1,11 @@
+{
+  "start": 300,
+  "landmarks": [
+    {"name": "West of Sarah's cottage", "xy": [270000, 199000], "radius": 500},
+    {"name": "Daventry village road", "xy": [250000, 203000], "radius": 550},
+    {"name": "Farmhouse corner", "xy": [237200, 199000], "radius": 480},
+    {"name": "Past the farmhouse", "xy": [223500, 198900], "radius": 550},
+    {"name": "West of the church", "xy": [211500, 199000], "radius": 550},
+    {"name": "Wizard", "xy": [191980, 198274], "radius": 260, "click": "Wizard"}
+  ]
+}

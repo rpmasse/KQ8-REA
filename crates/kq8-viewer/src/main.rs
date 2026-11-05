@@ -129,6 +129,7 @@ struct Args {
     /// Test: hold this intent (forward,turn,run e.g. `1,0,0`) for Connor,
     /// optionally only for the first N updates (`1,0,0,30`).
     hold: Vec<([i8; 3], u64, Option<u64>)>,
+    route: connor_view::route::Replay,
     /// Test: press Jump once, before update N + 1.
     jump: Vec<u64>,
     /// Test: press a turn key before update N + 1 and hold it (`N` or
@@ -212,6 +213,7 @@ fn parse_args() -> Result<Args, String> {
         updates: None,
         lift: None,
         hold: Vec::new(),
+        route: Default::default(),
         jump: Vec::new(),
         turn: None,
         at: None,
@@ -253,6 +255,7 @@ fn parse_args() -> Result<Args, String> {
             // The ground is the default now; kept so older commands still run.
             "--terrain" => {}
             "--model" => a.model = Some(value()?),
+            "--walk-route" => a.route = connor_view::route::Replay::read(&PathBuf::from(value()?))?,
             "--hold" => {
                 let v = value()?;
                 let n: Vec<i64> = v.split(',').map(|x| x.trim().parse::<i64>()).collect::<Result<_, _>>().map_err(|_| "--hold needs forward,turn,run[,updates] e.g. 1,0,0".to_string())?;
@@ -468,6 +471,7 @@ Test options (drive Connor from the command line; ground view only).
 N is an update number (15 updates per second):
   --at X,Y,H                 start Connor at X, Y facing heading H (radians)
   --lift <number>            lift him that high once at the start, then let him fall
+  --walk-route FILE          press movement keys to follow the JSON test route
   --hold F,T,R[,N]           hold forward (1 / -1 back), turn (1 left / -1 right),
                              run (1 / 0); let go of forward and turn after N updates;
                              F,T,R,FROM,N: held from update FROM to N (repeatable)
@@ -667,6 +671,8 @@ fn main() -> ExitCode {
             app.insert_resource(Settings { frame_limit: args.frames, update_limit: args.updates, started, last_report: Instant::now(), radius: 0.0 })
                 .insert_resource(connor_view::StartLift(args.lift))
                 .insert_resource(connor_view::HoldIntent(args.hold))
+                .insert_resource(args.route)
+                .add_systems(Update, connor_view::route::steer.before(connor_view::connor_keys).run_if(world_build::playing))
                 .insert_resource(connor_view::JumpAt(args.jump.clone()))
                 .insert_resource(connor_view::TurnAt(args.turn))
                 .insert_resource(connor_view::StartAt(args.at))

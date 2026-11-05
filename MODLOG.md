@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Walk from New Game to the wizard
+
+A Windows run selected New Game and followed the bound movement keys around the Daventry farmhouse with normal collision and AI. The wizard's eighth reply exchanged the introductory piece for the mask and first piece. His thirteenth reply marked the meeting complete. Five original animation cues followed, the fourth granting the Magic Map. The run waited for the last spoken line and verified the rewards in a disk save. The [route and source inventory](docs/daventry-progression.md) identify the subsequent quests. The map tutorial prompt is still missing.
+
 ## 2026-11-05 Connor on the Scales of Justice
 
 The refreshed script inventory covers all 12 installed worlds and shared scripts. It now identifies the Scales state, `doCredits` and `loadAnim` in the Rust implementation. The game uses `loadAnim` to create visible models. The report counts its 20 calls as gameplay commands. These counts identify dispatch coverage. The separate scenario tests exercise outcomes.

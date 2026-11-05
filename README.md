@@ -52,6 +52,7 @@ cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test weeper -- --ignored
 cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored
 cargo test --locked -p kq8-viewer --test cottage_journey -- --ignored
+cargo test --locked -p kq8-viewer --test daventry_wizard -- --ignored
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test puzzle_timer -- --ignored
 cargo test --locked -p kq8-viewer --test regions -- --ignored --test-threads=1 --nocapture
@@ -59,7 +60,9 @@ cargo test --locked -p kq8-core original_barren_dock_script -- --ignored
 cargo test --locked -p kq8-core original_gnome_rock_and_dead_city -- --ignored
 ```
 
-The cottage test uses New Game, collects five mushrooms, consumes one, saves and quits. A fresh process restores four mushrooms and the open cottage door, opens the pub chest, travels through both castle portal prompts, and saves back in Daventry. The test disables enemy AI, moves Connor between landmarks and applies damage so he can use a healing item.
+The [Daventry campaign route](docs/daventry-progression.md) starts at New Game. An unattended player follows the road around the farmhouse using the bound movement keys, talks to the wizard and saves after his last line. The save contains the mask, the first piece and the Magic Map awarded by his original scripts. The map tutorial popup remains open work.
+
+The separate cottage test collects five mushrooms, consumes one, saves and quits. A fresh process restores four mushrooms and the open cottage door, opens the pub chest, travels through both castle portal prompts, and saves back in Daventry. This test disables enemy AI, moves Connor between landmarks and applies damage so he can use a healing item.
 
 Two Dead City checks start with the original portal's arrival cue. One gives Connor the feather, uses it on the right dish and steers him onto the left. The original scripts then lower five river sections. The other boards the right dish, steps off and walks out of the puzzle. Getting the feather during campaign play and saving mid-puzzle still need coverage.
 
