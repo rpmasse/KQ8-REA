@@ -62,6 +62,6 @@ This fork recreates **King's Quest: Mask of Eternity** in Rust for Windows. Use 
 ## Environment
 
 - OS: Windows 11
-- Game A: King's Quest: Mask of Eternity, version 1.03 from GOG.com, installed at ./MASK/
+- Original game reference: King's Quest: Mask of Eternity, version 1.03 from GOG.com, in the sibling `../King's Quest 8 GOG/` directory. Set `KQ8_GAME_DIR` to its absolute path for automated checks. Read this installation without modifying it.
 - Language and version: Rust stable with MSVC
 - Agent: Claude Code
