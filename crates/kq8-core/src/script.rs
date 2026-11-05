@@ -725,6 +725,33 @@ endif
     }
 
     #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_gnome_rock_and_dead_city_bridge_damage_connor() {
+        use crate::active::Active;
+        use crate::stats::{ConnorStats, Stats};
+        let game = kq8_data::GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let script = |world: &str, name: &str| {
+            let path = game.find(&format!("data/{world}/kq.vol")).unwrap();
+            let archive = kq8_data::VolArchive::open(&path).unwrap();
+            (name.to_owned(), archive.unpack(archive.find(name).unwrap()).unwrap().data)
+        };
+        let mut a = Active::new(
+            Vars::default(), vec![], vec![], ["Connor".to_owned()],
+            [script("Gnome", "rollside.cs"), script("DeadCity", "bbdgtrap.cs")],
+        );
+        a.set_connor_stats(ConnorStats { level: 5, stats: Stats([50, 0, 0, 0, 0]) });
+        assert!(a.run_script("rollside.cs", &args(&["rrock1", "ConnorCollision", "0"])));
+        assert_eq!(a.scripts.vars.get("CurRelHealth"), Some("10"));
+        assert_eq!(a.scripts.vars.get("CurRelDamage"), Some("-10"));
+        assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 50, "damage waits for event delivery");
+        a.update();
+        assert!((40..=47).contains(&a.world.connor_stats.unwrap().stats.0[0]));
+        assert!(a.run_script("bbdgtrap.cs", &args(&["bridge", "On"])));
+        a.update();
+        assert!(a.world.connor_stats.unwrap().stats.dead() && a.world.connor_dying);
+    }
+
+    #[test]
     fn set_joins_words_and_comments_are_dropped() {
         let (s, h) = run("set Daventry::Door::Locked 1 # comment\nset Long a  b\tc\necho \"Keep Door\" x # not this\n", &[], &[]);
         assert_eq!(s.vars.get("Daventry::Door::Locked"), Some("1"));

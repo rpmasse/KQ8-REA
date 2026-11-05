@@ -96,7 +96,7 @@ pub const MUSIC_DELAY: f64 = 0.2;
 /// The event queue's target for them (our name; no object is called this).
 const MUSIC_TARGET: &str = "<KQMusic>";
 
-pub const EVENT_TYPES: [&str; 5] = ["KQDoorEvent", "KQAnimPlayEvent", "KQCueEvent", "KQStatsChangeRequestEvent", "KQMoveEvent"];
+pub const EVENT_TYPES: [&str; 6] = ["KQDoorEvent", "KQAnimPlayEvent", "KQCueEvent", "KQStatsChangeRequestEvent", "KQAttackEvent", "KQMoveEvent"];
 
 /// `Die`'s `$3` (`anim-scripts.md` rule 20, Q86 e): the kind of the last
 /// weapon hit the object took, `Normal` if it was never hit. Nothing is
@@ -632,6 +632,9 @@ pub struct WorldState {
     pub known: BTreeSet<String>,
     /// The world's scripts by lower-case file name.
     sources: BTreeMap<String, Vec<u8>>,
+    /// Placed objects that request ConnorCollision, with their last touch
+    /// update in each of the six directions (connor-collision.md rules 7–10).
+    contact_scripts: BTreeMap<String, (String, [u64; 6])>,
     pub queue: EventQueue,
     /// Updates done; game time = updates / 15.
     pub updates: u64,
@@ -3737,6 +3740,17 @@ impl ScriptHost for WorldState {
             "KQObject::collision" => Some(self.collision_mask(words, at)),
             "KQConner::setRun" => Some(self.set_run(words, at)),
             "KQConner::setLevel" => Some(self.set_level(words, at)),
+            "KQConner::setRelDamage" => {
+                let fraction = words.get(1).filter(|s| looks_like_number(s)).map(|s| number_value(s));
+                let (Some(fraction), Some(connor)) = (fraction, self.connor_stats) else {
+                    self.note(format!("{at}: setRelDamage requires a fraction and Connor's level"));
+                    return Some("1".into());
+                };
+                let damage = (fraction * 10.0 * connor.level as f64) as i64;
+                self.vars_out.push(("CurRelDamage".into(), damage.saturating_neg().to_string()));
+                self.vars_out.push(("CurRelHealth".into(), damage.to_string()));
+                Some("0".into())
+            }
             c if c.starts_with("KQConner::setRope") => self.rope_command(words, at),
             "KQConner::getDoMode" => {
                 // pushing.md "Words used here": the hand mode, sword 0, bow
@@ -3918,6 +3932,7 @@ impl Active {
                 buildings: Vec::new(),
                 known,
                 sources,
+                contact_scripts: BTreeMap::new(),
                 queue: EventQueue::default(),
                 updates: 0,
                 log: Vec::new(),
@@ -4443,6 +4458,33 @@ impl Active {
             self.call_trap(i, &refs);
         }
         calls
+    }
+
+    pub fn register_contact_script(&mut self, name: &str, script: String) {
+        self.world.contact_scripts.insert(name.to_ascii_lowercase(), (script, [0; 6]));
+    }
+
+    pub fn has_contact_script(&self, name: &str) -> bool {
+        self.world.contact_scripts.contains_key(&name.to_ascii_lowercase())
+    }
+
+    /// A contact with Connor from either mover. Continuous contact
+    /// refreshes the clock even when it does not call the script.
+    pub fn connor_contact(&mut self, name: &str, normal: [f32; 3]) -> bool {
+        let now = self.world.updates;
+        let Some((script, last)) = self.world.contact_scripts.get_mut(&name.to_ascii_lowercase()) else {
+            return false;
+        };
+        let [x, y, z] = normal;
+        let direction = if z > 0.0 { 1 } else if z < 0.0 { 6 }
+            else if x > 0.0 { if x < y.abs() { 3 } else { 2 } }
+            else if x < 0.0 { if -x < y.abs() { 5 } else { 4 } }
+            else if y > 0.0 { 4 } else { 6 };
+        let previous = std::mem::replace(&mut last[direction - 1], now);
+        // The original uses a strict 0.2 s interval at 15 updates per second.
+        if now.saturating_sub(previous) <= 3 { return false; }
+        let script = script.clone();
+        self.run_script(&script, &[name.into(), "ConnorCollision".into(), direction.to_string()])
     }
 
     /// Runs the named object's script with `args`, including a world
@@ -5668,6 +5710,10 @@ impl Active {
             self.stats_change(&e, &from);
             return;
         }
+        if e.kind == "KQAttackEvent" {
+            self.world.scripted_attack(&e.target, &e.data, &e.from);
+            return;
+        }
         // objects.md "Loops that move the whole object" rule 3 (batch 2,
         // D-1): on an object it is a `move` with the same flag bits; only
         // 7 numbers are read after the flags (the 8th is ignored).
@@ -6343,6 +6389,27 @@ endif
         a.world.heights = Some(Box::new(|_, _, floor| Some(if floor { 100.0 } else { 800.0 })));
         a.scripts.call("s.cs", &[], &mut a.world);
         a
+    }
+
+    #[test]
+    fn object_contacts_rearm_after_separation_in_each_direction() {
+        let mut a = Active::new(Vars::default(), vec![], vec![], ["plate".into()],
+            [("plate.cs".into(), b"set LastContact $1 $2 $3".to_vec())]);
+        a.register_contact_script("plate", "plate.cs".into());
+        let up = [0.0, 0.0, 1.0];
+        let side = [1.0, 0.0, 0.0];
+        a.world.updates = 10;
+        assert!(!a.connor_contact("other", up));
+        assert!(a.connor_contact("plate", up));
+        assert_eq!(a.scripts.vars.get("LastContact"), Some("plate ConnorCollision 1"));
+        assert!(a.connor_contact("plate", side));
+        assert_eq!(a.scripts.vars.get("LastContact"), Some("plate ConnorCollision 2"));
+        a.world.updates = 13;
+        assert!(!a.connor_contact("plate", up));
+        a.world.updates = 16;
+        assert!(!a.connor_contact("plate", up));
+        a.world.updates = 20;
+        assert!(a.connor_contact("plate", up));
     }
 
     #[test]

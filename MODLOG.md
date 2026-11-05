@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Scripted hazards and object contacts
+
+The engine dispatches the original attack event to Connor, characters and damageable objects. Gnome's rolling-rock script calculates damage from Connor's level and queues its hit. A real-data regression crossed Dead City's loaded bridge trap, ran its own On script and delivered lethal damage. Contact-enabled objects now receive direction-specific callbacks from Connor's mover, and a moving ball-shaped object checks its own path against Connor. A core test covers repeated touch, separation and independent directions. Original moving-object update order and the axes used for rotated side contacts remain open. Reproduction commands are in the README.
+
 ## 2026-11-05 Save slots, rock throwing and campaign scripts
 
 The original Save and Load screens now write named Rust slots with 160×120 gameplay thumbnails. Three Windows processes exercised save, restore from a fresh title screen, cancel, and confirmed deletion. The process-level persistence regression covers ordered inventory, a dropped item, potion timing, a previously visited world and a failed overwrite. Slots capture supported world and journey state. Active scripts, combat and cutscenes still require persistence work.

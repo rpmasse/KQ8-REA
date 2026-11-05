@@ -733,6 +733,37 @@ impl crate::active::WorldState {
         self.fight_note("Connor", format!("Do ({movement}): hits object {name}: distance {:.0}, reach {:.0}, {:.0} deg off his facing; {line}", t.distance, t.reach, t.angle));
     }
 
+    /// Scripted hazards and weapons use the same hit rules as contact attacks.
+    /// The final event word is unused by the damage calculation (Connor collision rule 16).
+    pub(crate) fn scripted_attack(&mut self, target: &str, data: &[String], source: &str) {
+        let [attacker, weapon, strength, _flag] = data else {
+            self.note(format!("{source}: incomplete KQAttackEvent to {target}"));
+            return;
+        };
+        let kind = match weapon.as_str() {
+            "0" => HitKind::Normal,
+            "1" => HitKind::Projectile,
+            "2" => HitKind::Fire,
+            "3" => HitKind::Ice,
+            _ => {
+                self.note(format!("{source}: unknown KQAttackEvent weapon kind {weapon}"));
+                return;
+            }
+        };
+        let Ok(damage) = strength.parse::<i64>() else {
+            self.note(format!("{source}: invalid KQAttackEvent damage {strength}"));
+            return;
+        };
+        if target.eq_ignore_ascii_case(crate::talk::CONNOR) {
+            self.hit_connor(attacker, damage, kind);
+        } else if let Some(i) = self.character_index(target) {
+            self.hit_character(i, attacker, damage, kind);
+        } else {
+            let outcome = self.object_takes(target, damage, kind);
+            self.fight_note(target, format!("KQAttackEvent from {attacker}: {outcome}"));
+        }
+    }
+
     /// A hit of damage `d` on object `name` (M5 5c fix 5, **stand-in**,
     /// Q139 e; a bolt's hit too, M5 5f-1): `doors.md` rules 19-20 on its
     /// stats (`stats=`, all 0 without one), the damage rolled as on a

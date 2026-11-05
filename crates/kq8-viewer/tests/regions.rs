@@ -70,3 +70,19 @@ fn daventry_girl_uses_carried_quest_flag_during_init() {
     assert!(after.contains("setHome: home (135240, 279172, 11200)"));
     assert!(!after.contains("echo Has not met girl in DC - hide"));
 }
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn gnome_rolling_rock_hits_connor_through_its_own_script() {
+    // Wait in the moving rock's path. Its original movement supplies the
+    // contact, and its original rollside.cs supplies the attack event.
+    let logs = run_world("rolling-rock", &[
+        "--world", "Gnome", "--at", "57500,104693,0",
+        "--command", "move Connor 0 57500 104693 17650 0 0 0,4",
+        "--frames", "400",
+    ]);
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
+    let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    assert!(doors.contains("rollside.cs rrock1 ConnorCollision"), "see {}", logs.display());
+    assert!(fight.lines().any(|l| l.contains("hit by rrock1") && l.contains("health ")), "see {}", logs.display());
+}

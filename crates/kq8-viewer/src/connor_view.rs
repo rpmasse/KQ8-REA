@@ -2313,6 +2313,7 @@ pub fn connor_step(
     footsounds: Option<Res<FootSounds>>,
     shared: Res<Shared>,
     mut characters: ResMut<crate::door_view::CharacterColliders>,
+    doors: Option<ResMut<crate::door_view::DoorSim>>,
 ) {
     let (Some(mut sim), Some(lookup)) = (sim, lookup) else { return };
     let sim = &mut *sim;
@@ -2415,6 +2416,11 @@ pub fn connor_step(
     sim.previous = sim.current;
     let bank_before = sim.current.3;
     sim.current = (sim.mover.position, sim.walker.heading, sim.walker.phase, sim.walker.bank);
+    if let Some(mut doors) = doors {
+        for contact in &report.hits {
+            doors.active.connor_contact(&contact.hit.what, contact.hit.normal);
+        }
+    }
     // M4 4d-12-3: his hits on characters, for characters.log.
     for h in report.hits.iter().filter(|h| h.hit.monster) {
         let at = solid.iter().find(|c| c.name == h.hit.what).map_or([0.0; 3], |c| c.position);
