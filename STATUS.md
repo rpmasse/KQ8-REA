@@ -1,5 +1,11 @@
 # STATUS
 
+## 2026-11-06 local commit awaiting remote push
+
+Local `HEAD` contains the GOG Small Crossbow weapon-swap save checkpoint and pending melee/ranged combat-cue checkpoint. It is not confirmed on `rpmasse/KQ8-REA`. Two GitHub connector blob uploads failed with a transport-send error at `MODLOG.md`; direct `git push origin main` waited in Git Credential Manager without returning, so that process was stopped. The last confirmed remote commit is `8761775`.
+
+Automated Windows checks passed: `connor_weapon_checkpoint` (three fresh-process swap states), `connor_shot_checkpoint` (turn, queued release, post-impact), `connor_melee_cue_checkpoint` (queued Small Axe hit), `moving_shot_checkpoint`, the Small Axe pre-cue regression, and the viewer bin suite (22 passed, 13 ignored). The first standing-shot regression attempts saved a still-waiting turn; an earlier click exposed the actual pending-cue boundary and the final three-case test passed. `git diff --check` passed before the local commit. No manual playtesting was performed. Retry the remote push or GitHub connector when transport/authentication works, verify the remote tree matches this local commit, then continue the M4–M6 plan.
+
 **Windows fork, November 5.** M4–M6 are in progress. The GOG reference and its executable fingerprint are recorded in [provenance](docs/provenance/README.md). Automated checks cover the three original movies, scored credits, scripted Help and F1, Lucreto's combat forms, and the Temple 4 scripted defeat menu. A New Game route reaches Daventry's wizard, earns the Magic Map, then reaches the windmill, defeats its archer and saves with the Small Axe. A fresh process restores the moved bale and axe. Other checks cover the castle round trip, the grave raven resuming mid-flight, the Dead City scales, the Tower Skeleton and timed puzzle saves. Graphics controls, live encounter saves, region quests and the uninterrupted campaign remain open. The [README](README.md) gives the checks and their limits. The notes below retain upstream history.
 
 Hand-over in case the chat is lost. Brought up to date 2026-10-20 after

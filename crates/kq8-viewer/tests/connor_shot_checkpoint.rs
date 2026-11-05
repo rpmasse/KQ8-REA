@@ -7,10 +7,10 @@ fn crossbow_turn_and_attack_resume_from_disk_without_duplicate_bolts() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/connor-shot-tests/{nonce}"));
-    for (name, trigger, waiting, before_do) in [
-        ("turn", 53, true, true),
-        ("attack-before-do", 54, false, true),
-        ("attack-after-do", 57, false, false),
+    for (name, trigger, aim_at, waiting, before_do, pending_cue) in [
+        ("turn", 53, 50, true, true, false),
+        ("attack-before-do", 55, 49, false, true, true),
+        ("attack-after-do", 60, 49, false, false, false),
     ] {
         let case = root.join(name);
         let slots = case.join("slots");
@@ -26,11 +26,12 @@ fn crossbow_turn_and_attack_resume_from_disk_without_duplicate_bolts() {
             viewer
         };
         let save_key = format!("menu:down:down:enter:release:enter:release:escape:type=Crossbow:enter:release:escape,{trigger}");
+        let aim = format!("skeleton1,{aim_at}");
         let before = run("save", &[
             "--world", "DeadCity", "--item", "INVITEM_SmCrossbow",
             "--command", "move skeleton1 0 183300 45000 864 0 0 0,5",
             "--command", "KQConner::setDoMode 1,25",
-            "--aim", "skeleton1,50", "--frames", "120", "--key", &save_key,
+            "--aim", &aim, "--frames", "120", "--key", &save_key,
         ]);
         assert!(before.contains("Save screen -> Save(1, \"Crossbow\")"), "inspect {}", case.display());
         let read = |n| -> serde_json::Value {
@@ -45,6 +46,8 @@ fn crossbow_turn_and_attack_resume_from_disk_without_duplicate_bolts() {
         if !waiting {
             assert_eq!(phase > 0.25, !before_do, "shot saved on the wrong side of Do; inspect {}", case.display());
         }
+        assert_eq!(first["combat_cues"]["shots"].as_array().unwrap().len(), usize::from(pending_cue),
+            "the release cue was not checkpointed at the animation boundary; inspect {}", case.display());
         let health = |slot: &serde_json::Value| -> i64 {
             slot["kept"]["deadcity"]["characters"].as_array().unwrap().iter()
                 .find(|a| a["name"] == "skeleton1").unwrap()["character"]["fight"]["stats"][0].as_i64().unwrap()

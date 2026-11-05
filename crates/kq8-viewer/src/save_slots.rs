@@ -44,6 +44,10 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     special: Option<connor_view::SavedSpecial>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    weapon_state: Option<connor_view::SavedWeaponState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    combat_cues: Option<connor_view::SavedCombatCues>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     fight_rng: Option<kq8_core::emitter::Rng>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     bolts: Option<kq8_core::fight::SavedBolts>,
@@ -77,6 +81,13 @@ impl Snapshot {
         if self.special.as_ref().is_some_and(|s| !s.valid())
             || (self.special.is_some() && (self.shot.is_some() || self.swing.is_some())) {
             return Err("save has an invalid Special movement".into());
+        }
+        if self.weapon_state.as_ref().is_some_and(|w| !w.valid(self.special.as_ref()))
+            || self.weapon_state.as_ref().is_some_and(|w| !w.matches_ready(self.journey.weapon_ready.as_deref(), self.journey.weapon_mode)) {
+            return Err("save has an invalid Connor weapon state".into());
+        }
+        if self.combat_cues.as_ref().is_some_and(|cues| !cues.valid()) {
+            return Err("save has invalid pending combat cues".into());
         }
         if self.bolts.as_ref().is_some_and(|b| !b.valid()) {
             return Err("save has invalid live projectiles".into());
@@ -212,6 +223,9 @@ impl Snapshot {
     pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) -> Result<(), String> {
         if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
             self.restore_objects_and_vars(&mut sim.active);
+            if self.weapon_state.as_ref().is_some_and(|state| !state.matches_list(crate::door_view::weapon_list(&sim.active.world).as_deref())) {
+                return Err("saved weapon movement list does not match the restored world".into());
+            }
             if let Some(rng) = &self.fight_rng { sim.active.world.fight_rng = rng.clone(); }
             if let Some(bolts) = &self.bolts {
                 sim.active.world.bolts.clone_from(&bolts.bolts);
@@ -243,7 +257,13 @@ impl Snapshot {
             if let Some(special) = &self.special {
                 connor.restore_special(special)?;
             }
-        } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() {
+            if let Some(weapon) = &self.weapon_state {
+                connor.restore_weapon_state(weapon, self.special.as_ref())?;
+            }
+            if let Some(cues) = &self.combat_cues {
+                connor.restore_combat_cues(cues)?;
+            }
+        } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() {
             return Err("Connor is unavailable while restoring his attack".into());
         }
         Ok(())
@@ -407,6 +427,8 @@ pub fn save_slot_with_thumbnail(
     let shot_timing = connor.saved_shot_timing().ok_or("Connor's moving-shot timing cannot be saved")?;
     let hit_timing = connor.saved_hit_timing().ok_or("Connor's hit timing cannot be saved")?;
     let special = connor.saved_special();
+    let weapon_state = connor.saved_weapon_state(special.as_ref()).ok_or("Connor's weapon state cannot be saved")?;
+    let combat_cues = connor.saved_combat_cues().ok_or("Connor's pending combat cues cannot be saved")?;
     let snapshot = Snapshot {
         version: VERSION,
         world: change.current.clone(),
@@ -425,6 +447,8 @@ pub fn save_slot_with_thumbnail(
         shot_timing: Some(shot_timing),
         hit_timing: Some(hit_timing),
         special,
+        weapon_state: Some(weapon_state),
+        combat_cues: Some(combat_cues),
         fight_rng: Some(sim.active.world.fight_rng.clone()),
         bolts: Some(kq8_core::fight::SavedBolts {
             bolts: sim.active.world.bolts.clone(),
@@ -565,6 +589,8 @@ mod tests {
             shot_timing: None,
             hit_timing: None,
             special: None,
+            weapon_state: None,
+            combat_cues: None,
             fight_rng: None,
             bolts: Some(kq8_core::fight::SavedBolts { bolts: Vec::new(), bolts_shot: 0 }),
             drains: Some(Vec::new()),

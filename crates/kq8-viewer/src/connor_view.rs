@@ -412,6 +412,79 @@ pub struct SavedSpecial {
     death: Option<String>,
 }
 
+/// The movement list already in use and the list selected by the player.
+/// They differ while an `away` / `out` swap is still playing.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedWeaponState {
+    weapon_set: Option<String>,
+    weapon_target: Option<String>,
+    pending_set: Option<(Option<String>, WeaponMode, usize)>,
+    readying: bool,
+    target_mode: WeaponMode,
+    ready_item: Option<String>,
+    set_mode: WeaponMode,
+    held_walk: Option<kq8_core::connor_auto::AutoMove>,
+}
+
+/// Animation cues emitted after the world's combat pass. They must be
+/// consumed by that pass after a reload, even if the pose is past `do`.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedCombatCues {
+    melee: Vec<String>,
+    shots: Vec<(String, f32, bool)>,
+    moving_aim: Option<[f32; 3]>,
+}
+
+impl SavedCombatCues {
+    pub fn valid(&self) -> bool {
+        self.melee.len() <= 32 && self.shots.len() <= 32
+            && self.melee.iter().all(|m| valid_swing_name(m))
+            && self.shots.iter().all(|(m, phase, _)| valid_swing_name(m) && phase.is_finite() && (0.0..=1.0).contains(phase))
+            && self.moving_aim.is_none_or(|p| p.iter().all(|n| n.is_finite()))
+            && self.shots.iter().filter(|(_, _, moving)| *moving).count() <= 1
+            && self.shots.iter().any(|(_, _, moving)| *moving) == self.moving_aim.is_some()
+    }
+}
+
+impl SavedWeaponState {
+    pub fn matches_ready(&self, item: Option<&str>, mode: WeaponMode) -> bool {
+        self.ready_item.as_deref() == item && self.target_mode == mode
+    }
+
+    pub fn matches_list(&self, list: Option<&str>) -> bool {
+        self.weapon_target.as_deref() == list
+    }
+
+    pub fn valid(&self, special: Option<&SavedSpecial>) -> bool {
+        let name = |value: &Option<String>| value.as_ref().is_none_or(|s| valid_swing_name(s));
+        if !name(&self.weapon_set) || !name(&self.weapon_target) || !name(&self.ready_item) {
+            return false;
+        }
+        if self.readying && special.is_none() {
+            return false;
+        }
+        if self.held_walk.is_some() && !self.readying {
+            return false;
+        }
+        if let Some((set, mode, at)) = &self.pending_set {
+            if !self.readying || !name(set) || set != &self.weapon_target || mode != &self.target_mode
+                || !special.is_some_and(|s| *at > s.at && *at <= s.steps.len()) {
+                return false;
+            }
+        }
+        self.held_walk.as_ref().is_none_or(|auto| {
+            use kq8_core::connor_auto::AutoPhase;
+            auto.target.iter().all(|n| n.is_finite())
+                && auto.turn_updates < u32::MAX / 2
+                && auto.cue.as_ref().is_none_or(|cue| [cue.who.as_str(), cue.c.as_str(), cue.d.as_str()].into_iter().all(valid_swing_name))
+                && match auto.phase {
+                    AutoPhase::Turning => true,
+                    AutoPhase::Walking { from, distance } => from.iter().all(|n| n.is_finite()) && distance.is_finite(),
+                }
+        })
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 enum SavedSpecialStep {
     Play(String, String),
@@ -520,6 +593,58 @@ impl SavedSpecial {
 }
 
 impl ConnorSim {
+    pub fn saved_combat_cues(&self) -> Option<SavedCombatCues> {
+        let saved = SavedCombatCues {
+            melee: self.do_cues.clone(),
+            shots: self.shot_cues.iter().map(|(name, phase, moving)| ((*name).into(), *phase, *moving)).collect(),
+            moving_aim: self.moving_aim,
+        };
+        saved.valid().then_some(saved)
+    }
+
+    pub fn restore_combat_cues(&mut self, saved: &SavedCombatCues) -> Result<(), String> {
+        if !saved.valid() { return Err("invalid pending combat cues".into()); }
+        let shots = saved.shots.iter().map(|(name, phase, moving)| {
+            let found = self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
+                .ok_or_else(|| format!("pending shot movement '{name}' is missing from the installed game data"))?;
+            Ok((found, *phase, *moving))
+        }).collect::<Result<Vec<_>, String>>()?;
+        self.do_cues.clone_from(&saved.melee);
+        self.shot_cues = shots;
+        self.moving_aim = saved.moving_aim;
+        Ok(())
+    }
+
+    pub fn saved_weapon_state(&self, special: Option<&SavedSpecial>) -> Option<SavedWeaponState> {
+        let saved = SavedWeaponState {
+            weapon_set: self.weapon_set.clone(), weapon_target: self.weapon_target.clone(),
+            pending_set: self.pending_set.clone(), readying: self.readying,
+            target_mode: self.target_mode, ready_item: self.ready_item.clone(),
+            set_mode: self.set_mode, held_walk: self.held_walk.clone(),
+        };
+        saved.valid(special).then_some(saved)
+    }
+
+    pub fn restore_weapon_state(&mut self, saved: &SavedWeaponState, special: Option<&SavedSpecial>) -> Result<(), String> {
+        if !saved.valid(special) { return Err("invalid Connor weapon checkpoint".into()); }
+        for list in [saved.weapon_set.as_deref(), saved.weapon_target.as_deref()].into_iter().flatten() {
+            let prefix = format!("{list}/").to_ascii_lowercase();
+            if !self.movements.iter().any(|m| m.name.to_ascii_lowercase().starts_with(&prefix)) {
+                return Err(format!("weapon movement list '{list}' is missing from the installed game data"));
+            }
+        }
+        self.weapon_set.clone_from(&saved.weapon_set);
+        self.weapon_target.clone_from(&saved.weapon_target);
+        self.pending_set.clone_from(&saved.pending_set);
+        self.readying = saved.readying;
+        self.target_mode = saved.target_mode;
+        self.ready_item.clone_from(&saved.ready_item);
+        self.set_mode = saved.set_mode;
+        self.held_walk.clone_from(&saved.held_walk);
+        self.walker.hand_mode = if self.set_mode == WeaponMode::None { kq8_core::connor::EMPTY_HANDS } else { self.set_mode.number() };
+        Ok(())
+    }
+
     pub fn saved_hit_timing(&self) -> Option<SavedHitTiming> {
         use kq8_core::fight::{FLINCH_PAUSE, OUCH_EVERY};
         let now = self.clock();
@@ -563,8 +688,7 @@ impl ConnorSim {
         let walker = &self.walker;
         if walker.mode != Mode::Special || self.swing.is_some() || self.shot.is_some()
             || self.throw.is_some() || self.rock.is_some() || self.rope.is_some()
-            || self.tile.is_some() || self.scales.is_some() || self.choice.is_some()
-            || self.readying || self.pending_set.is_some() || self.held_walk.is_some() {
+            || self.tile.is_some() || self.scales.is_some() || self.choice.is_some() {
             return None;
         }
         let steps = walker.special.iter().map(|step| match step {
