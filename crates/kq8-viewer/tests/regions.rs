@@ -38,6 +38,28 @@ fn run_world(case: &str, args: &[&str]) -> PathBuf {
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn temple4_renders_each_scripted_vortex_animation() {
+    // Start at the first winning cutscene rather than waiting for several
+    // combats. Its real end listener drives the remaining animations.
+    let logs = run_world("temple4-vortex", &[
+        "--world", "temple4", "--no-ai", "--god",
+        "--command", "loadKQ vortex.kq,3", "--command", "loadKQ vortrap.kq,4",
+        "--command", "setThirdPerson,5", "--command", "KQCamera::follow none,6",
+        "--command", "move KQCamera 0 98540.68 98608.15 7284.90 -0.199232 0 -2.849947,7",
+        "--command", "loadAnim lsuck1 lu_suck1.kqs 0 1 0 0 99832 94535 5938 0 0 3.14,8",
+        "--command", "setDeleteWhenDone lsuck1 1,9", "--command", "getEndLoop lsuck1 vortexTrap 1,9",
+        "--frames", "1600",
+    ]);
+    let log = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    for (name, file) in [("lsuck1", "lu_suck1.kqs"), ("lsuck2", "lu_suck2.kqs"), ("vortexbye", "vrtexbye.kqs"), ("imdone", "c_imdone.kqs")] {
+        let caption = format!("copy {name} of {file}: drawn, 1 movement(s), ");
+        let count = log.lines().find_map(|l| l.split_once(&caption)?.1.split_whitespace().next()?.parse::<usize>().ok());
+        assert!(count.is_some_and(|n| n > 0), "{name} did not acquire renderable parts; see {}", logs.display());
+    }
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
 fn every_region_builds_and_presents_frames() {
     for region in ["Daventry", "CastleD", "DeadCity", "Swamp", "Gnome", "Barren", "IceWorld",
                    "Snowexit", "temple1", "temple2", "temple3", "temple4"] {
