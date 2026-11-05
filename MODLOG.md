@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Current GOG reference path
+
+The contributor instructions now name the sibling `King's Quest 8 GOG` directory and use `KQ8_GAME_DIR` for the study and implementation workflows. The earlier `MASK/` path referred to a previous local layout. The current reference was read directly: `Options.cs` specifies `D3D-display`, brightness 49 and `set800mode 0`; `temple4/kq.vol` contains three live `Connor Die Now` requests in `vortrap.cs`. `Mask.exe` has SHA-256 `6114236b0990655476f0af974cc4cff713a427397c3aa98e50dd0744c2f5965d`. No game files were changed or copied into this repository.
+
 ## 2026-11-05 Wizard-to-windmill campaign route
 
 The unattended Daventry replay now continues from the wizard's saved Magic Map through the windmill. It presses the bound movement, draw, put-away and jump keys, while normal AI, collision, health, combat and script clicks remain active. A common helper keeps all four original wizard Help acknowledgements and the bound Tab assertion in both routes. A new route records the mushroom pickup, fight, bale push, axe distance check and next encounter trigger.
