@@ -399,24 +399,8 @@ pub struct StartAt(pub Option<[f32; 3]>);
 /// Bevy key for a key name in a `.sae` file. Only the names Connor's
 /// movement uses so far, plus letters and function keys.
 pub(crate) fn key_code(name: &str) -> Option<KeyCode> {
-    Some(match name {
-        "up" => KeyCode::ArrowUp,
-        "down" => KeyCode::ArrowDown,
-        "left" => KeyCode::ArrowLeft,
-        "right" => KeyCode::ArrowRight,
-        "end" => KeyCode::End,
-        "home" => KeyCode::Home,
-        "insert" => KeyCode::Insert,
-        "delete" => KeyCode::Delete,
-        "pageup" | "prior" => KeyCode::PageUp,
-        "pagedown" | "next" => KeyCode::PageDown,
-        "f2" => KeyCode::F2,
-        "f11" => KeyCode::F11,
-        "shift" => KeyCode::ShiftLeft,
-        "control" => KeyCode::ControlLeft,
-        "alt" => KeyCode::AltLeft,
-        _ => return None,
-    })
+    let word=match name {"pageup"=>"prior","pagedown"=>"next",other=>other};
+    kq8_core::keyboard_menu::virtual_key(word).and_then(crate::keyboard_input::physical)
 }
 
 /// An animation's loop data (the movements add speed, flags, transitions).
@@ -894,7 +878,7 @@ pub fn spawn_connor(
 /// Keys: Connor's movement keys (held order) and the test keys G and B.
 #[allow(clippy::too_many_arguments)]
 pub fn connor_keys(
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     sim: Option<ResMut<ConnorSim>>,
     shared: Res<Shared>,
     mut start_lift: ResMut<StartLift>,
@@ -1024,7 +1008,7 @@ pub fn connor_keys(
     // Shift held for rule 6's `away2`.
     let c = &sim.controls;
     let (draw, away) = (c.draw.is_some_and(|k| keys.just_pressed(k)), c.away.is_some_and(|k| keys.just_pressed(k)));
-    sim.shift_held = c.shift.is_some_and(|k| keys.pressed(k)) || keys.pressed(KeyCode::ShiftRight);
+    sim.shift_held = c.shift.is_some_and(|k| keys.pressed(k));
     if draw {
         sim.weapon_keys.push((kq8_core::weapons::Ask::Draw, "Delete (Draw) pressed".into()));
     }

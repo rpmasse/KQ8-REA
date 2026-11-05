@@ -99,7 +99,8 @@ const ROWS: [Row; 9] = [
     Row::Back,
 ];
 // Subscreens need their own runtime implementation; keep their original labels visible.
-const ACTIVE: [Row; 6] = [
+const ACTIVE: [Row; 7] = [
+    Row::Keys,
     Row::Music,
     Row::Effects,
     Row::Speech,
@@ -149,6 +150,13 @@ pub struct Screen {
     pub dragging: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Destination {
+    Stay,
+    Keyboard,
+    Back,
+}
+
 impl Screen {
     pub fn open(game: &Path, menu: &MenuArt) -> Result<Self, String> {
         let layout = Layout::read(game, "Options.gui", "IDCTL_OPT_")?;
@@ -164,7 +172,7 @@ impl Screen {
         Ok(Self {
             background: Self::backdrop(&layout, menu),
             layout,
-            row: Row::Music,
+            row: Row::Keys,
             dragging: false,
         })
     }
@@ -182,10 +190,9 @@ impl Screen {
         }
     }
 
-    /// Returns true when the Back control is activated.
-    pub fn input(&mut self, key: Key, settings: &mut Settings) -> bool {
+    pub fn input(&mut self, key: Key, settings: &mut Settings) -> Destination {
         match key {
-            Key::Escape => return true,
+            Key::Escape => return Destination::Back,
             Key::Up | Key::Down | Key::Tab => {
                 let i = ACTIVE.iter().position(|r| *r == self.row).unwrap_or(0);
                 self.row =
@@ -227,17 +234,18 @@ impl Screen {
             Key::Enter => return self.toggle(settings),
             _ => {}
         }
-        false
+        Destination::Stay
     }
 
-    fn toggle(&self, s: &mut Settings) -> bool {
+    fn toggle(&self, s: &mut Settings) -> Destination {
         match self.row {
             Row::Subtitles => s.subtitles = !s.subtitles,
             Row::Help => s.help = !s.help,
-            Row::Back => return true,
+            Row::Keys => return Destination::Keyboard,
+            Row::Back => return Destination::Back,
             _ => {}
         }
-        false
+        Destination::Stay
     }
 
     fn backdrop(layout: &Layout, menu: &MenuArt) -> Canvas {
@@ -351,7 +359,7 @@ mod tests {
             (Key::Left, 0),
             (Key::Drag(525, 198), 100),
         ] {
-            assert!(!page.input(key, &mut settings));
+            assert_eq!(page.input(key, &mut settings), Destination::Stay);
             assert_eq!(settings.volume[0], expected);
         }
         page.input(Key::MouseUp, &mut settings);
@@ -372,6 +380,9 @@ mod tests {
         page.input(Key::Down, &mut settings);
         page.input(Key::Enter, &mut settings);
         assert!(!settings.subtitles && !settings.help);
-        assert!(page.input(Key::Click(315, 451), &mut settings));
+        assert_eq!(
+            page.input(Key::Click(315, 451), &mut settings),
+            Destination::Back
+        );
     }
 }

@@ -39,23 +39,28 @@ impl Preferences {
         if self.settings == self.saved {
             return Ok(());
         }
-        let parent = self.path.parent().unwrap();
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        let temp = parent.join(format!("Options-{}.tmp", std::process::id()));
-        let write = (|| -> std::io::Result<()> {
-            let mut file = fs::File::create(&temp)?;
-            file.write_all(self.settings.write_script().as_bytes())?;
-            file.sync_all()?;
-            drop(file);
-            fs::rename(&temp, &self.path)
-        })();
-        if let Err(e) = write {
-            let _ = fs::remove_file(&temp);
-            return Err(format!("{}: {e}", self.path.display()));
-        }
+        write_preferences(&self.path, self.settings.write_script().as_bytes())?;
         self.saved = self.settings;
         Ok(())
     }
+}
+
+pub(crate) fn write_preferences(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let parent = path.parent().unwrap();
+    fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    let temp = path.with_extension(format!("{}.tmp", std::process::id()));
+    let write = (|| -> std::io::Result<()> {
+        let mut file = fs::File::create(&temp)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        drop(file);
+        fs::rename(&temp, path)
+    })();
+    if let Err(e) = write {
+        let _ = fs::remove_file(&temp);
+        return Err(format!("{}: {e}", path.display()));
+    }
+    Ok(())
 }
 
 /// Runs before the first simulation update after a new game, a region load,

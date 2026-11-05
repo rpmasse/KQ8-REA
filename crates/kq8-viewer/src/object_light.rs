@@ -479,7 +479,7 @@ pub fn setup_haze_label(mut commands: Commands, light: Res<ObjectLight>) {
 
 /// F8: haze on / off in every object material.
 pub fn toggle_haze(
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     mut light: ResMut<ObjectLight>,
     mut materials: ResMut<Assets<ObjectMaterial>>,
     mut label: Query<&mut Text, With<HazeLabel>>,

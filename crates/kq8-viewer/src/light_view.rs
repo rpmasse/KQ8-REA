@@ -248,7 +248,7 @@ pub fn setup_light_label(mut commands: Commands, light: Res<GroundLight>, shared
 
 /// F7: next mode, in every ground material.
 pub fn toggle_light(
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     shared: Res<Shared>,
     mut light: ResMut<GroundLight>,
     mut materials: ResMut<Assets<crate::ground_haze::GroundMaterial>>,
@@ -275,7 +275,7 @@ pub fn toggle_light(
 /// materials' lookup if its size differs), and point lights on the ground
 /// and building surfaces start or stop from the next frame.
 pub fn toggle_dynamic(
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     shared: Res<Shared>,
     mut light: ResMut<GroundLight>,
     mut images: ResMut<Assets<Image>>,

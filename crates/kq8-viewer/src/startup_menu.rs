@@ -1,9 +1,11 @@
 //! Bevy input and display for the original startup menu.
+use crate::keyboard_input::Keyboard;
 use crate::option_settings::Preferences;
 use bevy::prelude::*;
 use bevy::render::view::screenshot::{Screenshot, ScreenshotCaptured};
 use bevy::window::{CursorIcon, CustomCursor, CustomCursorImage, PrimaryWindow};
 use kq8_audio::{Command, Output};
+use kq8_core::keyboard_menu;
 pub use kq8_core::main_menu::Key;
 use kq8_core::main_menu::{Action, Art, Choice};
 use kq8_core::options_menu;
@@ -189,6 +191,12 @@ pub fn ordinary_launch(args: &[String]) -> bool {
 pub fn parse_keys(input: &str) -> Result<Vec<Key>, String> {
     let mut out = Vec::new();
     for token in input.split(',') {
+        if let Some(word) = token.strip_prefix("bind=") {
+            let v = keyboard_menu::virtual_key(word)
+                .ok_or_else(|| format!("unsupported physical key {word}"))?;
+            out.push(Key::Physical(v));
+            continue;
+        }
         if let Some(text) = token.strip_prefix("type=") {
             out.extend(text.chars().map(Key::Character));
             continue;
@@ -246,6 +254,7 @@ pub struct Menu {
     state: Choice,
     slot_page: Option<(save_menu::Screen, save_menu::Art)>,
     options: Option<options_menu::Screen>,
+    keyboard: Option<keyboard_menu::Screen>,
     option_clock: std::time::Instant,
     option_frame: usize,
     typed: Vec<char>,
@@ -272,6 +281,7 @@ impl Menu {
             state: Choice::default(),
             slot_page: None,
             options: None,
+            keyboard: None,
             option_clock: std::time::Instant::now(),
             option_frame: 0,
             typed: Vec::new(),
@@ -471,7 +481,13 @@ fn typed_name(
 
 fn redraw(world: &mut World) {
     let menu = world.resource::<Menu>();
-    let image = if let Some(page) = &menu.options {
+    let image = if let Some(page) = &menu.keyboard {
+        canvas_image(page.render(
+            &world.resource::<Keyboard>().active,
+            &menu.art,
+            menu.option_frame,
+        ))
+    } else if let Some(page) = &menu.options {
         canvas_image(page.render(
             &world.resource::<Preferences>().settings,
             &menu.art,
@@ -521,7 +537,21 @@ fn option_key(world: &mut World, key: Key) {
     if settings != old {
         world.resource_mut::<Preferences>().settings = settings;
     }
-    if back {
+    if back == options_menu::Destination::Keyboard {
+        let source = &world.resource::<Source>().game;
+        match keyboard_menu::Screen::open(source, &world.resource::<Menu>().art) {
+            Ok(screen) => {
+                world.resource_mut::<Menu>().keyboard = Some(screen);
+                log.lock()
+                    .unwrap()
+                    .summary("keyboard: opened original movekey.gui (13 actions)");
+            }
+            Err(e) => log
+                .lock()
+                .unwrap()
+                .summary(format!("keyboard: could not open: {e}")),
+        }
+    } else if back == options_menu::Destination::Back {
         match world.resource_mut::<Preferences>().store() {
             Ok(()) => log
                 .lock()
@@ -533,6 +563,41 @@ fn option_key(world: &mut World, key: Key) {
                 .summary(format!("options: settings could not be saved: {e}")),
         }
         world.resource_mut::<Menu>().options = None;
+    }
+    redraw(world);
+}
+
+fn keyboard_key(world: &mut World, key: Key) {
+    use keyboard_menu::Action;
+    let log = world.resource::<crate::Shared>().log.clone();
+    let mut bindings = world.resource::<Keyboard>().active;
+    let mut menu = world.resource_mut::<Menu>();
+    let action = menu.keyboard.as_mut().unwrap().input(key, &mut bindings);
+    match key {
+        Key::Up | Key::Down | Key::Tab => menu.audio.play("click.aud"),
+        Key::Enter | Key::Click(_, _) | Key::Physical(_) => menu.audio.play("intrface.aud"),
+        _ => {}
+    }
+    match action {
+        Action::Capture => log.lock().unwrap().summary("keyboard: press desired key"),
+        Action::Rejected => log.lock().unwrap().summary("keyboard: key in use; retry"),
+        Action::Bound(row, v) => {
+            world.resource_mut::<Keyboard>().active = bindings;
+            log.lock()
+                .unwrap()
+                .summary(format!("keyboard: assigned row {row} to Windows key {v}"));
+        }
+        Action::Back => {
+            menu.keyboard = None;
+            match world.resource_mut::<Keyboard>().store() {
+                Ok(()) => log.lock().unwrap().summary("keyboard: returned to Options"),
+                Err(e) => log
+                    .lock()
+                    .unwrap()
+                    .summary(format!("keyboard: could not store bindings: {e}")),
+            }
+        }
+        Action::None => {}
     }
     redraw(world);
 }
@@ -693,6 +758,23 @@ pub fn step(world: &mut World) {
     }
     let mut input = Vec::new();
     let keys = world.resource::<ButtonInput<KeyCode>>();
+    let capturing = world
+        .resource::<Menu>()
+        .keyboard
+        .as_ref()
+        .is_some_and(|s| s.capture);
+    if capturing {
+        for &code in keys.get_just_pressed() {
+            let key = if code == KeyCode::Escape {
+                Some(Key::Escape)
+            } else {
+                crate::keyboard_input::virtual_key(code).map(Key::Physical)
+            };
+            if let Some(key) = key {
+                input.push((key, true));
+            }
+        }
+    }
     for (code, key) in [
         (KeyCode::ArrowUp, Key::Up),
         (KeyCode::ArrowDown, Key::Down),
@@ -704,7 +786,7 @@ pub fn step(world: &mut World) {
         (KeyCode::Delete, Key::Delete),
         (KeyCode::Tab, Key::Tab),
     ] {
-        if keys.just_pressed(code) {
+        if !capturing && keys.just_pressed(code) {
             input.push((key, true));
         }
     }
@@ -748,6 +830,10 @@ pub fn step(world: &mut World) {
         return;
     }
     for (key, live) in input {
+        if world.resource::<Menu>().keyboard.is_some() {
+            keyboard_key(world, key);
+            continue;
+        }
         if world.resource::<Menu>().options.is_some() {
             option_key(world, key);
             continue;

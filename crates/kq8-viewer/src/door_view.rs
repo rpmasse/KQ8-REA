@@ -342,7 +342,7 @@ pub fn setup_ai_label(mut commands: Commands, start: Res<AiOff>) {
 
 /// `--no-ai` at the start, then F4; the on-screen line follows core's
 /// switch (also `--key f4,N`).
-pub fn toggle_ai(keys: Res<ButtonInput<KeyCode>>, mut start: ResMut<AiOff>, sim: Option<ResMut<DoorSim>>, mut label: Query<(&mut Text, &mut TextColor), With<AiLabel>>) {
+pub fn toggle_ai(keys: Res<crate::keyboard_input::GameKeys>, mut start: ResMut<AiOff>, sim: Option<ResMut<DoorSim>>, mut label: Query<(&mut Text, &mut TextColor), With<AiLabel>>) {
     let Some(mut sim) = sim else { return };
     if std::mem::take(&mut start.0) {
         flip_ai(&mut sim, "--no-ai");
@@ -392,7 +392,7 @@ pub fn setup_god_label(mut commands: Commands, start: Res<GodStart>) {
 /// `--god` at the start, then F3; Connor's mover and the on-screen line
 /// follow core's switch every frame (also `--key f3,N`).
 pub fn toggle_god(
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     mut start: ResMut<GodStart>,
     sim: Option<ResMut<DoorSim>>,
     connor: Option<ResMut<crate::connor_view::ConnorSim>>,
@@ -1724,7 +1724,7 @@ pub fn door_click_input(
     mut aim: ResMut<AimAt>,
     cover: Res<crate::gui_view::GuiCover>,
     shared: Res<Shared>,
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     (objects, lookup): (Option<Res<crate::terrain_view::ObjectColliders>>, Option<Res<crate::terrain_view::GroundLookup>>),
 ) {
     let Some(mut sim) = sim else { return };
@@ -1734,7 +1734,7 @@ pub fn door_click_input(
         return;
     }
     use kq8_core::weapons::WorldClick;
-    let ctrl = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
+    let ctrl = keys.change_cursor_held();
     let blocked = connor.as_ref().is_some_and(|c| c.hands_off || c.rock.is_some() || matches!(c.walker.mode, kq8_core::connor::Mode::Dying | kq8_core::connor::Mode::Dead));
     let action = sim.active.world.world_click_action(ctrl, blocked);
     if action == WorldClick::Blocked {
@@ -1878,7 +1878,7 @@ pub fn door_click_input(
                 Some(h) => format!("{} {} (type 0x{:X})", if h.building { "building" } else if h.character.is_some() { "character" } else { "object" }, h.name, h.collision_type),
                 None => "nothing".into(),
             };
-            let big = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
+            let big = keys.modify_held();
             let line = format!("{line}; a hand weapon is ready: the swing pick meets {met}: a swing toward ({:.0}, {:.0}){} (ranged-weapons.md rule 32)", point[0], point[1], if big { ", Shift" } else { "" });
             sim.swing_clicks.push(SwingClick { picked, point, big, how: how.clone() });
             shared.log.lock().unwrap().summary(&line);

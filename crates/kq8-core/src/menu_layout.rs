@@ -42,7 +42,11 @@ impl Layout {
                 "BACKGROUND"
             } else {
                 tags.name(c.id as i32)
-                    .and_then(|s| s.strip_prefix(prefix))
+                    .and_then(|s| match (prefix, s) {
+                        // This one name is misspelled in the shipped TTAG.
+                        ("IDCTL_MOVEKEYS_", "IDCTL_MOVRKEYS_CURS2") => Some("CURS2"),
+                        _ => s.strip_prefix(prefix),
+                    })
                     .ok_or_else(|| format!("{file}: missing control tag {}", c.id))?
             };
             let (pic, text) = match c.kind {
