@@ -2,7 +2,7 @@
 
 ## 2026-11-06 local graphics commit awaiting remote push
 
-The local work contains two Graphics steps: the GOG graphics preference reader with fresh-launch overrides, and the original Graphics menu path and controls. `git diff --check`, the installed `Graphics.gui` layout and `Options.cs` checks, an unattended two-case Windows graphics preference run, the Graphics menu save and fresh-process world run, the existing Options regression and the viewer bin suite passed. The GOG `Options.cs` was unchanged. The GitHub connector previously failed twice while creating blobs with an internal/transport error. The last confirmed remote commit remains `7951da0`. Retry publication when the connector recovers, verify the remote tree equals the local tree, then continue M4 Graphics runtime work. No manual playtesting was performed.
+Local commits `b709b1b` and `0859ab9` contain two Graphics steps: the GOG graphics preference reader with fresh-launch overrides, and the original Graphics menu path and controls. `git diff --check`, the installed `Graphics.gui` layout and `Options.cs` checks, an unattended two-case Windows graphics preference run, the Graphics menu save and fresh-process world run, the existing Options regression and the viewer bin suite passed. The GOG `Options.cs` was unchanged. The GitHub connector failed again on publication; the 1.16 MB `MODLOG.md` blob still returns a transport-send error when uploaded alone. This may be a payload-size issue, but that is not established. The last confirmed remote commit remains `7951da0`. Retry publication through a working transport and verify the remote tree equals the local tree, then continue M4 Graphics runtime work. No manual playtesting was performed.
 
 ## 2026-11-06 previous Windows fork checkpoint
 
