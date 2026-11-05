@@ -3,6 +3,12 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Wizard-to-windmill campaign route
+
+The unattended Daventry replay now continues from the wizard's saved Magic Map through the windmill. It presses the bound movement, draw, put-away and jump keys, while normal AI, collision, health, combat and script clicks remain active. A common helper keeps all four original wizard Help acknowledgements and the bound Tab assertion in both routes. A new route records the mushroom pickup, fight, bale push, axe distance check and next encounter trigger.
+
+In a fresh Windows process against the installed GOG data, Connor collected five mushrooms, defeated the archer with fists, pushed the bale and stood on it. The axe script rejected him from the floor at 2,405 units, then accepted him on the bale at 1,552 units, within its 1,700-unit range. The resulting slot contained one Small Axe and Magic Map, 30 health at level 3, AI enabled and the henchman trigger. A separate fresh-process reload exposed a remaining save gap: the moved bale and collected axe reappear at their initial positions. Their persistence is a subsequent fix.
+
 ## 2026-11-05 Temple 4 scripted defeat and game-over menu
 
 The installed `vortrap.cs` ends Connor's sword, bow and empty-hand losing branches with `KQMonster::setState Connor Die Now`. The [independent GOG study](docs/behaviour/connor-vortex-death.md) found that this request skips the normal death animation, removes Connor from collision and gravity, and schedules the death menu after three seconds of simulation time. Rust now follows that path, including zero health, the held camera and pose, the ordinary menu pause and recovery choices. The reincarnation switch restores health and returns Connor to Wait instead.

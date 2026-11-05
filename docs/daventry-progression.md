@@ -31,7 +31,7 @@ Physical access can add prerequisites that an inventory check alone cannot show.
 
 The unattended Windows run started at New Game → Normal with a fresh save directory. Connor completed the opening sequence and walked from Sarah's cottage to the wizard. The replay pressed his configured forward and turn keys, leaving movement, collision, health and enemy AI active. A first route hit the farmhouse wall. The final route walked around its south side. On reaching the wizard the replay submitted a named world click, which ran his normal distance and script handling.
 
-The eighth spoken response exchanged the initial fragment for `Mask1` and `Piece1`. The thirteenth started the five-part map sequence. Its fourth animation cue awarded `MagicMap`. A slot written after the final line contained all three items, recorded the first meeting and confirmed removal of `Piece1A`. The map tutorial's `doPopup 153` remains a separate presentation gap. The ingredient and portal stages above await their own continuous run.
+The eighth spoken response exchanged the initial fragment for `Mask1` and `Piece1`. The thirteenth started the five-part map sequence. Its fourth animation cue awarded `MagicMap`. A slot written after the final line contained all three items, recorded the first meeting and confirmed removal of `Piece1A`. The replay acknowledges the original introduction, movement, camera and map help. It checks that the map tip displays the bound Tab key. The ingredient and portal stages above await their own continuous run.
 
 With `KQ8_GAME_DIR` set to the original GOG folder, run:
 
@@ -40,3 +40,17 @@ cargo test --locked -p kq8-viewer --test daventry_wizard -- --ignored
 ```
 
 The test opens and closes the Rust game automatically. Its input route is in `crates/kq8-viewer/tests/routes/daventry_wizard.json`, with logs and the resulting slot under `kq8-artifacts/wizard-route/`.
+
+### Verified from the wizard to the windmill axe
+
+Connor loaded his earned Magic Map slot and walked east of the goblin patrol. He picked up the original stacks of two and three mushrooms, climbed the hill and opened the windmill door. He drew his fists, defeated the spriggan archer, put his fists away and tried the axe from the floor. Its script refused him at a distance of 2,415 units. After he pushed the hay bale under the axe and jumped onto it, the same check measured 1,528 units, within the original 1,700-unit reach. The script gave one Small Axe, awarded 25 experience and placed the trigger for the henchman encounter. Connor was alive with the axe in the saved game.
+
+The replay presses the bound movement, draw, away and jump keys. Like the wizard route, it uses named targets for original world clicks and melee attacks. Normal combat, healing, attack range, collision and the axe's distance test all run. The resulting slot marks the beginning of the henchman branch. A separate reload check found that the moved bale and collected axe return to their original positions; their state is not yet restored from the save. Completing the encounter and reaching the water mill are subsequent checks.
+
+The lake bell requires the Small Axe in hand. `bell.cs` checks the equipped short weapon against item 1020 before counting a strike. The bell comes from the wizard's hidden chest. The tower book gives the Spell Page, the star globe exchanges it for Clarity, and revealing the chest makes the Lady Bell available. Three counted strikes summon the Lady. These dependencies have been identified in the game data. Their complete sequence still needs a continuous campaign run.
+
+```sh
+cargo test --locked -p kq8-viewer --test daventry_windmill -- --ignored
+```
+
+The default test earns the Magic Map through New Game in its first process, then loads it from disk in the second. To repeat only the windmill leg, set `KQ8_WIZARD_SLOT` to the Magic Map save produced by the wizard route. Each test creates a fresh working directory under `kq8-artifacts/windmill-route/`. Original game assets and save files stay local.
