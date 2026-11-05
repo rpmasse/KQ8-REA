@@ -162,6 +162,9 @@ pub struct KeptWorld {
     pub came_in: Vec<String>,
     /// Animated and scripted objects whose state changed (DESIGN K-2).
     pub states: Vec<kq8_core::active::KeptState>,
+    /// Live monsters created by world scripts after the original file load.
+    #[serde(default)]
+    pub spawned_monsters: Vec<kq8_core::active::SavedMonster>,
     /// Older version-1 slots did not store door or chest state.
     #[serde(default)]
     pub interactions: kq8_core::kept_interactions::KeptInteractions,
@@ -191,6 +194,7 @@ impl KeptWorld {
         Self {
             vars: active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, from)).map(|(n, v)| (n.to_owned(), v.to_owned())).collect(),
             gone, came_in, states: active.world.kept_states_including(&prior_states),
+            spawned_monsters: active.world.saved_spawned_monsters(),
             interactions: kq8_core::kept_interactions::KeptInteractions::take(&active.world),
             prop_placements,
             terrain_changes: active.world.terrain_changes.clone(),
@@ -888,6 +892,13 @@ pub fn world_change_step(world: &mut World) {
                 save.restore_current(world);
                 log.lock().unwrap().summary(format!("save restored in {} without replaying Begin", request.world));
                 return;
+            }
+            let spawned = world.resource::<WorldChange>().kept.get(&request.world.to_ascii_lowercase())
+                .map(|kept| kept.spawned_monsters.clone()).unwrap_or_default();
+            if !spawned.is_empty() {
+                if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
+                    sim.active.world.restore_spawned_monsters(&spawned);
+                }
             }
             // Rule 9: `Begin` on every arrival.
             world.insert_resource(BeginNow(request.world.clone()));

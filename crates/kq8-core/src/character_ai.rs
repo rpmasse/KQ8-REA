@@ -44,7 +44,7 @@ pub const SIGHT_MASK: u32 = 0x1 | 0x8;
 pub const DEFAULT_MAX_MONSTERS: usize = 6;
 
 /// A character's own movement rules and what it knows (M5 5a).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ai {
     pub settings: AiSettings,
     /// Its home point (rule 13): where it was placed; `setHome` changes it.

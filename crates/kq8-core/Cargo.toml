@@ -8,3 +8,6 @@ publish.workspace = true
 [dependencies]
 serde.workspace = true
 kq8-data.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
