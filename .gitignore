@@ -36,5 +36,6 @@
 !/crates/*/Cargo.toml
 !/crates/*/src/**/*.rs
 !/crates/kq8-viewer/tests/*.rs
+!/crates/kq8-viewer/tests/routes/daventry_wizard.json
 # Shaders (our own, embedded in the viewer)
 !/crates/*/src/**/*.wesl
