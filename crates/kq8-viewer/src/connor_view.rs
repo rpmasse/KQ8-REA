@@ -73,6 +73,10 @@ pub struct Controls {
     held: Vec<KeyCode>,
 }
 
+#[path = "conversation_pose.rs"]
+mod conversation_pose;
+pub use conversation_pose::SavedTalkPose;
+
 impl Controls {
     /// The value of the pair (`plus` gives +1, `minus` −1) from the keys
     /// held: the one pressed last wins.

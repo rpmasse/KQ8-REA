@@ -78,7 +78,7 @@ pub fn looked_at(aim: [f32; 3]) -> [f32; 3] {
 }
 
 /// Where the camera looks while it aims (rule 5).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct View {
     pub tilt: f32,
     pub heading: f32,
@@ -133,7 +133,7 @@ pub fn onto_range(position: [f32; 3], aim: [f32; 3], range: (f32, f32)) -> ([f32
 }
 
 /// A flight in progress (rule 4).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Flight {
     pub spot: [f32; 3],
     pub aim: [f32; 3],
@@ -253,6 +253,21 @@ pub fn cut(spot: [f32; 3], aim: [f32; 3], roll: f32, view: &mut View, places: bo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_saved_flight_continues_its_remaining_steps_and_roll() {
+        let mut a = Flight::new([0.0, 0.0, 3000.0], 0.1, [8000.0, 1000.0, 3000.0], [4000.0, 0.0, 0.0], Some(2.0), Some(0.4));
+        let mut p = [0.0, 0.0, 3000.0];
+        let mut v = View { tilt: -0.2, heading: 0.0, roll: 0.1, locked: false };
+        for _ in 0..4 { a.update(&mut p, &mut v, true, (1500.0, 5000.0), &|_, _| Some(0.0), &|_, _| None); }
+        let mut b: Flight = serde_json::from_slice(&serde_json::to_vec(&a).unwrap()).unwrap();
+        let (mut q, mut w) = (p, v);
+        for _ in a.k..a.n {
+            a.update(&mut p, &mut v, true, (1500.0, 5000.0), &|_, _| Some(0.0), &|_, _| None);
+            b.update(&mut q, &mut w, true, (1500.0, 5000.0), &|_, _| Some(0.0), &|_, _| None);
+            assert_eq!((p, v, a.k), (q, w, b.k));
+        }
+    }
 
     #[test]
     fn the_list_and_the_nearest_spot() {

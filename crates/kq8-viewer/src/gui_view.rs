@@ -402,6 +402,16 @@ pub struct Gui {
 #[derive(Resource, Default)]
 pub struct GuiCover(pub Vec<(&'static str, [f32; 4])>);
 
+impl Gui {
+    pub fn restore_panels(&mut self, saved: &Panels) -> Result<(), String> {
+        if !saved.valid_checkpoint() { return Err("invalid HUD panel checkpoint".into()); }
+        self.panels = saved.clone();
+        self.hands_off = saved.hands_off_active();
+        self.note(format!("HUD checkpoint restored: {}", self.panels.status()));
+        Ok(())
+    }
+}
+
 /// M6 6d-4 (`magic-map.md` rules 23, 24): a drag that started on the map
 /// area: left (pan) or right (zoom), the pointer's last place (screen
 /// pixels), and the movements so far. The camera leaves the mouse alone

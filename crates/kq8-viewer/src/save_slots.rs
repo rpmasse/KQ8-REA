@@ -60,10 +60,22 @@ pub(super) struct Snapshot {
     speech: Option<kq8_core::talk::SavedTalk>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     speech_sources: Option<std::collections::BTreeMap<u64, Option<[f32; 3]>>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    conversation: Option<kq8_core::conversation::SavedConversation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    talk_pose: Option<connor_view::SavedTalkPose>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    camera: Option<crate::game_camera::SavedCamera>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    panels: Option<kq8_core::panels::Panels>,
 }
 
 impl Snapshot {
     fn validate(&self) -> Result<(), String> {
+        if self.conversation.as_ref().is_some_and(|s| !s.valid()) || self.talk_pose.as_ref().is_some_and(|s| !s.valid())
+            || self.camera.as_ref().is_some_and(|s| !s.valid()) || self.panels.as_ref().is_some_and(|s| !s.valid_checkpoint()) {
+            return Err("save has invalid conversation, pose, camera or panel state".into());
+        }
         if self.speech.as_ref().is_some_and(|s| !s.valid()) { return Err("save has invalid speech queues".into()); }
         if self.speech_sources.as_ref().is_some_and(|sources| sources.len() > 4096 || sources.values().flatten().flatten().any(|v| !v.is_finite())) {
             return Err("save has invalid speech source positions".into());
@@ -259,6 +271,7 @@ impl Snapshot {
             if let Some(drains) = &self.drains {
                 sim.active.world.restore_drains(drains, self.special.is_some())?;
             }
+            if let Some(conversation) = &self.conversation { sim.active.world.restore_conversation(conversation)?; }
         }
         if let Some(mut connor) = world.get_resource_mut::<connor_view::ConnorSim>() {
             connor.put(self.position, self.heading);
@@ -283,8 +296,15 @@ impl Snapshot {
             if let Some(cues) = &self.combat_cues {
                 connor.restore_combat_cues(cues)?;
             }
+            if let Some(pose) = &self.talk_pose { connor.restore_talk_pose(pose)?; }
         } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() {
             return Err("Connor is unavailable while restoring his attack".into());
+        }
+        if let Some(saved) = &self.camera {
+            world.get_resource_mut::<crate::game_camera::GameCam>().ok_or("camera unavailable on restore")?.restore(saved)?;
+        }
+        if let Some(saved) = &self.panels {
+            world.get_resource_mut::<crate::gui_view::Gui>().ok_or("HUD unavailable on restore")?.restore_panels(saved)?;
         }
         Ok(())
     }
@@ -478,6 +498,10 @@ pub fn save_slot_with_thumbnail(
         shadows_allowed: Some(sim.active.world.shadows_allowed),
         speech: Some(sim.active.world.talk.saved(sim.active.world.now())),
         speech_sources: world.get_resource::<crate::talk_view::Speech>().map(|s| s.sources.clone()),
+        conversation: Some(sim.active.world.saved_conversation()),
+        talk_pose: connor.saved_talk_pose(),
+        camera: world.get_resource::<crate::game_camera::GameCam>().map(|c| c.saved()),
+        panels: world.get_resource::<crate::gui_view::Gui>().map(|g| g.panels.saved()),
     };
     write_slot(&directory(), slot, &snapshot)
 }
@@ -639,6 +663,10 @@ mod tests {
             shadows_allowed: None,
             speech: None,
             speech_sources: None,
+            conversation: None,
+            talk_pose: None,
+            camera: None,
+            panels: None,
             journey: take_journey(&sim, "Daventry"),
             kept,
         }

@@ -128,14 +128,14 @@ impl Group {
 
 /// Where one panel is going and how far it is: `away` 0 = fully shown,
 /// 1 = fully hidden.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 struct Slide {
     shown: bool,
     away: f32,
 }
 
 /// The panels' state.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Panels {
     slides: [Slide; 8],
     /// Real ms left of the meters' pop-up (rule 25).
@@ -152,12 +152,28 @@ pub struct Panels {
     /// Real time, ms since the screen opened.
     pub now_ms: f64,
     /// Lines for `gui.log`, taken by the caller.
+    #[serde(skip)]
     pub log: Vec<String>,
     /// Sounds to start (plain, file names), taken by the caller.
+    #[serde(skip)]
     pub sounds: Vec<String>,
 }
 
 impl Panels {
+    pub fn hands_off_active(&self) -> bool { self.hands_off }
+    pub fn saved(&self) -> Self {
+        let mut saved = self.clone();
+        saved.now_ms = 0.0;
+        saved.log.clear();
+        saved.sounds.clear();
+        saved
+    }
+
+    pub fn valid_checkpoint(&self) -> bool {
+        self.slides.iter().all(|s| s.away.is_finite() && (0.0..=1.0).contains(&s.away))
+            && [self.meters_pop, self.top_pop].into_iter().flatten().all(|t| t.is_finite() && (0.0..=POP_MS).contains(&t))
+            && self.now_ms == 0.0
+    }
     /// The screen opens with `shown` shown and the rest hidden, all in
     /// place (rule 19).
     pub fn new(shown: &[Panel]) -> Self {
@@ -499,6 +515,25 @@ mod tests {
         p.hands_off(false);
         assert!(p.bottom_shown());
         assert!(p.status().starts_with("top 0 bottom 1 map 0"));
+    }
+
+    #[test]
+    fn a_conversation_checkpoint_remembers_the_prior_bar_and_remaining_pop_time() {
+        for shown in [false, true] {
+            let mut p = Panels::new(if shown { &[Panel::BottomLeft, Panel::Slots, Panel::Meters, Panel::BottomRight] } else { &[] });
+            p.conversation(true);
+            p.update(300.0);
+            p.pop_top("message"); p.update(400.0);
+            let mut restored: Panels = serde_json::from_slice(&serde_json::to_vec(&p.saved()).unwrap()).unwrap();
+            assert!(restored.valid_checkpoint());
+            assert!(restored.log.is_empty() && restored.sounds.is_empty());
+            restored.update(1099.0);
+            assert!(restored.top_popped());
+            restored.update(1.0);
+            assert!(!restored.top_popped());
+            restored.conversation(false);
+            assert_eq!(restored.bottom_shown(), shown);
+        }
     }
 
     #[test]
