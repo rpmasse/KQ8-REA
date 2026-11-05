@@ -76,6 +76,7 @@ mod scene_lights;
 mod shadow_view;
 mod smooth_view;
 mod startup_menu;
+mod movie_player;
 mod option_settings;
 mod keyboard_input;
 mod sound_view;

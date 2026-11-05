@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Replay Intro and the original campaign movies
+
+Three fresh Windows processes exercised title replay, skip, missing-decoder recovery, the portal film and the ending followed by the scored credits. The full opening, middle and ending movies contain 1,609, 255 and 774 display intervals. The Rust reader preserves their hold frames and original PCM. A local FFmpeg process supplies decoded Indeo pictures. An independent CPU test advanced all three through the original timestamps. The Windows test drives the movie commands directly; separate script checks verify the installed portal and ending callbacks. The full campaign and the release's decoder packaging remain open.
+
 ## 2026-11-05 Original rule for Lucreto's form switch
 
 A separate study traced both directions in the local GOG executable and checked the altar and character data. The [behavior note](docs/behaviour/lucreto-forms.md) records the three-dimensional distance test, the exact boundary, the reaction delay, the position handoff and which form changes its home. These are findings from static analysis. The original game was not run for this study.

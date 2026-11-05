@@ -8,8 +8,10 @@ use std::{path::Path, time::Duration};
 const CARD_TIME: Duration = Duration::from_secs(5);
 
 /// Preserve script call order across a finished world's presentations.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Presentation {
+    EndGame,
+    Movie(String),
     Credits { score: Option<i64> },
 }
 
@@ -82,6 +84,27 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires the original Snowexit portal script"]
+    fn accepting_the_original_snowexit_portal_plays_the_middle_movie() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let vol = VolArchive::open(&game.volume_path("Snowexit", "kq").unwrap()).unwrap();
+        let script = vol.unpack(vol.find("PORTAL4.CS").unwrap()).unwrap().data;
+        let mut active = Active::new(
+            Vars::default(),
+            vec![],
+            vec![],
+            ["Connor".into()],
+            [("portal4.cs".into(), script)],
+        );
+        for event in ["Decline", "Accept"] {
+            let args = ["portal4", event].map(str::to_owned);
+            assert!(active.scripts.call("portal4.cs", &args, &mut active.world));
+            let expected = (event == "Accept").then(|| Presentation::Movie("w32mdl_1.dll".into()));
+            assert_eq!(active.world.presentations.pop_front(), expected);
+        }
+    }
+
+    #[test]
     #[ignore = "requires the original final Temple script in kq.vol"]
     fn original_final_animation_cue_queues_the_score_before_teardown() {
         let path = std::env::var_os("KQ8_GAME_DIR").unwrap();
@@ -104,6 +127,13 @@ mod tests {
         });
         let args = ["vortrap", "Cue", "300", "0", "c_imdone.kqs"].map(str::to_owned);
         assert!(a.scripts.call("vortrap.cs", &args, &mut a.world));
+        assert_eq!(
+            a.world.presentations.pop_front(),
+            Some(Presentation::EndGame)
+        );
+        assert!(
+            matches!(a.world.presentations.pop_front(),Some(Presentation::Movie(n)) if n.eq_ignore_ascii_case("w32ndg_1.dll"))
+        );
         assert_eq!(
             a.world.presentations.pop_front(),
             Some(Presentation::Credits {

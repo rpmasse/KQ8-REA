@@ -9,7 +9,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | Stage | Current implementation | Remaining work |
 | --- | --- | --- |
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
-| M4 · Interface and dialogue | Title, pause, Save, Load and Options work. Keyboard changes apply in gameplay and survive a restart. Credits displays the original 25 cards and team photograph. The HUD, speech, captions and some conversations work. | Graphics, Replay Intro, starting help, inventory and dialogue behavior, and exact credits timing and score calculation. |
+| M4 · Interface and dialogue | Title, pause, Save, Load, Options and Keyboard work. Replay Intro plays the original film. Credits displays the original 25 cards and team photograph. The HUD, speech, captions and some conversations work. | Graphics, starting help, inventory and dialogue behavior, and exact credits timing and score calculation. |
 | M5 · Combat | Melee and some ranged attacks, rocks, scripted hazards and potions. Encounter checks cover Dead City’s Weeper and Tower Skeleton and the melee stagger that pushes Lucreto into the Temple 4 vortex. | Complete weapon controls and trajectories, boss behavior including Lucreto’s switches between forms, encounter timing and death recovery. |
 | M6 · Campaign and saves | Slots restore selected world interactions, timed puzzle events and scripted character movements. A loaded grave raven finishes its flight and quest callback. The Daventry cottage route survives a restart and castle round trip. | Restore live combat, dialogue and cutscene cameras. Complete region quests, optional branches, boss sequences, movies and the ending. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
@@ -30,6 +30,8 @@ The game opens at the main menu. Choose **New** and a difficulty to enter Davent
 
 Choose **Save** from the pause menu and name the slot. **Load** is available from the title or pause menu. The recreation stores its own saves in `kq8-artifacts/saves` under the launch directory. Set `KQ8_SAVE_DIR` to use a fixed location across launches. Support for importing original Sierra saves is still open.
 
+The three original movies use Indeo 5 video. The development build uses FFmpeg to decode the pictures and reads the original stereo soundtrack in Rust. Set `KQ8_FFMPEG` to the full path to a local `ffmpeg.exe`, place it beside the viewer executable, or make it available on `PATH`. Windows acceptance used FFmpeg 7.1. A missing decoder opens a message you can dismiss. Packaging a decoder for the finished Windows release remains open.
+
 ## Automated checks
 
 Use the same game-data path for these commands. The workspace command includes the viewer tests. The archive check reads the local game data. The last command launches Daventry and exits after 120 rendered frames.
@@ -48,6 +50,7 @@ cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test options_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test keyboard_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test credits_menu -- --ignored
+cargo test --locked -p kq8-viewer --test movies -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test weeper -- --ignored
 cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored
@@ -66,7 +69,7 @@ The separate cottage test collects five mushrooms, consumes one, saves and quits
 
 Two Dead City checks start with the original portal's arrival cue. One gives Connor the feather, uses it on the right dish and steers him onto the left. The original scripts then lower five river sections. The other boards the right dish, steps off and walks out of the puzzle. Getting the feather during campaign play and saving mid-puzzle still need coverage.
 
-The Temple 4 scenarios check the altar’s scripted changes to Lucreto’s movements, his ranged attack model, and the winning and losing animation sequences at the vortex. Campaign completion also requires reaching this encounter through ordinary controls and playing the ending movie and credits. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.
+The Temple 4 scenarios check the altar’s changes to Lucreto’s movements and both vortex outcomes. Separate movie checks cover title replay, the middle film returning to play, and the ending film followed by scored credits. Reaching that ending in an uninterrupted campaign remains open. The [script coverage report](docs/SCRIPT-COVERAGE.md) lists commands across all worlds.
 
 ## Source and research
 

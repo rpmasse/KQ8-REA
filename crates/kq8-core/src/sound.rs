@@ -335,6 +335,16 @@ impl SoundSystem {
         self.playing.iter().filter(|p| !p.paused && p.group != 1 && p.group != 4).map(|p| p.id)
     }
 
+    /// Video interrupts every one-shot, even if a menu has already paused
+    /// it. Only loops can continue after playback (sound.md rule 57i).
+    pub fn stop_movie_one_shots(&mut self) {
+        for n in (0..self.playing.len()).rev() {
+            if !self.playing[n].looping {
+                self.stop_at(n, "interrupted by movie");
+            }
+        }
+    }
+
     /// Final loudness and balance of a sound: own × group, at most 1
     /// (rule 21), and its distance (0 for a plain sound).
     fn mix_values(&self, group: usize, placed: Option<&Placed>, level: f32, ears: &Ears) -> (f32, f32, f32, f32) {
@@ -819,6 +829,19 @@ mod tests {
         assert!(close(balance(&v, [100.0, 100.0, 0.0]), 0.82 / 2f32.sqrt()));
         assert!(close(balance(&v, [1000.0, 1000.0, 0.0]), 0.82 / 2f32.sqrt()), "distance doesn't change it");
         assert_eq!(balance(&v, [0.0, 0.0, 300.0]), 0.0, "straight above: centre");
+    }
+
+    #[test]
+    fn movies_end_one_shots_and_retain_loops() {
+        let mut system = SoundSystem::default();
+        let mut start = Start::plain_one_shot("world.aud", "test".into());
+        let one_shot = system.start(&start, found(10.), &ears()).unwrap();
+        start.looping = true;
+        let music = system.start(&start, found(10.), &ears()).unwrap();
+        system.stop_movie_one_shots();
+        assert!(!system.is_playing(one_shot));
+        assert!(system.is_playing(music));
+        assert!(matches!(system.orders.last(), Some(Order::Stop { id }) if *id == one_shot));
     }
 
     #[test]

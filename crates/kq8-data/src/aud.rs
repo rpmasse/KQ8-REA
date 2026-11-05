@@ -251,6 +251,12 @@ fn parse_wav(bytes: &[u8]) -> Result<Sound, String> {
         at += 8 + size + (size & 1); // chunks are padded to an even size
     }
     let fmt = fmt.ok_or("WAV without a format chunk")?;
+    let (data, declared_len) = data.ok_or("WAV without a data chunk")?;
+    wave_pcm(fmt, data, declared_len)
+}
+
+/// Uncompressed WAVE-format audio used in WAV files and AVI soundtracks.
+pub(crate) fn wave_pcm(fmt: &[u8], data: &[u8], declared_len: u64) -> Result<Sound, String> {
     if fmt.len() < 14 {
         return Err(format!("WAV format chunk of {} bytes (needs 14)", fmt.len()));
     }
@@ -267,7 +273,6 @@ fn parse_wav(bytes: &[u8]) -> Result<Sound, String> {
     if bits != 8 && bits != 16 {
         return Err(format!("WAV with {bits}-bit samples (only 8 or 16)"));
     }
-    let (data, declared_len) = data.ok_or("WAV without a data chunk")?;
     let samples: Vec<i16> = if bits == 8 {
         data.iter().map(|&b| (i16::from(b) - 0x80) << 8).collect()
     } else {

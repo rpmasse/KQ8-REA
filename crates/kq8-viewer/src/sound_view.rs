@@ -57,6 +57,24 @@ impl SoundSim {
                 if paused { Command::Pause { id } } else { Command::Resume { id } }));
         }
     }
+    pub fn begin_movie(&mut self) {
+        self.system.stop_movie_one_shots();
+        if let Some(out) = &self.output {
+            out.send([Command::StopOneShots]);
+            out.send(self.system.playing_ids().into_iter().map(|id| Command::Pause { id }));
+        }
+    }
+
+    pub fn end_movie(&self, back_to_menu: bool) {
+        if let Some(out) = &self.output {
+            let paused: Vec<_> = if back_to_menu {
+                self.system.menu_paused_ids().collect()
+            } else { Vec::new() };
+            out.send(self.system.playing_ids().into_iter()
+                .filter(|id| !paused.contains(id)).map(|id| Command::Resume { id }));
+        }
+    }
+
     /// A sound object prepared for a script's `loadKQ` comes into the
     /// world (M3 3k-4): it plays as any other from now on.
     pub fn wake(&mut self, name: &str) -> bool {
