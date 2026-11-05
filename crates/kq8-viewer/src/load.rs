@@ -1728,6 +1728,7 @@ pub struct EmitterAssets {
 pub struct DoorAssets {
     /// Its place after the ground rules.
     pub placement: kq8_data::objects::Placement,
+    pub calls_on_connor_contact: bool,
     /// Every movement in list order: name, `loop=` line and cues, index
     /// into `Objects::door_animations`.
     pub movements: Vec<(String, kq8_data::objects::CurrentLoop, usize)>,
@@ -1894,14 +1895,16 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         }
     }
     // Files a script loads while playing with `loadKQ <file>` (M3 3k-4).
-    let load_targets: std::collections::BTreeSet<String> = all_scripts
-        .iter()
-        .flat_map(|(_, t)| t.lines())
-        .filter_map(|l| {
-            let mut w = l.split('#').next().unwrap_or("").split_whitespace();
-            (w.next() == Some("loadkq")).then(|| w.next()).flatten().map(|f| f.rsplit(['/', '\\']).next().unwrap_or(f).to_string())
-        })
-        .collect();
+    let mut load_targets = std::collections::BTreeSet::new();
+    let mut copy_targets = std::collections::BTreeSet::new();
+    for line in all_scripts.iter().flat_map(|(_, text)| text.lines()) {
+        let mut words = line.split('#').next().unwrap_or("").split_whitespace();
+        if words.next() != Some("loadkq") { continue; }
+        let Some(path) = words.next() else { continue };
+        let file = path.rsplit(['/', '\\']).next().unwrap_or(path);
+        load_targets.insert(file.to_string());
+        if words.next().is_some() { copy_targets.insert(file.to_string()); }
+    }
     let mut items = item_types(game, log);
     // M6 6e-7: the movements of portals' own lists: this world's portals'
     // enterAnmFile / enterAnim (leaving), the arriving portal's exitAnmFile
@@ -1937,6 +1940,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         progress,
         map: None,
         load_targets,
+        copy_targets,
         dormant: Vec::new(),
         dormant_traps: Vec::new(),
         template_files: Vec::new(),
@@ -2291,6 +2295,8 @@ struct Placer<'a> {
     /// Files named by `loadKQ <file>` in the world's scripts, lower case
     /// (M3 3k-4).
     load_targets: std::collections::BTreeSet<String>,
+    /// Files scripts can load with their own name or placement.
+    copy_targets: std::collections::BTreeSet<String>,
     dormant: Vec<(String, String, Option<String>)>,
     dormant_traps: Vec<String>,
     /// (file, index into `placed`) of each template (M5 5d-3).
@@ -3581,8 +3587,12 @@ impl Placer<'_> {
         if !unused && ["locX", "locY", "locZ"].iter().all(|k| file[0].get(k).is_none()) && !self.used_no_place.iter().any(|(f, _)| *f == base_lc) {
             self.used_no_place.push((base_lc, self.placed.len()));
         }
-        // M5 5d-3: a file a script loads, with no place of its own.
-        if unused && no_place && self.load_targets.contains(&base.to_ascii_lowercase()) && !self.template_files.iter().any(|(f, _)| f.eq_ignore_ascii_case(base)) {
+        // A scripted copy may override an object's authored position, as
+        // when the feather is placed on either one of the scales.
+        let source = base.to_ascii_lowercase();
+        let can_copy = (no_place && self.load_targets.contains(&source))
+            || (anim_object && self.copy_targets.contains(&source));
+        if unused && can_copy && !self.template_files.iter().any(|(f, _)| f.eq_ignore_ascii_case(base)) {
             self.template_files.push((base.to_ascii_lowercase(), self.placed.len()));
             self.log.summary(format!("template {label}[{}]: kept for a script's loadKQ while playing (M5 5d-3)", p.name));
         }
@@ -3680,6 +3690,11 @@ impl Placer<'_> {
         use kq8_data::kq_text;
         // What the scripts ask for: (list file or None, movement word).
         let mut wanted: std::collections::BTreeSet<(Option<String>, String)> = Default::default();
+        if self.world.name.eq_ignore_ascii_case("DeadCity") {
+            for m in ["onscale1", "onscale2", "offscale1", "offscale2"] {
+                wanted.insert((Some("conscale.anm".into()), m.into()));
+            }
+        }
         if let Some(Ok((_, bytes))) = self.world.load("PRweeper.kq") {
             if let Some(drain) = kq_text::parse(&bytes).iter().find_map(kq8_data::characters::ProjectileKeys::from_section).and_then(|k| k.drain) {
                 wanted.insert((None, drain.hurt_anim.to_ascii_lowercase()));
@@ -3962,6 +3977,7 @@ impl Placer<'_> {
         });
         let name_key = |k: &str| s.get(k).map(|v| v.trim().to_string());
         let door = DoorAssets {
+            calls_on_connor_contact: number("conCollisionAction").is_some_and(|v| v != 0.0),
             movements: with_index,
             current,
             anim_names: (name_key("currAnimName"), name_key("nextAnimName")),
@@ -4833,6 +4849,9 @@ impl Placer<'_> {
             contact_scripts: self.placed.iter().zip(&self.collision)
                 .filter(|((_, _, unused), info)| !*unused && info.calls_on_connor_contact && info.collider_mask & kq8_core::collide::CONNOR_TYPE != 0)
                 .filter_map(|((placed, _, _), info)| Some((placed.name.clone(), info.script.clone()?)))
+                .chain(doors.iter()
+                    .filter(|d| d.calls_on_connor_contact && d.collider_mask & kq8_core::collide::CONNOR_TYPE != 0)
+                    .filter_map(|d| Some((d.placement.name.clone(), d.script.clone()?))))
                 .collect(),
             arriving_flags: None,
             kept_interactions: Default::default(),

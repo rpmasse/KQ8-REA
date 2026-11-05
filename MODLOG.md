@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Connor on the Scales of Justice
+
+Normal movement input now selects either dish or the walk out. Connor uses the four movements in the original `conscale.anm`. Dish collision runs the installed object's script. An item click on the opposite dish creates the feather named by the script, then the win callback changes the five river sections. Two unattended Windows tests verified the solution and the separate walk off and exit. Both start at the portal arrival cue. The winning test supplies the feather. Exact camera pitch, gravity-switch timing and saving during the sequence still need verification. Run the `regions` test with the filters `a_feather_and_connors_weight` and `connor_steps_onto` and the `--ignored` argument.
+
 ## 2026-11-05 Original staff credits
 
 The title Options screen and the ending's `doCredits` command can display the roster from the installed game. Two unattended Windows processes checked the Options round trip through all 25 cards and entry from Temple 4. A separate original-data check ran the final animation callback and captured the score before world teardown. All 25 images were distinct, every staff line fit and the scored final card kept the team photograph. The five-second dwell per card, mixed-font spacing and score numerator are inferred. The full ending movie transition remains open.

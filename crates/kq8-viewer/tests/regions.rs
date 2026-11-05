@@ -124,3 +124,41 @@ fn scales_cue_lowers_rendered_river_and_keeps_it_on_reload() {
     assert_eq!(changed.len(), 2, "initial change and restored meshes: see {}", logs.display());
     assert_eq!(changed[0], changed[1], "same rendered vertices after return");
 }
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn connor_steps_onto_and_off_the_original_scales_dish() {
+    let logs = run_world("scales-steps", &[
+        "--world", "DeadCity", "--no-ai",
+        "--command", "sendEvent 0 portrap3 KQCueEvent 7 0,4",
+        "--hold", "0,-1,0,9,14", "--hold", "1,0,0,15,23",
+        "--hold", "1,0,0,113,121",
+        "--hold", "1,0,0,150,158", "--updates", "305",
+    ]);
+    let connor = fs::read_to_string(logs.join("connor.log")).unwrap();
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
+    assert!(connor.contains("Scales boarding") && connor.contains("Scales stepping off"), "see {}", logs.display());
+    assert_eq!(connor.matches("Scales ready at").count(), 2, "see {}", logs.display());
+    assert!(doors.contains("scalert.cs scalert ConnorCollision 1"), "see {}", logs.display());
+    assert!(connor.contains("leaves Scales at"), "see {}", logs.display());
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn a_feather_and_connors_weight_solve_the_scales() {
+    let logs = run_world("scales-feather", &[
+        "--world", "DeadCity", "--no-ai", "--item", "INVITEM_Feather",
+        "--command", "sendEvent 0 portrap3 KQCueEvent 7 0,4",
+        "--click", "scalert,9",
+        "--hold", "0,1,0,14,19", "--hold", "1,0,0,20,28",
+        "--updates", "115",
+    ]);
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
+    assert!(doors.contains("scalert ConnorAction TestItem INVITEM_Feather"), "item use: see {}", logs.display());
+    assert!(doors.contains("set DeadCity::Scales::Feather = 'right'"), "see {}", logs.display());
+    assert!(doors.contains("scalelt.cs scalelt ConnorCollision 1"), "dish contact: see {}", logs.display());
+    assert!(doors.contains("echo scales complete") && doors.contains("script scale.cs scale Cue 1 0"), "win callback: see {}", logs.display());
+    assert!(doors.lines().any(|s| s.contains("loadKQ sclfthr.kq: a new copy") && s.contains("$ObjectName =")), "the placed feather must exist");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    assert!(viewer.contains("terrain: 5 height matches,"), "see {}", logs.display());
+}

@@ -61,6 +61,8 @@ cargo test --locked -p kq8-core original_gnome_rock_and_dead_city -- --ignored
 
 The cottage test uses New Game, collects five mushrooms, consumes one, saves and quits. A fresh process restores four mushrooms and the open cottage door, opens the pub chest, travels through both castle portal prompts, and saves back in Daventry. The test disables enemy AI, moves Connor between landmarks and applies damage so he can use a healing item.
 
+Two Dead City checks start with the original portal's arrival cue. One gives Connor the feather, uses it on the right dish and steers him onto the left. The original scripts then lower five river sections. The other boards the right dish, steps off and walks out of the puzzle. Getting the feather during campaign play and saving mid-puzzle still need coverage.
+
 The Temple 4 scenarios check the altar’s scripted changes to Lucreto’s movements, his ranged attack model, and the winning and losing animation sequences at the vortex. Campaign completion also requires reaching this encounter through ordinary controls and playing the ending movie and credits. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.
 
 ## Source and research

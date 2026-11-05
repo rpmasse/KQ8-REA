@@ -123,6 +123,7 @@ struct Args {
     palette: Option<String>,
     game: PathBuf,
     frames: Option<u64>,
+    updates: Option<u64>,
     /// Test: lift Connor this much at the start (like the G/B keys).
     lift: Option<f32>,
     /// Test: hold this intent (forward,turn,run e.g. `1,0,0`) for Connor,
@@ -208,6 +209,7 @@ fn parse_args() -> Result<Args, String> {
         palette: None,
         game: std::env::var_os("KQ8_GAME_DIR").map(PathBuf::from).unwrap_or_else(|| "MASK".into()),
         frames: None,
+        updates: None,
         lift: None,
         hold: Vec::new(),
         jump: Vec::new(),
@@ -385,6 +387,7 @@ fn parse_args() -> Result<Args, String> {
                 };
             }
             "--frames" => a.frames = Some(value()?.parse().map_err(|_| "--frames needs a number".to_string())?),
+            "--updates" => a.updates = Some(value()?.parse().map_err(|_| "--updates needs a number".to_string())?),
             s if s.starts_with("--") => return Err(format!("unknown option {s}")),
             _ => positional.push(arg),
         }
@@ -417,6 +420,7 @@ struct Stats {
 #[derive(Resource)]
 struct Settings {
     frame_limit: Option<u64>,
+    update_limit: Option<u64>,
     started: Instant,
     last_report: Instant,
     radius: f32,
@@ -458,6 +462,7 @@ Used mostly for debugging:
   --model <file>             show one model, e.g. --model smlchest.KQS
   --palette <file>           another palette for --model
   --frames <number>          close the window by itself after that many frames
+  --updates <number>         close when the current world reaches this simulation update
 
 Test options (drive Connor from the command line; ground view only).
 N is an update number (15 updates per second):
@@ -636,7 +641,7 @@ fn main() -> ExitCode {
             let size: [f32; 3] = std::array::from_fn(|i| model.max[i] - model.min[i]);
             let radius = 0.5 * (size[0] * size[0] + size[1] * size[1] + size[2] * size[2]).sqrt() / UNITS_PER_METRE;
             app.insert_resource(Loaded(Some(model)))
-                .insert_resource(Settings { frame_limit: args.frames, started, last_report: Instant::now(), radius })
+                .insert_resource(Settings { frame_limit: args.frames, update_limit: args.updates, started, last_report: Instant::now(), radius })
                 .insert_resource(Orbit { yaw: 0.6, pitch: 0.35, distance: radius * 3.0, default_distance: radius * 3.0 })
                 .add_systems(Startup, (setup, object_light::report_lights).chain())
                 .add_systems(Update, (orbit_input, place_camera, frame_stats).chain());
@@ -659,7 +664,7 @@ fn main() -> ExitCode {
             } else {
                 app.add_systems(Startup, world_build::build_pending);
             }
-            app.insert_resource(Settings { frame_limit: args.frames, started, last_report: Instant::now(), radius: 0.0 })
+            app.insert_resource(Settings { frame_limit: args.frames, update_limit: args.updates, started, last_report: Instant::now(), radius: 0.0 })
                 .insert_resource(connor_view::StartLift(args.lift))
                 .insert_resource(connor_view::HoldIntent(args.hold))
                 .insert_resource(connor_view::JumpAt(args.jump.clone()))
@@ -913,6 +918,7 @@ fn place_camera(orbit: Res<Orbit>, settings: Res<Settings>, mut camera: Single<&
 
 fn frame_stats(
     mut settings: ResMut<Settings>,
+    world: Option<Res<door_view::DoorSim>>,
     shared: Res<Shared>,
     orbit: Option<Res<Orbit>>,
     time: Res<Time>,
@@ -950,7 +956,8 @@ fn frame_stats(
         }
         (s.window_worst_ms, s.window_frames) = (0.0, 0);
     }
-    if settings.frame_limit.is_some_and(|n| s.frames >= n) {
+    let reached_update = settings.update_limit.is_some_and(|n| world.as_ref().is_some_and(|w| w.active.world.updates >= n));
+    if reached_update || settings.frame_limit.is_some_and(|n| s.frames >= n) {
         commands.write_message(AppExit::Success);
     }
 }
