@@ -223,8 +223,8 @@ fn added_extras(w: &mut WorldState, kind: &str, category: &str) {
         "QuestItem" => Some(("0x84", 0.0, "the first quest item")),
         _ => None,
     };
-    if let Some((id, after, what)) = help.filter(|(id, ..)| !w.helps_asked.contains(id)) {
-        w.helps_asked.insert(id);
+    if let Some((id, after, what)) = help.filter(|(id, ..)| !w.helps_asked.contains(*id)) {
+        w.helps_asked.insert(id.to_string());
         w.item_note(format!("{what} ({kind}): help pop-up {id} asked for{} (potions.md rule 41; pop-ups not studied: logged only)", if after > 0.0 { format!(" {after} s later") } else { String::new() }));
     }
     if kind.eq_ignore_ascii_case("INVITEM_RopeAndHook") {

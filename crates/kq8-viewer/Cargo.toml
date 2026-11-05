@@ -10,6 +10,8 @@ name = "kq8-viewer"
 path = "src/main.rs"
 
 [dependencies]
+serde.workspace = true
+serde_json.workspace = true
 kq8-data.workspace = true
 kq8-core.workspace = true
 kq8-audio.workspace = true

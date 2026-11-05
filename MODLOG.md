@@ -3,6 +3,12 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Save slots, rock throwing and campaign scripts
+
+The original Save and Load screens now write named Rust slots with 160×120 gameplay thumbnails. Three Windows processes exercised save, restore from a fresh title screen, cancel, and confirmed deletion. The process-level persistence regression covers ordered inventory, a dropped item, potion timing, a previously visited world and a failed overwrite. Slots capture supported world and journey state. Active scripts, combat and cutscenes still require persistence work.
+
+An unattended Daventry run used the rock HUD slot, released a rock at the cue in Connor's original movement, hit a tree, ran the original landing script and picked up the same item. Exact aiming, damage and trajectory remain open. Merchants can now collect an item and run its callback before continuing their script. Quest scripts can read Connor's flags during world initialization. See the [README](README.md) for reproduction commands.
+
 ## 2026-11-05 Original-data and regional checks
 
 All 12 regions loaded, rendered 30 frames apiece and exited successfully in the automated Windows region test. The real Barren dock script ran directly from the GOG archive and advanced the named trigger from gongtp3 to gongtp4. Added inventory payment handling for original donation and shop scripts. The automated purchase test covers insufficient funds, partial spending and depletion. Quest completion and the full campaign remain open. Reproduction commands are in the README.

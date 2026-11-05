@@ -45,7 +45,7 @@ pub fn experience_sound_plays(percent: i64, last: i64) -> bool {
 pub const DOOR_HEALTH: i64 = 10_000;
 
 /// Five stats: health first.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Stats(pub [i64; 5]);
 
 impl Stats {
@@ -83,7 +83,7 @@ impl Stats {
 }
 
 /// Connor's stats and level.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ConnorStats {
     pub stats: Stats,
     pub level: i64,

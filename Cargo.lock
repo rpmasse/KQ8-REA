@@ -3494,6 +3494,7 @@ name = "kq8-core"
 version = "0.1.0"
 dependencies = [
  "kq8-data",
+ "serde",
 ]
 
 [[package]]
@@ -3501,6 +3502,7 @@ name = "kq8-data"
 version = "0.1.0"
 dependencies = [
  "explode",
+ "serde",
 ]
 
 [[package]]
@@ -3514,6 +3516,8 @@ dependencies = [
  "kq8-data",
  "libmimalloc-sys",
  "mimalloc",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

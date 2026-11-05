@@ -29,7 +29,7 @@ pub const FIRST_NAME: u32 = 38;
 pub const MAP_COUNT: usize = 16;
 
 /// A `KQMap` file's keys ("Data used").
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MapKeys {
     /// The section's name (`davMap`).
     pub name: String,
@@ -64,7 +64,7 @@ pub struct MapKeys {
 }
 
 /// One icon on a map picture (rules 19–21).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MapIcon {
     /// The map picture it belongs to (`davmap.pbm`).
     pub picture: String,

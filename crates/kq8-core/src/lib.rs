@@ -6,6 +6,7 @@
 
 pub mod active;
 pub mod main_menu;
+pub mod save_menu;
 pub mod anim;
 pub mod camera;
 pub mod camera_flight;

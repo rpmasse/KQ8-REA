@@ -1473,6 +1473,8 @@ pub struct MapFile {
 }
 
 pub struct Objects {
+    /// Carried state read by destination Init scripts (e.g. Daventry's girl.cs).
+    pub arriving_flags: Option<(BTreeMap<String, bool>, bool)>,
     /// The world's animations packed for the graphics card (step 4),
     /// made after reading (`world_build::pack_world`).
     pub pack: Option<crate::anim_gpu::WorldPack>,
@@ -3672,7 +3674,7 @@ impl Placer<'_> {
             // the holster) and putting away ends with his own `out`, from
             // Conner.anm, in every world, not only where a script names them
             // (Swamp's sword and hammer had neither: the user's check).
-            for m in ["away", "out"] {
+            for m in ["away", "out", "throw"] {
                 wanted.insert((None, m.to_string()));
             }
             for (_, file) in &f.short_lists {
@@ -4423,10 +4425,10 @@ impl Placer<'_> {
         let mut ranged: Vec<(String, String)> = named
             .iter()
             .filter_map(|n| self.items.kind(n.strip_prefix("invitem_").unwrap_or(n)))
-            .filter(|t| t.category == "LongWeapon")
+            .filter(|t| matches!(t.category.as_str(), "LongWeapon" | "Rock"))
             .filter_map(|t| Some((t.name.clone(), t.extra.clone()?)))
             .collect();
-        for t in self.items.types.types.iter().filter(|t| t.category == "LongWeapon") {
+        for t in self.items.types.types.iter().filter(|t| matches!(t.category.as_str(), "LongWeapon" | "Rock")) {
             if let Some(file) = t.extra.clone().filter(|f| !ranged.iter().any(|(_, r)| r.eq_ignore_ascii_case(f)) && matches!(self.world.load(f), Some(Ok(_)))) {
                 ranged.push((t.name.clone(), file));
             }
@@ -4733,6 +4735,7 @@ impl Placer<'_> {
             self.game.find("Options.cs").and_then(|p| std::fs::read(p).ok()).and_then(|b| kq8_data::characters::shadow_mask_setting(&b)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
         });
         Objects {
+            arriving_flags: None,
             map: self.map,
             shadow_world_mask,
             shapes: self.shapes,

@@ -197,7 +197,7 @@ pub fn arrow_frame(heading: f64) -> usize {
 /// in 640 × 480 layout pixels measured from the area's centre (STAND-IN
 /// at 800 × 600, open question 6: scaled with the screen like the
 /// panels).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct View {
     pub left: f64,
     pub top: f64,
@@ -326,7 +326,7 @@ pub struct Step {
 }
 
 /// Connor's per-map marks (rules 33, 37), kept on him across worlds.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ConnorMapMarks {
     /// "Visited", by map index.
     pub visited: [bool; MAP_COUNT],

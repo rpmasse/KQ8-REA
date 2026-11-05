@@ -52,7 +52,7 @@
 //! there are no saves yet.
 
 /// Which built-in effect an item has, by its type (rule 12).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Effect {
     Clarity,
     Invisible,
@@ -233,7 +233,7 @@ pub fn list_bits(w: &crate::active::WorldState, items: &[String]) -> u32 {
 }
 
 /// A potion running on Connor.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Running {
     /// The item object (the stack) and its type.
     pub item: String,
