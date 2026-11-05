@@ -1597,6 +1597,8 @@ pub struct Objects {
     pub animated: Vec<AnimatedAssets>,
     /// Their animations, each (model, loop) once.
     pub object_animations: Vec<Animation>,
+    /// Model index for drawing and the same sequence's timing for loadAnim.
+    pub script_shapes: BTreeMap<String, (usize, kq8_core::door::DoorMovement)>,
     /// The item types and the item objects the start-up scripts made (M3
     /// step 3e-3; items.md rule 9).
     pub items: kq8_core::item::Items,
@@ -4130,7 +4132,11 @@ impl Placer<'_> {
     /// A movement's frames, loaded once per (model, loop, skin): its index
     /// in `object_animations`, `None` if it can't be loaded.
     fn movement_animation(&mut self, label: &str, name: &str, l: &kq8_data::objects::CurrentLoop, skin: Option<&(String, String)>) -> Option<usize> {
-        let mut key = format!("{}|{}", l.shape.to_ascii_lowercase(), l.sequence.to_ascii_lowercase());
+        self.shape_animation(label, name, &l.shape, &l.sequence, skin)
+    }
+
+    fn shape_animation(&mut self, label: &str, name: &str, shape: &str, sequence: &str, skin: Option<&(String, String)>) -> Option<usize> {
+        let mut key = format!("{}|{}", shape.to_ascii_lowercase(), sequence.to_ascii_lowercase());
         if let Some((a, b)) = skin {
             key = format!("{key}|{}>{}", a.to_ascii_lowercase(), b.to_ascii_lowercase());
         }
@@ -4139,7 +4145,7 @@ impl Placer<'_> {
         }
         let loaded = self.object_palette().and_then(|palette| {
             self.log.quiet = true;
-            let a = load_animation_skinned(self.game, self.world, &l.shape, &l.sequence, &palette, skin, self.log);
+            let a = load_animation_skinned(self.game, self.world, shape, sequence, &palette, skin, self.log);
             self.log.quiet = false;
             a
         });
@@ -4149,7 +4155,7 @@ impl Placer<'_> {
                 Some(self.object_animations.len() - 1)
             }
             Err(e) => {
-                self.log.summary(format!("animated {label}: movement {name}: {} {}: {e}; drawn still", l.shape, l.sequence));
+                self.log.summary(format!("animated {label}: movement {name}: {shape} {sequence}: {e}; drawn still"));
                 None
             }
         };
@@ -4552,6 +4558,24 @@ impl Placer<'_> {
     }
 
     fn finish(mut self) -> Objects {
+        let files: std::collections::BTreeSet<String> = self.all_scripts.iter().flat_map(|(_, text)| text.lines()).filter_map(|line| {
+            let mut words = line.split('#').next()?.split_whitespace();
+            if words.next()? != "loadanim" { return None; }
+            let file = words.nth(1)?;
+            file.ends_with(".kqs").then(|| file.to_string())
+        }).collect();
+        let mut script_shapes = BTreeMap::new();
+        for file in files {
+            let sequence = file.trim_end_matches(".kqs");
+            if let Some(index) = self.shape_animation("loadAnim", &file, &file, sequence, None) {
+                let model = &self.object_animations[index];
+                script_shapes.insert(file.clone(), (index, kq8_core::door::DoorMovement {
+                    name: file, start: 0., speed: 1., repeat: false, cut_short: false, play_time: model.duration,
+                    frame_steps: model.frame_transforms.clone(), first_in_file: model.first_in_file, frame_parts: vec![],
+                    cues: vec![], transitions: vec![],
+                }));
+            }
+        }
         let swap_looks = self.swap_looks();
         let log = self.log;
         // Check from the numbers: lowest point of each placed model vs ground.
@@ -4806,6 +4830,7 @@ impl Placer<'_> {
             animators: self.animators,
             animated: self.animated,
             object_animations: self.object_animations,
+            script_shapes,
             pack: None,
             items: Default::default(),
             item_shapes: BTreeMap::new(),
@@ -5629,6 +5654,51 @@ mod campaign_tests {
             assert_eq!(active.world.place_of("LucEnd").unwrap().position, active.world.place_of("LucEndFar").unwrap().position);
             assert!(active.world.place_of(who).unwrap().position[1] > 107000.);
             assert!(active.world.requests.iter().any(|r| matches!(r, Request::HandsOff { on: true, .. })));
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_vortex_script_chains_each_cutscene_from_its_model_end() {
+        use kq8_core::{active::{Active, AnimObject}, collide::Placement, named_anim::NamedAnimPlayer, trap::Trap, weapons::WeaponMode};
+        let game = game_install();
+        let world = World::open(&game, "temple4").unwrap();
+        let mut log = Log::create("temple4-cutscenes-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let assets = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let trap = assets.traps.iter().find(|t| t.script.as_deref() == Some("vortrap.cs")).unwrap();
+        let vortex = &assets.placed.iter().find(|(o, _, _)| o.name.eq_ignore_ascii_case("vortex")).unwrap().0;
+        for (visitor, mode, sequences) in [
+            ("LucEnd", WeaponMode::Hand, vec!["lu_suck1.kqs", "lu_suck2.kqs", "vrtexbye.kqs", "c_imdone.kqs"]),
+            ("Connor", WeaponMode::Hand, vec!["c_suck1.kqs", "c_suck2.kqs"]),
+            ("Connor", WeaponMode::Ranged, vec!["ci_suck1.kqs", "ci_suck2.kqs"]),
+            ("Connor", WeaponMode::None, vec!["cg_suck1.kqs", "cg_suck2.kqs"]),
+        ] {
+            let mut active = Active::new(assets.vars.clone(), vec![], vec![], assets.known.clone(), assets.scripts.clone());
+            active.add_traps([Trap::new(trap.clone())]);
+            let at = Placement { position: vortex.position, rotation: kq8_data::objects::rotation(vortex.angles) };
+            active.add_anims([AnimObject { player: NamedAnimPlayer::new(&vortex.name, vec![], 0, at), character: None, script: None, gone: false, translucency: None }]);
+            active.world.script_shapes = assets.script_shapes.iter().map(|(name, (_, model))| (name.clone(), model.clone())).collect();
+            active.world.set_weapon(mode, (mode != WeaponMode::None).then(|| "equipped".to_owned()));
+            assert!(active.call_named(&trap.name, &["On", visitor]));
+            for _ in 0..500 {
+                active.update();
+                if active.world.anims.last().is_some_and(|a| a.player.movement_name() == *sequences.last().unwrap() && a.gone) { break; }
+            }
+            let spawned = &active.world.anims[1..];
+            let names = spawned.iter().map(|a| a.player.movement_name().to_ascii_lowercase()).collect::<Vec<_>>();
+            assert_eq!(names, sequences, "{}", active.world.trap_log.join("\n"));
+            assert!(spawned.iter().all(|a| a.player.once && a.gone && a.player.has_ended()));
+            for (a, file) in spawned.iter().zip(sequences) {
+                let (index, _) = &assets.script_shapes[file];
+                let model = &assets.object_animations[*index];
+                assert!(model.source.is_some() && model.frame_count > 1);
+                assert_eq!(a.player.movements[0].play_time, model.duration);
+            }
+            if visitor != "Connor" {
+                assert_eq!(spawned[2].player.base.position, at.position);
+                assert!(active.world.sounds.iter().any(|s| s.name == "sheath.aud"));
+            }
         }
     }
 }

@@ -786,6 +786,7 @@ pub fn spawn_doors(
     }
     // The other animated objects (3i-4), drawn by anim_view.
     active.add_anims(anims);
+    active.world.script_shapes = std::mem::take(&mut objects.script_shapes).into_iter().map(|(file, (_, model))| (file, model)).collect();
     // Copies prepared for a script's loadKQ (3k-4).
     active.set_dormant(std::mem::take(&mut objects.dormant));
     // M5 5d-3, 5d-4: the templates for new copies: still ones, and

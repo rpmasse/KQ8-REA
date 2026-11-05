@@ -341,6 +341,7 @@ pub fn setup_objects(
         &mut commands,
         std::mem::take(&mut objects.animated),
         std::mem::take(&mut objects.object_animations),
+        &objects.script_shapes,
         &objects.placed,
         &objects.templates.iter().map(|t| t.placed).collect(),
         &mut object_materials,
