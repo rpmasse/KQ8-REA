@@ -3,6 +3,50 @@ use std::{fs, path::Path, process::Command};
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn graphics_menu_switches_live_shadow_categories_off_and_on() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let original = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/shadow-menu/{nonce}"));
+    fs::create_dir_all(dir.join("kq8-artifacts")).unwrap();
+    fs::write(dir.join("kq8-artifacts/Options.cs"), b"setShadowMask 1\n").unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+        .current_dir(&dir).arg("--game").arg(&game)
+        .args(["--world", "DeadCity", "--frames", "350", "--sound", "off", "--no-ai", "--god",
+            "--command", "move skeleton1 0 183300 45000 864 0 0 0,5",
+            "--key", "menu:down:down:down:enter:release:enter:release:click=350x295:click=350x325:click=350x355:click=310x450:click=315x451:escape,12",
+            "--key", "menu:down:down:down:enter:release:enter:release:click=350x265:click=350x295:click=350x325:click=350x355:click=310x450:click=315x451:escape,40",
+            "--key", "menu:down:down:down:enter:release:enter:release:click=350x265:click=350x295:click=350x325:click=350x355:click=310x450:click=315x451:escape,65"])
+        .output().unwrap();
+    fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+    let logs = dir.join("kq8-artifacts/logs");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+    let rows: Vec<_> = viewer.lines().filter(|l| l.starts_with("shadow renderer: mask ")).collect();
+    for mask in [3, 7, 15, 14, 12, 8, 0, 1, 3, 7, 15] {
+        assert!(viewer.contains(&format!("Graphics menu: shadow mask {mask} applied live")), "mask {mask} missing; inspect {}", dir.display());
+    }
+    assert!(rows.iter().any(|l| l.contains("mask 0, Connor 0 pieces, 0 character shadows shown")), "disabled shadows survived; inspect {}", dir.display());
+    let full: Vec<_> = rows.iter().filter(|l| l.contains("mask 15,")).collect();
+    assert_eq!(full.len(), 2, "inspect {}", dir.display());
+    for row in full {
+        assert!(!row.contains("Connor 0 pieces") && !row.contains(", 0 character shadows shown"), "eligible shadows were not restored: {row}; inspect {}", dir.display());
+    }
+    let shadows = fs::read_to_string(logs.join("shadows.log")).unwrap();
+    let zero = shadows.lines().find(|l| l.ends_with("; mask 0")).unwrap();
+    assert!(zero.contains("0 plain objects' shadows shown, 0 pieces"), "inspect {}", dir.display());
+    let enabled: Vec<_> = shadows.lines().filter(|l| l.ends_with("; mask 15")).collect();
+    assert_eq!(enabled.len(), 2, "inspect {}", dir.display());
+    let rebuilds = |line: &str| line.split("worked out ").nth(1).unwrap().split_whitespace().next().unwrap().parse::<usize>().unwrap();
+    assert!(rebuilds(enabled[0]) > 0 && rebuilds(enabled[1]) > rebuilds(enabled[0]),
+        "re-enabling objects reused their disabled cache; inspect {}", dir.display());
+    let saved = kq8_core::options_menu::Settings::from_script(&fs::read(dir.join("kq8-artifacts/Options.cs")).unwrap());
+    assert_eq!(saved.graphics.shadow_mask, 15);
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), original);
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
 fn local_resolution_lighting_and_shadow_settings_reach_world_loading() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let original = fs::read(game.join("Options.cs")).unwrap();

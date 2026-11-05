@@ -803,6 +803,9 @@ fn graphics_key(world: &mut World, key: Key) {
         if graphics.dynamic_lighting != old.dynamic_lighting {
             crate::light_view::apply_menu_dynamic(world, graphics.dynamic_lighting);
         }
+        if graphics.shadow_mask != old.shadow_mask {
+            crate::shadow_view::apply_menu_mask(world, graphics.shadow_mask);
+        }
         log.lock().unwrap().summary(format!("graphics: {key:?} -> {graphics:?}"));
     }
     if action == graphics_menu::Action::Back {

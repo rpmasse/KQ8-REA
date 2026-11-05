@@ -91,9 +91,10 @@ struct Playing {
     parts: Vec<Entity>,
     opacity_shown: f32,
     own: std::collections::HashMap<AssetId<ObjectMaterial>, (Handle<ObjectMaterial>, f32)>,
-    /// A character that casts a shadow (rule 36), and its shadow mesh once
-    /// made (M4 4d-7b-2).
-    casts: bool,
+    /// The character's own mask and original opacity, independent of the
+    /// menu's live world mask (rule 36), and its shadow mesh once made.
+    shadow_mask: u32,
+    shadow_translucency: f32,
     shadow: Option<crate::shadow_view::ShadowSlot>,
     /// A character loaded underground: whether its body is shown now
     /// (`character-movement.md` rules 28, 30; M5 5a-8).
@@ -141,6 +142,8 @@ struct CharacterRecipe {
     face_keys: Vec<(usize, i32)>,
     lip_images: Vec<Option<Handle<Image>>>,
     casts_shadow: bool,
+    shadow_mask: u32,
+    shadow_translucency: f32,
 }
 
 /// A copy's materials for `Slots::spawn`: (animation, material index).
@@ -262,7 +265,8 @@ impl AnimSim {
             parts,
             opacity_shown: 1.0,
             own: Default::default(),
-            casts,
+            shadow_mask: r.character.as_ref().map_or(0, |c| c.shadow_mask),
+            shadow_translucency: r.character.as_ref().map_or(256.0, |c| c.shadow_translucency),
             shadow: None,
             birth_shown: unborn.then_some(false),
             new_draw,
@@ -638,7 +642,7 @@ pub fn spawn_animated(
         if monster_targets.contains(&a.source_file) && !monster_recipes.iter().any(|r: &PreparedMonster| r.file == a.source_file) {
             if let (Some(keys), Some(ch)) = (a.character.as_ref(), character.as_ref()) {
                 recipes.insert(a.source_file.clone(), Recipe { movements: recipe.clone(), script: a.script.clone(), slots: (slot_movements.clone(), own.clone()), textures: texture_names.clone(),
-                    character: Some(CharacterRecipe { distance: balls.test_character(p, keys.box_type.as_deref()), face_keys: face_keys.clone(), lip_images: lip_images.clone(), casts_shadow: keys.casts_shadow }) });
+                    character: Some(CharacterRecipe { distance: balls.test_character(p, keys.box_type.as_deref()), face_keys: face_keys.clone(), lip_images: lip_images.clone(), casts_shadow: keys.casts_shadow, shadow_mask: keys.keys.shadow_mask, shadow_translucency: p.translucency }) });
                 monster_recipes.push(PreparedMonster { file: a.source_file.clone(), keys: keys.keys.clone(), combat_scaled: keys.combat_scaled,
                     actor: AnimObject { player: player.clone(), script: a.script.clone(), gone: false, character: Some(ch.clone()), translucency: None } });
             }
@@ -724,7 +728,8 @@ pub fn spawn_animated(
             parts,
             opacity_shown: opacity,
             own: Default::default(),
-            casts: a.character.as_ref().is_some_and(|c| c.casts_shadow),
+            shadow_mask: a.character.as_ref().map_or(0, |c| c.keys.shadow_mask),
+            shadow_translucency: p.translucency,
             shadow: None,
             birth_shown: unborn.then_some(false),
             new_draw,
@@ -1144,7 +1149,7 @@ pub fn shadow_draw(
     mut material: Local<Option<Handle<StandardMaterial>>>,
     mut connor_shadow: Local<Option<crate::shadow_view::ShadowSlot>>,
     mut frames: Local<u64>,
-    (buildings, activity, mut spent, balls, change, mut seen, sources): (
+    (buildings, activity, mut spent, balls, change, mut seen, sources, mask, mut last_mask, shared): (
         Option<Res<crate::shadow_view::BuildingShadows>>,
         Option<Res<crate::draw_distance::ObjectActivity>>,
         Local<std::time::Duration>,
@@ -1152,6 +1157,9 @@ pub fn shadow_draw(
         Res<crate::world_build::WorldChange>,
         Local<u64>,
         Option<Res<crate::shadow_view::FrameSources>>,
+        Option<Res<crate::shadow_view::ShadowWorld>>,
+        Local<Option<u32>>,
+        Res<crate::Shared>,
     ),
 ) {
     use kq8_core::shadow;
@@ -1162,6 +1170,7 @@ pub fn shadow_draw(
         *connor_shadow = None;
         *frames = 0;
         *spent = std::time::Duration::ZERO;
+        *last_mask = None;
     }
     let (Some(mut sim), Some(ground)) = (sim, ground) else { return };
     let started = std::time::Instant::now();
@@ -1170,6 +1179,11 @@ pub fn shadow_draw(
     let report = (*frames).is_multiple_of(60);
     let dir = shadow::direction(light.as_ref().and_then(|l| l.lights.suns.first()).map(|s| s.aim));
     let material = material.get_or_insert_with(|| crate::shadow_view::shadow_material(&mut materials)).clone();
+    let mask = mask.as_ref().map_or(1, |m| m.0);
+    let mask_changed = *last_mask != Some(mask);
+    *last_mask = Some(mask);
+    let mut connor_pieces = 0;
+    let mut character_shadows = 0;
     // Rule 37 (2): the near and far buildings receive too (M4 4d-7b-3).
     let active = buildings.as_deref().map(|b| b.active(activity.as_deref())).unwrap_or_default();
     let mut lines = Vec::new();
@@ -1195,11 +1209,13 @@ pub fn shadow_draw(
         )
     };
     let height_above = |p: shadow::V3| p[2] - ground.0.height_at(p[0], p[1]).map_or(f32::NAN, |g| g.height);
-    // Connor (the user's check: he casts one; his own cast test is not in
-    // the notes, Q130): while his body is shown.
+    // Rule 36 / Q130: Connor's own mask is 1, subject to solid opacity
+    // and the world's current mask, while his body is shown.
     if let Some(c) = connor.as_ref() {
         let body = connor_body.iter().next();
-        let drawn = body.is_some_and(|(_, v)| *v != Visibility::Hidden);
+        let opacity = doors.as_ref().and_then(|d| d.active.world.connor_translucency).unwrap_or(256.0);
+        let drawn = body.is_some_and(|(_, v)| *v != Visibility::Hidden)
+            && kq8_data::characters::casts_shadow(mask, 1, true, opacity);
         let shown = c.shown;
         let model = match shown.filter(|_| drawn) {
             Some(frame) => crate::shadow_view::frame_triangles(frame, &children, &parts, &meshes, sources),
@@ -1213,6 +1229,7 @@ pub fn shadow_draw(
         let caster = shown.filter(|_| drawn).and_then(|f| balls.get(f).ok()).map(|(at, b)| crate::shadow_view::caster(at, b));
         let on = crate::shadow_view::receivers(&ground.0, at, &corners, dir, caster, &active);
         let cast = shadow::cast(&model, dir, &on.triangles);
+        connor_pieces = cast.len();
         if report && drawn {
             lines.push(line("Connor", &model, &on, cast.len(), height_above(at)));
         }
@@ -1220,9 +1237,13 @@ pub fn shadow_draw(
     }
     let Some(doors) = doors else { return };
     let world = &doors.active.world;
-    for p in sim.playing.iter_mut().filter(|p| p.casts) {
+    for p in &mut sim.playing {
         let Source::Core(i) = p.source else { continue };
         let Some(a) = world.anims.get(i) else { continue };
+        if !kq8_data::characters::casts_shadow(mask, p.shadow_mask, true, a.translucency.unwrap_or(p.shadow_translucency)) {
+            crate::shadow_view::show_shadow(&[], &mut p.shadow, &mut commands, &mut meshes, &material);
+            continue;
+        }
         let drawn = !a.gone && world.characters_in_range.contains(&p.name.to_ascii_lowercase()) && visibility.get(p.body).is_ok_and(|v| *v != Visibility::Hidden);
         // Its parts shown (step 4: the slots).
         let frame = p.shown.filter(|_| drawn).and(p.new_draw.as_ref().map(|nd| nd.root()));
@@ -1234,12 +1255,16 @@ pub fn shadow_draw(
         let caster = frame.and_then(|f| balls.get(f).ok()).map(|(at, b)| crate::shadow_view::caster(at, b));
         let on = crate::shadow_view::receivers(&ground.0, a.player.base.position, &corners, dir, caster, &active);
         let cast = shadow::cast(&model, dir, &on.triangles);
+        character_shadows += usize::from(!cast.is_empty());
         if report && drawn {
             lines.push(line(&p.name, &model, &on, cast.len(), height_above(a.player.base.position)));
         }
         crate::shadow_view::show_shadow(&cast, &mut p.shadow, &mut commands, &mut meshes, &material);
     }
     *spent += started.elapsed();
+    if mask_changed {
+        shared.log.lock().unwrap().summary(format!("shadow renderer: mask {mask}, Connor {connor_pieces} pieces, {character_shadows} character shadows shown"));
+    }
     if report {
         lines.push(format!("update {}: shadows of Connor and the characters: {:.3} ms a frame on average (rule 37); {}", sim.updates, spent.as_secs_f64() * 1000.0 / *frames as f64, sources.line()));
     }

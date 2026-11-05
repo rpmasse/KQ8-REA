@@ -35,6 +35,14 @@ use crate::object_light::ObjectLight;
 #[derive(Resource)]
 pub struct ShadowWorld(pub u32);
 
+pub fn apply_menu_mask(world: &mut World, mask: u32) {
+    let Some(mut current) = world.get_resource_mut::<ShadowWorld>() else { return };
+    current.0 = mask;
+    world.resource::<crate::Shared>().log.lock().unwrap().summary(format!(
+        "Graphics menu: shadow mask {mask} applied live"
+    ));
+}
+
 /// The ball stored in a model's `.kqs` file (`characters.md` rule 37 (2),
 /// Q135; M4 4d-7b-5b): radius and centre in the model's own space, game
 /// units. On each shown frame entity (and each still object's part),
@@ -297,6 +305,38 @@ pub fn show_shadow(cast: &[[shadow::V3; 3]], slot: &mut Option<ShadowSlot>, comm
 
 type ShadowKey = (Vec<Entity>, [u32; 7], Vec<u32>, Vec<(usize, usize)>);
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bevy::ecs::system::RunSystemOnce;
+
+    #[derive(Resource, Default)]
+    struct Slot(Option<ShadowSlot>);
+
+    #[test]
+    fn disabling_and_reenabling_a_shadow_updates_the_existing_entity() {
+        let mut world = World::new();
+        world.init_resource::<Slot>();
+        world.init_resource::<Assets<Mesh>>();
+        let triangle = [[[0.0, 0.0, 0.0], [100.0, 0.0, 0.0], [0.0, 100.0, 0.0]]];
+        let update = |world: &mut World, enabled: bool| {
+            world.run_system_once(move |mut commands: Commands, mut slot: ResMut<Slot>, mut meshes: ResMut<Assets<Mesh>>| {
+                show_shadow(if enabled { &triangle } else { &[] }, &mut slot.0, &mut commands, &mut meshes, &Handle::default());
+            }).unwrap();
+        };
+        update(&mut world, true);
+        let first = world.resource::<Slot>().0.as_ref().unwrap().entity;
+        assert_eq!(world.get::<Visibility>(first), Some(&Visibility::Inherited));
+        update(&mut world, false);
+        assert_eq!(world.get::<Visibility>(first), Some(&Visibility::Hidden));
+        assert!(!world.resource::<Slot>().0.as_ref().unwrap().shown);
+        update(&mut world, true);
+        assert_eq!(world.resource::<Slot>().0.as_ref().unwrap().entity, first);
+        assert_eq!(world.get::<Visibility>(first), Some(&Visibility::Inherited));
+        assert!(world.resource::<Slot>().0.as_ref().unwrap().shown);
+    }
+}
+
 /// One plain object's shadow: what it was worked out from, and its slot.
 #[derive(Default)]
 pub struct ObjectShadow {
@@ -319,6 +359,7 @@ pub struct ShadowLog {
     worked_out: usize,
     /// Time spent in this system, for the log.
     spent: std::time::Duration,
+    mask: Option<u32>,
 }
 
 /// Rule 37 "Plain objects" (M4 4d-7b-4): every drawn object whose test
@@ -382,12 +423,20 @@ pub fn object_shadow_draw(
         }
     }
     log.frames += 1;
+    let mask_changed = log.mask != Some(world.0);
+    log.mask = Some(world.0);
     let mut shown = 0;
     let mut pieces = 0;
     let mut on_buildings = (0, 0);
     let mut fallbacks = 0;
     for (root, test, at, off) in &roots {
         if test.character || !kq8_data::characters::casts_shadow(world.0, test.shadow_mask, true, 256.0) {
+            if let Some(entry) = shadows.get_mut(&root) {
+                show_shadow(&[], &mut entry.slot, &mut commands, &mut meshes, &material);
+                // The same pose must be rebuilt when the category returns.
+                entry.key = None;
+                entry.pieces = 0;
+            }
             continue;
         }
         let entry = shadows.entry(root).or_default();
@@ -429,9 +478,9 @@ pub fn object_shadow_draw(
         fallbacks += usize::from(entry.fallback);
     }
     log.spent += started.elapsed();
-    if log.frames % 600 == 1 {
+    if log.frames % 600 == 1 || mask_changed {
         let line = format!(
-            "frame {}: {shown} plain objects' shadows shown, {pieces} pieces; {} of them reach building surfaces ({} surfaces; {} buildings active); {} without a stored model ball (fallback box); worked out {} times so far; {:.3} ms a frame on average in this system; {}",
+            "frame {}: {shown} plain objects' shadows shown, {pieces} pieces; {} of them reach building surfaces ({} surfaces; {} buildings active); {} without a stored model ball (fallback box); worked out {} times so far; {:.3} ms a frame on average in this system; {}; mask {}",
             log.frames,
             on_buildings.0,
             on_buildings.1,
@@ -439,7 +488,7 @@ pub fn object_shadow_draw(
             fallbacks,
             log.worked_out,
             log.spent.as_secs_f64() * 1000.0 / log.frames as f64,
-            sources.line()
+            sources.line(), world.0
         );
         if let Some(l) = log.log.as_mut() {
             l.detail(line);

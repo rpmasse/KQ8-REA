@@ -1,5 +1,9 @@
 # STATUS
 
+## 2026-11-06 Live shadow controls checkpoint
+
+M4–M6 remain in progress. The Graphics panel now updates the active world shadow mask; Connor uses bit 1, and placed/copied characters keep their own mask and original opacity so categories can be enabled after loading. Turning a category off hides its existing shadow and invalidates plain-object projections for re-enabling. Compilation, the viewer bin suite (23 passed, 13 ignored), and all four unattended Windows Graphics checks passed. The live route gained, lost and regained Connor's and an original Dead City skeleton's shadow; object cache rebuild totals increased from 487 to 974, but this location has no visible object shadows, so positive object projection there is not tested. The GOG installation was read only. No manual playtesting was performed. Continue with the missing scripted `allowShadows` switch and its save state, then the remaining Graphics effects, combat actions and campaign work. The changes and test commands are recorded in MODLOG.
+
 ## 2026-11-06 Windows fork published through live Dynamic Lighting
 
 The GOG graphics preference reader, original Graphics menu path and controls, live Dynamic Lighting application, and Small Axe hand-weapon checkpoint were published to `rpmasse/KQ8-REA` through remote commit `05f1c3c`. Installed-data checks, unattended Windows graphics preference and menu routes, an active Dead City lighting switch with changed ground-light samples and eight point-light patches, the existing Options regression, the viewer bin suite, and both Small Axe swap reloads passed. The GOG installation was used read only. The remote and local trees matched at `24b01e9`. The 1.16 MB `MODLOG.md` blob was uploaded as UTF-8 after base64 transport failures; noninteractive Git push also lacked a credential. Continue M4–M6; other graphics effects, other weapon types, live encounter saves and the campaign remain open. No manual playtesting was performed.
