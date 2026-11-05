@@ -219,8 +219,9 @@ pub fn playing(change: Res<WorldChange>, menu: Option<Res<crate::startup_menu::M
 /// follows them (M6 6e-6): a world is in and the Portal state's question
 /// is not open (`world-change.md` rule 26: the game pauses; the panels
 /// and the sounds go on).
-pub fn running(change: Res<WorldChange>, sim: Option<Res<crate::door_view::DoorSim>>, menu: Option<Res<crate::startup_menu::Menu>>) -> bool {
+pub fn running(change: Res<WorldChange>, sim: Option<Res<crate::door_view::DoorSim>>, menu: Option<Res<crate::startup_menu::Menu>>, gui: Option<Res<crate::gui_view::Gui>>) -> bool {
     playing(change, menu) && !sim.is_some_and(|s| s.active.world.portal_asking())
+        && !gui.is_some_and(|g| g.popup.is_some())
 }
 
 /// For systems that keep values from frame to frame (`Local`): true the
@@ -275,7 +276,7 @@ pub fn read_world(game: &GameDir, name: &str, opts: &Options, arrival: Option<lo
     // The caption as the original's (M4 4b-3).
     let caption = talk_view::load_caption(game, &world, log);
     // The panels (M4 4c-2).
-    let gui = gui_view::load_gui(game, name, log).map(|mut gui| {
+    let gui = gui_view::load_gui(game, &world, log).map(|mut gui| {
         gui.corners = opts.corners;
         gui
     });

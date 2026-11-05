@@ -15,7 +15,7 @@ use crate::log::Log;
 /// The archives of one world, opened once.
 pub struct World {
     pub name: String,
-    vols: Vec<(String, VolArchive)>,
+    vols: Vec<(String, std::sync::Arc<VolArchive>)>,
     /// Textures already read and converted, by name and palette (2,855
     /// loads were 264 textures in Daventry; the user asked for faster
     /// loading, 2026-10-23).
@@ -50,7 +50,7 @@ impl World {
         for v in VOLUMES {
             if let Some(path) = game.volume_path(canonical, v) {
                 let a = VolArchive::open(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-                vols.push((v.to_string(), a));
+                vols.push((v.to_string(), std::sync::Arc::new(a)));
             }
         }
         Ok(World { name: canonical.to_string(), vols, textures: Default::default(), shapes: Default::default(), unpacked: Default::default(), palettes: Default::default() })
@@ -66,13 +66,12 @@ impl World {
         })
     }
 
-    /// The GUI files made for this region's palette, in its already-open
-    /// 8gui.vol. Other volumes may contain pictures with the same names.
-    pub fn gui_asset(&self, name: &str) -> Option<(String, Vec<u8>)> {
-        let (_, archive) = self.vols.iter().find(|(v, _)| v == "8gui")?;
-        let entry = archive.find(name)?;
-        let label = format!("vol:{}/8gui/{}", self.name, entry.name);
-        self.unpack(archive,entry,&label).ok().map(|data| (label,data))
+    /// Keep only the panel archive alive for the gameplay HUD.
+    pub fn gui_files(&self) -> GuiFiles {
+        GuiFiles {
+            world: self.name.clone(),
+            archive: self.vols.iter().find(|(v, _)| v == "8gui").map(|(_, a)| a.clone()),
+        }
     }
 
     /// Unpacks entry `e` of archive `a`, small ones only once.
@@ -103,6 +102,35 @@ impl World {
                 })
             })
             .collect()
+    }
+}
+
+/// Region artwork uses the world's palette. Loose copies override its
+/// 8gui.vol, followed by the shared files used when a region has no copy.
+pub struct GuiFiles {
+    world: String,
+    archive: Option<std::sync::Arc<VolArchive>>,
+}
+
+impl GuiFiles {
+    pub fn read(&self, game: &GameDir, name: &str) -> Option<(String, Vec<u8>)> {
+        let loose = |folder: &str| {
+            let path = format!("{folder}/{name}");
+            let bytes = std::fs::read(game.find(&path)?).ok()?;
+            Some((path, bytes))
+        };
+        loose(&format!("{}/8gui", self.world))
+            .or_else(|| loose(&format!("data/{}/8gui", self.world)))
+            .or_else(|| {
+                let a = self.archive.as_ref()?;
+                let e = a.find(name)?;
+                Some((
+                    format!("vol:{}/8gui/{}", self.world, e.name),
+                    a.unpack(e).ok()?.data,
+                ))
+            })
+            .or_else(|| loose("GAME/8Gui"))
+            .or_else(|| loose("GAME/Resource"))
     }
 }
 

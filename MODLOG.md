@@ -5,6 +5,15 @@ Format: date and title, then Changed / Why / Tested how / Result / Still broken 
 
 ## 2026-11-05 Original in-game help rules
 
+The Windows viewer now displays scripted tutorial messages from the installed
+`500.MSG` and regional GUI archive. The wizard's Map tip waited until his
+speech finished before appearing, and the normal New Game route saved the
+earned item after acknowledging it. F1 opens the original topic catalogue;
+the unlit map button shows its immediate tip even with tutorials disabled.
+The original font, panel pixels, checkbox and key actions were checked in
+two unattended Windows runs. The original game was studied statically for
+the three-second tutorial delay and delivery rules.
+
 The Graphics menu's installed `Graphics.gui` names brightness, 800×600 mode,
 dynamic lights and four shadow switches. The original `Options.cs` carries
 their values. The current Options saver used to write only sound and help

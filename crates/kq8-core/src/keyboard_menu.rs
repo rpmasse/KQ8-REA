@@ -63,6 +63,19 @@ fn special(v: u8) -> Option<(u8, &'static str)> {
     })
 }
 
+/// KeyName uses a localized 500.MSG label for named keys, and the
+/// printable key itself for a letter or digit.
+pub fn localized_key(code: u8, mut label: impl FnMut(u8) -> Option<String>) -> String {
+    if let Some((case, _)) = special(code) {
+        return label(case).unwrap_or_default();
+    }
+    if code.is_ascii_graphic() {
+        char::from(code).to_string()
+    } else {
+        String::new()
+    }
+}
+
 pub fn keyword(v: u8) -> Option<String> {
     if v.is_ascii_uppercase() || v.is_ascii_digit() {
         Some(char::from(v).to_ascii_lowercase().to_string())
@@ -237,10 +250,8 @@ impl Screen {
             let code = bindings.0[i];
             let text = if i == self.row && self.capture {
                 art.label(if self.rejected { 67 } else { 112 }).to_owned()
-            } else if let Some((label, _)) = special(code) {
-                art.label(label).to_owned()
             } else {
-                char::from(code).to_string()
+                localized_key(code, |label| Some(art.label(label).to_owned()))
             };
             self.layout.draw(
                 &mut out,

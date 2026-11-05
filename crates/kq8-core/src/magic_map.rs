@@ -979,14 +979,15 @@ impl crate::active::WorldState {
 
 impl crate::active::Active {
     /// Rules 38, 39: a click on the "Go" button. Unlit: the teleporting
-    /// help (popup 151; help popups are not built: logged). Lit: the
+    /// help (popup 151). Lit: the
     /// current world's `TeleportScript` runs with `$1` = the shown world's
     /// `TeleportPortalKQ`.
     pub fn map_go(&mut self, how: &str) {
         let w = &mut self.world;
         let Some(map) = w.map.as_ref() else { return };
         if !map.go_lit {
-            w.map_log.push(format!("{how}: the Go button is not lit: help popup {GO_HELP} (\"TELEPORTING: ...\"; rule 38; help popups are not built: logged only)"));
+            w.help_prompts.map_go = true;
+            w.map_log.push(format!("{how}: the Go button is not lit: help popup {GO_HELP} (rule 38)"));
             return;
         }
         let script = map.keys.teleport_script.clone();
@@ -1235,6 +1236,7 @@ mod tests {
         a.world.map_page(1, "t");
         assert!(!a.world.map.as_ref().unwrap().go_lit);
         a.map_go("t");
+        assert!(a.world.help_prompts.map_go);
         assert!(a.world.map_log.iter().any(|l| l.contains("help popup 151")));
         a.test_command("onTeleport", "t");
         assert!(a.world.map.as_ref().unwrap().go_lit, "on the pad: lit");

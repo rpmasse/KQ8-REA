@@ -49,6 +49,7 @@ pub mod rope;
 pub mod script;
 pub mod shadow;
 pub mod sound;
+pub mod starting_help;
 pub mod stats;
 pub mod talk;
 pub mod trap;

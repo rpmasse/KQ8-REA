@@ -265,9 +265,8 @@ pub fn load_caption(game: &GameDir, region: &crate::load::World, log: &mut Log) 
     let Some(c) = layout.find(id as u32) else { return fail(log, "no IDDLG_CAPTION in Gplayscr.gui".into()) };
     let Kind::Dialog { caption: Some(cap), picture } = &c.kind else { return fail(log, "IDDLG_CAPTION is not a caption dialog".into()) };
     let Some(font_name) = tags.string(cap.text.font) else { return fail(log, format!("font tag {} has no file name", cap.text.font)) };
-    let in_world = |name: &str| first_found(game, &[format!("{world}/8gui/{name}"), format!("data/{world}/8gui/{name}")])
-        .or_else(|| region.gui_asset(name))
-        .or_else(|| first_found(game, &[format!("GAME/8Gui/{name}"), format!("GAME/Resource/{name}")]));
+    let gui_files = region.gui_files();
+    let in_world = |name: &str| gui_files.read(game, name);
     let Some((font_path, font_bytes)) = in_world(font_name) else { return fail(log, format!("font {font_name} not found")) };
     let font = match kq8_data::font::Font::parse(&font_bytes) {
         Ok(f) => f,

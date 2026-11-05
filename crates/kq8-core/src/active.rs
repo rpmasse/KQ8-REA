@@ -643,6 +643,8 @@ pub struct WorldState {
     /// Updates done; game time = updates / 15.
     pub updates: u64,
     pub terrain_changes: crate::ground_anim::GroundChanges,
+    /// Cases in the installed 500.MSG requested by the world's help scripts.
+    pub help_prompts: crate::starting_help::Requests,
     pub presentations: std::collections::VecDeque<crate::credits::Presentation>,
     /// Lines for `doors.log`, taken by the caller.
     pub log: Vec<String>,
@@ -3887,6 +3889,15 @@ impl ScriptHost for WorldState {
                     .push_back(crate::credits::Presentation::Movie(words[1].clone()));
                 Some("0".into())
             }
+            "doPopup" => {
+                let Some(case) = words.get(1).and_then(|n| n.parse().ok()) else {
+                    self.note(format!("{at}: doPopup requires a message case"));
+                    return Some("1".into());
+                };
+                self.help_prompts.script(self.updates, case);
+                self.note(format!("{at}: requested starting help, 500.MSG case {case}"));
+                Some("0".into())
+            }
             "doCredits" => {
                 let score=self.connor_stats.as_ref().map(ConnorStats::earned_experience);
                 self.presentations.push_back(crate::credits::Presentation::Credits{score});
@@ -4122,6 +4133,7 @@ impl Active {
                 trap_log: Vec::new(),
                 in_trap: false,
                 requests: Vec::new(),
+                help_prompts: Default::default(),
                 presentations: Default::default(),
                 items: Items::default(),
                 item_log: Vec::new(),
