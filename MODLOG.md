@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Original rule for Lucreto's form switch
+
+A separate study traced both directions in the local GOG executable and checked the altar and character data. The [behavior note](docs/behaviour/lucreto-forms.md) records the three-dimensional distance test, the exact boundary, the reaction delay, the position handoff and which form changes its home. These are findings from static analysis. The original game was not run for this study.
+
 ## 2026-11-05 Lucreto's close and ranged attacks
 
 The existing AI and projectile simulation delivered both attacks in a GOG-backed Temple 4 check. Connor lost health to the melee cue at 900 game units. At 3,500 units the ranged attack spawned its original projectile at the `lu_fire4.kqs` weapon mesh and hit him. The two fixtures explicitly select each form. The automatic switch between them still needs a behavioral reference. Run the ignored `temple4_close_and_ranged_attacks` test.
