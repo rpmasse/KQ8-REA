@@ -119,6 +119,8 @@ pub fn options_sets(bytes: &[u8]) -> Vec<(String, String)> {
 /// (M4 4a-3 on), filled each update by [`talk_step`].
 #[derive(Resource, Default)]
 pub struct Speech {
+    /// Where a line's audio started, retained even if its speaker moves.
+    pub sources: std::collections::BTreeMap<u64, Option<[f32; 3]>>,
     /// Voices to start or stop, for `sound_view`.
     pub voices: Vec<VoiceOrder>,
     /// A line that turns other sounds down is playing (rules 10-11).
@@ -136,7 +138,7 @@ pub struct Speech {
 pub enum VoiceOrder {
     /// Line `line`'s voice file `path`: plain (`at` `None`, Connor's) or
     /// placed at the speaker (rule 10).
-    Start { line: u64, path: String, at: Option<[f32; 3]>, why: String },
+    Start { line: u64, path: String, at: Option<[f32; 3]>, why: String, offset: f64 },
     /// Cut short (`clearSpeak`, rule 15).
     Stop { line: u64 },
 }
@@ -155,27 +157,35 @@ pub fn talk_step(sim: Option<ResMut<DoorSim>>, mut speech: ResMut<Speech>, share
                 // Rule 10: Connor's plain, anyone else's placed where the
                 // speaker is when the line starts.
                 let at = if speaker.eq_ignore_ascii_case(CONNOR) { None } else { sim.active.world.object_point(&speaker) };
+                speech.sources.insert(id, at);
                 let line = match (speaker.eq_ignore_ascii_case(CONNOR), at) {
                     (true, _) => format!("line #{id}: voice {path} plain (Connor's)"),
                     (false, Some(p)) => format!("line #{id}: voice {path} placed at {speaker} ({:.0}, {:.0}, {:.0})", p[0], p[1], p[2]),
                     (false, None) => format!("line #{id}: voice {path}: {speaker} has no place: plain (our choice)"),
                 };
                 sim.active.world.talk.log.push(format!("t {now:8.3}: {line}"));
-                speech.voices.push(VoiceOrder::Start { line: id, path, at, why: format!("speech {tuple} line #{id} by {speaker}") });
+                speech.voices.push(VoiceOrder::Start { line: id, path, at, why: format!("speech {tuple} line #{id} by {speaker}"), offset: 0.0 });
+            }
+            TalkEvent::Resume { id, speaker, voice: Some(path), tuple, elapsed, .. } => {
+                let at = speech.sources.get(&id).copied().unwrap_or_else(|| if speaker.eq_ignore_ascii_case(CONNOR) { None } else { sim.active.world.object_point(&speaker) });
+                sim.active.world.talk.log.push(format!("t {now:8.3}: line #{id}: resume {tuple} voice at {elapsed:.3} seconds"));
+                speech.voices.push(VoiceOrder::Start { line: id, path, at, why: format!("resumed speech {tuple} line #{id} by {speaker}"), offset: elapsed });
             }
             TalkEvent::End { id, cut: true, .. } => speech.voices.push(VoiceOrder::Stop { line: id }),
             _ => {}
         }
         // 4a-6, rules 11, 17: mouth changes; the end of a line rests it.
         match &e {
+            TalkEvent::Resume { speaker, mouth, .. } => speech.mouths.push((speaker.clone(), *mouth)),
             TalkEvent::Mouth { speaker, shape, .. } => speech.mouths.push((speaker.clone(), *shape)),
             TalkEvent::End { speaker, .. } => speech.mouths.push((speaker.clone(), 0)),
             _ => {}
         }
+        if let TalkEvent::End { id, .. } = &e { speech.sources.remove(id); }
         // 4a-4, rules 10-11: a line with a caption shows it; the queue
         // that showed it running empty hides it.
         match e {
-            TalkEvent::Start { issuer, caption: Some(text), .. } => speech.caption = Some((issuer, text)),
+            TalkEvent::Start { issuer, caption: Some(text), .. } | TalkEvent::Resume { issuer, caption: Some(text), .. } => speech.caption = Some((issuer, text)),
             TalkEvent::Empty { issuer, .. } if speech.caption.as_ref().is_some_and(|(i, _)| *i == issuer) => speech.caption = None,
             _ => {}
         }

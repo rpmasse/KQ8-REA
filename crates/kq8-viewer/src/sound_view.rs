@@ -236,12 +236,13 @@ pub fn sound_step(
         use crate::talk_view::VoiceOrder;
         for order in std::mem::take(&mut speech.voices) {
             match order {
-                VoiceOrder::Start { line, path, at, why } => {
+                VoiceOrder::Start { line, path, at, why, offset } => {
                     let file = load(&mut sim.cache, game, world, &path);
                     if let Ok((snd, _)) = &file {
                         decoded.insert(path.clone(), snd.clone());
                     }
                     if let Some(id) = sim.system.start(&Start::speech(&path, at, why), found(&file), &ears) {
+                        if offset > 0.0 { sim.system.seek(id, offset); }
                         sim.voices.insert(line, id);
                     }
                 }
@@ -302,6 +303,7 @@ pub fn sound_step(
     }
     if let Some(out) = &sim.output {
         let commands = orders.into_iter().filter_map(|o| match o {
+            Order::Seek { id, seconds } => Some(Command::Seek { id, seconds }),
             Order::Start { id, name, looping, gains } => decoded.get(&name).map(|sound| Command::Start { id, sound: sound.clone(), looping, gains }),
             Order::Gains { id, gains } => Some(Command::Gains { id, gains }),
             Order::Pause { id } => Some(Command::Pause { id }),

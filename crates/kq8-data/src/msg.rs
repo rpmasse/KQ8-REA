@@ -51,7 +51,7 @@ pub const RECORD: usize = 11;
 const HEAD: usize = 2;
 
 /// The five numbers that name a line (the note's "tuple").
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Tuple {
     pub file: u16,
     pub noun: u8,
@@ -291,7 +291,7 @@ impl Talkers {
 }
 
 /// One mouth change of a lip-sync file (rule 17).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Mouth {
     /// 1/60 s from the start of the line.
     pub time: u16,

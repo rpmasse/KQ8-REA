@@ -1302,7 +1302,7 @@ pub fn gui_step(
             static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1 << 62);
             let id = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             gui.description = Some(id);
-            speech.voices.push(crate::talk_view::VoiceOrder::Start { line: id, path, at: None, why: v.why });
+            speech.voices.push(crate::talk_view::VoiceOrder::Start { line: id, path, at: None, why: v.why, offset: 0.0 });
         }
     }
     // Rule 15: handsOff going on or off.
