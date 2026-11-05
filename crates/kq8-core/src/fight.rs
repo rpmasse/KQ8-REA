@@ -858,13 +858,14 @@ impl crate::active::WorldState {
         let percent = f.settings.normal_react_percent.unwrap_or(REACT_PERCENT);
         let special = f.settings.special_react_anim.clone().filter(|_| f.settings.special_react_percent.is_some_and(|p| dmg.flinch_roll(p)));
         let can_cut = a.player.cut_short || a.player.has_ended();
-        let paused = now < f.flinch_end + FLINCH_PAUSE;
+        let pause = c.tower.as_ref().map_or(FLINCH_PAUSE, |t| t.flinch_pause);
+        let paused = now < f.flinch_end + pause;
         let why_not = if special.is_none() && !dmg.flinch_roll(percent) {
             Some(format!("R {} is not above {percent} x D", dmg.roll))
         } else if !can_cut {
             Some(format!("'{}' can't be cut short", a.player.movement_name()))
         } else if paused {
-            Some(format!("its last flinch ended {:.2} s ago (2 s pause)", now - f.flinch_end))
+            Some(format!("its last flinch ended {:.2} s ago ({pause} s pause)", now - f.flinch_end))
         } else {
             None
         };
@@ -989,7 +990,10 @@ impl crate::active::WorldState {
         f.stats.0[0] = 0;
         f.last_kind = Some(kind);
         let has = |n: &str| a.player.movements.iter().any(|m| m.name.eq_ignore_ascii_case(n));
-        let movement = if now_flag {
+        let tower_fall = c.tower.is_some() && !now_flag;
+        let movement = if tower_fall {
+            Some("teeter")
+        } else if now_flag {
             None
         } else {
             Some(match kind {
@@ -1032,6 +1036,10 @@ impl crate::active::WorldState {
                 if was_active { "off the active list" } else { "it was not on the active list" }
             ),
         );
+        if tower_fall {
+            self.tower_fall_start(j);
+            return;
+        }
         self.drop_items(j);
         if now_flag {
             self.death_ended(j, now);
@@ -1106,7 +1114,7 @@ impl crate::active::WorldState {
     /// weapon made with its `body` part on the part of the same name in
     /// the last frame (no such part: its place and turn, 750 up); its line
     /// test waits for the collision scene ([`Self::laid_checks_step`]).
-    fn lay_kept_drop(&mut self, j: usize) {
+    pub(crate) fn lay_kept_drop(&mut self, j: usize) {
         let a = &mut self.anims[j];
         let dying = a.character.as_deref().and_then(|c| c.fight.as_ref()).and_then(|f| f.dying.clone());
         let now_flag = dying == Some(None);

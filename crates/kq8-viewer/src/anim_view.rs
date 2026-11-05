@@ -437,6 +437,9 @@ pub fn spawn_animated(
             let has_hide = a.movements.iter().any(|(n, _, _)| n.eq_ignore_ascii_case("hide"));
             ch.unborn = c.unborn;
             let mut ai = kq8_core::character_ai::Ai::new(c.ai.clone(), p.position, eye, has_hide);
+            if let Some(keys) = k.tower {
+                ch.tower = Some(kq8_core::tower_skeleton::Tower::new(keys));
+            }
             // fighting.md rule 2 (M5 5c-1): its stats.
             ch.fight = c.fight.clone().map(|s| {
                 let mut f = kq8_core::fight::Fight::new(s);

@@ -196,6 +196,11 @@ impl WorldState {
             if a.gone || !self.characters_in_range.contains(&a.player.name.to_ascii_lowercase()) {
                 continue;
             }
+            let tower = a.character.as_ref().is_some_and(|c| c.tower.is_some());
+            if tower && self.tower_ground_step(i, &scene) {
+                continue;
+            }
+            let a = &self.anims[i];
             let Some(c) = a.character.as_deref() else { continue };
             let Some(ai) = c.ai.as_ref() else { continue };
             // fighting.md rule 30: the dying have no movement rules.
@@ -235,7 +240,7 @@ impl WorldState {
             let c = a.character.as_deref_mut().unwrap();
             let ai = c.ai.as_mut().unwrap();
             ai.unseen = if ai.sees { 0 } else { ai.unseen.saturating_add(1) };
-            let wants_in = !ai.active && ai.sees && state == crate::character::State::Wait;
+            let wants_in = !ai.active && (ai.sees || c.tower.is_some()) && state == crate::character::State::Wait;
             // Rule 30: from Birth only when he is within its alarm radius.
             let rises = !ai.active
                 && ai.sees
@@ -258,7 +263,11 @@ impl WorldState {
                 self.wake(i, now);
             }
             self.rise(i, now);
-            self.alarm_rules(i, now);
+            if tower {
+                self.tower_alarm_rules(i, &scene, now);
+            } else {
+                self.alarm_rules(i, now);
+            }
             self.idle(i, now);
             self.wander(i, now);
         }
@@ -552,6 +561,61 @@ impl WorldState {
     /// Rules 23–29 for one character, each update: the alarm, then (once
     /// its reaction delay is over) the chase, losing sight, the leash,
     /// giving up and the way home.
+    fn tower_alarm_rules(&mut self, i: usize, scene: &dyn MoverWorld, now: f64) {
+        use crate::character::State;
+        let Some(at) = self.connor_at else { return };
+        if self.ai_off { return; }
+        let a = &self.anims[i];
+        let c = a.character.as_ref().unwrap();
+        let ai = c.ai.as_ref().unwrap();
+        if !matches!(c.state, State::Wait | State::Move) || !ai.active { return; }
+        let pos = a.player.base.position;
+        let d = distance(pos, at);
+        let (radius, reach, chase) = (ai.settings.alarm_radius, ai.settings.attack_dist, ai.settings.chase_radius);
+        if !ai.alarmed {
+            let inside_home = distance(pos, ai.home) <= ai.settings.home_radius;
+            if c.state == State::Wait && (ai.hit_count > 0 || ai.on_way_home) {
+                let a = &mut self.anims[i];
+                let c = a.character.as_mut().unwrap();
+                c.enter_move(&mut a.player, now, true, "tower: running after Connor");
+                c.walk.steer = Some([at[0], at[1]]);
+            } else if d < radius && (c.state == State::Wait || !ai.on_way_home || inside_home) {
+                self.alarm(i, "tower: Connor inside its alarm radius", false, now);
+            } else if ai.on_way_home {
+                self.way_home(i, now);
+            } else if c.state == State::Move && ai.hit_count > 0 {
+                self.anims[i].character.as_mut().unwrap().walk.steer = Some([at[0], at[1]]);
+            }
+            return;
+        }
+        if ai.unseen >= LOSE_SIGHT_UPDATES {
+            self.give_up(i, "tower: Connor unseen for 45 updates", now);
+            return;
+        }
+        let forward = self.tower_has_forward_ground(i, scene);
+        let moving = c.state == State::Move;
+        let stunned = c.tower.as_ref().is_some_and(|t| now < t.move_time);
+        let sees = ai.sees;
+        let a = &mut self.anims[i];
+        let c = a.character.as_mut().unwrap();
+        if moving && (!forward || d <= reach) {
+            c.walk.steer = None;
+            c.set_state(&mut a.player, "Wait", &[], now);
+        }
+        if c.state == State::Wait && c.turn_to.is_none() && !c.no_turn { c.ask_turn([at[0], at[1]]); }
+        if d < reach && !self.connor_roping {
+            if let Some(line) = attack_now(&mut a.player, c, sees, d, at, self.connor_back_key, now, moving) {
+                let name = a.player.name.clone();
+                self.fight_note(&name, line);
+            }
+        } else if d > reach && !stunned && chase > 0. && forward {
+            if !moving {
+                c.enter_move(&mut a.player, now, false, "tower: walks after Connor");
+            }
+            c.walk.steer = Some([at[0], at[1]]);
+        }
+    }
+
     fn alarm_rules(&mut self, i: usize, now: f64) {
         use crate::character::State;
         let Some(connor) = self.connor_reported() else { return };
@@ -766,7 +830,7 @@ impl WorldState {
         let a = &mut self.anims[i];
         let name = a.player.name.clone();
         let Some(c) = a.character.as_deref_mut() else { return };
-        let delay = f64::from(c.random());
+        let delay = if c.tower.is_some() { 0. } else { f64::from(c.random()) };
         let Some(ai) = c.ai.as_mut() else { return };
         ai.alarmed = true;
         ai.on_way_home = false;

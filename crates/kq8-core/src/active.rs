@@ -4352,6 +4352,9 @@ impl Active {
             }
             // fighting.md rule 2 (M5 5c-1): what it brings to the fight.
             let mut a = a;
+            if let Some(c) = a.character.as_deref_mut().filter(|c| c.tower.is_some()) {
+                if let Some(ai) = c.ai.as_mut() { ai.settings.alarm_radius = 0.; }
+            }
             // fighting.md rule 34 (M5 5c-9): holding a LongWeapon, doMode 1.
             let ranged = a.character.as_deref_mut().is_some_and(|c| {
                 let r = c.fight.as_ref().is_some_and(|f| f.ranged());
@@ -5482,7 +5485,9 @@ impl Active {
                 // fighting.md rule 32 (M5 5c-7): its die movement ended.
                 let dying = self.world.anims[i].character.as_deref().and_then(|c| c.fight.as_ref()).and_then(|f| f.dying.clone());
                 if dying.flatten().is_some_and(|d| d.eq_ignore_ascii_case(&m)) {
-                    self.world.death_ended(i, now);
+                    if !self.world.tower_fall_end(i, &m) {
+                        self.world.death_ended(i, now);
+                    }
                 }
             }
         }
@@ -5604,7 +5609,7 @@ impl Active {
             }
             // talking.md rule 13a (Q117): the line marked last of a speak in
             // a character's queue: Stop and Wait, before its TalkComplete.
-            if f.last {
+            if f.last && !self.world.tower_speech_ended(&f.issuer, f.tuple) {
                 if let Some(i) = self.world.character_index(&f.issuer) {
                     self.world.start_up_character(i, "the end of its speak");
                     let a = &mut self.world.anims[i];
@@ -5711,6 +5716,7 @@ impl Active {
             let line = if self.world.is_gone(&e.target) {
                 "deleted; dropped".to_string()
             } else {
+                self.world.tower_notified(&e.target, &e.data);
                 let mut args = vec!["StateChange"];
                 args.extend(e.data.iter().map(String::as_str));
                 if self.call_named(&e.target, &args) { "its script ran".to_string() } else { "no object with a script by that name; dropped".to_string() }
@@ -5720,6 +5726,9 @@ impl Active {
         }
         // clicking.md rule 21: reserved cue numbers.
         if e.kind == "KQCueEvent" && !self.world.is_gone(&e.target) {
+            if self.world.tower_cue(&e.target, e.data.first()) {
+                return;
+            }
             match e.data.first().map(String::as_str) {
                 Some(CUE_END_LOOP) => {
                     let m = e.data.get(2).cloned().unwrap_or_default();
@@ -8574,6 +8583,66 @@ deleteObject waterfall2
         shoot(&mut a);
         assert_eq!(a.world.weeper_links, links);
         assert!(links.iter().all(|i| !a.world.anims[*i].gone));
+    }
+
+    #[test]
+    fn tower_waits_at_a_drop_and_holds_its_attack_while_connor_is_on_the_rope() {
+        struct Ledge;
+        impl crate::connor_mover::GroundLookup for Ledge {
+            fn ground(&self, _: f32, y: f32) -> Option<(f32, [f32; 3])> {
+                Some((if y < -500. { -3000. } else { 100. }, [0., 0., 1.]))
+            }
+        }
+        let mut a = fighter();
+        let enemy = &mut a.world.anims[0];
+        let c = enemy.character.as_mut().unwrap();
+        c.tower = Some(crate::tower_skeleton::Tower::new(kq8_data::characters::TowerKeys { real_alarm: 5000., react_pause: 1.2, stun_pause: 1.5, move_time: 0. }));
+        c.set_state(&mut enemy.player, "Wait", &[], 0.);
+        enemy.player.start("stop");
+        let ai = c.ai.as_mut().unwrap();
+        ai.active = true;
+        ai.alarmed = true;
+        ai.sees = true;
+        ai.settings.can_always_see = true;
+        ai.settings.attack_dist = 1000.;
+        a.world.connor_at = Some([0., -2500., 100.]);
+        a.world.characters_ai(&Ledge, &[], &[]);
+        assert_eq!(a.world.anims[0].character.as_ref().unwrap().state, crate::character::State::Wait);
+        a.world.connor_roping = true;
+        a.world.connor_at = Some([0., -700., 100.]);
+        a.world.characters_ai(&Ledge, &[], &[]);
+        assert_ne!(a.world.anims[0].player.movement_name().to_lowercase(), "attack");
+        a.world.connor_roping = false;
+        a.world.characters_ai(&Ledge, &[], &[]);
+        assert_eq!(a.world.anims[0].player.movement_name().to_lowercase(), "attack");
+    }
+
+    #[test]
+    fn tower_stagger_recovers_on_solid_ground_with_its_state_specific_pause() {
+        for (state, pause) in [(crate::character::State::Wait, 2.), (crate::character::State::Move, 1.2)] {
+            let mut a = fighter();
+            let enemy = &mut a.world.anims[0];
+            let c = enemy.character.as_mut().unwrap();
+            c.tower = Some(crate::tower_skeleton::Tower::new(kq8_data::characters::TowerKeys { real_alarm: 5000., react_pause: 1.2, stun_pause: 1.5, move_time: 0. }));
+            c.state = state;
+            c.started = true;
+            c.fight.as_mut().unwrap().flinching = Some("reactback".into());
+            enemy.player.movements.push(crate::named_anim::tests::movement("reactback", 0., 1., false, false, vec![]));
+            enemy.player.start("reactback");
+            a.world.connor_at = Some([0., -15_000., 100.]);
+            // Finish the authored flinch as a character update, then let
+            // the tower test the floor behind before returning to Wait.
+            for _ in 0..25 {
+                a.update();
+                a.world.characters_ai(&FlatGround, &[], &[]);
+                if a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().flinching.is_none() { break; }
+            }
+            let c = a.world.anims[0].character.as_ref().unwrap();
+            let t = c.tower.as_ref().unwrap();
+            assert_eq!(c.state, crate::character::State::Wait);
+            assert_eq!(t.flinch_pause, pause);
+            assert!((t.move_time - a.world.now() - 1.5).abs() < 0.001);
+        }
     }
 
     #[test]
