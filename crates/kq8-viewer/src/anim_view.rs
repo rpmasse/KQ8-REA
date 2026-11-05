@@ -440,6 +440,7 @@ pub fn spawn_animated(
         if let (Some(ch), Some(c)) = (character.as_deref_mut(), &a.character) {
             let k = &c.keys;
             if k.class == kq8_data::characters::Class::Lucreto { ch.lucreto_react_pause = k.react_pause; }
+            ch.lucreto_change_dist = k.lucreto_change_dist;
             ch.flying = k.flying;
             ch.mouth_moves = k.class == kq8_data::characters::Class::Death;
             ch.hits_buildings = k.collider_mask & 0x8 != 0;

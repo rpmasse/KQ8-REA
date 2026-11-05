@@ -126,7 +126,8 @@ pub struct Character {
     pub tower: Option<crate::tower_skeleton::Tower>,
     /// KQLucreto's post-stagger standing interval (fighting.md rule 23).
     pub lucreto_react_pause: Option<f32>,
-    resume_move_at: f64,
+    pub lucreto_change_dist: Option<f32>,
+    pub(crate) resume_move_at: f64,
     /// `flags` bit 0x10 (rule 13).
     pub random_stop: bool,
     /// Seconds from the first update to Wait (rule 12).
@@ -271,6 +272,7 @@ impl Character {
             mouth_moves: false,
             tower: None,
             lucreto_react_pause: None,
+            lucreto_change_dist: None,
             resume_move_at: f64::NEG_INFINITY,
             random_stop: flags & kq8_data::characters::RANDOM_STOP != 0,
             birth_delay,
