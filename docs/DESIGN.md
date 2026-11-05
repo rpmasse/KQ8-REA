@@ -32,6 +32,13 @@ contains only our own source code; no game files, no decompiled code.
 
 ### M4 · Complete the interface and dialogue
 
+The original `Options.cs` contains graphics settings alongside audio and
+starting help. Preserve every graphics command when saving a change from the
+Options screen. Prefer an existing recreation setting, then fill missing
+commands from the GOG file, so saves created before Graphics is implemented
+keep the original values. The Graphics panel still needs its control behavior
+and runtime application.
+
 **Movie playback.** The three GOG files named `W32*_1.dll` contain AVI media. The intro, middle and ending films use 640×480 Indeo 5 video and stereo PCM audio. Read the original AVI clock and PCM soundtrack in Rust, decode the video into a bounded frame queue with a local FFmpeg decoder, and present it within the game window. The Windows release must provide a usable decoder. Check all three files end to end, including skipped or interrupted playback, menu return and the transition from the ending to credits.
 
 Implement the main menu, New Game and difficulty selection, options, pause/resume, inventory and item use, prompts, conversation choices and interruptions. Check captions, speech and scripted camera cuts together. Connect save/load screens to the M6 implementation when it is ready.

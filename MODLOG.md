@@ -5,6 +5,15 @@ Format: date and title, then Changed / Why / Tested how / Result / Still broken 
 
 ## 2026-11-05 Original in-game help rules
 
+The Graphics menu's installed `Graphics.gui` names brightness, 800×600 mode,
+dynamic lights and four shadow switches. The original `Options.cs` carries
+their values. The current Options saver used to write only sound and help
+fields, dropping the graphics commands. It now retains those commands from
+the local preference file, filling missing keys from the GOG original. A
+regression checks an older local file with a changed resolution against the
+full original. The Graphics panel and application of these values remain
+open.
+
 A separate study of the owned GOG executable established when Connor can show a scripted tutorial and how the 24-topic F1 screen works. The [in-game help note](docs/behaviour/in-game-help.md) distinguishes the three-second script delay, conditions that can postpone delivery, and controls that work even with starting tutorials disabled. The note records static analysis and installed message data. The Rust interface is still in development.
 
 ## 2026-11-05 Lucreto switches combat forms
