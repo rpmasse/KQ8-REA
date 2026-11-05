@@ -417,6 +417,15 @@ impl JumpKind {
 /// walking or running in water gives the standing jump.
 pub const JUMP_FROM: [&str; 8] = ["stop", "walk", "run", "back", "left", "right", "waterwalk", "waterrun"];
 
+/// The scripted Die Now delay is separate from an ordinary lethal hit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ScriptedDeath {
+    #[default]
+    None,
+    HoldUntil(u64),
+    GameOver,
+}
+
 /// What drives Connor's animation.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Mode {
@@ -428,6 +437,8 @@ pub enum Mode {
     Land,
     /// Fatal landing: `jumpdie` once, then dead.
     Dying,
+    /// A script entered Die Now. Keep the current pose during the game-over delay.
+    ScriptedDie,
     /// The Die state: holds the last frame of `jumpdie`.
     Dead,
     /// Ran head-on into a wall: `crash` once (it pushes him back), then
@@ -478,6 +489,7 @@ impl Mode {
             Mode::Fall => "fall",
             Mode::Land => "land",
             Mode::Dying => "dying",
+            Mode::ScriptedDie => "scripted Die",
             Mode::Dead => "dead",
             Mode::Crash => "crash",
             Mode::Jump => "jump",
@@ -892,7 +904,7 @@ impl Walker {
             // Push: the keys' path, with `push` as the choice (rule 6).
             Mode::Free | Mode::Push => None,
             Mode::Talk => self.talk_play,
-            Mode::Rope | Mode::Throw => Some(self.movement),
+            Mode::Rope | Mode::Throw | Mode::ScriptedDie => Some(self.movement),
             Mode::Fall => Some(self.kind.hold()),
             // runJump has no landing animation; it never gets Land.
             Mode::Land => Some(self.kind.end().unwrap_or("jumpend")),
@@ -1350,6 +1362,9 @@ impl Walker {
             step.notes = notes;
             step
         };
+        if self.mode == Mode::ScriptedDie {
+            return finish(step, self, notes);
+        }
         // The user's check in the original (2026-10-13): he doesn't stay
         // leaned through a jump, turn key held or not. The note says the
         // switch is kept in jumps (rule 3); asked as Q59. Stand-in: off

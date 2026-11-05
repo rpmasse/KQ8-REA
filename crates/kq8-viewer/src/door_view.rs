@@ -125,7 +125,7 @@ impl DoorSim {
     /// here). Returns the trap calls.
     pub fn connor_placed_by_rope(&mut self, name: &str, position: [f32; 3], balls: &kq8_core::collide::BallStack, shared: &Shared) -> Vec<String> {
         let (min, max) = kq8_core::connor_mover::CONNOR_BOX;
-        let v = Visitor { name, collision_type: kq8_core::collide::CONNOR_TYPE, from: position, position, min, max, balls };
+        let v = Visitor { name, collision_type: self.active.world.connor_collision().0, from: position, position, min, max, balls };
         let calls = self.active.connor_placed(&v);
         self.connor_checked_at = Some(position);
         self.flush_traps(shared);
@@ -1094,7 +1094,7 @@ pub fn trap_step(
         let (min, max) = kq8_core::connor_mover::CONNOR_BOX;
         let v = Visitor {
             name: &connor.placement.name,
-            collision_type: kq8_core::collide::CONNOR_TYPE,
+            collision_type: sim.active.world.connor_collision().0,
             from,
             position,
             min,
@@ -1230,7 +1230,7 @@ pub fn trap_step(
         // thrown away at DoChoice: so dropped).
         let refused_by_choice = connor.choice.as_ref().is_some_and(|c| !c.made)
             && match &r {
-                Request::ConnorSpecial { .. } | Request::ConnorWait { .. } | Request::ConnorDies { .. } => true,
+                Request::ConnorSpecial { .. } | Request::ConnorWait { .. } | Request::ConnorDies { .. } | Request::ConnorDieNow { .. } => true,
                 Request::ConnorAuto { auto, .. } => matches!(auto.kind, kq8_core::connor_auto::AutoKind::Walk { .. }),
                 _ => false,
             };
@@ -1249,7 +1249,7 @@ pub fn trap_step(
             Request::ConnorWait { at } => Some(("setState Wait", at.clone())),
             // fighting.md rule 29 (M5 5c-4): his dying state is a state
             // change too (**ours**: during a jump the same rule 28 applies).
-            Request::ConnorDies { at, .. } => Some(("dying state", at.clone())),
+            Request::ConnorDies { at, .. } | Request::ConnorDieNow { at } => Some(("dying state", at.clone())),
             Request::ConnorAuto { auto, at } if matches!(auto.kind, kq8_core::connor_auto::AutoKind::Walk { .. }) => Some(("scripted walk (Wait)", at.clone())),
             _ => None,
         };
@@ -1309,6 +1309,22 @@ pub fn trap_step(
                 let line = connor.hurt(roll_over, special.as_deref(), &ouch, now);
                 sim.active.world.fight_note("Connor", format!("{at}: {line}"));
                 format!("{at}: applied: Connor {line}")
+            }
+            Request::ConnorDieNow { at } => {
+                let ConnorSim { walker, mover, .. } = &mut *connor;
+                sim.active.enter_scripted_death(walker, mover);
+                if let kq8_core::connor::ScriptedDeath::HoldUntil(due) = sim.active.world.scripted_death {
+                    if !connor.hands_off {
+                        requests.push_front((usize::MAX, Request::HandsOff { on: true, at: at.clone() }));
+                    }
+                    format!("{at}: Connor Die Now, hold until update {due}; camera {:?}, pose '{}'", camera.as_ref().map(|c| c.position()), connor.walker.movement)
+                } else {
+                    format!("{at}: Connor reincarnates into Wait with full health")
+                }
+            }
+            Request::ConnorGravity { on, at } => {
+                connor.mover.use_gravity = on;
+                format!("{at}: Connor gravity {on}")
             }
             Request::ConnorDies { kind, at } => {
                 let line = connor.die_from_hit(kind);
@@ -1462,7 +1478,7 @@ pub fn trap_step(
                 let p = connor.mover.position;
                 sim.connor_checked_at = Some(p);
                 let (min, max) = kq8_core::connor_mover::CONNOR_BOX;
-                let v = Visitor { name: &connor.placement.name, collision_type: kq8_core::collide::CONNOR_TYPE, from: p, position: p, min, max, balls: &connor.mover.balls };
+                let v = Visitor { name: &connor.placement.name, collision_type: sim.active.world.connor_collision().0, from: p, position: p, min, max, balls: &connor.mover.balls };
                 let calls = sim.active.connor_placed(&v);
                 sim.flush_traps(&shared);
                 let left = if calls.is_empty() { "no trap left".to_string() } else { format!("stay test: {}", calls.join("; ")) };
@@ -1656,6 +1672,11 @@ pub fn trap_step(
         if let Some(log) = &mut sim.trap_log {
             log.detail(line);
         }
+    }
+    if sim.active.finish_scripted_death(&mut connor.walker) {
+        connor.hands_off = false;
+        connor.keys_sent_again();
+        shared.log.lock().unwrap().summary(format!("update {}: scripted Die hold finished; camera {:?}, pose '{}'; Connor dead, controls released for the death menu", sim.active.world.updates, camera.as_ref().map(|c| c.position()), connor.walker.movement));
     }
     sim.flush_rope(&shared);
 }

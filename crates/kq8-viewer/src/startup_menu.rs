@@ -233,7 +233,13 @@ fn open_if_requested(world: &mut World) {
                 .summary(format!("menu: could not open: {e}"));
         }
         Ok(mut menu) => {
-            if !dead {
+            if dead {
+                if let Some(mut gui) = world.get_resource_mut::<crate::gui_view::Gui>() {
+                    if gui.popup.take().is_some() {
+                        gui.panels.set(kq8_core::panels::Group::Popup, false, "the death menu opens");
+                    }
+                }
+            } else {
                 menu.state = Choice::in_game();
             }
             if let Some(sim) = world.get_resource::<crate::sound_view::SoundSim>() {

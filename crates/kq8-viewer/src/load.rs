@@ -5768,6 +5768,7 @@ mod campaign_tests {
     fn original_vortex_script_chains_each_cutscene_from_its_model_end() {
         use kq8_core::{active::{Active, AnimObject}, collide::Placement, named_anim::NamedAnimPlayer, trap::Trap, weapons::WeaponMode};
         let game = game_install();
+        let menu_art = kq8_core::main_menu::Art::open(game.root()).unwrap();
         let world = World::open(&game, "temple4").unwrap();
         let mut log = Log::create("temple4-cutscenes-test").unwrap();
         let ground = load_ground(&game, &world, &mut log).unwrap();
@@ -5805,6 +5806,48 @@ mod campaign_tests {
             if visitor != "Connor" {
                 assert_eq!(spawned[2].player.base.position, at.position);
                 assert!(active.world.sounds.iter().any(|s| s.name == "sheath.aud"));
+            } else {
+                use kq8_core::{active::Request, connor::{Mode, Walker}, connor_mover::Mover, stats::{ConnorStats, Stats}};
+                assert_eq!(active.scripts.vars.get("KQConner::reincarnate"), Some("0"));
+                let requests = std::mem::take(&mut active.world.requests);
+                assert!(requests.iter().any(|r| matches!(r, Request::ActiveCamera { camera: true, .. })));
+                assert!(requests.iter().any(|r| matches!(r, Request::CameraFollow { connor: false, .. })));
+                let shots: Vec<_> = requests.iter().filter_map(|r| match r {
+                    Request::Move { who, position, turn, .. } if who.eq_ignore_ascii_case("KQCamera") => Some((*position, *turn)),
+                    _ => None,
+                }).collect();
+                assert_eq!(shots.last(), Some(&([99990.679688, 94458.148438, 7234.895508], [0., 0., 3.14])));
+                assert!(matches!(requests.last(), Some(Request::ConnorDieNow { .. })));
+                let mut walker = Walker::new(0.);
+                let mut mover = Mover::new([0.; 3], true);
+                active.set_connor_stats(ConnorStats { level: 2, stats: Stats([20, 10, 0, 0, 0]) });
+                let (pose, entry) = (walker.movement, active.world.updates);
+                active.enter_scripted_death(&mut walker, &mut mover);
+                assert_eq!((walker.mode, walker.movement, active.world.connor_collision()), (Mode::ScriptedDie, pose, (0, 0)));
+                assert!(!mover.use_gravity && !mover.keep_on_ground && active.world.connor_dying);
+                assert_eq!(active.world.connor_stats.unwrap().stats.0[0], 0);
+                assert!(active.world.connor_stats_events > 0);
+                assert_eq!(active.world.scripted_death, kq8_core::connor::ScriptedDeath::HoldUntil(entry + 45));
+                for elapsed in 0..45 {
+                    assert_eq!(active.world.updates, entry + elapsed);
+                    assert!(!active.finish_scripted_death(&mut walker));
+                    active.update();
+                }
+                assert!(active.finish_scripted_death(&mut walker));
+                assert_eq!((walker.mode, walker.movement), (Mode::Dead, pose));
+                assert_eq!(active.world.connor_collision(), (0, 0));
+                assert!(active.world.presentations.is_empty());
+                assert!(!active.world.requests.iter().any(|r| matches!(r, Request::Move { who, .. } if who.eq_ignore_ascii_case("KQCamera"))));
+                use kq8_core::main_menu::{Action, Choice, Key};
+                let mut menu = Choice::default();
+                menu.set_saves(true);
+                let click_row = |i: usize| { let [l, t, r, b] = menu_art.rows[i]; Key::Click((l + r) / 2, (t + b) / 2) };
+                assert_eq!(menu.input(Key::Escape, &menu_art.rows), Action::Stay);
+                for row in [2, 6] { assert_eq!(menu.input(click_row(row), &menu_art.rows), Action::Stay); }
+                assert_eq!(menu.input(click_row(1), &menu_art.rows), Action::Load);
+                assert_eq!(menu.input(click_row(0), &menu_art.rows), Action::Stay);
+                menu.input(Key::Enter, &menu_art.rows);
+                assert!(matches!(menu.input(Key::Release, &menu_art.rows), Action::Start(_)));
             }
         }
     }
