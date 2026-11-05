@@ -17,6 +17,7 @@ Source types:
 
 | Behavior | Reference |
 | --- | --- |
+| Lucreto’s close-form melee stagger can put him in the vortex. The vortex handles two named actors. | The local GOG installation provides the altar and vortex scripts, both Lucreto actors, their movement and collision data, and the finale sound. The original close and ranged movement lists differ. The test verifies the close-form stagger and the two scripted winning branches separately. |
 | The Tower Skeleton can stagger off the Dead City tower and drop chain mail. | The GOG actor, `Tower2` geometry, original movements and `chainmal.cs` are exercised by the encounter test. The [combat notes, Q175](../behaviour/fighting.md) describe the enemy-specific rules. Delivery of the combat activation cue at the end of the greeting is inferred. |
 | Options controls, caption layout, regional speech and lip movements. | The GOG installation supplies `Options.cs`, the Options panel and its tagged controls, each region’s `.MSG` dialogue files, and the original caption font and stone background in the GUI archives. The [main menu rules](../behaviour/main-menu.md) describe input and panel behavior. |
 | The scales lower five sections of the Dead City river and change their ground materials. | The installed Dead City archive supplies `scale.kq`, its movement models and `scale.cs`. The command arguments come from the script. The [terrain rules](../behaviour/terrain.md) describe the game’s grid bounds and drain timing. The Rust save format retains the rectangles and selected materials. |

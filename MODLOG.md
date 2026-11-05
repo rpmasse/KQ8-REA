@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Lucreto enters the Temple 4 vortex
+
+The altar’s shipped script arms the dormant vortex. Starting from the close form’s authored combat position, melee stagger moves its collision body backward into the vortex. The winning branch relocates the actors and starts the original finale sound. The automated `temple4_melee_stagger` test also delivers the second actor to the trap and checks its distinct script branch. That fixture uses the initial animation list. Lucreto’s ranged list has no backward stagger. The original switch between forms, final choreography, movie and credits remain open.
+
 ## 2026-11-05 Daventry cottage save and castle round trip
 
 Two fresh Windows processes completed the cottage persistence scenario with the original GOG scripts. New Game cleared the first-visit flag. The basket supplied five mushrooms, Connor used one, and the title-screen load restored four and an open cottage door. The basket stayed empty, the pub chest opened, and both original castle portal prompts worked. The final Daventry slot retained four mushrooms, the door, chest contents, the portal flag and a CastleD record. The README gives the command and the diagnostic shortcuts. The full ordinary-controls campaign is still pending.

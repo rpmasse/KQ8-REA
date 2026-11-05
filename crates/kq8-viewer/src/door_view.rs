@@ -1685,7 +1685,7 @@ pub fn character_gravity(
     let o = objects.as_ref().map_or(&[][..], |o| &o.0[..]);
     // M5 5a-4: sight and the active list, then the movers.
     sim.active.world.characters_ai(&lookup.0, b, o);
-    sim.active.world.characters_gravity(&lookup.0, b, o);
+    sim.active.characters_gravity(&lookup.0, b, o);
     // fighting.md rule 31a (C-2): the line tests of the weapons laid by a
     // death this update, then thrown-items.md (M5 5e-1): thrown items,
     // with the same buildings and objects.

@@ -387,7 +387,7 @@ pub fn spawn_animated(
             player = player.with_random_start(&mut rng);
         }
         // character-movement.md rule 1 (M5 5a-2).
-        player.loops_move_base = a.character.is_some();
+        if let Some(c) = &a.character { player.character_steps(c.keys.class); }
         // Q164: its walk and run speeds by `objects.md` "Loops" rule 6a.
         if player.loops_move_base {
             let speeds: Vec<String> = player
@@ -425,6 +425,7 @@ pub fn spawn_animated(
         // characters.md rule 8 (M4 4d-6b-2): its mover.
         if let (Some(ch), Some(c)) = (character.as_deref_mut(), &a.character) {
             let k = &c.keys;
+            if k.class == kq8_data::characters::Class::Lucreto { ch.lucreto_react_pause = k.react_pause; }
             ch.flying = k.flying;
             ch.mouth_moves = k.class == kq8_data::characters::Class::Death;
             ch.hits_buildings = k.collider_mask & 0x8 != 0;
@@ -998,7 +999,7 @@ pub fn anim_draw(
         let frame = frame.min(drawn.frames.saturating_sub(1));
         // A character's repeating movement moves its place, not the
         // drawing (character-movement.md rule 1; M5 5a-2).
-        let loop_moves_base = player.loops_move_base && player.movement().is_some_and(|m| m.repeat);
+        let loop_moves_base = player.steps_move_base();
         // Its place may have changed (a script's `move`, objects.md Q20 d;
         // core keeps it): the body follows (M4 4d-2).
         let base = player.base;
