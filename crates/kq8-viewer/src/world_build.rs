@@ -657,6 +657,11 @@ fn breakdown(world: &mut World) -> String {
 /// The end of every frame (6e-2): a change asked for takes the world
 /// down; [`FREE_FRAMES`] frames later the next world is read and built.
 pub fn world_change_step(world: &mut World) {
+    // Snowexit's Accept script plays the middle film before the accepted
+    // portal takes this world down.
+    if crate::startup_menu::movie_active(world) {
+        return;
+    }
     let step = std::mem::take(&mut world.resource_mut::<WorldChange>().step);
     let log = world.resource::<Shared>().log.clone();
     match step {
@@ -950,6 +955,22 @@ fn take_down(world: &mut World) -> (usize, usize) {
         despawned += usize::from(world.try_despawn(e).is_ok());
     }
     (despawned, remove_world_resources(world))
+}
+
+/// End the current game without losing the final movie and credits that
+/// the UI has already taken from the last script callback.
+pub fn end_session(world: &mut World) {
+    let (entities, resources) = take_down(world);
+    let mut change = world.resource_mut::<WorldChange>();
+    change.current.clear();
+    change.asked = None;
+    change.restoring = None;
+    change.kept.clear();
+    change.name_start = 0;
+    change.step = Step::Playing;
+    world.resource_mut::<connor_view::StartAt>().0 = None;
+    world.resource::<Shared>().log.lock().unwrap()
+        .summary(format!("ending: killGame removed {entities} world entities and {resources} per-world resources"));
 }
 
 /// The entities left that are not the world's, by their components, for

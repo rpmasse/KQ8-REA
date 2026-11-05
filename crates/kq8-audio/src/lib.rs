@@ -29,6 +29,7 @@ pub enum Command {
     Pause { id: u64 },
     Resume { id: u64 },
     Stop { id: u64 },
+    StopOneShots,
 }
 
 #[derive(Debug)]
@@ -102,6 +103,7 @@ impl Mixer {
                     self.voices[n].paused = pause;
                 }
             }
+            Command::StopOneShots => self.voices.retain(|v| v.looping),
             Command::Stop { id } => {
                 if let Some(n) = find(&mut self.voices, id) {
                     self.voices.remove(n);
@@ -299,6 +301,20 @@ mod tests {
         assert_eq!((one[0] * 32_768.0).round() as i32, 200, "goes on where it paused");
         m.apply(Command::Stop { id: 7 });
         assert_eq!(m.voices(), 0);
+    }
+
+    #[test]
+    fn movie_shutdown_stops_one_shots_including_paused_voices() {
+        let mut mixer = Mixer::new(100);
+        for (id, looping) in [(1, false), (2, false), (3, true)] {
+            mixer.apply(Command::Start {
+                id, sound: sound(100, 1, vec![100; 20]), looping, gains: [1.0; 2],
+            });
+        }
+        mixer.apply(Command::Pause { id: 2 });
+        mixer.apply(Command::StopOneShots);
+        assert_eq!(mixer.voices(), 1);
+        assert_eq!(mixer.voices[0].id, 3);
     }
 
     #[test]

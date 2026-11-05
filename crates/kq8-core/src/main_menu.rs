@@ -332,6 +332,29 @@ impl Art {
         }
         canvas
     }
+    /// The original movies fill the 4:3 menu surface. A missing local
+    /// decoder has no original menu asset; report it with the menu font.
+    pub fn movie_screen(&self, failure: Option<&str>) -> Canvas {
+        let mut out = Canvas::new(640, 480);
+        out.fill([0, 0, 640, 480], [0, 0, 0], 1.);
+        if let Some(name) = failure {
+            for (y, line) in [
+                (165, format!("Could not play {name}")),
+                (213, "Check the movie file and FFmpeg decoder.".to_owned()),
+                (263, "Press Enter to continue.".to_owned()),
+            ] {
+                out.text(
+                    [10, y, 630, y + 40],
+                    &self.item,
+                    0x0c,
+                    &line,
+                    1.,
+                    &self.palette,
+                );
+            }
+        }
+        out
+    }
 
     pub fn render(&self, state: &Choice) -> Canvas {
         let mut canvas = Canvas::new(640, 480);
@@ -529,6 +552,19 @@ mod tests {
             assert_eq!(menu.input(key, &rows), Action::Stay);
         }
         assert_eq!(menu.input(Key::Click(400, 255), &rows), Action::Start(3));
+    }
+
+    #[test]
+    #[ignore = "requires the original GOG menu font and palette"]
+    fn movie_failure_is_visible_in_the_original_menu_font() {
+        let game = std::env::var_os("KQ8_GAME_DIR").unwrap();
+        let art = Art::open(std::path::Path::new(&game)).unwrap();
+        let picture = art.movie_screen(Some("W32opn_1.dll"));
+        for y in [165, 213, 263] {
+            let band = &picture.rgba[y * 640 * 4..(y + 40) * 640 * 4];
+            assert!(band.chunks_exact(4).filter(|p| p[..3].iter().any(|v| *v > 20)).count() > 200);
+        }
+        assert!(art.movie_screen(None).rgba.chunks_exact(4).all(|p| p == [0, 0, 0, 255]));
     }
 
     #[test]

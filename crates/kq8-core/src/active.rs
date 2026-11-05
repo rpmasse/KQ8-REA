@@ -3817,6 +3817,15 @@ impl ScriptHost for WorldState {
 
     fn world_command(&mut self, words: &[String], at: &str) -> Option<String> {
         match words[0].as_str() {
+            "killGame" => {
+                self.presentations.push_back(crate::credits::Presentation::EndGame);
+                Some("0".into())
+            }
+            "playAvi" if words.len() == 2 => {
+                self.presentations
+                    .push_back(crate::credits::Presentation::Movie(words[1].clone()));
+                Some("0".into())
+            }
             "doCredits" => {
                 let score=self.connor_stats.as_ref().map(ConnorStats::earned_experience);
                 self.presentations.push_back(crate::credits::Presentation::Credits{score});

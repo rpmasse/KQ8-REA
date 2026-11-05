@@ -6,6 +6,7 @@
 pub mod action_map;
 pub mod anim_pack;
 pub mod aud;
+pub mod avi;
 pub mod bitmap;
 pub mod bounds;
 pub mod characters;

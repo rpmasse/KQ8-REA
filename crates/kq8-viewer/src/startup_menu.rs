@@ -52,6 +52,7 @@ pub fn register(app: &mut App, game: &Path, sound: bool) {
     .insert_resource(Preferences::load(game))
     .add_systems(First, crate::option_settings::apply_to_world)
     .init_resource::<MenuRequest>()
+    .init_resource::<PresentationQueue>()
     .add_systems(DisplayMenu, show)
     .add_systems(Update, fade_theme.run_if(resource_exists::<FadingTheme>))
     .add_systems(
@@ -68,24 +69,56 @@ pub fn register(app: &mut App, game: &Path, sound: bool) {
     );
 }
 
+#[derive(Default, Resource)]
+struct PresentationQueue(VecDeque<credits::Presentation>);
+
+pub fn movie_active(world: &World) -> bool {
+    world
+        .get_resource::<Menu>()
+        .is_some_and(|menu| menu.movie.is_some())
+}
+
 fn open_presentation(world: &mut World) {
-    if world.contains_resource::<Menu>() {
-        return;
+    if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
+        let requests = std::mem::take(&mut sim.active.world.presentations);
+        world.resource_mut::<PresentationQueue>().0.extend(requests);
     }
-    let request = world
-        .get_resource_mut::<crate::door_view::DoorSim>()
-        .and_then(|mut s| s.active.world.presentations.pop_front());
-    let result = match request {
-        Some(credits::Presentation::Credits { score }) => open_ending_credits(world, score),
-        None => return,
-    };
-    if let Err(e) = result {
-        world
-            .resource::<crate::Shared>()
-            .log
-            .lock()
-            .unwrap()
-            .summary(format!("credits: could not present ending: {e}"));
+    if !world.contains_resource::<Menu>() {
+        present_next(world);
+    }
+}
+
+fn present_next(world: &mut World) {
+    use credits::Presentation;
+    while let Some(request) = world.resource_mut::<PresentationQueue>().0.pop_front() {
+        let result = match request {
+            Presentation::EndGame => {
+                crate::world_build::end_session(world);
+                if !world.resource::<PresentationQueue>().0.is_empty() {
+                    continue;
+                }
+                return_to_title(world)
+            }
+            Presentation::Movie(name) => {
+                let after = if world.contains_resource::<crate::door_view::DoorSim>() {
+                    MovieReturn::Gameplay
+                } else {
+                    MovieReturn::Title
+                };
+                open_movie(world, &name, after)
+            }
+            Presentation::Credits { score } => open_ending_credits(world, score),
+        };
+        if let Err(e) = result {
+            world
+                .resource::<crate::Shared>()
+                .log
+                .lock()
+                .unwrap()
+                .summary(format!("presentation: {e}"));
+            continue;
+        }
+        break;
     }
 }
 
@@ -348,6 +381,20 @@ fn canvas_image(canvas: kq8_core::gui_draw::Canvas) -> Image {
     image
 }
 
+#[derive(Clone, Copy, Debug)]
+enum MovieReturn {
+    Menu,
+    Gameplay,
+    Title,
+}
+
+struct MoviePage {
+    name: String,
+    after: MovieReturn,
+    playback: Result<crate::movie_player::Playback, String>,
+    cursor_visible: Option<bool>,
+}
+
 #[derive(Resource)]
 pub struct Menu {
     art: Art,
@@ -355,6 +402,7 @@ pub struct Menu {
     slot_page: Option<(save_menu::Screen, save_menu::Art)>,
     options: Option<options_menu::Screen>,
     keyboard: Option<keyboard_menu::Screen>,
+    movie: Option<MoviePage>,
     credits: Option<credits::Screen>,
     option_clock: std::time::Instant,
     option_frame: usize,
@@ -383,6 +431,7 @@ impl Menu {
             slot_page: None,
             options: None,
             keyboard: None,
+            movie: None,
             credits: None,
             option_clock: std::time::Instant::now(),
             option_frame: 0,
@@ -408,6 +457,7 @@ struct MenuAudio {
 }
 
 const THEME_ID: u64 = 0;
+const MOVIE_ID: u64 = u64::MAX;
 
 impl MenuAudio {
     fn open(path: &Path, sound: bool, log: &mut crate::log::Log) -> Result<Self, String> {
@@ -504,9 +554,15 @@ pub fn show(
             .unwrap()
             .summary(format!("menu: could not scan saves: {e}")),
     }
-    menu.image = images.add(match &menu.credits {
-        Some(page) => canvas_image(page.render(&menu.art)),
-        None => image(&menu.art, &menu.state),
+    menu.image = images.add(if let Some(page) = &menu.movie {
+        canvas_image(
+            menu.art
+                .movie_screen(page.playback.is_err().then_some(&page.name)),
+        )
+    } else if let Some(page) = &menu.credits {
+        canvas_image(page.render(&menu.art))
+    } else {
+        image(&menu.art, &menu.state)
     });
     menu.shown = Some(std::time::Instant::now());
     menu.paused_at_update = sim.map(|s| s.active.world.updates);
@@ -514,7 +570,9 @@ pub fn show(
     // Credits.KQ specifies only selection and movement sounds. Options
     // already has the menu theme. The ending first enters the title menu
     // when its credits close, which is when to start the title theme.
-    let cue = if menu.credits.is_none() {
+    let cue = if menu.movie.is_some() {
+        "movie"
+    } else if menu.credits.is_none() {
         menu.audio.play("theme.aud");
         "theme.aud"
     } else {
@@ -594,7 +652,12 @@ fn typed_name(
 
 fn redraw(world: &mut World) {
     let menu = world.resource::<Menu>();
-    let image = if let Some(page) = &menu.credits {
+    let image = if let Some(page) = &menu.movie {
+        canvas_image(
+            menu.art
+                .movie_screen(page.playback.is_err().then_some(&page.name)),
+        )
+    } else if let Some(page) = &menu.credits {
         canvas_image(page.render(&menu.art))
     } else if let Some(page) = &menu.keyboard {
         canvas_image(page.render(
@@ -874,6 +937,10 @@ pub fn step(world: &mut World) {
             node.height = Val::Px(scale * 480.);
         }
     }
+    if world.resource::<Menu>().movie.is_some() {
+        play_movie_frame(world);
+        return;
+    }
     if world
         .resource::<Menu>()
         .shown
@@ -1056,44 +1123,7 @@ pub fn step(world: &mut World) {
                 return;
             }
             Action::Start(_) | Action::Resume => {
-                let roots: Vec<_> = world
-                    .query_filtered::<Entity, With<MenuRoot>>()
-                    .iter(world)
-                    .collect();
-                for e in roots {
-                    world.despawn(e);
-                }
-                if let Some(menu) = world.remove_resource::<Menu>() {
-                    if let Some(before) = menu.paused_at_update {
-                        let after = world
-                            .get_resource::<crate::door_view::DoorSim>()
-                            .map(|s| s.active.world.updates);
-                        world
-                            .resource::<crate::Shared>()
-                            .log
-                            .lock()
-                            .unwrap()
-                            .summary(format!(
-                                "menu: leaving at update {after:?}, entered at {before}"
-                            ));
-                    }
-                    if let Some(window) = world
-                        .query_filtered::<Entity, With<PrimaryWindow>>()
-                        .iter(world)
-                        .next()
-                    {
-                        world
-                            .entity_mut(window)
-                            .insert(menu.old_cursor.unwrap_or_default());
-                    }
-                    if let Some(output) = menu.audio.output {
-                        world.insert_resource(FadingTheme {
-                            output,
-                            gain: menu.audio.groups.loudness(4),
-                            started: std::time::Instant::now(),
-                        });
-                    }
-                }
+                close_menu(world, true);
                 if let Action::Start(level) = action {
                     world.resource_mut::<crate::door_view::HeldItem>().1 = Some(level);
                     crate::world_build::first_world(world);
@@ -1102,7 +1132,6 @@ pub fn step(world: &mut World) {
                 }
                 return;
             }
-            // The options screen and intro movie have separate M4/M6 deliveries.
             Action::Save | Action::Load => {
                 let mode = if action == Action::Save {
                     Mode::Save
@@ -1153,7 +1182,268 @@ pub fn step(world: &mut World) {
                     .unwrap()
                     .summary(format!("menu: could not open Options: {e}")),
             },
-            Action::Replay | Action::Stay => {}
+            Action::Replay => {
+                if let Err(e) = open_movie(world, "W32opn_1.dll", MovieReturn::Menu) {
+                    world
+                        .resource::<crate::Shared>()
+                        .log
+                        .lock()
+                        .unwrap()
+                        .summary(format!("movie: {e}"));
+                }
+                return;
+            }
+            Action::Stay => {}
+        }
+    }
+}
+
+fn close_menu(world: &mut World, fade: bool) {
+    let roots: Vec<_> = world
+        .query_filtered::<Entity, With<MenuRoot>>()
+        .iter(world)
+        .collect();
+    for e in roots {
+        world.despawn(e);
+    }
+    if let Some(menu) = world.remove_resource::<Menu>() {
+        if let Some(before) = menu.paused_at_update {
+            let after = world
+                .get_resource::<crate::door_view::DoorSim>()
+                .map(|s| s.active.world.updates);
+            world
+                .resource::<crate::Shared>()
+                .log
+                .lock()
+                .unwrap()
+                .summary(format!(
+                    "menu: leaving at update {after:?}, entered at {before}"
+                ));
+        }
+        if let Some(window) = world
+            .query_filtered::<Entity, With<PrimaryWindow>>()
+            .iter(world)
+            .next()
+        {
+            world
+                .entity_mut(window)
+                .insert(menu.old_cursor.unwrap_or_default());
+        }
+        if let Some(output) = menu.audio.output.filter(|_| fade) {
+            world.insert_resource(FadingTheme {
+                output,
+                gain: menu.audio.groups.loudness(4),
+                started: std::time::Instant::now(),
+            });
+        }
+    }
+}
+fn open_movie(world: &mut World, name: &str, after: MovieReturn) -> Result<(), String> {
+    let source = world.resource::<Source>();
+    let log = world.resource::<crate::Shared>().log.clone();
+    let new_menu = !world.contains_resource::<Menu>();
+    let page = if new_menu {
+        Some(Menu::open(
+            &source.game,
+            Vec::new(),
+            source.sound,
+            &mut log.lock().unwrap(),
+        )?)
+    } else {
+        None
+    };
+    let playback = (|| {
+        if !["W32opn_1.dll", "W32mdl_1.dll", "W32ndg_1.dll"]
+            .iter()
+            .any(|film| film.eq_ignore_ascii_case(name))
+        {
+            return Err(format!("unknown KQ8 movie {name}"));
+        }
+        let game = GameDir::open(&source.game).map_err(|e| e.to_string())?;
+        let path = game
+            .find(name)
+            .ok_or_else(|| format!("missing movie {name}"))?;
+        crate::movie_player::Playback::open(&path)
+    })();
+    let message = match &playback {
+        Ok(m) => format!(
+            "opening {name}: {} intervals, {} holds, {} stereo samples at {} Hz",
+            m.frames,
+            m.hold_count(),
+            m.audio.frames(),
+            m.audio.rate
+        ),
+        Err(e) => format!("{name} unavailable: {e}; awaiting acknowledgement"),
+    };
+    log.lock().unwrap().summary(format!("movie: {message}"));
+    if let Some(page) = page {
+        world.insert_resource(page);
+    }
+    // The original closes game sound around its independent AVI soundtrack.
+    world.remove_resource::<FadingTheme>();
+    if let Some(mut sound) = world.get_resource_mut::<crate::sound_view::SoundSim>() {
+        sound.begin_movie();
+    }
+    let cursor_visible = world
+        .query_filtered::<&mut bevy::window::CursorOptions, With<PrimaryWindow>>()
+        .iter_mut(world)
+        .next()
+        .map(|mut c| {
+            let before = c.visible;
+            c.visible = false;
+            before
+        });
+    let mut menu = world.resource_mut::<Menu>();
+    if let Some(out) = &menu.audio.output {
+        out.send([Command::StopOneShots, Command::Pause { id: THEME_ID }]);
+    }
+    menu.movie = Some(MoviePage {
+        name: name.to_owned(),
+        after,
+        playback,
+        cursor_visible,
+    });
+    if new_menu {
+        world.run_schedule(DisplayMenu);
+    } else {
+        redraw(world);
+    }
+    Ok(())
+}
+
+fn leave_movie(world: &mut World, reason: &str) {
+    let mut menu = world.resource_mut::<Menu>();
+    let page = menu.movie.take().unwrap();
+    let counts = page
+        .playback
+        .as_ref()
+        .map(|m| {
+            format!(
+                " after {} intervals, {} decoded pictures",
+                m.shown, m.decoded
+            )
+        })
+        .unwrap_or_default();
+    if let Some(out) = &menu.audio.output {
+        out.send([Command::Stop { id: MOVIE_ID }]);
+    }
+    menu.shown = Some(std::time::Instant::now());
+    if let Some(visible) = page.cursor_visible {
+        if let Some(mut c) = world
+            .query_filtered::<&mut bevy::window::CursorOptions, With<PrimaryWindow>>()
+            .iter_mut(world)
+            .next()
+        {
+            c.visible = visible;
+        }
+    }
+    let elapsed = page
+        .playback
+        .as_ref()
+        .ok()
+        .and_then(|m| m.started)
+        .map(|at| at.elapsed().as_millis());
+    world
+        .resource::<crate::Shared>()
+        .log
+        .lock()
+        .unwrap()
+        .summary(format!(
+            "movie: {} {reason}{counts}, returning to {:?}, elapsed ms {elapsed:?}",
+            page.name, page.after
+        ));
+    match page.after {
+        MovieReturn::Gameplay => {
+            close_menu(world, false);
+            if let Some(sound) = world.get_resource::<crate::sound_view::SoundSim>() {
+                sound.end_movie(false);
+            }
+        }
+        MovieReturn::Menu => {
+            if let Some(sound) = world.get_resource::<crate::sound_view::SoundSim>() {
+                sound.end_movie(true);
+            }
+            if let Some(out) = &world.resource::<Menu>().audio.output {
+                out.send([Command::Resume { id: THEME_ID }]);
+            }
+            redraw(world);
+        }
+        MovieReturn::Title => {
+            if world.resource::<PresentationQueue>().0.is_empty() {
+                world.resource_mut::<Menu>().audio.play("theme.aud");
+                redraw(world);
+            } else {
+                present_next(world);
+            }
+        }
+    }
+}
+
+fn play_movie_frame(world: &mut World) {
+    use crate::movie_player::Update;
+    let keys = world.resource::<ButtonInput<KeyCode>>();
+    let escape = keys.just_pressed(KeyCode::Escape);
+    let enter = keys.just_pressed(KeyCode::Enter);
+    let log = world.resource::<crate::Shared>().log.clone();
+    let mut menu = world.resource_mut::<Menu>();
+    let page = menu.movie.as_ref().unwrap();
+    let failed = page.playback.is_err();
+    let started = page.playback.as_ref().is_ok_and(|m| m.started.is_some());
+    let queued = match menu.keys.front() {
+        Some(Key::Enter) if failed => true,
+        Some(Key::Escape) if failed || started => true,
+        _ => false,
+    };
+    if queued {
+        menu.keys.pop_front();
+    }
+    if failed {
+        if enter || escape || queued {
+            leave_movie(world, "acknowledged");
+        }
+        return;
+    }
+    if escape || queued {
+        leave_movie(world, "skipped");
+        return;
+    }
+    let page = menu.movie.as_mut().unwrap();
+    let movie = page.playback.as_mut().unwrap();
+    match movie.step(std::time::Instant::now()) {
+        Ok(Update::Wait) => {}
+        Ok(Update::Frame(pixels)) => {
+            if !started {
+                let sound = movie.audio.clone();
+                log.lock().unwrap().summary(format!(
+                    "movie: {} first picture, PCM start {} stereo samples",
+                    page.name,
+                    sound.frames()
+                ));
+                if let Some(out) = &menu.audio.output {
+                    out.send([Command::Start {
+                        id: MOVIE_ID,
+                        sound,
+                        looping: false,
+                        gains: [1.; 2],
+                    }]);
+                }
+            }
+            let image = menu.image.clone();
+            if let Some(mut target) = world.resource_mut::<Assets<Image>>().get_mut(&image) {
+                target.data = Some(pixels);
+            }
+        }
+        Ok(Update::Finished) => leave_movie(world, "finished"),
+        Err(e) => {
+            log.lock().unwrap().summary(format!(
+                "movie: {} failed: {e}; awaiting acknowledgement",
+                page.name
+            ));
+            page.playback = Err(e);
+            if let Some(out) = &menu.audio.output {
+                out.send([Command::Stop { id: MOVIE_ID }]);
+            }
+            redraw(world);
         }
     }
 }
