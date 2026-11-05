@@ -39,6 +39,8 @@ pub enum Key {
     Delete,
     Backspace,
     Character(char),
+    /// Windows key number captured in the Keyboard options screen.
+    Physical(u8),
 }
 
 #[derive(Default, Debug, PartialEq, Clone)]

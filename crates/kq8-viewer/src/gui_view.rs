@@ -397,13 +397,7 @@ pub struct KeyAt(pub Vec<(String, u64)>);
 /// A Windows virtual-key number (`movekeys.kq` `KeyChar<n>`) as a Bevy
 /// key; only the ones the panels use.
 fn virtual_key(n: i64) -> Option<KeyCode> {
-    Some(match n {
-        9 => KeyCode::Tab,
-        13 => KeyCode::Enter,
-        27 => KeyCode::Escape,
-        32 => KeyCode::Space,
-        _ => return None,
-    })
+    u8::try_from(n).ok().and_then(crate::keyboard_input::physical)
 }
 
 /// The first of `names` (paths under the install) that exists.
@@ -1120,7 +1114,7 @@ pub fn gui_step(
     mut actions: ResMut<BarActions>,
     mut speech: ResMut<crate::talk_view::Speech>,
     shared: Res<Shared>,
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     mut menu: ResMut<crate::startup_menu::MenuRequest>,
 ) {
     let (Some(mut gui), Some(mut sim)) = (gui, sim) else { return };
@@ -1128,7 +1122,7 @@ pub fn gui_step(
     let updates = sim.active.world.updates;
     // Test keys (`--key NAME,N`); `popup:` ones are the popup step's
     // (M6 6e-6).
-    let (due, later): (Vec<_>, Vec<_>) = std::mem::take(&mut key_at.0).into_iter().partition(|(name, n)| updates >= *n && !name.starts_with("popup:"));
+    let (due, later): (Vec<_>, Vec<_>) = std::mem::take(&mut key_at.0).into_iter().partition(|(name, n)| updates >= *n && !name.starts_with("popup:") && !name.starts_with("physical:"));
     key_at.0 = later;
     for (name, _) in due {
         let how = format!("test --key {name} before update {updates}");
@@ -1345,7 +1339,7 @@ pub fn gui_step(
     let hand = kq8_core::connor_inventory::hand(&mut sim.active.world);
     // fighting.md rule 39 (manual): with a hand weapon ready the pointer
     // is the sword; Ctrl held gives the play pointer.
-    let ctrl = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
+    let ctrl = keys.change_cursor_held();
     // ranged-weapons.md rules 11, 12 (M5 5f-3): by the mode at the list
     // switch: hand the sword, ranged the bow, none the play pointer; Ctrl
     // with a weapon ready: the play pointer.
@@ -1500,7 +1494,7 @@ pub fn gui_draw(
     gui: Option<ResMut<Gui>>,
     mut sim: Option<ResMut<DoorSim>>,
     time: Res<Time<Real>>,
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     buttons: Res<ButtonInput<MouseButton>>,
     window: Query<&Window, With<bevy::window::PrimaryWindow>>,
     mut actions: ResMut<BarActions>,

@@ -725,7 +725,7 @@ fn game_position(bevy: Vec3) -> [f32; 3] {
 
 /// H shows or hides everything marked `ShownWithH`.
 pub fn toggle_markers(
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     shared: Res<Shared>,
     mut shown: Local<bool>,
     mut markers: Query<&mut Visibility, With<ShownWithH>>,
@@ -757,7 +757,7 @@ pub fn toggle_markers(
 /// normal → both (the surface see-through where a different floor lies
 /// under or over it, that floor tinted) → floor only → normal.
 pub fn toggle_floor(
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     shared: Res<Shared>,
     mut view: ResMut<FloorView>,
     mut parts: Query<(&GroundPart, &mut Visibility, &mut MeshMaterial3d<GroundMaterial>)>,
@@ -811,7 +811,7 @@ pub fn bevy_transform_from(r: [[f32; 3]; 3], position: [f32; 3]) -> Transform {
 pub fn fly_input(
     mut fly: ResMut<Fly>,
     buttons: Res<ButtonInput<MouseButton>>,
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     motion: Res<AccumulatedMouseMotion>,
     time: Res<Time>,
     mut camera: Single<&mut Transform, With<Camera3d>>,

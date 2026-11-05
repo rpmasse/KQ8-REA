@@ -610,7 +610,7 @@ pub fn make(
 // would not make it clearer.
 #[allow(clippy::too_many_arguments)]
 pub fn camera_input(
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     buttons: Res<ButtonInput<MouseButton>>,
     motion: Res<AccumulatedMouseMotion>,
     game: Option<ResMut<GameCam>>,
@@ -662,7 +662,7 @@ pub fn camera_step(
     buildings: Option<Res<Buildings>>,
     blockers: Option<Res<ViewBlockerSet>>,
     doors: Option<Res<DoorSim>>,
-    keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<crate::keyboard_input::GameKeys>,
     buttons: Res<ButtonInput<MouseButton>>,
     choice: Res<CameraChoice>,
     shared: Res<Shared>,

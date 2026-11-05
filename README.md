@@ -9,7 +9,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | Stage | Current implementation | Remaining work |
 | --- | --- | --- |
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
-| M4 · Interface and dialogue | New Game and difficulty, pause/resume, restart, Save and Load, HUD, speech, captions and some conversations. Options controls speech, music, effects and subtitles from the title or pause menu. | Graphics, Keyboard, Credits, Replay Intro, starting-help prompts and the remaining inventory and dialogue behavior. |
+| M4 · Interface and dialogue | The original title, pause, Save, Load and Options screens work. Keyboard lets you rebind the 13 original actions. Changes apply in gameplay and survive a restart. The HUD, speech, captions and some conversations work. | Graphics, Credits, Replay Intro, starting-help prompts and the remaining inventory and dialogue behavior. |
 | M5 · Combat | Melee and some ranged attacks, rocks, scripted hazards and potions. Encounter checks cover Dead City’s Weeper and Tower Skeleton and the melee stagger that pushes Lucreto into the Temple 4 vortex. | Complete weapon controls and trajectories, boss behavior including Lucreto’s switches between forms, encounter timing and death recovery. |
 | M6 · Campaign and saves | Slots restore selected world interactions, timed puzzle events and scripted character movements. A loaded grave raven finishes its flight and quest callback. The Daventry cottage route survives a restart and castle round trip. | Restore live combat, dialogue and cutscene cameras. Complete region quests, optional branches, boss sequences, movies and the ending. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
@@ -46,6 +46,7 @@ The following checks use the installed game assets and run unattended. The menu 
 cargo test --locked -p kq8-viewer campaign_tests -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test options_menu -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test keyboard_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test weeper -- --ignored
 cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored

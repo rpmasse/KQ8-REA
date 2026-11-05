@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Original keyboard bindings
+
+The Keyboard screen reads the 13 actions, their layout, localized key names, duplicate-key prompt and both animated cursors from the GOG installation. Two unattended Windows launches verified that the new Run binding persisted and took effect. A second change at the pause menu replaced that binding immediately. The old keys stopped affecting Run, and the remapped HUD key toggled the panel once. The README lists the test command.
+
 ## 2026-11-05 Resume a character’s scripted movement from disk
 
 Daventry’s grave raven can finish `fromgrave` after a fresh process loads a slot saved during the flight. The save retains the actor’s placement, physical mover, animation phase, queued movements and next cue. After loading at phase 0.22222222, the two remaining cries sounded on updates 4 and 17. On update 34 the original callback marked the tomb done and removed the raven. This fixture starts at the graveside movement and skips the preceding dialogue. The README gives the unattended test command. Live AI, combat, dialogue and the cutscene camera still require their own checkpoints.

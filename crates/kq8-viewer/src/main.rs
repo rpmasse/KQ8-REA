@@ -77,6 +77,7 @@ mod shadow_view;
 mod smooth_view;
 mod startup_menu;
 mod option_settings;
+mod keyboard_input;
 mod sound_view;
 mod talk_view;
 mod terrain_view;
@@ -481,7 +482,8 @@ N is an update number (15 updates per second):
   --item TYPE                give Connor an item of that type and hold it
   --key NAME,N               press space, tab, f3, f4 or 1-8, or click a bar control
                              (left:NAME / right:NAME), before update N + 1 (repeatable);
-                             mappan:DX:DY / mapzoom:DX drag the magic map (layout pixels)
+                             mappan:DX:DY / mapzoom:DX drag the magic map (layout pixels);
+                             physical:KEY presses a physical key through its current binding
   --kept-maps SAVE           other worlds' maps from an original saved game (read only)
   --special ITEMS,N          play Connor's special movements (separated by ;)
   --command \"WORDS\",N      run one script command at update N (repeatable)
@@ -624,6 +626,7 @@ fn main() -> ExitCode {
         Scene::Ground(Some(read)) => { app.insert_resource(world_build::object_light(read, &opts)); }
         Scene::Ground(None) => {} // The loading screen installs Daventry's lights when New is selected.
     }
+    keyboard_input::register(&mut app, &opts.game);
     object_light::add(&mut app);
     building_light::add(&mut app);
     ground_haze::add(&mut app);

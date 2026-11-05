@@ -6,6 +6,7 @@
 
 pub mod active;
 pub mod main_menu;
+pub mod keyboard_menu;
 mod menu_layout;
 pub mod options_menu;
 pub mod save_menu;
