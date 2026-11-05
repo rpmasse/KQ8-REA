@@ -1050,6 +1050,16 @@ impl WorldState {
     /// items carried by Connor or used up, characters dead or gone. Lower
     /// case. On a return they are not loaded again.
     pub fn gone_names(&self) -> Vec<String> {
+        self.gone_names_with_dying(true)
+    }
+
+    /// A disk save resumes the current world's death movements. Those
+    /// actors leave only after their death-end event has run.
+    pub fn gone_names_for_disk_save(&self) -> Vec<String> {
+        self.gone_names_with_dying(false)
+    }
+
+    fn gone_names_with_dying(&self, include_dying: bool) -> Vec<String> {
         let mut out: BTreeSet<String> = self.deleted.clone();
         for o in &self.items.objects {
             if o.carried_by(crate::talk::CONNOR) || matches!(o.place, crate::item::Place::Gone) {
@@ -1058,7 +1068,7 @@ impl WorldState {
         }
         for (i, a) in self.anims.iter().enumerate() {
             let dead = a.character.as_deref().and_then(|c| c.fight.as_ref()).is_some_and(|f| f.dying.is_some());
-            if (a.gone || dead) && !self.weeper_links.contains(&i) {
+            if (a.gone || (include_dying && dead)) && !self.weeper_links.contains(&i) {
                 out.insert(a.player.name.to_ascii_lowercase());
             }
         }
@@ -2306,11 +2316,19 @@ impl WorldState {
     }
 
     pub fn saved_spawned_monsters(&self) -> Vec<SavedMonster> {
+        self.saved_spawned_monsters_with_dying(false)
+    }
+
+    pub fn saved_spawned_monsters_for_disk_save(&self) -> Vec<SavedMonster> {
+        self.saved_spawned_monsters_with_dying(true)
+    }
+
+    fn saved_spawned_monsters_with_dying(&self, include_dying: bool) -> Vec<SavedMonster> {
         self.spawned_monsters.iter().filter_map(|(name, command)| {
             let index = self.character_index(name)?;
             let actor = &self.anims[index];
             let character = actor.character.as_deref()?;
-            if self.deleted.contains(name) || character.fight.as_ref().is_some_and(|f| f.dying.is_some()) { return None; }
+            if self.deleted.contains(name) || (!include_dying && character.fight.as_ref().is_some_and(|f| f.dying.is_some())) { return None; }
             Some(SavedMonster {
                 command: command.clone(), animation: crate::kept_interactions::Playback::take(&actor.player),
                 character: crate::character::checkpoint::SpawnedCharacter::take(character, self.now()),
@@ -2321,11 +2339,19 @@ impl WorldState {
     }
 
     pub fn saved_placed_characters(&self) -> Vec<SavedPlacedCharacter> {
+        self.saved_placed_characters_with_dying(false)
+    }
+
+    pub fn saved_placed_characters_for_disk_save(&self) -> Vec<SavedPlacedCharacter> {
+        self.saved_placed_characters_with_dying(true)
+    }
+
+    fn saved_placed_characters_with_dying(&self, include_dying: bool) -> Vec<SavedPlacedCharacter> {
         self.anims.iter().filter_map(|actor| {
             let name = actor.player.name.to_ascii_lowercase();
             let character = actor.character.as_deref()?;
             if actor.gone || self.deleted.contains(&name) || self.spawned_monsters.contains_key(&name)
-                || character.fight.as_ref().is_some_and(|f| f.dying.is_some()) { return None; }
+                || (!include_dying && character.fight.as_ref().is_some_and(|f| f.dying.is_some())) { return None; }
             Some(SavedPlacedCharacter {
                 name: actor.player.name.clone(), animation: crate::kept_interactions::Playback::take(&actor.player),
                 character: crate::character::checkpoint::SpawnedCharacter::take(character, self.now()),
@@ -8308,6 +8334,48 @@ endif
         // anim-scripts.md rule 38 (Q162): removed after its Die; the
         // corpse has no name of its own.
         assert_eq!(a.test_command("exist gob", "t").as_deref(), Some("1"));
+    }
+
+    #[test]
+    fn disk_checkpoint_resumes_an_original_monsters_death_once() {
+        let mut a = fighter();
+        a.world.anims[0].player.movements.push(crate::named_anim::tests::movement("die", 0.0, 1.0, false, false, vec![]));
+        a.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
+        a.world.connor_at = Some([0.0, -1400.0, 100.0]);
+        watch(&mut a, &[], 40);
+        a.world.hit_character(0, "Connor", 100, crate::fight::HitKind::Normal);
+        assert!(a.world.gone_names().contains(&"gob".to_string()), "world travel discards a dying actor");
+        assert!(!a.world.gone_names_for_disk_save().contains(&"gob".to_string()), "a disk save must rebuild it");
+        assert!(a.world.saved_placed_characters().is_empty());
+        let bytes = serde_json::to_vec(&a.world.saved_placed_characters_for_disk_save()).unwrap();
+        let saved: Vec<SavedPlacedCharacter> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(saved.len(), 1);
+
+        let mut loaded = fighter();
+        loaded.world.anims[0].player.movements.push(crate::named_anim::tests::movement("die", 0.0, 1.0, false, false, vec![]));
+        loaded.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
+        loaded.world.restore_placed_characters(&saved);
+        let c = loaded.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(c.state, crate::character::State::Die);
+        assert!(c.fight.as_ref().unwrap().dying.is_some());
+        watch(&mut loaded, &[], 60);
+        assert_eq!(loaded.world.connor_stats.unwrap().stats.0[4], 3);
+        assert!(loaded.world.anims[0].gone);
+        watch(&mut loaded, &[], 20);
+        assert_eq!(loaded.world.connor_stats.unwrap().stats.0[4], 3, "experience is awarded once");
+    }
+
+    #[test]
+    fn disk_checkpoint_keeps_dying_script_created_monsters() {
+        let mut a = fighter();
+        a.world.anims[0].player.movements.push(crate::named_anim::tests::movement("die", 0.0, 1.0, false, false, vec![]));
+        a.world.spawned_monsters.insert("gob".into(), vec!["gob".into(), "rat".into()]);
+        a.world.hit_character(0, "Connor", 100, crate::fight::HitKind::Normal);
+        assert!(a.world.saved_spawned_monsters().is_empty(), "world travel drops the dying actor");
+        let bytes = serde_json::to_vec(&a.world.saved_spawned_monsters_for_disk_save()).unwrap();
+        let saved: Vec<SavedMonster> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(saved.len(), 1);
+        assert!(!serde_json::to_value(&saved[0]).unwrap()["character"]["fight"]["dying"].is_null());
     }
 
     /// fighting.md rules 31, 31a (C-2): a goblin dropping a crossbow

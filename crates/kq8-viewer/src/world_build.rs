@@ -183,11 +183,19 @@ pub struct KeptWorld {
 
 impl KeptWorld {
     fn take(active: &kq8_core::active::Active, from: &str, previous: Option<&Self>) -> Self {
+        Self::capture(active, from, previous, false)
+    }
+
+    fn take_for_disk_save(active: &kq8_core::active::Active, from: &str, previous: Option<&Self>) -> Self {
+        Self::capture(active, from, previous, true)
+    }
+
+    fn capture(active: &kq8_core::active::Active, from: &str, previous: Option<&Self>, disk_save: bool) -> Self {
         // Objects absent at load cannot report themselves as newly gone on
         // the next departure. Retain prior removals and loaded files over
         // repeated visits. The loader excludes gone objects in these files.
         let mut gone = previous.map(|p| p.gone.clone()).unwrap_or_default();
-        gone.extend(active.world.gone_names());
+        gone.extend(if disk_save { active.world.gone_names_for_disk_save() } else { active.world.gone_names() });
         let mut came_in = previous.map(|p| p.came_in.clone()).unwrap_or_default();
         for file in active.world.came_in_files() {
             if !came_in.contains(&file) { came_in.push(file); }
@@ -200,8 +208,8 @@ impl KeptWorld {
         Self {
             vars: active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, from)).map(|(n, v)| (n.to_owned(), v.to_owned())).collect(),
             gone, came_in, states: active.world.kept_states_including(&prior_states),
-            spawned_monsters: active.world.saved_spawned_monsters(),
-            characters: active.world.saved_placed_characters(),
+            spawned_monsters: if disk_save { active.world.saved_spawned_monsters_for_disk_save() } else { active.world.saved_spawned_monsters() },
+            characters: if disk_save { active.world.saved_placed_characters_for_disk_save() } else { active.world.saved_placed_characters() },
             active_list: Some(active.world.active_list.clone()),
             interactions: kq8_core::kept_interactions::KeptInteractions::take(&active.world),
             prop_placements,
