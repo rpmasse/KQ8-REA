@@ -3495,6 +3495,7 @@ version = "0.1.0"
 dependencies = [
  "kq8-data",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

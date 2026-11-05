@@ -1,7 +1,7 @@
 //! A character in a script's Special movement list. The named animation
 //! player is also the cue cursor: the next update fires only the cues
 //! crossed from its saved phase. See characters.md rule 22.
-use super::{Rng, State};
+use super::{Character, Rng, State, Walk};
 use crate::active::WorldState;
 use crate::connor_mover::{Mover, State as MoverState};
 use crate::kept_interactions::Playback;
@@ -36,7 +36,7 @@ pub(crate) struct SpecialActor {
 // Keep the moving body and the animation at their respective saved
 // positions. The installed model still supplies its collision geometry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct Moving {
+pub(crate) struct Moving {
     position: [f32; 3],
     state: MoverState,
     on_ground: bool,
@@ -73,6 +73,145 @@ impl Moving {
         m.fall_timer = self.fall_timer;
         m.pull = self.pull;
         m.submerged = self.submerged;
+    }
+}
+
+/// The mutable part of a script-created character. Its installed type and
+/// model are reconstructed before these values are applied.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct SpawnedCharacter {
+    state: State,
+    started: bool,
+    first_update_seen: bool,
+    wait_due: Option<f64>,
+    random_pending: bool,
+    special: VecDeque<String>,
+    special_playing: Option<String>,
+    rng: Rng,
+    turn_to: Option<[f32; 2]>,
+    mouth: u16,
+    no_turn: bool,
+    walk_slope: Option<f32>,
+    gravity: bool,
+    unborn: bool,
+    mover: Option<Moving>,
+    walk: Walk,
+    ai: Option<crate::character_ai::Ai>,
+    fight: Option<SpawnedFight>,
+    resume_move_due: Option<f64>,
+    falling_from: Option<f32>,
+    mover_started: bool,
+    collision_type: u32,
+    collision_mask: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SpawnedFight {
+    stats: crate::stats::Stats,
+    attack_due: Option<f64>,
+    last_kind: Option<crate::fight::HitKind>,
+    must_flee: bool,
+    flinch_end: Option<f64>,
+    last_ouch: Option<f64>,
+    flinching: Option<String>,
+    dying: Option<Option<String>>,
+    combat_scaled: bool,
+    shoot_offset: Option<[f32; 3]>,
+    kept_drop: Option<(String, i64)>,
+}
+
+fn relative(t: f64, now: f64) -> f64 { if t == 0.0 { 0.0 } else { t - now } }
+fn absolute(t: f64, now: f64) -> f64 { if t == 0.0 { 0.0 } else { t + now } }
+
+impl SpawnedCharacter {
+    pub(crate) fn take(c: &Character, now: f64) -> Self {
+        let mut walk = c.walk.clone();
+        walk.steer_off_until = relative(walk.steer_off_until, now);
+        walk.next_check = relative(walk.next_check, now);
+        if let Some((_, t)) = walk.second_from.as_mut() { *t = relative(*t, now); }
+        let mut ai = c.ai.clone();
+        if let Some(ai) = ai.as_mut() {
+            ai.idle_due = relative(ai.idle_due, now);
+            ai.react_at = relative(ai.react_at, now);
+            ai.chase_until = relative(ai.chase_until, now);
+            ai.rise_at = ai.rise_at.map(|t| relative(t, now));
+        }
+        let fight = c.fight.as_ref().map(|f| SpawnedFight {
+            stats: f.stats,
+            attack_due: f.attack_time.is_finite().then(|| relative(f.attack_time, now)),
+            last_kind: f.last_kind,
+            must_flee: f.must_flee,
+            flinch_end: f.flinch_end.is_finite().then(|| relative(f.flinch_end, now)),
+            last_ouch: f.last_ouch.is_finite().then(|| relative(f.last_ouch, now)),
+            flinching: f.flinching.clone(), dying: f.dying.clone(),
+            combat_scaled: f.combat_scaled, shoot_offset: f.shoot_offset,
+            kept_drop: f.kept_drop.clone(),
+        });
+        Self {
+            state: c.state, started: c.started, first_update_seen: c.first_update.is_some(),
+            wait_due: c.wait_at.map(|t| relative(t, now)), random_pending: c.random_pending,
+            special: c.special.clone(), special_playing: c.special_playing.clone(), rng: c.rng.clone(),
+            turn_to: c.turn_to, mouth: c.mouth, no_turn: c.no_turn, walk_slope: c.walk_slope, gravity: c.gravity,
+            unborn: c.unborn, mover: c.mover.as_deref().map(Moving::take), walk, ai, fight,
+            resume_move_due: c.resume_move_at.is_finite().then(|| relative(c.resume_move_at, now)), falling_from: c.falling_from,
+            mover_started: c.mover_started, collision_type: c.collision_type,
+            collision_mask: c.collision_mask,
+        }
+    }
+
+    pub(crate) fn restore(&self, c: &mut Character, now: f64, updates: u64) {
+        c.state = self.state;
+        c.started = self.started;
+        c.first_update = self.first_update_seen.then_some(updates);
+        c.wait_at = self.wait_due.map(|t| absolute(t, now));
+        c.random_pending = self.random_pending;
+        c.special.clone_from(&self.special);
+        c.special_playing.clone_from(&self.special_playing);
+        c.rng.clone_from(&self.rng);
+        c.turn_to = self.turn_to;
+        c.mouth = self.mouth;
+        c.no_turn = self.no_turn;
+        c.walk_slope = self.walk_slope;
+        c.gravity = self.gravity;
+        c.unborn = self.unborn;
+        if let (Some(saved), Some(m)) = (&self.mover, c.mover.as_deref_mut()) { saved.restore(m); }
+        c.walk = self.walk.clone();
+        c.walk.steer_off_until = absolute(c.walk.steer_off_until, now);
+        c.walk.next_check = absolute(c.walk.next_check, now);
+        if let Some((_, t)) = c.walk.second_from.as_mut() { *t = absolute(*t, now); }
+        c.ai.clone_from(&self.ai);
+        if let Some(ai) = c.ai.as_mut() {
+            ai.idle_due = absolute(ai.idle_due, now);
+            ai.react_at = absolute(ai.react_at, now);
+            ai.chase_until = absolute(ai.chase_until, now);
+            ai.rise_at = ai.rise_at.map(|t| absolute(t, now));
+        }
+        if let (Some(saved), Some(f)) = (&self.fight, c.fight.as_mut()) {
+            f.stats = saved.stats;
+            f.attack_time = saved.attack_due.map_or(crate::fight::NEVER, |t| absolute(t, now));
+            f.last_kind = saved.last_kind;
+            f.must_flee = saved.must_flee;
+            f.flinch_end = saved.flinch_end.map_or(f64::NEG_INFINITY, |t| absolute(t, now));
+            f.last_ouch = saved.last_ouch.map_or(f64::NEG_INFINITY, |t| absolute(t, now));
+            f.flinching.clone_from(&saved.flinching);
+            f.dying.clone_from(&saved.dying);
+            f.combat_scaled = saved.combat_scaled;
+            f.shoot_offset = saved.shoot_offset;
+            f.kept_drop.clone_from(&saved.kept_drop);
+        }
+        c.resume_move_at = self.resume_move_due.map_or(f64::NEG_INFINITY, |t| absolute(t, now));
+        c.falling_from = self.falling_from;
+        c.mover_started = self.mover_started;
+        c.collision_type = self.collision_type;
+        c.collision_mask = self.collision_mask;
+    }
+
+    pub(crate) fn valid(&self) -> bool {
+        self.mouth < 8 && self.wait_due.is_none_or(f64::is_finite)
+            && self.walk_slope.is_none_or(f32::is_finite)
+            && self.resume_move_due.is_none_or(f64::is_finite)
+            && self.fight.as_ref().is_none_or(|f| [f.attack_due, f.flinch_end, f.last_ouch].into_iter().flatten().all(f64::is_finite))
+            && self.mover.as_ref().is_none_or(|m| m.position.iter().all(|x| x.is_finite()) && m.fall_timer.is_finite())
     }
 }
 

@@ -98,6 +98,9 @@ impl Snapshot {
             if !kept.interactions.valid_special_actors() {
                 return Err("save has an invalid scripted character movement".into());
             }
+            if kept.spawned_monsters.iter().any(|monster| !monster.valid()) {
+                return Err("save has an invalid script-created monster".into());
+            }
             if !known(world)
                 || *world != world.to_ascii_lowercase()
                 || kept.came_in.iter().any(|f| !safe_path(f))
@@ -162,6 +165,9 @@ impl Snapshot {
     pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) {
         if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
             self.restore_objects_and_vars(&mut sim.active);
+            if let Some(kept) = self.kept.get(&self.world.to_ascii_lowercase()) {
+                sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
+            }
         }
         if let Some(mut connor) = world.get_resource_mut::<connor_view::ConnorSim>() {
             connor.put(self.position, self.heading);
@@ -441,6 +447,7 @@ mod tests {
                     placement: kq8_core::collide::Placement::at([1., 2., 3.]),
                     collision_type: Some(32),
                 }],
+                spawned_monsters: Vec::new(),
             },
         );
         Snapshot {
@@ -484,6 +491,11 @@ mod tests {
         assert_eq!(fs::read(path).unwrap(), before);
         fs::write(slot_path(&dir, 3).unwrap(), b"{").unwrap();
         let mut newer: serde_json::Value = serde_json::from_slice(&before).unwrap();
+        let mut previous_v2 = newer.clone();
+        for world in previous_v2["kept"].as_object_mut().unwrap().values_mut() {
+            world.as_object_mut().unwrap().remove("spawned_monsters");
+        }
+        assert!(serde_json::from_value::<Snapshot>(previous_v2).unwrap().validate().is_ok());
         // Version-1 slots predate the door/chest fields. All previously
         // supported state still loads; these objects use asset defaults.
         for world in newer["kept"].as_object_mut().unwrap().values_mut() {

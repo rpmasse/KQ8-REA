@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Save live script-created monsters
+
+Kept worlds and version-2 slots now record live `KQMonster::add` actors without copying game models. Reload reconstructs each actor from its installed type, then restores movement, placement, mover, character state, AI, health and other mutable fight state. Timers are relative to the save time; infinite fight sentinels are represented explicitly. The viewer requests a model copy at the restored placement, and a restored active AI actor rejoins the world active list. Older slots lacking the new field still load. The original Dead City `ratkarma.cs` line passed a core save JSON round trip after injury and repositioning, including AI and attack state. An unattended Windows save and separate-process reload drew and saved the same script-created rat again. The full encounter save remains incomplete for original monsters, Connor combat and other world state; the new copy's face and shadow presentation and a continuous karma route remain open. Next: complete encounter persistence and presentation.
+
 ## 2026-11-05 Spawn Dead City monsters from scripts
 
 `KQMonster::add` now resolves the original type name to a prepared character recipe, creates a fresh named actor with the command's position, heading, AI, fight and mover, and asks the viewer to draw its model. A deleted name can be reused in a later event. The original `ratkarma.cs` line passed a core check for its 20 fields, floor placement, the field-12 dependents quirk, combat damage, deletion and respawn; the two-word form and unknown type were checked too. A GOG-backed Windows run spawned and drew all six types named by Dead City's 16 add commands. The 594-test core suite passed, and the generated script coverage now lists the command as handled. Live scripted enemies are not yet restored from a save, and their new model copies lack the character's face and shadow presentation. Next: preserve and restore live encounter state across a fresh launch.

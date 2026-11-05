@@ -137,7 +137,7 @@ impl<T: Clone> Field<T> {
 
 /// The movement field (rule 4). Wandering itself is M5; only whether the
 /// character may wander and its points are kept.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Wander {
     /// `none`: never wanders.
     None,
@@ -846,7 +846,7 @@ pub const DEFAULT_ATTACK_DIST: f32 = 1250.0;
 /// What a character's movement rules need, with the monster list's (or
 /// its type's, for `@`) values replacing the `.kq` keys
 /// (`character-movement.md` rules 9, 23, 27; `characters.md` rule 31).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AiSettings {
     pub wander: Wander,
     /// May wander once active: the list's movement field, else `wanders`.

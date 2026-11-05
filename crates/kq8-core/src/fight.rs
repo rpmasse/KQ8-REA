@@ -64,7 +64,7 @@ pub const RANGED_STANDING: f32 = 1.25;
 
 /// The kind of a hit (rules 14, 30, 32): it picks the die movement and
 /// the corpse.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum HitKind {
     Normal,
     Projectile,

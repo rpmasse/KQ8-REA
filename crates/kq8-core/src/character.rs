@@ -56,7 +56,7 @@ use crate::named_anim::{NamedAnimPlayer, Played, Request};
 pub(crate) mod checkpoint;
 
 /// What the character is doing (characters.md "Words used here").
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum State {
     /// No state: plays only what it is told (rule 15).
     None,
@@ -199,7 +199,7 @@ pub struct Character {
 }
 
 /// A character's walking (`character-movement.md` rules 1–8; M5 5a-2).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Walk {
     /// `run` was asked for rather than `walk` (rule 3).
     pub run: bool,

@@ -407,6 +407,28 @@ pub struct MonsterTemplate {
     pub combat_scaled: bool,
 }
 
+/// One live character made by `KQMonster::add`, without game-owned model data.
+/// The command selects the installed type; the rest restores its live clock.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedMonster {
+    command: Vec<String>,
+    animation: crate::kept_interactions::Playback,
+    character: crate::character::checkpoint::SpawnedCharacter,
+    script: Option<String>,
+    translucency: Option<f32>,
+    hidden: Option<bool>,
+    state_seen: Option<u32>,
+}
+
+impl SavedMonster {
+    pub fn valid(&self) -> bool {
+        !self.command.is_empty() && self.command.len() <= 32
+            && self.command.iter().all(|s| !s.is_empty() && s.len() <= 256 && !s.chars().any(char::is_control))
+            && self.animation.valid() && self.character.valid()
+            && self.translucency.is_none_or(f32::is_finite)
+    }
+}
+
 /// What a kept world keeps of an animated or scripted object whose state
 /// changed while Connor was there (`world-change.md` rules 12, 15; DESIGN
 /// "kept worlds keep animated objects' state", K-1): put back into its
@@ -721,6 +743,8 @@ pub struct WorldState {
     pub(crate) templates: BTreeMap<String, Template>,
     /// Original monster type name to its prepared model and character.
     monster_templates: BTreeMap<String, MonsterTemplate>,
+    /// Resolved command fields for live script-created monsters, by name.
+    spawned_monsters: BTreeMap<String, Vec<String>>,
     /// KQS models used by scripts' loadAnim commands in the current world.
     pub script_shapes: BTreeMap<String, crate::door::DoorMovement>,
     /// Scripts a world command asked to run at once (`ScriptHost::take_calls`).
@@ -2260,6 +2284,55 @@ impl WorldState {
         self.monster_templates.extend(t.into_iter().map(|(name, t)| (name.to_ascii_lowercase(), t)));
     }
 
+    pub fn saved_spawned_monsters(&self) -> Vec<SavedMonster> {
+        self.spawned_monsters.iter().filter_map(|(name, command)| {
+            let index = self.character_index(name)?;
+            let actor = &self.anims[index];
+            let character = actor.character.as_deref()?;
+            if self.deleted.contains(name) || character.fight.as_ref().is_some_and(|f| f.dying.is_some()) { return None; }
+            Some(SavedMonster {
+                command: command.clone(), animation: crate::kept_interactions::Playback::take(&actor.player),
+                character: crate::character::checkpoint::SpawnedCharacter::take(character, self.now()),
+                script: actor.script.clone(), translucency: actor.translucency,
+                hidden: self.plain_hidden.get(name).copied(), state_seen: self.state_seen.get(name).copied(),
+            })
+        }).collect()
+    }
+
+    /// Rebuild actors after the installed world's types are prepared. Their
+    /// Init already ran before the save, so no script call is replayed.
+    pub fn restore_spawned_monsters(&mut self, saved: &[SavedMonster]) {
+        for entry in saved {
+            if !entry.valid() { continue; }
+            let mut words = vec!["KQMonster::add".to_string()];
+            words.extend(entry.command.iter().cloned());
+            if self.add_monster(&words, "kept world") != "0" { continue; }
+            let name = &entry.command[0];
+            self.calls_out.retain(|(_, call)| !(call.len() >= 2 && call[0].eq_ignore_ascii_case(name) && call[1] == "Init"));
+            self.vars_out.retain(|(key, value)| !(key == "ObjectName" && value.eq_ignore_ascii_case(name)));
+            let now = self.now();
+            let updates = self.updates;
+            if let Some(index) = self.character_index(name) {
+                let actor = &mut self.anims[index];
+                entry.animation.restore(&mut actor.player);
+                actor.script.clone_from(&entry.script);
+                actor.translucency = entry.translucency;
+                if let Some(character) = actor.character.as_deref_mut() {
+                    entry.character.restore(character, now, updates);
+                    if character.ai.as_ref().is_some_and(|ai| ai.active)
+                        && !self.active_list.iter().any(|n| n.eq_ignore_ascii_case(name)) {
+                        self.active_list.push(name.to_ascii_lowercase());
+                    }
+                }
+                if let Some(Request::Spawn { placement, .. }) = self.requests.iter_mut().rev().find(|r| matches!(r, Request::Spawn { name: n, .. } if n.eq_ignore_ascii_case(name))) {
+                    *placement = actor.player.base;
+                }
+                if let Some(hidden) = entry.hidden { self.plain_hidden.insert(name.to_ascii_lowercase(), hidden); }
+                if let Some(state) = entry.state_seen { self.state_seen.insert(name.to_ascii_lowercase(), state); }
+            }
+        }
+    }
+
     /// `KQMonster::add`: the same 20-field line as monsters.kq, or the
     /// documented name/type form. The prepared actor supplies its model and
     /// collision shape; this command creates fresh AI and fight state.
@@ -2321,6 +2394,7 @@ impl WorldState {
         self.monsters.push(Monster { name: line.name.clone(), position, script: actor.script.clone(),
             goodbye: template.keys.goodbye, welcome_back: template.keys.welcome_back });
         self.anims.push(actor);
+        self.spawned_monsters.insert(line.name.to_ascii_lowercase(), words[1..].to_vec());
         self.requests.push(Request::Spawn { file: template.kind.file.to_ascii_lowercase(), name: line.name.clone(), placement, at: at.to_string() });
         if let Some(script) = self.anims.last().and_then(|a| a.script.clone()) {
             self.calls_out.push((script, vec![line.name.clone(), "Init".into()]));
@@ -4309,6 +4383,7 @@ impl Active {
                 calls_out: Vec::new(),
                 templates: BTreeMap::new(),
                 monster_templates: BTreeMap::new(),
+                spawned_monsters: BTreeMap::new(),
                 script_shapes: BTreeMap::new(),
                 first_person_locked: false,
                 was_first_person: false,
@@ -9095,7 +9170,7 @@ deleteObject waterfall2
         let add = source.lines().map(str::trim).find(|line| line.starts_with("KQMonster::add rat1 ")).unwrap();
         let mut a = fighter();
         let actor = a.world.anims[0].clone();
-        a.world.set_monster_templates([("rat".into(), MonsterTemplate { actor, keys, kind, combat_scaled: false })]);
+        a.world.set_monster_templates([("rat".into(), MonsterTemplate { actor: actor.clone(), keys: keys.clone(), kind: kind.clone(), combat_scaled: false })]);
         a.world.heights = Some(Box::new(|_, _, floor| floor.then_some(100.0)));
         assert_eq!(a.test_command(add, "ratkarma.cs").as_deref(), Some("0"));
         let rat = a.world.anims.iter().find(|a| a.player.name == "rat1").unwrap();
@@ -9109,12 +9184,40 @@ deleteObject waterfall2
         a.world.hit_character(1, "Connor", 5, crate::fight::HitKind::Normal);
         assert!(a.world.anims[1].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0] < 5,
             "the new actor must receive combat damage");
+        a.world.updates = 135;
+        let rat = &mut a.world.anims[1];
+        rat.player.base.position = [1200., 1300., 100.];
+        rat.player.phase = 0.37;
+        let c = rat.character.as_deref_mut().unwrap();
+        c.mover.as_deref_mut().unwrap().position = rat.player.base.position;
+        c.ai.as_mut().unwrap().alarmed = true;
+        c.ai.as_mut().unwrap().chase_until = 14.0;
+        c.fight.as_mut().unwrap().attack_time = crate::fight::NEVER;
+        let saved = a.world.saved_spawned_monsters();
+        assert_eq!(saved.len(), 1);
+        let bytes = serde_json::to_vec(&saved).unwrap();
+        let saved: Vec<SavedMonster> = serde_json::from_slice(&bytes).unwrap();
+        let mut loaded = fighter();
+        loaded.world.set_monster_templates([("rat".into(), MonsterTemplate { actor, keys, kind, combat_scaled: false })]);
+        loaded.world.restore_spawned_monsters(&saved);
+        let restored = &loaded.world.anims[loaded.world.character_index("rat1").unwrap()];
+        let c = restored.character.as_deref().unwrap();
+        assert_eq!(restored.player.base.position, [1200., 1300., 100.]);
+        assert_eq!(restored.player.phase, 0.37);
+        assert_eq!(c.mover.as_ref().unwrap().position, restored.player.base.position);
+        assert!(c.ai.as_ref().unwrap().alarmed);
+        assert_eq!(c.ai.as_ref().unwrap().chase_until, 5.0);
+        assert!(c.fight.as_ref().unwrap().stats.0[0] < 5);
+        assert_eq!(c.fight.as_ref().unwrap().attack_time, crate::fight::NEVER);
+        assert!(loaded.world.active_list.contains(&"rat1".to_string()));
+        assert!(loaded.world.requests.iter().any(|r| matches!(r, Request::Spawn { name, placement, .. } if name == "rat1" && placement.position == [1200., 1300., 100.])));
         assert_eq!(a.test_command("KQMonster::add simple rat", "short").as_deref(), Some("0"));
         assert!(a.world.anims.iter().any(|a| a.player.name == "simple" && a.character.is_some()));
         assert_eq!(a.test_command("KQMonster::add none missingtype", "unknown").as_deref(), Some("1"));
         assert!(!a.world.anims.iter().any(|a| a.player.name == "none"));
         assert_eq!(a.test_command("deleteObject rat1", "delete").as_deref(), Some("0"));
         assert!(a.world.is_deleted("rat1"));
+        assert!(a.world.saved_spawned_monsters().iter().all(|m| m.command[0] != "rat1"));
         ScriptHost::event_done(&mut a.world);
         assert_eq!(a.test_command(add, "ratkarma.cs again").as_deref(), Some("0"));
         assert!(!a.world.is_deleted("rat1"));
