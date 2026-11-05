@@ -27,7 +27,7 @@ use crate::collide::Placement;
 use crate::named_anim::NamedAnimPlayer;
 
 /// Rule 1.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DoorState {
     Closed,
     Opening,

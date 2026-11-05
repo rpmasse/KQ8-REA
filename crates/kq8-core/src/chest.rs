@@ -26,7 +26,7 @@ use crate::named_anim::{NamedAnimPlayer, Played};
 pub const CHEST_TYPE: u32 = 0x8021;
 
 /// The chest's own state (`chests.md` rules 7-9).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ChestState {
     Closed,
     Open,

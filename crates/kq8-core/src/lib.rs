@@ -33,6 +33,7 @@ pub mod gui_draw;
 pub mod inventory;
 pub mod item;
 pub mod journey;
+pub mod kept_interactions;
 pub mod magic_map;
 pub mod meters;
 pub mod music;

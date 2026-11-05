@@ -11,7 +11,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
 | M4 · Interface and dialogue | New Game and difficulty, pause/resume, restart, original Save and Load screens with names and thumbnails, HUD, speech, captions and some conversations. | Options, Replay Intro, remaining inventory and dialogue behavior, and full menu fidelity. |
 | M5 · Combat | Enemy pursuit, melee and some ranged attacks, throwing and retrieving rocks, damage, potions, scripted equipment drops and a death-menu entry. | Verify weapon controls and trajectories, enemy-specific encounters and death recovery. |
-| M6 · Campaign and saves | Disk slots restore Connor, inventory and supported quest and region state. Travel, maps, selected terrain switches and Temple 4's final actor loading work. | Restore active scripts, combat and cutscenes. Complete region quests, optional branches, boss sequences, movies and the ending. |
+| M6 · Campaign and saves | Disk slots restore Connor, inventory, door state, chest contents and supported quest and region state. Travel, maps, selected terrain switches and Temple 4's final actor loading work. | Restore active scripts, combat and cutscenes. Complete region quests, optional branches, boss sequences, movies and the ending. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
@@ -46,6 +46,7 @@ The following checks use the installed game assets and run unattended. The menu 
 cargo test --locked -p kq8-viewer campaign_tests -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
+cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored
 cargo test --locked -p kq8-viewer --test regions -- --ignored --test-threads=1 --nocapture
 cargo test --locked -p kq8-core original_barren_dock_script -- --ignored
 cargo test --locked -p kq8-core original_gnome_rock_and_dead_city -- --ignored

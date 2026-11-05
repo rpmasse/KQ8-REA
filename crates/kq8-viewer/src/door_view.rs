@@ -608,7 +608,7 @@ pub fn spawn_doors(
             let mut chest = Chest::new(&p.name, settings, movements, d.current, base);
             chest.player = chest.player.with_names_at_load(names.0, names.1);
             let open_turn = chest.player.movements.iter().find(|m| m.name.eq_ignore_ascii_case("open")).map(|m| turn_degrees(&m.turn_at_frame(m.frames() - 1)));
-            let c = ActiveChest {
+            let mut c = ActiveChest {
                 bounds: d.bounds,
                 collision_type: d.collider_type,
                 collision_mask: d.collider_mask,
@@ -619,12 +619,14 @@ pub fn spawn_doors(
                 chest,
                 gone: false,
             };
+            objects.kept_interactions.restore_chest(&mut c, &mut objects.items);
+            let at = c.chest.player.base.position;
             main_log.summary(format!(
-                "chests: [{}] at ({:.0}, {:.0}, {:.0}), type {:#x}, hidden {}, script {:?}, box {}, holds {:?} x{} at {:?}, Take {:?}, Empty {:?}; 'open' turns {open_turn:?} deg by its last frame",
+                "chests: [{}] at ({:.0}, {:.0}, {:.0}), type {:#x}, hidden {}, script {:?}, box {}, holds {:?} x{} at {:?}, Take {:?}, Empty {:?}; 'open' turns {open_turn:?} deg by its last frame; state {}, remembered {:?}",
                 p.name,
-                p.position[0],
-                p.position[1],
-                p.position[2],
+                at[0],
+                at[1],
+                at[2],
                 c.collision_type,
                 c.hidden,
                 c.script,
@@ -634,6 +636,8 @@ pub fn spawn_doors(
                 c.chest.settings.item_position,
                 c.chest.settings.take.map(|r| r.0),
                 c.chest.settings.empty.map(|r| r.0),
+                c.chest.state.name(),
+                c.chest.remembered,
             ));
             chest_collider.push(if c.collides_with_connor() {
                 colliders.push(c.collider().expect("a chest that collides has a box"));
@@ -649,7 +653,7 @@ pub fn spawn_doors(
         door.player = door.player.with_names_at_load(names.0, names.1);
         let DrawnDoor { body, frames, slots, .. } =
             spawn_body(commands, &door.placement(), &animations, &built, materials, (p.haze_solid, p.haze_multiplier), balls.test_shape(p, &d.shape), &anim_lights, p.turn_off_dyn_lighting, gpu, &p.name);
-        let active = ActiveDoor {
+        let mut active = ActiveDoor {
             door,
             script: d.script.clone(),
             bounds: d.bounds,
@@ -661,8 +665,9 @@ pub fn spawn_doors(
             do_not_point_at: d.do_not_point_at,
             gone: false,
         };
+        objects.kept_interactions.restore_door(&mut active);
         // The door's script, read through the block counter (DESIGN 3a-1).
-        let balance = d.script.as_ref().map(|name| {
+        let balance = active.script.as_ref().map(|name| {
             match sources.iter().find(|(n, _)| n.eq_ignore_ascii_case(name)) {
                 Some((_, bytes)) => {
                     let text: String = bytes.iter().map(|&b| b as char).collect();
@@ -679,16 +684,17 @@ pub fn spawn_doors(
             format!("'open' {} frames over {:.3} s, turns {:.2} deg by its last frame", m.frames(), m.play_time, turn_degrees(&t))
         });
         main_log.summary(format!(
-            "doors: [{}] at ({:.0}, {:.0}, {:.0}) dirZ {:.2}, type {:#x}, script {}, box {}, starts in '{}' (state closed); {open_note}; movements: {}",
+            "doors: [{}] at ({:.0}, {:.0}, {:.0}) dirZ {:.2}, type {:#x}, script {}, box {}, starts in '{}' (state {}); {open_note}; movements: {}",
             p.name,
             p.position[0],
             p.position[1],
             p.position[2],
             p.angles[2],
-            d.collider_type,
+            active.collision_type,
             balance.unwrap_or_else(|| "none".into()),
             d.bounds.map_or("NONE".to_string(), |(a, b)| format!("{a:?}..{b:?}")),
             active.door.movement_name(),
+            active.door.state.name(),
             active
                 .door
                 .player.movements
