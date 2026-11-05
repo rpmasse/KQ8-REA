@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Dead City runtime monster command groundwork
+
+The owned GOG `DeadCity/kq.vol` contains 16 `KQMonster::add` commands in five karma and Weeper scripts. A new parser reads their 20 fields through the same `MonsterLine` rules used for `monsters.kq`; the documented two-word form receives type defaults. An original-data regression parsed all 16 commands, resolved their types through `GAME/Kq/Monstats.mtl`, found each type file in the archive and confirmed the movement field remains `@`. The scripts put their `patrol,2,…` text in dependents instead. The focused unit and original-data tests passed. Runtime character creation, AI, rendering and save/restore are still open; the command remains missing in the coverage report.
+
 ## 2026-11-05 Save moved windmill props
 
 The original Daventry `permwrld.cs` turns the persistence manager off for permanent scenery and back on before ordinary props load. The Rust loader now honors those commands. For persistent `KQObject` props, a physical push or script move records the resulting position and orientation in the kept world. World restoration applies those positions before building the graphics, collision and click geometry. Older Rust saves without this field use the original placement.
