@@ -22,6 +22,7 @@ Source types:
 | A merchant can collect an item through its scripted click callback. | Gnome's `armorgnm.cs` and Barren's `tw_weird.cs` use `conClickItem`. Barren's weapon callback checks a variable the merchant resets immediately after that command. |
 | A returning quest character depends on a flag carried between regions. | The Dead City girl's exit callback sets `MetGirlInDC`. Daventry's `girl.cs` checks it during initialization before moving the girl to her home. Temple 2's cauldron uses the same query for an earlier vision. |
 | Rock throwing uses Connor's animation release and the world's landing script. | Observed in the GOG Connor animation, rock object and Daventry's `rockHit.cs`. The Windows throw-and-recover test checks the resulting item. Exact aiming, arc and damage remain open. |
+| Contact with a placed object can run its script. A scripted attack can damage Connor according to his level and protection. | [Original collision behavior, rules 7–19](../behaviour/connor-collision.md). Gnome's rolling rock declares its collision shape, mask and callback in `rrock1.kq`. Its script sets relative damage, while Dead City's bridge trap supplies a fixed lethal hit. |
 | Save and Load screen layout, art, font, confirmation controls and thumbnail dimensions. | Original GOG interface assets and [main menu behavior](../behaviour/main-menu.md). The versioned Rust disk format is a project design. |
 
 ## VOL archives — `crates/kq8-data/src/vol.rs`

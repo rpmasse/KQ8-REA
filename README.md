@@ -46,8 +46,9 @@ The following checks use the installed game assets and run unattended. The menu 
 cargo test --locked -p kq8-viewer campaign_tests -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
-cargo test --locked -p kq8-viewer --test regions -- --ignored --nocapture
+cargo test --locked -p kq8-viewer --test regions -- --ignored --test-threads=1 --nocapture
 cargo test --locked -p kq8-core original_barren_dock_script -- --ignored
+cargo test --locked -p kq8-core original_gnome_rock_and_dead_city -- --ignored
 ```
 
 A world loading successfully verifies that it can be opened. Campaign completion also requires ordinary controls to advance the quests, save and restore their consequences, defeat the final boss and reach the ending. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.

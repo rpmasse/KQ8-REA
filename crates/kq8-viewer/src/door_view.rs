@@ -979,6 +979,9 @@ pub fn spawn_doors(
     main_log.summary(format!("talk: {} conversation info object(s): {:?}", active.world.conv_infos.len(), active.world.conv_infos.iter().map(|i| i.name.as_str()).collect::<Vec<_>>()));
     // Rule 22: each door's script gets Init as the door enters the world;
     // then each trap's (traps.md rule 13).
+    for (name, script) in objects.contact_scripts.drain(..) {
+        active.register_contact_script(&name, script);
+    }
     if let Some((flags, in_temple4)) = objects.arriving_flags.take() {
         active.world.connor_flags = flags;
         active.world.connor_in_temple4 = in_temple4;

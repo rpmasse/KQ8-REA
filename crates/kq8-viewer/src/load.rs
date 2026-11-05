@@ -1473,6 +1473,7 @@ pub struct MapFile {
 }
 
 pub struct Objects {
+    pub contact_scripts: Vec<(String, String)>,
     /// Carried state read by destination Init scripts (e.g. Daventry's girl.cs).
     pub arriving_flags: Option<(BTreeMap<String, bool>, bool)>,
     /// The world's animations packed for the graphics card (step 4),
@@ -1751,6 +1752,7 @@ struct CollisionInfo {
     shape: String,
     collider_type: u32,
     collider_mask: u32,
+    calls_on_connor_contact: bool,
     /// `script=` and the click keys (`doors.md` rules 12-16), for a
     /// clickable one (3f).
     script: Option<String>,
@@ -3518,6 +3520,7 @@ impl Placer<'_> {
             shape,
             collider_type,
             collider_mask,
+            calls_on_connor_contact: number("conCollisionAction").is_some_and(|v| v != 0.0),
             script: text("script"),
             accepts_inventory: text("acceptsInventory"),
             accept_all_items: number("acceptAllItems").is_some_and(|v| v != 0.0),
@@ -4735,6 +4738,10 @@ impl Placer<'_> {
             self.game.find("Options.cs").and_then(|p| std::fs::read(p).ok()).and_then(|b| kq8_data::characters::shadow_mask_setting(&b)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
         });
         Objects {
+            contact_scripts: self.placed.iter().zip(&self.collision)
+                .filter(|((_, _, unused), info)| !*unused && info.calls_on_connor_contact && info.collider_mask & kq8_core::collide::CONNOR_TYPE != 0)
+                .filter_map(|((placed, _, _), info)| Some((placed.name.clone(), info.script.clone()?)))
+                .collect(),
             arriving_flags: None,
             map: self.map,
             shadow_world_mask,
@@ -5273,6 +5280,38 @@ mod campaign_tests {
 
     fn game_install() -> GameDir {
         GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap()
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn crossing_dead_city_bridge_trap_delivers_its_lethal_hit() {
+        use kq8_core::{
+            active::Active,
+            collide::{BallStack, CONNOR_TYPE},
+            connor_mover::CONNOR_BOX,
+            stats::{ConnorStats, Stats},
+            trap::{Trap, Visitor},
+        };
+        let game = game_install();
+        let world = World::open(&game, "DeadCity").unwrap();
+        let mut log = Log::create("deadcity-bridge-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let trap = objects.traps.into_iter().find(|t| t.name == "bbdgtrap").unwrap();
+        let [x, y, z] = trap.position;
+        let mut active = Active::new(objects.vars, vec![], vec![], objects.known, objects.scripts);
+        active.add_traps([Trap::new(trap)]);
+        active.set_connor_stats(ConnorStats { level: 1, stats: Stats([10, 0, 0, 0, 0]) });
+        let (min, max) = CONNOR_BOX;
+        let balls = BallStack::from_box(min, max);
+        let from = [x - 3000.0, y, z];
+        let mut visitor = Visitor { name: "Connor", collision_type: CONNOR_TYPE, from, position: from, min, max, balls: &balls };
+        assert!(active.connor_moved(&visitor).is_empty());
+        visitor.position = [x, y, z];
+        assert_eq!(active.connor_moved(&visitor), ["bbdgtrap On Connor"]);
+        active.update();
+        assert!(active.world.connor_dying);
+        assert!(active.world.connor_stats.unwrap().stats.dead());
     }
 
     /// The scales script changes all five river animators to material 161.

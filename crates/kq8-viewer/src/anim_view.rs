@@ -715,12 +715,11 @@ pub fn spawn_animated(
 /// One update (15 per second), after `door_step` has run core's update:
 /// unused objects move their own loops; an object whose shown movement
 /// moves it takes its collider along (3r-4).
-pub fn anim_step(sim: Option<ResMut<AnimSim>>, colliders: Option<ResMut<ObjectColliders>>, doors: Option<ResMut<DoorSim>>) {
+pub fn anim_step(sim: Option<ResMut<AnimSim>>, colliders: Option<ResMut<ObjectColliders>>, mut doors: Option<ResMut<DoorSim>>, connor: Option<Res<crate::connor_view::ConnorSim>>) {
     let Some(mut sim) = sim else { return };
     let sim = &mut *sim;
     sim.updates += 1;
     let n = sim.updates;
-    let mut doors = doors;
     // characters.log (M4 4d-3): core's lines, and every 10 s how many
     // characters are in each state.
     if let Some(d) = doors.as_mut() {
@@ -747,13 +746,13 @@ pub fn anim_step(sim: Option<ResMut<AnimSim>>, colliders: Option<ResMut<ObjectCo
             }
         }
     }
-    let doors = doors.as_deref();
+    let mut contacts = Vec::new();
     let mut colliders = colliders;
     for p in &mut sim.playing {
         if let Source::Own(player) = &mut p.source {
             player.advance(1.0 / kq8_core::UPDATES_PER_SECOND as f32);
         }
-        let Some(player) = player(p, doors) else { continue };
+        let Some(player) = player(p, doors.as_deref()) else { continue };
         let (movement, frame) = (player.current, player.frame());
         // From the place core keeps (a `move` or `KQMoveEvent` changes it;
         // G-3), as the drawing does.
@@ -790,12 +789,32 @@ pub fn anim_step(sim: Option<ResMut<AnimSim>>, colliders: Option<ResMut<ObjectCo
         }
         let frame = frame.min(drawn.frames.saturating_sub(1));
         let (rotation, position) = combine(&pose_at_frame(&drawn.steps, frame), &base.rotation, base.position);
+        let collider = &colliders.0[i];
+        if collider.kind.ball_stack && collider.placement.position != position &&
+            doors.as_ref().is_some_and(|d| d.active.has_contact_script(&p.name)) {
+            if let Some(con) = &connor {
+                use kq8_core::collide::{BallStack, CylinderCollider, CONNOR_MASK, CONNOR_TYPE};
+                use kq8_core::connor_mover::CONNOR_BOX;
+                // The moving rock is the mover. Sweep its balls against
+                // Connor's upright cylinder and leave its own movement intact.
+                let target = CylinderCollider::from_box("Connor", con.mover.position, CONNOR_BOX.0, CONNOR_BOX.1, CONNOR_TYPE, CONNOR_MASK);
+                let balls = BallStack::from_box(collider.min, collider.max);
+                if let Some(hit) = target.sweep(&balls, collider.placement.position, position).contact {
+                    contacts.push((p.name.clone(), hit.normal));
+                }
+            }
+        }
         colliders.0[i].placement = kq8_core::collide::Placement { rotation, position };
         if n % 15 == 0 && n <= 150 {
             sim.log.detail(format!(
                 "update {n} [{}] frame {frame}: collider at ({:.0}, {:.0}, {:.0})",
                 p.name, position[0], position[1], position[2]
             ));
+        }
+    }
+    if let Some(d) = doors.as_mut() {
+        for (name, normal) in contacts {
+            d.active.connor_contact(&name, normal);
         }
     }
 }
