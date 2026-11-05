@@ -99,13 +99,14 @@ const ROWS: [Row; 9] = [
     Row::Back,
 ];
 // Subscreens need their own runtime implementation; keep their original labels visible.
-const ACTIVE: [Row; 7] = [
+const ACTIVE: [Row; 8] = [
     Row::Keys,
     Row::Music,
     Row::Effects,
     Row::Speech,
     Row::Subtitles,
     Row::Help,
+    Row::Credits,
     Row::Back,
 ];
 
@@ -154,6 +155,7 @@ pub struct Screen {
 pub enum Destination {
     Stay,
     Keyboard,
+    Credits,
     Back,
 }
 
@@ -242,6 +244,7 @@ impl Screen {
             Row::Subtitles => s.subtitles = !s.subtitles,
             Row::Help => s.help = !s.help,
             Row::Keys => return Destination::Keyboard,
+            Row::Credits => return Destination::Credits,
             Row::Back => return Destination::Back,
             _ => {}
         }

@@ -101,6 +101,8 @@ impl Choice {
         }
     }
 
+    pub fn has_game(&self)->bool {self.game}
+
     fn available(&self) -> &'static [usize] {
         match (
             self.game,
