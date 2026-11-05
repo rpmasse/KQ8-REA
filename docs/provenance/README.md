@@ -25,6 +25,10 @@ The same Dead City archive supplies 16 `KQMonster::add` lines in `RATKARMA.CS`, 
 
 The current GOG `Daventry/kq.vol` supplies `newWorld.cs` and `permwrld.cs`. The latter disables `activatePersistMgr` while loading permanent scenery and enables it before ordinary props. [World-change behavior, rule 12](../behaviour/world-change.md) describes how the original kept world stores the current state of objects loaded while that manager is active. The Rust save stores changed placements of these props in its own versioned format. The windmill replay checks the bale's restored collision surface and the axe's scripted location after a fresh-process load.
 
+## Scripted camera continuation
+
+The camera destination-list checkpoint follows [Camera flights and cuts, rules 1–4](../behaviour/camera.md#camera-flights-and-cuts-addcamloc-flytocamloc-cuttocamloc-traced-2026-10-18): destinations remain ordered until `addCamLoc` requests a new list. The original GOG `vol:Daventry/kq/wtrmwalk.cs` supplies the initial camera position, destination (190000, 230000, 10600), aim (186960, 228000, 10000), range and two-second flight used by the unattended save/reload check. This is an isolated command sequence, not verification of the complete windmill scene. The optional Rust save field is this project's own representation.
+
 ## Campaign script variables and payments
 
 | Behavior | Reference |
