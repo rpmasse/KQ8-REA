@@ -1177,7 +1177,7 @@ impl ConnorSim {
             Mode::Free if self.walker.moving() => MOVE,
             Mode::Free | Mode::Crash => WAIT,
             Mode::Fall | Mode::Land | Mode::Jump => JUMP,
-            Mode::Dying | Mode::Dead => DIE,
+            Mode::Dying | Mode::ScriptedDie | Mode::Dead => DIE,
             Mode::Special => SPECIAL,
             Mode::Push => PUSH,
             Mode::Talk => TALK,
@@ -1996,7 +1996,7 @@ impl ConnorSim {
             // Hanging on the rope: the climb is moved by the keys, not
             // blended (rule 22).
             let hanging = self.walker.mode == Mode::Rope && self.walker.rope_hang;
-            if time > 0.0 && self.walker.mode != Mode::Dead && !hanging { (1.0 / kq8_core::UPDATES_PER_SECOND) as f32 * speed / time } else { 0.0 }
+            if time > 0.0 && !matches!(self.walker.mode, Mode::Dead | Mode::ScriptedDie) && !hanging { (1.0 / kq8_core::UPDATES_PER_SECOND) as f32 * speed / time } else { 0.0 }
         })
     }
 
@@ -2312,6 +2312,10 @@ pub fn connor_step(
 ) {
     let (Some(mut sim), Some(lookup)) = (sim, lookup) else { return };
     let sim = &mut *sim;
+    if sim.walker.mode == Mode::ScriptedDie {
+        sim.updates += 1;
+        return;
+    }
     let mut scene = MoverScene::new(
         &lookup.0,
         buildings.as_ref().map_or(&[][..], |b| &b.0),

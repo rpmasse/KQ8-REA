@@ -3,6 +3,12 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Temple 4 scripted defeat and game-over menu
+
+The installed `vortrap.cs` ends Connor's sword, bow and empty-hand losing branches with `KQMonster::setState Connor Die Now`. The [independent GOG study](docs/behaviour/connor-vortex-death.md) found that this request skips the normal death animation, removes Connor from collision and gravity, and schedules the death menu after three seconds of simulation time. Rust now follows that path, including zero health, the held camera and pose, the ordinary menu pause and recovery choices. The reincarnation switch restores health and returns Connor to Wait instead.
+
+The core suite passed 589 tests, with 11 ignored. Original-data simulation covered all three equipment branches and menu recovery. An unattended Windows route sent Connor into the original vortex geometry; `Die Now` began at update 86 and the paused death menu opened at update 131 with **New** selected. Save/load during the hold, side-by-side timing against the original executable, and ordinary death timing remain untested.
+
 ## 2026-11-05 Original in-game help rules
 
 The Windows viewer now displays scripted tutorial messages from the installed

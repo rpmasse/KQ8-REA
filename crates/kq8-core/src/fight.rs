@@ -1620,7 +1620,8 @@ impl crate::active::WorldState {
                     keep(k.touch, Touched::Character(j));
                 }
             }
-            if let (true, Some(at)) = (back || (b.mask & crate::collide::CONNOR_TYPE != 0 && !skip("Connor")), self.connor_at) {
+            let (connor_type, _) = self.connor_collision();
+            if let (true, Some(at)) = (connor_type != 0 && (back || (b.mask & connor_type != 0 && !skip("Connor"))), self.connor_at) {
                 let (min, max) = crate::connor_mover::CONNOR_BOX;
                 let cyl = CylinderCollider::from_box("Connor", at, min, max, crate::collide::CONNOR_TYPE, 0);
                 let s = cyl.sweep(balls, from, to);

@@ -10,7 +10,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | --- | --- | --- |
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
 | M4 · Interface and dialogue | Title, pause, Save, Load, Options, Keyboard, scripted Help and F1 work. Replay Intro plays the original film. Credits displays the original 25 cards and team photograph. The HUD, speech, captions and some conversations work. Saving Options preserves the GOG graphics settings. | Graphics, inventory and dialogue behavior, and exact credits timing and score calculation. |
-| M5 · Combat | Dead City's Weeper and Tower Skeleton have encounter checks. In Temple 4 Lucreto switches between melee and ranged attacks using the original distance rule. A melee stagger can push him into the vortex. | Complete weapon controls and trajectories, remaining enemies, encounter timing and death recovery. |
+| M5 · Combat | Dead City's Weeper and Tower Skeleton have encounter checks. In Temple 4 Lucreto switches between melee and ranged attacks using the original distance rule. A melee stagger can push him into the vortex. All three scripted Connor defeat branches open the death menu after the original three-second hold. | Complete weapon controls and trajectories, remaining enemies, encounter timing and ordinary death recovery. |
 | M6 · Campaign and saves | Automated routes cover the wizard's first rewards, the Daventry castle round trip and the Dead City scales. Saves restore timed puzzle events and a scripted raven in flight. The final movie can lead into scored credits. | Restore live combat, dialogue and cutscene cameras. Complete region quests, optional branches and boss sequences in an uninterrupted campaign. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
 
@@ -70,7 +70,7 @@ The separate cottage test collects five mushrooms, consumes one, saves and quits
 
 Two Dead City checks start with the original portal's arrival cue. One gives Connor the feather, uses it on the right dish and steers him onto the left. The original scripts then lower five river sections. The other boards the right dish, steps off and walks out of the puzzle. Getting the feather during campaign play and saving mid-puzzle still need coverage.
 
-The Temple 4 scenarios check the altar’s changes to Lucreto’s movements and the animated sequences for victory and defeat. The last command of all three defeat sequences, `KQMonster::setState Connor Die Now`, still needs its transition to the death menu. Separate movie checks cover title replay, the middle film returning to play, and the ending film followed by scored credits. Reaching that ending in an uninterrupted campaign remains open. The [script coverage report](docs/SCRIPT-COVERAGE.md) lists commands across all worlds.
+The Temple 4 scenarios check the altar’s changes to Lucreto’s movements and the animated sequences for victory and defeat. All three `KQMonster::setState Connor Die Now` branches hold Connor and the final camera shot for three seconds, then open the paused death menu. The unattended Windows route checked the empty-hand ending; the sword and bow endings passed original-data simulation tests. Separate movie checks cover title replay, the middle film returning to play, and the ending film followed by scored credits. Reaching that ending in an uninterrupted campaign remains open. The [script coverage report](docs/SCRIPT-COVERAGE.md) lists commands across all worlds.
 
 ## Source and research
 
@@ -80,7 +80,7 @@ The GOG installation supplies two kinds of evidence. Files such as `Options.cs` 
 cargo run --locked -p kq8-cli -- text vol:DeadCity/kq/SCALE.CS
 ```
 
-The original engine ships as `Mask.exe`. The [Lucreto study](docs/behaviour/lucreto-forms.md) shows how executable research and game data work together. His character file specifies a switching distance of 2,000. The executable supplies the three-dimensional comparison, its behavior at exactly 2,000 and how one form takes the other's place. The [research workflow](docs/SESSIONS.md) keeps that investigation separate from writing the Rust code.
+The original engine ships as `Mask.exe`. The [Lucreto study](docs/behaviour/lucreto-forms.md) shows how executable research and game data work together. His character file specifies a switching distance of 2,000. The executable supplies the three-dimensional comparison, its behavior at exactly 2,000 and how one form takes the other's place. The [scripted death study](docs/behaviour/connor-vortex-death.md) records the original three-second hold and death-menu transition. The [research workflow](docs/SESSIONS.md) keeps that investigation separate from writing the Rust code.
 
 | Component | Responsibility |
 | --- | --- |

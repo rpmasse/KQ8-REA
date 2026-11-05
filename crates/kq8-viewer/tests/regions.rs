@@ -38,6 +38,32 @@ fn run_world(case: &str, args: &[&str]) -> PathBuf {
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn temple4_connors_vortex_defeat_opens_the_death_menu_after_45_updates() {
+    let logs = run_world("temple4-defeat", &[
+        "--world", "temple4", "--no-ai", "--god",
+        "--command", "loadKQ vortex.kq,3", "--command", "loadKQ vortrap.kq,4",
+        // A regular gravity step after this placement enters the real trap.
+        "--command", "move Connor 0 100011 93054 6600 0 0 0,8",
+        "--frames", "1000",
+    ]);
+    let log = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let entry = log.lines().find(|l| l.contains("Connor Die Now, hold until update")).expect("Die Now entry");
+    let tick = |s: &str| s.split_once("update ").unwrap().1.split(':').next().unwrap().parse::<u64>().unwrap();
+    let due = entry.split("hold until update ").nth(1).unwrap().split(';').next().unwrap().parse::<u64>().unwrap();
+    assert_eq!(due, tick(entry) + 45);
+    let end = log.lines().find(|l| l.contains("scripted Die hold finished")).expect("game over");
+    assert_eq!(tick(end), due);
+    let shot = entry.split_once("; camera ").unwrap().1;
+    assert!(end.contains(shot), "entry {entry}; deadline {end}");
+    assert!(shot.starts_with("Some([99990.68, 94458.15, 7234.8955])"), "{shot}");
+    assert!(log.contains("copy csuck2 of cg_suck2.kqs: drawn"));
+    assert!(log.contains("menu: shown Choice { game: false, row: 0"));
+    assert!(!log.contains("movie: playing") && !log.contains("credits: ending"));
+    assert!(log.contains("RESULT: PASS"));
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
 fn temple4_renders_each_scripted_vortex_animation() {
     // Start at the first winning cutscene rather than waiting for several
     // combats. Its real end listener drives the remaining animations.
