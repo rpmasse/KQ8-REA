@@ -5530,4 +5530,105 @@ mod campaign_tests {
             }
         }
     }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn temple4_melee_stagger_enters_the_vortex_and_starts_the_finale() {
+        use kq8_core::{
+            active::{Active, AnimObject, Request}, character::Character, character_ai::Ai,
+            collide::Placement, connor_mover::Mover, door::{Cue, DoorMovement},
+            fight::Fight, named_anim::NamedAnimPlayer, stats::{ConnorStats, Stats}, trap::Trap,
+        };
+        let game = game_install();
+        let world = World::open(&game, "temple4").unwrap();
+        let mut log = Log::create("temple4-vortex-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let trap = objects.traps.iter().find(|t| t.script.as_deref().is_some_and(|s| s.eq_ignore_ascii_case("vortrap.cs"))).unwrap();
+        let bounds = crate::draw_distance::ShapeBalls::new(objects.game_bounds.clone(), std::iter::empty());
+        assert_eq!(trap.mask, 6);
+        for who in ["LucEnd", "LucEndFar"] {
+            let mut active = Active::new(objects.vars.clone(), vec![], vec![], objects.known.clone(), objects.scripts.clone());
+            active.add_traps([Trap { gone: true, ..Trap::new(trap.clone()) }]);
+            active.set_dormant(objects.dormant.clone());
+            for name in ["LucEnd", "LucEndFar"] {
+                let a = objects.animated.iter().find(|a| objects.placed[a.placed].0.name == name).unwrap();
+                let p = &objects.placed[a.placed].0;
+                let c = a.character.as_ref().unwrap();
+                let k = &c.keys;
+                let (min, max) = bounds.character_box(name, c.box_type.as_deref()).unwrap();
+                let movements = a.movements.iter().map(|(name, l, i)| {
+                    let model = &objects.object_animations[*i];
+                    DoorMovement {
+                        name: name.clone(), start: l.start, speed: l.speed, repeat: l.repeat, cut_short: l.unknown != 0,
+                        play_time: model.duration, frame_steps: model.frame_transforms.clone(), first_in_file: model.first_in_file,
+                        frame_parts: model.frame_parts.clone(), transitions: l.transitions.clone(),
+                        cues: l.cues.iter().map(|(phase, action)| Cue { phase: *phase, action: action.clone() }).collect(),
+                    }
+                }).collect();
+                let keep = match p.keep_on_ground {
+                    kq8_data::objects::KeepOnGround::Floor => -1, kq8_data::objects::KeepOnGround::Surface => 1, kq8_data::objects::KeepOnGround::Off => 0,
+                };
+                let mut mover = Mover::character(p.position, k.gravity, min, max, (k.collider_type, k.collider_mask),
+                    (k.step_up.unwrap_or(kq8_core::connor_mover::STEP), k.step_down.unwrap_or(kq8_core::connor_mover::STEP)), keep);
+                if name == who {
+                    // Begin at the northern lip, one small gap beyond his collision ball.
+                    mover.position = [trap.position[0], trap.position[1] + trap.max[1] + mover.balls.radius + 10., trap.position[2] + 1.];
+                }
+                let at = Placement { position: mover.position, rotation: kq8_data::objects::rotation([0., 0., std::f32::consts::PI]) };
+                let mut player = NamedAnimPlayer::new(name, movements, a.current, at).with_stop_names(None, None);
+                player.character_steps(k.class);
+                let mut character = Character::new(false, k.flags, c.birth_delay, false, k.no_turn, k.gravity, Character::seed_for(name));
+                character.lucreto_react_pause = k.react_pause;
+                character.ai = Some(Ai::new(c.ai.clone(), at.position, max[2], false));
+                character.fight = Some(Fight::new(c.fight.clone().unwrap()));
+                character.bounds = Some((min, max));
+                character.collision_type = k.collider_type;
+                character.collision_mask = k.collider_mask;
+                character.hits_buildings = k.collider_mask & 8 != 0;
+                character.mover = Some(Box::new(mover));
+                character.set_state(&mut player, "Wait", &[], 0.);
+                active.add_anims([AnimObject { player, character: Some(Box::new(character)), script: None, gone: false, translucency: None }]);
+            }
+            // The actual altar handoff from the last cutscene enables the
+            // dormant vortex trap and places the close-combat actor.
+            assert!(active.run_script("altar.cs", &["altar".into(), "Cue".into(), "6".into(), "7".into()]));
+            assert!(!active.world.traps[0].gone);
+            assert_eq!(active.world.place_of("LucEnd").unwrap().position, [101180., 94750., 5938.]);
+            active.world.characters_in_range.insert(who.to_ascii_lowercase());
+            active.set_connor_stats(ConnorStats { level: 1, stats: Stats([100, 25, 0, 0, 0]) });
+            let start = active.world.place_of(who).unwrap();
+            active.world.connor_at = Some([start.position[0], start.position[1] + 850., start.position[2]]);
+            active.world.characters_ai(&ground.terrain, &objects.buildings, &[]);
+            let mut staggered = false;
+            for tick in 0..900 {
+                if tick % 12 == 0 {
+                    let actor = active.world.place_of(who).unwrap();
+                    let from = [actor.position[0], actor.position[1] + 850., actor.position[2]];
+                    active.world.connor_at = Some(from);
+                    active.world.connor_do(from, 0., 1200., Some(who), false, "swing");
+                }
+                active.update();
+                let i = active.world.anims.iter().position(|a| a.player.name == who).unwrap();
+                let staggering = active.world.anims[i].player.movement_name().eq_ignore_ascii_case("reactback");
+                staggered |= staggering;
+                active.world.characters_ai(&ground.terrain, &objects.buildings, &[]);
+                active.characters_gravity(&ground.terrain, &objects.buildings, &[]);
+                if active.world.sounds.iter().any(|s| s.name.starts_with("finale")) {
+                    assert!(staggering, "{who} must enter the vortex during a backwards hit reaction");
+                    assert_eq!(active.world.anims[i].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0], 2500);
+                    break;
+                }
+            }
+            assert!(staggered, "{}", active.world.fight_log.join("\n"));
+            let log = active.take_trap_log().join("\n");
+            assert!(log.to_ascii_lowercase().contains(&format!("on {who}").to_ascii_lowercase()), "{log}; {:?} from {:?}; {}", active.world.place_of(who), start, active.world.fight_log.iter().take(35).cloned().collect::<Vec<_>>().join("\n"));
+            assert!(log.to_ascii_lowercase().contains(&format!("off {who}").to_ascii_lowercase()), "{log}");
+            assert!(active.world.traps[0].inside.is_empty());
+            assert!(active.world.sounds.iter().any(|s| s.name == if who == "LucEnd" { "finale" } else { "finale.aud" }), "{log}");
+            assert_eq!(active.world.place_of("LucEnd").unwrap().position, active.world.place_of("LucEndFar").unwrap().position);
+            assert!(active.world.place_of(who).unwrap().position[1] > 107000.);
+            assert!(active.world.requests.iter().any(|r| matches!(r, Request::HandsOff { on: true, .. })));
+        }
+    }
 }

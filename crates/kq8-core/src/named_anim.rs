@@ -78,8 +78,8 @@ pub struct Played {
     /// A transition movement that started in this update (its from point
     /// was reached).
     pub transition: Option<Started>,
-    /// A character's repeating loop: the summed step of the frames this
-    /// update entered, in its own space (`objects.md` "Loops" rule 6a).
+    /// Steps of frames entered in a movement that drives a character's
+    /// collision body, in its own space (objects.md rule 6a).
     pub travel: Option<[f32; 3]>,
 }
 
@@ -166,6 +166,9 @@ pub struct NamedAnimPlayer {
     /// drawing does not add their shift (as Connor's loops); a turn in the
     /// frames is still drawn.
     pub loops_move_base: bool,
+    /// A non-repeating stagger whose frame steps go through the character
+    /// mover too (Lucreto's retreat toward the Temple 4 vortex).
+    stagger_movement: Option<usize>,
 }
 
 impl NamedAnimPlayer {
@@ -193,6 +196,7 @@ impl NamedAnimPlayer {
             chosen: None,
             in_transition: None,
             loops_move_base: false,
+            stagger_movement: None,
         }
     }
 
@@ -273,6 +277,19 @@ impl NamedAnimPlayer {
 
     pub fn movement(&self) -> Option<&DoorMovement> {
         self.movements.get(self.current)
+    }
+
+    /// Enable the frame-driven movement of a character. Both Temple 4
+    /// Lucreto placements use the same physical backwards stagger.
+    pub fn character_steps(&mut self, class: kq8_data::characters::Class) {
+        self.loops_move_base = true;
+        if class == kq8_data::characters::Class::Lucreto {
+            self.stagger_movement = self.movements.iter().position(|m| m.name.eq_ignore_ascii_case("reactback"));
+        }
+    }
+
+    pub fn steps_move_base(&self) -> bool {
+        self.loops_move_base && (self.stagger_movement == Some(self.current) || self.movement().is_some_and(|m| m.repeat))
     }
 
     /// The current movement's name as asked (rule 5).
@@ -470,7 +487,20 @@ impl NamedAnimPlayer {
                 }
                 step
             }
-            None => m.step_with(self.phase, dt, speed),
+            None => {
+                let step = m.step_with(self.phase, dt, speed);
+                if self.loops_move_base && self.stagger_movement == Some(self.current) {
+                    let old = m.frame_at(self.phase);
+                    let new = m.frame_at(step.to);
+                    let mut delta = [0.; 3];
+                    for k in (old.min(new) + 1)..=old.max(new) {
+                        let shift = m.frame_steps[k].p;
+                        for j in 0..3 { delta[j] += if new > old { shift[j] } else { -shift[j] }; }
+                    }
+                    out.travel = Some(delta);
+                }
+                step
+            }
         };
         self.phase = step.to;
         out.to = step.to;
@@ -527,7 +557,7 @@ impl NamedAnimPlayer {
     /// The turn the shown frame's steps give it (own space).
     pub fn turn(&self) -> Transform {
         let mut t = self.movement().map_or_else(identity, |m| m.turn_at_frame(self.frame()));
-        if self.loops_move_base && self.movement().is_some_and(|m| m.repeat) {
+        if self.steps_move_base() {
             // Its steps moved the place instead; a turn in the frames stays.
             t.p = [0.0; 3];
         }
@@ -542,7 +572,7 @@ impl NamedAnimPlayer {
         let Some(m) = self.movement() else { return identity() };
         let here = m.turn_at_frame(frame);
         let mut t = if toward > 0.0 && frame + 1 < m.frames() { crate::door::mix_transform(&here, &m.turn_at_frame(frame + 1), toward) } else { here };
-        if self.loops_move_base && m.repeat {
+        if self.steps_move_base() {
             t.p = [0.0; 3];
         }
         t

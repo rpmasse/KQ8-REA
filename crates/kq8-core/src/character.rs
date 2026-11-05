@@ -122,6 +122,9 @@ pub struct Character {
     /// movements; otherwise an ordinary character.
     pub mouth_moves: bool,
     pub tower: Option<crate::tower_skeleton::Tower>,
+    /// KQLucreto's post-stagger standing interval (fighting.md rule 23).
+    pub lucreto_react_pause: Option<f32>,
+    resume_move_at: f64,
     /// `flags` bit 0x10 (rule 13).
     pub random_stop: bool,
     /// Seconds from the first update to Wait (rule 12).
@@ -265,6 +268,8 @@ impl Character {
             geometry,
             mouth_moves: false,
             tower: None,
+            lucreto_react_pause: None,
+            resume_move_at: f64::NEG_INFINITY,
             random_stop: flags & kq8_data::characters::RANDOM_STOP != 0,
             birth_delay,
             has_birth,
@@ -527,6 +532,9 @@ impl Character {
     /// once `walk` or `run`; the stuck check starts (rule 7). Returns the
     /// log line.
     pub fn enter_move(&mut self, player: &mut NamedAnimPlayer, now: f64, run: bool, why: &str) -> String {
+        if now < self.resume_move_at {
+            return format!("Move ({why}): standing after reactback until {:.2} (fighting.md rule 23)", self.resume_move_at);
+        }
         if self.state == State::Die {
             return format!("Move ({why}): it is dying: its state never changes again (fighting.md rule 30)");
         }
@@ -551,22 +559,20 @@ impl Character {
         format!("{cut}{first}state Move (from {from:?}; {why}): Stop {stop}; then {moving} (rule 4)")
     }
 
-    /// Rule 1: this update's step from a repeating movement, turned by its
-    /// rotation, for its mover: the steps of the frames it entered
-    /// (`objects.md` "Loops" rule 6a, Q164; the player gives them); with no
-    /// frames to go by, its frame steps added up × the phase moved. Nothing
-    /// when a movement started, ended or changed in this update, or for a
-    /// play-once one.
+    /// Turn the steps of the frames entered into a world-space movement for
+    /// the collision mover (objects.md rule 6a). Lucreto's one-shot stagger
+    /// uses the same path. A looping movement without frame data falls back
+    /// to the total shift times the phase advanced.
     fn movement_step(&mut self, player: &NamedAnimPlayer, played: &Played) {
-        if played.started.is_some() || played.transition.is_some() || played.finished.is_some() {
-            return;
-        }
-        let Some(m) = player.movement().filter(|m| m.repeat) else { return };
         if let Some(own) = played.travel {
             let r = &player.base.rotation;
             self.walk.step = std::array::from_fn(|j| (0..3).map(|i| own[i] * r[i][j]).sum());
             return;
         }
+        if played.started.is_some() || played.transition.is_some() || played.finished.is_some() {
+            return;
+        }
+        let Some(m) = player.movement().filter(|m| m.repeat) else { return };
         let mut d = played.to - played.from;
         if player.speed() >= 0.0 && d < 0.0 {
             d += 1.0;
@@ -629,7 +635,14 @@ impl Character {
             }
         }
         if let Some(m) = &played.finished {
-            self.after_end(player, m, notes);
+            if let Some(pause) = self.lucreto_react_pause.filter(|_| m.eq_ignore_ascii_case("reactback") && matches!(self.state, State::Wait | State::Move)) {
+                self.resume_move_at = now + f64::from((pause - self.random()).max(0.));
+                self.walk.steer = None;
+                self.enter_wait(player, notes);
+                notes.push(format!("fight: reactback ended: stands until {:.2} (fighting.md rule 23)", self.resume_move_at));
+            } else {
+                self.after_end(player, m, notes);
+            }
             if let Some(l) = self.attack_ended(m, now) {
                 notes.push(l);
             }
@@ -1565,6 +1578,35 @@ pub(crate) mod tests {
         walk_for(&mut c, &mut p, &Flat, n, 16, &mut log);
         let gone = from[1] - p.base.position[1];
         assert!((gone - 3068.0).abs() < 2.0, "{gone}");
+    }
+
+    #[test]
+    fn lucreto_staggers_back_and_waits_before_resuming_pursuit() {
+        let (mut c, mut p) = walker(900., 1500.);
+        c.lucreto_react_pause = Some(2.);
+        c.enter_move(&mut p, 0., false, "chasing");
+        let mut stagger = movement("reactback", 0., 1., false, false, vec![]);
+        let mut shift = crate::door::identity();
+        shift.p = [0., 40., 0.];
+        stagger.frame_steps = vec![crate::door::identity(), shift, shift, shift];
+        p.movements.push(stagger);
+        p.character_steps(kq8_data::characters::Class::Lucreto);
+        p.start("reactback");
+        let mut end = None;
+        for tick in 0..45 {
+            let now = tick as f64 / 15.;
+            c.update(&mut p, now, 1. / 15., tick);
+            c.gravity_step(&mut p, &Flat, now);
+            assert_eq!(p.placement().position, p.base.position);
+            if c.state == State::Wait { end = Some(now); break; }
+        }
+        let end = end.unwrap();
+        assert_eq!(p.base.position, [0., 120., 100.]);
+        assert!((1. ..=2.).contains(&(c.resume_move_at - end)));
+        c.enter_move(&mut p, c.resume_move_at - 1e-4, false, "still recovering");
+        assert_eq!(c.state, State::Wait);
+        c.enter_move(&mut p, c.resume_move_at, false, "ready");
+        assert_eq!(c.state, State::Move);
     }
 
     #[test]

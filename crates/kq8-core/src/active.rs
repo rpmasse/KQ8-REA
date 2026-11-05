@@ -625,6 +625,8 @@ pub struct WorldState {
     /// The other animated objects (3i-4), in the viewer's order.
     pub anims: Vec<AnimObject>,
     pub traps: Vec<Trap>,
+    /// Stay checks due after a script directly places a character already inside a trap (Q102).
+    placed_in_trap: Vec<(usize, [f32; 3])>,
     pub clickables: Vec<Clickable>,
     /// The buildings, in the caller's order (3g-2).
     pub buildings: Vec<ActiveBuilding>,
@@ -843,7 +845,7 @@ pub struct WorldState {
     /// each update (M4 4d-12-2).
     pub characters_solid: BTreeSet<String>,
     /// The characters solid for Connor where they stand now, rebuilt by
-    /// [`WorldState::characters_gravity`] (M4 4d-12-2).
+    /// [`Active::characters_gravity`] (M4 4d-12-2).
     pub character_colliders: Vec<crate::collide::CylinderCollider>,
     /// Lines for `characters.log` (M4 4d-3), taken by the caller.
     pub character_log: Vec<String>,
@@ -1153,54 +1155,46 @@ impl WorldState {
     /// cylinders where they stand now, while solid) and Connor whose type
     /// its mask covers in the bits of its own touch table; `colliderMask=0`
     /// sees nothing but the ground check.
-    pub fn characters_gravity(&mut self, ground: &dyn crate::connor_mover::GroundLookup, buildings: &[crate::collide::BuildingCollider], objects: &[crate::collide::BoxCollider]) {
+    fn move_character(&mut self, i: usize, ground: &dyn crate::connor_mover::GroundLookup, buildings: &[crate::collide::BuildingCollider], objects: &[crate::collide::BoxCollider], by_mask: &mut BTreeMap<u32, Vec<crate::collide::BoxCollider>>) {
         use crate::collide::CylinderCollider;
         let now = self.now();
-        // The objects each mask meets (most characters share 0x281F).
-        let mut by_mask: BTreeMap<u32, Vec<crate::collide::BoxCollider>> = BTreeMap::new();
-        for i in 0..self.anims.len() {
-            if self.anims[i].gone {
-                continue;
-            }
-            let Some(c) = self.anims[i].character.as_deref() else { continue };
-            let (mask, hits_buildings) = (c.collision_mask, c.hits_buildings);
-            let obstacle = |t: u32| mask & t & crate::character::OWN_TOUCH_OBSTACLES != 0;
-            let objs = by_mask.entry(mask).or_insert_with(|| objects.iter().filter(|o| obstacle(o.kind.collision_type)).cloned().collect());
-            // The others where they stand now (those already moved in this
-            // pass, at their new place).
-            let mut others: Vec<CylinderCollider> = self
-                .anims
-                .iter()
-                .enumerate()
-                .filter(|(j, a)| *j != i && !a.gone && self.characters_solid.contains(&a.player.name.to_ascii_lowercase()))
-                .filter_map(|(_, a)| {
-                    let o = a.character.as_deref()?;
-                    let (min, max) = o.bounds?;
-                    (!o.unborn && obstacle(o.collision_type)).then(|| CylinderCollider::from_box(&a.player.name, a.player.base.position, min, max, o.collision_type, o.collision_mask))
-                })
-                .collect();
-            // Q132 (c) stand-in: Connor as the same cylinder, from his box.
-            if let (true, Some(at)) = (obstacle(crate::collide::CONNOR_TYPE), self.connor_at) {
-                let (min, max) = crate::connor_mover::CONNOR_BOX;
-                others.push(CylinderCollider::from_box("Connor", at, min, max, crate::collide::CONNOR_TYPE, CONNOR_MASK));
-            }
-            let mut world = crate::connor_mover::Scene::new(ground, if hits_buildings { buildings } else { &[] }, if mask == 0 { &[] } else { objs });
-            if mask != 0 {
-                world.characters = &others;
-            }
-            let a = &mut self.anims[i];
-            let Some(c) = a.character.as_deref_mut() else { continue };
-            let notes = c.gravity_step(&mut a.player, &world, now);
-            let name = a.player.name.clone();
-            let at = a.player.placement();
-            if let Some(k) = self.clickables.iter_mut().find(|k| k.name.eq_ignore_ascii_case(&name)) {
-                k.placement = at;
-            }
-            for n in notes {
-                self.character_note(&name, n);
-            }
+        let Some(c) = self.anims[i].character.as_deref() else { return };
+        let (mask, hits_buildings) = (c.collision_mask, c.hits_buildings);
+        let obstacle = |t: u32| mask & t & crate::character::OWN_TOUCH_OBSTACLES != 0;
+        let objs = by_mask.entry(mask).or_insert_with(|| objects.iter().filter(|o| obstacle(o.kind.collision_type)).cloned().collect());
+        // The others where they stand now (those already moved in this
+        // pass, at their new place).
+        let mut others: Vec<CylinderCollider> = self
+            .anims
+            .iter()
+            .enumerate()
+            .filter(|(j, a)| *j != i && !a.gone && self.characters_solid.contains(&a.player.name.to_ascii_lowercase()))
+            .filter_map(|(_, a)| {
+                let o = a.character.as_deref()?;
+                let (min, max) = o.bounds?;
+                (!o.unborn && obstacle(o.collision_type)).then(|| CylinderCollider::from_box(&a.player.name, a.player.base.position, min, max, o.collision_type, o.collision_mask))
+            })
+            .collect();
+        // Q132 (c) stand-in: Connor as the same cylinder, from his box.
+        if let (true, Some(at)) = (obstacle(crate::collide::CONNOR_TYPE), self.connor_at) {
+            let (min, max) = crate::connor_mover::CONNOR_BOX;
+            others.push(CylinderCollider::from_box("Connor", at, min, max, crate::collide::CONNOR_TYPE, CONNOR_MASK));
         }
-        self.update_character_colliders();
+        let mut world = crate::connor_mover::Scene::new(ground, if hits_buildings { buildings } else { &[] }, if mask == 0 { &[] } else { objs });
+        if mask != 0 {
+            world.characters = &others;
+        }
+        let a = &mut self.anims[i];
+        let Some(c) = a.character.as_deref_mut() else { return };
+        let notes = c.gravity_step(&mut a.player, &world, now);
+        let name = a.player.name.clone();
+        let at = a.player.placement();
+        if let Some(k) = self.clickables.iter_mut().find(|k| k.name.eq_ignore_ascii_case(&name)) {
+            k.placement = at;
+        }
+        for n in notes {
+            self.character_note(&name, n);
+        }
     }
 
     /// M4 4d-12-2: the characters solid for Connor, as cylinders where they
@@ -2676,6 +2670,11 @@ impl WorldState {
             let old = base.position;
             let (new, note) = moved_placement(*base, flags, position, turn);
             *base = new;
+            if self.traps.iter().any(|t| t.inside.iter().any(|name| name.eq_ignore_ascii_case(&who))) {
+                if let Some(i) = self.anim_index(&who).filter(|&i| self.anims[i].character.is_some()) {
+                    self.placed_in_trap.push((i, new.position));
+                }
+            }
             self.note(format!(
                 "{at}: move {who} {flags}: ({:.0}, {:.0}, {:.0}) -> ({:.0}, {:.0}, {:.0}){}",
                 old[0],
@@ -3975,6 +3974,7 @@ impl Active {
                 objects: Vec::new(),
                 anims: Vec::new(),
                 traps: Vec::new(),
+                placed_in_trap: Vec::new(),
                 clickables,
                 buildings: Vec::new(),
                 known,
@@ -4454,11 +4454,51 @@ impl Active {
         self.world.in_trap = was;
     }
 
-    /// After an object's move (Connor's, in this step): every trap checks
-    /// it and runs its script for `On`, `Off` or `Cue` (traps.md rules
-    /// 6-9). Returns the calls made, as `<trap> <args>`.
+    /// Sweep Connor against the traps and run their scripts for `On`, `Off`
+    /// or `Cue` (traps.md rules 6–9). Returns `<trap> <args>` per call.
     pub fn connor_moved(&mut self, v: &Visitor) -> Vec<String> {
         self.traps_check(v, false)
+    }
+
+    /// Move each character through the world, dispatching its trap touches before
+    /// moving the next character. A trap can reposition either one from its script.
+    pub fn characters_gravity(&mut self, ground: &dyn crate::connor_mover::GroundLookup, buildings: &[crate::collide::BuildingCollider], objects: &[crate::collide::BoxCollider]) {
+        let mut by_mask = BTreeMap::new();
+        for i in 0..self.world.anims.len() {
+            let a = &self.world.anims[i];
+            if a.gone || a.character.is_none() { continue; }
+            let from = a.player.base.position;
+            self.world.move_character(i, ground, buildings, objects, &mut by_mask);
+            let to = self.world.anims[i].player.base.position;
+            if from != to {
+                self.character_traps(i, from, to, false);
+                self.character_placements();
+            }
+        }
+        self.world.update_character_colliders();
+    }
+
+    fn character_traps(&mut self, i: usize, from: [f32; 3], position: [f32; 3], placed: bool) {
+        let a = &self.world.anims[i];
+        let Some(c) = a.character.as_deref().filter(|c| !a.gone && !c.unborn) else { return };
+        let Some((min, max)) = c.bounds else { return };
+        let name = &a.player.name;
+        let eligible = self.world.traps.iter().any(|t| {
+            !t.gone && ((!placed && t.counts(c.collision_type)) || t.inside.iter().any(|n| n.eq_ignore_ascii_case(name)))
+        });
+        if !eligible { return; }
+        let Some(mover) = c.mover.as_ref() else { return };
+        let (name, balls) = (name.clone(), mover.balls.clone());
+        let visitor = Visitor { name: &name, collision_type: c.collision_type, from, position, min, max, balls: &balls };
+        self.traps_check(&visitor, placed);
+    }
+
+    fn character_placements(&mut self) {
+        while !self.world.placed_in_trap.is_empty() {
+            for (i, p) in std::mem::take(&mut self.world.placed_in_trap) {
+                self.character_traps(i, p, p, true);
+            }
+        }
     }
 
     /// After a script's `move Connor` (traps.md rule 5 "Placed by a
@@ -4472,6 +4512,10 @@ impl Active {
     fn traps_check(&mut self, v: &Visitor, placed: bool) -> Vec<String> {
         let mut calls = Vec::new();
         for i in 0..self.world.traps.len() {
+            let t = &self.world.traps[i];
+            if t.gone || ((!t.counts(v.collision_type) || placed) && !t.inside.iter().any(|n| n.eq_ignore_ascii_case(v.name))) {
+                continue;
+            }
             let shrunk_before = self.world.traps[i].shrunk;
             let c = if placed { self.world.traps[i].stay_check(v) } else { self.world.traps[i].check(v) };
             let Some(args) = c.call else { continue };
@@ -5248,8 +5292,10 @@ impl Active {
     /// rule 8, Q119).
     fn handle_due(&mut self, now: f64) -> usize {
         let mut handled = 0;
+        self.character_placements();
         while let Some(e) = self.world.queue.take_due(now) {
             self.handle(e);
+            self.character_placements();
             handled += 1;
             if handled > 1000 {
                 self.world.note("more than 1000 events in one update; the rest wait (a guard of ours)");
@@ -5417,6 +5463,7 @@ impl Active {
             let in_range = self.world.characters_in_range.contains(&self.world.anims[i].player.name.to_ascii_lowercase());
             let connor_at = self.world.connor_at.map(|p| [p[0], p[1]]);
             let obj = &mut self.world.anims[i];
+            let heading_before = obj.player.base.rotation;
             let (a, notes) = match obj.character.as_deref_mut() {
                 Some(c) => {
                     c.in_range = in_range;
@@ -5429,6 +5476,11 @@ impl Active {
                 }
                 None => (obj.player.advance(dt), Vec::new()),
             };
+            if obj.character.is_some() && obj.player.base.rotation != heading_before {
+                let p = obj.player.base.position;
+                self.character_traps(i, p, p, false);
+                self.character_placements();
+            }
             let who = self.world.anims[i].player.name.clone();
             for n in notes {
                 // M5 5c: the character's own fight lines go to fight.log too.
@@ -6393,6 +6445,33 @@ endif
     }
 
     #[test]
+    fn a_character_teleport_neither_sweeps_nor_enters_until_it_moves() {
+        let mut a = with_trap("if test $2 == On\n set T::on $3\nendif\nif test $2 == Off\n set T::off $3\nendif\n");
+        a.world.traps[0].settings.mask = 2;
+        let (mut c, mut player) = crate::character::tests::walker(900., 1500.);
+        let name = player.name.clone();
+        c.bounds = Some(([-350., -800., 0.], [350., 800., 1300.]));
+        c.set_state(&mut player, "Wait", &[], 0.);
+        a.add_anims([AnimObject { player, character: Some(Box::new(c)), script: None, gone: false, translucency: None }]);
+        a.world.characters_in_range.insert(name.to_ascii_lowercase());
+        for x in [3500, -3500, 0] {
+            a.test_command(&format!("move {name} 0 {x} 0 100"), "test");
+            a.update();
+            a.characters_gravity(&FlatGround, &[], &[]);
+        }
+        assert_eq!(a.scripts.vars.get("T::on"), None);
+        a.test_command(&format!("KQMonster::setState {name} Move"), "test");
+        for _ in 0..3 {
+            a.update();
+            a.characters_gravity(&FlatGround, &[], &[]);
+        }
+        assert_eq!(a.scripts.vars.get("T::on"), Some(name.as_str()));
+        a.test_command(&format!("move {name} 0 4000 0 100"), "test");
+        a.update();
+        assert_eq!(a.scripts.vars.get("T::off"), Some(name.as_str()));
+    }
+
+    #[test]
     fn a_trap_gets_init_on_and_off_with_its_name_and_connors() {
         let mut a = with_trap("if test $2 == Init\n set T::Init $1\nelse if test $2 == On\n set T::Who $3\nelse if test $2 == Off\n set T::Out $3\nendif\nendif\nendif\n");
         assert_eq!(a.scripts.vars.get("T::Init"), Some("clifTrap"));
@@ -7194,7 +7273,7 @@ endif
         assert_eq!(a.test_command("KQMonster::setState gob Move", "t").as_deref(), Some("0"));
         for _ in 0..25 {
             a.update();
-            a.world.characters_gravity(&FlatGround, &[], &objects);
+            a.characters_gravity(&FlatGround, &[], &objects);
         }
         let log = a.world.character_log.join("\n");
         (a.world.anims[0].player.base.position, log)
@@ -7272,7 +7351,7 @@ endif
         while a.world.updates < to {
             a.update();
             a.world.characters_ai(&FlatGround, &[], objects);
-            a.world.characters_gravity(&FlatGround, &[], objects);
+            a.characters_gravity(&FlatGround, &[], objects);
         }
     }
 
