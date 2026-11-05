@@ -40,6 +40,8 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     shot_timing: Option<connor_view::SavedShotTiming>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    hit_timing: Option<connor_view::SavedHitTiming>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     special: Option<connor_view::SavedSpecial>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     fight_rng: Option<kq8_core::emitter::Rng>,
@@ -68,6 +70,9 @@ impl Snapshot {
         }
         if self.shot_timing.as_ref().is_some_and(|timing| !timing.valid()) {
             return Err("save has invalid moving-shot timing".into());
+        }
+        if self.hit_timing.as_ref().is_some_and(|timing| !timing.valid()) {
+            return Err("save has invalid Connor hit timing".into());
         }
         if self.special.as_ref().is_some_and(|s| !s.valid())
             || (self.special.is_some() && (self.shot.is_some() || self.swing.is_some())) {
@@ -231,6 +236,9 @@ impl Snapshot {
             }
             if let Some(timing) = &self.shot_timing {
                 connor.restore_shot_timing(timing)?;
+            }
+            if let Some(timing) = &self.hit_timing {
+                connor.restore_hit_timing(timing)?;
             }
             if let Some(special) = &self.special {
                 connor.restore_special(special)?;
@@ -397,6 +405,7 @@ pub fn save_slot_with_thumbnail(
         return Err("Connor's current ranged shot cannot be saved".into());
     }
     let shot_timing = connor.saved_shot_timing().ok_or("Connor's moving-shot timing cannot be saved")?;
+    let hit_timing = connor.saved_hit_timing().ok_or("Connor's hit timing cannot be saved")?;
     let special = connor.saved_special();
     let snapshot = Snapshot {
         version: VERSION,
@@ -414,6 +423,7 @@ pub fn save_slot_with_thumbnail(
         swing,
         shot,
         shot_timing: Some(shot_timing),
+        hit_timing: Some(hit_timing),
         special,
         fight_rng: Some(sim.active.world.fight_rng.clone()),
         bolts: Some(kq8_core::fight::SavedBolts {
@@ -553,6 +563,7 @@ mod tests {
             swing: None,
             shot: None,
             shot_timing: None,
+            hit_timing: None,
             special: None,
             fight_rng: None,
             bolts: Some(kq8_core::fight::SavedBolts { bolts: Vec::new(), bolts_shot: 0 }),
