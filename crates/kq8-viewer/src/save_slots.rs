@@ -41,6 +41,8 @@ pub(super) struct Snapshot {
     fight_rng: Option<kq8_core::emitter::Rng>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     bolts: Option<kq8_core::fight::SavedBolts>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    drains: Option<Vec<kq8_core::weeper::SavedDrain>>,
 }
 
 impl Snapshot {
@@ -62,6 +64,12 @@ impl Snapshot {
         }
         if self.bolts.as_ref().is_some_and(|b| !b.valid()) {
             return Err("save has invalid live projectiles".into());
+        }
+        if self.drains.as_ref().is_some_and(|drains| {
+            let mut bolts = std::collections::BTreeSet::new();
+            drains.len() > 64 || drains.iter().any(|d| !d.valid() || !bolts.insert(d.bolt_name().to_ascii_lowercase()))
+        }) {
+            return Err("save has invalid Weeper drains".into());
         }
         let known = |name: &str| {
             kq8_data::game_dir::WORLDS
@@ -197,6 +205,9 @@ impl Snapshot {
                 sim.active.world.restore_placed_characters(&kept.characters);
                 sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
                 if let Some(list) = kept.active_list.as_deref() { sim.active.world.restore_active_list(list); }
+            }
+            if let Some(drains) = &self.drains {
+                sim.active.world.restore_drains(drains)?;
             }
         }
         if let Some(mut connor) = world.get_resource_mut::<connor_view::ConnorSim>() {
@@ -388,6 +399,7 @@ pub fn save_slot_with_thumbnail(
             bolts: sim.active.world.bolts.clone(),
             bolts_shot: sim.active.world.bolts_shot,
         }),
+        drains: Some(sim.active.world.saved_drains()?),
     };
     write_slot(&directory(), slot, &snapshot)
 }
@@ -521,6 +533,7 @@ mod tests {
             shot: None,
             fight_rng: None,
             bolts: Some(kq8_core::fight::SavedBolts { bolts: Vec::new(), bolts_shot: 0 }),
+            drains: Some(Vec::new()),
             journey: take_journey(&sim, "Daventry"),
             kept,
         }
@@ -560,6 +573,7 @@ mod tests {
         previous_v2.as_object_mut().unwrap().remove("swing");
         previous_v2.as_object_mut().unwrap().remove("fight_rng");
         previous_v2.as_object_mut().unwrap().remove("bolts");
+        previous_v2.as_object_mut().unwrap().remove("drains");
         assert!(serde_json::from_value::<Snapshot>(previous_v2).unwrap().validate().is_ok());
         // Version-1 slots predate the door/chest fields. All previously
         // supported state still loads; these objects use asset defaults.
