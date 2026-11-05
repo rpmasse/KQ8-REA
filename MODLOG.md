@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Verify a script-created death across a fresh launch
+
+An unattended Windows test used the original Dead City rat type, created it at runtime, killed it with Connor's Small Axe and saved during its death movement. A new process rebuilt the rat from the installed GOG data, resumed the death and removed it at update 5. The saved experience changed from 10 to 11, exactly the rat's one-point reward; the death also made its original `rt_dead.kqs` corpse. The focused test passed. This closes the fresh-process check left open by the preceding death-save change. Connor's own combat checkpoint and the rest of the campaign remain incomplete.
+
 ## 2026-11-05 Resume a monster death from a disk save
 
 World travel still treats a dying monster as gone. A disk slot now keeps that actor, its fight and animation state, and its name out of the current world's gone list until its death movement ends. This avoids skipping the experience, corpse, drop and Die event on reload. Core tests restored a dying original monster through its death end and confirmed experience was awarded once; a separate core test confirmed a dying script-created actor enters the disk record. An unattended Windows save caught an original Dead City skeleton mid-death. A fresh process loaded it; at update 11 the death gave Connor 200 experience, made a corpse and removed the actor. The 609-test core suite, old-slot check, ordinary script-created monster reload and injured original monster reload passed. An initial Windows check closed after one post-load update because its 420-frame budget was too short; the 700-frame rerun passed. A fresh-process check for a dying script-created actor, Connor's own combat checkpoint, dialogue and cutscenes remain open. Next: complete those save states and the campaign.
