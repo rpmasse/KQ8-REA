@@ -1,0 +1,23 @@
+{
+  "start": 3,
+  "landmarks": [
+    {"name": "East of the patrol", "xy": [195000, 230500], "radius": 250},
+    {"name": "First mushroom patch", "xy": [199010, 233050], "radius": 240, "click": "NoName12"},
+    {"name": "Second mushroom patch", "xy": [199100, 234400], "radius": 240, "click": "NoName11"},
+    {"name": "Stony path", "xy": [195000, 235000], "radius": 180},
+    {"name": "North bend", "xy": [194500, 235500], "radius": 160},
+    {"name": "Approach to the windmill hills", "xy": [147000, 262500], "radius": 240},
+    {"name": "Above the rise", "xy": [139500, 262500], "radius": 220},
+    {"name": "Windmill hillside", "xy": [135000, 258000], "radius": 300},
+    {"name": "Windmill path", "xy": [136000, 250000], "radius": 350},
+    {"name": "Windmill door", "xy": [141100, 249948], "radius": 270, "click": "Winddoor"},
+    {"name": "Windmill archer", "xy": [143050, 249820], "radius": 320, "fight": "sprigwnd1"},
+    {"name": "Windmill floor below the axe", "xy": [145500, 249910], "radius": 220, "click": "ax"},
+    {"name": "Around the bale", "xy": [147700, 250700], "radius": 250},
+    {"name": "Clear the bale's east edge", "xy": [148800, 250325], "radius": 105},
+    {"name": "Behind the bale", "xy": [148700, 248500], "radius": 170},
+    {"name": "Push the bale below the axe", "xy": [147120, 249290], "radius": 150},
+    {"name": "Jump approach", "xy": [147700, 249055], "radius": 170, "jump_toward": [145910, 249914]},
+    {"name": "Axe above the bale", "xy": [146150, 249770], "radius": 650, "click": "ax"}
+  ]
+}
