@@ -451,6 +451,12 @@ impl SavedCombatCues {
 }
 
 impl SavedWeaponState {
+    pub fn retains_drawn_list(&self) -> bool {
+        self.weapon_set.is_some() && self.weapon_set == self.weapon_target
+            && self.set_mode != WeaponMode::None && self.set_mode == self.target_mode && self.ready_item.is_some()
+            && !self.readying && self.pending_set.is_none() && self.held_walk.is_none()
+    }
+
     pub fn matches_ready(&self, item: Option<&str>, mode: WeaponMode) -> bool {
         self.ready_item.as_deref() == item && self.target_mode == mode
     }

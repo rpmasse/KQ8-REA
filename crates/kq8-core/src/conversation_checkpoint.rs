@@ -22,6 +22,10 @@ pub struct SavedConversation {
 }
 
 impl SavedConversation {
+    pub fn beginning_bare_hand_out(&self) -> bool {
+        self.active.as_ref().is_some_and(|c| c.stage == Stage::Out && c.approach_updates == 0)
+    }
+
     pub fn valid(&self) -> bool {
         let name = |n: &str| !n.is_empty() && n.len() <= 1024 && !n.chars().any(char::is_control);
         self.leave.as_deref().is_none_or(name) && self.active.as_ref().is_none_or(|c| {
