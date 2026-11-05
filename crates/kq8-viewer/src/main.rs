@@ -76,6 +76,7 @@ mod scene_lights;
 mod shadow_view;
 mod smooth_view;
 mod startup_menu;
+mod option_settings;
 mod sound_view;
 mod talk_view;
 mod terrain_view;

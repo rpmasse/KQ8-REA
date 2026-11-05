@@ -30,6 +30,17 @@
 
 use std::collections::BTreeMap;
 
+/// Physical locations of one logical English catalogue. An unpacked region
+/// takes precedence over the original files in data/. Global dialogue has a
+/// single location. Readers keep the first copy of each numbered file.
+pub fn folders(owner: &str) -> Vec<String> {
+    if owner.eq_ignore_ascii_case("GAME") {
+        vec!["GAME/ENGLISH".to_owned()]
+    } else {
+        vec![format!("{owner}/English"), format!("data/{owner}/English")]
+    }
+}
+
 /// The version every message file has (rule 2, data).
 pub const VERSION: u32 = 5010;
 

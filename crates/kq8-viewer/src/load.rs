@@ -66,6 +66,15 @@ impl World {
         })
     }
 
+    /// The GUI files made for this region's palette, in its already-open
+    /// 8gui.vol. Other volumes may contain pictures with the same names.
+    pub fn gui_asset(&self, name: &str) -> Option<(String, Vec<u8>)> {
+        let (_, archive) = self.vols.iter().find(|(v, _)| v == "8gui")?;
+        let entry = archive.find(name)?;
+        let label = format!("vol:{}/8gui/{}", self.name, entry.name);
+        self.unpack(archive,entry,&label).ok().map(|data| (label,data))
+    }
+
     /// Unpacks entry `e` of archive `a`, small ones only once.
     fn unpack(&self, a: &VolArchive, e: &kq8_data::vol::VolEntry, label: &str) -> Result<Vec<u8>, String> {
         if let Some(data) = self.unpacked.lock().unwrap().get(label) {

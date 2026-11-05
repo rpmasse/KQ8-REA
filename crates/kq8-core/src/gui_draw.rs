@@ -113,6 +113,7 @@ pub fn text_origin(rect: [i32; 4], justification: u32, width: i32, height: i32, 
 
 /// A panel's picture: `size` its layout size; RGBA, see-through where
 /// nothing is drawn.
+#[derive(Clone)]
 pub struct Canvas {
     pub width: u32,
     pub height: u32,

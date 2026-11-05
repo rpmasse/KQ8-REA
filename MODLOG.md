@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Options from the title and pause menus
+
+The original Options panel now controls the three volume sliders, subtitles and the stored Starting Help preference. The game reads captions, regional voices and lip data from the player's GOG archives. Two unattended Windows launches checked that speech, effects and music responded to the settings, that disabling subtitles hid the Wizard's current line, and that pausing preserved the world clock. The test command is in the README. The inner Graphics, Keyboard and Credits screens, Replay Intro and the actual help prompts remain open.
+
 ## 2026-11-05 Dead City river after the scales puzzle
 
 The GOG scales object names its displayed models in its animation list. The Windows loader formerly skipped the actor while looking for its nominal shape. It now places the scales and delivers their original script cue. A data test compared every surface vertex before and after that cue. Exactly 60 changed, all within the five specified rectangles and all reaching the riverbed after one update. A Windows test sent the same cue to the placed scales, reloaded the region, and found identical rendered vertex changes both times. The test starts at the win cue. Playing the feather puzzle from its entrance remains open.

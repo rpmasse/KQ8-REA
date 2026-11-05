@@ -17,6 +17,7 @@ Source types:
 
 | Behavior | Reference |
 | --- | --- |
+| Options controls, caption layout, regional speech and lip movements. | The GOG installation supplies `Options.cs`, the Options panel and its tagged controls, each region’s `.MSG` dialogue files, and the original caption font and stone background in the GUI archives. The [main menu rules](../behaviour/main-menu.md) describe input and panel behavior. |
 | The scales lower five sections of the Dead City river and change their ground materials. | The installed Dead City archive supplies `scale.kq`, its movement models and `scale.cs`. The command arguments come from the script. The [terrain rules](../behaviour/terrain.md) describe the game’s grid bounds and drain timing. The Rust save format retains the rectangles and selected materials. |
 | `inc` advances a named counter by one. `setcat` joins expanded words with no separator. | Observed in the GOG archives. Barren's `dockup.cs` constructs the old trigger name, advances the gong number, selects the next position and constructs the next trigger name. Temple 4 uses the counter for altar progression. The original `mask.cs` constructs volume paths by concatenation. |
 | Shops deduct a specified item quantity. The command returns 1 when paid. | [Door and script behavior notes](../behaviour/doors.md) and observed GOG scripts including Daventry's `poorbox.cs`, Gnome's `armorgnm.cs` and Barren's `tw_weird.cs`. Merchant scripts inspect the result before delivering a purchase. |

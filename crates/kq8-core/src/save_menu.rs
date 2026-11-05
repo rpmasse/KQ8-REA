@@ -1,11 +1,8 @@
 //! Savegame.gui and Loadgame.gui control the placement, pictures and fonts.
 //! Menu labels and prompts come from 500.MSG (119, 125, 126, 154 and 166).
-use crate::gui_draw::{text_width, Canvas, Pic};
+use crate::gui_draw::{text_width, Canvas};
 use crate::main_menu::{Art as MenuArt, Key};
-use kq8_data::font::{bitmap_array, Font};
-use kq8_data::gui::{self, Kind, Tags, Text};
-use kq8_data::{Bitmap, GameDir};
-use std::{collections::BTreeMap, path::Path};
+use std::path::Path;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -158,7 +155,7 @@ impl Screen {
 
     /// Hardware and scripted input share this path and the layout's hit boxes.
     pub fn input(&mut self, key: Key, art: &Art) -> Command {
-        let rect = |name: &str| art.controls[name].rect;
+        let rect = |name: &str| art.layout.controls[name].rect;
         let hit = |x, y, [l, t, r, b]: [i32; 4]| (l..r).contains(&x) && (t..b).contains(&y);
         if let Some(prompt) = self.prompt {
             let confirm = matches!(prompt, Prompt::Delete | Prompt::Overwrite);
@@ -199,9 +196,9 @@ impl Screen {
             Key::Character(c) if self.mode == Mode::Save && !c.is_control() && c as u32 <= 255 => {
                 let mut next = self.name.clone();
                 next.push(c);
-                let name_field = &art.controls["NAME"];
+                let name_field = &art.layout.controls["NAME"];
                 if next.chars().count() <= 128
-                    && text_width(&art.fonts[&name_field.text.unwrap().font], &next)
+                    && text_width(&art.layout.fonts[&name_field.text.unwrap().font], &next)
                         < name_field.rect[2] - name_field.rect[0]
                 {
                     self.name = next;
@@ -246,7 +243,7 @@ impl Screen {
     fn scroll_to(&mut self, y: i32, art: &Art) {
         let max = self.row_count().saturating_sub(ROWS);
         let [_, top, _, bottom] = art.track();
-        let tab = art.controls["TAB"].rect;
+        let tab = art.layout.controls["TAB"].rect;
         let height = tab[3] - tab[1];
         let travel = (bottom - top - height).max(1) as usize;
         let offset = (y - top - height / 2).clamp(0, travel as i32) as usize;
@@ -255,99 +252,18 @@ impl Screen {
     }
 }
 
-struct Control {
-    rect: [i32; 4],
-    pic: Option<gui::Picture>,
-    text: Option<Text>,
-    label: Option<u8>,
-}
-
 pub struct Art {
-    controls: BTreeMap<String, Control>,
-    pictures: BTreeMap<i32, Vec<Bitmap>>,
-    fonts: BTreeMap<i32, Font>,
+    layout: crate::menu_layout::Layout,
 }
 
 impl Art {
     pub fn open(path: &Path, mode: Mode) -> Result<Self, String> {
-        let game = GameDir::open(path).map_err(|e| e.to_string())?;
-        let read = |name: &str| {
-            let path = game.find(name).ok_or_else(|| format!("missing {name}"))?;
-            std::fs::read(path).map_err(|e| format!("{name}: {e}"))
-        };
         let (file, prefix) = match mode {
             Mode::Save => ("Savegame.gui", "IDCTL_SAVE_"),
             Mode::Load => ("Loadgame.gui", "IDCTL_LOAD_"),
         };
-        let layout = gui::parse(&read(&format!("GAME/Resource/{file}"))?)?;
-        let (tags, _) = Tags::parse(&String::from_utf8_lossy(&read(
-            "GAME/Resource/kqGuiTag.TTAG",
-        )?));
-        let tagged = |id| {
-            tags.string(id)
-                .ok_or_else(|| format!("{file}: missing resource tag {id}"))
-        };
-        let mut controls = BTreeMap::new();
-        let mut pictures = BTreeMap::new();
-        let mut fonts = BTreeMap::new();
-        for (depth, c) in layout.walk() {
-            let name = if depth == 0 {
-                "BACKGROUND"
-            } else {
-                tags.name(c.id as i32)
-                    .and_then(|s| s.strip_prefix(prefix))
-                    .ok_or_else(|| format!("{file}: missing control tag {}", c.id))?
-            };
-            let (pic, text) = match c.kind {
-                Kind::Dialog { picture, .. } => (picture, None),
-                Kind::Bitmap(pic) => (Some(pic), None),
-                Kind::Text { text, pictures } => (pictures, Some(text)),
-                _ => return Err(format!("{file}: unexpected control type for {name}")),
-            };
-            if let Some(pic) = pic {
-                if let std::collections::btree_map::Entry::Vacant(entry) =
-                    pictures.entry(pic.bitmap)
-                {
-                    let source = tagged(pic.bitmap)?;
-                    let bytes = read(&format!("GAME/8Gui/{source}"))?;
-                    let frames = if source.to_ascii_lowercase().ends_with(".pba") {
-                        bitmap_array(&bytes)?
-                    } else {
-                        vec![Bitmap::parse(&bytes)?]
-                    };
-                    if frames.is_empty() || frames.iter().any(|b| b.bit_count != 8) {
-                        return Err(format!("invalid save menu image {source}"));
-                    }
-                    entry.insert(frames);
-                }
-            }
-            if let Some(t) = text.filter(|t| t.font != 0) {
-                if let std::collections::btree_map::Entry::Vacant(entry) = fonts.entry(t.font) {
-                    entry.insert(Font::parse(&read(&format!(
-                        "GAME/8Gui/{}",
-                        tagged(t.font)?
-                    ))?)?);
-                }
-            }
-            let label = text
-                .and_then(|t| tags.string(t.text))
-                .and_then(|s| s.strip_prefix('#'))
-                .and_then(|s| s.split_whitespace().next())
-                .and_then(|s| s.parse().ok());
-            controls.insert(
-                name.to_owned(),
-                Control {
-                    rect: c.rect,
-                    pic,
-                    text,
-                    label,
-                },
-            );
-        }
         let art = Self {
-            controls,
-            pictures,
-            fonts,
+            layout: crate::menu_layout::Layout::read(path, file, prefix)?,
         };
         // All dynamic control references must exist before accepting the screen.
         for key in [
@@ -368,18 +284,18 @@ impl Art {
             "POPUP_BTN_YES",
             "POPUP_BTN_CANCEL",
         ] {
-            if !art.controls.contains_key(key) {
+            if !art.layout.controls.contains_key(key) {
                 return Err(format!("{file} lacks {key}"));
             }
         }
         for i in 0..ROWS {
-            if !art.controls.contains_key(&format!("LIST{i}")) {
+            if !art.layout.controls.contains_key(&format!("LIST{i}")) {
                 return Err(format!("{file} lacks row {i}"));
             }
         }
-        if art.controls["NAME"]
+        if art.layout.controls["NAME"]
             .text
-            .is_none_or(|t| !art.fonts.contains_key(&t.font))
+            .is_none_or(|t| !art.layout.fonts.contains_key(&t.font))
         {
             return Err(format!("{file} lacks name font"));
         }
@@ -387,8 +303,8 @@ impl Art {
     }
 
     fn track(&self) -> [i32; 4] {
-        let [l, t, r, _] = self.controls["TAB"].rect;
-        [l, t, r, self.controls["DOWN"].rect[1]]
+        let [l, t, r, _] = self.layout.controls["TAB"].rect;
+        [l, t, r, self.layout.controls["DOWN"].rect[1]]
     }
 
     pub fn render(&self, state: &Screen, menu: &MenuArt) -> Canvas {
@@ -399,25 +315,16 @@ impl Art {
                     dy: i32,
                     frame: usize,
                     caption: Option<&str>| {
-            let c = &self.controls[key];
-            let [l, t, r, b] = c.rect;
-            let rect = [l, t + dy, r, b + dy];
-            if let Some(pic) = self.controls[picture].pic {
-                let frames = &self.pictures[&pic.bitmap];
-                if let Some(bitmap) = Pic::of(&frames[frame.min(frames.len() - 1)]) {
-                    canvas.picture(rect, bitmap, pic.modifier & 0x8000 != 0, 1.0, &menu.palette);
-                }
-            }
-            if let Some(text) = c.text.filter(|t| t.font != 0) {
-                let font = &self.fonts[&text.font];
-                let mut value = caption
-                    .or_else(|| c.label.map(|id| menu.label(id)))
-                    .unwrap_or("");
-                while !value.is_empty() && text_width(font, value) > r - l {
-                    value = &value[..value.char_indices().next_back().unwrap().0];
-                }
-                canvas.text(rect, font, text.justification, value, 1.0, &menu.palette);
-            }
+            let [l, t, r, b] = self.layout.controls[key].rect;
+            self.layout.draw(
+                canvas,
+                menu,
+                key,
+                picture,
+                [l, t + dy, r, b + dy],
+                frame,
+                caption,
+            );
         };
         let normal = |canvas: &mut Canvas, key: &str| draw(canvas, key, key, 0, 0, None);
         for key in ["BACKGROUND", "TITLE", "THUMBNAIL", "UP", "DOWN"] {
@@ -428,7 +335,7 @@ impl Art {
             .as_deref()
             .filter(|p| p.len() == 160 * 120 * 4)
         {
-            let [x, y, right, bottom] = self.controls["THUMBNAIL"].rect;
+            let [x, y, right, bottom] = self.layout.controls["THUMBNAIL"].rect;
             if x >= 0
                 && y >= 0
                 && right <= 640
@@ -442,11 +349,11 @@ impl Art {
                 }
             }
         }
-        if self.controls.contains_key("BAR") {
+        if self.layout.controls.contains_key("BAR") {
             normal(&mut canvas, "BAR");
         }
         let max = state.row_count().saturating_sub(ROWS);
-        let tab = self.controls["TAB"].rect;
+        let tab = self.layout.controls["TAB"].rect;
         let travel = self.track()[3] - tab[3];
         let tab_offset = if max == 0 {
             0
@@ -461,7 +368,8 @@ impl Art {
             }
             let key = format!("LIST{i}");
             if index == state.selected {
-                let offset = self.controls[&key].rect[1] - self.controls["HILITE"].rect[1];
+                let offset =
+                    self.layout.controls[&key].rect[1] - self.layout.controls["HILITE"].rect[1];
                 draw(&mut canvas, "HILITE", "HILITE", offset, 0, None);
             }
             let label = state.slots.get(index).map_or("", |s| s.1.as_str());
@@ -498,12 +406,12 @@ impl Art {
                 String::new()
             };
             let mut text_keys = ["POPUP_TEXT1", "POPUP_TEXT2"];
-            text_keys.sort_by_key(|k| self.controls[*k].rect[1]);
+            text_keys.sort_by_key(|k| self.layout.controls[*k].rect[1]);
             let first = lines.first().copied().unwrap_or("");
             // The name prompt uses a single message line longer than the popup.
             // Fit the line to its two supplied text controls at a word boundary.
-            let c = &self.controls[text_keys[0]];
-            let font = &self.fonts[&c.text.unwrap().font];
+            let c = &self.layout.controls[text_keys[0]];
+            let font = &self.layout.fonts[&c.text.unwrap().font];
             let split = first
                 .match_indices(' ')
                 .filter(|(i, _)| text_width(font, &first[..*i]) <= c.rect[2] - c.rect[0])
