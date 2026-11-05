@@ -1,6 +1,6 @@
 # STATUS
 
-**Windows fork, November 5.** M4–M6 are in progress. The Save and Load screens now support named slots with thumbnails. An unattended three-process scenario saves in Daventry, restores from the title on a fresh launch, and checks cancellation and confirmed deletion. A separate scenario throws and recovers a rock using the original animation and landing script. Open work includes active script, combat and cutscene state across saves, Options, movie playback, encounter behavior and the uninterrupted campaign. The [README](README.md) gives the current checks. The notes below retain upstream history.
+**Windows fork, November 5.** M4–M6 are in progress. The original Options controls, Dead City Tower Skeleton encounter and scales win cue have automated checks against the GOG installation. A fresh process restored an open cottage door and four mushrooms. The return trip through Castle Daventry kept both, along with the pub chest state. Timed laser-puzzle cues also resume from disk. Remaining work includes Options submenus, starting help, encounter and cutscene saves, movie playback, region quests and the uninterrupted campaign. The [README](README.md) gives the checks and their limits. The notes below retain upstream history.
 
 Hand-over in case the chat is lost. Brought up to date 2026-10-20 after
 B built the fight (M5 5c, `fighting.md`). Read with `AGENTS.md`, `docs/DESIGN.md`, `docs/SESSIONS.md`,

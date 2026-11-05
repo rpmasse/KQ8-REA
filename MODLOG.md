@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Daventry cottage save and castle round trip
+
+Two fresh Windows processes completed the cottage persistence scenario with the original GOG scripts. New Game cleared the first-visit flag. The basket supplied five mushrooms, Connor used one, and the title-screen load restored four and an open cottage door. The basket stayed empty, the pub chest opened, and both original castle portal prompts worked. The final Daventry slot retained four mushrooms, the door, chest contents, the portal flag and a CastleD record. The README gives the command and the diagnostic shortcuts. The full ordinary-controls campaign is still pending.
+
 ## 2026-11-05 Dead City Tower Skeleton
 
 An unattended scenario uses the GOG tower, rope greeting, movements, floor geometry and item script. It checks that the skeleton avoids attacking while Connor is on the rope, staggers near the tower edge, falls, and leaves chain mail that Connor can pick up. The scenario uses a prepared combat position. The greeting-to-combat cue timing is inferred, and exact camera framing, the final state switch and mid-fight restore are still open. Run the README’s `campaign_tests` command to include the encounter.

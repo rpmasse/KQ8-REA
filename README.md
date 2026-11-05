@@ -11,7 +11,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
 | M4 · Interface and dialogue | New Game and difficulty, pause/resume, restart, Save and Load, HUD, speech, captions and some conversations. Options controls speech, music, effects and subtitles from the title or pause menu. | Graphics, Keyboard, Credits, Replay Intro, starting-help prompts and the remaining inventory and dialogue behavior. |
 | M5 · Combat | Melee and some ranged attacks, rocks, scripted hazards and potions. Dead City checks cover the Weeper’s life drain and the Tower Skeleton’s fall and chain-mail drop. | Verify weapon controls and trajectories, encounter timing and camera work, remaining enemies, and death recovery. |
-| M6 · Campaign and saves | Disk slots restore Connor, inventory, doors, chest contents and queued script events. A saved Dead City laser puzzle resumes on its next cue and unlocks both doors. | Restore live combat and cutscenes. Complete region quests, optional branches, boss sequences, movies and the ending. |
+| M6 · Campaign and saves | Slots restore Connor, inventory, doors, chest contents and queued script events. The Daventry cottage route survives a process restart and a trip to Castle Daventry and back. | Restore live combat and cutscenes. Complete region quests, optional branches, boss sequences, movies and the ending. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
@@ -49,13 +49,14 @@ cargo test --locked -p kq8-viewer --test options_menu -- --ignored --test-thread
 cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test weeper -- --ignored
 cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored
+cargo test --locked -p kq8-viewer --test cottage_journey -- --ignored
 cargo test --locked -p kq8-viewer --test puzzle_timer -- --ignored
 cargo test --locked -p kq8-viewer --test regions -- --ignored --test-threads=1 --nocapture
 cargo test --locked -p kq8-core original_barren_dock_script -- --ignored
 cargo test --locked -p kq8-core original_gnome_rock_and_dead_city -- --ignored
 ```
 
-A world loading successfully verifies that it can be opened. Campaign completion also requires ordinary controls to advance the quests, save and restore their consequences, defeat the final boss and reach the ending. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.
+The cottage test uses New Game, collects five mushrooms, consumes one, saves and quits. A fresh process restores four mushrooms and the open cottage door, opens the pub chest, travels through both castle portal prompts, and saves back in Daventry. The test disables enemy AI, moves Connor between landmarks and applies damage so he can use a healing item. Campaign completion requires an uninterrupted route using ordinary controls. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.
 
 ## Source and research
 
