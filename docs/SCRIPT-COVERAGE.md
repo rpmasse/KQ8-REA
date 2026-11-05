@@ -20,11 +20,11 @@ What the game's scripts (`.cs`) and object files (`.kq`) ask of the program, fro
 | Gnome | 111 | 79 | 8 (14) | 1 (1) | — |
 | Barren | 118 | 84 | 7 (12) | 0 (0) | Tile3 |
 | IceWorld | 78 | 82 | 9 (18) | 1 (29) | — |
-| Snowexit | 13 | 35 | 6 (7) | 0 (0) | — |
+| Snowexit | 13 | 35 | 5 (6) | 0 (0) | — |
 | temple1 | 59 | 51 | 7 (9) | 0 (0) | — |
 | temple2 | 37 | 55 | 7 (9) | 0 (0) | — |
 | temple3 | 30 | 45 | 7 (9) | 0 (0) | — |
-| temple4 | 17 | 68 | 11 (15) | 0 (0) | Die |
+| temple4 | 17 | 68 | 9 (13) | 0 (0) | Die |
 | Common | 30 | 14 | 2 (2) | 1 (1) | — |
 
 Not counted as commands: 139 calls of other scripts by name, 0 lines starting with a variable. Loading hints are left out of the summary's counts.
@@ -56,13 +56,11 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `KQObject::setFootStepSound` | **missing** | 2 (0) | temple1 2 | `temple1/sloshtrp.cs` |
 | `checkSave` | **missing** | 2 (0) | Daventry 1, Common 1 | `Daventry/savegmh.cs` |
 | `mouseAction` | **missing** | 2 (0) | Daventry 2 | `Daventry/AX.CS` |
-| `playAvi` | **missing** | 2 (0) | Snowexit 1, temple4 1 | `Snowexit/PORTAL4.CS` |
 | `KQCamera::setHeight2` | **missing** | 1 (0) | temple4 1 | `temple4/archon.cs` |
 | `KQConner::addImmunity` | **missing** | 1 (0) | Swamp 1 | `Swamp/WHISP.CS` |
 | `KQMonster::clearstateChangeNotify` | **missing** | 1 (0) | DeadCity 1 | `DeadCity/SKELKING.CS` |
 | `beep` | **missing** | 1 (0) | Swamp 1 | `Swamp/BOILOIL.CS` |
 | `cls` | **missing** | 1 (0) | Gnome 1 | `Gnome/EMPTYLOC.CS` |
-| `killGame` | **missing** | 1 (0) | temple4 1 | `temple4/vortrap.cs` |
 | `preloadShape` | stub (loading hint?) | 309 (0) | Daventry 76, DeadCity 7, Swamp 1, Gnome 10, Barren 44, IceWorld 97, temple2 22, temple4 52 | `Daventry/miltrap1.cs` |
 | `KQGame::letCatchUp` | stub | 32 (0) | Daventry 1, DeadCity 1, Gnome 1, IceWorld 29 | `Daventry/WATERTP.CS` |
 | `doPopup` | stub | 14 (0) | Daventry 12, Swamp 1, Common 1 | `Daventry/CAMERA1.CS` |
@@ -172,10 +170,12 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `deadHallTeleport` | built | 2 (0) | DeadCity 2 | `DeadCity/DDOOR4.CS` |
 | `goldCoinPersists` | built | 2 (0) | Gnome 2 | `Gnome/apothgnm.cs` |
 | `pauseAnim` | built | 2 (0) | Daventry 2 | `Daventry/OUTDOOR.CS` |
+| `playAvi` | built | 2 (0) | Snowexit 1, temple4 1 | `Snowexit/PORTAL4.CS` |
 | `KQConner::JumpDir` | built | 1 (0) | Daventry 1 | `Daventry/miltrap1.cs` |
 | `KQConner::checkInvisible` | built | 1 (0) | DeadCity 1 | `DeadCity/SKINGTP.CS` |
 | `doCredits` | built | 1 (0) | temple4 1 | `temple4/vortrap.cs` |
 | `invClick` | built | 1 (0) | DeadCity 1 | `DeadCity/REAPER.CS` |
+| `killGame` | built | 1 (0) | temple4 1 | `temple4/vortrap.cs` |
 | `walkExit` | built | 1 (0) | DeadCity 1 | `DeadCity/PORTRAP7.CS` |
 | `applyCombatLevel` | start-up only: read by the loader | 12 (12) | Daventry 1, CastleD 1, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `Daventry/NEWWORLD.CS` |
 | `KQConner::setLevel` | start-up only: read by the loader | 10 (10) | DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `DeadCity/conStart.cs` |
