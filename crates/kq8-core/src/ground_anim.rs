@@ -12,7 +12,7 @@
 //!
 //! Not done: the envInfo flags of a changed square (open question 3; no
 //! difference in Daventry), `frameCount` (saved games; no file sets it),
-//! starting later and `terAnimSwitch` (script commands no script uses).
+//! and starting an inactive animator later.
 
 use kq8_data::effects::AnimatorSettings;
 use kq8_data::terrain::Grid;
@@ -58,6 +58,8 @@ pub struct GroundAnimator {
     pub squares: Vec<(usize, usize)>,
     /// The materials shown one after another.
     pub cycle: Vec<u8>,
+    /// Alternate materials selected by the world's `terAnimSwitch` scripts.
+    pub alternate: Vec<u8>,
     pub delay: f64,
     pub repeat: bool,
     /// Counting down to changes.
@@ -86,9 +88,7 @@ impl GroundAnimator {
     /// not material numbers (0–255) are left out, with a note.
     pub fn new(name: &str, settings: &AnimatorSettings, squares: Vec<(usize, usize)>, now: f64) -> (Self, Vec<String>) {
         let mut notes = Vec::new();
-        let cycle: Vec<u8> = settings
-            .cycle
-            .iter()
+        let mut read_cycle = |values: &[i64]| values.iter()
             .filter_map(|&m| {
                 let ok = u8::try_from(m).ok();
                 if ok.is_none() {
@@ -96,7 +96,9 @@ impl GroundAnimator {
                 }
                 ok
             })
-            .collect();
+            .collect::<Vec<_>>();
+        let cycle = read_cycle(&settings.cycle);
+        let alternate = read_cycle(&settings.cycle2);
         let why_not = if !settings.start_now {
             Some("startNow is not set: not started (nothing in the scripts starts it)")
         } else if cycle.is_empty() {
@@ -114,6 +116,7 @@ impl GroundAnimator {
             name: name.to_string(),
             squares,
             cycle,
+            alternate,
             delay: settings.delay,
             repeat: settings.repeat,
             running: why_not.is_none(),
@@ -121,6 +124,20 @@ impl GroundAnimator {
             next_entry: 0,
         };
         (a, notes)
+    }
+
+    /// `emitters.md`, `terAnimSwitch`: retain the timer and square selection.
+    /// Dead City's drained river has only one entry in its alternate cycle.
+    pub fn switch_cycle(&mut self, repeat: Option<bool>) {
+        if !self.cycle.is_empty() && !self.alternate.is_empty() {
+            std::mem::swap(&mut self.cycle, &mut self.alternate);
+        }
+        if repeat.is_some() || self.next_entry >= self.cycle.len() {
+            self.next_entry = 0;
+        }
+        if let Some(repeat) = repeat {
+            self.repeat = repeat;
+        }
     }
 
     /// The change due by game time `now`, if any (rules 2–4), applied to
@@ -177,6 +194,27 @@ mod tests {
             frame_count: 0,
             problems: Vec::new(),
         }
+    }
+
+    #[test]
+    fn switching_the_blood_river_keeps_time_and_shows_the_drained_material() {
+        let mut s = settings();
+        s.cycle2 = vec![161];
+        let mut g = grid();
+        let (mut a, _) = GroundAnimator::new("Blood1", &s, vec![(0, 0)], 0.0);
+        a.update(0.3, &mut g).unwrap();
+        a.switch_cycle(None);
+        assert_eq!(g.get(0, 0), Some(12));
+        assert!(a.update(0.59, &mut g).is_none());
+        assert_eq!(a.update(0.6, &mut g).unwrap().material, 161);
+        assert!(a.repeat && a.running);
+        a.switch_cycle(Some(false));
+        for (n, material) in [12, 30, 31, 30].into_iter().enumerate() {
+            assert_eq!(a.update(0.9 + n as f64 * 0.3, &mut g).unwrap().material, material);
+        }
+        assert!(!a.running);
+        a.switch_cycle(None);
+        assert!(a.update(10.0, &mut g).is_none(), "a switch alone cannot start a stopped animator");
     }
 
     #[test]

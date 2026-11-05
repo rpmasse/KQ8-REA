@@ -314,12 +314,12 @@ fn run_script(name: &str, args: &[String], host: &mut dyn Host, out: &mut Script
             }
         };
         match command.as_str() {
-            "set" => match words.get(1) {
+            cmd @ ("set" | "setcat") => match words.get(1) {
                 Some(var) => {
-                    out.vars.set(var, words[2..].join(" "));
+                    out.vars.set(var, words[2..].join(if cmd == "setcat" { "" } else { " " }));
                     out.sets += 1;
                 }
-                None => out.bad_lines.push(format!("{at}: set without a name")),
+                None => out.bad_lines.push(format!("{at}: {cmd} without a name")),
             },
             "loadkq" => match parse_load(&words[1..]) {
                 Ok((file, name_arg, position, angles, ignored_numbers)) => {

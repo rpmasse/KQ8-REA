@@ -219,6 +219,8 @@ mod tests {
     fn no_moves_connor_to_no_loc_and_ends_the_state() {
         let mut a = active(keys(None, [158510.0, 307740.0, 9925.0]));
         assert_eq!(a.test_command("KQMonster::setState Connor Portal portal1 portaltp", "test").as_deref(), Some("0"));
+        a.world.weapon_mode = crate::weapons::WeaponMode::Ranged;
+        assert_eq!(a.world.world_click_action(false, false), crate::weapons::WorldClick::Blocked);
         assert!(a.world.portal_asking());
         assert_eq!(a.world.connor_portal.as_ref().and_then(|p| p.trap.clone()).as_deref(), Some("portaltp"));
         a.world.requests.clear();

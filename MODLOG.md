@@ -3,6 +3,12 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Windows fork implementation
+
+Integrated upstream through 5ea5a46. The original menu now drives difficulty selection, pause/resume and restart. Melee rechecks the target at the hit cue. The inventory script handler resolves an equipped item's identity when dropping it. The world loader recognizes the final Lucreto actors and terrain switches now update the displayed mesh and material. Implemented the runtime `inc` and `setcat` commands used by Barren's dock script. An archive scan found 29 single-variable increments across five regions, including Temple 4's altar. Whether the entire affected quests complete remains open.
+
+Automated verification on Windows used the original GOG installation. The verifier unpacked 14,444 entries in 48 archives with zero decompression errors. The workspace suite and targeted original-data tests cover the changes. The README gives the commands for the menu routes and headless campaign checks. Full saves, the finale and uninterrupted campaign progression remain outstanding.
+
 ## 2026-11-05 M0–M7 implementation roadmap
 
 Reorganized the active plan around the original eight milestones. It separates inherited status from work to do, specifies automated completion checks, and places manual testing after the feature-complete Windows build. Documentation change only.

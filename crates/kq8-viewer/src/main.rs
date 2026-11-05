@@ -8,8 +8,8 @@
 //!   kq8-viewer --model <model.kqs> [--world <World>] [--palette <file>]
 //!              [--game DIR] [--frames N]
 //!
-//! With no `--model`, the world's ground is shown (the default). `--terrain`
-//! is still accepted and does nothing, so older commands keep working.
+//! Normal launches open the main menu. World diagnostics such as `--world`
+//! and `--terrain` enter the world directly for scripted tests.
 //! Defaults: world `Daventry`, the world's own palette. `--frames N` closes
 //! the window by itself after N frames.
 //! Model: left-drag to turn around the model, wheel to zoom; arrows turn,
@@ -36,7 +36,7 @@
 //! `--dynamic on|off` stands in for `Options.cs`'s `useDynamicLighting`
 //! (M1 7d): the ground's map choice and point lights on the ground and on
 //! building surfaces; F9 switches it while the viewer runs (M1 7j).
-//! Esc quits.
+//! Escape opens the menu in a running game; it quits the isolated model view.
 //!
 //! What is deliberately simple here (see docs/DESIGN.md, M1 step 1b):
 //! no animation in the model view. Back faces are hidden as in the original
@@ -75,6 +75,7 @@ mod renderer;
 mod scene_lights;
 mod shadow_view;
 mod smooth_view;
+mod startup_menu;
 mod sound_view;
 mod talk_view;
 mod terrain_view;
@@ -112,6 +113,8 @@ fn to_bevy(p: [f32; 3], centre: [f32; 3]) -> [f32; 3] {
 }
 
 struct Args {
+    menu_input: Vec<startup_menu::Key>,
+    menu: bool,
     /// `--model NAME`: show this model alone instead of the ground.
     model: Option<String>,
     world: String,
@@ -196,6 +199,8 @@ struct Args {
 
 fn parse_args() -> Result<Args, String> {
     let mut a = Args {
+        menu_input: Vec::new(),
+        menu: false,
         model: None,
         world: "Daventry".into(),
         palette: None,
@@ -234,6 +239,10 @@ fn parse_args() -> Result<Args, String> {
     while let Some(arg) = it.next() {
         let mut value = || it.next().ok_or(format!("{arg} needs a value"));
         match arg.as_str() {
+            "--menu" => a.menu = true,
+            "--menu-input" => {
+                a.menu_input = startup_menu::parse_keys(&value()?)?;
+            }
             "--world" => a.world = value()?,
             "--palette" => a.palette = Some(value()?),
             "--game" => a.game = value()?.into(),
@@ -477,6 +486,9 @@ N is an update number (15 updates per second):
   --command \"WORDS\",N      run one script command at update N (repeatable)
   --console \"WORDS\",N      type one console line at update N (repeatable; e.g. reload)
   --begin                    run the world's world.cs Begin at launch too (Daventry: the opening scene)
+  --menu                     show the startup menu when using diagnostics such as --frames
+  --menu-input KEYS          open the startup menu and send comma-separated keys, one per frame
+                             (up,down,left,right,enter,release,escape); New/Normal: enter,release,enter,release
   --check-pack               test: compare the animations packed for the graphics card with their models (logged)
   --right N                the right (camera-move) button counts as held from update N on (conversations)
 
@@ -531,7 +543,7 @@ fn main() -> ExitCode {
     #[allow(clippy::large_enum_variant)]
     enum Scene {
         Model(Model, Option<object_light::ObjectLight>),
-        Ground(WorldRead),
+        Ground(Option<WorldRead>),
     }
     // How any world is built (M6 6e-1).
     let opts = world_build::Options {
@@ -543,11 +555,26 @@ fn main() -> ExitCode {
         kept_maps: args.kept_maps.clone(),
         check_pack: args.check_pack,
     };
+    let startup = startup_menu::ordinary_launch(&raw) || args.menu || !args.menu_input.is_empty();
+    if startup && (!args.world.eq_ignore_ascii_case("Daventry") || args.model.is_some()) {
+        eprintln!("The startup menu starts a new game in Daventry.");
+        return ExitCode::FAILURE;
+    }
+    let menu = if startup {
+        match startup_menu::Menu::open(&args.game, args.menu_input, args.sound, &mut log) {
+            Ok(menu) => Some(menu),
+            Err(e) => {
+                log.summary(format!("Cannot open main menu: {e}"));
+                return ExitCode::FAILURE;
+            }
+        }
+    } else { None };
     let loaded = GameDir::open(&args.game)
         .map_err(|e| format!("{e} (pass --game <folder> or set KQ8_GAME_DIR)"))
         .and_then(|game| match &args.model {
             // The world is read the way every world is (6e-1).
-            None => Ok(Scene::Ground(world_build::read_world(&game, &args.world, &opts, None, None, &mut log)?)),
+            None if startup => Ok(Scene::Ground(None)),
+            None => Ok(Scene::Ground(Some(world_build::read_world(&game, &args.world, &opts, None, None, &mut log)?))),
             Some(name) => {
                 let world = World::open(&game, &args.world)?;
                 log.summary(format!("world: {}", world.name));
@@ -568,7 +595,7 @@ fn main() -> ExitCode {
         }
     };
     log.summary(format!("loading took {} ms", started.elapsed().as_millis()));
-    timeline::mark(&mut log, "the world is read; the app (engine, window, graphics card) starts");
+    timeline::mark(&mut log, if startup { "menu loaded; starting the window" } else { "the world is read; the app (engine, window, graphics card) starts" });
     // Written before the window opens: if the API is missing, Bevy stops
     // with "Unable to find a GPU" and this is the last line.
     log.summary(format!("renderer: asking for {}", args.renderer.name()));
@@ -590,11 +617,12 @@ fn main() -> ExitCode {
     .insert_resource(renderer::RendererChoice(args.renderer))
     .add_systems(Update, renderer::report_renderer)
     .insert_resource(ClearColor(Color::srgb(0.18, 0.2, 0.24)))
-    .insert_resource(shared.clone())
-    .insert_resource(match &mut scene {
-        Scene::Model(_, light) => light.take().expect("the model's light is put in once"),
-        Scene::Ground(read) => world_build::object_light(read, &opts),
-    });
+    .insert_resource(shared.clone());
+    match &mut scene {
+        Scene::Model(_, light) => { app.insert_resource(light.take().expect("the model's light is put in once")); }
+        Scene::Ground(Some(read)) => { app.insert_resource(world_build::object_light(read, &opts)); }
+        Scene::Ground(None) => {} // The loading screen installs Daventry's lights when New is selected.
+    }
     object_light::add(&mut app);
     building_light::add(&mut app);
     ground_haze::add(&mut app);
@@ -613,11 +641,20 @@ fn main() -> ExitCode {
             // The world's resources and start-up systems (6e-1): put in
             // and run by `world_build::build_pending` at Startup.
             world_build::add(&mut app);
+            startup_menu::register(&mut app, &opts.game, opts.sound);
             world_build::remember_options(app.world_mut(), &opts);
-            if args.begin {
+            if args.begin && !startup {
                 app.insert_resource(world_build::BeginNow(args.world.clone()));
             }
-            app.world_mut().resource_mut::<world_build::PendingWorld>().0 = Some((read, opts));
+            if let Some(read) = read {
+                app.world_mut().resource_mut::<world_build::PendingWorld>().0 = Some((read, opts));
+            }
+            if let Some(menu) = menu {
+                app.insert_resource(menu)
+                    .add_systems(Startup, startup_menu::show);
+            } else {
+                app.add_systems(Startup, world_build::build_pending);
+            }
             app.insert_resource(Settings { frame_limit: args.frames, started, last_report: Instant::now(), radius: 0.0 })
                 .insert_resource(connor_view::StartLift(args.lift))
                 .insert_resource(connor_view::HoldIntent(args.hold))
@@ -643,7 +680,6 @@ fn main() -> ExitCode {
                 // Doors first, so a door's box is where it is drawn when
                 // Connor moves (M3 step 3a).
                 .add_systems(FixedUpdate, (console::console_step, draw_distance::apply_collider_switches, door_view::door_step, connor_view::late_set_step, door_view::character_gravity, connor_view::connor_step, connor_view::push_apply, rope_view::rope_step, door_view::trap_step, talk_view::talk_step, door_view::apply_loads, copies_view::spawn_copies, game_camera::camera_step, effects_view::effects_step, anim_view::anim_step).chain().run_if(world_build::running))
-                .add_systems(Startup, world_build::build_pending)
                 .add_systems(world_build::BuildWorld, (terrain_view::setup_ground, terrain_view::setup_objects, terrain_view::setup_h_label, ground_anim_view::setup_ground_anim, light_view::setup_light_label, object_light::report_lights, ground_haze::report_ground_haze).chain())
                 .add_systems(Update, (game_camera::camera_input, terrain_view::fly_input, connor_view::connor_keys, door_view::door_click_input, connor_view::connor_draw, door_view::door_draw, door_view::hide_deleted, (item_view::item_draw, item_view::corpse_draw, item_view::bolt_draw), effects_view::effects_draw, ground_anim_view::ground_anim_step, ground_anim_view::ground_anim_draw, anim_view::anim_draw, potion_view::dither_step, connor_view::unlit_step, game_camera::camera_draw, (terrain_view::toggle_markers, terrain_view::toggle_floor, door_view::toggle_ai, door_view::toggle_god), light_view::toggle_light, light_view::report_light, terrain_view::update_camera_label, terrain_view::report_camera).chain().run_if(world_build::running))
                 .add_systems(Update, frame_stats.after(terrain_view::report_camera))
@@ -677,7 +713,7 @@ fn main() -> ExitCode {
         }
     }
     timeline::add_marks(&mut app);
-    app.run();
+    let exit = app.run();
     // The console's typing line gives the terminal back.
     console::close_screen();
 
@@ -688,8 +724,8 @@ fn main() -> ExitCode {
         "window closed: frames={} first_frame_after_ms={:?} average_frame_ms={avg:.2} worst_frame_ms={:.2}",
         s.frames, s.first_frame_after_ms, s.worst_frame_ms
     ));
-    let ok = s.frames > 0;
-    log.summary(if ok { "RESULT: PASS (window ran; whether it looks right needs your eyes)" } else { "RESULT: FAIL (no frames drawn)" });
+    let ok = s.frames > 0 && matches!(exit, AppExit::Success);
+    log.summary(if ok { "RESULT: PASS (window ran and exited successfully)" } else { "RESULT: FAIL (runtime error or no frames drawn)" });
     if ok {
         ExitCode::SUCCESS
     } else {

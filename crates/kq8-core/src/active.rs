@@ -141,6 +141,8 @@ pub enum Request {
     /// `setHaze <n>` (`object-lighting.md` rule 33a, Q161): the caller
     /// sets `hazeDistance` n and `visibleDistance` 1.5 n at once.
     SetHaze { haze: f32, at: String },
+    /// Switch a named ground animator to its alternate materials.
+    TerrainCycle { animator: String, repeat: Option<bool>, at: String },
     /// `tileExit 0|1` (`tile-puzzle.md` rule 21): the tile state's exit
     /// switch; with 1 Connor goes to Wait at once. Nothing outside it.
     TileExit { can_exit: bool, at: String },
@@ -1582,11 +1584,16 @@ impl WorldState {
             self.note(format!("{at}: usage: KQMonster::checkInventory <who> <type> [variable]"));
             return "0".into();
         };
-        if self.items.kind(kind).is_none() {
+        // The Gnome armorer passes the numeric IDs returned by getConInventory.
+        let item_type = self.items.kind(kind).or_else(|| {
+            let id = kind.parse::<i64>().ok()?;
+            self.items.types.types.iter().find(|t| t.id == Some(id))
+        });
+        let Some(item_type) = item_type else {
             self.item_note(format!("{at}: ERROR checkInventory {who} {kind}: no such item type; 0"));
             return "0".into();
-        }
-        match self.items.find(who, kind).map(|o| o.name.clone()) {
+        };
+        match self.items.find(who, &item_type.name).map(|o| o.name.clone()) {
             Some(name) => {
                 let into = words.get(3).map_or(String::new(), |v| format!(" (into {v})"));
                 if let Some(var) = words.get(3) {
@@ -1600,6 +1607,55 @@ impl WorldState {
                 "0".into()
             }
         }
+    }
+
+    /// Place a carried item at the script's position and rotation (items.md
+    /// rule 11). The Gnome armorer immediately attaches a script to NewInvItem.
+    fn drop_item(&mut self, words: &[String], at: &str) -> String {
+        let [_, who, kind, x, y, z, rx, ry, rz] = words else {
+            self.item_note(format!("{at}: usage: KQMonster::dropItem <who> <type> x y z rx ry rz"));
+            return "1".into();
+        };
+        let pose = [x, y, z, rx, ry, rz].map(|w| w.parse::<f32>().ok().filter(|v| v.is_finite()));
+        let [Some(x), Some(y), Some(z), Some(rx), Some(ry), Some(rz)] = pose else {
+            self.item_note(format!("{at}: dropItem {who} {kind}: invalid placement"));
+            return "1".into();
+        };
+        let Some(item) = self.items.find(who, kind).filter(|o| o.carried_by(who) && o.quantity > 0) else {
+            self.item_note(format!("{at}: dropItem: {who} carries no {kind}"));
+            return "1".into();
+        };
+        let name = item.name.clone();
+        let idx = self.items.index(&name).expect("found carried item");
+        let place = Place::World { position: [x, y, z], angles: [rx, ry, rz] };
+        let dropped = if item.quantity > 1 && self.items.kind(kind).is_some_and(|t| crate::connor_inventory::stacks(&t.category)) {
+            // A thrown rock leaves one rock at its impact point, while the
+            // remaining stack keeps its inventory identity.
+            let one = self.items.make(kind, 1, place).expect("carried type exists").name.clone();
+            self.known.insert(one.to_ascii_lowercase());
+            self.items.objects[idx].quantity -= 1;
+            one
+        } else {
+            if who.eq_ignore_ascii_case("Connor") {
+                let removed = crate::connor_inventory::unapply(self, &name, "dropItem");
+                if !removed.is_empty() {
+                    self.item_note(removed);
+                }
+                if self.hand.as_deref() == Some(&name) {
+                    self.hand = None;
+                }
+                if self.weapon_ready.as_deref().is_some_and(|ready| ready.eq_ignore_ascii_case(&self.items.objects[idx].kind)) {
+                    self.weapon_ready = None;
+                    self.weapon_mode = crate::weapons::WeaponMode::None;
+                    self.weapon_swapped = true;
+                }
+            }
+            self.items.objects[idx].place = place;
+            name
+        };
+        self.item_note(format!("{at}: dropItem {who}: {}", self.items.describe(&dropped)));
+        self.vars_out.push(("NewInvItem".into(), dropped));
+        "0".into()
     }
 
     /// `getConInventory` (`inventory.md` rules 20–26, Q166): nine
@@ -3630,8 +3686,25 @@ impl ScriptHost for WorldState {
             "KQCamera::addCamLoc" | "KQCamera::flyToCamLoc" | "KQCamera::cutToCamLoc" => Some(self.cam_loc(words, at)),
             "KQMonster::inventory" | "give" => Some(self.make_item(words, at)),
             "KQMonster::checkInventory" => Some(self.check_inventory(words, at)),
+            "KQMonster::dropItem" => Some(self.drop_item(words, at)),
             "getConInventory" => Some(self.get_con_inventory(at)),
             "exist" => Some(self.exist(words, at)),
+            "terAnimSwitch" => {
+                match words {
+                    [_, name, tail @ ..] if tail.len() <= 1 => {
+                        self.requests.push(Request::TerrainCycle {
+                            animator: name.clone(),
+                            repeat: tail.first().map(|v| number_value(v) != 0.0),
+                            at: at.to_string(),
+                        });
+                        Some("0".into())
+                    }
+                    _ => {
+                        self.note(format!("{at}: usage: terAnimSwitch <animator> [repeatFlag]"));
+                        Some("1".into())
+                    }
+                }
+            }
             "setHaze" => {
                 // object-lighting.md rule 33a (Q161): always 0.
                 match words {
@@ -4284,9 +4357,8 @@ impl Active {
         calls
     }
 
-    /// Runs the script of the object called `name` (door, chest, scripted
-    /// object, clickable, building or trap) with `args`. `false`: no such
-    /// object with a script.
+    /// Runs the named object's script with `args`, including a world
+    /// item's or a character's script. Returns false if none was found.
     pub fn call_named(&mut self, name: &str, args: &[&str]) -> bool {
         let w = &self.world;
         if let Some(i) = w.door_index(name).filter(|&i| w.doors[i].script.is_some()) {
@@ -4300,6 +4372,11 @@ impl Active {
         } else if let Some(i) = w.trap_index(name).filter(|&i| w.traps[i].settings.script.is_some()) {
             self.call_trap(i, args);
         } else if let Some((n, script)) = w.anim_index(name).and_then(|i| Some((w.anims[i].player.name.clone(), w.anims[i].script.clone()?))) {
+            let mut all = vec![n];
+            all.extend(args.iter().map(|a| a.to_string()));
+            self.world.note(format!("script {script} {}", all.join(" ")));
+            self.scripts.call(&script, &all, &mut self.world);
+        } else if let Some((n, script)) = w.items.get(name).filter(|o| o.in_world()).and_then(|o| Some((o.name.clone(), o.script.clone()?))) {
             let mut all = vec![n];
             all.extend(args.iter().map(|a| a.to_string()));
             self.world.note(format!("script {script} {}", all.join(" ")));
@@ -6194,6 +6271,60 @@ endif
     }
 
     #[test]
+    fn scripted_drop_places_one_item_and_reports_its_name() {
+        // The Gnome armorer looks up an ID, drops the item at a six-number
+        // script variable, then assigns a pickup script to NewInvItem.
+        let a = with_items("give Crystal 2\nKQMonster::checkInventory Connor 3020 carried\nset loc 10 20 30 0 0 1.5\nKQMonster::dropItem Connor Crystal $loc\nset first $NewInvItem\nKQObject::setScript $NewInvItem coin.cs\nKQMonster::dropItem Connor Crystal $loc\nset second $NewInvItem\nKQMonster::dropItem Connor Crystal $loc\nset failed $Console::Return\n");
+        assert_eq!(a.scripts.vars.get("carried"), Some("NoName0"));
+        let first = a.world.items.get(a.scripts.vars.get("first").unwrap()).unwrap();
+        let second = a.world.items.get(a.scripts.vars.get("second").unwrap()).unwrap();
+        assert_ne!(first.name, second.name);
+        assert_eq!((first.quantity, second.quantity), (1, 1));
+        assert_eq!(first.script.as_deref(), Some("coin.cs"));
+        assert_eq!(second.name, "NoName0");
+        assert_eq!(first.place, Place::World { position: [10., 20., 30.], angles: [0., 0., 1.5] });
+        assert_eq!(second.place, first.place);
+        assert_eq!(a.world.items.count("Connor", "INVITEM_Crystal"), 0);
+        assert_eq!(a.scripts.vars.get("failed"), Some("1"));
+        assert_eq!(a.world.items.objects.len(), 2);
+    }
+
+    #[test]
+    fn scripted_drop_unapplies_equipment_only_after_validating_placement() {
+        let mut a = with_items("");
+        let t = &mut a.world.items.types.types[0];
+        t.name = "INVITEM_ChainMailSuit".into();
+        t.category = "UnderArmor".into();
+        t.duration = 0.;
+        t.stats = [0, 0, 0, 12, 0];
+        a.world.connor_stats = Some(crate::stats::ConnorStats { stats: crate::stats::Stats([10, 10, 0, 2, 0]), level: 1 });
+        a.test_command("give ChainMailSuit", "t");
+        assert_eq!(a.world.connor_stats.unwrap().stats.0[3], 14);
+        assert_eq!(a.test_command("KQMonster::dropItem Connor ChainMailSuit 1 2 no 0 0 0", "t").as_deref(), Some("1"));
+        assert_eq!(a.world.connor_stats.unwrap().stats.0[3], 14);
+        assert_eq!(a.test_command("KQMonster::dropItem connor ChainMailSuit 1 2 3 0 0 0", "t").as_deref(), Some("0"));
+        assert_eq!(a.world.connor_stats.unwrap().stats.0[3], 2);
+        let armor = a.world.items.find("world", "ChainMailSuit").unwrap();
+        assert_eq!((armor.name.as_str(), armor.third), ("NoName0", -1));
+    }
+
+    #[test]
+    fn an_item_or_control_lock_takes_precedence_over_an_attack_click() {
+        use crate::weapons::{WeaponMode, WorldClick};
+        let mut a = with_items("give SilverCoins 1");
+        a.world.weapon_mode = WeaponMode::Hand;
+        assert_eq!(a.world.world_click_action(false, false), WorldClick::Swing);
+        a.world.weapon_mode = WeaponMode::Ranged;
+        assert_eq!(a.world.world_click_action(false, false), WorldClick::Shoot);
+        assert_eq!(a.world.world_click_action(true, false), WorldClick::Interact);
+        assert_eq!(a.world.world_click_action(false, true), WorldClick::Blocked);
+        a.world.hand = Some("NoName0".into());
+        assert_eq!(a.world.world_click_action(false, false), WorldClick::Interact);
+        a.world.connor_dying = true;
+        assert_eq!(a.world.world_click_action(false, false), WorldClick::Blocked);
+    }
+
+    #[test]
     fn check_inventory_answers_1_for_found() {
         let a = with_items("give Crystal 2\nif KQMonster::checkInventory Connor crystal Found\n set A no\nelse\n set A yes\nendif\nKQMonster::checkInventory Connor SilverCoins\nset B $Console::Return\nKQMonster::checkInventory world Crystal\nset C $Console::Return\nKQMonster::checkInventory Connor NoSuchThing\nset D $Console::Return\n");
         let v = |k: &str| a.scripts.vars.get(k);
@@ -6218,6 +6349,18 @@ endif
         ScriptHost::event_done(&mut a.world);
         assert_eq!(a.test_command("exist table", "t").as_deref(), Some("1"));
         assert!(a.world.log.iter().any(|l| l.contains("exist TABLE: deleted in this same event: still there: 0")), "{:?}", a.world.log);
+    }
+
+    #[test]
+    fn ground_switch_commands_preserve_an_omitted_repeat_flag() {
+        let mut a = with_trap("");
+        a.test_command("terAnimSwitch Blood1", "scale.cs");
+        a.test_command("terAnimSwitch FullStream 0", "milltree.cs");
+        let commands: Vec<_> = a.world.requests.iter().filter_map(|r| match r {
+            Request::TerrainCycle { animator, repeat, .. } => Some((animator.as_str(), *repeat)),
+            _ => None,
+        }).collect();
+        assert_eq!(commands, [("Blood1", None), ("FullStream", Some(false))]);
     }
 
     #[test]
@@ -6734,6 +6877,7 @@ endif
         a.world.clickables.push(Clickable::plain("bell", "KQAnimObject", [-100.0; 3], [100.0; 3], at, 0x8021));
         let hit = a.world.mask_pick([20000.0, 0.0, 0.0], [0.0, 1.0, 0.0], crate::weapons::SWING_PICK, &[], &[]);
         assert_eq!(hit.as_ref().map(|h| (h.name.as_str(), h.collision_type)), Some(("bell", 0x8021)));
+        assert_eq!(a.world.melee_pick_target(hit.as_ref().unwrap(), &[]), Some(("bell".into(), at.position)));
         assert_eq!(hit.map(|h| h.point[1].round()), Some(900.0));
         assert_eq!(a.world.mask_pick([20000.0, 0.0, 0.0], [0.0, 1.0, 0.0], crate::weapons::AIM_PICK, &[], &[]), None, "no 0x40 or 0x08");
         assert_eq!(a.pick([20000.0, 0.0, 0.0], [0.0, 1.0, 0.0]).map(|(n, t)| (n, t.round())), Some(("bell".to_string(), 900.0)));
@@ -8374,6 +8518,26 @@ deleteObject waterfall2
     }
 
     #[test]
+    fn striking_a_chest_checks_its_current_origin_then_runs_its_script() {
+        let mut a = with_chest(None);
+        a.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
+        let chest = &a.world.chests[0].chest;
+        let name = chest.name.clone();
+        let p = chest.placement().position;
+        let outside = [p[0], p[1] + 2400., p[2]];
+        let ray = [outside[0], outside[1], p[2] + 100.];
+        let hit = a.world.mask_pick(ray, [0., -1., 0.], crate::weapons::SWING_PICK, &[], &[]).unwrap();
+        assert!((hit.point[1] - outside[1]).abs() < 2350., "visible box face is within weapon reach");
+        assert_eq!(a.world.melee_pick_target(&hit, &[]), Some((name.clone(), p)));
+        a.world.connor_do(outside, 0., 2350., Some(&name), false, "attack");
+        assert!(a.world.die_calls.is_empty(), "the origin is beyond reach");
+        a.world.connor_do([p[0], p[1] + 2000., p[2]], 0., 2350., Some(&name), false, "attack");
+        assert_eq!(a.world.die_calls, vec![(name, "Normal")]);
+        a.update();
+        assert_eq!(a.scripts.vars.get("C::Last"), Some("Die Normal"));
+    }
+
+    #[test]
     fn connor_s_hit_on_a_door_runs_die_below_0() {
         // doors.md rules 18-20 (Daventry's Tombdor2, stats=1 0 0 0 0): the
         // swing's target is the door (ranged-weapons.md rule 32); a door
@@ -8392,6 +8556,28 @@ deleteObject waterfall2
         a.world.connor_do([0.0, -1500.0, 0.0], std::f32::consts::PI, 2350.0, Some("Condoor"), false, "attack");
         a.update();
         assert_eq!(a.scripts.vars.get("D::died"), Some("Condoor Normal"));
+    }
+
+    #[test]
+    fn a_zero_strength_door_hit_sends_projimmune_but_a_blocked_hit_does_not() {
+        let script = "if test $2 == ProjImmune\n set D::immune $1\nendif\nif test $2 == Die\n set D::died $1\nendif\n";
+        let mut a = active(script, &[]);
+        a.start();
+        // This door has already been broken. It remains in the world until
+        // its script removes it (doors.md rule 20).
+        a.set_stats("Condoor", Stats([-1, 0, 0, 100, 0]));
+        let strike = |a: &mut Active, damage| {
+            a.set_connor_stats(ConnorStats { stats: Stats([10, damage, 0, 0, 0]), level: 1 });
+            a.world.connor_do([0.0, -1500.0, 0.0], std::f32::consts::PI, 2350.0, Some("Condoor"), false, "attack");
+            a.update();
+        };
+        strike(&mut a, 10);
+        assert_eq!(a.scripts.vars.get("D::immune"), None);
+        assert_eq!(a.scripts.vars.get("D::died"), None);
+        strike(&mut a, 0);
+        assert_eq!(a.scripts.vars.get("D::immune"), Some("Condoor"));
+        assert_eq!(a.scripts.vars.get("D::died"), None);
+        assert_eq!(a.world.stats["condoor"].0[0], -1);
     }
 
     #[test]

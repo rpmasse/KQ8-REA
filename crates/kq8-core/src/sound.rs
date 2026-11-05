@@ -329,6 +329,12 @@ impl SoundSystem {
         self.playing.iter().filter(|p| !p.paused).map(|p| p.id).collect()
     }
 
+    /// Opening the main menu pauses world sounds; interface sounds (1)
+    /// and the menu theme (4) keep playing (sound.md rule 54).
+    pub fn menu_paused_ids(&self) -> impl Iterator<Item = u64> + '_ {
+        self.playing.iter().filter(|p| !p.paused && p.group != 1 && p.group != 4).map(|p| p.id)
+    }
+
     /// Final loudness and balance of a sound: own × group, at most 1
     /// (rule 21), and its distance (0 for a plain sound).
     fn mix_values(&self, group: usize, placed: Option<&Placed>, level: f32, ears: &Ears) -> (f32, f32, f32, f32) {

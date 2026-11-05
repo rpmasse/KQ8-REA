@@ -64,6 +64,16 @@ pub struct GroundAnimSim {
     log: Log,
 }
 
+impl GroundAnimSim {
+    pub fn switch_cycle(&mut self, name: &str, repeat: Option<bool>) -> bool {
+        let Some(animator) = self.animators.iter_mut().find(|a| a.name.eq_ignore_ascii_case(name)) else {
+            return false;
+        };
+        animator.switch_cycle(repeat);
+        true
+    }
+}
+
 // A Bevy system gets everything it uses as arguments.
 #[allow(clippy::too_many_arguments)]
 pub fn setup_ground_anim(

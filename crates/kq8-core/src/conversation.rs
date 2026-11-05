@@ -653,6 +653,8 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         assert_eq!(a.world.conversation.as_ref().map(|c| (c.case, c.stage)), Some((Some(Case::There), Stage::Talking)));
         assert_eq!(walker.mode, crate::connor::Mode::Talk);
         assert!(a.world.speak_ignored("Connor") && a.world.speak_ignored("bob") && !a.world.speak_ignored("Wizard"));
+        a.world.weapon_mode = crate::weapons::WeaponMode::Hand;
+        assert_eq!(a.world.world_click_action(false, false), crate::weapons::WorldClick::Interact);
         a.world.take_talk_log();
         for _ in 0..40 {
             a.update();
