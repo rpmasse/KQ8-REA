@@ -69,7 +69,7 @@ The separate cottage test collects five mushrooms, consumes one, saves and quits
 
 Two Dead City checks start with the original portal's arrival cue. One gives Connor the feather, uses it on the right dish and steers him onto the left. The original scripts then lower five river sections. The other boards the right dish, steps off and walks out of the puzzle. Getting the feather during campaign play and saving mid-puzzle still need coverage.
 
-The Temple 4 scenarios check the altar’s changes to Lucreto’s movements and both vortex outcomes. Separate movie checks cover title replay, the middle film returning to play, and the ending film followed by scored credits. Reaching that ending in an uninterrupted campaign remains open. The [script coverage report](docs/SCRIPT-COVERAGE.md) lists commands across all worlds.
+The Temple 4 scenarios check the altar’s changes to Lucreto’s movements and the animated sequences for victory and defeat. The last command of all three defeat sequences, `KQMonster::setState Connor Die Now`, still needs its transition to the death menu. Separate movie checks cover title replay, the middle film returning to play, and the ending film followed by scored credits. Reaching that ending in an uninterrupted campaign remains open. The [script coverage report](docs/SCRIPT-COVERAGE.md) lists commands across all worlds.
 
 ## Source and research
 
