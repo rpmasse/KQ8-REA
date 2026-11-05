@@ -9,7 +9,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | Stage | Current implementation | Remaining work |
 | --- | --- | --- |
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
-| M4 · Interface and dialogue | Title, pause, Save, Load, Options and Keyboard work. Replay Intro plays the original film. Credits displays the original 25 cards and team photograph. The HUD, speech, captions and some conversations work. Saving Options preserves the GOG graphics settings. | Graphics, starting help, inventory and dialogue behavior, and exact credits timing and score calculation. |
+| M4 · Interface and dialogue | Title, pause, Save, Load, Options, Keyboard, scripted Help and F1 work. Replay Intro plays the original film. Credits displays the original 25 cards and team photograph. The HUD, speech, captions and some conversations work. Saving Options preserves the GOG graphics settings. | Graphics, inventory and dialogue behavior, and exact credits timing and score calculation. |
 | M5 · Combat | Dead City's Weeper and Tower Skeleton have encounter checks. In Temple 4 Lucreto switches between melee and ranged attacks using the original distance rule. A melee stagger can push him into the vortex. | Complete weapon controls and trajectories, remaining enemies, encounter timing and death recovery. |
 | M6 · Campaign and saves | Automated routes cover the wizard's first rewards, the Daventry castle round trip and the Dead City scales. Saves restore timed puzzle events and a scripted raven in flight. The final movie can lead into scored credits. | Restore live combat, dialogue and cutscene cameras. Complete region quests, optional branches and boss sequences in an uninterrupted campaign. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
@@ -50,6 +50,7 @@ cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test options_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test keyboard_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test credits_menu -- --ignored
+cargo test --locked -p kq8-viewer --test starting_help -- --ignored
 cargo test --locked -p kq8-viewer --test movies -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test weeper -- --ignored

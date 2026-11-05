@@ -21,6 +21,9 @@ fn new_game_walks_to_the_wizard_and_earns_the_map() {
     let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
         .current_dir(&root).env("KQ8_SAVE_DIR", &slots)
         .arg("--game").arg(&game).args(["--sound", "off", "--menu-input", "enter,release,enter,release"])
+        // These four delayed requests come from start.cs, movement.cs,
+        // camera1.cs and the wizard's original map-giving sequence.
+        .args(["--key","popup:help=144,0","--key","popup:help=141,0","--key","popup:help=127,0","--key","popup:help=153,0"])
         .arg("--walk-route").arg(&route)
         // The 13 original English voice lines last about 111 seconds.
         // Leave time for the five map movements and the final spoken line.
@@ -42,6 +45,11 @@ fn new_game_walks_to_the_wizard_and_earns_the_map() {
         "inspect {}",
         root.display()
     );
+    for case in [144,141,127,153] {
+        assert!(viewer.contains(&format!("starting help: acknowledged case {case}")),"case {case}, inspect {}", root.display());
+    }
+    let map=viewer.lines().find(|s|s.contains("starting help: 500.MSG case 153 opened")).unwrap();
+    assert!(map.contains("[Tab]") || map.contains("[TAB]"),"{map}");
     let snapshot: Value =
         serde_json::from_slice(&fs::read(slots.join("slot-1.json")).unwrap()).unwrap();
     let items = snapshot["journey"]["items"].as_array().unwrap();

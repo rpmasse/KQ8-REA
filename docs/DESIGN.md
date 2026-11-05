@@ -41,6 +41,8 @@ and runtime application.
 
 **Movie playback.** The three GOG files named `W32*_1.dll` contain AVI media. The intro, middle and ending films use 640×480 Indeo 5 video and stereo PCM audio. Read the original AVI clock and PCM soundtrack in Rust, decode the video into a bounded frame queue with a local FFmpeg decoder, and present it within the game window. The Windows release must provide a usable decoder. Check all three files end to end, including skipped or interrupted playback, menu return and the transition from the ending to credits.
 
+For in-world help, follow the original script delay, Connor’s availability, the Help Getting Started preference, and the separate F1 and Magic Map Go controls. Load the panel’s original pictures and font from its regional GUI archive. Check the installed fountain and Wizard scripts, the displayed case and key names, the paused simulation tick, and a fresh process after the checkbox setting changes.
+
 Implement the main menu, New Game and difficulty selection, options, pause/resume, inventory and item use, prompts, conversation choices and interruptions. Check captions, speech and scripted camera cuts together. Connect save/load screens to the M6 implementation when it is ready.
 
 **Completion check.** Script ordinary menu inputs from launch into Daventry. Open inventory and use an item. Start, finish and interrupt a conversation on separate runs. Compare the selected option, item count, dialogue branch, sound/caption events, camera state and return of player control against the reference.
@@ -2042,8 +2044,7 @@ What does not exist yet and limits this work:
   The Portal state's question and the world change wait for "moving
   between worlds" (to be planned with the user: it changes how the
   viewer loads a world).
-- **Help popups** (`doPopup` is a stub): the "Go" button's help (151) is
-  logged only, as the potions' help popups are.
+- **Help popups** were deferred here to M4, including the unlit Go button’s immediate teleport tip (151).
 
 Where things go:
 

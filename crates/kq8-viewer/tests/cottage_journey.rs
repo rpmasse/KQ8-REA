@@ -101,6 +101,7 @@ fn cottage_door_mushrooms_and_castle_round_trip() {
     // stngrl introduction before the fixture positions Connor at the door.
     let first = run("cottage", &[
         "--menu-input", "enter,release,enter,release", "--frames", "2400",
+        "--key", "popup:help=144,0",
         "--console", "inv,300",
         "--console", "move Connor 0 267900 225300 13981 0 0 1.57,300",
         "--click", "Condoor,308",

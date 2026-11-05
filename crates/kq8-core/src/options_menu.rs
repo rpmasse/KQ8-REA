@@ -14,6 +14,8 @@ pub struct Settings {
     pub volume: [u8; 3],
     pub subtitles: bool,
     pub help: bool,
+    /// The original reserves notStartingHelp 2 for a locked-off preference.
+    pub help_locked: bool,
 }
 
 impl Default for Settings {
@@ -22,6 +24,7 @@ impl Default for Settings {
             volume: [100; 3],
             subtitles: true,
             help: true,
+            help_locked: false,
         }
     }
 }
@@ -54,7 +57,10 @@ impl Settings {
                 .collect();
             match words.as_slice() {
                 ["set", "options::captions", v] => settings.subtitles = matches!(*v, "true" | "1"),
-                ["notstartinghelp", v] => settings.help = matches!(*v, "0" | "false"),
+                ["notstartinghelp", v] => {
+                    settings.help = matches!(*v, "0" | "false");
+                    settings.help_locked = *v == "2";
+                }
                 _ => {}
             }
         }
@@ -63,7 +69,7 @@ impl Settings {
 
     pub fn write_script(&self) -> String {
         let [music, effects, speech] = self.volume.map(|v| f32::from(v) / 100.);
-        format!("KQSound::setSpeechVol {speech:.2}\nKQSound::setSfxVol {effects:.2}\nKQSound::setMusicVol {music:.2}\nset Options::Captions {}\nnotStartingHelp {}\n",self.subtitles,u8::from(!self.help))
+        format!("KQSound::setSpeechVol {speech:.2}\nKQSound::setSfxVol {effects:.2}\nKQSound::setMusicVol {music:.2}\nset Options::Captions {}\nnotStartingHelp {}\n",self.subtitles,if self.help_locked { 2 } else { u8::from(!self.help) })
     }
 
     pub fn apply_groups(&self, groups: &mut Groups) {
@@ -242,7 +248,7 @@ impl Screen {
     fn toggle(&self, s: &mut Settings) -> Destination {
         match self.row {
             Row::Subtitles => s.subtitles = !s.subtitles,
-            Row::Help => s.help = !s.help,
+            Row::Help => { if !s.help_locked { s.help = !s.help; } },
             Row::Keys => return Destination::Keyboard,
             Row::Credits => return Destination::Credits,
             Row::Back => return Destination::Back,
@@ -324,6 +330,13 @@ impl Screen {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn locked_off_starting_help_survives_preference_saves() {
+        let s=Settings::from_script(b"notStartingHelp 2");
+        assert!(s.help_locked && !s.help);
+        assert!(s.write_script().contains("notStartingHelp 2"));
+    }
 
     #[test]
     fn option_script_roundtrip_and_mixer_group_mapping() {
