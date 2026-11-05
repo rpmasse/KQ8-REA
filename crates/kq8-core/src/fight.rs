@@ -989,7 +989,7 @@ impl crate::active::WorldState {
         }
         f.stats.0[0] = 0;
         f.last_kind = Some(kind);
-        let has = |n: &str| a.player.movements.iter().any(|m| m.name.eq_ignore_ascii_case(n));
+        let has = |n: &str| a.player.available().iter().any(|m| m.name.eq_ignore_ascii_case(n));
         let tower_fall = c.tower.is_some() && !now_flag;
         let movement = if tower_fall {
             Some("teeter")
@@ -1122,7 +1122,7 @@ impl crate::active::WorldState {
         let name = a.player.name.clone();
         // The die movement's last frame, even when a waiting movement has
         // just started in its place (rule 8.1); `Die now`: the pose shown.
-        let die = dying.flatten().and_then(|d| a.player.movements.iter().find(|m| m.name.eq_ignore_ascii_case(&d)));
+        let die = dying.flatten().and_then(|d| a.player.available().iter().find(|m| m.name.eq_ignore_ascii_case(&d)));
         let (movement, frame) = match die {
             Some(m) => (Some(m), m.frames() - 1),
             None => (a.player.movement(), a.player.frame()),

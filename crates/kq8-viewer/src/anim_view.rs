@@ -343,7 +343,8 @@ pub fn spawn_animated(
     let mut characters_new = 0;
     let (mut random, mut switchable) = (0, 0);
     let mut stop_starts: Vec<String> = Vec::new();
-    for a in animated {
+    for mut a in animated {
+        let ranges = a.append_alternate_lists();
         let (p, shape_index, unused) = &placed[a.placed];
         // F-6: a template from a start-up placement needs its recipe too.
         let template = templates.contains(&a.placed);
@@ -385,7 +386,11 @@ pub fn spawn_animated(
         let names = (a.anim_names.0.as_deref(), a.anim_names.1.as_deref());
         // anim-scripts.md rule 3 as corrected 2026-10-19 (M4 4d-8): both
         // names start as `Stop`, the keys replace them.
-        let mut player = NamedAnimPlayer::new(&p.name, movements, a.current, Placement { rotation, position: p.position }).with_stop_names(names.0, names.1).with_anim_pos(a.anim_pos);
+        let mut player = NamedAnimPlayer::new(&p.name, movements, a.current, Placement { rotation, position: p.position });
+        if let Some(file) = a.character.as_ref().and_then(|c| c.keys.anim_file.as_deref()) {
+            player.set_lists(file, ranges);
+        }
+        player = player.with_stop_names(names.0, names.1).with_anim_pos(a.anim_pos);
         // anim-scripts.md rule 11 (M5 5d-1).
         player.once = a.once;
         if player.current != a.current {
@@ -420,7 +425,7 @@ pub fn spawn_animated(
         // A character's ball is its rule-9 box.
         // A character's states (M4 4d-3).
         let mut character = a.character.as_ref().map(|c| {
-            let has_birth = a.movements.iter().any(|(n, _, _)| n.eq_ignore_ascii_case("Birth"));
+            let has_birth = player.available().iter().any(|m| m.name.eq_ignore_ascii_case("Birth"));
             Box::new(kq8_core::character::Character::new(
                 c.keys.class == kq8_data::characters::Class::GeometryTalker,
                 c.keys.flags,
@@ -444,7 +449,7 @@ pub fn spawn_animated(
             // character-movement.md (M5 5a-4): its rules; home = where it
             // was placed; the eye at the top of its box (rule 20).
             let eye = ch.bounds.map_or(1000.0, |(_, max)| max[2]);
-            let has_hide = a.movements.iter().any(|(n, _, _)| n.eq_ignore_ascii_case("hide"));
+            let has_hide = player.available().iter().any(|m| m.name.eq_ignore_ascii_case("hide"));
             ch.unborn = c.unborn;
             let mut ai = kq8_core::character_ai::Ai::new(c.ai.clone(), p.position, eye, has_hide);
             if let Some(keys) = k.tower {
@@ -456,7 +461,7 @@ pub fn spawn_animated(
                 f.combat_scaled = c.combat_scaled;
                 f
             });
-            ai.has_birth = a.movements.iter().any(|(n, _, _)| n.eq_ignore_ascii_case("Birth"));
+            ai.has_birth = player.available().iter().any(|m| m.name.eq_ignore_ascii_case("Birth"));
             ch.ai = Some(ai);
             if let Some((min, max)) = ch.bounds {
                 let keep = match p.keep_on_ground {

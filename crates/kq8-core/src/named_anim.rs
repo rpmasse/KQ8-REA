@@ -122,6 +122,13 @@ impl Started {
 }
 
 #[derive(Debug, Clone)]
+struct MovementLists {
+    ranges: std::collections::BTreeMap<String, std::ops::Range<usize>>,
+    active: std::ops::Range<usize>,
+    pending: Option<std::ops::Range<usize>>,
+}
+
+#[derive(Debug, Clone)]
 pub struct NamedAnimPlayer {
     /// The object's name (for messages).
     pub name: String,
@@ -168,7 +175,8 @@ pub struct NamedAnimPlayer {
     pub loops_move_base: bool,
     /// A non-repeating stagger whose frame steps go through the character
     /// mover too (Lucreto's retreat toward the Temple 4 vortex).
-    stagger_movement: Option<usize>,
+    physical_stagger: bool,
+    lists: Option<Box<MovementLists>>,
 }
 
 impl NamedAnimPlayer {
@@ -196,7 +204,8 @@ impl NamedAnimPlayer {
             chosen: None,
             in_transition: None,
             loops_move_base: false,
-            stagger_movement: None,
+            physical_stagger: false,
+            lists: None,
         }
     }
 
@@ -207,7 +216,7 @@ impl NamedAnimPlayer {
         let curr = curr.map(str::trim).unwrap_or("");
         if curr.is_empty() {
             self.current_name.clear();
-        } else if !self.movements.iter().any(|m| m.name.eq_ignore_ascii_case(curr)) {
+        } else if !self.available().iter().any(|m| m.name.eq_ignore_ascii_case(curr)) {
             // Rule 5: an unknown name plays movement 0 under that name.
             self.current_name = curr.to_string();
         }
@@ -225,8 +234,9 @@ impl NamedAnimPlayer {
     pub fn with_stop_names(mut self, curr: Option<&str>, next: Option<&str>) -> Self {
         let given = |v: Option<&str>| v.map(str::trim).filter(|v| !v.is_empty()).unwrap_or(STOP_NAME).to_string();
         let (curr, next) = (given(curr), given(next));
-        let found = self.movements.iter().position(|m| m.name.eq_ignore_ascii_case(&curr));
-        self.current = found.unwrap_or(0).min(self.movements.len().saturating_sub(1));
+        let first = self.lists.as_ref().map_or(0, |l| l.active.start);
+        let found = self.available().iter().position(|m| m.name.eq_ignore_ascii_case(&curr));
+        self.current = (first + found.unwrap_or(0)).min(self.movements.len().saturating_sub(1));
         let (phase, playing, cut_short) = self.movement().map_or((0.0, false, false), |m| (m.start, m.speed != 0.0, m.cut_short));
         (self.phase, self.playing, self.cut_short) = (phase, playing, cut_short);
         self.current_name = curr;
@@ -279,17 +289,39 @@ impl NamedAnimPlayer {
         self.movements.get(self.current)
     }
 
+    /// Ranges index both the prepared simulation clips and the viewer's
+    /// GPU sequences. The initially loaded list occupies the first range.
+    pub fn set_lists(&mut self, initial: &str, mut ranges: std::collections::BTreeMap<String, std::ops::Range<usize>>) {
+        let Some(end) = ranges.values().map(|r| r.start).min() else { return };
+        let active = 0..end;
+        ranges.insert(initial.to_ascii_lowercase(), active.clone());
+        self.lists = Some(Box::new(MovementLists { ranges, active, pending: None }));
+    }
+
+    pub fn available(&self) -> &[DoorMovement] {
+        match &self.lists {
+            Some(lists) => &self.movements[lists.active.clone()],
+            None => &self.movements,
+        }
+    }
+
+    /// characters.md rule 22: defer the list until the current movement ends.
+    pub fn request_list(&mut self, file: &str) -> bool {
+        let Some(lists) = self.lists.as_mut() else { return false };
+        let Some(range) = lists.ranges.get(&file.to_ascii_lowercase()) else { return false };
+        lists.pending = (range != &lists.active).then(|| range.clone());
+        true
+    }
+
     /// Enable the frame-driven movement of a character. Both Temple 4
     /// Lucreto placements use the same physical backwards stagger.
     pub fn character_steps(&mut self, class: kq8_data::characters::Class) {
         self.loops_move_base = true;
-        if class == kq8_data::characters::Class::Lucreto {
-            self.stagger_movement = self.movements.iter().position(|m| m.name.eq_ignore_ascii_case("reactback"));
-        }
+        self.physical_stagger = class == kq8_data::characters::Class::Lucreto;
     }
 
     pub fn steps_move_base(&self) -> bool {
-        self.loops_move_base && (self.stagger_movement == Some(self.current) || self.movement().is_some_and(|m| m.repeat))
+        self.loops_move_base && self.movement().is_some_and(|m| m.repeat || (self.physical_stagger && m.name.eq_ignore_ascii_case("reactback")))
     }
 
     /// The current movement's name as asked (rule 5).
@@ -315,8 +347,16 @@ impl NamedAnimPlayer {
     /// afresh even if it is the one playing. An unknown name starts
     /// movement 0 under the asked name.
     pub fn start(&mut self, name: &str) -> Started {
-        let found = self.movements.iter().position(|m| m.name.eq_ignore_ascii_case(name));
-        let i = found.unwrap_or(0);
+        if let Some(lists) = &mut self.lists {
+            if let Some(next) = lists.pending.take() {
+                lists.active = next;
+                self.chosen = None;
+                self.in_transition = None;
+            }
+        }
+        let first = self.lists.as_ref().map_or(0, |l| l.active.start);
+        let found = self.available().iter().position(|m| m.name.eq_ignore_ascii_case(name));
+        let i = first + found.unwrap_or(0);
         self.current = i.min(self.movements.len().saturating_sub(1));
         self.current_name = name.to_string();
         let (start, speed, cut_short) = self.movement().map_or((0.0, 0.0, false), |m| (m.start, m.speed, m.cut_short));
@@ -331,7 +371,7 @@ impl NamedAnimPlayer {
     /// Starts movement `name` at once if it is in the list; `Err` if not
     /// (the doors' and chests' own movements: `open`, `opened`, ...).
     pub fn play(&mut self, name: &str) -> Result<(), String> {
-        if !self.movements.iter().any(|m| m.name.eq_ignore_ascii_case(name)) {
+        if !self.available().iter().any(|m| m.name.eq_ignore_ascii_case(name)) {
             return Err(format!("{} has no movement '{name}'", self.name));
         }
         self.start(name);
@@ -489,7 +529,7 @@ impl NamedAnimPlayer {
             }
             None => {
                 let step = m.step_with(self.phase, dt, speed);
-                if self.loops_move_base && self.stagger_movement == Some(self.current) {
+                if self.loops_move_base && self.physical_stagger && m.name.eq_ignore_ascii_case("reactback") {
                     let old = m.frame_at(self.phase);
                     let new = m.frame_at(step.to);
                     let mut delta = [0.; 3];
@@ -502,10 +542,18 @@ impl NamedAnimPlayer {
                 step
             }
         };
+        let wrapped = m.repeat && ((speed > 0. && step.to < self.phase) || (speed < 0. && step.to > self.phase));
         self.phase = step.to;
         out.to = step.to;
         out.cues = step.cues;
         self.interruptable_cues(&out.cues);
+        let replacing = self.lists.as_ref().is_some_and(|l| l.pending.is_some());
+        if replacing && (wrapped || step.done) {
+            if step.done { out.finished = Some(self.movement_name().to_owned()); }
+            let next = self.waiting.take().unwrap_or_else(|| STOP_NAME.into());
+            out.started = Some(self.start(&next));
+            return out;
+        }
         if step.done && self.in_transition.is_some() {
             // Rule 6: an ordinary end of the transition movement; its
             // target starts at its phase; another wanted one is asked for
@@ -623,6 +671,37 @@ pub(crate) mod tests {
     /// the chests and baskets).
     pub fn movement(name: &str, start: f32, speed: f32, repeat: bool, cut_short: bool, cues: Vec<Cue>) -> DoorMovement {
         DoorMovement { name: name.into(), start, speed, repeat, cut_short, play_time: 1.0, frame_steps: vec![identity(); 16], first_in_file: true, frame_parts: Vec::new(), cues, transitions: Vec::new() }
+    }
+
+    #[test]
+    fn alternate_lists_wait_for_the_boundary_and_resolve_names_within_that_list() {
+        let mut p = NamedAnimPlayer::new("actor", vec![
+            movement("stop", 0., 1., true, true, vec![]),
+            movement("first-only", 0., 1., false, false, vec![]),
+            movement("stop", 0., 1., true, true, vec![]),
+            movement("second-only", 0., 1., false, false, vec![]),
+        ], 0, Placement::at([0.; 3]));
+        p.set_lists("base.anm", [("other.anm".into(), 2..4)].into_iter().collect());
+        assert!(!p.request_list("absent.anm"));
+        p.start("first-only");
+        p.advance(0.1);
+        assert!(p.request_list("OTHER.ANM"));
+        p.advance(0.1);
+        assert_eq!(p.current, 1);
+        let done = p.advance(1.);
+        assert_eq!(done.finished.as_deref(), Some("first-only"));
+        assert_eq!(p.current, 2);
+        let missing = p.start("first-only");
+        assert!(missing.unknown && missing.index == 2);
+        assert_eq!(p.start("second-only").index, 3);
+        assert!(p.request_list("BASE.ANM"));
+        assert_eq!(p.start("first-only").index, 1, "an immediate replacement ends the old movement");
+        p.start("stop");
+        p.phase = 0.95;
+        assert!(p.request_list("other.anm"));
+        p.advance(0.1);
+        p.advance(0.1);
+        assert_eq!(p.current, 2, "a repeating movement changes list at its wrap");
     }
 
     /// `stop` still at 0, then `open` 0 -> 1 over 1 s with a cue at 0, 16

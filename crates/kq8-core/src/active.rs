@@ -3040,8 +3040,8 @@ impl WorldState {
     /// `KQObject::setUseGravity`, `KQMonster::setMonUseGravity`,
     /// `KQMonster::setCanTurn <name> 0|1` (characters.md rules 8, 22, 23):
     /// kept on the character for the steps that use them (4d-4, 4d-6).
-    /// `KQMonster::changeAnmFile <name> <file>`: logged only (rule 22:
-    /// traced only as far as "taken at the next end of a movement").
+    /// `KQMonster::changeAnmFile <name> <file>` selects a prepared movement
+    /// list when the current motion ends (characters.md rule 22).
     fn character_switch(&mut self, words: &[String], at: &str) -> String {
         let (Some(who), Some(value)) = (words.get(1), words.get(2)) else {
             self.note(format!("{at}: usage: {} <name> <value>; nothing", words[0]));
@@ -3051,6 +3051,12 @@ impl WorldState {
             self.note(format!("{at}: {} {who}: not a character; nothing", words[0]));
             return "1".into();
         };
+        if words[0] == "KQMonster::changeAnmFile" {
+            let found = self.anims[i].player.request_list(value);
+            let outcome = if found { "at the next movement boundary" } else { "list not available" };
+            self.character_note(who, format!("{at}: changeAnmFile {value}: {outcome}"));
+            return if found { "0" } else { "1" }.into();
+        }
         let on = number_value(value) != 0.0;
         let c = self.anims[i].character.as_mut().unwrap();
         let line = match words[0].as_str() {
@@ -3058,7 +3064,6 @@ impl WorldState {
                 c.no_turn = !on;
                 format!("setCanTurn {}: noTurn now {} (used from 4d-4)", u8::from(on), u8::from(c.no_turn))
             }
-            "KQMonster::changeAnmFile" => format!("changeAnmFile {value}: not done (not traced far, open question 4)"),
             other => {
                 c.gravity = on;
                 format!("{other} {}: gravity {} (used from 4d-6)", u8::from(on), if on { "on" } else { "off" })
