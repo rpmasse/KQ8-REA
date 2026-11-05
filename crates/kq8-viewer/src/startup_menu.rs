@@ -6,6 +6,7 @@ use bevy::render::view::screenshot::{Screenshot, ScreenshotCaptured};
 use bevy::window::{CursorIcon, CustomCursor, CustomCursorImage, PrimaryWindow};
 use kq8_audio::{Command, Output};
 use kq8_core::credits;
+use kq8_core::graphics_menu;
 use kq8_core::keyboard_menu;
 pub use kq8_core::main_menu::Key;
 use kq8_core::main_menu::{Action, Art, Choice};
@@ -134,6 +135,7 @@ pub fn open_ending_credits(world: &mut World, score: Option<i64>) -> Result<(), 
         menu.state = Choice::default();
         menu.state.set_saves(has_saves);
         menu.options = None;
+        menu.graphics = None;
         menu.keyboard = None;
         menu.slot_page = None;
         if let Some(output) = &menu.audio.output {
@@ -407,6 +409,7 @@ pub struct Menu {
     state: Choice,
     slot_page: Option<(save_menu::Screen, save_menu::Art)>,
     options: Option<options_menu::Screen>,
+    graphics: Option<graphics_menu::Screen>,
     keyboard: Option<keyboard_menu::Screen>,
     movie: Option<MoviePage>,
     credits: Option<credits::Screen>,
@@ -436,6 +439,7 @@ impl Menu {
             state: Choice::default(),
             slot_page: None,
             options: None,
+            graphics: None,
             keyboard: None,
             movie: None,
             credits: None,
@@ -665,6 +669,8 @@ fn redraw(world: &mut World) {
         )
     } else if let Some(page) = &menu.credits {
         canvas_image(page.render(&menu.art))
+    } else if let Some(page) = &menu.graphics {
+        canvas_image(page.render(&world.resource::<Preferences>().settings.graphics, &menu.art, menu.option_frame))
     } else if let Some(page) = &menu.keyboard {
         canvas_image(page.render(
             &world.resource::<Keyboard>().active,
@@ -739,6 +745,15 @@ fn option_key(world: &mut World, key: Key) {
             }
             Err(e) => log.lock().unwrap().summary(format!("credits: {e}")),
         }
+    } else if back == options_menu::Destination::Graphics {
+        let source = &world.resource::<Source>().game;
+        match graphics_menu::Screen::open(source, &world.resource::<Menu>().art) {
+            Ok(screen) => {
+                world.resource_mut::<Menu>().graphics = Some(screen);
+                log.lock().unwrap().summary("graphics: opened original Graphics.gui");
+            }
+            Err(e) => log.lock().unwrap().summary(format!("graphics: could not open: {e}")),
+        }
     } else if back == options_menu::Destination::Keyboard {
         let source = &world.resource::<Source>().game;
         match keyboard_menu::Screen::open(source, &world.resource::<Menu>().art) {
@@ -765,6 +780,34 @@ fn option_key(world: &mut World, key: Key) {
                 .summary(format!("options: settings could not be saved: {e}")),
         }
         world.resource_mut::<Menu>().options = None;
+    }
+    redraw(world);
+}
+
+fn graphics_key(world: &mut World, key: Key) {
+    let log = world.resource::<crate::Shared>().log.clone();
+    let old = world.resource::<Preferences>().settings.graphics.clone();
+    let mut graphics = old.clone();
+    let action = {
+        let mut menu = world.resource_mut::<Menu>();
+        let action = menu.graphics.as_mut().unwrap().input(key, &mut graphics);
+        match key {
+            Key::Up | Key::Down | Key::Left | Key::Right | Key::Tab => menu.audio.play("click.aud"),
+            Key::Click(_, _) | Key::Enter => menu.audio.play("intrface.aud"),
+            _ => {},
+        }
+        action
+    };
+    if graphics != old {
+        world.resource_mut::<Preferences>().settings.graphics = graphics.clone();
+        log.lock().unwrap().summary(format!("graphics: {key:?} -> {graphics:?}"));
+    }
+    if action == graphics_menu::Action::Back {
+        match world.resource_mut::<Preferences>().store() {
+            Ok(()) => log.lock().unwrap().summary("graphics: returned to Options; saved local preferences"),
+            Err(e) => log.lock().unwrap().summary(format!("graphics: could not save preferences: {e}")),
+        }
+        world.resource_mut::<Menu>().graphics = None;
     }
     redraw(world);
 }
@@ -967,7 +1010,7 @@ pub fn step(world: &mut World) {
             credit_status(world, "timer");
             redraw(world);
         }
-    } else if world.resource::<Menu>().options.is_some() {
+    } else if world.resource::<Menu>().options.is_some() || world.resource::<Menu>().graphics.is_some() {
         let frame =
             (world.resource::<Menu>().option_clock.elapsed().as_millis() / 100) as usize % 16;
         if frame != world.resource::<Menu>().option_frame {
@@ -1026,6 +1069,11 @@ pub fn step(world: &mut World) {
                     .resource::<Menu>()
                     .options
                     .as_ref()
+                    .is_some_and(|s| s.dragging)
+                || world
+                    .resource::<Menu>()
+                    .graphics
+                    .as_ref()
                     .is_some_and(|s| s.dragging))
         {
             input.push((Key::Drag(p.x.floor() as i32, p.y.floor() as i32), true));
@@ -1033,7 +1081,8 @@ pub fn step(world: &mut World) {
     }
     if mouse.just_released(MouseButton::Left)
         && (world.resource::<Menu>().slot_page.is_some()
-            || world.resource::<Menu>().options.is_some())
+            || world.resource::<Menu>().options.is_some()
+            || world.resource::<Menu>().graphics.is_some())
     {
         input.push((Key::MouseUp, true));
     }
@@ -1064,6 +1113,10 @@ pub fn step(world: &mut World) {
                 }
                 _ => {}
             }
+            continue;
+        }
+        if world.resource::<Menu>().graphics.is_some() {
+            graphics_key(world, key);
             continue;
         }
         if world.resource::<Menu>().keyboard.is_some() {

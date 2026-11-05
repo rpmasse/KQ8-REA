@@ -1,0 +1,162 @@
+//! The original Graphics.gui panel. Mode changes still need executable research.
+use crate::{gui_draw::Canvas, main_menu::{Art, Key}, menu_layout::Layout, options_menu::Graphics};
+use std::path::Path;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Row { Low, High, Lights, Connor, Monster, Character, Object, Brightness, Back }
+
+const ROWS: [Row; 9] = [Row::Low, Row::High, Row::Lights, Row::Connor, Row::Monster, Row::Character, Row::Object, Row::Brightness, Row::Back];
+
+impl Row {
+    fn key(self) -> &'static str {
+        match self {
+            Self::Low => "640X480", Self::High => "800X600", Self::Lights => "DYNAMIC_LIGHTS",
+            Self::Connor => "CONNOR_SHADOWS", Self::Monster => "MONSTER_SHADOWS",
+            Self::Character => "CHARACTER_SHADOWS", Self::Object => "OBJECT_SHADOWS",
+            Self::Brightness => "BRIGHTNESS", Self::Back => "BACKTOMAIN",
+        }
+    }
+    fn value(self) -> Option<&'static str> {
+        Some(match self {
+            Self::Lights => "LIGHTS_BOOL", Self::Connor => "CONNOR_BOOL",
+            Self::Monster => "MONSTER_BOOL", Self::Character => "CHARACTER_BOOL",
+            Self::Object => "OBJECT_BOOL", Self::Brightness => "BRIGHTNESS_SLIDER",
+            _ => return None,
+        })
+    }
+    fn shadow_bit(self) -> Option<u32> {
+        Some(match self { Self::Connor => 1, Self::Monster => 2, Self::Character => 4, Self::Object => 8, _ => return None })
+    }
+}
+
+pub struct Screen {
+    layout: Layout,
+    background: Canvas,
+    row: Row,
+    pub dragging: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Action { Stay, Back }
+
+impl Screen {
+    pub fn open(game: &Path, art: &Art) -> Result<Self, String> {
+        let layout = Layout::read(game, "Graphics.gui", "IDCTL_GRA_")?;
+        for key in ["BACKGROUND", "TITLE", "MODE", "DIRECTDRAW", "DIRECT3D", "3DFX", "RESOLUTION", "CURSOR1", "CURSOR2"]
+            .into_iter().chain(ROWS.iter().map(|r| r.key())).chain(ROWS.iter().filter_map(|r| r.value())) {
+            if !layout.controls.contains_key(key) { return Err(format!("Graphics.gui lacks {key}")); }
+        }
+        let mut background = Canvas::new(640, 480);
+        for key in ["BACKGROUND", "TITLE", "MODE", "DIRECTDRAW", "DIRECT3D", "3DFX", "RESOLUTION"]
+            .into_iter().chain(ROWS.iter().map(|r| r.key())) {
+            let caption = match key { "DIRECTDRAW" => Some("DirectDraw"), "DIRECT3D" => Some("Direct3D"), "3DFX" => Some("3Dfx"), _ => None };
+            layout.draw(&mut background, art, key, key, layout.controls[key].rect, 0, caption);
+        }
+        Ok(Self { layout, background, row: Row::Low, dragging: false })
+    }
+
+    fn hit(&self, key: &str, x: i32, y: i32) -> bool {
+        let [l, t, r, b] = self.layout.controls[key].rect;
+        (l..r).contains(&x) && (t..b).contains(&y)
+    }
+
+    fn brightness_at(&self, x: i32, settings: &mut Graphics) {
+        let [l, _, r, _] = self.layout.controls["BRIGHTNESS_SLIDER"].rect;
+        let travel = (r - l - 10).max(1);
+        settings.brightness = ((100 * (x - l - 5).clamp(0, travel) + travel / 2) / travel) as u8;
+    }
+
+    fn choose(&self, settings: &mut Graphics) -> Action {
+        match self.row {
+            Row::Low => settings.high_resolution = false,
+            Row::High => settings.high_resolution = true,
+            Row::Lights => settings.dynamic_lighting = !settings.dynamic_lighting,
+            Row::Brightness => {},
+            Row::Back => return Action::Back,
+            row => { if let Some(bit) = row.shadow_bit() { settings.shadow_mask ^= bit; } },
+        }
+        Action::Stay
+    }
+
+    pub fn input(&mut self, key: Key, settings: &mut Graphics) -> Action {
+        match key {
+            Key::Escape => return Action::Back,
+            Key::Up | Key::Down | Key::Tab => {
+                let i = ROWS.iter().position(|r| *r == self.row).unwrap();
+                self.row = ROWS[(i + if key == Key::Up { ROWS.len() - 1 } else { 1 }) % ROWS.len()];
+            }
+            Key::Click(x, y) => {
+                for row in ROWS {
+                    if self.hit(row.key(), x, y) || row.value().is_some_and(|v| self.hit(v, x, y)) {
+                        self.row = row;
+                        if row == Row::Brightness {
+                            self.dragging = self.hit("BRIGHTNESS_SLIDER", x, y);
+                            if self.dragging { self.brightness_at(x, settings); }
+                        } else { return self.choose(settings); }
+                        break;
+                    }
+                }
+            }
+            Key::Drag(x, _) if self.dragging => self.brightness_at(x, settings),
+            Key::MouseUp => self.dragging = false,
+            Key::Left | Key::Right if self.row == Row::Brightness => {
+                settings.brightness = if key == Key::Left { settings.brightness.saturating_sub(1) } else { settings.brightness.saturating_add(1).min(100) };
+            }
+            Key::Left | Key::Right if self.row == Row::Low || self.row == Row::High => settings.high_resolution = key == Key::Right,
+            Key::Left | Key::Right => return self.choose(settings),
+            Key::Enter => return self.choose(settings),
+            _ => {},
+        }
+        Action::Stay
+    }
+
+    pub fn render(&self, settings: &Graphics, art: &Art, frame: usize) -> Canvas {
+        let mut out = self.background.clone();
+        for row in ROWS {
+            let Some(key) = row.value() else { continue };
+            let rect = self.layout.controls[key].rect;
+            if row == Row::Brightness {
+                self.layout.draw(&mut out, art, key, key, rect, 0, None);
+                let [l, t, r, b] = rect;
+                let x = l + i32::from(settings.brightness) * (r - l - 10) / 100;
+                self.layout.draw(&mut out, art, key, key, [x, t, x + 10, b], 1, None);
+            } else {
+                let enabled = if row == Row::Lights { settings.dynamic_lighting } else { settings.shadow_mask & row.shadow_bit().unwrap() != 0 };
+                self.layout.draw(&mut out, art, key, key, rect, 0, Some(if enabled { "On" } else { "Off" }));
+            }
+        }
+        let selected = self.layout.controls[self.row.key()].rect;
+        for key in ["CURSOR1", "CURSOR2"] {
+            let [l, t, r, b] = self.layout.controls[key].rect;
+            let y = (selected[1] + selected[3] - (b - t)) / 2;
+            self.layout.draw(&mut out, art, key, key, [l, y, r, y + (b - t)], frame, None);
+        }
+        out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn original_graphics_controls_change_only_their_own_settings() {
+        let game = std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR");
+        let art = Art::open(Path::new(&game)).unwrap();
+        let mut screen = Screen::open(Path::new(&game), &art).unwrap();
+        let mut graphics = Graphics { mode: "D3D-display".into(), high_resolution: false, brightness: 49, shadow_mask: 17, dynamic_lighting: false };
+        assert_eq!(screen.input(Key::Click(350, 190), &mut graphics), Action::Stay);
+        assert!(graphics.high_resolution);
+        screen.input(Key::Click(350, 232), &mut graphics);
+        assert!(graphics.dynamic_lighting);
+        screen.input(Key::Click(350, 263), &mut graphics);
+        assert_eq!(graphics.shadow_mask, 16);
+        screen.input(Key::Click(335, 387), &mut graphics);
+        screen.input(Key::Drag(525, 387), &mut graphics);
+        screen.input(Key::MouseUp, &mut graphics);
+        assert_eq!(graphics.brightness, 100);
+        assert_eq!(graphics.mode, "D3D-display");
+        assert_eq!(screen.input(Key::Click(310, 450), &mut graphics), Action::Back);
+    }
+}

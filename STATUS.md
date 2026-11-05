@@ -2,7 +2,7 @@
 
 ## 2026-11-06 local graphics commit awaiting remote push
 
-Local commit `9953279` contains the GOG graphics preference reader, fresh-launch overrides and automated checks. `git diff --check`, the installed `Graphics.gui` layout and `Options.cs` checks, the unattended two-case Windows graphics preference run, and the viewer bin suite passed. The GOG `Options.cs` was unchanged. The GitHub connector failed twice while creating blobs, first on `crates/kq8-viewer/src/option_settings.rs`, then on `crates/kq8-viewer/tests/graphics_preferences.rs` and `MODLOG.md` with an internal/transport error. The last confirmed remote commit remains `7951da0`. Retry publication when the connector recovers, verify the remote tree equals the local commit, then continue M4 Graphics screen work. No manual playtesting was performed.
+The local work contains two Graphics steps: the GOG graphics preference reader with fresh-launch overrides, and the original Graphics menu path and controls. `git diff --check`, the installed `Graphics.gui` layout and `Options.cs` checks, an unattended two-case Windows graphics preference run, the Graphics menu save and fresh-process world run, the existing Options regression and the viewer bin suite passed. The GOG `Options.cs` was unchanged. The GitHub connector previously failed twice while creating blobs with an internal/transport error. The last confirmed remote commit remains `7951da0`. Retry publication when the connector recovers, verify the remote tree equals the local tree, then continue M4 Graphics runtime work. No manual playtesting was performed.
 
 ## 2026-11-06 previous Windows fork checkpoint
 
