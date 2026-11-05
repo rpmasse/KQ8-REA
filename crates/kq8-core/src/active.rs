@@ -674,7 +674,7 @@ pub struct WorldState {
     deleted: BTreeSet<String>,
     /// `KQObject::setHidden` on other placed objects (3k-2), by
     /// lower-case name: overrides their file's `hidden=`.
-    plain_hidden: BTreeMap<String, bool>,
+    pub(crate) plain_hidden: BTreeMap<String, bool>,
     /// Objects prepared for a script's `loadKQ` (3k-4): lower-case file
     /// name → the object's name and script.
     dormant: BTreeMap<String, (String, Option<String>)>,
@@ -955,7 +955,7 @@ pub struct WorldState {
     pub connor_state: Option<u32>,
     /// The state number last seen per character (lower case), for the
     /// `StateChange` messages (rules 14-16).
-    state_seen: BTreeMap<String, u32>,
+    pub(crate) state_seen: BTreeMap<String, u32>,
     /// The script command `random`'s draws (`anim-scripts.md` rule 36).
     script_rng: crate::emitter::Rng,
 }

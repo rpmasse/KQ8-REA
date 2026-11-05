@@ -32,7 +32,7 @@ fn nonzero(v: f32) -> bool {
 /// A small seeded random number generator (SplitMix64). The original uses
 /// the C library's generator; matching it is not needed, uniform fractions
 /// are enough (emitters.md "Do not reproduce").
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Rng(u64);
 
 impl Rng {

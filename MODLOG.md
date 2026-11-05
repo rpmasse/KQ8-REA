@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Resume a character’s scripted movement from disk
+
+Daventry’s grave raven can finish `fromgrave` after a fresh process loads a slot saved during the flight. The save retains the actor’s placement, physical mover, animation phase, queued movements and next cue. After loading at phase 0.22222222, the two remaining cries sounded on updates 4 and 17. On update 34 the original callback marked the tomb done and removed the raven. This fixture starts at the graveside movement and skips the preceding dialogue. The README gives the unattended test command. Live AI, combat, dialogue and the cutscene camera still require their own checkpoints.
+
 ## 2026-11-05 Lucreto enters the Temple 4 vortex
 
 The altar’s shipped script arms the dormant vortex. Starting from the close form’s authored combat position, melee stagger moves its collision body backward into the vortex. The winning branch relocates the actors and starts the original finale sound. The automated `temple4_melee_stagger` test also delivers the second actor to the trap and checks its distinct script branch. That fixture uses the initial animation list. Lucreto’s ranged list has no backward stagger. The original switch between forms, final choreography, movie and credits remain open.
