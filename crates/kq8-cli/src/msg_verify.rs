@@ -1,8 +1,8 @@
 //! `kq8 msg-verify`: reads every message file (`<n>.MSG`) in the worlds'
 //! `English` folders and `GAME/ENGLISH`, `TALKERS.SH` and every lip-sync
 //! file next to them, and compares the counts with
-//! `docs/behaviour/talking.md` (rules 1-5, 17). The copies under
-//! `MASK/data/` are not counted (the note's 12 files are the loose ones).
+//! `docs/behaviour/talking.md` (rules 1-5, 17). Each numbered catalogue
+//! counts once in its region whether unpacked or installed under `data/`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -74,12 +74,14 @@ fn verify(game: &GameDir, log: &mut Log) -> bool {
     let mut bytes_of: BTreeMap<(String, String), Vec<u8>> = BTreeMap::new();
     let (mut lips, mut lip_changes, mut lip_above_7, mut lip_failed) = (0usize, 0usize, 0usize, Vec::new());
     for (folder, number, want_lines, want_marks, want_silent) in EXPECTED {
-        let dir_rel = if folder == "GAME" { "GAME/ENGLISH".to_string() } else { format!("{folder}/English") };
-        let rel = format!("{dir_rel}/{number}.MSG");
-        let Some(path) = game.find(&rel) else {
-            check(log, format!("{rel} found"), false);
+        let found = kq8_data::msg::folders(folder).into_iter().find_map(|dir| {
+            game.find(&format!("{dir}/{number}.MSG")).map(|path|(dir,path))
+        });
+        let Some((dir_rel,path)) = found else {
+            check(log, format!("{number}.MSG found for {folder}"), false);
             continue;
         };
+        let rel = format!("{dir_rel}/{number}.MSG");
         let bytes = fs::read(&path).unwrap_or_default();
         bytes_of.insert((folder.to_string(), number.to_string()), bytes.clone());
         let m = match MessageFile::parse(number.parse().unwrap_or(0), &bytes) {

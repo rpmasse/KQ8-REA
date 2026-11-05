@@ -52,11 +52,8 @@ use crate::log::Log;
 /// `Options::Captions`, rule 10).
 pub fn load_talk(game: &GameDir, world: &str, log: &mut Log) -> (Talk, Vec<(String, String)>) {
     let mut book = Book::default();
-    for folder in [format!("{world}/English"), "GAME/ENGLISH".to_string()] {
-        let Some(dir) = game.find(&folder) else {
-            log.summary(format!("talk: no folder {folder}"));
-            continue;
-        };
+    for folder in kq8_data::msg::folders(world).into_iter().chain(kq8_data::msg::folders("GAME")) {
+        let Some(dir) = game.find(&folder) else { continue };
         let rel = dir.strip_prefix(game.root()).unwrap_or(&dir).to_string_lossy().replace('\\', "/");
         let mut names: Vec<_> = std::fs::read_dir(&dir).map(|d| d.filter_map(|e| e.ok()).map(|e| e.path()).collect()).unwrap_or_default();
         names.sort();
@@ -250,8 +247,9 @@ fn first_found(game: &GameDir, names: &[String]) -> Option<(String, Vec<u8>)> {
 /// names (the world's `8gui` folder first, then `GAME/8Gui`), and the
 /// world's palette (`KQWorld::objectPalette` from `world.cs`, Q118;
 /// `crate::load::screen_palette_paths`). `None` (logged) if any is missing.
-pub fn load_caption(game: &GameDir, world: &str, log: &mut Log) -> Option<CaptionStyle> {
+pub fn load_caption(game: &GameDir, region: &crate::load::World, log: &mut Log) -> Option<CaptionStyle> {
     use kq8_data::gui::{self, Kind, Tags};
+    let world = &region.name;
     fn fail(log: &mut Log, why: String) -> Option<CaptionStyle> {
         log.summary(format!("caption: {why}; the 4a-4 text panel is used"));
         None
@@ -267,14 +265,16 @@ pub fn load_caption(game: &GameDir, world: &str, log: &mut Log) -> Option<Captio
     let Some(c) = layout.find(id as u32) else { return fail(log, "no IDDLG_CAPTION in Gplayscr.gui".into()) };
     let Kind::Dialog { caption: Some(cap), picture } = &c.kind else { return fail(log, "IDDLG_CAPTION is not a caption dialog".into()) };
     let Some(font_name) = tags.string(cap.text.font) else { return fail(log, format!("font tag {} has no file name", cap.text.font)) };
-    let in_world = |name: &str| vec![format!("{world}/8gui/{name}"), format!("GAME/8Gui/{name}"), format!("GAME/Resource/{name}")];
-    let Some((font_path, font_bytes)) = first_found(game, &in_world(font_name)) else { return fail(log, format!("font {font_name} not found")) };
+    let in_world = |name: &str| first_found(game, &[format!("{world}/8gui/{name}"), format!("data/{world}/8gui/{name}")])
+        .or_else(|| region.gui_asset(name))
+        .or_else(|| first_found(game, &[format!("GAME/8Gui/{name}"), format!("GAME/Resource/{name}")]));
+    let Some((font_path, font_bytes)) = in_world(font_name) else { return fail(log, format!("font {font_name} not found")) };
     let font = match kq8_data::font::Font::parse(&font_bytes) {
         Ok(f) => f,
         Err(e) => return fail(log, format!("{font_path}: {e}")),
     };
     let strip_name = picture.and_then(|p| tags.string(p.bitmap));
-    let strip = strip_name.and_then(|n| first_found(game, &in_world(n))).and_then(|(path, b)| match kq8_data::Bitmap::parse(&b) {
+    let strip = strip_name.and_then(in_world).and_then(|(path, b)| match kq8_data::Bitmap::parse(&b) {
         Ok(bm) if bm.bit_count == 8 => Some((path, (bm.width, bm.height, bm.pixels))),
         Ok(_) => None,
         Err(e) => {
@@ -352,6 +352,7 @@ pub struct CaptionMade {
 #[allow(clippy::too_many_arguments)]
 pub fn caption_picture_draw(
     speech: Res<Speech>,
+    options: Res<crate::option_settings::Preferences>,
     style: Option<Res<CaptionStyle>>,
     place: Res<crate::gui_view::CaptionPlace>,
     mut node: Query<(&mut Node, &mut ImageNode, &mut Visibility), With<CaptionPicture>>,
@@ -391,12 +392,13 @@ pub fn caption_picture_draw(
     let out = fw / sw * scale_factor;
     // The speech changes every frame (the mouths): only a new caption
     // text, or a new window size, makes a new picture.
-    let shown = speech.caption.as_ref().map(|(_, t)| t.clone());
+    // A player can disable subtitles while a spoken line is paused.
+    let shown = speech.caption.as_ref().filter(|_|options.settings.subtitles).map(|(_, t)| t.clone());
     if *last != shown || (made.out - out).abs() > 1e-3 {
         made.out = out;
         *last = shown;
         *last_place = None;
-        match speech.caption.as_ref().map(|(_, t)| t.as_str()) {
+        match last.as_deref() {
             None => {
                 *rows_shown = 0;
                 if *vis != Visibility::Hidden {
@@ -463,15 +465,16 @@ pub fn caption_picture_draw(
 /// panel stays hidden.
 pub fn caption_draw(
     speech: Res<Speech>,
+    options: Res<crate::option_settings::Preferences>,
     mut panel: Query<&mut Visibility, With<CaptionPanel>>,
     mut text: Query<&mut Text, With<CaptionText>>,
     style: Option<Res<CaptionStyle>>,
     shared: Res<crate::Shared>,
 ) {
-    if !speech.is_changed() || style.is_some() {
+    if (!speech.is_changed() && !options.is_changed()) || style.is_some() {
         return;
     }
-    let shown = speech.caption.as_ref().map(|(_, t)| t.as_str());
+    let shown = speech.caption.as_ref().filter(|_|options.settings.subtitles).map(|(_, t)| t.as_str());
     let (Ok(mut vis), Ok(mut t)) = (panel.single_mut(), text.single_mut()) else { return };
     let was = (*vis != Visibility::Hidden).then(|| t.0.clone());
     if was.as_deref() == shown {

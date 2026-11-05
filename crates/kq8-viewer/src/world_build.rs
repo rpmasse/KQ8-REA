@@ -273,7 +273,7 @@ pub fn read_world(game: &GameDir, name: &str, opts: &Options, arrival: Option<lo
     // Remarks and speech (M4 4a-2).
     objects.talk = Some(talk_view::load_talk(game, &parent, log));
     // The caption as the original's (M4 4b-3).
-    let caption = talk_view::load_caption(game, name, log);
+    let caption = talk_view::load_caption(game, &world, log);
     // The panels (M4 4c-2).
     let gui = gui_view::load_gui(game, name, log).map(|mut gui| {
         gui.corners = opts.corners;

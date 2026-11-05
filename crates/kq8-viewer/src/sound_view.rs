@@ -45,6 +45,10 @@ pub struct SoundSim {
 }
 
 impl SoundSim {
+    pub fn apply_options(&mut self, settings:&kq8_core::options_menu::Settings) -> [f32; GROUPS] {
+        settings.apply_groups(&mut self.system.groups);
+        self.system.groups.slider
+    }
     /// Main menu rule 7. The simulation stops while the menu is up.
     /// Already-paused, out-of-range loops must stay paused on return.
     pub fn menu_pause(&self, paused: bool) {

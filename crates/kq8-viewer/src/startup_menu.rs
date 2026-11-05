@@ -1,10 +1,12 @@
 //! Bevy input and display for the original startup menu.
+use crate::option_settings::Preferences;
 use bevy::prelude::*;
 use bevy::render::view::screenshot::{Screenshot, ScreenshotCaptured};
 use bevy::window::{CursorIcon, CustomCursor, CustomCursorImage, PrimaryWindow};
 use kq8_audio::{Command, Output};
 pub use kq8_core::main_menu::Key;
 use kq8_core::main_menu::{Action, Art, Choice};
+use kq8_core::options_menu;
 use kq8_core::save_menu::{self, Mode};
 use kq8_core::sound::Groups;
 use kq8_data::{aud, GameDir};
@@ -44,6 +46,8 @@ pub fn register(app: &mut App, game: &Path, sound: bool) {
         game: game.to_path_buf(),
         sound,
     })
+    .insert_resource(Preferences::load(game))
+    .add_systems(First, crate::option_settings::apply_to_world)
     .init_resource::<MenuRequest>()
     .add_systems(DisplayMenu, show)
     .add_systems(Update, fade_theme.run_if(resource_exists::<FadingTheme>))
@@ -189,6 +193,20 @@ pub fn parse_keys(input: &str) -> Result<Vec<Key>, String> {
             out.extend(text.chars().map(Key::Character));
             continue;
         }
+        if let Some((op, coords)) = token.split_once('=') {
+            if matches!(op, "click" | "drag") {
+                let (x, y) = coords
+                    .split_once('x')
+                    .and_then(|(x, y)| Some((x.parse().ok()?, y.parse().ok()?)))
+                    .ok_or_else(|| format!("expected {op}=XxY"))?;
+                out.push(if op == "click" {
+                    Key::Click(x, y)
+                } else {
+                    Key::Drag(x, y)
+                });
+                continue;
+            }
+        }
         out.push(match token {
             "up" => Key::Up,
             "down" => Key::Down,
@@ -200,6 +218,7 @@ pub fn parse_keys(input: &str) -> Result<Vec<Key>, String> {
             "delete" => Key::Delete,
             "backspace" => Key::Backspace,
             "tab" => Key::Tab,
+            "mouse-up" => Key::MouseUp,
             _ => return Err(format!("unsupported --menu-input key {token}")),
         });
     }
@@ -226,6 +245,9 @@ pub struct Menu {
     art: Art,
     state: Choice,
     slot_page: Option<(save_menu::Screen, save_menu::Art)>,
+    options: Option<options_menu::Screen>,
+    option_clock: std::time::Instant,
+    option_frame: usize,
     typed: Vec<char>,
     capture: Option<(Entity, std::time::Instant)>,
     current_thumbnail: Option<Vec<u8>>,
@@ -249,6 +271,9 @@ impl Menu {
             art: Art::open(path)?,
             state: Choice::default(),
             slot_page: None,
+            options: None,
+            option_clock: std::time::Instant::now(),
+            option_frame: 0,
             typed: Vec::new(),
             capture: None,
             current_thumbnail: None,
@@ -275,10 +300,6 @@ const THEME_ID: u64 = 0;
 impl MenuAudio {
     fn open(path: &Path, sound: bool, log: &mut crate::log::Log) -> Result<Self, String> {
         let game = GameDir::open(path).map_err(|e| e.to_string())?;
-        let mut groups = Groups::default();
-        if let Some(bytes) = game.find("Options.cs").and_then(|p| std::fs::read(p).ok()) {
-            groups.apply_script(&bytes);
-        }
         let mut sounds = BTreeMap::new();
         for name in ["theme.aud", "click.aud", "intrface.aud"] {
             let Some(path) = aud::find(&game, "", name) else {
@@ -305,7 +326,7 @@ impl MenuAudio {
         Ok(Self {
             output,
             sounds,
-            groups,
+            groups: Groups::default(),
             next_id: 1,
         })
     }
@@ -353,6 +374,7 @@ pub fn show(
     mut menu: ResMut<Menu>,
     mut images: ResMut<Assets<Image>>,
     shared: Res<crate::Shared>,
+    preferences: Res<Preferences>,
     camera: Query<(), With<Camera3d>>,
     window: Query<(Entity, Option<&CursorIcon>), With<PrimaryWindow>>,
     sim: Option<Res<crate::door_view::DoorSim>>,
@@ -373,6 +395,7 @@ pub fn show(
     menu.image = images.add(image(&menu.art, &menu.state));
     menu.shown = Some(std::time::Instant::now());
     menu.paused_at_update = sim.map(|s| s.active.world.updates);
+    preferences.settings.apply_groups(&mut menu.audio.groups);
     menu.audio.play("theme.aud");
     if let Ok((window, cursor)) = window.single() {
         menu.old_cursor = cursor.cloned();
@@ -448,14 +471,70 @@ fn typed_name(
 
 fn redraw(world: &mut World) {
     let menu = world.resource::<Menu>();
-    let image = match &menu.slot_page {
-        Some((state, art)) => canvas_image(art.render(state, &menu.art)),
-        None => image(&menu.art, &menu.state),
+    let image = if let Some(page) = &menu.options {
+        canvas_image(page.render(
+            &world.resource::<Preferences>().settings,
+            &menu.art,
+            menu.option_frame,
+        ))
+    } else {
+        match &menu.slot_page {
+            Some((state, art)) => canvas_image(art.render(state, &menu.art)),
+            None => image(&menu.art, &menu.state),
+        }
     };
     let handle = menu.image.clone();
     if let Some(mut target) = world.resource_mut::<Assets<Image>>().get_mut(&handle) {
         *target = image;
     }
+}
+
+fn option_key(world: &mut World, key: Key) {
+    let log = world.resource::<crate::Shared>().log.clone();
+    let old = world.resource::<Preferences>().settings;
+    let mut settings = old;
+    let back = {
+        let mut menu = world.resource_mut::<Menu>();
+        let back = menu.options.as_mut().unwrap().input(key, &mut settings);
+        if settings != old {
+            settings.apply_groups(&mut menu.audio.groups);
+            if old.volume[0] != settings.volume[0] {
+                if let Some(output) = &menu.audio.output {
+                    output.send([Command::Gains {
+                        id: THEME_ID,
+                        gains: [menu.audio.groups.loudness(4); 2],
+                    }]);
+                }
+            }
+            log.lock().unwrap().summary(format!(
+                "options: {key:?} -> {settings:?}, theme gain {:.2}",
+                menu.audio.groups.loudness(4)
+            ));
+        }
+        match key {
+            Key::Up | Key::Down | Key::Left | Key::Right | Key::Tab => menu.audio.play("click.aud"),
+            Key::Click(_, _) | Key::Enter => menu.audio.play("intrface.aud"),
+            _ => {}
+        }
+        back
+    };
+    if settings != old {
+        world.resource_mut::<Preferences>().settings = settings;
+    }
+    if back {
+        match world.resource_mut::<Preferences>().store() {
+            Ok(()) => log
+                .lock()
+                .unwrap()
+                .summary(format!("options: back to main, {settings:?}")),
+            Err(e) => log
+                .lock()
+                .unwrap()
+                .summary(format!("options: settings could not be saved: {e}")),
+        }
+        world.resource_mut::<Menu>().options = None;
+    }
+    redraw(world);
 }
 
 fn open_slots(world: &mut World, mode: Mode) -> Result<(), String> {
@@ -604,6 +683,14 @@ pub fn step(world: &mut World) {
     {
         return;
     }
+    if world.resource::<Menu>().options.is_some() {
+        let frame =
+            (world.resource::<Menu>().option_clock.elapsed().as_millis() / 100) as usize % 16;
+        if frame != world.resource::<Menu>().option_frame {
+            world.resource_mut::<Menu>().option_frame = frame;
+            redraw(world);
+        }
+    }
     let mut input = Vec::new();
     let keys = world.resource::<ButtonInput<KeyCode>>();
     for (code, key) in [
@@ -629,16 +716,24 @@ pub fn step(world: &mut World) {
         if mouse.just_pressed(MouseButton::Left) {
             input.push((Key::Click(p.x.floor() as i32, p.y.floor() as i32), true));
         } else if mouse.pressed(MouseButton::Left)
-            && world
+            && (world
                 .resource::<Menu>()
                 .slot_page
                 .as_ref()
                 .is_some_and(|(s, _)| s.dragging())
+                || world
+                    .resource::<Menu>()
+                    .options
+                    .as_ref()
+                    .is_some_and(|s| s.dragging))
         {
             input.push((Key::Drag(p.x.floor() as i32, p.y.floor() as i32), true));
         }
     }
-    if mouse.just_released(MouseButton::Left) && world.resource::<Menu>().slot_page.is_some() {
+    if mouse.just_released(MouseButton::Left)
+        && (world.resource::<Menu>().slot_page.is_some()
+            || world.resource::<Menu>().options.is_some())
+    {
         input.push((Key::MouseUp, true));
     }
     input.extend(
@@ -653,6 +748,10 @@ pub fn step(world: &mut World) {
         return;
     }
     for (key, live) in input {
+        if world.resource::<Menu>().options.is_some() {
+            option_key(world, key);
+            continue;
+        }
         let (action, image, cue, pointer) = if world.resource::<Menu>().slot_page.is_some() {
             (slot_key(world, key), None, None, None)
         } else {
@@ -787,7 +886,25 @@ pub fn step(world: &mut World) {
                 }
                 redraw(world);
             }
-            Action::Options | Action::Replay | Action::Stay => {}
+            Action::Options => match options_menu::Screen::open(
+                &world.resource::<Source>().game,
+                &world.resource::<Menu>().art,
+            ) {
+                Ok(page) => {
+                    let mut menu = world.resource_mut::<Menu>();
+                    menu.options = Some(page);
+                    menu.option_clock = std::time::Instant::now();
+                    menu.option_frame = 0;
+                    redraw(world);
+                }
+                Err(e) => world
+                    .resource::<crate::Shared>()
+                    .log
+                    .lock()
+                    .unwrap()
+                    .summary(format!("menu: could not open Options: {e}")),
+            },
+            Action::Replay | Action::Stay => {}
         }
     }
 }

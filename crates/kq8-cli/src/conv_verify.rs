@@ -89,9 +89,8 @@ fn message_file(game: &GameDir, world: &str, number: u16, cache: &mut BTreeMap<u
     cache
         .entry(number)
         .or_insert_with(|| {
-            [format!("{}/English/{number}.MSG", world.to_ascii_lowercase()), format!("GAME/ENGLISH/{number}.MSG")]
-                .iter()
-                .find_map(|rel| game.find(rel).and_then(|p| std::fs::read(p).ok()))
+            kq8_data::msg::folders(world).into_iter().chain(kq8_data::msg::folders("GAME"))
+                .find_map(|dir| game.find(&format!("{dir}/{number}.MSG")).and_then(|p| std::fs::read(p).ok()))
                 .and_then(|b| MessageFile::parse(number, &b).ok())
         })
         .clone()

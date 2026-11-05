@@ -9,7 +9,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | Stage | Current implementation | Remaining work |
 | --- | --- | --- |
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
-| M4 · Interface and dialogue | New Game and difficulty, pause/resume, restart, original Save and Load screens with names and thumbnails, HUD, speech, captions and some conversations. | Options, Replay Intro, remaining inventory and dialogue behavior, and full menu fidelity. |
+| M4 · Interface and dialogue | New Game and difficulty, pause/resume, restart, Save and Load, HUD, speech, captions and some conversations. Options controls speech, music, effects and subtitles from the title or pause menu. | Graphics, Keyboard, Credits, Replay Intro, starting-help prompts and the remaining inventory and dialogue behavior. |
 | M5 · Combat | Melee and some ranged attacks, throwing and retrieving rocks, scripted hazards, potions and the Dead City Weeper's life drain. | Verify weapon controls and trajectories, remaining enemy-specific encounters and death recovery. |
 | M6 · Campaign and saves | Disk slots restore Connor, inventory, doors, chest contents and queued script events. A saved Dead City laser puzzle resumes on its next cue and unlocks both doors. | Restore live combat and cutscenes. Complete region quests, optional branches, boss sequences, movies and the ending. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
@@ -45,6 +45,7 @@ The following checks use the installed game assets and run unattended. The menu 
 ```powershell
 cargo test --locked -p kq8-viewer campaign_tests -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test options_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test weeper -- --ignored
 cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored
