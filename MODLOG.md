@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Lucreto switches combat forms
+
+The [independent GOG study](docs/behaviour/lucreto-forms.md) now governs both directions in Rust. The installed Temple 4 setup exercises equality, a crossing caused only by a change in elevation, and the original reaction delay. The incoming form takes the outgoing placement. Each keeps its own health, and only the ranged form resets its home. Both selected forms subsequently damaged Connor through their own animated attack cues. This was checked in the Rust simulation with the original data. The original executable was studied statically.
+
 ## 2026-11-05 Replay Intro and the original campaign movies
 
 Three fresh Windows processes exercised title replay, skip, missing-decoder recovery, the portal film and the ending followed by the scored credits. The full opening, middle and ending movies contain 1,609, 255 and 774 display intervals. The Rust reader preserves their hold frames and original PCM. A local FFmpeg process supplies decoded Indeo pictures. An independent CPU test advanced all three through the original timestamps. The Windows test drives the movie commands directly; separate script checks verify the installed portal and ending callbacks. The full campaign and the release's decoder packaging remain open.

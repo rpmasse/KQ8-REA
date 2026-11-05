@@ -5683,6 +5683,7 @@ mod campaign_tests {
             let k = &c.keys;
             let mut character = Character::new(false, k.flags, c.birth_delay, false, k.no_turn, k.gravity, Character::seed_for(name));
             character.lucreto_react_pause = k.react_pause;
+            character.lucreto_change_dist = k.lucreto_change_dist;
             character.ai = Some(Ai::new(c.ai.clone(), at.position, max[2], false));
             character.fight = Some(Fight::new(c.fight.clone().unwrap()));
             character.bounds = Some((min, max));
@@ -5923,5 +5924,124 @@ mod campaign_tests {
             assert!(evidence.contains(if far { "touches Connor" } else { "hits Connor:" }), "{name}: {evidence}");
             assert!(evidence.contains(if far { "Projectile" } else { "hand damage 800, Normal" }));
         }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn temple4_lucreto_switches_at_three_dimensional_distance_then_attacks() {
+        use kq8_core::{
+            active::{Active, AnimObject}, character::Character, character_ai::Ai, collide::Placement,
+            fight::Fight, stats::{ConnorStats, Stats},
+        };
+        let game = game_install();
+        let world = World::open(&game, "temple4").unwrap();
+        let mut log = Log::create("temple4-form-handoff").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let mut assets = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let mut active = Active::new(assets.vars.clone(), vec![], vec![], assets.known.clone(), assets.scripts.clone());
+        for name in ["LucEnd", "LucEndFar"] {
+            let a = assets.animated.iter_mut().find(|a| assets.placed[a.placed].0.name == name).unwrap();
+            let p = &assets.placed[a.placed].0;
+            let mut player = world_player(a, &assets.object_animations, name, Placement { position: p.position, rotation: kq8_data::objects::rotation(p.angles) });
+            let c = a.character.as_ref().unwrap();
+            let k = &c.keys;
+            let mut actor = Character::new(false, k.flags, c.birth_delay, false, k.no_turn, k.gravity, Character::seed_for(name));
+            actor.ai = Some(Ai::new(c.ai.clone(), p.position, 1000., false));
+            actor.fight = Some(Fight::new(c.fight.clone().unwrap()));
+            actor.lucreto_change_dist = k.lucreto_change_dist;
+            actor.lucreto_react_pause = k.react_pause;
+            assert_eq!(actor.lucreto_change_dist, Some(2000.));
+            actor.set_state(&mut player, "Wait", &[], 0.);
+            active.add_anims([AnimObject { player, character: Some(Box::new(actor)), script: None, gone: false, translucency: None }]);
+        }
+        active.world.projectiles = assets.projectiles.clone();
+        active.set_connor_stats(ConnorStats { level: 1000, stats: Stats([10000, 0, 0, 0, 0]) });
+        assert!(active.run_script("altar.cs", &["altar".into(), "Cue".into(), "6".into(), "7".into()]));
+        let altar = active.world.place_of("LucEnd").unwrap();
+        let home = |a: &Active, i: usize| a.world.anims[i].character.as_ref().unwrap().ai.as_ref().unwrap().home;
+        assert_eq!(home(&active, 0), altar.position);
+        assert_eq!(home(&active, 1), altar.position);
+        let visible = |a: &Active| [!a.world.hidden_now("LucEnd", true), !a.world.hidden_now("LucEndFar", true)];
+        // Feed only the visible actor to the simulation, as draw_distance
+        // does. The fixture never shows or hides either actor itself.
+        let decide = |a: &mut Active, at| {
+            a.world.connor_at = Some(at);
+            a.world.characters_in_range.clear();
+            for (name, shown) in ["lucend", "lucendfar"].into_iter().zip(visible(a)) {
+                if shown { a.world.characters_in_range.insert(name.into()); }
+            }
+            a.world.characters_ai(&ground.terrain, &assets.buildings, &[]);
+        };
+        // A position distinct from both original homes, with all three
+        // angles nonzero, tests the entire placement in both directions.
+        active.test_command("move LucEnd 0 101190 94760 5940 0.11 -0.05 3.12", "handoff fixture");
+        let place = active.world.place_of("LucEnd").unwrap();
+        let [x, y, z] = place.position;
+        active.world.anims[0].character.as_mut().unwrap().fight.as_mut().unwrap().stats.0[0] = 2100;
+        decide(&mut active, [x, y + 2000., z]);
+        assert_eq!(visible(&active), [true, false]);
+        decide(&mut active, [x, y + 2001., z]);
+        assert_eq!(visible(&active), [false, true]);
+        assert_eq!(active.world.place_of("LucEndFar"), Some(place));
+        assert_eq!(home(&active, 1), place.position);
+        let gravity = |a: &Active| [0, 1].map(|i| a.world.anims[i].character.as_ref().unwrap().gravity);
+        assert_eq!(gravity(&active), [false, true]);
+        assert_eq!(active.world.anims[1].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0], 2500);
+        assert!(!active.world.anims[1].character.as_ref().unwrap().ai.as_ref().unwrap().alarmed);
+        decide(&mut active, [x, y + 2000., z]);
+        assert_eq!(visible(&active), [false, true]);
+        decide(&mut active, [x, y + 1999., z]);
+        assert_eq!(visible(&active), [true, false]);
+        assert_eq!(active.world.place_of("LucEnd"), Some(place));
+        assert_eq!(home(&active, 0), altar.position);
+        assert_eq!(gravity(&active), [true, false]);
+        assert_eq!(active.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0], 2100);
+
+        decide(&mut active, [x, y + 1600., z + 1200.]);
+        assert_eq!(visible(&active), [true, false]);
+        let c = &mut active.world.anims[0];
+        c.character.as_mut().unwrap().enter_move(&mut c.player, 0., false, "test moving form");
+        assert_eq!(c.character.as_ref().unwrap().state, kq8_core::character::State::Move);
+        decide(&mut active, [x, y + 1600., z + 1201.]);
+        assert_eq!(visible(&active), [false, true]);
+        for (i, separation, evidence) in [(1, 3500., "touches Connor"), (0, 900., "hand damage 800, Normal")] {
+            let target = [x, y + separation, z];
+            let before = active.world.connor_stats.unwrap().stats.0[0];
+            let log_from = active.world.fight_log.len();
+            for _ in 0..150 {
+                decide(&mut active, target);
+                active.update();
+                if active.world.connor_stats.unwrap().stats.0[0] < before { break; }
+            }
+            assert_eq!(visible(&active), [i == 0, i == 1]);
+            let actual = active.world.fight_log[log_from..].join("\n");
+            assert!(actual.contains(evidence), "form {i}: {actual}; character history: {}", active.world.character_log.join("\n"));
+            if i == 1 { assert!(actual.contains("its part 'bullet'"), "{actual}"); }
+            assert!(active.world.connor_stats.unwrap().stats.0[0] < before);
+        }
+        // End the original close form's stagger. Keep the new separation
+        // across its whole recovery interval, including the first eligible tick.
+        assert!(!active.world.anims[0].player.start("reactback").unknown);
+        let log_from = active.world.fight_log.len();
+        let mut end = None;
+        for _ in 0..45 {
+            active.update();
+            if active.world.fight_log[log_from..].iter().any(|l| l.contains("reactback ended: stands until")) {
+                end = Some(active.world.now());
+                break;
+            }
+        }
+        let end = end.expect("original reactback must reach its movement end");
+        let mut switched = None;
+        for _ in 0..33 {
+            decide(&mut active, [x, y + 3500., z]);
+            if visible(&active) == [false, true] {
+                switched = Some(active.world.now() - end);
+                break;
+            }
+            active.update();
+        }
+        let seconds = switched.expect("the held separation must switch forms after recovery");
+        assert!((1. - 1e-6..=2. + 1. / kq8_core::UPDATES_PER_SECOND).contains(&seconds), "{seconds}");
     }
 }

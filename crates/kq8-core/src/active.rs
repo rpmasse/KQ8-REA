@@ -3298,6 +3298,67 @@ impl WorldState {
         self.switched_off.contains(&name.to_ascii_lowercase())
     }
 
+    /// The final altar fight's two characters (lucreto-forms.md, rules 1–5).
+    /// A pause or a handoff replaces this update's sight and combat decisions.
+    pub(crate) fn lucreto_form_update(&mut self, i: usize, now: f64) -> bool {
+        use crate::character::State;
+        let a = &self.anims[i];
+        let Some(c) = a.character.as_ref() else { return false };
+        let Some(limit) = c.lucreto_change_dist else { return false };
+        if self.hidden_now(&a.player.name, false) { return true; }
+        if !matches!(c.state, State::Wait | State::Move) { return false; }
+        if now < c.resume_move_at {
+            if c.state == State::Move {
+                let a = &mut self.anims[i];
+                a.character.as_mut().unwrap().set_state(&mut a.player, "Wait", &[], now);
+            }
+            return true;
+        }
+        let Some(at) = self.connor_at else { return false };
+        let placement = a.player.base;
+        let [x, y, z] = placement.position;
+        let distance = ((x - at[0]).powi(2) + (y - at[1]).powi(2) + (z - at[2]).powi(2)).sqrt();
+        let ranged = c.fight.as_ref().is_some_and(|f| f.settings.projectile.is_some());
+        let next = match ranged {
+            true if distance < limit => "LucEnd",
+            false if distance > limit => "LucEndFar",
+            _ => return false,
+        };
+        let name = a.player.name.clone();
+        let Some(j) = self.character_index(next).filter(|&j| j != i) else {
+            self.character_note(&name, format!("cannot change form: missing partner {next}"));
+            return false;
+        };
+        let outgoing = self.anims[i].character.as_mut().unwrap();
+        outgoing.gravity = false;
+        outgoing.in_range = false;
+        if let Some(m) = outgoing.mover.as_mut() { m.use_gravity = false; }
+        let home = outgoing.ai.as_ref().map(|ai| ai.home);
+        let key = name.to_ascii_lowercase();
+        self.characters_solid.remove(&key);
+        self.characters_in_range.remove(&key);
+        self.plain_hidden.insert(key, true);
+
+        let target = &mut self.anims[j];
+        target.player.base = placement;
+        let incoming = target.character.as_mut().unwrap();
+        incoming.gravity = true;
+        if let Some(m) = &mut incoming.mover {
+            m.position = placement.position;
+            m.use_gravity = true;
+        }
+        if !ranged {
+            if let Some(ai) = &mut incoming.ai { ai.home = placement.position; }
+        }
+        let next_home = incoming.ai.as_ref().map(|ai| ai.home);
+        self.plain_hidden.insert(next.to_ascii_lowercase(), false);
+        if let Some(click) = self.clickables.iter_mut().find(|c| !c.gone && c.name.eq_ignore_ascii_case(next)) {
+            click.placement = placement;
+        }
+        self.character_note(&name, format!("Connor {distance:.1} away: {name} hidden, gravity off, home {home:?}; {next} shown, gravity on, home {next_home:?}; both at {placement:?}"));
+        true
+    }
+
     /// Whether placed object `name` is hidden now: a script's `setHidden`
     /// wins over its file's `hidden=` (`file_hidden`); scripted objects,
     /// chests and items as [`Self::is_hidden`].
@@ -7494,6 +7555,29 @@ endif
         a.world.characters_in_range.insert("gob".into());
         a.world.connor_at = Some([20_000.0, 0.0, 100.0]);
         a
+    }
+
+    #[test]
+    fn lucreto_waits_through_recovery_and_needs_a_live_named_partner() {
+        let mut active = wanderer(kq8_data::characters::Wander::None);
+        let world = &mut active.world;
+        let source = &mut world.anims[0];
+        source.player.name = "LucEnd".into();
+        let c = source.character.as_mut().unwrap();
+        c.state = crate::character::State::Move;
+        c.lucreto_change_dist = Some(2000.);
+        c.resume_move_at = 2.;
+        assert!(world.lucreto_form_update(0, 1.999));
+        assert_eq!(world.anims[0].character.as_ref().unwrap().state, crate::character::State::Wait);
+        assert!(!world.lucreto_form_update(0, 2.));
+        assert!(!world.hidden_now("LucEnd", false));
+        assert!(world.character_log.iter().any(|l| l.contains("missing partner LucEndFar")));
+        let mut partner = world.anims[0].clone();
+        partner.player.name = "LucEndFar".into();
+        world.anims.push(partner);
+        assert!(world.lucreto_form_update(0, 2.));
+        assert!(world.hidden_now("LucEnd", false));
+        assert!(!world.hidden_now("LucEndFar", true));
     }
 
     #[test]

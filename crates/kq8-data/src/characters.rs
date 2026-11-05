@@ -628,6 +628,8 @@ pub struct CharacterKeys {
     /// `reactPause` (in the data, not in `fighting.md`: Q136; none in
     /// Daventry). Read for the log only.
     pub react_pause: Option<f32>,
+    /// KQLucreto's distance for exchanging the close and ranged actors.
+    pub lucreto_change_dist: Option<f32>,
 }
 
 /// A character's own collision type and mask when its file sets none
@@ -703,6 +705,7 @@ impl CharacterKeys {
             likely_to_flee: number("likelyToFlee").map(|v| v as f32),
             must_flee: switch("mustFlee", false),
             react_pause: number("reactPause").map(|v| v as f32),
+            lucreto_change_dist: (class == Class::Lucreto).then(|| number("changeDist").unwrap_or(2000.) as f32),
         })
     }
 
@@ -1214,6 +1217,13 @@ impl OrbitKeys {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_lucreto_reads_the_distance_for_changing_form() {
+        let sections = kq_text::parse(b"[default]\nclassType=KQLucreto\n[custom]\nclassType=KQLucreto\nchangeDist=1500\n[other]\nclassType=KQMonster\nchangeDist=1500\n");
+        let distances: Vec<_> = sections.iter().map(|s| CharacterKeys::from_section(s).unwrap().lucreto_change_dist).collect();
+        assert_eq!(distances, [Some(2000.), Some(1500.), None]);
+    }
 
     #[test]
     fn skin_lists() {

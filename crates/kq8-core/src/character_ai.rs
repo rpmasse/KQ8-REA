@@ -196,6 +196,10 @@ impl WorldState {
             if a.gone || !self.characters_in_range.contains(&a.player.name.to_ascii_lowercase()) {
                 continue;
             }
+            if self.lucreto_form_update(i, now) {
+                continue;
+            }
+            let a = &self.anims[i];
             let tower = a.character.as_ref().is_some_and(|c| c.tower.is_some());
             if tower && self.tower_ground_step(i, &scene) {
                 continue;
