@@ -149,6 +149,8 @@ pub enum Request {
     TileExit { can_exit: bool, at: String },
     /// `KQMonster::setState Connor Tile` (`tile-puzzle.md` rule 7).
     ConnorTile { at: String },
+    /// Enter the Dead City scales after the original portal sequence.
+    ConnorScales { at: String },
     /// `deadHallTeleport <from> <to>` (`tile-puzzle.md` rule 22): Connor
     /// and the camera moved by the two buildings' offset.
     HallTeleport { from: String, to: String, at: String },
@@ -2971,6 +2973,10 @@ impl WorldState {
                     _ => "Choice requires string argument; nothing (rule 1)".to_string(),
                 };
                 self.note(format!("{at}: KQMonster::setState Connor Choice {}: {line}", rest.join(" ")));
+            }
+            [_, who, state, ..] if who.eq_ignore_ascii_case("Connor") && state.eq_ignore_ascii_case("Scales") => {
+                self.requests.push(Request::ConnorScales { at: at.to_string() });
+                self.note(format!("{at}: KQMonster::setState Connor Scales: handed to Connor"));
             }
             [_, who, state, ..] if who.eq_ignore_ascii_case("Connor") && state.eq_ignore_ascii_case("Tile") => {
                 // tile-puzzle.md rule 7 (batch 2, D-4).

@@ -17,6 +17,7 @@ Source types:
 
 | Behavior | Reference |
 | --- | --- |
+| Connor can board either dish, step off or leave the Scales of Justice. The original scripts combine his weight with the feather. | [Scales rules 23–27](../behaviour/tile-puzzle.md#the-scales-connors-scales-state-traced-2026-10-28), the installed `conscale.anm` and Dead City's `portrap3.cs`, `scalelt.cs`, `scalert.cs`, `sclfthr.kq`, `scalcmpl.cs` and `scale.cs`. The fixed camera positions come from the study. Aiming pitch and the exact simulation update for switching gravity are inferred. |
 | The Credits screen shows 25 staff cards and the team photograph. The ending includes a score. | The GOG installation supplies `credits.gui`, the images and fonts, `GAME/English/400.MSG` and the Temple 4 finale callback. Page duration, mixed-font spacing and the use of cumulative experience for the numerator are provisional. |
 | Keyboard remapping, conflicts and key labels. | The installed `movekeys.kq`, Keyboard GUI and `500.MSG` define 13 actions and their controls and prompts. Runtime checks use the original cursor artwork and exercise rebound keys through the game’s input path. |
 | Lucreto’s close-form melee stagger can put him in the vortex. The vortex handles two named actors. | The local GOG installation provides the altar and vortex scripts, both Lucreto actors, their movement and collision data, and the finale sound. The original close and ranged movement lists differ. The test verifies the close-form stagger and the two scripted winning branches separately. |

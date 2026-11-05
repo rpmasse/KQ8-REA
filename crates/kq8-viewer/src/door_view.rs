@@ -1187,10 +1187,10 @@ pub fn trap_step(
     // tile-puzzle.md (D-4): what the Tile state asked this update.
     for call in std::mem::take(&mut connor.tile_calls) {
         match call {
-            crate::connor_view::TileCall::Line(line) => {
-                let r = sim.active.test_command(&line, "Tile state");
+            crate::connor_view::TileCall::Line(state, line) => {
+                let r = sim.active.test_command(&line, state);
                 let n = connor.updates;
-                connor.log.detail(format!("connor update {n}: Tile state: {line}: {r:?}"));
+                connor.log.detail(format!("connor update {n}: {state}: {line}: {r:?}"));
             }
             crate::connor_view::TileCall::Set(name, value) => {
                 sim.active.scripts.vars.set(name, value.to_string());
@@ -1256,10 +1256,10 @@ pub fn trap_step(
         if let Some((what, at)) = state {
             // tile-puzzle.md rule 20 (D-4): refused and dropped while the
             // exit switch is off.
-            if connor.tile_holds() {
+            if connor.tile_holds() || connor.scales.is_some() {
                 connor.state_request(what, &at);
                 if let Some(log) = &mut sim.trap_log {
-                    log.detail(format!("update {}: {at}: {what}{again}: refused, Connor is in the Tile state (exit switch off); dropped (tile-puzzle.md rule 20)", sim.active.world.updates));
+                    log.detail(format!("update {}: {at}: {what}{again}: refused while Connor is in a puzzle state", sim.active.world.updates));
                 }
                 continue;
             }
@@ -1375,6 +1375,14 @@ pub fn trap_step(
                 // object-lighting.md rule 33a (Q161): applied before the next frame.
                 set_haze.0.push((haze, at.clone()));
                 format!("{at}: applied: setHaze {haze} queued for the haze")
+            }
+            Request::ConnorScales { at } => {
+                let away = sim.active.world.put_weapon_away(&at);
+                connor.enter_scales();
+                if away.is_some() {
+                    sim.active.test_command("KQMonster::speak Connor Connor 0 0 37 23 1 1", "Scales state");
+                }
+                format!("{at}: Connor enters Scales")
             }
             Request::ConnorTile { at } => {
                 // tile-puzzle.md rule 7 (G-1): a drawn weapon is put away
@@ -2006,16 +2014,17 @@ pub fn door_step(
         // every weapon change is refused with his common line: keys,
         // bottom-bar slots and scripts' alike. Alt only acts with a weapon
         // drawn, so with empty hands it does nothing, silently.
-        if c.tile.is_some() {
+        if c.tile.is_some() || c.scales.is_some() {
+            let state = if c.scales.is_some() { "Scales" } else { "Tile" };
             let empty = w.weapon_mode == kq8_core::weapons::WeaponMode::None;
             for r in std::mem::take(&mut w.weapon_requests) {
                 let said = if r.ask == kq8_core::weapons::Ask::Away && empty {
                     "Alt with empty hands: nothing, no line".to_string()
                 } else {
-                    let said = sim.active.test_command("KQMonster::speak Connor Connor 0 0 37 23 1 1", "Tile state");
+                    let said = sim.active.test_command("KQMonster::speak Connor Connor 0 0 37 23 1 1", state);
                     format!("Connor says 0/0/37/23 ({said:?}) (rule 18)")
                 };
-                let line = format!("weapon request ({}): refused in the Tile state; {said} (tile-puzzle.md rules 18, 20)", r.how);
+                let line = format!("weapon request ({}): refused in the {state} state; {said} (tile-puzzle.md rules 18, 20)", r.how);
                 sim.active.world.fight_note("Connor", line.clone());
                 sim.log.detail(format!("update {updates}: {line}"));
             }

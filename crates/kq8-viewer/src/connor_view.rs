@@ -37,6 +37,8 @@ use crate::Shared;
 
 #[path = "connor_tile.rs"]
 mod tile;
+#[path = "connor_scales.rs"]
+mod scales;
 pub use tile::{unlit_step, TileCall};
 
 /// One drawable movement: its loop for the walker and its number of frames.
@@ -187,6 +189,7 @@ pub struct ConnorSim {
     /// The death hall's `Tile` state (`tile-puzzle.md`; batch 2, D-4),
     /// while he is in it, and what it asks of the world this update.
     pub tile: Option<tile::TileRun>,
+    pub scales: Option<scales::Scales>,
     pub tile_calls: Vec<TileCall>,
     /// The lit stone changed (rule 10): the new one, for the drawing.
     pub tile_lit_changed: Option<Option<kq8_core::tile_puzzle::Cell>>,
@@ -822,6 +825,7 @@ pub fn spawn_connor(
         choice: None,
         choice_calls: Vec::new(),
         tile: None,
+        scales: None,
         tile_calls: Vec::new(),
         tile_lit_changed: None,
         walk_end: None,
@@ -1141,6 +1145,7 @@ impl ConnorSim {
     /// or Move turn (talk, weapon draw, throwing and the tile puzzle are
     /// not built); anything else doesn't. The state's name, for the log.
     pub fn click_turn_state(&self) -> (bool, &'static str) {
+        if self.scales.is_some() { return (false, "Scales"); }
         match self.walker.mode {
             Mode::Free if self.walker.moving() => (true, "Move"),
             Mode::Free => (true, "Wait"),
@@ -1200,6 +1205,10 @@ impl ConnorSim {
     /// an unfinished jump, with `handsOff` on the jump is finished first;
     /// without it the request is refused (`false`). Logged either way.
     pub fn state_request(&mut self, what: &str, at: &str) -> bool {
+        if self.scales.is_some() {
+            self.log.detail(format!("connor update {}: {what}: refused in Scales ({at})", self.updates));
+            return false;
+        }
         // ropeandhook.md rule 28 (M6 6a-6): the rope state refuses every
         // other state; the caller drops the request (`roping`).
         // tile-puzzle.md rule 20 (D-4): refused while the exit switch is off.
@@ -2336,7 +2345,8 @@ pub fn connor_step(
     }
     // tile-puzzle.md rules 8-15 (D-4): the death-hall stones.
     let tile_lines = sim.tile_step(&mut intent, jump);
-    if sim.tile.is_some() && jump {
+    sim.scales_step(&mut intent);
+    if sim.tile.is_some() || sim.scales.is_some() {
         jump = false;
     }
     for l in choice_lines.into_iter().chain(tile_lines) {

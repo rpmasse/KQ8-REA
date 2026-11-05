@@ -23,7 +23,7 @@ pub const DOOR: &str = "ltddoor4";
 #[derive(Debug, Clone, PartialEq)]
 pub enum TileCall {
     /// A script line, run as a command.
-    Line(String),
+    Line(&'static str, String),
     /// A click on this object, as if the player clicked it (rule 12).
     Click(&'static str),
     /// A script variable set (rule 13, H).
@@ -234,10 +234,10 @@ impl ConnorSim {
                     let t = self.tile.as_ref().unwrap();
                     let solved = right && t.expected >= tp::ORDER.len();
                     self.tile_calls.push(TileCall::Hold(false));
-                    self.tile_calls.push(TileCall::Line(format!("KQCamera::addCamLoc {:.0} {:.0} {:.0} 1", camera[0], camera[1], camera[2])));
+                    self.tile_calls.push(TileCall::Line("Tile state", format!("KQCamera::addCamLoc {:.0} {:.0} {:.0} 1", camera[0], camera[1], camera[2])));
                     // Rule 13 (Q178): a `flyToCamLoc` with no time:
                     // distance ÷ 5,000 a second, rolling to 0.
-                    self.tile_calls.push(TileCall::Line(format!("KQCamera::flyToCamLoc {:.0} {:.0} {:.0}", put[0], put[1], put[2])));
+                    self.tile_calls.push(TileCall::Line("Tile state", format!("KQCamera::flyToCamLoc {:.0} {:.0} {:.0}", put[0], put[1], put[2])));
                     self.tile_calls.push(TileCall::FollowAfterFlight(!solved));
                     let up = self.tile_play("teleportup");
                     self.tile.as_mut().unwrap().stage = Stage::Up { right };
@@ -256,7 +256,7 @@ impl ConnorSim {
                     let said = t.lines.after_teleport(right);
                     let solved = right && t.expected >= tp::ORDER.len();
                     if let Some(c) = said {
-                        self.tile_calls.push(TileCall::Line(format!("KQMonster::speak Connor Connor {} {} 0 {c} 1 1", tp::LINE_FILE, tp::LINE_NOUN)));
+                        self.tile_calls.push(TileCall::Line("Tile state", format!("KQMonster::speak Connor Connor {} {} 0 {c} 1 1", tp::LINE_FILE, tp::LINE_NOUN)));
                     }
                     // Rule 13: the keys work again now, even if the
                     // camera is still flying (it follows him when the
@@ -325,7 +325,7 @@ impl ConnorSim {
                 if !right {
                     self.tile_light(None, lines);
                 }
-                self.tile_calls.push(TileCall::Line("setThirdPerson".into()));
+                self.tile_calls.push(TileCall::Line("Tile state", "setThirdPerson".into()));
                 let down = self.tile_play("teleportdown");
                 self.tile.as_mut().unwrap().stage = Stage::Down { right, put, camera };
                 lines.push(format!(
