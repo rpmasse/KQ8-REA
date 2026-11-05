@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Spawn Dead City monsters from scripts
+
+`KQMonster::add` now resolves the original type name to a prepared character recipe, creates a fresh named actor with the command's position, heading, AI, fight and mover, and asks the viewer to draw its model. A deleted name can be reused in a later event. The original `ratkarma.cs` line passed a core check for its 20 fields, floor placement, the field-12 dependents quirk, combat damage, deletion and respawn; the two-word form and unknown type were checked too. A GOG-backed Windows run spawned and drew all six types named by Dead City's 16 add commands. The 594-test core suite passed, and the generated script coverage now lists the command as handled. Live scripted enemies are not yet restored from a save, and their new model copies lack the character's face and shadow presentation. Next: preserve and restore live encounter state across a fresh launch.
+
 ## 2026-11-05 Prepare script-created Dead City monster assets
 
 The world loader now reads `KQMonster::add` type names from the installed world scripts and resolves them through the original `GAME/Kq/Monstats.mtl` before play. It keeps unplaced type files at the origin available for model and movement loading. The GOG-backed Dead City check passed: its 16 commands resolve to six type files; five already have monster-list actors, and the script-only Snake is now prepared as an unplaced character. `cargo check --locked -p kq8-viewer`, the focused original-data test, and `git diff --check` passed. Runtime creation, AI and save/restore for these commands are still open. Next, carry a prepared character recipe into the script command and instantiate a live actor.

@@ -484,7 +484,7 @@ pub fn spawn_doors(
     objects: &mut Objects,
     colliders: &mut Vec<BoxCollider>,
     (item, combat): (Option<String>, Option<i64>),
-    (anims, own_players): (Vec<kq8_core::active::AnimObject>, Vec<kq8_core::named_anim::NamedAnimPlayer>),
+    (anims, own_players, monster_recipes): (Vec<kq8_core::active::AnimObject>, Vec<kq8_core::named_anim::NamedAnimPlayer>, Vec<crate::anim_view::PreparedMonster>),
     materials: &mut Assets<ObjectMaterial>,
     light: &ObjectLight,
     images: &mut Assets<Image>,
@@ -787,6 +787,14 @@ pub fn spawn_doors(
     }
     // The other animated objects (3i-4), drawn by anim_view.
     active.add_anims(anims);
+    if let Some(types) = objects.monster_types.as_ref() {
+        let prepared: Vec<_> = types.types.iter().filter(|kind| objects.monster_add_targets.contains(&kind.file.to_ascii_lowercase())).filter_map(|kind| {
+            let r = monster_recipes.iter().find(|r| r.file.eq_ignore_ascii_case(&kind.file))?;
+            Some((kind.name.clone(), kq8_core::active::MonsterTemplate { actor: r.actor.clone(), keys: r.keys.clone(), kind: kind.clone(), combat_scaled: r.combat_scaled }))
+        }).collect();
+        main_log.summary(format!("characters: {} scripted monster types have live actor recipes", prepared.len()));
+        active.world.set_monster_templates(prepared);
+    }
     active.world.script_shapes = std::mem::take(&mut objects.script_shapes).into_iter().map(|(file, (_, model))| (file, model)).collect();
     // Copies prepared for a script's loadKQ (3k-4).
     active.set_dormant(std::mem::take(&mut objects.dormant));

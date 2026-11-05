@@ -313,6 +313,11 @@ impl Character {
         self.rng.fraction()
     }
 
+    /// A script-created copy starts its own random sequence under its new name.
+    pub fn reseed_for(&mut self, name: &str) {
+        self.rng = Rng::new(Self::seed_for(name));
+    }
+
     /// A seed from the character's name (so two goblins differ, and a run
     /// is the same every time).
     pub fn seed_for(name: &str) -> u64 {

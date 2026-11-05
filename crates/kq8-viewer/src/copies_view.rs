@@ -101,6 +101,9 @@ pub fn spawn_copies(
                 (None, Some(a), Some(index)) if file.ends_with(".kqs") => {
                     a.spawn_copy(&mut commands, &file, &name, placement, index, (gpu.as_deref(), &mut materials))
                 }
+                (None, Some(a), Some(index)) if file.ends_with(".kq") && a.has_recipe(&file) => {
+                    a.spawn_copy(&mut commands, &file, &name, placement, index, (gpu.as_deref(), &mut materials))
+                }
                 _ => format!("copy {name} of {file} at ({:.0}, {:.0}, {:.0}): no template drawn here; not drawn", p[0], p[1], p[2]),
             },
         };

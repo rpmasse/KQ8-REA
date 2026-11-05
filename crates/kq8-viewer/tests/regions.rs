@@ -101,6 +101,30 @@ fn every_region_builds_and_presents_frames() {
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn dead_city_script_created_monster_types_are_live_and_drawn() {
+    let logs = run_world("deadcity-added-types", &[
+        "--world", "DeadCity", "--no-ai", "--god",
+        "--command", "KQMonster::add testRat rat,10",
+        "--command", "KQMonster::add testRat2 rat2,11",
+        "--command", "KQMonster::add testSnake snake,12",
+        "--command", "KQMonster::add testSpirit spirit,13",
+        "--command", "KQMonster::add testSkeleton skeleton,14",
+        "--command", "KQMonster::add testSkelbow skelbow,15",
+        "--frames", "90",
+    ]);
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    for (name, kind, file) in [("testRat", "rat", "rat.kq"), ("testRat2", "rat2", "rat2.kq"),
+        ("testSnake", "snake", "snake.kq"), ("testSpirit", "spirit", "spirit.kq"),
+        ("testSkeleton", "skeleton", "skelbs.kq"), ("testSkelbow", "skelbow", "skelbow.kq")] {
+        assert!(doors.contains(&format!("KQMonster::add {name} type {kind}")), "{name} missing from live world; see {}", logs.display());
+        assert!(viewer.contains(&format!("copy {name} of {file}: drawn")), "{name} has no rendered model; see {}", logs.display());
+    }
+    assert!(viewer.contains("RESULT: PASS"));
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
 fn daventry_girl_uses_carried_quest_flag_during_init() {
     let fresh = run_world("girl-unmet", &["--world", "Daventry", "--frames", "30"]);
     let before = fs::read_to_string(fresh.join("doors.log")).unwrap();
