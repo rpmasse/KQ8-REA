@@ -1935,6 +1935,36 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         load_targets.insert(file.to_string());
         if words.next().is_some() { copy_targets.insert(file.to_string()); }
     }
+    // A script can create a character by type rather than by `loadKQ`.
+    // Resolve those types before the unused-file pass so their otherwise
+    // unplaced .kq files (often at the origin) can supply model movements.
+    let add_commands: Vec<(String, Vec<String>)> = all_scripts.iter().flat_map(|(script, text)| {
+        text.lines().filter_map(move |line| {
+            let words: Vec<String> = line.split('#').next().unwrap_or("").split_whitespace().map(str::to_string).collect();
+            (words.first().is_some_and(|w| w == "kqmonster::add")).then(|| (script.clone(), words[1..].to_vec()))
+        })
+    }).collect();
+    let mut monster_add_targets = std::collections::BTreeSet::new();
+    let mut monster_types = None;
+    if !add_commands.is_empty() {
+        if let Some(Ok(bytes)) = game.find("GAME/Kq/Monstats.mtl").map(std::fs::read) {
+            let (types, problems) = kq8_data::characters::MonsterTypes::parse(&bytes);
+            for problem in problems { log.summary(format!("characters: Monstats.mtl: {problem}")); }
+            for (script, words) in &add_commands {
+                match kq8_data::characters::MonsterLine::from_command(words) {
+                    Ok(line) => match types.find(&line.type_name) {
+                        Some((kind, _)) => { monster_add_targets.insert(kind.file.to_ascii_lowercase()); }
+                        None => log.summary(format!("characters: {script}: KQMonster::add type {} undefined", line.type_name)),
+                    },
+                    Err(problem) => log.summary(format!("characters: {script}: {problem}")),
+                }
+            }
+            monster_types = Some(types);
+        } else {
+            log.summary("characters: KQMonster::add files cannot be prepared: GAME/Kq/Monstats.mtl could not be read");
+        }
+        log.summary(format!("characters: {} KQMonster::add commands refer to {} type files prepared before play", add_commands.len(), monster_add_targets.len()));
+    }
     let mut items = item_types(game, log);
     // M6 6e-7: the movements of portals' own lists: this world's portals'
     // enterAnmFile / enterAnim (leaving), the arriving portal's exitAnmFile
@@ -1974,6 +2004,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         map: None,
         load_targets,
         copy_targets,
+        monster_add_targets,
         dormant: Vec::new(),
         dormant_traps: Vec::new(),
         template_files: Vec::new(),
@@ -2041,7 +2072,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         projectiles: BTreeMap::new(),
         combat_apply: false,
         item_lines: Vec::new(),
-        monster_types: None,
+        monster_types,
         pending_line: None,
         list_files: Default::default(),
         character_lines: Vec::new(),
@@ -2333,6 +2364,8 @@ struct Placer<'a> {
     load_targets: std::collections::BTreeSet<String>,
     /// Files scripts can load with their own name or placement.
     copy_targets: std::collections::BTreeSet<String>,
+    /// Character type files named by a script's `KQMonster::add`.
+    monster_add_targets: std::collections::BTreeSet<String>,
     dormant: Vec<(String, String, Option<String>)>,
     dormant_traps: Vec<String>,
     /// (file, index into `placed`) of each template (M5 5d-3).
@@ -3260,7 +3293,7 @@ impl Placer<'_> {
         if unused {
             // Templates for script copies sit at (0, 0, 0): nothing to see
             // there; one a script loads is kept as a template (M5 5d-3).
-            if p.position == [0.0; 3] && !self.load_targets.contains(&base.to_ascii_lowercase()) {
+            if p.position == [0.0; 3] && !self.load_targets.contains(&base.to_ascii_lowercase()) && !self.monster_add_targets.contains(&base.to_ascii_lowercase()) {
                 *self.unused_skipped.entry("at (0, 0, 0) (template)".into()).or_default() += 1;
                 return;
             }
@@ -5472,6 +5505,28 @@ mod campaign_tests {
             player.character_steps(c.keys.class);
         }
         player.with_stop_names(actor.anim_names.0.as_deref(), actor.anim_names.1.as_deref()).with_anim_pos(actor.anim_pos)
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn dead_city_scripted_monster_models_are_prepared_before_play() {
+        let game = game_install();
+        let world = World::open(&game, "DeadCity").unwrap();
+        let mut log = Log::create("deadcity-add-assets-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let prepared: std::collections::BTreeSet<_> = objects.animated.iter()
+            .filter(|a| a.character.is_some())
+            .map(|a| objects.placed[a.placed].0.name.to_ascii_lowercase())
+            .collect();
+        // Five type files already have a live monster-list instance. Snake
+        // has only a script-created instance, so its unplaced file must be
+        // kept as the missing movement/model recipe.
+        for name in ["rat1", "rat5", "snake", "spirit1", "weeper1", "weepy"] {
+            assert!(prepared.contains(name), "{name} not prepared: {prepared:?}");
+        }
+        let snake = objects.animated.iter().find(|a| objects.placed[a.placed].0.name.eq_ignore_ascii_case("Snake")).unwrap();
+        assert!(objects.placed[snake.placed].2, "Snake must be an unplaced recipe before its add command");
     }
 
     #[test]
