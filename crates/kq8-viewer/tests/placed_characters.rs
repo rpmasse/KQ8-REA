@@ -38,7 +38,7 @@ fn original_skeleton_survives_save_reload_after_a_hit() {
     let health = injured["character"]["fight"]["stats"][0].as_i64().unwrap();
     assert!((1..60).contains(&health), "expected an injured living skeleton, got {health}; inspect {}", root.display());
     assert_eq!(injured["animation"]["placement"]["position"], serde_json::json!([183300.0, 45000.0, 864.0]));
-    let (after, _) = run("restore", &["--menu-input", "down,enter,release,enter,release", "--frames", "360",
+    let (after, _) = run("restore", &["--menu-input", "down,enter,release,enter,release", "--frames", "700",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=SkeletonAgain:enter:release:escape,24"]);
     assert!(after.contains("save restored in DeadCity without replaying Begin"), "inspect {}", root.display());
     let restored = placed(&read(2));

@@ -327,7 +327,7 @@ pub fn save_slot_with_thumbnail(
         .ok_or("Connor is unavailable")?;
     let mut kept = change.kept.clone();
     let key = change.current.to_ascii_lowercase();
-    let current = KeptWorld::take(&sim.active, &change.current, kept.get(&key));
+    let current = KeptWorld::take_for_disk_save(&sim.active, &change.current, kept.get(&key));
     kept.insert(key, current);
     let snapshot = Snapshot {
         version: VERSION,
