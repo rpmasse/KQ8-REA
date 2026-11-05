@@ -132,6 +132,15 @@ struct Recipe {
     slots: (Vec<SlotMovement>, SlotMaterials),
     /// Its materials' original texture names (batch 2 D-6).
     textures: Vec<((usize, i32), String)>,
+    /// Character-only presentation of a new copy of this type.
+    character: Option<CharacterRecipe>,
+}
+
+struct CharacterRecipe {
+    distance: crate::draw_distance::DistanceTest,
+    face_keys: Vec<(usize, i32)>,
+    lip_images: Vec<Option<Handle<Image>>>,
+    casts_shadow: bool,
 }
 
 /// A copy's materials for `Slots::spawn`: (animation, material index).
@@ -194,20 +203,42 @@ impl AnimSim {
         name: &str,
         placement: Placement,
         index: usize,
+        unborn: bool,
         (gpu, materials): (Option<&crate::anim_gpu::AnimGpu>, &mut Assets<ObjectMaterial>),
     ) -> String {
         let Some(r) = self.recipes.get(&template.to_ascii_lowercase()) else {
             return format!("copy {name}: no recipe for {template}; not drawn");
         };
-        let body = commands.spawn((bevy_transform_from(placement.rotation, placement.position), Visibility::default(), crate::terrain_view::ObjectName(name.to_string()))).id();
+        let mut body = commands.spawn((bevy_transform_from(placement.rotation, placement.position), Visibility::default(), crate::terrain_view::ObjectName(name.to_string())));
+        if r.character.is_some() && unborn { body.insert((Visibility::Hidden, ShownWithH)); }
+        let body = body.id();
+        let distance = r.character.as_ref().map(|c| {
+            let mut test = c.distance.another();
+            test.name = name.to_string();
+            test.hidden = false;
+            if unborn {
+                test.born_groups = Some(test.groups);
+                test.groups = [test.groups[0] | 1, 0, 0];
+            }
+            test
+        });
+        if let Some(test) = distance.clone() { commands.entity(body).insert(test); }
         // Step 4e: drawn the new way too.
         let new_draw = gpu.and_then(|gpu| crate::anim_gpu::Slots::spawn(commands, body, gpu, crate::anim_gpu::List::Objects, r.slots.0.clone(), r.slots.1.clone(), materials, &mut Default::default()));
+        let face: Vec<Handle<ObjectMaterial>> = match (&new_draw, &r.character) {
+            (Some(draw), Some(c)) => c.face_keys.iter().filter_map(|key| draw.materials.get(key).cloned()).collect(),
+            _ => Vec::new(),
+        };
+        let lip_images = r.character.as_ref().map_or_else(Vec::new, |c| c.lip_images.clone());
+        let casts = r.character.as_ref().is_some_and(|c| c.casts_shadow);
         let movements: Vec<DrawnMovement> = r.movements.iter().map(|(frames, steps)| DrawnMovement { frames: *frames, steps: steps.clone() }).collect();
         let parts = Vec::new();
         let line = format!(
-            "copy {name} of {template}: drawn, {} movement(s), {} part entities, played by the world's rules (M5 5d-4)",
+            "copy {name} of {template}: drawn, {} movement(s), {} part entities, played by the world's rules (M5 5d-4); character distance {}, face {} material(s), shadow {}, unborn {}",
             movements.len(),
-            new_draw.as_ref().map_or(0, |s| s.len())
+            new_draw.as_ref().map_or(0, |s| s.len()),
+            distance.as_ref().map_or("none".to_string(), |d| format!("radius {:.0} ({})", d.radius, d.ball_from)),
+            face.len(), if casts { "eligible" } else { "off" }, unborn,
         );
         self.playing.push(Playing {
             name: name.to_string(),
@@ -225,15 +256,15 @@ impl AnimSim {
             collider: None,
             character: None,
             test: None,
-            face: Vec::new(),
-            lip_images: Vec::new(),
+            face,
+            lip_images,
             mouth_shown: 0,
             parts,
             opacity_shown: 1.0,
             own: Default::default(),
-            casts: false,
+            casts,
             shadow: None,
-            birth_shown: None,
+            birth_shown: unborn.then_some(false),
             new_draw,
             texture_names: r.textures.clone(),
             bmp_shown: None,
@@ -350,7 +381,7 @@ pub fn spawn_animated(
         let own = model.materials.iter().map(|(m, material)| ((*index, *m), material.clone())).collect();
         recipes.insert(file.clone(), Recipe {
             movements: vec![(model.frames, model.steps.clone())], script: None,
-            slots: (vec![(*index, model.source.clone(), model.ball)], own), textures: vec![],
+            slots: (vec![(*index, model.source.clone(), model.ball)], own), textures: vec![], character: None,
         });
     }
     let mut moving = Vec::new();
@@ -562,6 +593,10 @@ pub fn spawn_animated(
         // material showing the face texture, in every movement, so the
         // shape is kept across movements and not shared with others.
         let face_name = a.character.as_ref().and_then(|c| c.lips.as_ref()).map(|l| l.face.clone());
+        let face_keys: Vec<(usize, i32)> = face_name.as_ref().map_or_else(Vec::new, |f| a
+            .movements.iter().flat_map(|(_, _, i)| built[*i].textures.iter()
+                .filter(|(_, t)| t.as_ref().is_some_and(|t| t.eq_ignore_ascii_case(f)))
+                .map(move |(m, _)| (*i, *m))).collect());
         let lip_images: Vec<Option<Handle<Image>>> = a
             .lip_looks
             .iter()
@@ -586,13 +621,8 @@ pub fn spawn_animated(
         let new_draw = crate::anim_gpu::Slots::spawn(commands, body, gpu, crate::anim_gpu::List::Objects, slot_movements.clone(), own.clone(), materials, &mut Default::default());
         characters_new += usize::from(a.character.is_some() && new_draw.is_some());
         // Step 4d: the new way's face materials take the mouth shapes too.
-        let new_faces: Vec<Handle<ObjectMaterial>> = match (&new_draw, &face_name) {
-            (Some(nd), Some(f)) => a
-                .movements
-                .iter()
-                .flat_map(|(_, _, i)| built[*i].textures.iter().filter(|(_, t)| t.as_ref().is_some_and(|t| t.eq_ignore_ascii_case(f))).map(move |(m, _)| (*i, *m)))
-                .filter_map(|k| nd.materials.get(&k).cloned())
-                .collect(),
+        let new_faces: Vec<Handle<ObjectMaterial>> = match &new_draw {
+            Some(nd) => face_keys.iter().filter_map(|k| nd.materials.get(k).cloned()).collect(),
             _ => Vec::new(),
         };
         let drawn: Vec<DrawnMovement> = a
@@ -607,13 +637,14 @@ pub fn spawn_animated(
             a.movements.iter().flat_map(|(_, _, i)| built[*i].textures.iter().filter_map(move |(m, t)| t.as_ref().map(|t| ((*i, *m), t.clone())))).collect();
         if monster_targets.contains(&a.source_file) && !monster_recipes.iter().any(|r: &PreparedMonster| r.file == a.source_file) {
             if let (Some(keys), Some(ch)) = (a.character.as_ref(), character.as_ref()) {
-                recipes.insert(a.source_file.clone(), Recipe { movements: recipe.clone(), script: a.script.clone(), slots: (slot_movements.clone(), own.clone()), textures: texture_names.clone() });
+                recipes.insert(a.source_file.clone(), Recipe { movements: recipe.clone(), script: a.script.clone(), slots: (slot_movements.clone(), own.clone()), textures: texture_names.clone(),
+                    character: Some(CharacterRecipe { distance: balls.test_character(p, keys.box_type.as_deref()), face_keys: face_keys.clone(), lip_images: lip_images.clone(), casts_shadow: keys.casts_shadow }) });
                 monster_recipes.push(PreparedMonster { file: a.source_file.clone(), keys: keys.keys.clone(), combat_scaled: keys.combat_scaled,
                     actor: AnimObject { player: player.clone(), script: a.script.clone(), gone: false, character: Some(ch.clone()), translucency: None } });
             }
         }
         if (*unused || template) && a.character.is_none() {
-            recipes.insert(p.name.to_ascii_lowercase(), Recipe { movements: recipe, script: a.script.clone(), slots: (slot_movements, own), textures: texture_names.clone() });
+            recipes.insert(p.name.to_ascii_lowercase(), Recipe { movements: recipe, script: a.script.clone(), slots: (slot_movements, own), textures: texture_names.clone(), character: None });
         }
         // Whole-object steps of the movement shown at load: how far the
         // chained pose goes over the loop.
