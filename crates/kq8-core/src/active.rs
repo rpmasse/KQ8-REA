@@ -641,6 +641,7 @@ pub struct WorldState {
     /// Updates done; game time = updates / 15.
     pub updates: u64,
     pub terrain_changes: crate::ground_anim::GroundChanges,
+    pub presentations: std::collections::VecDeque<crate::credits::Presentation>,
     /// Lines for `doors.log`, taken by the caller.
     pub log: Vec<String>,
     /// Lines for `traps.log`: everything while a trap's call runs.
@@ -3810,6 +3811,11 @@ impl ScriptHost for WorldState {
 
     fn world_command(&mut self, words: &[String], at: &str) -> Option<String> {
         match words[0].as_str() {
+            "doCredits" => {
+                let score=self.connor_stats.as_ref().map(ConnorStats::earned_experience);
+                self.presentations.push_back(crate::credits::Presentation::Credits{score});
+                Some("0".into())
+            }
             "sendEvent" => Some(self.send_event(words, at)),
             "KQObject::collisionType" => Some(self.collision_type(words, at)),
             "KQObject::collision" => Some(self.collision_mask(words, at)),
@@ -4040,6 +4046,7 @@ impl Active {
                 trap_log: Vec::new(),
                 in_trap: false,
                 requests: Vec::new(),
+                presentations: Default::default(),
                 items: Items::default(),
                 item_log: Vec::new(),
                 sounds: Vec::new(),

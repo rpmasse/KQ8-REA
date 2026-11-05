@@ -17,6 +17,7 @@ Source types:
 
 | Behavior | Reference |
 | --- | --- |
+| The Credits screen shows 25 staff cards and the team photograph. The ending includes a score. | The GOG installation supplies `credits.gui`, the images and fonts, `GAME/English/400.MSG` and the Temple 4 finale callback. Page duration, mixed-font spacing and the use of cumulative experience for the numerator are provisional. |
 | Keyboard remapping, conflicts and key labels. | The installed `movekeys.kq`, Keyboard GUI and `500.MSG` define 13 actions and their controls and prompts. Runtime checks use the original cursor artwork and exercise rebound keys through the game’s input path. |
 | Lucreto’s close-form melee stagger can put him in the vortex. The vortex handles two named actors. | The local GOG installation provides the altar and vortex scripts, both Lucreto actors, their movement and collision data, and the finale sound. The original close and ranged movement lists differ. The test verifies the close-form stagger and the two scripted winning branches separately. |
 | The Tower Skeleton can stagger off the Dead City tower and drop chain mail. | The GOG actor, `Tower2` geometry, original movements and `chainmal.cs` are exercised by the encounter test. The [combat notes, Q175](../behaviour/fighting.md) describe the enemy-specific rules. Delivery of the combat activation cue at the end of the greeting is inferred. |

@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Original staff credits
+
+The title Options screen and the ending's `doCredits` command can display the roster from the installed game. Two unattended Windows processes checked the Options round trip through all 25 cards and entry from Temple 4. A separate original-data check ran the final animation callback and captured the score before world teardown. All 25 images were distinct, every staff line fit and the scored final card kept the team photograph. The five-second dwell per card, mixed-font spacing and score numerator are inferred. The full ending movie transition remains open.
+
 ## 2026-11-05 Lucreto’s animation lists
 
 The original altar script can replace Lucreto’s movement list while an animation is in progress. At the movement boundary the new list takes effect. The asset-backed test follows `piece1.anm` through `z2a`, its end callback and `z2b`, then checks the ranged incarnation’s five-movement list and its distinct attack model. The exact switch point for a looping or forcibly replaced movement is inferred from the documented next-movement rule. The autonomous decision about when to change combat forms remains open.

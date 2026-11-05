@@ -90,6 +90,15 @@ pub struct ConnorStats {
 }
 
 impl ConnorStats {
+    /// Includes experience already exchanged for levels. The final card
+    /// names a score but the assets do not specify its formula; lifetime
+    /// experience is the presently reconstructed source of that value.
+    pub fn earned_experience(&self)->i64 {
+        let regular:i64=(1..self.level.clamp(1,15)).map(Self::threshold).sum();
+        let later=self.level.saturating_sub(15).max(0).saturating_mul(TOP_THRESHOLD);
+        regular.saturating_add(later).saturating_add(self.stats.0[4])
+    }
+
     /// Experience needed to go up from `level`.
     pub fn threshold(level: i64) -> i64 {
         if level >= 15 {

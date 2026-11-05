@@ -1,6 +1,6 @@
 # STATUS
 
-**Windows fork, November 5.** M4–M6 are in progress. The original Options controls, Dead City Tower Skeleton encounter and scales win cue have automated checks against the GOG installation. A fresh process restored an open cottage door and four mushrooms. The return trip through Castle Daventry kept both, along with the pub chest state. Timed laser-puzzle cues also resume from disk. Remaining work includes Options submenus, starting help, encounter and cutscene saves, movie playback, region quests and the uninterrupted campaign. The [README](README.md) gives the checks and their limits. The notes below retain upstream history.
+**Windows fork, November 5.** M4–M6 are in progress. The original Keyboard and Credits screens now have automated Windows checks. The grave raven finishes its scripted flight after a save is loaded in a fresh process. At the Temple 4 altar Connor can stagger Lucreto into the vortex, and the winning script sequences four drawable models. Daventry’s cottage and castle persistence, the Dead City Tower Skeleton encounter and timed puzzle events also have tests. Graphics settings, starting help, live encounter saves, movie playback, region quests and the uninterrupted campaign remain open. The [README](README.md) gives the checks and their limits. The notes below retain upstream history.
 
 Hand-over in case the chat is lost. Brought up to date 2026-10-20 after
 B built the fight (M5 5c, `fighting.md`). Read with `AGENTS.md`, `docs/DESIGN.md`, `docs/SESSIONS.md`,
