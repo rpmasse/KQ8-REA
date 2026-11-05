@@ -121,6 +121,7 @@ pub struct Character {
     /// `KQDeath` (`talking.md` rule 18a, F-4): mouth shapes 0–7 play
     /// movements; otherwise an ordinary character.
     pub mouth_moves: bool,
+    pub tower: Option<crate::tower_skeleton::Tower>,
     /// `flags` bit 0x10 (rule 13).
     pub random_stop: bool,
     /// Seconds from the first update to Wait (rule 12).
@@ -263,6 +264,7 @@ impl Character {
         Character {
             geometry,
             mouth_moves: false,
+            tower: None,
             random_stop: flags & kq8_data::characters::RANDOM_STOP != 0,
             birth_delay,
             has_birth,
@@ -1037,10 +1039,19 @@ impl Character {
         if let Some(f) = self.fight.as_mut().filter(|f| f.flinching.as_deref().is_some_and(|m| m.eq_ignore_ascii_case(ended))) {
             f.flinching = None;
             f.flinch_end = now;
+            let mut pause = crate::fight::FLINCH_PAUSE;
+            if let Some(t) = self.tower.as_mut() {
+                if ended.eq_ignore_ascii_case("reactback") {
+                    if self.state == State::Move { pause = t.keys.react_pause; }
+                    t.stagger_ended = true;
+                    t.move_time = now + t.keys.stun_pause;
+                }
+                t.flinch_pause = pause;
+            }
             if let Some(ai) = self.ai.as_mut() {
                 ai.chase_until = now + crate::fight::ATTACK_CHASE;
             }
-            return Some(format!("fight: its flinch '{ended}' ended: no flinch for 2 s, chase timer 5 s (fighting.md rule 23)"));
+            return Some(format!("fight: its flinch '{ended}' ended: no flinch for {pause} s, chase timer 5 s (fighting.md rule 23)"));
         }
         if !crate::fight::is_attack(ended) {
             return None;

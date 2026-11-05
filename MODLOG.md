@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Dead City Tower Skeleton
+
+An unattended scenario uses the GOG tower, rope greeting, movements, floor geometry and item script. It checks that the skeleton avoids attacking while Connor is on the rope, staggers near the tower edge, falls, and leaves chain mail that Connor can pick up. The scenario uses a prepared combat position. The greeting-to-combat cue timing is inferred, and exact camera framing, the final state switch and mid-fight restore are still open. Run the README’s `campaign_tests` command to include the encounter.
+
 ## 2026-11-05 Options from the title and pause menus
 
 The original Options panel now controls the three volume sliders, subtitles and the stored Starting Help preference. The game reads captions, regional voices and lip data from the player's GOG archives. Two unattended Windows launches checked that speech, effects and music responded to the settings, that disabling subtitles hid the Wizard's current line, and that pausing preserved the world clock. The test command is in the README. The inner Graphics, Keyboard and Credits screens, Replay Intro and the actual help prompts remain open.

@@ -10,7 +10,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | --- | --- | --- |
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
 | M4 · Interface and dialogue | New Game and difficulty, pause/resume, restart, Save and Load, HUD, speech, captions and some conversations. Options controls speech, music, effects and subtitles from the title or pause menu. | Graphics, Keyboard, Credits, Replay Intro, starting-help prompts and the remaining inventory and dialogue behavior. |
-| M5 · Combat | Melee and some ranged attacks, throwing and retrieving rocks, scripted hazards, potions and the Dead City Weeper's life drain. | Verify weapon controls and trajectories, remaining enemy-specific encounters and death recovery. |
+| M5 · Combat | Melee and some ranged attacks, rocks, scripted hazards and potions. Dead City checks cover the Weeper’s life drain and the Tower Skeleton’s fall and chain-mail drop. | Verify weapon controls and trajectories, encounter timing and camera work, remaining enemies, and death recovery. |
 | M6 · Campaign and saves | Disk slots restore Connor, inventory, doors, chest contents and queued script events. A saved Dead City laser puzzle resumes on its next cue and unlocks both doors. | Restore live combat and cutscenes. Complete region quests, optional branches, boss sequences, movies and the ending. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
 

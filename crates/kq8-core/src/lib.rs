@@ -55,6 +55,7 @@ pub mod turn_keys;
 pub mod water;
 pub mod weapons;
 pub mod weeper;
+pub mod tower_skeleton;
 
 /// The original's update rate (`KQGame::FPSLimit 15`); every per-update
 /// value in the rules assumes it.

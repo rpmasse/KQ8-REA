@@ -83,6 +83,7 @@ pub enum Class {
     GeometryTalker,
     Death,
     Lucreto,
+    TowerSkeleton,
 }
 
 impl Class {
@@ -98,6 +99,8 @@ impl Class {
             Some(Class::Death)
         } else if c.eq_ignore_ascii_case("KQLucreto") {
             Some(Class::Lucreto)
+        } else if c.eq_ignore_ascii_case("KQTowerSkeleton") {
+            Some(Class::TowerSkeleton)
         } else {
             None
         }
@@ -109,6 +112,7 @@ impl Class {
             Class::GeometryTalker => "KQGeometryTalker",
             Class::Death => "KQDeath",
             Class::Lucreto => "KQLucreto",
+            Class::TowerSkeleton => "KQTowerSkeleton",
         }
     }
 }
@@ -551,6 +555,7 @@ impl MonsterTypes {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CharacterKeys {
     pub class: Class,
+    pub tower: Option<TowerKeys>,
     /// Model-space launch points used if the attack frame lacks the projectile's mesh.
     pub shoot_offsets: Vec<(String, [f32; 3])>,
     /// `animFile=`: its movement list.
@@ -630,6 +635,14 @@ pub struct CharacterKeys {
 pub const CHARACTER_TYPE: u32 = 0x42;
 pub const CHARACTER_MASK: u32 = 0x281F;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TowerKeys {
+    pub real_alarm: f32,
+    pub stun_pause: f64,
+    pub react_pause: f64,
+    pub move_time: f64,
+}
+
 pub fn shoot_offsets(section: &Section) -> Vec<(String, [f32; 3])> {
     section.entries.iter().filter(|(key, _)| key.to_ascii_lowercase().starts_with("shootoffsets")).filter_map(|(_, value)| {
         let mut words = value.split_whitespace();
@@ -645,6 +658,12 @@ impl CharacterKeys {
         let number = |k: &str| s.number(k).and_then(Result::ok);
         let switch = |k: &str, default: bool| number(k).map_or(default, |v| v != 0.0);
         Some(CharacterKeys {
+            tower: (class == Class::TowerSkeleton).then(|| TowerKeys {
+                real_alarm: number("realAlarm").unwrap_or(0.) as f32,
+                stun_pause: number("stunPause").unwrap_or(3.),
+                react_pause: number("reactPause").unwrap_or(2.),
+                move_time: number("moveTime").unwrap_or(0.),
+            }),
             shoot_offsets: shoot_offsets(s),
             class,
             anim_file: text("animFile"),

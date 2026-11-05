@@ -5344,6 +5344,102 @@ mod campaign_tests {
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn dead_city_tower_melee_stagger_falls_and_releases_the_chain_mail() {
+        use kq8_core::{
+            active::{Active, AnimObject}, character::Character, character_ai::Ai,
+            collide::{BallStack, Placement}, door::{Cue, DoorMovement}, fight::Fight,
+            named_anim::NamedAnimPlayer, stats::{ConnorStats, Stats}, tower_skeleton::Tower,
+        };
+        let game = game_install();
+        let world = World::open(&game, "DeadCity").unwrap();
+        let mut log = Log::create("deadcity-tower-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let actor = objects.animated.iter().find(|a| objects.placed[a.placed].0.name == "Skeltowr").expect("animated tower actor");
+        let (p, _, unused) = &objects.placed[actor.placed];
+        assert!(!unused);
+        let assets = actor.character.as_ref().unwrap();
+        let keys = assets.keys.tower.unwrap();
+        assert_eq!((keys.real_alarm, keys.stun_pause, keys.react_pause), (5000., 1.5, 1.2));
+        let movements = actor.movements.iter().map(|(name, l, i)| {
+            let model = &objects.object_animations[*i];
+            DoorMovement {
+                name: name.clone(), start: l.start, speed: l.speed, repeat: l.repeat, cut_short: l.unknown != 0,
+                play_time: model.duration, frame_steps: model.frame_transforms.clone(), first_in_file: model.first_in_file,
+                frame_parts: model.frame_parts.clone(), transitions: l.transitions.clone(),
+                cues: l.cues.iter().map(|(phase, action)| Cue { phase: *phase, action: action.clone() }).collect(),
+            }
+        }).collect::<Vec<_>>();
+        assert_eq!(movements.len(), 11);
+        let origin = Placement { position: p.position, rotation: kq8_data::objects::rotation(p.angles) };
+        let mut player = NamedAnimPlayer::new(&p.name, movements, 0, origin);
+        let mut character = Character::new(false, assets.keys.flags, assets.birth_delay, true, false, true, 1);
+        character.tower = Some(Tower::new(keys));
+        character.ai = Some(Ai::new(assets.ai.clone(), p.position, 1300., false));
+        character.fight = Some(Fight::new(assets.fight.clone().unwrap()));
+        character.set_state(&mut player, "Wait", &[], 0.);
+        player.start("stop");
+        let tower = objects.buildings.iter().find(|b| b.name.eq_ignore_ascii_case("Tower2")).unwrap();
+        let point = BallStack { radius: 0., heights: vec![0.] };
+        let supported = |s: [f32; 3]| tower.sweep(&point, s, [s[0], s[1], s[2] - 1000.]).is_some();
+        // Find the actual platform edge along the placed actor's backwards
+        // direction. Connor's normal combat cue lands while its feet still
+        // have support and the 400-unit reactback probe has none.
+        let edge = (0..100).map(|step| Placement { position: origin.to_world([0., step as f32 * 50., 0.]), ..origin })
+            .find(|p| supported(p.position) && !supported(p.to_world([0., 400., 0.]))).expect("back edge on Tower2's real collider");
+        player.base = edge;
+        let mut active = Active::new(objects.vars, vec![], vec![], objects.known, objects.scripts);
+        active.world.talk = crate::talk_view::load_talk(&game, "DeadCity", &mut log).0;
+        active.world.items = objects.items;
+        let items_before = active.world.items.objects.len();
+        active.set_connor_stats(ConnorStats { level: 1, stats: Stats([10, 1, 0, 0, 0]) });
+        active.add_anims([AnimObject { player, character: Some(Box::new(character)), script: None, gone: false, translucency: None }]);
+        active.world.characters_in_range.insert("skeltowr".into());
+        let from = edge.to_world([0., -500., 0.]);
+        active.world.connor_at = Some(from);
+        let heading = kq8_core::connor_auto::heading_towards(from, [edge.position[0], edge.position[1]]);
+        let ai = active.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap();
+        assert_eq!(ai.settings.alarm_radius, 0.);
+        active.world.connor_state = Some(kq8_core::character::state_number::WAIT);
+        active.update();
+        active.scripts.call("TowSklTp.cs", &["TowSklTp".into(), "On".into()], &mut active.world);
+        active.world.connor_state = Some(kq8_core::character::state_number::ROPE);
+        for _ in 0..240 {
+            active.update();
+            if active.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().settings.alarm_radius > 0. { break; }
+        }
+        assert_eq!(active.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().settings.alarm_radius, 5000.);
+        assert!(active.world.music.iter().any(|m| matches!(m, kq8_core::music::MusicRequest::Push(name) if name == "mtower.aud")));
+        active.world.connor_state = Some(kq8_core::character::state_number::WAIT);
+        active.world.connor_do(from, heading, 1200., Some("Skeltowr"), false, "swing");
+        active.world.characters_ai(&ground.terrain, &objects.buildings, &[]);
+        let mut seen = Vec::new();
+        let mut drop_update = None;
+        for _ in 0..360 {
+            let p = &active.world.anims[0].player;
+            if seen.last().is_none_or(|old: &String| old != p.movement_name()) { seen.push(p.movement_name().to_string()); }
+            if drop_update.is_none() && active.world.items.objects[items_before..].iter().any(|o| o.kind.eq_ignore_ascii_case("INVITEM_ChainMailShirt") && o.placement().is_some()) {
+                drop_update = Some((active.world.updates, p.movement_name().to_string()));
+            }
+            if active.world.anims[0].gone { break; }
+            active.update();
+            active.world.characters_ai(&ground.terrain, &objects.buildings, &[]);
+            active.world.flights_step(&ground.terrain, &objects.buildings, &[]);
+        }
+        assert_eq!(seen, ["teeter", "die", "die2", "fallend"], "{}", active.world.fight_log.join("\n"));
+        assert_eq!(drop_update.unwrap().1, "fallend");
+        let mail = active.world.items.objects[items_before..].iter().find(|o| o.script.as_deref() == Some("chainmal.cs")).unwrap();
+        assert_eq!(mail.kind, "INVITEM_ChainMailShirt");
+        assert!(active.world.anims[0].gone && active.world.connor_stats.unwrap().stats.0[4] > 0);
+        assert!(active.world.anims[0].player.base.position[2] < edge.position[2] - 1000.);
+        let (name, at) = (mail.name.clone(), mail.placement().unwrap().position);
+        active.click(&name, at, 1200., None);
+        let item = active.world.items.objects.iter().find(|o| o.name == name).unwrap();
+        assert!(item.carried_by("Connor") && item.script.is_none(), "chainmal.cs runs on the collected mail");
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn crossing_dead_city_bridge_trap_delivers_its_lethal_hit() {
         use kq8_core::{
             active::Active,
