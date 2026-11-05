@@ -1266,7 +1266,7 @@ fn options_dynamic_lighting(game: &GameDir) -> Option<bool> {
     if let Some(on) = DYNAMIC_OVERRIDE.get() {
         return Some(*on);
     }
-    game.find("Options.cs").and_then(|p| std::fs::read(p).ok()).and_then(|b| kq8_data::lightmap::use_dynamic_lighting(&b))
+    kq8_data::lightmap::use_dynamic_lighting(&crate::option_settings::effective_script(game))
 }
 
 /// `useDynamicLighting` in effect: `Options.cs`, else the game's start
@@ -3455,7 +3455,7 @@ impl Placer<'_> {
             // says 1).
             if let Some(c) = character.as_mut() {
                 let world_mask = *self.shadow_world_mask.get_or_insert_with(|| {
-                    self.game.find("Options.cs").and_then(|p| std::fs::read(p).ok()).and_then(|b| kq8_data::characters::shadow_mask_setting(&b)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
+                    kq8_data::characters::shadow_mask_setting(&crate::option_settings::effective_script(self.game)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
                 });
                 let casts = kq8_data::characters::casts_shadow(world_mask, c.keys.shadow_mask, true, p.translucency);
                 c.casts_shadow = casts;
@@ -4940,7 +4940,7 @@ impl Placer<'_> {
         let mut known: Vec<String> = self.located.keys().cloned().collect();
         known.extend(self.markers.iter().map(|m| m.name.to_ascii_lowercase()));
         let shadow_world_mask = self.shadow_world_mask.unwrap_or_else(|| {
-            self.game.find("Options.cs").and_then(|p| std::fs::read(p).ok()).and_then(|b| kq8_data::characters::shadow_mask_setting(&b)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
+            kq8_data::characters::shadow_mask_setting(&crate::option_settings::effective_script(self.game)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
         });
         Objects {
             monster_types: self.monster_types,
