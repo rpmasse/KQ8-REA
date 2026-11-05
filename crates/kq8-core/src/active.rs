@@ -694,7 +694,7 @@ pub struct WorldState {
     held_for_load: Vec<Pending>,
     /// The files scripts may load while playing, by lower-case base name
     /// (M5 5d-2).
-    templates: BTreeMap<String, Template>,
+    pub(crate) templates: BTreeMap<String, Template>,
     /// Scripts a world command asked to run at once (`ScriptHost::take_calls`).
     calls_out: Vec<(String, Vec<String>)>,
     /// `setThirdPerson` (`camera.md` "First person" rule 7): the
@@ -929,6 +929,8 @@ pub struct WorldState {
     pub projectiles: std::collections::BTreeMap<String, kq8_data::characters::ProjectileKeys>,
     /// Bolts in the air (M5 5c-9), and how many were shot (their names).
     pub bolts: Vec<crate::fight::Bolt>,
+    pub weeper_drains: Vec<crate::weeper::Drain>,
+    pub weeper_links: std::collections::BTreeSet<usize>,
     pub bolts_shot: u64,
     /// Where Connor was at the last update (his speed for the aim, rule
     /// 36).
@@ -979,9 +981,9 @@ impl WorldState {
                 out.insert(o.name.to_ascii_lowercase());
             }
         }
-        for a in &self.anims {
+        for (i, a) in self.anims.iter().enumerate() {
             let dead = a.character.as_deref().and_then(|c| c.fight.as_ref()).is_some_and(|f| f.dying.is_some());
-            if a.gone || dead {
+            if (a.gone || dead) && !self.weeper_links.contains(&i) {
                 out.insert(a.player.name.to_ascii_lowercase());
             }
         }
@@ -4045,6 +4047,8 @@ impl Active {
                 new_inv_item: None,
                 projectiles: Default::default(),
                 bolts: Vec::new(),
+                weeper_drains: Vec::new(),
+                weeper_links: Default::default(),
                 bolts_shot: 0,
                 connor_was: None,
                 conv_infos: Vec::new(),
@@ -8469,6 +8473,103 @@ deleteObject waterfall2
     /// One bolt update, with the flat ground at 100.
     fn fly(a: &mut Active) {
         a.world.bolts_step(&FlatGround, &[], &[]);
+    }
+
+    #[test]
+    fn weeper_bolt_obeys_special_then_drains_twelve_hp_before_a_fresh_attack_delay() {
+        let file = b"[beam]\nclassType=KQWeepBolt\nvelocity=8000\ncolliderMask=13\nduration=3\nsuckFile=beam.kq\nsuckEnd=end.kq\nsuckSound=drain.aud\nfireAnim=suck\nhurtAnim=magicReact\ndoneAnim=suckstop\nshootOffset=1400\nhitOffset=1000\n";
+        let p = kq8_data::characters::ProjectileKeys::from_section(&kq8_data::kq_text::parse(file)[0]).unwrap();
+        let from = [0., 0., 900.];
+        let to = [0., -1500., 900.];
+        let mut a = fighter();
+        a.set_connor_stats(ConnorStats { stats: Stats([25, 0, 0, 999, 0]), level: 3 });
+        a.world.connor_at = Some([0., -1500., 100.]);
+        let model = &a.world.anims[0].player;
+        let template = Template {
+            name: "link".into(), script: None, placement: model.base,
+            kind: TemplateKind::Anim(Box::new(model.clone())), dithered: 0, class: "KQAnimObject".into(),
+        };
+        a.world.set_templates([("beam.kq".into(), template.clone()), ("end.kq".into(), template)]);
+        let shoot = |a: &mut Active| {
+            a.world.launch_bolt("gob", "beam.kq", &p, from, to, 150, "weeper test");
+            for _ in 0..4 {
+                fly(a);
+                if a.world.bolts.is_empty() { break; }
+            }
+            assert!(a.world.bolts.is_empty());
+        };
+        a.world.connor_state = Some(crate::character::state_number::SPECIAL);
+        shoot(&mut a);
+        assert!(a.world.weeper_drains.is_empty());
+        a.world.connor_state = None;
+        shoot(&mut a);
+        assert_eq!(a.world.weeper_drains.len(), 1);
+        let links = a.world.weeper_links.clone();
+        assert_eq!(links.len(), 8);
+        assert!(links.iter().all(|i| !a.world.anims[*i].gone));
+        assert_eq!(a.world.anims[0].player.movement_name(), "suck");
+        assert!(a.world.requests.iter().any(|r| matches!(r, Request::ConnorSpecial { items, .. } if items == "magicReact")));
+        for tick in 1..=45 {
+            a.world.updates += 1;
+            fly(&mut a);
+            assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 25 - (tick * 4 / 15), "tick {tick}");
+        }
+        assert!(a.world.weeper_drains.is_empty());
+        assert!(links.iter().all(|i| a.world.anims[*i].gone));
+        assert!(a.world.gone_names().iter().all(|name| !name.starts_with("weep")));
+        assert!(a.world.requests.iter().any(|r| matches!(r, Request::ConnorWait { .. })));
+        assert_eq!(a.world.anims[0].player.movement_name(), "suckstop");
+        let fight = a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap();
+        assert_eq!(fight.attack_time, a.world.now() + f64::from(fight.settings.attack_delay));
+        shoot(&mut a);
+        assert_eq!(a.world.weeper_links, links);
+        assert!(links.iter().all(|i| !a.world.anims[*i].gone));
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn dead_city_monster_list_equips_the_weeper_and_its_shot_drains_connor() {
+        use kq8_data::characters::{CharacterKeys, FightSettings, MonsterList, MonsterTypes, ProjectileKeys};
+        let game = kq8_data::GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let volume = kq8_data::VolArchive::open(&game.volume_path("DeadCity", "kq").unwrap()).unwrap();
+        let sections = |name: &str| kq8_data::kq_text::parse(&volume.unpack(volume.find(name).unwrap()).unwrap().data);
+        let read = |name: &str| std::fs::read(game.find(name).unwrap()).unwrap();
+        let list = MonsterList::from_section(&sections("monsters.kq")[0]).0;
+        let line = list.lines.iter().find(|l| l.name.eq_ignore_ascii_case("weeper14")).unwrap();
+        let types = MonsterTypes::parse(&read("GAME/Kq/Monstats.mtl")).0;
+        let (kind, _) = types.find(&line.type_name).unwrap();
+        let keys = CharacterKeys::from_section(&sections(&kind.file)[0]).unwrap();
+        let items = kq8_data::items::ItemTypes::parse(&read("GAME/Kq/Invinfo.itl")).0;
+        let settings = FightSettings::from_line(&keys, line, kind, &items);
+        let file = settings.projectile.as_ref().unwrap().to_ascii_lowercase();
+        assert_eq!(file, "prweeper.kq");
+        assert_eq!(settings.shoot_fallback, [0., 0., 1500.]);
+        let mut p = ProjectileKeys::from_section(&sections(&file)[0]).unwrap();
+        let boxes = kq8_data::bounds::BoundingBoxes::parse(&read("GAME/patch/BOUNDS.KQ")).0;
+        p.bounds = boxes.lookup(p.shape.as_deref().unwrap()).map(|e| (e.min, e.max));
+        let drain = p.drain.as_ref().unwrap();
+        assert_eq!((drain.duration, drain.shoot_height, drain.hit_height), (3., 1400., 1000.));
+        for link in [&drain.segment, &drain.end] {
+            assert_eq!(sections(link)[0].get("classType").unwrap(), "KQAnimObject");
+        }
+        assert!(kq8_data::aud::find(&game, "DeadCity", &drain.sound).is_some());
+
+        let mut a = fighter();
+        a.world.projectiles.insert(file, p);
+        let enemy = &mut a.world.anims[0];
+        enemy.player.name.clone_from(&line.name);
+        let c = enemy.character.as_mut().unwrap();
+        c.ai.as_mut().unwrap().alarmed = true;
+        c.fight = Some(crate::fight::Fight::new(settings));
+        enemy.player.start("attack");
+        a.set_connor_stats(ConnorStats { stats: Stats([30, 0, 0, 0, 0]), level: 3 });
+        a.world.connor_at = Some([0., -1800., 100.]);
+        a.world.character_do(0);
+        assert_eq!(a.world.bolts[0].position[2], 1600.);
+        for _ in 0..60 { a.world.updates += 1; fly(&mut a); }
+        assert!(a.world.bolts.is_empty() && a.world.weeper_drains.is_empty());
+        assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 18);
+        assert!(a.world.fight_log.iter().any(|l| l.contains("ends drain after 12 pulses; suckstop")));
     }
 
     #[test]

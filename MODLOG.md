@@ -3,6 +3,12 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Dead City Weeper life drain
+
+An automated encounter with the placed Dead City Weeper followed its ordinary attack cue, projectile impact, both actors' movements, chain models, original drain sound and cooldown. Connor lost twelve health over three seconds. Regional sound lookup now checks the clean GOG layout as well as an unpacked installation. Exact rounding between chain links and resuming an active drain from a save remain open. The README gives the unattended Weeper test command.
+
+The Gnome contact check also passed in the Windows viewer. With Connor placed in a moving rock's path, the original rollside script fired and reduced his health from 220 to 211 on the first hit.
+
 ## 2026-11-05 Door and chest state across saves
 
 Two Windows processes used Daventry's original door and pub chest. The door remained open on load and the chest kept the same three-crystal item. The first click collected it, the second produced the empty-chest response, and saving again recorded one copy in Connor's inventory. A separate two-return test resumed a door from the middle of its movement. An earlier version-1 slot without the added fields loaded with the original starting states. Run the `kept_interactions` test listed in the README.

@@ -551,6 +551,8 @@ impl MonsterTypes {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CharacterKeys {
     pub class: Class,
+    /// Model-space launch points used if the attack frame lacks the projectile's mesh.
+    pub shoot_offsets: Vec<(String, [f32; 3])>,
     /// `animFile=`: its movement list.
     pub anim_file: Option<String>,
     /// `idleAnimFile=`: fidgets, only for active characters (M5).
@@ -628,6 +630,13 @@ pub struct CharacterKeys {
 pub const CHARACTER_TYPE: u32 = 0x42;
 pub const CHARACTER_MASK: u32 = 0x281F;
 
+pub fn shoot_offsets(section: &Section) -> Vec<(String, [f32; 3])> {
+    section.entries.iter().filter(|(key, _)| key.to_ascii_lowercase().starts_with("shootoffsets")).filter_map(|(_, value)| {
+        let mut words = value.split_whitespace();
+        Some((words.next()?.to_string(), [words.next()?.parse().ok()?, words.next()?.parse().ok()?, words.next()?.parse().ok()?]))
+    }).collect()
+}
+
 impl CharacterKeys {
     /// `None` when the section is not a character.
     pub fn from_section(s: &Section) -> Option<Self> {
@@ -636,6 +645,7 @@ impl CharacterKeys {
         let number = |k: &str| s.number(k).and_then(Result::ok);
         let switch = |k: &str, default: bool| number(k).map_or(default, |v| v != 0.0);
         Some(CharacterKeys {
+            shoot_offsets: shoot_offsets(s),
             class,
             anim_file: text("animFile"),
             idle_anim_file: text("idleAnimFile"),
@@ -887,6 +897,7 @@ pub struct FightSettings {
     /// The `LongWeapon` it holds (its `IDName`) and that item's projectile
     /// file: it is ranged (rule 34).
     pub ranged_weapon: Option<String>,
+    pub shoot_fallback: [f32; 3],
     pub projectile: Option<String>,
     /// It holds a Flame Sword: its hits are `Fire` (rule 14).
     pub fire: bool,
@@ -945,6 +956,10 @@ impl FightSettings {
             Field::FromType => kind.attack_more,
         };
         FightSettings {
+            shoot_fallback: ranged_weapon.as_ref().and_then(|weapon| {
+                keys.shoot_offsets.iter().find(|(name, _)| name.eq_ignore_ascii_case(weapon))
+                    .or_else(|| keys.shoot_offsets.iter().find(|(name, _)| name.eq_ignore_ascii_case("INVITEM_All")))
+            }).map_or([0.; 3], |(_, offset)| *offset),
             type_name: kind.name.clone(),
             stats,
             attack_delay: line.attack_delay.or(kind.attack_delay),
@@ -1019,6 +1034,7 @@ pub struct ProjectileKeys {
     /// upward speed. Straight-flying bolts have no arc.
     pub parabola: Option<(f32, f32)>,
     pub script: Option<String>,
+    pub drain: Option<DrainKeys>,
     /// Its shape's `BOUNDS.KQ` box, filled in by the loader (rule 29).
     pub bounds: Option<([f32; 3], [f32; 3])>,
     /// `classType=KQHammer` (`azriel-hammer.md` rule 6): Azriel's Hammer,
@@ -1040,18 +1056,41 @@ pub const HAMMER_MASK: u32 = 0x221F;
 /// A projectile's own collision type (rule 26).
 pub const PROJECTILE_TYPE: u32 = 1;
 
+/// Dead City's PRweeper.kq (ranged-weapons.md section 9).
+#[derive(Debug, Clone, PartialEq)]
+pub struct DrainKeys {
+    pub duration: f32,
+    pub segment: String,
+    pub end: String,
+    pub sound: String,
+    pub fire_anim: String,
+    pub hurt_anim: String,
+    pub done_anim: String,
+    pub shoot_height: f32,
+    pub hit_height: f32,
+}
+
 impl ProjectileKeys {
-    /// `None` when the section is not a `KQProjectile` or a `KQHammer`
-    /// (`azriel-hammer.md` rule 6: the same keys and defaults, plus its
-    /// damage keys).
+    /// Reads ordinary projectiles, Azriel's hammer and the Weeper's drain.
     pub fn from_section(s: &Section) -> Option<Self> {
         let class = s.get("classType")?.trim();
         let hammer = class.eq_ignore_ascii_case("KQHammer");
-        if !hammer && !class.eq_ignore_ascii_case("KQProjectile") {
+        let weeper = class.eq_ignore_ascii_case("KQWeepBolt");
+        if !hammer && !weeper && !class.eq_ignore_ascii_case("KQProjectile") {
             return None;
         }
         let number = |k: &str| s.number(k).and_then(Result::ok);
         let whole = |k: &str| number(k).map_or(0, |v| v as i64);
+        let drain = if weeper {
+            Some(DrainKeys {
+                duration: number("duration")? as f32,
+                segment: s.get("suckFile")?.trim().into(), end: s.get("suckEnd")?.trim().into(),
+                sound: s.get("suckSound")?.trim().into(),
+                fire_anim: s.get("fireAnim")?.trim().into(), hurt_anim: s.get("hurtAnim")?.trim().into(),
+                done_anim: s.get("doneAnim")?.trim().into(),
+                shoot_height: number("shootOffset")? as f32, hit_height: number("hitOffset")? as f32,
+            })
+        } else { None };
         Some(ProjectileKeys {
             shape: s.get("shapeName").map(|v| v.trim().to_string()).filter(|v| !v.is_empty()),
             speed: number("velocity").map_or(PROJECTILE_SPEED, |v| v as f32),
@@ -1060,6 +1099,7 @@ impl ProjectileKeys {
             collider_mask: number("colliderMask").map_or(if hammer { HAMMER_MASK } else { PROJECTILE_MASK }, |v| v as u32),
             weapon_type: number("weaponType").map(|v| v as i64),
             parabola: (whole("parabola") != 0).then(|| (number("peakHeightOffset").unwrap_or(0.) as f32, number("upVelocity").unwrap_or(0.) as f32)).filter(|(h, v)| *h > 0. && *v > 0.),
+            drain,
             script: s.get("script").map(str::trim).filter(|s| !s.is_empty() && !s.eq_ignore_ascii_case("none")).map(str::to_owned),
             bounds: None,
             hammer,
