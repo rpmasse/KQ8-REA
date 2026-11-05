@@ -31,3 +31,33 @@ fn local_resolution_lighting_and_shadow_settings_reach_world_loading() {
     }
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), original, "the GOG installation was modified");
 }
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn graphics_menu_saves_choices_for_a_fresh_world_process() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let original = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/graphics-menu/{nonce}"));
+    fs::create_dir_all(&dir).unwrap();
+    let run = |name: &str, args: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+            .current_dir(&dir).arg("--game").arg(&game).args(["--sound", "off"]).args(args)
+            .output().unwrap();
+        fs::write(dir.join(format!("{name}.stderr.log")), &output.stderr).unwrap();
+        let log = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
+        fs::write(dir.join(format!("{name}.viewer.log")), &log).unwrap();
+        assert!(output.status.success() && log.contains("RESULT: PASS"), "inspect {}", dir.display());
+        log
+    };
+    let menu = run("menu", &["--menu-input", "down,enter,release,enter,click=350x190,click=350x232,click=350x263,click=525x387,mouse-up,click=310x450,click=315x451", "--frames", "70"]);
+    assert!(menu.contains("graphics: opened original Graphics.gui") && menu.contains("graphics: returned to Options; saved local preferences"), "inspect {}", dir.display());
+    let saved = kq8_core::options_menu::Settings::from_script(&fs::read(dir.join("kq8-artifacts/Options.cs")).unwrap());
+    assert!(saved.graphics.high_resolution && saved.graphics.dynamic_lighting);
+    assert_eq!((saved.graphics.shadow_mask, saved.graphics.brightness), (0, 100));
+    assert_eq!(saved.graphics.mode, "D3D-display");
+    let world = run("world", &["--world", "DeadCity", "--frames", "80", "--no-ai", "--god"]);
+    assert!(world.contains("screen 800x600") && world.contains("useDynamicLighting 1"), "inspect {}", dir.display());
+    assert!(fs::read_to_string(dir.join("kq8-artifacts/logs/shadows.log")).unwrap().contains("world mask 0"));
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), original);
+}
