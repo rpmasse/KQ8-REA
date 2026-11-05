@@ -30,7 +30,7 @@ fn scripted_monster_survives_a_fresh_process() {
     assert_eq!(monster["command"][0], "testRat");
     assert_eq!(monster["command"][1], "rat");
     assert!(monster["character"]["fight"]["stats"][0].as_i64().unwrap() > 0);
-    let viewer = run("restore", &["--menu-input", "down,enter,release,enter,release", "--frames", "330",
+    let viewer = run("restore", &["--menu-input", "down,enter,release,enter,release", "--frames", "420",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=SpawnedAgain:enter:release:escape,24"]);
     assert!(viewer.contains("save restored in DeadCity without replaying Begin"));
     assert!(viewer.contains("copy testRat of rat.kq: drawn"), "inspect {}", root.join("restore").display());

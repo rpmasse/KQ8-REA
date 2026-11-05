@@ -429,6 +429,27 @@ impl SavedMonster {
     }
 }
 
+/// Runtime state of a living character from the installed world files.
+/// Its model, movement list and immutable type rules are loaded as usual.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedPlacedCharacter {
+    name: String,
+    animation: crate::kept_interactions::Playback,
+    character: crate::character::checkpoint::SpawnedCharacter,
+    script: Option<String>,
+    translucency: Option<f32>,
+    hidden: Option<bool>,
+    state_seen: Option<u32>,
+}
+
+impl SavedPlacedCharacter {
+    pub fn valid(&self) -> bool {
+        !self.name.is_empty() && self.name.len() <= 256 && !self.name.chars().any(char::is_control)
+            && self.animation.valid() && self.character.valid()
+            && self.translucency.is_none_or(f32::is_finite)
+    }
+}
+
 /// What a kept world keeps of an animated or scripted object whose state
 /// changed while Connor was there (`world-change.md` rules 12, 15; DESIGN
 /// "kept worlds keep animated objects' state", K-1): put back into its
@@ -2297,6 +2318,49 @@ impl WorldState {
                 hidden: self.plain_hidden.get(name).copied(), state_seen: self.state_seen.get(name).copied(),
             })
         }).collect()
+    }
+
+    pub fn saved_placed_characters(&self) -> Vec<SavedPlacedCharacter> {
+        self.anims.iter().filter_map(|actor| {
+            let name = actor.player.name.to_ascii_lowercase();
+            let character = actor.character.as_deref()?;
+            if actor.gone || self.deleted.contains(&name) || self.spawned_monsters.contains_key(&name)
+                || character.fight.as_ref().is_some_and(|f| f.dying.is_some()) { return None; }
+            Some(SavedPlacedCharacter {
+                name: actor.player.name.clone(), animation: crate::kept_interactions::Playback::take(&actor.player),
+                character: crate::character::checkpoint::SpawnedCharacter::take(character, self.now()),
+                script: actor.script.clone(), translucency: actor.translucency,
+                hidden: self.plain_hidden.get(&name).copied(), state_seen: self.state_seen.get(&name).copied(),
+            })
+        }).collect()
+    }
+
+    pub fn restore_placed_characters(&mut self, saved: &[SavedPlacedCharacter]) {
+        let now = self.now();
+        let updates = self.updates;
+        for entry in saved {
+            if !entry.valid() { continue; }
+            let name = entry.name.to_ascii_lowercase();
+            let Some(index) = self.character_index(&name) else { continue; };
+            let actor = &mut self.anims[index];
+            entry.animation.restore(&mut actor.player);
+            actor.script.clone_from(&entry.script);
+            actor.translucency = entry.translucency;
+            if let Some(character) = actor.character.as_deref_mut() {
+                entry.character.restore(character, now, updates);
+            }
+            if let Some(hidden) = entry.hidden { self.plain_hidden.insert(name.clone(), hidden); }
+            if let Some(state) = entry.state_seen { self.state_seen.insert(name, state); }
+        }
+    }
+
+    /// Keep the saved order, which matters when `MaxMonsters` is full.
+    /// Ignore names whose actor did not rebuild from the installed world.
+    pub fn restore_active_list(&mut self, saved: &[String]) {
+        self.active_list = saved.iter().filter_map(|name| {
+            let index = self.character_index(name)?;
+            self.anims[index].character.as_deref()?.ai.as_ref()?.active.then(|| name.to_ascii_lowercase())
+        }).collect();
     }
 
     /// Rebuild actors after the installed world's types are prepared. Their
@@ -8010,6 +8074,42 @@ endif
         let ai = c.ai.as_mut().unwrap();
         (ai.settings.alarm_radius, ai.settings.attack_dist, ai.settings.home_radius, ai.settings.chase_radius) = (4000.0, 1500.0, 3000.0, 6000.0);
         a
+    }
+
+    #[test]
+    fn placed_fighters_keep_injury_motion_and_active_order_after_json_reload() {
+        let mut a = fighter();
+        let mut second = a.world.anims[0].clone();
+        second.player.name = "gob2".into();
+        a.world.anims.push(second);
+        a.world.hit_character(0, "Connor", 4, crate::fight::HitKind::Normal);
+        a.world.updates = 150;
+        let first = &mut a.world.anims[0];
+        first.player.base.position = [1200., 1300., 100.];
+        first.player.phase = 0.4;
+        let c = first.character.as_deref_mut().unwrap();
+        c.mover.as_deref_mut().unwrap().position = first.player.base.position;
+        c.ai.as_mut().unwrap().active = true;
+        c.ai.as_mut().unwrap().chase_until = 15.0;
+        a.world.anims[1].character.as_deref_mut().unwrap().ai.as_mut().unwrap().active = true;
+        a.world.active_list = vec!["gob2".into(), "gob".into()];
+        let bytes = serde_json::to_vec(&a.world.saved_placed_characters()).unwrap();
+        let saved: Vec<SavedPlacedCharacter> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(saved.len(), 2);
+        let mut loaded = fighter();
+        let mut second = loaded.world.anims[0].clone();
+        second.player.name = "gob2".into();
+        loaded.world.anims.push(second);
+        loaded.world.restore_placed_characters(&saved);
+        loaded.world.restore_active_list(&a.world.active_list);
+        let first = &loaded.world.anims[0];
+        let c = first.character.as_deref().unwrap();
+        assert_eq!(first.player.base.position, [1200., 1300., 100.]);
+        assert_eq!(first.player.phase, 0.4);
+        assert_eq!(c.mover.as_ref().unwrap().position, first.player.base.position);
+        assert_eq!(c.ai.as_ref().unwrap().chase_until, 5.0);
+        assert!(c.fight.as_ref().unwrap().stats.0[0] < 15);
+        assert_eq!(loaded.world.active_list, ["gob2", "gob"]);
     }
 
     #[test]

@@ -101,6 +101,12 @@ impl Snapshot {
             if kept.spawned_monsters.iter().any(|monster| !monster.valid()) {
                 return Err("save has an invalid script-created monster".into());
             }
+            if kept.characters.iter().any(|character| !character.valid()) {
+                return Err("save has an invalid placed character".into());
+            }
+            if kept.active_list.as_ref().is_some_and(|list| list.len() > 256 || list.iter().any(|name| name.is_empty() || name.len() > 256 || name != &name.to_ascii_lowercase())) {
+                return Err("save has an invalid active-monster list".into());
+            }
             if !known(world)
                 || *world != world.to_ascii_lowercase()
                 || kept.came_in.iter().any(|f| !safe_path(f))
@@ -166,7 +172,9 @@ impl Snapshot {
         if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
             self.restore_objects_and_vars(&mut sim.active);
             if let Some(kept) = self.kept.get(&self.world.to_ascii_lowercase()) {
+                sim.active.world.restore_placed_characters(&kept.characters);
                 sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
+                if let Some(list) = kept.active_list.as_deref() { sim.active.world.restore_active_list(list); }
             }
         }
         if let Some(mut connor) = world.get_resource_mut::<connor_view::ConnorSim>() {
@@ -448,6 +456,8 @@ mod tests {
                     collision_type: Some(32),
                 }],
                 spawned_monsters: Vec::new(),
+                characters: Vec::new(),
+                active_list: None,
             },
         );
         Snapshot {
@@ -494,6 +504,8 @@ mod tests {
         let mut previous_v2 = newer.clone();
         for world in previous_v2["kept"].as_object_mut().unwrap().values_mut() {
             world.as_object_mut().unwrap().remove("spawned_monsters");
+            world.as_object_mut().unwrap().remove("characters");
+            world.as_object_mut().unwrap().remove("active_list");
         }
         assert!(serde_json::from_value::<Snapshot>(previous_v2).unwrap().validate().is_ok());
         // Version-1 slots predate the door/chest fields. All previously
