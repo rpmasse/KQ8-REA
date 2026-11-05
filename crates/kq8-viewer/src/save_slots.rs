@@ -53,6 +53,9 @@ pub(super) struct Snapshot {
     bolts: Option<kq8_core::fight::SavedBolts>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     drains: Option<Vec<kq8_core::weeper::SavedDrain>>,
+    /// Absent in older slots: retain the loaded world's script default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    shadows_allowed: Option<bool>,
 }
 
 impl Snapshot {
@@ -213,6 +216,7 @@ impl Snapshot {
         }
         active.world.connor_at = Some(self.position);
         active.world.connor_heading = self.heading;
+        if let Some(on) = self.shadows_allowed { active.world.shadows_allowed = on; }
         if self.version >= 2 {
             if let Some(events) = self.script_events.take() {
                 active.world.restore_events(events);
@@ -455,6 +459,7 @@ pub fn save_slot_with_thumbnail(
             bolts_shot: sim.active.world.bolts_shot,
         }),
         drains: Some(sim.active.world.saved_drains()?),
+        shadows_allowed: Some(sim.active.world.shadows_allowed),
     };
     write_slot(&directory(), slot, &snapshot)
 }
@@ -513,6 +518,25 @@ mod tests {
 
     fn active() -> Active {
         Active::new(Default::default(), vec![], vec![], [], [])
+    }
+
+    #[test]
+    fn shadow_switch_restores_without_overriding_an_old_slots_world_default() {
+        let mut snapshot = fixture();
+        snapshot.shadows_allowed = Some(false);
+        let mut snapshot: Snapshot = serde_json::from_slice(&serde_json::to_vec(&snapshot).unwrap()).unwrap();
+        let mut fresh = active();
+        assert!(fresh.world.shadows_allowed);
+        snapshot.restore_objects_and_vars(&mut fresh);
+        assert!(!fresh.world.shadows_allowed);
+        let mut json = serde_json::to_value(fixture()).unwrap();
+        json.as_object_mut().unwrap().remove("shadows_allowed");
+        for allowed in [false, true] {
+            let mut old: Snapshot = serde_json::from_value(json.clone()).unwrap();
+            fresh.world.shadows_allowed = allowed;
+            old.restore_objects_and_vars(&mut fresh);
+            assert_eq!(fresh.world.shadows_allowed, allowed);
+        }
     }
 
     fn fixture() -> Snapshot {
@@ -594,6 +618,7 @@ mod tests {
             fight_rng: None,
             bolts: Some(kq8_core::fight::SavedBolts { bolts: Vec::new(), bolts_shot: 0 }),
             drains: Some(Vec::new()),
+            shadows_allowed: None,
             journey: take_journey(&sim, "Daventry"),
             kept,
         }

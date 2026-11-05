@@ -740,6 +740,7 @@ pub fn spawn_doors(
         sources,
     );
     active.world.prop_placements = std::mem::take(&mut objects.prop_placements);
+    active.world.shadows_allowed = objects.shadows_allowed;
     // Traps (3d-2): loaded where the start-up scripts left them.
     let mut trap_log = match Log::create("traps") {
         Ok(l) => Some(l),

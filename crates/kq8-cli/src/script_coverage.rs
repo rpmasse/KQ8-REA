@@ -39,7 +39,7 @@ const CONTROL: [&str; 6] = ["if", "else", "endif", "echo", "set", "test"];
 
 /// What the world loader acts on in start-up scripts (`world_script.rs`;
 /// `setLoadProgress` drives the loading meter). Lower case.
-const LOADER: [&str; 15] = [
+const LOADER: [&str; 16] = [
     "set",
     "setcat",
     "loadkq",
@@ -52,6 +52,7 @@ const LOADER: [&str; 15] = [
     "kqobject::setscript",
     "kqobject::setdontlook",
     "applycombatlevel",
+    "allowshadows",
     "activatepersistmgr",
     "kqconner::setlevel",
     "sendevent",

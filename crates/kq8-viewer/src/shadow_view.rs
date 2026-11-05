@@ -6,8 +6,8 @@
 //! objects", Q123 d): a plain object casts when (the world's mask) AND (its
 //! `shadowMask`, default 8) is not 0 and it is solid, only while it is
 //! drawn (near or far, not hidden); the same direction, 20 lift and 0.5 as
-//! characters. Buildings only receive. `allowShadows` is taken as on (as
-//! for characters; Daventry's `world.cs` says 1).
+//! characters. Buildings only receive. The active script's `allowShadows`
+//! switch suppresses all categories independently of the Graphics mask.
 //!
 //! Ours: a plain object's shadow is worked out again only when what is
 //! shown of it (its parts and its place) changes, so a still object costs
@@ -359,7 +359,7 @@ pub struct ShadowLog {
     worked_out: usize,
     /// Time spent in this system, for the log.
     spent: std::time::Duration,
-    mask: Option<u32>,
+    mask: Option<(u32, bool)>,
 }
 
 /// Rule 37 "Plain objects" (M4 4d-7b-4): every drawn object whose test
@@ -381,13 +381,14 @@ pub fn object_shadow_draw(
     mut material: Local<Option<Handle<StandardMaterial>>>,
     mut shadows: Local<HashMap<Entity, ObjectShadow>>,
     mut log: Local<ShadowLog>,
-    (buildings, activity, balls, change, mut seen, sources): (
+    (buildings, activity, balls, change, mut seen, sources, doors): (
         Option<Res<BuildingShadows>>,
         Option<Res<ObjectActivity>>,
         Query<(&GlobalTransform, &ModelBall)>,
         Res<crate::world_build::WorldChange>,
         Local<u64>,
         Option<Res<FrameSources>>,
+        Option<Res<crate::door_view::DoorSim>>,
     ),
 ) {
     let no_sources = FrameSources::default();
@@ -398,6 +399,7 @@ pub fn object_shadow_draw(
         *log = ShadowLog::default();
     }
     let (Some(world), Some(ground)) = (world, ground) else { return };
+    let allowed = doors.as_ref().is_none_or(|d| d.active.world.shadows_allowed);
     let active = buildings.as_deref().map(|b| b.active(activity.as_deref())).unwrap_or_default();
     let active_ids: Vec<u32> = active.iter().map(|(id, _)| *id).collect();
     let started = std::time::Instant::now();
@@ -405,7 +407,7 @@ pub fn object_shadow_draw(
     let material = material.get_or_insert_with(|| shadow_material(&mut materials)).clone();
     if log.log.is_none() && log.frames == 0 {
         log.log = Log::create("shadows").ok();
-        let casting = roots.iter().filter(|(_, t, _, _)| !t.character && kq8_data::characters::casts_shadow(world.0, t.shadow_mask, true, 256.0)).count();
+        let casting = roots.iter().filter(|(_, t, _, _)| !t.character && kq8_data::characters::casts_shadow(world.0, t.shadow_mask, allowed, 256.0)).count();
         let line = format!(
             "plain objects' shadows (characters.md rule 37, M4 4d-7b-4): world mask {}, {casting} of {} objects cast (shadowMask, default 8; not buildings, see-through objects or characters); sun direction ({:.3}, {:.3}, {:.3})",
             world.0,
@@ -414,7 +416,7 @@ pub fn object_shadow_draw(
             dir[1],
             dir[2]
         );
-        let mut names: Vec<&str> = roots.iter().filter(|(_, t, _, _)| !t.character && kq8_data::characters::casts_shadow(world.0, t.shadow_mask, true, 256.0)).map(|(_, t, _, _)| t.name.as_str()).collect();
+        let mut names: Vec<&str> = roots.iter().filter(|(_, t, _, _)| !t.character && kq8_data::characters::casts_shadow(world.0, t.shadow_mask, allowed, 256.0)).map(|(_, t, _, _)| t.name.as_str()).collect();
         names.sort_unstable();
         names.dedup();
         if let Some(l) = log.log.as_mut() {
@@ -423,14 +425,14 @@ pub fn object_shadow_draw(
         }
     }
     log.frames += 1;
-    let mask_changed = log.mask != Some(world.0);
-    log.mask = Some(world.0);
+    let mask_changed = log.mask != Some((world.0, allowed));
+    log.mask = Some((world.0, allowed));
     let mut shown = 0;
     let mut pieces = 0;
     let mut on_buildings = (0, 0);
     let mut fallbacks = 0;
     for (root, test, at, off) in &roots {
-        if test.character || !kq8_data::characters::casts_shadow(world.0, test.shadow_mask, true, 256.0) {
+        if test.character || !kq8_data::characters::casts_shadow(world.0, test.shadow_mask, allowed, 256.0) {
             if let Some(entry) = shadows.get_mut(&root) {
                 show_shadow(&[], &mut entry.slot, &mut commands, &mut meshes, &material);
                 // The same pose must be rebuilt when the category returns.
@@ -480,7 +482,7 @@ pub fn object_shadow_draw(
     log.spent += started.elapsed();
     if log.frames % 600 == 1 || mask_changed {
         let line = format!(
-            "frame {}: {shown} plain objects' shadows shown, {pieces} pieces; {} of them reach building surfaces ({} surfaces; {} buildings active); {} without a stored model ball (fallback box); worked out {} times so far; {:.3} ms a frame on average in this system; {}; mask {}",
+            "frame {}: {shown} plain objects' shadows shown, {pieces} pieces; {} of them reach building surfaces ({} surfaces; {} buildings active); {} without a stored model ball (fallback box); worked out {} times so far; {:.3} ms a frame on average in this system; {}; allowShadows {}; mask {}",
             log.frames,
             on_buildings.0,
             on_buildings.1,
@@ -488,7 +490,7 @@ pub fn object_shadow_draw(
             fallbacks,
             log.worked_out,
             log.spent.as_secs_f64() * 1000.0 / log.frames as f64,
-            sources.line(), world.0
+            sources.line(), u8::from(allowed), world.0
         );
         if let Some(l) = log.log.as_mut() {
             l.detail(line);

@@ -815,6 +815,8 @@ pub struct WorldState {
     /// value (256 = solid), for the viewer; `None` = never set. Dead City's
     /// Shadow fight (`ShadBat.cs`) uses it: the Shadow is part of his model.
     pub connor_translucency: Option<f32>,
+    /// `allowShadows`: the script switch, separate from Graphics preferences.
+    pub shadows_allowed: bool,
     /// The reason last logged by [`WorldState::note_connor_report`].
     connor_hidden_logged: Option<&'static str>,
     /// `setConnorFlag InTemple4 1` (M5 5g-4, `potions.md` rule 19).
@@ -4297,6 +4299,11 @@ impl ScriptHost for WorldState {
             "checkDistance" => Some(self.check_distance(words, at)),
             "KQMonster::goHome" | "KQMonster::setAlarmRadius" | "KQMonster::setChaseRadius" | "KQMonster::setHomeRadius" => Some(self.monster_ai_command(words, at)),
             "makeTranslucent" => Some(self.make_translucent(words, at)),
+            "allowShadows" => {
+                self.shadows_allowed = words.get(1).is_some_and(|v| number_value(v) != 0.0);
+                self.note(format!("{at}: allowShadows {}", u8::from(self.shadows_allowed)));
+                Some("0".into())
+            }
             "KQObject::setUseGravity" | "KQMonster::setMonUseGravity" | "KQMonster::setCanTurn" | "KQMonster::changeAnmFile" => {
                 Some(self.character_switch(words, at))
             }
@@ -4450,6 +4457,7 @@ impl Active {
                 connor_flags: BTreeMap::new(),
                 connor_hands_off: false,
                 connor_translucency: None,
+                shadows_allowed: true,
                 connor_hidden_logged: None,
                 reveal_objects: Vec::new(),
                 pickup_experience: Vec::new(),
