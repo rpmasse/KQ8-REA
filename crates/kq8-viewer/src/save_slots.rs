@@ -87,6 +87,10 @@ impl Snapshot {
                 && !s.split(['/', '\\']).any(|p| matches!(p, "." | ".."))
         };
         for (world, kept) in &self.kept {
+            if kept.terrain_changes.heights.iter().any(|op| !op.valid())
+                || kept.terrain_changes.heights.iter().filter(|op| op.elapsed < op.frames).count() > 32 {
+                return Err("save has invalid terrain changes".into());
+            }
             if !kept.interactions.valid_loot() {
                 return Err("save has inconsistent chest contents".into());
             }
@@ -419,6 +423,7 @@ mod tests {
         kept.insert(
             "swamp".into(),
             KeptWorld {
+                terrain_changes: Default::default(),
                 interactions: Default::default(),
                 gone: ["usedkey".to_string()].into_iter().collect(),
                 came_in: vec!["waterfall.kq".into()],

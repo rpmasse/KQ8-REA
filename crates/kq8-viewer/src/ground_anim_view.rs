@@ -109,7 +109,9 @@ pub fn setup_ground_anim(
             }
         }
         // Lit like the rest of the ground (M1 step 4c).
-        built_meshes.insert(key, light.light_mesh(mesh_from(positions, uvs), &game, &mut meshes));
+        let mesh = light.light_mesh(mesh_from(positions, uvs), &game, &mut meshes);
+        light.surface_meshes.push(mesh.clone());
+        built_meshes.insert(key, mesh);
     }
     let mut looks = BTreeMap::new();
     for (m, look) in assets.looks {

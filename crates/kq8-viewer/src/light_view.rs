@@ -105,6 +105,8 @@ impl LightMode {
 /// and how many ground meshes are lit by it (for the log).
 #[derive(Resource)]
 pub struct GroundLight {
+    /// Surface meshes, including every material variant of animated squares.
+    pub surface_meshes: Vec<Handle<Mesh>>,
     /// The working map: the stored values plus this frame's patches.
     pub map: LightMap,
     /// The map as loaded (rule 26: patches are put back to these).
@@ -127,6 +129,7 @@ pub struct GroundLight {
 impl GroundLight {
     pub fn new(map: LightMap, other: LightMap, mode: LightMode, dynamic: bool) -> Self {
         GroundLight {
+            surface_meshes: Vec::new(),
             other,
             stored: map.clone(),
             map,

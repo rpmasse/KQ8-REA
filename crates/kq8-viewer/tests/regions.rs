@@ -86,3 +86,19 @@ fn gnome_rolling_rock_hits_connor_through_its_own_script() {
     assert!(doors.contains("rollside.cs rrock1 ConnorCollision"), "see {}", logs.display());
     assert!(fight.lines().any(|l| l.contains("hit by rrock1") && l.contains("health ")), "see {}", logs.display());
 }
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn scales_cue_lowers_rendered_river_and_keeps_it_on_reload() {
+    let logs = run_world("scales-drain", &[
+        "--world", "DeadCity", "--command", "sendEvent 0 scale KQCueEvent 1 0,4",
+        "--console", "reload,18", "--frames", "600",
+    ]);
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let changed: Vec<usize> = viewer.lines().filter_map(|line| {
+        let rest = line.strip_prefix("terrain: 5 height matches, ")?;
+        rest.split_whitespace().next()?.parse().ok()
+    }).filter(|&n| n > 0).collect();
+    assert_eq!(changed.len(), 2, "initial change and restored meshes: see {}", logs.display());
+    assert_eq!(changed[0], changed[1], "same rendered vertices after return");
+}

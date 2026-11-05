@@ -58,6 +58,14 @@ A world loading successfully verifies that it can be opened. Campaign completion
 
 ## Source and research
 
+The GOG installation supplies two kinds of evidence. Files such as `Options.cs` and the scripts inside each world’s `.vol` archive contain readable game logic. For example, this command prints Dead City’s scales script directly from the installed archive. Its first numbered cue lowers five sections of the river.
+
+```powershell
+cargo run --locked -p kq8-cli -- text vol:DeadCity/kq/SCALE.CS
+```
+
+The original engine ships as `Mask.exe`. Where a script calls an engine command, the Rust implementation follows the [documented engine behavior](docs/behaviour/terrain.md) and checks the result against the installed data. The [research workflow](docs/SESSIONS.md) keeps investigation of the executable separate from writing the Rust code.
+
 | Component | Responsibility |
 | --- | --- |
 | `kq8-data` | Reads and decodes files from the original game. |
@@ -66,4 +74,4 @@ A world loading successfully verifies that it can be opened. Campaign completion
 | `kq8-audio` | Mixes and plays audio. |
 | `kq8-cli` | Inspects game data and runs verification tools. |
 
-This fork builds on [Eric Peracchi Pisoni's KQ8R](https://github.com/Eric-lz/KQ8R). The [research workflow](docs/SESSIONS.md) explains how behavior observed in the original becomes a written specification for the Rust implementation. See [provenance](docs/provenance/README.md), the [development log](MODLOG.md) and [credits](CREDITS.md) for sources and contributions. This is an unofficial fan project. Players supply their own original game files.
+This fork builds on [Eric Peracchi Pisoni's KQ8R](https://github.com/Eric-lz/KQ8R). See [provenance](docs/provenance/README.md), the [development log](MODLOG.md) and [credits](CREDITS.md) for sources and contributions. This is an unofficial fan project. Players supply their own original game files.

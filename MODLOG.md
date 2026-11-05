@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Dead City river after the scales puzzle
+
+The GOG scales object names its displayed models in its animation list. The Windows loader formerly skipped the actor while looking for its nominal shape. It now places the scales and delivers their original script cue. A data test compared every surface vertex before and after that cue. Exactly 60 changed, all within the five specified rectangles and all reaching the riverbed after one update. A Windows test sent the same cue to the placed scales, reloaded the region, and found identical rendered vertex changes both times. The test starts at the win cue. Playing the feather puzzle from its entrance remains open.
+
 ## 2026-11-05 A saved Dead City laser puzzle resumes on its next cue
 
 Version-2 slots store the ordered script-event queue with time remaining and end-of-animation listeners. Loading replaces the queue produced during world initialization. An unattended two-process test ran the original laser controller, saved after its first cue, and restored with 0.4667 seconds until the next cue. The two doors unlocked without replaying the first explosion. Older version-1 slots still load. The [README](README.md) gives the test command. Combat and cutscene playback still need separate state.

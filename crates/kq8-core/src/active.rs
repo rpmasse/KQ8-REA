@@ -638,6 +638,7 @@ pub struct WorldState {
     pub queue: EventQueue,
     /// Updates done; game time = updates / 15.
     pub updates: u64,
+    pub terrain_changes: crate::ground_anim::GroundChanges,
     /// Lines for `doors.log`, taken by the caller.
     pub log: Vec<String>,
     /// Lines for `traps.log`: everything while a trap's call runs.
@@ -3806,12 +3807,35 @@ impl ScriptHost for WorldState {
             "KQMonster::dropItem" => Some(self.drop_item(words, at)),
             "getConInventory" => Some(self.get_con_inventory(at)),
             "exist" => Some(self.exist(words, at)),
+            "matchHeights" => {
+                let values: Option<Vec<i32>> = words[1..].iter().map(|w| w.parse().ok()).collect();
+                let Some([x0, y0, x1, y1, frames]) = values.as_deref() else {
+                    self.note(format!("{at}: expected matchHeights minX minY maxX maxY frames"));
+                    return Some("1".into());
+                };
+                let op = kq8_data::terrain::HeightMatch {
+                    rect: [*x0, *y0, *x1, *y1], frames: (*frames).max(0) as u32, elapsed: 0,
+                };
+                if !op.valid() { return Some("1".into()); }
+                if self.terrain_changes.heights.iter().any(|m| m.rect == op.rect && m.elapsed == m.frames) {
+                    return Some("0".into());
+                }
+                if self.terrain_changes.heights.iter().filter(|m| m.elapsed < m.frames).count() >= 32 {
+                    self.note(format!("{at}: 32 height changes already running"));
+                    return Some("1".into());
+                }
+                self.note(format!("{at}: matchHeights {:?} over {} updates", op.rect, op.frames));
+                self.terrain_changes.heights.push(op);
+                Some("0".into())
+            }
             "terAnimSwitch" => {
                 match words {
                     [_, name, tail @ ..] if tail.len() <= 1 => {
+                        let repeat = tail.first().map(|v| number_value(v) != 0.0);
+                        self.terrain_changes.record_switch(name, repeat);
                         self.requests.push(Request::TerrainCycle {
                             animator: name.clone(),
-                            repeat: tail.first().map(|v| number_value(v) != 0.0),
+                            repeat,
                             at: at.to_string(),
                         });
                         Some("0".into())
@@ -3958,6 +3982,7 @@ impl Active {
                 contact_scripts: BTreeMap::new(),
                 queue: EventQueue::default(),
                 updates: 0,
+                terrain_changes: Default::default(),
                 log: Vec::new(),
                 trap_log: Vec::new(),
                 in_trap: false,
@@ -5507,6 +5532,9 @@ impl Active {
             self.world.note(format!("{late} event(s) sent with delay 0 during this update handled before drawing (anim-scripts.md rule 8, Q119)"));
         }
         self.world.characters_due(now);
+        for op in &mut self.world.terrain_changes.heights {
+            if op.elapsed < op.frames { op.elapsed += 1; }
+        }
         self.world.updates += 1;
     }
 

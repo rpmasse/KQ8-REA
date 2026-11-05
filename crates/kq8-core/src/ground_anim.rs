@@ -17,6 +17,36 @@
 use kq8_data::effects::AnimatorSettings;
 use kq8_data::terrain::Grid;
 
+/// Terrain edits that belong to one region and travel with its saved state.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct GroundChanges {
+    pub heights: Vec<kq8_data::terrain::HeightMatch>,
+    cycles: std::collections::BTreeMap<String, CycleSelection>,
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+struct CycleSelection {
+    alternate: bool,
+    repeat: Option<bool>,
+}
+
+impl GroundChanges {
+    pub fn record_switch(&mut self, name: &str, repeat: Option<bool>) {
+        let entry = self.cycles.entry(name.to_ascii_lowercase()).or_default();
+        entry.alternate = !entry.alternate;
+        if repeat.is_some() { entry.repeat = repeat; }
+    }
+
+    pub fn restore_cycles(&self, animators: &mut [GroundAnimator]) {
+        for a in animators {
+            if let Some(selected) = self.cycles.get(&a.name.to_ascii_lowercase()) {
+                if selected.alternate { a.switch_cycle(None); }
+                if let Some(r) = selected.repeat { a.repeat = r; }
+            }
+        }
+    }
+}
+
 /// Allowance when comparing game time with a due time, so that e.g.
 /// 4.5 / 15 counts as reaching 0.3.
 const TIME_EPSILON: f64 = 1e-9;
