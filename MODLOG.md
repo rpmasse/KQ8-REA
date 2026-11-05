@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Lucreto's close and ranged attacks
+
+The existing AI and projectile simulation delivered both attacks in a GOG-backed Temple 4 check. Connor lost health to the melee cue at 900 game units. At 3,500 units the ranged attack spawned its original projectile at the `lu_fire4.kqs` weapon mesh and hit him. The two fixtures explicitly select each form. The automatic switch between them still needs a behavioral reference. Run the ignored `temple4_close_and_ranged_attacks` test.
+
 ## 2026-11-05 Walk from New Game to the wizard
 
 A Windows run selected New Game and followed the bound movement keys around the Daventry farmhouse with normal collision and AI. The wizard's eighth reply exchanged the introductory piece for the mask and first piece. His thirteenth reply marked the meeting complete. Five original animation cues followed, the fourth granting the Magic Map. The run waited for the last spoken line and verified the rewards in a disk save. The [route and source inventory](docs/daventry-progression.md) identify the subsequent quests. The map tutorial prompt is still missing.

@@ -5839,4 +5839,89 @@ mod campaign_tests {
         assert_eq!(file.to_ascii_lowercase(), "lu_fire4.kqs");
         assert_eq!(&a.movements[p.current].2, model);
     }
+
+    /// Exercise each placement's attack through sight, alarm, movement cues
+    /// and collision. The scripts establish the two roles, but do not
+    /// describe the engine's transition from one placement to the other.
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn temple4_close_and_ranged_attacks_reach_connor_from_their_authored_cues() {
+        use kq8_core::{
+            active::{Active, AnimObject}, character::Character, character_ai::Ai,
+            collide::Placement, fight::Fight, stats::{ConnorStats, Stats},
+        };
+        let game = game_install();
+        let world = World::open(&game, "temple4").unwrap();
+        let mut log = Log::create("temple4-attacks-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let mut assets = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        // Keep the class-specific distance distinct from either attack's
+        // reach and from the range of the projectile.
+        let (_, bytes) = world.load("lucend.kq").unwrap().unwrap();
+        let definition = kq8_data::kq_text::parse(&bytes);
+        assert_eq!(definition[0].number("changeDist").unwrap().unwrap(), 2000.);
+        for (name, distance, model, cue) in [
+            ("LucEnd", 900., "lu_atak4.kqs", 0.636364),
+            ("LucEndFar", 3500., "lu_fire4.kqs", 0.416667),
+        ] {
+            let far = name == "LucEndFar";
+            let a = assets.animated.iter_mut().find(|a| assets.placed[a.placed].0.name == name).unwrap();
+            let p = &assets.placed[a.placed].0;
+            let at = Placement { position: p.position, rotation: kq8_data::objects::rotation(p.angles) };
+            let mut player = world_player(a, &assets.object_animations, name, at);
+            let c = a.character.as_ref().unwrap();
+            let k = &c.keys;
+            let mut character = Character::new(false, k.flags, c.birth_delay, false, k.no_turn, k.gravity, Character::seed_for(name));
+            character.ai = Some(Ai::new(c.ai.clone(), at.position, 1000., false));
+            let fight = c.fight.clone().unwrap();
+            assert_eq!(fight.attack_delay, 1.);
+            assert_eq!(c.ai.attack_dist, if far { 80000. } else { 2500. });
+            assert_eq!(fight.ranged_weapon.is_some(), far);
+            character.fight = Some(Fight::new(fight));
+            character.set_state(&mut player, "Wait", &[], 0.);
+            let mut active = Active::new(assets.vars.clone(), vec![], vec![], assets.known.clone(), assets.scripts.clone());
+            active.add_anims([AnimObject { player, character: Some(Box::new(character)), script: None, gone: false, translucency: None }]);
+            active.world.projectiles = assets.projectiles.clone();
+            active.set_connor_stats(ConnorStats { level: 100, stats: Stats([1000, 0, 0, 0, 0]) });
+            assert!(active.run_script("altar.cs", &["altar".into(), "Cue".into(), "6".into(), "7".into()]));
+            // Selecting the ranged placement here isolates its attack. No
+            // assumptions about where the original transfers either form.
+            if far {
+                active.test_command("move LucEndFar 0 101180 94750 5938 0 0 3.14", "isolated ranged form");
+                active.test_command("KQObject::setHidden LucEndFar 0", "isolated ranged form");
+            }
+            assert!(!active.world.hidden_now(name, p.hidden));
+            active.world.characters_in_range.insert(name.to_ascii_lowercase());
+            let start = active.world.place_of(name).unwrap().position;
+            active.world.connor_at = Some([start[0], start[1] + distance, start[2]]);
+            let mut attacked = false;
+            let mut saw_bolt = false;
+            for _ in 0..180 {
+                active.update();
+                let player = &active.world.anims[0].player;
+                if player.movement_name().eq_ignore_ascii_case("attack") {
+                    assert_eq!(a.movements[player.current].1.shape.to_ascii_lowercase(), model);
+                    assert!(player.movement().unwrap().cues.iter().any(|c|
+                        c.action.trim().eq_ignore_ascii_case("do") && (c.phase - cue).abs() < 0.00001
+                    ));
+                    attacked = true;
+                }
+                for bolt in &active.world.bolts {
+                    assert!(far && bolt.shooter == name);
+                    assert_eq!((bolt.speed, bolt.max, bolt.damage, bolt.kind), (6000., 12000., 800, kq8_core::fight::HitKind::Projectile));
+                    let fighter = active.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap();
+                    assert!(fighter.shoot_offset.is_some(), "shot should originate at lu_fire4.kqs's moving bullet mesh");
+                    saw_bolt = true;
+                }
+                active.world.characters_ai(&ground.terrain, &assets.buildings, &[]);
+                if active.world.connor_stats.unwrap().stats.0[0] < 1000 { break; }
+            }
+            let evidence = active.world.fight_log.join("\n");
+            assert!(evidence.contains("attack (rule 7, standing)"), "{name}: {evidence}");
+            assert!(attacked && saw_bolt == far, "{name}: {evidence}");
+            assert!(active.world.connor_stats.unwrap().stats.0[0] < 1000, "{name}: {evidence}");
+            assert!(evidence.contains(if far { "touches Connor" } else { "hits Connor:" }), "{name}: {evidence}");
+            assert!(evidence.contains(if far { "Projectile" } else { "hand damage 800, Normal" }));
+        }
+    }
 }
