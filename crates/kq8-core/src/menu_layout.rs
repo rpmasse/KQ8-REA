@@ -132,3 +132,23 @@ impl Layout {
         }
     }
 }
+
+#[cfg(test)]
+mod graphics_probe {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn installed_graphics_controls_have_named_layout() {
+        let game = std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR");
+        let layout = Layout::read(Path::new(&game), "Graphics.gui", "IDCTL_GRA_").unwrap();
+        let art = MenuArt::open(Path::new(&game)).unwrap();
+        for name in ["MODE", "DIRECTDRAW", "DIRECT3D", "3DFX", "RESOLUTION", "640X480", "800X600",
+            "DYNAMIC_LIGHTS", "LIGHTS_BOOL", "CONNOR_BOOL", "MONSTER_BOOL", "CHARACTER_BOOL", "OBJECT_BOOL",
+            "BRIGHTNESS", "BRIGHTNESS_SLIDER", "BACKTOMAIN", "CURSOR1", "CURSOR2"] {
+            assert!(layout.controls.contains_key(name), "missing Graphics.gui control {name}");
+        }
+        assert_eq!(layout.controls["BRIGHTNESS_SLIDER"].rect, [330, 383, 530, 393]);
+        assert_eq!(layout.controls["TITLE"].label.map(|id| art.label(id)), Some("Graphic Settings"));
+    }
+}

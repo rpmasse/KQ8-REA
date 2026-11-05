@@ -691,8 +691,8 @@ fn redraw(world: &mut World) {
 
 fn option_key(world: &mut World, key: Key) {
     let log = world.resource::<crate::Shared>().log.clone();
-    let old = world.resource::<Preferences>().settings;
-    let mut settings = old;
+    let old = world.resource::<Preferences>().settings.clone();
+    let mut settings = old.clone();
     let back = {
         let mut menu = world.resource_mut::<Menu>();
         let back = menu.options.as_mut().unwrap().input(key, &mut settings);
@@ -719,7 +719,7 @@ fn option_key(world: &mut World, key: Key) {
         back
     };
     if settings != old {
-        world.resource_mut::<Preferences>().settings = settings;
+        world.resource_mut::<Preferences>().settings = settings.clone();
     }
     if back == options_menu::Destination::Credits {
         let score = world

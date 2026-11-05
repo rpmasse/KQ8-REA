@@ -26,10 +26,12 @@ impl Preferences {
             .and_then(|g| g.find("Options.cs"))
             .and_then(|p| fs::read(p).ok());
         let local = fs::read(&path).ok();
-        let bytes = local.as_deref().or(original.as_deref());
-        let settings = bytes.map(Settings::from_script).unwrap_or_default();
+        // The local file may predate the Graphics screen. Its commands
+        // override the installed defaults, while omitted commands inherit.
+        let combined = merge_scripts(original.as_deref(), local.as_deref());
+        let settings = Settings::from_script(&combined);
         Self {
-            settings,
+            settings: settings.clone(),
             saved: settings,
             path,
             other_lines: retained_lines(local.as_deref(), original.as_deref()),
@@ -46,9 +48,24 @@ impl Preferences {
             contents.push(b'\n');
         }
         write_preferences(&self.path, &contents)?;
-        self.saved = self.settings;
+        self.saved = self.settings.clone();
         Ok(())
     }
+}
+
+fn merge_scripts(original: Option<&[u8]>, local: Option<&[u8]>) -> Vec<u8> {
+    let mut combined = original.unwrap_or_default().to_vec();
+    combined.push(b'\n');
+    if let Some(local) = local { combined.extend_from_slice(local); }
+    combined
+}
+
+/// The player's local changes override installed defaults without writing to
+/// the GOG folder. World loading and interface loading use this same text.
+pub fn effective_script(game: &GameDir) -> Vec<u8> {
+    let original = game.find("Options.cs").and_then(|p| fs::read(p).ok());
+    let local = fs::read("kq8-artifacts/Options.cs").ok();
+    merge_scripts(original.as_deref(), local.as_deref())
 }
 
 fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>> {
@@ -64,7 +81,7 @@ fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>>
                 .collect();
             let Some(command) = words.first() else { continue };
             let name = String::from_utf8_lossy(command).to_ascii_lowercase();
-            if matches!(name.as_str(), "kqsound::setspeechvol" | "kqsound::setsfxvol" | "kqsound::setmusicvol" | "notstartinghelp")
+            if matches!(name.as_str(), "kqsound::setspeechvol" | "kqsound::setsfxvol" | "kqsound::setmusicvol" | "notstartinghelp" | "assigngmodename" | "set800mode" | "setbrightness" | "setshadowmask" | "usedynamiclighting")
                 || (name == "set" && words.get(1).is_some_and(|value| value.eq_ignore_ascii_case(b"Options::Captions")))
             {
                 continue;
@@ -86,17 +103,21 @@ fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>>
 #[cfg(test)]
 mod tests {
     use super::retained_lines;
+    use kq8_core::options_menu::Settings;
 
     #[test]
     fn older_local_options_retain_gog_graphics_defaults() {
         let local = b"KQSound::setMusicVol 0.40\nnotStartingHelp 1\nset800mode 1\n";
-        let original = b"KQSound::setMusicVol 0.87\r\nsetShadowMask 1\r\nuseDynamicLighting 0\r\nset800mode 0\r\nsetBrightness 49\r\n";
+        let original = b"KQSound::setMusicVol 0.87\r\nsetShadowMask 1\r\nuseDynamicLighting 0\r\nset800mode 0\r\nsetBrightness 49\r\noriginalExtra 6\r\n";
+        let mut combined = original.to_vec();
+        combined.extend_from_slice(local);
+        let settings = Settings::from_script(&combined);
+        assert!(settings.graphics.high_resolution);
+        assert_eq!(settings.graphics.shadow_mask, 1);
+        assert_eq!(settings.graphics.brightness, 49);
+        assert_eq!(settings.volume[0], 40);
         let lines = retained_lines(Some(local), Some(original));
-        assert_eq!(
-            lines,
-            [b"set800mode 1".to_vec(), b"setShadowMask 1".to_vec(),
-             b"useDynamicLighting 0".to_vec(), b"setBrightness 49".to_vec()]
-        );
+        assert_eq!(lines, [b"originalExtra 6".to_vec()]);
     }
 }
 
@@ -134,19 +155,19 @@ pub fn apply_to_world(
     if change.current.is_empty() {
         return;
     }
-    let current = (change.generation, preferences.settings);
-    if *last == Some(current) {
+    let current = (change.generation, preferences.settings.clone());
+    if last.as_ref() == Some(&current) {
         return;
     }
     *last = Some(current);
-    let settings = preferences.settings;
+    let settings = &preferences.settings;
     sim.active
         .scripts
         .vars
         .set("Options::Captions", settings.subtitles.to_string());
     let captions = sim.active.scripts.vars.get("Options::Captions");
     let mixer = match sound {
-        Some(mut sound) => format!("{:?}", sound.apply_options(&settings)),
+        Some(mut sound) => format!("{:?}", sound.apply_options(settings)),
         None => "unavailable".to_owned(),
     };
     shared.log.lock().unwrap().summary(format!(

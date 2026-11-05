@@ -229,12 +229,13 @@ pub struct CaptionStyle {
 /// Whether `MASK/Options.cs` has the line `set800mode 1` (4c-1: the game's
 /// screen is 800 × 600 then; `interface.md` rule 47).
 pub fn set800mode(game: &GameDir) -> bool {
-    let Some(Ok(bytes)) = game.find("Options.cs").map(std::fs::read) else { return false };
+    let bytes = crate::option_settings::effective_script(game);
     let text: String = bytes.iter().map(|&b| b as char).collect();
-    text.lines().any(|line| {
+    text.lines().filter_map(|line| {
         let mut w = line.split('#').next().unwrap_or("").split_whitespace();
-        w.next().is_some_and(|c| c.eq_ignore_ascii_case("set800mode")) && w.next().is_some_and(|v| v.parse::<f64>().is_ok_and(|n| n != 0.0))
-    })
+        w.next().filter(|c| c.eq_ignore_ascii_case("set800mode"))?;
+        w.next().and_then(|v| v.parse::<f64>().ok()).map(|n| n != 0.0)
+    }).last().unwrap_or(false)
 }
 
 /// The first of `names` (paths under the install) that exists.

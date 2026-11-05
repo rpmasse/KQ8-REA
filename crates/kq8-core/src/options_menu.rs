@@ -8,7 +8,7 @@ use crate::{
 };
 use std::path::Path;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Settings {
     // Music (groups 4/5), effects (0/1/2) and speech (3), in menu order.
     pub volume: [u8; 3],
@@ -16,6 +16,24 @@ pub struct Settings {
     pub help: bool,
     /// The original reserves notStartingHelp 2 for a locked-off preference.
     pub help_locked: bool,
+    pub graphics: Graphics,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Graphics {
+    /// The original engine's mode name, retained verbatim from Options.cs.
+    pub mode: String,
+    pub high_resolution: bool,
+    pub brightness: u8,
+    /// Bits 1, 2, 4 and 8 control Connor, monsters, other characters and objects.
+    pub shadow_mask: u32,
+    pub dynamic_lighting: bool,
+}
+
+impl Default for Graphics {
+    fn default() -> Self {
+        Self { mode: "D3D-display".into(), high_resolution: false, brightness: 50, shadow_mask: 1, dynamic_lighting: false }
+    }
 }
 
 impl Default for Settings {
@@ -25,6 +43,7 @@ impl Default for Settings {
             subtitles: true,
             help: true,
             help_locked: false,
+            graphics: Graphics::default(),
         }
     }
 }
@@ -47,7 +66,7 @@ impl Settings {
             volume: [4, 0, 3].map(|g| (groups.slider[g].clamp(0.0, 1.0) * 100.).round() as u8),
             ..Self::default()
         };
-        let text = String::from_utf8_lossy(bytes).to_ascii_lowercase();
+        let text = String::from_utf8_lossy(bytes);
         for line in text.lines() {
             let words: Vec<_> = line
                 .split("//")
@@ -55,12 +74,25 @@ impl Settings {
                 .unwrap_or("")
                 .split_whitespace()
                 .collect();
-            match words.as_slice() {
-                ["set", "options::captions", v] => settings.subtitles = matches!(*v, "true" | "1"),
-                ["notstartinghelp", v] => {
-                    settings.help = matches!(*v, "0" | "false");
-                    settings.help_locked = *v == "2";
+            let command = words.first().map(|w| w.to_ascii_lowercase()).unwrap_or_default();
+            let value = words.get(1).copied();
+            match (command.as_str(), value) {
+                ("set", Some(key)) if key.eq_ignore_ascii_case("Options::Captions") => {
+                    settings.subtitles = words.get(2).is_some_and(|v| v.eq_ignore_ascii_case("true") || *v == "1");
                 }
+                ("notstartinghelp", Some(v)) => {
+                    settings.help = matches!(v, "0" | "false");
+                    settings.help_locked = v == "2";
+                }
+                ("assigngmodename", Some(v)) if v.len() <= 64 && !v.chars().any(char::is_control) => settings.graphics.mode = v.into(),
+                ("set800mode", Some(v)) if matches!(v, "0" | "1") => settings.graphics.high_resolution = v == "1",
+                ("setbrightness", Some(v)) => {
+                    if let Ok(n) = v.parse::<u8>() { settings.graphics.brightness = n.min(100); }
+                }
+                ("setshadowmask", Some(v)) => {
+                    if let Ok(n) = v.parse::<u32>() { settings.graphics.shadow_mask = n; }
+                }
+                ("usedynamiclighting", Some(v)) if matches!(v, "0" | "1") => settings.graphics.dynamic_lighting = v == "1",
                 _ => {}
             }
         }
@@ -69,7 +101,10 @@ impl Settings {
 
     pub fn write_script(&self) -> String {
         let [music, effects, speech] = self.volume.map(|v| f32::from(v) / 100.);
-        format!("KQSound::setSpeechVol {speech:.2}\nKQSound::setSfxVol {effects:.2}\nKQSound::setMusicVol {music:.2}\nset Options::Captions {}\nnotStartingHelp {}\n",self.subtitles,if self.help_locked { 2 } else { u8::from(!self.help) })
+        format!("KQSound::setSpeechVol {speech:.2}\nKQSound::setSfxVol {effects:.2}\nKQSound::setMusicVol {music:.2}\nset Options::Captions {}\nnotStartingHelp {}\nassignGModeName {}\nset800mode {}\nsetBrightness {}\nsetShadowMask {}\nuseDynamicLighting {}\n",
+            self.subtitles, if self.help_locked { 2 } else { u8::from(!self.help) },
+            self.graphics.mode, u8::from(self.graphics.high_resolution), self.graphics.brightness,
+            self.graphics.shadow_mask, u8::from(self.graphics.dynamic_lighting))
     }
 
     pub fn apply_groups(&self, groups: &mut Groups) {
@@ -352,6 +387,27 @@ mod tests {
         prefs.apply_groups(&mut groups);
         assert_eq!(groups.slider, [0.05, 0.05, 0.05, 0.93, 0.0, 0.0]);
         assert_eq!(groups.duck[0], 0.2);
+    }
+
+    #[test]
+    fn graphics_commands_roundtrip_without_dropping_shadow_bits() {
+        let s = Settings::from_script(b"assignGModeName D3D-display\nset800mode 1\nsetBrightness 49\nsetShadowMask 17\nuseDynamicLighting 1\n");
+        assert_eq!(s.graphics.mode, "D3D-display");
+        assert!(s.graphics.high_resolution && s.graphics.dynamic_lighting);
+        assert_eq!(s.graphics.brightness, 49);
+        assert_eq!(s.graphics.shadow_mask, 17);
+        assert_eq!(Settings::from_script(s.write_script().as_bytes()), s);
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn installed_options_graphics_values_are_readable() {
+        let dir = std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR");
+        let bytes = std::fs::read(Path::new(&dir).join("Options.cs")).unwrap();
+        let s = Settings::from_script(&bytes);
+        assert_eq!(s.graphics.mode, "D3D-display");
+        assert!(!s.graphics.high_resolution && !s.graphics.dynamic_lighting);
+        assert_eq!((s.graphics.brightness, s.graphics.shadow_mask), (49, 1));
     }
 
     #[test]
