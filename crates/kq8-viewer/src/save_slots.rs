@@ -1,6 +1,7 @@
 //! Disk snapshots of the supported world-return state. Version 1 covers
 //! Connor's journey, the active world's inventory and the worlds visited.
-//! It does not yet record live script callbacks, combat or cutscene playback.
+//! Version 2 also retains queued script events and end-of-loop listeners.
+//! Live combat and cutscene playback are still partial.
 use super::*;
 use kq8_core::active::Active;
 use kq8_core::item::ItemObject;
@@ -11,7 +12,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::atomic::AtomicU64;
 
-const VERSION: u32 = 1;
+const VERSION: u32 = 2;
 const MAX_BYTES: usize = 32 * 1024 * 1024;
 const THUMB_BYTES: usize = 160 * 120 * 4;
 
@@ -29,15 +30,20 @@ pub(super) struct Snapshot {
     kept: BTreeMap<String, KeptWorld>,
     items: Vec<ItemObject>,
     inventory_order: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    script_events: Option<kq8_core::events::SavedEvents>,
 }
 
 impl Snapshot {
     fn validate(&self) -> Result<(), String> {
-        if self.version != VERSION {
+        if !(1..=VERSION).contains(&self.version) {
             return Err(format!(
-                "unsupported save version {} (expected {VERSION})",
+                "unsupported save version {} (supported: 1 through {VERSION})",
                 self.version
             ));
+        }
+        if self.version >= 2 && !self.script_events.as_ref().is_some_and(|e| e.valid()) {
+            return Err("save has a missing or invalid script event queue".into());
         }
         let known = |name: &str| {
             kq8_data::game_dir::WORLDS
@@ -138,6 +144,11 @@ impl Snapshot {
         }
         active.world.connor_at = Some(self.position);
         active.world.connor_heading = self.heading;
+        if self.version >= 2 {
+            if let Some(events) = self.script_events.take() {
+                active.world.restore_events(events);
+            }
+        }
     }
 
     pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) {
@@ -179,9 +190,9 @@ fn read_slot(dir: &Path, slot: u16) -> Result<Snapshot, String> {
     }
     let header: Header =
         serde_json::from_slice(&bytes).map_err(|e| format!("invalid save in slot {slot}: {e}"))?;
-    if header.version != VERSION {
+    if !(1..=VERSION).contains(&header.version) {
         return Err(format!(
-            "unsupported save version {} (expected {VERSION})",
+            "unsupported save version {} (supported: 1 through {VERSION})",
             header.version
         ));
     }
@@ -308,6 +319,7 @@ pub fn save_slot_with_thumbnail(
         kept,
         items: sim.active.world.items.objects.clone(),
         inventory_order: sim.active.world.items.inventory_order_counter(),
+        script_events: Some(sim.active.world.saved_events()),
     };
     write_slot(&directory(), slot, &snapshot)
 }
@@ -395,6 +407,7 @@ mod tests {
         });
         sim.world.connor_flags.insert("BeenToCastle".into(), true);
         sim.world.updates = 800;
+        sim.world.queue.send(sim.world.now(), 1.4, "bridge", "KQCueEvent", &["2".into()], "switch.cs:7");
         let potion = kq8_core::potions::Running::new("NoName12", "INVITEM_Strength", 60, 800);
         sim.world.potions.push(kq8_core::potions::Running {
             next_tick: 809,
@@ -430,6 +443,7 @@ mod tests {
             thumbnail: Some(vec![127; THUMB_BYTES]),
             items: sim.world.items.objects.clone(),
             inventory_order: 47,
+            script_events: Some(sim.world.saved_events()),
             journey: take_journey(&sim, "Daventry"),
             kept,
         }
@@ -465,9 +479,18 @@ mod tests {
         for world in newer["kept"].as_object_mut().unwrap().values_mut() {
             world.as_object_mut().unwrap().remove("interactions");
         }
+        newer["version"] = 1.into();
+        newer.as_object_mut().unwrap().remove("script_events");
         fs::write(slot_path(&dir, 5).unwrap(), serde_json::to_vec(&newer).unwrap()).unwrap();
-        assert_eq!(read_slot(&dir, 5).unwrap().label, "Second checkpoint");
+        let mut old = read_slot(&dir, 5).unwrap();
+        assert_eq!(old.label, "Second checkpoint");
+        let mut initial = active();
+        initial.world.queue.send(0.0, 2.0, "gate", "KQDoorEvent", &[], "Init");
+        old.restore_objects_and_vars(&mut initial);
+        assert_eq!(initial.world.queue.take_due(2.0).unwrap().target, "gate", "version 1 retains its old initialization behavior");
         newer["version"] = 2.into();
+        assert!(serde_json::from_value::<Snapshot>(newer.clone()).unwrap().validate().is_err(), "version 2 requires the queue");
+        newer["version"] = 3.into();
         fs::write(
             slot_path(&dir, 4).unwrap(),
             serde_json::to_vec(&newer).unwrap(),
@@ -515,7 +538,7 @@ mod tests {
         assert!(read_slot(&directory(), 4)
             .err()
             .unwrap()
-            .contains("unsupported save version 2"));
+            .contains("unsupported save version 3"));
         assert!(read_slot(&directory(), 3).is_err());
         assert_eq!(thumbnail(2).unwrap(), Some(vec![127; THUMB_BYTES]));
         let mut save = read_slot(&directory(), 2).unwrap();
@@ -536,6 +559,10 @@ mod tests {
         fresh.world.updates = 2;
         save.journey.give(&mut fresh.world, &mut fresh.scripts.vars);
         save.restore_objects_and_vars(&mut fresh);
+        let now = fresh.world.now();
+        assert!(fresh.world.queue.take_due(now + 1.39).is_none());
+        let delayed = fresh.world.queue.take_due(now + 1.4).unwrap();
+        assert_eq!((delayed.target.as_str(), delayed.data[0].as_str()), ("bridge", "2"));
         assert_eq!(fresh.scripts.vars.get("KQGame::Chapter"), Some("3"));
         assert_eq!(fresh.scripts.vars.get("Daventry::Waterfall"), Some("1"));
         assert_eq!(fresh.world.connor_at, Some([43., 56., 8.]));
