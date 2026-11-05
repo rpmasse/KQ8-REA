@@ -9,9 +9,9 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | Stage | Current implementation | Remaining work |
 | --- | --- | --- |
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
-| M4 · Interface and dialogue | HUD, item selection, speech, captions, lip sync and some conversations. | Finish the original menus, inventory interactions and dialogue behavior. |
-| M5 · Combat | Enemy pursuit, melee, some ranged attacks, damage, drops and potions. | Complete the original inputs, weapons, encounter rules, death and game over. |
-| M6 · Campaign and saves | Region travel, maps, some returning-world state and region-specific puzzles. | Complete disk saves, remaining scripts, optional branches, bosses, movies and the ending. |
+| M4 · Interface and dialogue | Original main menu, New Game and difficulty selection, pause/resume, restart, HUD, speech, captions and some conversations. | Finish Load, Save, Options, Replay Intro, remaining inventory and dialogue behavior. |
+| M5 · Combat | Enemy pursuit, melee and some ranged attacks, damage, potions, scripted equipment drops and a death-menu entry. | Complete weapon controls, projectiles, enemy-specific encounters and death recovery. |
+| M6 · Campaign and saves | Region travel, maps, some returning-world state, scripted terrain changes and Temple 4's final actors load. | Complete disk saves, remaining scripts, optional branches, boss sequences, movies and the ending. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
@@ -23,10 +23,10 @@ Use Windows, the stable Rust toolchain for MSVC, the Visual Studio C++ build too
 ```powershell
 $env:KQ8_GAME_DIR = "C:\Games\King's Quest 8"
 cargo build --locked --release -p kq8-viewer
-.\target\release\kq8-viewer.exe --world Daventry
+.\target\release\kq8-viewer.exe
 ```
 
-The command above launches Daventry directly for development. The viewer also accepts `--game <folder>` instead of the environment variable. To see its supported arguments, run `cargo play --help`. The [viewer reference](docs/FEATURES.md) covers controls, diagnostic options, and console commands.
+The game opens at the main menu. Choose **New** and a difficulty to enter Daventry. Escape opens the menu during play. For a development run, add `--world Daventry` to start directly in the region. The viewer also accepts `--game <folder>` instead of the environment variable. Run `cargo play --help` for supported arguments. The [viewer reference](docs/FEATURES.md) covers controls and console commands.
 
 ## Automated checks
 
@@ -36,6 +36,13 @@ Use the same game-data path for these commands. The workspace command includes t
 cargo test --locked --workspace
 cargo run --locked --release -p kq8-cli -- vol-verify
 .\target\release\kq8-viewer.exe --world Daventry --frames 120
+```
+
+Two additional checks require the installed game assets. The menu routes also require a graphics device. Both checks run unattended.
+
+```powershell
+cargo test --locked -p kq8-viewer campaign_tests -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
 ```
 
 A world loading successfully verifies that it can be opened. Campaign completion also requires ordinary controls to advance the quests, save and restore their consequences, defeat the final boss and reach the ending. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.

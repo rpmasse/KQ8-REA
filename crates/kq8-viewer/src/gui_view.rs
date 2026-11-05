@@ -1121,6 +1121,7 @@ pub fn gui_step(
     mut speech: ResMut<crate::talk_view::Speech>,
     shared: Res<Shared>,
     keys: Res<ButtonInput<KeyCode>>,
+    mut menu: ResMut<crate::startup_menu::MenuRequest>,
 ) {
     let (Some(mut gui), Some(mut sim)) = (gui, sim) else { return };
     let gui = &mut *gui;
@@ -1132,6 +1133,13 @@ pub fn gui_step(
     for (name, _) in due {
         let how = format!("test --key {name} before update {updates}");
         match name.to_ascii_lowercase().as_str() {
+            "menu" => menu.0 = true,
+            k if k.starts_with("menu:") => {
+                match crate::startup_menu::parse_keys(&k[5..].replace(':', ",")) {
+                    Ok(inputs) => { menu.0 = true; menu.1 = inputs; }
+                    Err(e) => gui.note(e),
+                }
+            }
             "space" => gui.panels.toggle_bottom(&how),
             "tab" => gui.toggle_map(&how),
             // M6 6d-4 test keys: a pan or zoom drag of so many layout
@@ -1502,7 +1510,7 @@ pub fn gui_draw(
     mut caption: ResMut<CaptionPlace>,
     frame: Res<ScreenFrame>,
     mut status_at: Local<Option<[i32; 4]>>,
-    (mut drag, change, mut seen): (ResMut<MapDrag>, Res<crate::world_build::WorldChange>, Local<u64>),
+    (mut drag, change, mut seen, mut menu): (ResMut<MapDrag>, Res<crate::world_build::WorldChange>, Local<u64>, ResMut<crate::startup_menu::MenuRequest>),
 ) {
     // A new world's panels (M6 6e-2): the status icons are placed again.
     if crate::world_build::new_world(&change, &mut seen) {
@@ -1729,6 +1737,7 @@ pub fn gui_draw(
                 continue;
             }
             match (control.as_str(), gui.item_at(&control)) {
+                ("IDCTL_INVBAR_MASK", _) if left && !gui.hands_off => menu.0 = true,
                 ("IDCTL_INVBAR_QUESTL", _) if left => actions.0.push(BarAction::Scroll { by: -1, how }),
                 ("IDCTL_INVBAR_QUESTR", _) if left => actions.0.push(BarAction::Scroll { by: 1, how }),
                 (MINIMAP, _) if left => gui.toggle_map(&how),
@@ -1942,8 +1951,8 @@ fn message_500(sim: &DoorSim, n: u32) -> Option<String> {
 /// Every frame, also while the game is paused (M6 6e-6,
 /// `world-change.md` rules 2, 26): the Portal state's question. Opens the
 /// popup when Connor enters the Portal state; Left / Right move the
-/// highlight, Enter chooses it, Escape is No (and would open the main
-/// menu: not built, logged), a click on a button chooses it; other keys
+/// highlight, Enter chooses it, Escape is No and opens the main menu,
+/// a click on a button chooses it; other keys
 /// do nothing (Space still moves the bottom bar: `gui_draw`). Test keys
 /// `--key popup:yes|no|left|right|enter|escape,N`.
 #[allow(clippy::too_many_arguments)]
@@ -1956,6 +1965,7 @@ pub fn popup_step(
     frame: Res<ScreenFrame>,
     mut key_at: ResMut<KeyAt>,
     shared: Res<Shared>,
+    mut menu: ResMut<crate::startup_menu::MenuRequest>,
 ) {
     let (Some(mut gui), Some(mut sim)) = (gui, sim) else { return };
     let gui = &mut *gui;
@@ -2053,7 +2063,8 @@ pub fn popup_step(
                 None
             }
             "escape" => {
-                gui.note("popup: Escape: No, and the main menu (not built yet: not opened) (rule 26)");
+                gui.note("popup: Escape: No and open the main menu (rule 26)");
+                menu.0 = true;
                 Some(false)
             }
             _ => None,

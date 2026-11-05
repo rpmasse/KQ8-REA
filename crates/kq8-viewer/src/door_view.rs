@@ -1043,7 +1043,7 @@ pub fn trap_step(
     lookup: Option<Res<crate::terrain_view::GroundLookup>>,
     buildings: Option<Res<Buildings>>,
     order: Option<Res<crate::terrain_view::ColliderOrder>>,
-    (buttons, right_at, mut set_haze): (Res<ButtonInput<MouseButton>>, Res<RightAt>, ResMut<crate::object_light::SetHaze>),
+    (buttons, right_at, mut set_haze, mut ground_anim): (Res<ButtonInput<MouseButton>>, Res<RightAt>, ResMut<crate::object_light::SetHaze>, Option<ResMut<crate::ground_anim_view::GroundAnimSim>>),
     shared: Res<Shared>,
 ) {
     let (mut colliders, mut view, mut anim) = (colliders, view, anim);
@@ -1334,6 +1334,13 @@ pub fn trap_step(
             Request::ConnorAnim { movement, at } => {
                 let line = connor.script_anim(&movement, &at);
                 format!("{at}: applied: Connor {line}")
+            }
+            Request::TerrainCycle { animator, repeat, at } => {
+                if ground_anim.as_deref_mut().is_some_and(|sim| sim.switch_cycle(&animator, repeat)) {
+                    format!("{at}: applied: terAnimSwitch {animator}, repeat flag {repeat:?}")
+                } else {
+                    format!("{at}: terAnimSwitch: no ground animator '{animator}'")
+                }
             }
             Request::SetHaze { haze, at } => {
                 // object-lighting.md rule 33a (Q161): applied before the next frame.
@@ -1684,6 +1691,7 @@ pub fn door_click_input(
     window: Query<&Window, With<PrimaryWindow>>,
     camera: Query<(&Camera, &GlobalTransform), With<Camera3d>>,
     sim: Option<ResMut<DoorSim>>,
+    connor: Option<Res<ConnorSim>>,
     buildings: Option<Res<Buildings>>,
     mut aim: ResMut<AimAt>,
     cover: Res<crate::gui_view::GuiCover>,
@@ -1695,6 +1703,13 @@ pub fn door_click_input(
     let updates = sim.active.world.updates;
     let due = aim.0.iter().position(|(_, n)| updates >= *n).map(|i| aim.0.remove(i).0);
     if due.is_none() && !buttons.just_pressed(MouseButton::Left) {
+        return;
+    }
+    use kq8_core::weapons::WorldClick;
+    let ctrl = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
+    let blocked = connor.as_ref().is_some_and(|c| c.hands_off || matches!(c.walker.mode, kq8_core::connor::Mode::Dying | kq8_core::connor::Mode::Dead));
+    let action = sim.active.world.world_click_action(ctrl, blocked);
+    if action == WorldClick::Blocked {
         return;
     }
     // M4 4c-2: a click on a shown panel is the interface's, not the world's.
@@ -1755,18 +1770,9 @@ pub fn door_click_input(
         }
         Pick::Nothing => (format!("{from} meets nothing clickable"), None),
     };
-    // fighting.md rule 39 (M5 5c-5; the input side is a stand-in from the
-    // manual): with a hand weapon ready a left click swings toward the
-    // click (Shift: the big swing); Ctrl held gives the plain click.
-    let ctrl = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
-    // ranged-weapons.md rule 13 (M5 5f-5): an item on the pointer wins:
-    // the click uses it, whatever is ready.
-    let held = sim.active.world.hand.is_some();
     // ropeandhook.md rule 10 (M6 6a-3): with the rope in hand any click in
     // the world, whatever it meets, starts the climb.
-    let w = &sim.active.world;
-    let rope_held = w.hand.as_ref().and_then(|h| w.items.get(h)).and_then(|o| w.items.kind(&o.kind)).is_some_and(|t| t.category == kq8_core::rope::ROPE_CATEGORY);
-    if rope_held {
+    if action == WorldClick::Climb {
         let line = format!("{line}; the rope is in hand: the click starts the climb, whatever it meets (ropeandhook.md rule 10)");
         sim.rope_clicks.push(how.clone());
         shared.log.lock().unwrap().summary(&line);
@@ -1775,7 +1781,7 @@ pub fn door_click_input(
     }
     // Rules 14-16: the shot click (Ctrl: the plain click).
     let mut line = line;
-    if sim.active.world.weapon_mode == kq8_core::weapons::WeaponMode::Ranged && !ctrl && !held {
+    if action == WorldClick::Shoot {
         use kq8_core::weapons::{AIM_PICK, ICEWATER, PLAIN_CLICK_BIT, TALK_PICK};
         let w = &sim.active.world;
         let objs = objects.as_deref().map_or(&[][..], |o| &o.0[..]);
@@ -1811,7 +1817,7 @@ pub fn door_click_input(
     // against types with bit 0x40 or 0x20 (characters, plain objects,
     // barrels, clickables, the clickable buildings); a character with bit
     // 0x8000 (or `icewater`) gets the plain click (rule 15).
-    if sim.active.world.weapon_mode == kq8_core::weapons::WeaponMode::Hand && !ctrl && !held {
+    if action == WorldClick::Swing {
         use kq8_core::weapons::{ICEWATER, PLAIN_CLICK_BIT, SWING_PICK};
         let w = &sim.active.world;
         let objs = objects.as_deref().map_or(&[][..], |o| &o.0[..]);
@@ -1821,13 +1827,7 @@ pub fn door_click_input(
         if !plain {
             // Its position (a character's feet, an object's place); nothing
             // or a building: no pick, he turns toward the click point.
-            let picked = hit.as_ref().filter(|h| !h.building).map(|h| {
-                let at = match h.character {
-                    Some(j) => w.anims[j].player.base.position,
-                    None => objs.iter().find(|o| o.name == h.name).map_or(h.point, |o| o.placement.position),
-                };
-                (h.name.clone(), at)
-            });
+            let picked = hit.as_ref().and_then(|h| w.melee_pick_target(h, objs));
             let point = match (&picked, &hit) {
                 (Some((_, at)), _) => [at[0], at[1]],
                 (None, Some(h)) => [h.point[0], h.point[1]],
@@ -2105,7 +2105,8 @@ pub fn door_step(
         for m in std::mem::take(&mut c.do_cues) {
             let (target, big) = c.swing.as_ref().map_or((None, false), |s| (s.target.clone(), s.big));
             let (from, heading, reach) = (c.mover.position, c.walker.heading, sim.attack_dist);
-            sim.active.world.connor_do(from, heading, reach, target.as_deref(), big, &m);
+            let objects = colliders.as_deref().map_or(&[][..], |c| c.0.as_slice());
+            sim.active.world.connor_do_with_objects(from, heading, reach, target.as_deref(), big, &m, objects);
         }
     }
     // ropeandhook.md rules 10, 12 (M6 6a-3): a world click with the rope in

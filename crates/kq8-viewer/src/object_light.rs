@@ -211,9 +211,13 @@ pub fn add(app: &mut App) {
     embedded_asset!(app, "object_light.wesl");
     app.add_plugins(MaterialPlugin::<ObjectMaterial>::default());
     let buffer = app.world_mut().resource_mut::<Assets<ShaderBuffer>>().add(crate::scene_lights::empty_buffer());
-    app.world_mut().resource_mut::<ObjectLight>().scene_lights = buffer.clone();
     let anim = crate::anim_gpu::AnimBuffers::new(&mut app.world_mut().resource_mut::<Assets<ShaderBuffer>>());
-    app.world_mut().resource_mut::<ObjectLight>().anim = Some(anim.clone());
+    // A startup menu has no world lighting yet. The loading screen installs
+    // these same shared buffers when its world becomes ready.
+    if let Some(mut light) = app.world_mut().get_resource_mut::<ObjectLight>() {
+        light.scene_lights = buffer.clone();
+        light.anim = Some(anim.clone());
+    }
     app.insert_resource(anim);
     app.insert_resource(crate::scene_lights::SceneLights::new(buffer))
         .init_resource::<crate::scene_lights::LightsGroup>()

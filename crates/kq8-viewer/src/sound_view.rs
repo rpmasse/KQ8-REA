@@ -44,6 +44,14 @@ pub struct SoundSim {
 }
 
 impl SoundSim {
+    /// Main menu rule 7. The simulation stops while the menu is up.
+    /// Already-paused, out-of-range loops must stay paused on return.
+    pub fn menu_pause(&self, paused: bool) {
+        if let Some(out) = &self.output {
+            out.send(self.system.menu_paused_ids().map(|id|
+                if paused { Command::Pause { id } } else { Command::Resume { id } }));
+        }
+    }
     /// A sound object prepared for a script's `loadKQ` comes into the
     /// world (M3 3k-4): it plays as any other from now on.
     pub fn wake(&mut self, name: &str) -> bool {

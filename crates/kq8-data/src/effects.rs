@@ -127,8 +127,7 @@ pub struct AnimatorSettings {
     pub grid_blocks: Option<Vec<(i64, i64)>>,
     /// `materialIndex0…`: the cycle of materials.
     pub cycle: Vec<i64>,
-    /// `materialIndexII0…`: the second cycle (only for the unused
-    /// `terAnimSwitch` command).
+    /// `materialIndexII0…`: the second cycle selected by `terAnimSwitch`.
     pub cycle2: Vec<i64>,
     /// `delay`: seconds between changes.
     pub delay: f64,

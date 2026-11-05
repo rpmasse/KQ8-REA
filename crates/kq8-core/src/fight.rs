@@ -601,9 +601,14 @@ impl crate::active::WorldState {
     /// `heading`: his feet and heading; `reach`: his `attackDist`;
     /// `target`: the character clicked for this swing; `big`: Shift.
     pub fn connor_do(&mut self, from: [f32; 3], heading: f32, reach: f32, target: Option<&str>, big: bool, movement: &str) {
+        self.connor_do_with_objects(from, heading, reach, target, big, movement, &[]);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn connor_do_with_objects(&mut self, from: [f32; 3], heading: f32, reach: f32, target: Option<&str>, big: bool, movement: &str, objects: &[crate::collide::BoxCollider]) {
         let Some(j) = target.and_then(|t| self.character_index(t)).filter(|&j| self.anims[j].character.as_deref().is_some_and(|c| c.fight.is_some())) else {
-            if let Some(at) = target.and_then(|t| self.object_at(t)) {
-                return self.connor_hits_object(target.unwrap_or_default(), at, from, heading, reach, big, movement);
+            if let Some((name, at)) = target.and_then(|name| self.melee_object_at(name, objects).map(|at| (name, at))) {
+                return self.connor_hits_object(name, at, from, heading, reach, big, movement);
             }
             self.fight_note("Connor", format!("Do ({movement}): no target: he hits dead air (rule 39)"));
             return;
@@ -632,17 +637,42 @@ impl crate::active::WorldState {
         self.hit_character(j, "Connor", d, kind);
     }
 
-    /// Where an object with a script stands (a box object, a door or an
-    /// animated one), for Connor's hit on it (M5 5c fix 5; doors:
-    /// `doors.md` rules 18-20, `ranged-weapons.md` rule 32).
+    /// Current origin of a live combat target. Rule 32 measures reach to
+    /// this point, even when the weapon click met a much nearer box face.
     fn object_at(&self, name: &str) -> Option<[f32; 3]> {
-        if let Some(c) = self.clickables.iter().find(|c| !c.gone && c.script.is_some() && c.name.eq_ignore_ascii_case(name)) {
-            return Some(c.placement.position);
-        }
-        if let Some(d) = self.doors.iter().find(|d| !d.gone && d.script.is_some() && d.door.name.eq_ignore_ascii_case(name)) {
+        if let Some(d) = self.doors.iter().find(|d| !d.gone && d.door.name.eq_ignore_ascii_case(name)) {
             return Some(d.door.player.placement().position);
         }
-        self.objects.iter().find(|o| !o.gone && o.script.is_some() && o.name().eq_ignore_ascii_case(name)).map(|o| o.player.placement().position)
+        if let Some(c) = self.chests.iter().find(|c| !c.gone && c.chest.name.eq_ignore_ascii_case(name)) {
+            return Some(c.chest.placement().position);
+        }
+        if let Some(o) = self.objects.iter().find(|o| !o.gone && o.name().eq_ignore_ascii_case(name)) {
+            return Some(o.player.placement().position);
+        }
+        if let Some(p) = self.items.get(name).and_then(|o| o.placement()) {
+            return Some(p.position);
+        }
+        self.clickables.iter().find(|c| !c.gone && c.name.eq_ignore_ascii_case(name)).map(|c| c.placement.position)
+    }
+
+    /// A weapon click on a building turns Connor towards the contact point.
+    /// For any other picked target he turns and tests reach against its origin.
+    pub fn melee_pick_target(&self, hit: &crate::weapons::MaskHit, objects: &[crate::collide::BoxCollider]) -> Option<(String, [f32; 3])> {
+        if hit.building {
+            return None;
+        }
+        let position = match hit.character {
+            Some(i) => self.anims.get(i)?.player.base.position,
+            None => self.melee_object_at(&hit.name, objects)?,
+        };
+        Some((hit.name.clone(), position))
+    }
+
+    fn melee_object_at(&self, name: &str, objects: &[crate::collide::BoxCollider]) -> Option<[f32; 3]> {
+        if self.is_gone(name) || self.is_switched_off(name) {
+            return None;
+        }
+        self.object_at(name).or_else(|| objects.iter().find(|o| o.name.eq_ignore_ascii_case(name)).map(|o| o.placement.position))
     }
 
     /// Connor's swing on an object (M5 5c fix 5; the barrels): rule 13's
@@ -680,6 +710,12 @@ impl crate::active::WorldState {
     /// character (75-125 %, its protection the 4th stat); below 0 its
     /// script gets `Die <kind>`. Returns the log text.
     fn object_takes(&mut self, name: &str, d: i64, kind: HitKind) -> String {
+        // A door distinguishes an incoming hit of zero from a damaging
+        // hit stopped by its own protection (doors.md rules 19–21).
+        if d == 0 && self.door_index(name).is_some() {
+            self.immune_calls.push(name.to_string());
+            return "hit of 0: its script gets ProjImmune (doors.md rule 21)".into();
+        }
         let key = name.to_ascii_lowercase();
         let known = self.stats.contains_key(&key);
         let s = *self.stats.entry(key.clone()).or_default();
@@ -689,7 +725,7 @@ impl crate::active::WorldState {
         after.0[0] -= dmg.loss;
         self.stats.insert(key, after);
         let start = if known { "" } else { " (no stats= line: all 0)" };
-        if after.0[0] < 0 {
+        if dmg.loss > 0 && after.0[0] < 0 {
             self.fight_note(name, format!("health below 0: its script gets Die {} (doors.md rule 20)", kind.name()));
             self.die_calls.push((name.to_string(), kind.name()));
         }

@@ -213,7 +213,38 @@ pub const FISTS: &str = "INVITEM_Fists";
 /// `INVITEM_NoRanged`, the ranged slot's placeholder: no real weapon.
 pub const NO_RANGED: &str = "INVITEM_NoRanged";
 
+/// Which action consumes a world click (ranged-weapons.md rules 12–15).
+/// An item or conversation takes precedence over Connor's ready weapon.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WorldClick {
+    Blocked,
+    Interact,
+    Climb,
+    Swing,
+    Shoot,
+}
+
 impl WorldState {
+    pub fn world_click_action(&self, ctrl: bool, controls_blocked: bool) -> WorldClick {
+        if controls_blocked || self.connor_dying || self.connor_portal.is_some() {
+            return WorldClick::Blocked;
+        }
+        if self.connor_in_talk() {
+            return WorldClick::Interact;
+        }
+        if let Some(item) = self.hand.as_deref().and_then(|name| self.items.get(name)).filter(|o| o.carried_by("Connor")) {
+            if self.items.kind(&item.kind).is_some_and(|t| t.category == crate::rope::ROPE_CATEGORY) {
+                return WorldClick::Climb;
+            }
+            return WorldClick::Interact;
+        }
+        match (ctrl, self.weapon_mode) {
+            (true, _) | (_, WeaponMode::None) => WorldClick::Interact,
+            (_, WeaponMode::Hand) => WorldClick::Swing,
+            (_, WeaponMode::Ranged) => WorldClick::Shoot,
+        }
+    }
+
     /// The ranged slot item (rules 1, 21: the one `LongWeapon` he carries),
     /// its type name; `None` if he carries none or only `NoRanged`.
     pub fn ranged_weapon(&self) -> Option<String> {

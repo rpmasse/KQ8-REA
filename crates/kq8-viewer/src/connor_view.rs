@@ -1810,8 +1810,8 @@ impl ConnorSim {
     /// `fighting.md` rule 29 (M5 5c-4): his health fell below 0: his dying
     /// state by the hit's kind (`die`; fire and ice: `dropweapon`, then
     /// `firedie` / `icedie`), played as a Special list ending in his Die
-    /// state, which holds the last frame. **Stand-in**: game over is
-    /// another study; he stays there. Returns the line for `fight.log`.
+    /// state, which holds the last frame and opens the main menu
+    /// (main-menu.md rule 25). Returns the line for `fight.log`.
     pub fn die_from_hit(&mut self, kind: kq8_core::fight::HitKind) -> String {
         use kq8_core::connor::SpecialStep;
         use kq8_core::fight::HitKind;
@@ -1831,7 +1831,7 @@ impl ConnorSim {
         steps.push(SpecialStep::Kill);
         self.walker.auto = None;
         let notes = self.walker.start_special(steps);
-        let line = format!("dies ({}): plays {names:?}, then his Die state holding the last frame; game over is another study (stand-in: he stays dead) ({})", kind.name(), notes.join("; "));
+        let line = format!("dies ({}): plays {names:?}, then his Die state opens the main menu ({})", kind.name(), notes.join("; "));
         self.log.detail(format!("connor update {}: {line}", self.updates));
         line
     }

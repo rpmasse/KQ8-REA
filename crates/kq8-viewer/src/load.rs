@@ -1363,10 +1363,11 @@ pub fn prepare_ground_animation(
             // animation frames are stored unturned). Stand-in until Q50;
             // emitters.md rules 2 and 6 read as "the new material's turn".
             let code = ground.orientation.get(own as usize).copied().unwrap_or(0);
-            if a.cycle.iter().any(|&m| ground.orientation.get(m as usize).copied().unwrap_or(0) != code) {
+            let possible = a.cycle.iter().chain(&a.alternate).copied();
+            if possible.clone().any(|m| ground.orientation.get(m as usize).copied().unwrap_or(0) != code) {
                 kept_turn.push(a.name.clone());
             }
-            for m in std::iter::once(own).chain(a.cycle.iter().copied()) {
+            for m in std::iter::once(own).chain(possible) {
                 needed.insert(m);
                 // Cut into the light map's cells, like the rest of the ground (M1 step 4c).
                 let cells = 1usize << terrain.settings.light_scale;
@@ -5261,4 +5262,74 @@ fn building_light_maps(
         top.join(", ")
     ));
     Some(l)
+}
+
+#[cfg(test)]
+mod campaign_tests {
+    use super::*;
+
+    fn game_install() -> GameDir {
+        GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap()
+    }
+
+    /// The scales script changes all five river animators to material 161.
+    /// The same baked geometry must be available to the renderer as for the
+    /// initial material, with the square's original orientation.
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn deadcity_loads_the_drained_river_material() {
+        let game = game_install();
+        let world = World::open(&game, "DeadCity").unwrap();
+        let mut log = Log::create("deadcity-river-test").unwrap();
+        let mut ground = load_ground(&game, &world, &mut log).unwrap();
+        let animators = (1..=5).map(|i| {
+            let (_, bytes) = world.load(&format!("blood{i}.kq")).unwrap().unwrap();
+            let sections = kq8_data::kq_text::parse(&bytes);
+            let s = &sections[0];
+            (s.name.clone(), kq8_data::effects::AnimatorSettings::from_section(s))
+        }).collect();
+        let mut assets = prepare_ground_animation(&game, &world, &mut ground, animators, &mut log);
+        let mut changed = 0;
+        for a in &mut assets.animators {
+            a.switch_cycle(None);
+            let step = a.update(a.due, &mut assets.materials).expect("the river animator is running");
+            assert_eq!(step.material, 161, "{}", a.name);
+            for sq in &a.squares {
+                assert_eq!(assets.materials.get(sq.0, sq.1), Some(161));
+                assert!(assets.triangles.get(&(*sq, 161)).is_some_and(|t| !t.is_empty()));
+                changed += 1;
+            }
+        }
+        assert!(changed > 0, "expected a change on the actual river grid");
+    }
+
+    /// Uses the same world scripts, monster list and model loader as a new
+    /// Temple 4 visit. The GOG install supplies all test assets.
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn temple4_loads_both_final_encounter_actors() {
+        let game = game_install();
+        let world = World::open(&game, "temple4").unwrap();
+        let mut log = Log::create("temple4-actors-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+
+        for (name, ranged) in [("LucEnd", false), ("LucEndFar", true)] {
+            let actor = objects.animated.iter().find(|a| objects.placed[a.placed].0.name == name)
+                .unwrap_or_else(|| panic!("{name} missing from animated world objects"));
+            let (placement, _, unused) = &objects.placed[actor.placed];
+            assert!(placement.hidden && !unused, "{name} should be placed, initially concealed by the altar scene");
+            let character = actor.character.as_ref().expect("expected a character with loaded ANM");
+            assert_eq!(character.keys.class, kq8_data::characters::Class::Lucreto);
+            assert!(character.lips.is_some());
+            let fight = character.fight.as_ref().expect("monster list supplies the encounter stats");
+            assert_eq!(fight.ranged_weapon.is_some(), ranged, "{name} has the wrong combat role");
+            assert_eq!(actor.movements.len(), 12, "{name} needs its complete initial movement list");
+            for name in ["stop", "attack", "reactback", "vortexbye"] {
+                let (_, _, index) = actor.movements.iter().find(|(m, _, _)| m.eq_ignore_ascii_case(name))
+                    .unwrap_or_else(|| panic!("missing movement {name}"));
+                assert!(objects.object_animations[*index].frame_count > 1, "{name} needs a loaded model sequence");
+            }
+        }
+    }
 }

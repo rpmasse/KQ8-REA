@@ -156,6 +156,9 @@ pub struct KeptWorld {
 }
 
 impl WorldChange {
+    pub fn accepts_menu(&self) -> bool {
+        !self.current.is_empty() && self.asked.is_none() && matches!(self.step, Step::Playing)
+    }
     /// The game folder, once the launch options are kept.
     pub fn game(&self) -> Option<&PathBuf> {
         self.options.as_ref().map(|o| &o.game)
@@ -163,16 +166,16 @@ impl WorldChange {
 }
 
 /// The run condition of the game's systems: a world is in (6e-2).
-pub fn playing(change: Res<WorldChange>) -> bool {
-    matches!(change.step, Step::Playing)
+pub fn playing(change: Res<WorldChange>, menu: Option<Res<crate::startup_menu::Menu>>) -> bool {
+    menu.is_none() && !change.current.is_empty() && matches!(change.step, Step::Playing)
 }
 
 /// The run condition of the game's updates and of the drawing that
 /// follows them (M6 6e-6): a world is in and the Portal state's question
 /// is not open (`world-change.md` rule 26: the game pauses; the panels
 /// and the sounds go on).
-pub fn running(change: Res<WorldChange>, sim: Option<Res<crate::door_view::DoorSim>>) -> bool {
-    matches!(change.step, Step::Playing) && !sim.is_some_and(|s| s.active.world.portal_asking())
+pub fn running(change: Res<WorldChange>, sim: Option<Res<crate::door_view::DoorSim>>, menu: Option<Res<crate::startup_menu::Menu>>) -> bool {
+    playing(change, menu) && !sim.is_some_and(|s| s.active.world.portal_asking())
 }
 
 /// For systems that keep values from frame to frame (`Local`): true the
@@ -436,6 +439,24 @@ pub fn object_light(read: &WorldRead, opts: &Options) -> object_light::ObjectLig
 /// Remembers the launch options for later worlds (main, at launch).
 pub fn remember_options(world: &mut World, opts: &Options) {
     world.resource_mut::<WorldChange>().options = Some(opts.clone());
+}
+
+/// Start fresh through the usual loading screen. A confirmed New Game
+/// discards a previous game's world state rather than carrying its journey.
+pub fn first_world(world: &mut World) {
+    let request = Request { world: "Daventry".into(), at: None, why: "New Game".into(), portal: None };
+    let log = world.resource::<Shared>().log.clone();
+    let restarting = !world.resource::<WorldChange>().current.is_empty();
+    if restarting {
+        take_down(world);
+        let mut change = world.resource_mut::<WorldChange>();
+        change.current.clear();
+        change.kept.clear();
+        change.asked = None;
+        world.resource_mut::<connor_view::StartAt>().0 = None;
+    }
+    crate::loading_screen::open(world, &request.world, &log);
+    world.resource_mut::<WorldChange>().step = Step::Down { request, frames: if restarting { FREE_FRAMES } else { 0 }, from: String::new(), journey: None };
 }
 
 /// Puts a read world's resources in. `ObjectLight` is put in by the
@@ -751,7 +772,7 @@ pub fn world_change_step(world: &mut World) {
             let Some(opts) = world.resource::<WorldChange>().options.clone() else { return };
             let read = match read {
                 Ok(r) => r,
-                Err(e) if request.world != from => {
+                Err(e) if !from.is_empty() && request.world != from => {
                     // Back to the world we came from (still no world in,
                     // so the game's systems keep waiting).
                     log.lock().unwrap().summary(format!("world change: {} could not be read ({e}); back to {from}", request.world));

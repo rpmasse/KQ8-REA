@@ -49,16 +49,14 @@ use kq8_data::world_script::Vars;
 /// left the list in M4 4a-2), then
 /// those of Daventry's trap scripts that only act (music, monsters, ropes,
 /// cutscene camera, moving objects while playing; M3 step 3d-3), then the
-/// item commands of later milestones (M3 step 3e-2: `tossItems` needs
-/// weapons to smash barrels and its flight is not fully traced, M5;
-/// `dropItem` is only used by `rockHit.cs`, M5). Each only writes a log
+/// remaining commands listed below. Each only writes a log
 /// line and leaves 0 in `$Console::Return`. `KQMonster::checkInventory`,
 /// `deleteObject` and `KQObject::setHidden` were stubs until 3e-2; the
 /// world handles them now. Commands that answer a question (`exist`,
 /// `checkSave`, ...) are not stubs: they stay unknown (error line,
 /// result 1) until they are studied; `getloc` and `checkDistance` are
 /// handled by the world.
-pub const STUBS: [&str; 5] = [
+pub const STUBS: [&str; 4] = [
     "doPopup",
     // `addMapIcon` was here until M6 6d-2; `earnTeleport`,
     // `teleportersEarned`, `onTeleport`, `offTeleport` until 6d-7.
@@ -68,7 +66,6 @@ pub const STUBS: [&str; 5] = [
     "KQGame::letCatchUp",
     // Item commands of later milestones (3e-2). `KQObject::changeBmp` was
     // here until batch 2 D-6.
-    "KQMonster::dropItem",
     "KQObject::setGroupsAlways",
 ];
 
@@ -267,15 +264,33 @@ impl Scripts {
                 }
                 Some(result.to_string())
             }
-            "set" => match words.get(1) {
+            cmd @ ("set" | "setcat") => match words.get(1) {
                 Some(var) => {
-                    let value = words[2..].join(" ");
-                    host.log(format!("{at}: set {var} = '{value}'"));
+                    let value = words[2..].join(if cmd == "setcat" { "" } else { " " });
+                    host.log(format!("{at}: {cmd} {var} = '{value}'"));
                     self.vars.set(var, value);
                     Some("0".into())
                 }
                 None => {
-                    host.log(format!("{at}: set without a name"));
+                    host.log(format!("{at}: {cmd} without a name"));
+                    Some("1".into())
+                }
+            },
+            "inc" => match &words[1..] {
+                [var] => {
+                    // All occurrences in the world archives advance a named integer
+                    // counter by one (e.g. the gong dock and the Temple 4 altar).
+                    let old = self.vars.get(var).unwrap_or("0");
+                    if let Some(next) = old.parse::<i32>().ok().and_then(|n| n.checked_add(1)) {
+                        self.vars.set(var, next.to_string());
+                        Some("0".into())
+                    } else {
+                        host.log(format!("{at}: cannot increment {var} = '{old}'"));
+                        Some("1".into())
+                    }
+                }
+                _ => {
+                    host.log(format!("{at}: usage: inc <variable>"));
                     Some("1".into())
                 }
             },
@@ -677,6 +692,16 @@ endif
         assert!(host.log.iter().any(|l| l.ends_with("echo Condoor ConnorAction do do")), "{:?}", host.log);
         // A missing script is reported.
         assert!(!s.call("gone.cs", &[], &mut host));
+    }
+
+    #[test]
+    fn dock_script_can_advance_to_a_different_named_trigger() {
+        let (s, _) = run(
+            "set Pos 3\nsetcat Old dock $Pos\ninc Pos\nif test $Pos == 4\nsetcat New dock $Pos\nendif",
+            &[], &[],
+        );
+        assert_eq!(s.vars.get("Old"), Some("dock3"));
+        assert_eq!(s.vars.get("New"), Some("dock4"));
     }
 
     #[test]

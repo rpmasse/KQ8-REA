@@ -5,6 +5,7 @@
 //! [`UPDATES_PER_SECOND`] (docs/DESIGN.md, M2 "Physics rate").
 
 pub mod active;
+pub mod main_menu;
 pub mod anim;
 pub mod camera;
 pub mod camera_flight;

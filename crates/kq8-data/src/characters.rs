@@ -74,14 +74,15 @@ pub fn casts_shadow(world_mask: u32, own_mask: u32, allowed: bool, translucency:
     world_mask & own_mask != 0 && allowed && translucency >= 256.0
 }
 
-/// The character classes (rule 1), and Dead City's Death
-/// (`talking.md` rule 18a: an ordinary character whose mouth shapes play
-/// movements).
+/// Character files with their movements in an external ANM. This includes
+/// Dead City's Death (`talking.md` rule 18a) and Temple 4's Lucreto
+/// (`fighting.md` rule 23).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
     Monster,
     GeometryTalker,
     Death,
+    Lucreto,
 }
 
 impl Class {
@@ -95,6 +96,8 @@ impl Class {
             Some(Class::GeometryTalker)
         } else if c.eq_ignore_ascii_case("KQDeath") {
             Some(Class::Death)
+        } else if c.eq_ignore_ascii_case("KQLucreto") {
+            Some(Class::Lucreto)
         } else {
             None
         }
@@ -105,6 +108,7 @@ impl Class {
             Class::Monster => "KQMonster",
             Class::GeometryTalker => "KQGeometryTalker",
             Class::Death => "KQDeath",
+            Class::Lucreto => "KQLucreto",
         }
     }
 }
