@@ -18,10 +18,10 @@ The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines
 
 ## Build and run
 
-Use Windows, the stable Rust toolchain for MSVC, the Visual Studio C++ build tools and Windows SDK, and a GOG installation of the game (version 1.3, also called 1.03). Run these commands in PowerShell from the repository root. Set the path to the game directory that contains `data` and `Mask.exe`.
+Use Windows, the stable Rust toolchain for MSVC, the Visual Studio C++ build tools and Windows SDK, and a GOG installation of the game (version 1.3, also called 1.03). Run these commands in PowerShell from the repository root. The example uses the development layout, with `KQ8-REA` and `King's Quest 8 GOG` side by side. For another layout, set `KQ8_GAME_DIR` to the folder containing `data` and `Mask.exe`.
 
 ```powershell
-$env:KQ8_GAME_DIR = "C:\Games\King's Quest 8"
+$env:KQ8_GAME_DIR = (Resolve-Path "..\King's Quest 8 GOG").Path
 cargo build --locked --release -p kq8-viewer
 .\target\release\kq8-viewer.exe
 ```
