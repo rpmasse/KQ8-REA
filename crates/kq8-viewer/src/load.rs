@@ -2682,6 +2682,9 @@ impl Placer<'_> {
             };
             match keys {
                 Some(mut k) => {
+                    if let Some(d) = &k.drain {
+                        self.load_targets.extend([d.segment.to_ascii_lowercase(), d.end.to_ascii_lowercase()]);
+                    }
                     let table = self.game.find("GAME/patch/BOUNDS.KQ").and_then(|p| std::fs::read(p).ok()).map(|b| kq8_data::bounds::BoundingBoxes::parse(&b).0);
                     k.bounds = k.shape.as_ref().and_then(|s| table.as_ref()?.lookup(&s.to_ascii_lowercase())).map(|e| (e.min, e.max));
                     self.character_lines.push(format!(
@@ -2697,7 +2700,7 @@ impl Placer<'_> {
                     ));
                     self.projectiles.insert(key.clone(), k);
                 }
-                None => self.character_lines.push(format!("[{who}]: projectile file {file} not found or not a KQProjectile / KQHammer")),
+                None => self.character_lines.push(format!("[{who}]: could not read projectile file {file}")),
             }
         }
         self.projectiles.get(&key).and_then(|k| k.shape.clone())
@@ -2745,16 +2748,7 @@ impl Placer<'_> {
             // ranged-weapons.md rules 10, 17, 21 (M5 5f-4): the ranged
             // weapons' lists, the shoot offsets by item, the start values.
             let long_lists = lists("LongAnimList");
-            let shoot_offsets: Vec<(String, [f32; 3])> = section
-                .entries
-                .iter()
-                .filter(|(k, _)| k.to_ascii_lowercase().starts_with("shootoffsets"))
-                .filter_map(|(_, v)| {
-                    let w: Vec<&str> = v.split_whitespace().collect();
-                    let n = |k: usize| w.get(k).and_then(|x| x.parse::<f32>().ok());
-                    Some((w.first()?.to_string(), [n(1)?, n(2)?, n(3)?]))
-                })
-                .collect();
+            let shoot_offsets = kq8_data::characters::shoot_offsets(section);
             let start_offset = [num("shootOffsetX", 0.0), num("shootOffsetY", 0.0), num("shootOffsetZ", 0.0)];
             let start_projectile = section.get("projectileFile").map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
             self.log.summary(format!(
@@ -3640,6 +3634,11 @@ impl Placer<'_> {
         use kq8_data::kq_text;
         // What the scripts ask for: (list file or None, movement word).
         let mut wanted: std::collections::BTreeSet<(Option<String>, String)> = Default::default();
+        if let Some(Ok((_, bytes))) = self.world.load("PRweeper.kq") {
+            if let Some(drain) = kq_text::parse(&bytes).iter().find_map(kq8_data::characters::ProjectileKeys::from_section).and_then(|k| k.drain) {
+                wanted.insert((None, drain.hurt_anim.to_ascii_lowercase()));
+            }
+        }
         let mut lines = 0;
         for (_, text) in &self.all_scripts {
             for line in text.lines().map(|l| l.split('#').next().unwrap_or("")) {

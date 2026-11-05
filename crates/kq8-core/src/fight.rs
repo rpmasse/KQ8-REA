@@ -335,6 +335,7 @@ pub struct Bolt {
     pub hammer: Option<HammerFlight>,
     pub script: Option<String>,
     pub arc: Option<RockArc>,
+    pub drain: Option<kq8_data::characters::DrainKeys>,
 }
 
 /// The files give upward velocity and peak height, but do not describe the
@@ -1439,7 +1440,7 @@ impl crate::active::WorldState {
                 let place = a.player.movement().and_then(|m| m.frame_parts.get(frame)).and_then(|parts| parts.iter().find(|(n, _)| n.eq_ignore_ascii_case(&part))).map(|(_, p)| p.p);
                 match place {
                     Some(o) => (o, Some(o), format!("its part '{part}' in frame {frame} of '{}' (kept from now on)", a.player.movement_name())),
-                    None => ([0.0; 3], None, format!("no part '{part}' in frame {frame} of '{}': its shootOffsets (none read, none in Daventry: 0, 0, 0)", a.player.movement_name())),
+                    None => (f.settings.shoot_fallback, None, format!("no part '{part}' in frame {frame} of '{}': its shootOffsets fallback", a.player.movement_name())),
                 }
             }
         };
@@ -1483,7 +1484,7 @@ impl crate::active::WorldState {
         let bolt = Bolt {
             name: format!("{}{}", if hammer.is_some() { "hammer" } else if p.parabola.is_some() { "rock" } else { "bolt" }, self.bolts_shot),
             shooter: shooter.to_string(),
-            shape: p.shape.clone(),
+            shape: if p.drain.is_some() { None } else { p.shape.clone() },
             position: from,
             direction,
             heading,
@@ -1500,6 +1501,7 @@ impl crate::active::WorldState {
             hammer,
             script: p.script.clone(),
             arc: p.parabola.map(|(peak, up)| RockArc::new(from, aim, peak, up, p.speed)),
+            drain: p.drain.clone(),
         };
         let shape = match &bolt.balls {
             Some(b) => format!("box {:?} as {} ball(s) of radius {:.0} at {:?} above it (Q140 a)", p.bounds.unwrap_or_default(), b.heights.len(), b.radius, b.heights),
@@ -1555,6 +1557,7 @@ impl crate::active::WorldState {
     /// removed and its thrower is told it came back (`hammers_back`).
     pub(crate) fn bolts_step(&mut self, ground: &dyn crate::connor_mover::GroundLookup, buildings: &[crate::collide::BuildingCollider], objects: &[crate::collide::BoxCollider]) {
         use crate::collide::{BallStack, CylinderCollider, ObjectHit};
+        self.tick_weeper_drains();
         let dt = (1.0 / crate::UPDATES_PER_SECOND) as f32;
         let bolts = std::mem::take(&mut self.bolts);
         let mut kept = Vec::new();
@@ -1647,6 +1650,17 @@ impl crate::active::WorldState {
             b.travelled += d;
             b.position = p;
             let at = format!("{} update {}: touches {{}} at ({:.0}, {:.0}, {:.0}), {:.0} travelled; removed there (rule 30)", b.name, b.updates, p[0], p[1], p[2], b.travelled);
+            if let Some(keys) = b.drain.take() {
+                let target = match what {
+                    Touched::Connor => Some("Connor".to_string()),
+                    Touched::Character(j) => Some(self.anims[j].player.name.clone()),
+                    _ => None,
+                };
+                if let Some(target) = target {
+                    self.begin_weeper_drain(b.name, b.shooter, target, keys);
+                }
+                continue;
+            }
             self.bolt_hits(&b, what, &at);
             self.projectile_event(&b, "Die");
         }
@@ -1864,6 +1878,7 @@ pub(crate) mod tests {
             stats,
             attack_delay,
             ranged_weapon: None,
+            shoot_fallback: [0.; 3],
             projectile: None,
             fire: false,
             drops: Vec::new(),

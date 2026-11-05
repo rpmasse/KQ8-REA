@@ -844,6 +844,18 @@ pub fn anim_draw(
         // makeTranslucent (characters.md rule 22, M4): every material of
         // every part at n / 255, at once (objects.md "See-through
         // objects" rule 2); the object gets its own copies first.
+        if let (Source::Core(i), Some(d)) = (&p.source, doors) {
+            if d.active.world.weeper_links.contains(i) {
+                let gone = d.active.world.anims[*i].gone;
+                let wanted = if gone { Visibility::Hidden } else { Visibility::Inherited };
+                if let Ok(mut v) = visibility.get_mut(p.body) {
+                    v.set_if_neq(wanted);
+                }
+                if gone {
+                    continue;
+                }
+            }
+        }
         let wanted = match (&p.source, doors) {
             (Source::Core(i), Some(d)) => d.active.world.anims.get(*i).and_then(|a| a.translucency),
             _ => None,

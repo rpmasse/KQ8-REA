@@ -59,9 +59,20 @@ pub fn find(game: &GameDir, world: &str, name: &str) -> Option<PathBuf> {
             if let Some(p) = game.find(&variant).filter(|p| p.is_file()) {
                 return Some(p);
             }
+            let prefix = variant.split(['/', '\\']).next().unwrap_or("");
+            if crate::game_dir::WORLDS.iter().any(|w| w.eq_ignore_ascii_case(prefix)) {
+                if let Some(p) = game.find(&format!("data/{variant}")).filter(|p| p.is_file()) {
+                    return Some(p);
+                }
+            }
             continue;
         }
-        let folders = WORLD_FOLDERS.iter().map(|f| format!("{world}/{f}")).chain(GAME_FOLDERS.iter().map(|f| format!("GAME/{f}")));
+        // Extracted world files, then the world's shipped GOG data folder,
+        // then game-wide files. Preserve folder and extension ordering.
+        let folders = WORLD_FOLDERS.iter()
+            .map(|f| format!("{world}/{f}"))
+            .chain(WORLD_FOLDERS.iter().map(|f| format!("data/{world}/{f}")))
+            .chain(GAME_FOLDERS.iter().map(|f| format!("GAME/{f}")));
         for folder in folders {
             if let Some(p) = game.find(&format!("{folder}/{variant}")).filter(|p| p.is_file()) {
                 return Some(p);
@@ -384,6 +395,46 @@ mod tests {
         assert_eq!(name_variants("dirt1"), ["dirt1", "dirt1.AUD", "dirt1.WAV"]);
         assert_eq!(name_variants("door4.aud"), ["door4.aud", "door4.WAV"]);
         assert_eq!(name_variants("a.b\\c_drwndi.aud"), ["a.b\\c_drwndi.aud", "a.b\\c_drwndi.WAV"]);
+    }
+
+    #[test]
+    fn regional_audio_prefers_loose_then_packaged_then_game_and_resolves_explicit_paths() {
+        use std::{fs, time::{SystemTime, UNIX_EPOCH}};
+        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let root = std::env::temp_dir().join(format!("kq8-aud-{}-{unique}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        let write = |file: &str| {
+            let path = root.join(file);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(&path, b"fixture").unwrap();
+        };
+        write("Mask.exe");
+        write("DeadCity/Sound/priority.aud");
+        write("data/DeadCity/patch/priority.aud");
+        write("GAME/Sound/priority.aud");
+        write("data/DeadCity/Sound/shared.aud");
+        write("GAME/Sound/shared.aud");
+        write("GAME/Sound/global.aud");
+        write("data/Daventry/English/line.aud");
+        write("data/GAME/Sound/wrong.aud");
+        let game = GameDir::open(&root).unwrap();
+        let located = |name: &str| find(&game, "DeadCity", name).map(|p| p.strip_prefix(&root).unwrap().to_string_lossy().replace('\\', "/"));
+        assert_eq!(located("priority.wav").as_deref(), Some("DeadCity/Sound/priority.aud"));
+        assert_eq!(located("shared.wav").as_deref(), Some("data/DeadCity/Sound/shared.aud"));
+        assert_eq!(located("global.wav").as_deref(), Some("GAME/Sound/global.aud"));
+        assert_eq!(located(r"daventry\english\LINE.WAV").as_deref(), Some("data/Daventry/English/line.aud"));
+        assert!(located(r"GAME\Sound\wrong.aud").is_none());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn packaged_dead_city_drain_sound_decodes() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let path = find(&game, "DeadCity", "lifesuck.wav").expect("original drain sample");
+        assert!(path.strip_prefix(game.root()).unwrap().to_string_lossy().replace('\\', "/").eq_ignore_ascii_case("data/DeadCity/Sound/LIFESUCK.AUD"));
+        let sound = parse(&std::fs::read(path).unwrap()).unwrap();
+        assert!(sound.frames() > 0 && sound.peak > 0);
     }
 
     #[test]

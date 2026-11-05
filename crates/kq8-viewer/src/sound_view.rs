@@ -41,6 +41,7 @@ pub struct SoundSim {
     frames: u64,
     /// Speech (M4 4a-3): each playing line's sound id.
     voices: HashMap<u64, u64>,
+    drain_sounds: HashMap<String, Option<u64>>,
 }
 
 impl SoundSim {
@@ -105,7 +106,7 @@ impl SoundSim {
             Some(m) => log.summary(format!("sound: music object {} with [{}] (rule 57)", m.object, m.names().join(", "))),
             None => log.summary("sound: no music object; KQMusic requests will be ignored (rule 57f)"),
         }
-        Some(SoundSim { system: SoundSystem::new(groups), audibles, music, output, cache: HashMap::new(), game: game.clone(), world: world.to_string(), log, frames: 0, voices: HashMap::new() })
+        Some(SoundSim { system: SoundSystem::new(groups), audibles, music, output, cache: HashMap::new(), game: game.clone(), world: world.to_string(), log, frames: 0, voices: HashMap::new(), drain_sounds: HashMap::new() })
     }
 }
 
@@ -179,6 +180,33 @@ pub fn sound_step(
             decoded.insert(s.name.clone(), snd.clone());
         }
         sim.system.start(s, found(&file), &ears);
+    }
+    if let Some(d) = doors.as_deref() {
+        let w = &d.active.world;
+        sim.drain_sounds.retain(|bolt, id| {
+            let playing = w.weeper_drains.iter().any(|drain| &drain.bolt == bolt);
+            if !playing {
+                if let Some(id) = *id {
+                    sim.system.stop(id, "Weeper drain ended");
+                }
+            }
+            playing
+        });
+        for drain in &w.weeper_drains {
+            if sim.drain_sounds.contains_key(&drain.bolt) {
+                continue;
+            }
+            let Some(i) = w.anim_index(&drain.shooter) else { continue };
+            let name = &drain.keys.sound;
+            let file = load(&mut sim.cache, game, world, name);
+            if let Ok((snd, _)) = &file {
+                decoded.insert(name.clone(), snd.clone());
+            }
+            let mut start = Start::placed_one_shot(name, w.anims[i].player.base.position, format!("{} Weeper drain", drain.shooter));
+            start.looping = true;
+            let id = sim.system.start(&start, found(&file), &ears);
+            sim.drain_sounds.insert(drain.bolt.clone(), id);
+        }
     }
     // Speech (M4 4a-3, talking.md rules 10-11, 15): the voices, then the
     // ducking of groups 0, 2, 5 while a line plays.
