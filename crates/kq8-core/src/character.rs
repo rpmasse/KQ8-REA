@@ -507,7 +507,7 @@ impl Character {
     /// Rule 3: the movement for walking or running, with its fallbacks
     /// (no `run`: `walk`; no `walk` but `run`: `run`).
     pub fn moving_name(player: &NamedAnimPlayer, run: bool) -> &'static str {
-        let has = |n: &str| player.movements.iter().any(|m| m.name.eq_ignore_ascii_case(n));
+        let has = |n: &str| player.available().iter().any(|m| m.name.eq_ignore_ascii_case(n));
         match (run, has("run"), has("walk")) {
             (true, true, _) | (false, true, false) => "run",
             _ => "walk",
@@ -699,7 +699,7 @@ impl Character {
         if self.state == State::Move {
             return format!("code {code}: '{gesture}' not played: walking (rule 28)");
         }
-        if !player.movements.iter().any(|m| m.name.eq_ignore_ascii_case(gesture)) {
+        if !player.available().iter().any(|m| m.name.eq_ignore_ascii_case(gesture)) {
             return format!("code {code}: no '{gesture}' in its list: nothing (rule 28)");
         }
         if !(player.cut_short || player.has_ended()) {

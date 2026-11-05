@@ -289,7 +289,7 @@ impl WorldState {
         let name = a.player.name.clone();
         let Some(c) = a.character.as_deref_mut() else { return };
         let Some(ai) = c.ai.as_ref() else { return };
-        let fidgets: Vec<String> = a.player.movements.iter().filter(|m| m.name.starts_with(IDLE_PREFIX)).map(|m| m.name.clone()).collect();
+        let fidgets: Vec<String> = a.player.available().iter().filter(|m| m.name.starts_with(IDLE_PREFIX)).map(|m| m.name.clone()).collect();
         // Rule 16: not alarmed (also during its reaction delay; wandering
         // carries on then, rule 23).
         if !ai.active || fidgets.is_empty() || ai.on_way_home || ai.hunting || (ai.alarmed && ai.fidget.is_none()) {
@@ -360,7 +360,7 @@ impl WorldState {
             c.ai = Some(Ai { route: Some(route), point: 0, closest: f32::MAX, ..ai });
         }
         // Rule 12: not while a fidget plays or is due.
-        let has_idle = a.player.movements.iter().any(|m| m.name.starts_with(IDLE_PREFIX));
+        let has_idle = a.player.available().iter().any(|m| m.name.starts_with(IDLE_PREFIX));
         let ai = c.ai.as_ref().unwrap();
         let idle_waits = has_idle && (ai.fidget.is_some() || now + 1e-6 >= ai.idle_due);
         match c.state {

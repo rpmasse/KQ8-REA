@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Lucreto’s animation lists
+
+The original altar script can replace Lucreto’s movement list while an animation is in progress. At the movement boundary the new list takes effect. The asset-backed test follows `piece1.anm` through `z2a`, its end callback and `z2b`, then checks the ranged incarnation’s five-movement list and its distinct attack model. The exact switch point for a looping or forcibly replaced movement is inferred from the documented next-movement rule. The autonomous decision about when to change combat forms remains open.
+
 ## 2026-11-05 Temple 4 scripted final movements
 
 The original vortex script creates a sequence of animated models at runtime and uses the end of each movement to start the next. The installed-data scenario checks the four winning models and the two losing models for each of Connor’s three weapon modes. It verifies sequence, duration and removal. The generated objects use the viewer’s existing animation renderer. Movie playback and credits are separate parts of the ending.
