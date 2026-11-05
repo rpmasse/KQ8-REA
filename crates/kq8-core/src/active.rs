@@ -698,6 +698,8 @@ pub struct WorldState {
     /// The files scripts may load while playing, by lower-case base name
     /// (M5 5d-2).
     pub(crate) templates: BTreeMap<String, Template>,
+    /// KQS models used by scripts' loadAnim commands in the current world.
+    pub script_shapes: BTreeMap<String, crate::door::DoorMovement>,
     /// Scripts a world command asked to run at once (`ScriptHost::take_calls`).
     calls_out: Vec<(String, Vec<String>)>,
     /// `setThirdPerson` (`camera.md` "First person" rule 7): the
@@ -2332,6 +2334,51 @@ impl WorldState {
         "0".into()
     }
 
+    /// Spawn the named one-shot synchronously. In vortrap.cs the very next
+    /// commands subscribe to its end and ask it to disappear after playing.
+    fn load_anim(&mut self, words: &[String], at: &str) -> String {
+        let [_, name, file, start, speed, repeat, cut, placement @ ..] = words else {
+            self.note(format!("{at}: loadAnim requires a name, shape, playback settings and placement"));
+            return "1".into();
+        };
+        let coordinates: Option<Vec<f32>> = placement.iter().flat_map(|s| s.split_whitespace())
+            .map(|n| n.parse::<f32>().ok().filter(|n| n.is_finite())).collect();
+        let Some(values) = coordinates.filter(|v| v.len() == 3 || v.len() == 6) else {
+            self.note(format!("{at}: invalid loadAnim placement for {name}"));
+            return "1".into();
+        };
+        let file_key = file.to_ascii_lowercase();
+        let Some(mut movement) = self.script_shapes.get(&file_key).cloned() else {
+            self.note(format!("{at}: loadAnim {name}: missing model {file}"));
+            return "1".into();
+        };
+        let key = name.to_ascii_lowercase();
+        if (self.known.contains(&key) && !self.deleted.contains(&key)) || self.deleted_this_event.contains(&key) {
+            self.note(format!("{at}: loadAnim: {name} is already in use"));
+            return "1".into();
+        }
+        let (Ok(phase), Ok(rate), Ok(repeats), Ok(interruptible)) = (start.parse::<f32>(), speed.parse::<f32>(), repeat.parse::<i32>(), cut.parse::<i32>()) else {
+            self.note(format!("{at}: invalid loadAnim playback settings for {name}"));
+            return "1".into();
+        };
+        movement.name = file.clone();
+        movement.start = phase;
+        movement.speed = rate;
+        movement.repeat = repeats != 0;
+        movement.cut_short = interruptible != 0;
+        let angles = values.get(3..6).map_or([0.; 3], |v| [v[0], v[1], v[2]]);
+        let placement = Placement { position: [values[0], values[1], values[2]], rotation: kq8_data::objects::rotation(angles) };
+        let mut player = NamedAnimPlayer::new(name, vec![movement], 0, placement);
+        player.once = true;
+        self.known.insert(key.clone());
+        self.deleted.remove(&key);
+        self.end_loop_listeners.remove(&key);
+        self.anims.push(AnimObject { player, script: None, gone: false, character: None, translucency: None });
+        self.requests.push(Request::Spawn { file: file_key, name: name.clone(), placement, at: at.into() });
+        self.note(format!("{at}: loadAnim {name}: playing {file} at {:?}", placement.position));
+        "0".into()
+    }
+
     /// `goldCoinPersists 0|1` (`inventory.md` rule 12, M4 4c-4): while on,
     /// coins accepted from the hand stay there; 0 also empties the hand at
     /// once.
@@ -3909,6 +3956,7 @@ impl ScriptHost for WorldState {
                 Some("0".into())
             }
             "loadKQ" => Some(self.load_kq(words, at)),
+            "loadAnim" => Some(self.load_anim(words, at)),
             "pauseAnim" | "setAnimPos" => Some(self.anim_pos(words, at)),
             "setActiveCamera" => Some(self.set_active_camera(words, at)),
             "makeActive" => Some(self.make_active(words, at)),
@@ -4041,6 +4089,7 @@ impl Active {
                 held_for_load: Vec::new(),
                 calls_out: Vec::new(),
                 templates: BTreeMap::new(),
+                script_shapes: BTreeMap::new(),
                 first_person_locked: false,
                 was_first_person: false,
                 connor_jump: None,

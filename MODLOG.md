@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Temple 4 scripted final movements
+
+The original vortex script creates a sequence of animated models at runtime and uses the end of each movement to start the next. The installed-data scenario checks the four winning models and the two losing models for each of Connor’s three weapon modes. It verifies sequence, duration and removal. The generated objects use the viewer’s existing animation renderer. Movie playback and credits are separate parts of the ending.
+
 ## 2026-11-05 Original keyboard bindings
 
 The Keyboard screen reads the 13 actions, their layout, localized key names, duplicate-key prompt and both animated cursors from the GOG installation. Two unattended Windows launches verified that the new Run binding persisted and took effect. A second change at the pause menu replaced that binding immediately. The old keys stopped affecting Run, and the remapped HUD key toggled the panel once. The README lists the test command.

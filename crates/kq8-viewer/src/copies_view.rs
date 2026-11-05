@@ -98,6 +98,9 @@ pub fn spawn_copies(
                     let collider = add_collider(&name, placement, (t.bounds, t.collider_type, t.collider_mask), colliders.as_deref_mut(), order.as_deref_mut());
                     format!("{line} at ({:.0}, {:.0}, {:.0}); {collider}", p[0], p[1], p[2])
                 }
+                (None, Some(a), Some(index)) if file.ends_with(".kqs") => {
+                    a.spawn_copy(&mut commands, &file, &name, placement, index, (gpu.as_deref(), &mut materials))
+                }
                 _ => format!("copy {name} of {file} at ({:.0}, {:.0}, {:.0}): no template drawn here; not drawn", p[0], p[1], p[2]),
             },
         };

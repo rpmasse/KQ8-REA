@@ -58,7 +58,9 @@ cargo test --locked -p kq8-core original_barren_dock_script -- --ignored
 cargo test --locked -p kq8-core original_gnome_rock_and_dead_city -- --ignored
 ```
 
-The cottage test uses New Game, collects five mushrooms, consumes one, saves and quits. A fresh process restores four mushrooms and the open cottage door, opens the pub chest, travels through both castle portal prompts, and saves back in Daventry. The test disables enemy AI, moves Connor between landmarks and applies damage so he can use a healing item. Campaign completion requires an uninterrupted route using ordinary controls. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.
+The cottage test uses New Game, collects five mushrooms, consumes one, saves and quits. A fresh process restores four mushrooms and the open cottage door, opens the pub chest, travels through both castle portal prompts, and saves back in Daventry. The test disables enemy AI, moves Connor between landmarks and applies damage so he can use a healing item.
+
+The Temple 4 scenarios check the original winning and losing animation sequences at the vortex. Campaign completion also requires reaching this encounter through ordinary controls and playing the ending movie and credits. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.
 
 ## Source and research
 

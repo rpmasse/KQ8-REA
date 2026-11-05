@@ -265,6 +265,7 @@ pub fn spawn_animated(
     commands: &mut Commands,
     animated: Vec<AnimatedAssets>,
     animations: Vec<Animation>,
+    script_shapes: &std::collections::BTreeMap<String, (usize, DoorMovement)>,
     placed: &[(kq8_data::objects::Placement, usize, bool)],
     templates: &std::collections::BTreeSet<usize>,
     materials: &mut Assets<ObjectMaterial>,
@@ -330,6 +331,14 @@ pub fn spawn_animated(
     // M5 5d-4: the unused objects' players and recipes (templates).
     let mut own_players = Vec::new();
     let mut recipes = std::collections::BTreeMap::new();
+    for (file, (index, _)) in script_shapes {
+        let model = &built[*index];
+        let own = model.materials.iter().map(|(m, material)| ((*index, *m), material.clone())).collect();
+        recipes.insert(file.clone(), Recipe {
+            movements: vec![(model.frames, model.steps.clone())], script: None,
+            slots: (vec![(*index, model.source.clone(), model.ball)], own), textures: vec![],
+        });
+    }
     let mut moving = Vec::new();
     let mut characters_new = 0;
     let (mut random, mut switchable) = (0, 0);
