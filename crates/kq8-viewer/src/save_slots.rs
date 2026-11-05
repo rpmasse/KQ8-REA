@@ -38,6 +38,8 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     shot: Option<connor_view::SavedShot>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    special: Option<connor_view::SavedSpecial>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     fight_rng: Option<kq8_core::emitter::Rng>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     bolts: Option<kq8_core::fight::SavedBolts>,
@@ -61,6 +63,10 @@ impl Snapshot {
         }
         if self.shot.as_ref().is_some_and(|s| !s.valid()) || (self.shot.is_some() && self.swing.is_some()) {
             return Err("save has an invalid ranged shot".into());
+        }
+        if self.special.as_ref().is_some_and(|s| !s.valid())
+            || (self.special.is_some() && (self.shot.is_some() || self.swing.is_some())) {
+            return Err("save has an invalid Special movement".into());
         }
         if self.bolts.as_ref().is_some_and(|b| !b.valid()) {
             return Err("save has invalid live projectiles".into());
@@ -207,7 +213,7 @@ impl Snapshot {
                 if let Some(list) = kept.active_list.as_deref() { sim.active.world.restore_active_list(list); }
             }
             if let Some(drains) = &self.drains {
-                sim.active.world.restore_drains(drains)?;
+                sim.active.world.restore_drains(drains, self.special.is_some())?;
             }
         }
         if let Some(mut connor) = world.get_resource_mut::<connor_view::ConnorSim>() {
@@ -218,7 +224,10 @@ impl Snapshot {
             if let Some(shot) = &self.shot {
                 connor.restore_shot(shot)?;
             }
-        } else if self.swing.is_some() || self.shot.is_some() {
+            if let Some(special) = &self.special {
+                connor.restore_special(special)?;
+            }
+        } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() {
             return Err("Connor is unavailable while restoring his attack".into());
         }
         Ok(())
@@ -379,6 +388,7 @@ pub fn save_slot_with_thumbnail(
     if connor.shot.is_some() && shot.is_none() {
         return Err("Connor's current ranged shot cannot be saved".into());
     }
+    let special = connor.saved_special();
     let snapshot = Snapshot {
         version: VERSION,
         world: change.current.clone(),
@@ -394,6 +404,7 @@ pub fn save_slot_with_thumbnail(
         script_events: Some(sim.active.world.saved_events()),
         swing,
         shot,
+        special,
         fight_rng: Some(sim.active.world.fight_rng.clone()),
         bolts: Some(kq8_core::fight::SavedBolts {
             bolts: sim.active.world.bolts.clone(),
@@ -531,6 +542,7 @@ mod tests {
             script_events: Some(sim.world.saved_events()),
             swing: None,
             shot: None,
+            special: None,
             fight_rng: None,
             bolts: Some(kq8_core::fight::SavedBolts { bolts: Vec::new(), bolts_shot: 0 }),
             drains: Some(Vec::new()),
@@ -574,6 +586,7 @@ mod tests {
         previous_v2.as_object_mut().unwrap().remove("fight_rng");
         previous_v2.as_object_mut().unwrap().remove("bolts");
         previous_v2.as_object_mut().unwrap().remove("drains");
+        previous_v2.as_object_mut().unwrap().remove("special");
         assert!(serde_json::from_value::<Snapshot>(previous_v2).unwrap().validate().is_ok());
         // Version-1 slots predate the door/chest fields. All previously
         // supported state still loads; these objects use asset defaults.
