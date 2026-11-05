@@ -56,7 +56,7 @@ pub const WEAPON_AWAY: &str = "away";
 pub const WEAPON_OUT: &str = "out";
 
 /// Rule 6: how Connor gets to his talking spot.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Case {
     There,
     Close,
@@ -64,7 +64,7 @@ pub enum Case {
 }
 
 /// Where Connor's talk state is.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Stage {
     /// The command was given; he has not entered his talk state yet.
     Asked,
@@ -118,6 +118,10 @@ impl Conversation {
         self.stage == Stage::Talking
     }
 }
+
+#[path = "conversation_checkpoint.rs"]
+mod checkpoint;
+pub use checkpoint::SavedConversation;
 
 /// Rule 6: the case from where Connor stands, and a line for the log.
 pub fn case_for(info: &ConvInfo, at: [f32; 3]) -> (Option<Case>, String) {
@@ -641,6 +645,53 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         let file = MessageFile { kind: 0x0F, version: 5010, last_id: 0, lines: vec![line(1), line(2)] };
         a.world.talk.book.add("x", file, 1000);
         a
+    }
+
+    #[test]
+    fn an_approach_checkpoint_continues_without_entering_the_conversation_again() {
+        let mut a = world();
+        a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
+        let mut walker = Walker::new(0.0);
+        a.conversation_tick(&mut walker, [3000.0, 1000.0, 100.0], Ok(()), false);
+        walker.movement = STOP_WALK; walker.phase = 0.5;
+        a.world.conversation.as_mut().unwrap().approach_updates = 5;
+        let saved: SavedConversation = serde_json::from_slice(&serde_json::to_vec(&a.world.saved_conversation()).unwrap()).unwrap();
+        let mut fresh = world();
+        fresh.world.restore_conversation(&saved).unwrap();
+        assert_eq!(fresh.world.conversation.as_ref().map(|c| (c.stage, c.approach_updates)), Some((Stage::StopWalk, 5)));
+        fresh.conversation_tick(&mut walker, [3000.0, 1000.0, 100.0], Ok(()), false);
+        assert_eq!(fresh.world.conversation.as_ref().unwrap().approach_updates, 6);
+        assert!(fresh.world.gui_orders.is_empty(), "entry must not put the bar away twice");
+        walker.phase = 1.0;
+        fresh.conversation_tick(&mut walker, [3000.0, 1000.0, 100.0], Ok(()), false);
+        assert_eq!(fresh.world.conversation.as_ref().unwrap().stage, Stage::WalkStopRight);
+        assert_eq!(walker.talk_play, Some(WALK_STOP_RIGHT));
+        assert_eq!(fresh.world.requests.iter().filter(|r| matches!(r, Request::Move { who, .. } if who == CONNOR)).count(), 1);
+    }
+
+    #[test]
+    fn a_talking_checkpoint_keeps_the_queue_and_exits_once() {
+        let mut a = world();
+        a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
+        let mut walker = Walker::new(0.0);
+        a.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+        for _ in 0..5 { a.update(); }
+        a.world.conversation.as_mut().unwrap().cuts_stopped = true;
+        let saved: SavedConversation = serde_json::from_slice(&serde_json::to_vec(&a.world.saved_conversation()).unwrap()).unwrap();
+        let speech = a.world.talk.saved(a.world.now());
+        let mut fresh = world();
+        fresh.world.restore_conversation(&saved).unwrap();
+        fresh.world.talk.restore(&speech, 0.0, true).unwrap();
+        assert!(fresh.world.conversation.as_ref().unwrap().cuts_stopped);
+        for _ in 0..40 {
+            fresh.update();
+            fresh.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+        }
+        assert!(fresh.world.conversation.is_none());
+        assert_eq!(walker.mode, crate::connor::Mode::Free);
+        assert_eq!(fresh.take_log().join("\n").matches("script bob.cs Bob TalkExit").count(), 1);
+        assert_eq!(fresh.world.gui_orders.iter().filter(|o| matches!(o, GuiOrder::Conversation { start: false, .. })).count(), 1);
+        assert!(!fresh.world.gui_orders.iter().any(|o| matches!(o, GuiOrder::Conversation { start: true, .. })));
     }
 
     #[test]

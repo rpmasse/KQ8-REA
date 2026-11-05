@@ -128,6 +128,10 @@ impl GameCam {
     }
 }
 
+#[path = "camera_checkpoint.rs"]
+mod checkpoint;
+pub use checkpoint::SavedCamera;
+
 #[derive(Resource)]
 pub struct GameCam {
     cam: Camera,

@@ -295,7 +295,7 @@ pub struct Followed {
 }
 
 /// camera.md "Turning the view toward Connor": the view heading's state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum HeadingState {
     /// The heading is not changed.
     Idle,
@@ -367,13 +367,13 @@ impl HeadingStep {
 /// An avoidance swing: turn `step` radians round the aim point every
 /// update until the direction `target` (an angle round the vertical) is
 /// reached or passed.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Swing {
     pub step: f32,
     pub target: f32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Mode {
     /// Stays put unless outside the min/max range.
     Normal,
@@ -400,7 +400,7 @@ pub struct Input {
     pub change_mode: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Camera {
     pub position: [f32; 3],
     pub tilt: f32,
@@ -569,6 +569,14 @@ fn at_distance(aim: [f32; 3], camera: [f32; 3], distance: f32) -> [f32; 3] {
 }
 
 impl Camera {
+    pub fn valid_checkpoint(&self) -> bool {
+        self.position.iter().chain([&self.tilt, &self.heading, &self.view_tilt, &self.mouse_offset, &self.last_error]).all(|n| n.is_finite())
+            && self.range.0.is_finite() && self.range.1.is_finite() && self.range.0 >= 0.0 && self.range.1 >= self.range.0
+            && [self.last_base, self.prev_offset, self.prev_aim].into_iter().flatten().flatten().all(f32::is_finite)
+            && self.last_facing.is_none_or(f32::is_finite)
+            && self.swing.is_none_or(|s| s.step.is_finite() && s.target.is_finite())
+            && match self.mode { Mode::Normal => true, Mode::Fixed { distance } => distance.is_finite() && distance >= 0.0 }
+    }
     pub fn new(position: [f32; 3]) -> Self {
         Camera {
             position,
@@ -1242,6 +1250,24 @@ mod tests {
         let moved = c.last_base.is_some_and(|l| connor_moved((l, 0.0), (base, 0.0)));
         c.tick(moved, base, input.mouse_held);
         c.update_with(Followed { base, facing: 0.0 }, moved, input, &Flat(0.0), Some(view))
+    }
+
+    #[test]
+    fn a_camera_checkpoint_retains_the_hidden_leash_and_drag_history() {
+        let mut a = Camera::new([0.0, 4000.0, 1400.0]);
+        for n in 0..5 {
+            let base = [n as f32 * 20.0, 0.0, 0.0];
+            a.tick(true, base, true);
+            a.update_with(Followed { base, facing: 0.3 }, true, &Input { mouse_held: true, mouse_x: 0.02, ..Default::default() }, &Flat(0.0), None);
+        }
+        let mut b: Camera = serde_json::from_slice(&serde_json::to_vec(&a).unwrap()).unwrap();
+        assert!(b.valid_checkpoint());
+        for c in [&mut a, &mut b] {
+            let base = [120.0, 0.0, 0.0];
+            c.tick(true, base, false);
+            c.update_with(Followed { base, facing: 0.3 }, true, &Input::default(), &Flat(0.0), None);
+        }
+        assert_eq!(serde_json::to_value(a).unwrap(), serde_json::to_value(b).unwrap());
     }
 
     #[test]
