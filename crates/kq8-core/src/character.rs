@@ -53,6 +53,8 @@ use std::collections::VecDeque;
 use crate::emitter::Rng;
 use crate::named_anim::{NamedAnimPlayer, Played, Request};
 
+pub(crate) mod checkpoint;
+
 /// What the character is doing (characters.md "Words used here").
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum State {

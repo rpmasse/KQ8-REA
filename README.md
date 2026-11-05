@@ -11,7 +11,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
 | M4 · Interface and dialogue | New Game and difficulty, pause/resume, restart, Save and Load, HUD, speech, captions and some conversations. Options controls speech, music, effects and subtitles from the title or pause menu. | Graphics, Keyboard, Credits, Replay Intro, starting-help prompts and the remaining inventory and dialogue behavior. |
 | M5 · Combat | Melee and some ranged attacks, rocks, scripted hazards and potions. Encounter checks cover Dead City’s Weeper and Tower Skeleton and the melee stagger that pushes Lucreto into the Temple 4 vortex. | Complete weapon controls and trajectories, boss behavior including Lucreto’s switches between forms, encounter timing and death recovery. |
-| M6 · Campaign and saves | Slots restore Connor, inventory, doors, chest contents and queued script events. The Daventry cottage route survives a process restart and a trip to Castle Daventry and back. | Restore live combat and cutscenes. Complete region quests, optional branches, boss sequences, movies and the ending. |
+| M6 · Campaign and saves | Slots restore selected world interactions, timed puzzle events and scripted character movements. A loaded grave raven finishes its flight and quest callback. The Daventry cottage route survives a restart and castle round trip. | Restore live combat, dialogue and cutscene cameras. Complete region quests, optional branches, boss sequences, movies and the ending. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
@@ -50,6 +50,7 @@ cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test weeper -- --ignored
 cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored
 cargo test --locked -p kq8-viewer --test cottage_journey -- --ignored
+cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test puzzle_timer -- --ignored
 cargo test --locked -p kq8-viewer --test regions -- --ignored --test-threads=1 --nocapture
 cargo test --locked -p kq8-core original_barren_dock_script -- --ignored

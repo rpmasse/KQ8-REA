@@ -1,6 +1,7 @@
 //! Disk snapshots of the supported world-return state. Version 1 covers
 //! Connor's journey, the active world's inventory and the worlds visited.
 //! Version 2 also retains queued script events and end-of-loop listeners.
+//! Updated version-2 saves include scripted characters in a Special movement.
 //! Live combat and cutscene playback are still partial.
 use super::*;
 use kq8_core::active::Active;
@@ -93,6 +94,9 @@ impl Snapshot {
             }
             if !kept.interactions.valid_loot() {
                 return Err("save has inconsistent chest contents".into());
+            }
+            if !kept.interactions.valid_special_actors() {
+                return Err("save has an invalid scripted character movement".into());
             }
             if !known(world)
                 || *world != world.to_ascii_lowercase()

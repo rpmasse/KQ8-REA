@@ -1,10 +1,11 @@
-//! Stateful doors and chests retained when leaving or saving a world.
+//! Stateful doors, chests and scripted character movements retained when leaving or saving a world.
 //! A chest remembers the actual item made on its first click. An empty
 //! chest and a door that finished opening must stay in those states.
 //! See world-change.md rules 12 and 15, and chests.md rules 7–9.
 
 use crate::active::{ActiveChest, ActiveDoor, WorldState};
 use crate::chest::ChestState;
+use crate::character::checkpoint::SpecialActor;
 use crate::collide::Placement;
 use crate::door::DoorState;
 use crate::item::{ItemObject, Items};
@@ -17,6 +18,8 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct KeptInteractions {
     doors: BTreeMap<String, KeptDoor>,
     chests: BTreeMap<String, KeptChest>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    special_actors: BTreeMap<String, SpecialActor>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,7 +49,7 @@ struct KeptChest {
 /// Retain the clock and movement choice, without copying a model or
 /// its animation data into the saved game.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct Playback {
+pub(crate) struct Playback {
     movement: String,
     requested: String,
     phase: f32,
@@ -62,7 +65,12 @@ struct Playback {
 }
 
 impl Playback {
-    fn take(p: &NamedAnimPlayer) -> Self {
+    pub(crate) fn valid(&self) -> bool {
+        (0.0..=1.0).contains(&self.phase)
+            && self.placement.position.iter().chain(self.placement.rotation.iter().flatten()).all(|v| v.is_finite())
+            && self.random_speed.is_none_or(f32::is_finite)
+    }
+    pub(crate) fn take(p: &NamedAnimPlayer) -> Self {
         Self {
             movement: p.movement().map(|m| m.name.clone()).unwrap_or_default(),
             requested: p.current_name.clone(),
@@ -78,7 +86,7 @@ impl Playback {
             in_transition: p.in_transition.clone(),
         }
     }
-    fn restore(&self, p: &mut NamedAnimPlayer) {
+    pub(crate) fn restore(&self, p: &mut NamedAnimPlayer) {
         p.current = p
             .movements
             .iter()
@@ -99,6 +107,9 @@ impl Playback {
 }
 
 impl KeptInteractions {
+    pub fn valid_special_actors(&self) -> bool {
+        self.special_actors.iter().all(|(name, actor)| !name.is_empty() && actor.valid())
+    }
     /// A remembered loose item belongs to exactly this open chest. Older
     /// slots load the empty default, which has no relationships to check.
     pub fn valid_loot(&self) -> bool {
@@ -161,7 +172,13 @@ impl KeptInteractions {
                 )
             })
             .collect();
-        Self { doors, chests }
+        Self { doors, chests, special_actors: SpecialActor::capture_world(w) }
+    }
+
+    pub fn restore_special_actors(&self, w: &mut WorldState) {
+        for (name, actor) in &self.special_actors {
+            actor.apply(w, name);
+        }
     }
 
     /// Apply before making the renderer and collision objects, so they

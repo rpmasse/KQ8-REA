@@ -607,7 +607,7 @@ pub const SLIDE_MIN: f32 = 0.000001;
 /// viewer reads it from the file and logs whether it differs).
 pub const CONNOR_BOX: ([f32; 3], [f32; 3]) = ([-200.0, -200.0, 0.0], [200.0, 200.0, 1300.0]);
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum State {
     /// On the ground or moving normally (the original's Wait/Move).
     Normal,
