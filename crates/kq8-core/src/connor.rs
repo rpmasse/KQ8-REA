@@ -427,7 +427,7 @@ pub enum ScriptedDeath {
 }
 
 /// What drives Connor's animation.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Mode {
     /// The keys choose the movement.
     Free,

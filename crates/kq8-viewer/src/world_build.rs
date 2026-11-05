@@ -905,8 +905,10 @@ pub fn world_change_step(world: &mut World) {
             build_pending(world);
             give_journey(world, journey.as_deref(), &request.world, &log);
             if let Some(save) = world.resource_mut::<WorldChange>().restoring.take() {
-                save.restore_current(world);
-                log.lock().unwrap().summary(format!("save restored in {} without replaying Begin", request.world));
+                match save.restore_current(world) {
+                    Ok(()) => log.lock().unwrap().summary(format!("save restored in {} without replaying Begin", request.world)),
+                    Err(error) => log.lock().unwrap().summary(format!("save restore failed in {}: {error}", request.world)),
+                }
                 return;
             }
             let kept = world.resource::<WorldChange>().kept.get(&request.world.to_ascii_lowercase()).cloned().unwrap_or_default();
