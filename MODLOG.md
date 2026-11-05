@@ -3,6 +3,18 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 M0–M7 implementation roadmap
+
+Reorganized the active plan around the original eight milestones. It separates inherited status from work to do, specifies automated completion checks, and places manual testing after the feature-complete Windows build. Documentation change only.
+
+## 2026-11-05 Scope revised to original Windows fidelity
+
+Revised the fork's completion plan, README roadmap and contributor goal to end at verification of the original Windows campaign and presentation. Removed the enhancement and macOS milestones. This change affects planning only.
+
+## 2026-11-05 Windows recreation and enhancement plan for KQ8-REA (superseded)
+
+Added a [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) for comparing the fork with upstream, verifying the original campaign and saves, and delivering native ultrawide and smoother animation. It includes the conditions for using REA in a separate study session and a later macOS milestone. Checked the fork revision, upstream comparison, documented commands and local GOG version. Gameplay, builds and performance on this machine are **not tested** for this planning change. Next, build the two pinned revisions and compare the Daventry route.
+
 ## 2026-10-31 I-9: a movement a script starts on Connor is drawn from its own start
 
 **Changed:** Viewer `connor_view.rs` (`script_anim`): when a script's `KQAnimPlayEvent` switches his movement at once, the phase the drawing uses is set to the new movement's at once (was: the old movement's until his next update); its log line gives the drawn phase.

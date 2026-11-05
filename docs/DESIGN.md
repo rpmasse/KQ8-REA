@@ -9,6 +9,51 @@ A Rust rewrite of *King's Quest: Mask of Eternity* (KQ8, Sierra 1998) that
 reads every asset from the player's own installed copy at runtime. The repo
 contains only our own source code; no game files, no decompiled code.
 
+## KQ8-REA completion plan (2026-11-05)
+
+**Deliverable.** A Windows executable and corresponding Rust source that recreate the original GOG game from its main menu through the ending and credits, using the player's original assets. Match the controls, 4:3 framing, animation cadence, sound and gameplay rules. Development and milestone verification use automated checks. Manual testing starts only after the entire Rust recreation is implemented.
+
+**State of the fork.** These statuses come from the [checked-out revision](https://github.com/rpmasse/KQ8-REA/tree/b6658de39c87b51c41a62f765f08dbf1ee54980c) and its development log. Most evidence concerns Daventry. The current planning review did not run the game. The milestones differ greatly in size, so the count of completed stages cannot establish a percentage of the whole game.
+
+| Stage | State recorded in the fork | What must happen next |
+| --- | --- | --- |
+| M0 · Read game data | Implemented. The game reads original archives and assets. | Run the archive verifier against the local GOG installation. Record any unsupported files used in play. |
+| M1 · Render the world | Implemented for the initial milestone. All 12 worlds reportedly load. | Launch every world in a bounded automated run. Record missing terrain, models and textures, and assign gaps to their regions in M6. |
+| M2 · Move Connor | Implemented in Daventry. Walking, running, jumping, slopes and collision exist. | Replay input at fixed ticks and check position, facing, jump timing and collision against the original rules. |
+| M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
+| M4 · Interface and dialogue | Partial. The HUD, speech, captions, lip sync and some conversations work. The viewer starts directly in Daventry. | Finish the front end, menus, inventory flow and dialogue behavior. |
+| M5 · Combat | Partial. Pursuit, melee, some ranged attacks, drops and potions exist. Some controls are placeholders. | Complete the original controls, weapons, enemy behavior, damage, death and game over. |
+| M6 · The whole game | Partial. Maps, region transitions and some world state exist. Saving and full progression are unfinished. | Implement disk saves, complete each region and connect them through the ending. |
+| M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
+
+**First action.** Build the fork and the [pinned upstream revision](https://github.com/Eric-lz/KQ8R/compare/b6658de39c87b51c41a62f765f08dbf1ee54980c...5ea5a46f791a637b2d2e231e56195726050e57cb) with the same GOG assets. The latter includes 58 additional commits, among them world persistence and Dead City puzzle work. Run the workspace tests, archive verifier and M0–M3 scenarios on both. Record the chosen revision, working features and actual gaps. Implement any missing scripted inputs and state checks as part of this work.
+
+**How to track completion.** Inventory the original menus, controls, item and enemy types, scripts, quests, optional branches, media and reachable scenes. Use the game data, behavior notes and [upstream script inventory](https://github.com/Eric-lz/KQ8R/blob/5ea5a46f791a637b2d2e231e56195726050e57cb/docs/SCRIPT-COVERAGE.md). Give each entry a milestone, reference behavior, Rust implementation and automated check of its effect. Mark it missing, partial, implemented awaiting verification, or verified. Track commands that silently accept input while skipping the effect. Add newly discovered behavior to the inventory. Use the [research workflow](SESSIONS.md) and REA only when a reference rule needs investigation.
+
+### M4 · Complete the interface and dialogue
+
+Implement the main menu, New Game and difficulty selection, options, pause/resume, inventory and item use, prompts, conversation choices and interruptions. Check captions, speech and scripted camera cuts together. Connect save/load screens to the M6 implementation when it is ready.
+
+**Completion check.** Script ordinary menu inputs from launch into Daventry. Open inventory and use an item. Start, finish and interrupt a conversation on separate runs. Compare the selected option, item count, dialogue branch, sound/caption events, camera state and return of player control against the reference.
+
+### M5 · Complete combat
+
+Inventory the original weapons, ammunition, enemy attacks, damage rules and difficulty settings. Replace temporary controls and complete equipping, aiming, attack timing, hit detection, projectiles, consumables, experience, drops, death and game over. Verify special enemies in their M6 encounters.
+
+**Completion check.** Replay controlled melee and ranged encounters. Check hits and misses, ammunition, health before and after impact, potion expiry, rewards, drops and game-over transitions. Link every weapon and enemy rule to a passing scenario.
+
+### M6 · Complete saves and the campaign
+
+1. **Persist the world.** Restore Connor, inventory, quest flags, doors, containers, items, bodies, timers, terrain and map progress across travel and disk saves according to the original's rules. Automate opening the cottage door, collecting five mushrooms, consuming one, saving, quitting, launching a new process and loading. Verify four mushrooms, the expected door state and a working next interaction. Repeat across a Daventry–CastleD round trip.
+2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
+3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
+
+### M7 · Verify original behavior and deliver the Windows build
+
+Compare the Rust results against original game data, documented original behavior and automated reference captures where needed. Cover controls, movement and animation cadence, combat and camera timing, dialogue, music, 4:3 framing, lighting, fog, shadows, HUD placement and movie playback. Use state and event comparisons, plus machine comparisons of rendered frames or audio cues where appropriate. Record a justified tolerance before each comparison. Missing reference evidence is an open research task.
+
+**Ready for manual testing** means every inventoried feature is implemented in Rust, all required and optional campaign scenarios pass, every reachable placeholder has been resolved, and the defined fidelity comparisons pass with no known outstanding behavior differences. Deliver the Windows executable, source revision, reproducible build instructions and automated results. This handoff establishes implementation completeness against the inventory.
+
 ## Ground rules that shape the design
 
 - **Game data is read, never written.** The game folder (`./MASK/` by
@@ -113,6 +158,8 @@ Decompression uses the `explode` crate (MIT), a Rust port of Mark Adler's
 `blast.c`.
 
 ## Roadmap
+
+The following sections retain the upstream design history. The [fork completion plan](#kq8-rea-completion-plan-2026-11-05) defines the current release scope.
 
 The goal is a fully playable game. That is a multi-month project; the
 roadmap is built around **milestones you can see and test**, each made of
@@ -2385,37 +2432,9 @@ world means the old world must be gone before the new one is built
 (no overlap); the 6–7 s load (the loading screen covers it; making it
 faster is separate work).
 
-### M7 — Match the original, then improve
+### M7 — Match the original Windows game
 
-Play the original next to ours, list differences, fix them. After that,
-the improvements this project was started for: controls, graphics,
-gameplay changes.
-
-Improvements already noted (original behaviour we copy until then):
-
-- Pushed barrels go through walls (`pushing.md` rule 4.1, the user's
-  check 2026-10-18): make walls stop them, after M7.
-- Character shadows darken the ground twice where parts of the figure
-  overlap (`characters.md` rule 36, the user's check 2026-10-19): draw
-  each shadow as one even shape, after M7. A way (2026-10-22): a
-  **shadow map** drawn by the graphics card (the characters seen from
-  the sun into a hidden depth picture; the ground and buildings check it
-  per point), so a spot is darkened once however many parts cover it,
-  with no copy of the model in normal memory (goes with "Animation
-  memory" step 4). The rules carry over (the sun's direction, strength
-  0.5, the ground only within 1,500 of the character, nearby
-  buildings); the edges depend on the picture's resolution, so not
-  pixel-identical to today's.
-- Smooth animation (the user's goal, 2026-10-22): the models are stored
-  at about 15 frames a second (Connor's walk: 20 frames over 1.27 s).
-  In-between poses can be blended: a part keeps its triangles in every
-  frame and only its points move, so each point can glide from one frame
-  to the next. Measured: 89-95 % of part steps from one frame to the
-  next can be blended; the rest switch mesh (or the part count changes)
-  and would still jump. What is drawn only; the rules, cues and hits
-  keep the original frames; switchable back to the original look. Needs
-  "Animation memory" step 4 below (frames on the graphics card); joins
-  between movements (walk to stop) are a separate, harder question.
+Use M7 of the [fork completion plan](#kq8-rea-completion-plan-2026-11-05) for release acceptance. Reproduce observable quirks where confirmed, including the documented barrel collision and overlapping shadows. Use the original animation cadence for comparison.
 
 ### Outside the milestones: choosing the graphics API, `--renderer` (planned 2026-10-16, done 2026-10-16)
 
