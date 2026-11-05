@@ -705,6 +705,26 @@ endif
     }
 
     #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_barren_dock_script_selects_the_next_gong_trigger() {
+        let game = kq8_data::GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let archive = kq8_data::VolArchive::open(&game.find("data/Barren/kq.vol").unwrap()).unwrap();
+        let files = ["dockup.cs", "bridge.cs"].map(|name| {
+            let bytes = archive.unpack(archive.find(name).unwrap()).unwrap().data;
+            (name.to_owned(), bytes)
+        });
+        let mut vars = Vars::default();
+        vars.set("Barren::Gong::CurPos", "3".into());
+        let mut a = crate::active::Active::new(vars, vec![], vec![], ["Connor".to_string()], files);
+        assert!(a.run_script("dockup.cs", &args(&["dock4", "Cue", "0"])));
+        assert_eq!(a.scripts.vars.get("Barren::Gong::Trap"), Some("gongtp3"));
+        assert_eq!(a.scripts.vars.get("Barren::Gong::CurPos"), Some("4"));
+        assert_eq!(a.scripts.vars.get("Barren::Gong::WalkY"), Some("245800"));
+        assert!(a.run_script("dockup.cs", &args(&["dock4", "Cue", "100"])));
+        assert_eq!(a.scripts.vars.get("Barren::Gong::Trap"), Some("gongtp4"));
+    }
+
+    #[test]
     fn set_joins_words_and_comments_are_dropped() {
         let (s, h) = run("set Daventry::Door::Locked 1 # comment\nset Long a  b\tc\necho \"Keep Door\" x # not this\n", &[], &[]);
         assert_eq!(s.vars.get("Daventry::Door::Locked"), Some("1"));

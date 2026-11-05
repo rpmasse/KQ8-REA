@@ -13,6 +13,13 @@ Source types:
 - **Disassembly**: from studying `Mask.exe`. Not used yet. See the working
   method in `docs/DESIGN.md` before using this source.
 
+## Campaign script variables and payments
+
+| Behavior | Reference |
+| --- | --- |
+| `inc` advances a named counter by one. `setcat` joins expanded words with no separator. | Observed in the GOG archives. Barren's `dockup.cs` constructs the old trigger name, advances the gong number, selects the next position and constructs the next trigger name. Temple 4 uses the counter for altar progression. The original `mask.cs` constructs volume paths by concatenation. |
+| Shops deduct a specified item quantity. The command returns 1 when paid. | [Door and script behavior notes](../behaviour/doors.md) and observed GOG scripts including Daventry's `poorbox.cs`, Gnome's `armorgnm.cs` and Barren's `tw_weird.cs`. Merchant scripts inspect the result before delivering a purchase. |
+
 ## VOL archives — `crates/kq8-data/src/vol.rs`
 
 | Fact | Source |
