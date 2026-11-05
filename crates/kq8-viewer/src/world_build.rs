@@ -165,6 +165,9 @@ pub struct KeptWorld {
     /// Older version-1 slots did not store door or chest state.
     #[serde(default)]
     pub interactions: kq8_core::kept_interactions::KeptInteractions,
+    /// Changed placements of persistent ordinary props, keyed by lower-case name.
+    #[serde(default)]
+    pub prop_placements: std::collections::BTreeMap<String, kq8_core::collide::Placement>,
     #[serde(default)]
     pub terrain_changes: kq8_core::ground_anim::GroundChanges,
 }
@@ -181,10 +184,15 @@ impl KeptWorld {
             if !came_in.contains(&file) { came_in.push(file); }
         }
         let prior_states = previous.into_iter().flat_map(|p| &p.states).map(|s| s.name.to_ascii_lowercase()).collect();
+        let prop_placements = active.world.prop_placements.iter()
+            .filter(|(name, _)| !gone.contains(*name))
+            .filter_map(|(name, place)| place.map(|p| (name.clone(), p)))
+            .collect();
         Self {
             vars: active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, from)).map(|(n, v)| (n.to_owned(), v.to_owned())).collect(),
             gone, came_in, states: active.world.kept_states_including(&prior_states),
             interactions: kq8_core::kept_interactions::KeptInteractions::take(&active.world),
+            prop_placements,
             terrain_changes: active.world.terrain_changes.clone(),
         }
     }
@@ -767,6 +775,7 @@ pub fn world_change_step(world: &mut World) {
                 gone: kept.gone.clone(),
                 came_in: kept.came_in.clone(),
                 states: kept.states.iter().map(|s| (s.name.to_ascii_lowercase(), s.clone())).collect(),
+                prop_placements: kept.prop_placements.clone(),
                 kept_maps: j.other_maps.clone(),
             });
             let percent = Arc::new(AtomicU32::new(0));

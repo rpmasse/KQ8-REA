@@ -1515,6 +1515,7 @@ pub struct Objects {
     /// Carried state read by destination Init scripts (e.g. Daventry's girl.cs).
     pub arriving_flags: Option<(BTreeMap<String, bool>, bool)>,
     pub kept_interactions: kq8_core::kept_interactions::KeptInteractions,
+    pub prop_placements: BTreeMap<String, Option<kq8_core::collide::Placement>>,
     /// The world's animations packed for the graphics card (step 4),
     /// made after reading (`world_build::pack_world`).
     pub pack: Option<crate::anim_gpu::WorldPack>,
@@ -1881,6 +1882,7 @@ pub struct Arrival {
     /// Kept animated and scripted objects' state by lower-case name (DESIGN
     /// K-2, rules 12, 15): put into their `.kq` values when they load.
     pub states: BTreeMap<String, kq8_core::active::KeptState>,
+    pub prop_placements: BTreeMap<String, kq8_core::collide::Placement>,
     /// The kept maps by map index (rule 16): this world's own, when it was
     /// visited before, replaces its shipped file.
     pub kept_maps: BTreeMap<usize, (String, kq8_data::magic_map::MapKeys, String)>,
@@ -1962,6 +1964,9 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         gone: arrival.as_ref().map(|a| a.gone.clone()).unwrap_or_default(),
         gone_skipped: Vec::new(),
         kept_states: arrival.as_ref().map(|a| a.states.clone()).unwrap_or_default(),
+        saved_props: arrival.as_ref().map(|a| a.prop_placements.clone()).unwrap_or_default(),
+        prop_placements: BTreeMap::new(),
+        persist_props: true,
         kept_applied: Vec::new(),
         portal_movements,
         skip_con_start: arrival.is_some(),
@@ -2276,6 +2281,9 @@ struct Placer<'a> {
     gone_skipped: Vec<String>,
     /// A kept world's object states (K-2), and the names they were put on.
     kept_states: BTreeMap<String, kq8_core::active::KeptState>,
+    saved_props: BTreeMap<String, kq8_core::collide::Placement>,
+    prop_placements: BTreeMap<String, Option<kq8_core::collide::Placement>>,
+    persist_props: bool,
     kept_applied: Vec<String>,
     /// Portals' own lists' movements for the Special state (M6 6e-7).
     portal_movements: Vec<(String, String)>,
@@ -2445,6 +2453,10 @@ pub struct CharacterAssets {
 }
 
 impl kq8_data::world_script::Host for Placer<'_> {
+    fn activate_persist_manager(&mut self, on: bool) {
+        self.persist_props = on;
+    }
+
     fn load_progress(&mut self, percent: Option<f32>) {
         use std::sync::atomic::Ordering;
         if let Some(p) = &self.progress {
@@ -2562,6 +2574,11 @@ impl kq8_data::world_script::Host for Placer<'_> {
 
     /// `move <who> <flags> x y z [rx ry rz]` (objects.md Q20 d).
     fn move_object(&mut self, m: &kq8_data::world_script::Move) {
+        // Restoring a world reconstructs its start-up objects. A startup
+        // move must not apply again over the final placement from disk.
+        if self.prop_placements.get(&m.who.to_ascii_lowercase()).is_some_and(Option::is_some) {
+            return;
+        }
         let at = format!("{} line {}", m.from, m.line);
         let note = |placer: &mut Self, what: &str, detail: String| {
             *placer.move_notes.entry(what.to_string()).or_default() += 1;
@@ -3176,6 +3193,19 @@ impl Placer<'_> {
         // loads with the values it had when Connor left.
         if let Some(k) = self.kept_states.get(&p.name.to_ascii_lowercase()).filter(|_| !unused).cloned() {
             self.apply_kept(&label, &mut file[0], &mut p, &k);
+        }
+        if !unused && self.persist_props && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQObject")) {
+            let key = p.name.to_ascii_lowercase();
+            let saved = self.saved_props.get(&key).copied();
+            if let Some(place) = saved {
+                p.position = place.position;
+                p.angles = kq8_data::objects::angles_of(place.rotation);
+                p.keep_on_ground = kq8_data::objects::KeepOnGround::Off;
+                p.z_on_ground = None;
+                p.missing_loc = [false; 3];
+                self.log.detail(format!("restored prop {} at {:?}", p.name, p.position));
+            }
+            self.prop_placements.insert(key, saved);
         }
         let s = &file[0];
         let mut character = character_keys.zip(character_list).map(|(keys, list)| {
@@ -4883,6 +4913,7 @@ impl Placer<'_> {
                 .collect(),
             arriving_flags: None,
             kept_interactions: Default::default(),
+            prop_placements: self.prop_placements,
             map: self.map,
             shadow_world_mask,
             shapes: self.shapes,

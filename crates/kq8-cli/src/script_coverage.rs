@@ -39,7 +39,7 @@ const CONTROL: [&str; 6] = ["if", "else", "endif", "echo", "set", "test"];
 
 /// What the world loader acts on in start-up scripts (`world_script.rs`;
 /// `setLoadProgress` drives the loading meter). Lower case.
-const LOADER: [&str; 14] = [
+const LOADER: [&str; 15] = [
     "set",
     "setcat",
     "loadkq",
@@ -52,13 +52,14 @@ const LOADER: [&str; 14] = [
     "kqobject::setscript",
     "kqobject::setdontlook",
     "applycombatlevel",
+    "activatepersistmgr",
     "kqconner::setlevel",
     "sendevent",
 ];
 
 /// Names that look like loading or memory hints (by name only: to be
 /// confirmed by session A).
-const LOADING_HINTS: [&str; 11] = [
+const LOADING_HINTS: [&str; 10] = [
     "lockShape",
     "preloadShape",
     "purgeResource",
@@ -67,7 +68,6 @@ const LOADING_HINTS: [&str; 11] = [
     "KQObject::preloadResources",
     "lockResource",
     "loadVolume",
-    "activatePersistMgr",
     "setLoadProgress",
     "loadPalette",
 ];
