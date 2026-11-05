@@ -301,7 +301,7 @@ pub fn combat_factor(level: i64) -> Option<f32> {
 
 /// A bolt in the air (`fighting.md` rule 36, M5 5c-9; its flight as
 /// `ranged-weapons.md` rules 26–31, M5 5f-1).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Bolt {
     /// `bolt<n>`, for the log and the viewer.
     pub name: String,
@@ -338,10 +338,62 @@ pub struct Bolt {
     pub drain: Option<kq8_data::characters::DrainKeys>,
 }
 
+/// World-owned projectiles in a version-2 disk slot. The count is kept even
+/// when the vector is empty, so the next shot gets a new name after loading.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct SavedBolts {
+    pub bolts: Vec<Bolt>,
+    pub bolts_shot: u64,
+}
+
+impl SavedBolts {
+    pub fn valid(&self) -> bool {
+        fn name(s: &str) -> bool {
+            !s.is_empty() && s.len() <= 256 && !s.chars().any(char::is_control)
+        }
+        fn resource(s: &str) -> bool {
+            name(s) && !s.starts_with(['/', '\\']) && !s.contains(':')
+                && !s.split(['/', '\\']).any(|part| matches!(part, "." | ".."))
+        }
+        if self.bolts.len() > 512 || self.bolts_shot >= u64::MAX / 2 {
+            return false;
+        }
+        let mut names = std::collections::BTreeSet::new();
+        self.bolts.iter().all(|b| {
+            let number = ["bolt", "rock", "hammer"].into_iter()
+                .find_map(|prefix| b.name.strip_prefix(prefix).and_then(|n| n.parse::<u64>().ok()));
+            name(&b.name) && name(&b.shooter)
+                && number.is_some_and(|n| n > 0 && n <= self.bolts_shot)
+                && names.insert(b.name.to_ascii_lowercase())
+                && b.shape.as_deref().is_none_or(resource)
+                && b.script.as_deref().is_none_or(name)
+                && b.position.iter().chain(&b.direction).all(|x| x.is_finite())
+                && ((b.direction.iter().map(|x| x * x).sum::<f32>()) - 1.0).abs() < 0.01
+                && [b.heading, b.pitch, b.speed, b.travelled, b.max].iter().all(|x| x.is_finite())
+                && b.speed > 0.0 && b.max > 0.0 && b.travelled >= 0.0 && b.travelled <= b.max
+                && b.damage.unsigned_abs() < 1_000_000_000 && b.updates < 1_000_000
+                && b.hammer.as_ref().is_none_or(|h| [h.modifier, h.min_damage, h.max_damage]
+                    .into_iter().all(|n| n.unsigned_abs() < 1_000_000_000))
+                && b.balls.as_ref().is_none_or(|balls| {
+                    balls.radius.is_finite() && balls.radius >= 0.0
+                        && (1..=64).contains(&balls.heights.len()) && balls.heights.iter().all(|x| x.is_finite())
+                })
+                && b.arc.as_ref().is_none_or(|arc| arc.velocity.iter().all(|x| x.is_finite())
+                    && arc.gravity.is_finite() && arc.gravity > 0.0)
+                && b.drain.as_ref().is_none_or(|drain| {
+                    drain.duration.is_finite() && drain.duration >= 0.0
+                        && drain.shoot_height.is_finite() && drain.hit_height.is_finite()
+                        && [&drain.segment, &drain.end, &drain.sound, &drain.fire_anim,
+                            &drain.hurt_anim, &drain.done_anim].into_iter().all(|s| s.is_empty() || resource(s))
+                })
+        })
+    }
+}
+
 /// The files give upward velocity and peak height, but do not describe the
 /// integration. Use constant gravity and aim the horizontal motion at the
 /// clicked point on the descending part of the arc, limited by file speed.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RockArc {
     velocity: [f32; 3],
     gravity: f32,
@@ -366,7 +418,7 @@ impl RockArc {
 }
 
 /// Azriel's Hammer in flight (`azriel-hammer.md` rules 6–9).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct HammerFlight {
     /// On its way back (rule 9): only Connor stops it.
     pub back: bool,
@@ -2004,5 +2056,46 @@ pub(crate) mod tests {
         assert!(f.due(0.0), "rule 6: the attack time starts at 0");
         assert!(is_attack("attack") && is_attack("ATTACK2") && is_attack("idle:attack"));
         assert!(!is_attack("attackb") && !is_attack("react"));
+    }
+
+    #[test]
+    fn live_bolt_variants_round_trip_with_flight_state_and_reject_corruption() {
+        let ordinary = Bolt {
+            name: "bolt1".into(), shooter: "Connor".into(), shape: Some("scbolt.kqs".into()),
+            position: [183520.78, 43790.3, 1847.2], direction: [1., 0., 0.],
+            heading: std::f32::consts::FRAC_PI_2, pitch: 0., speed: 6000., travelled: 800.,
+            max: 12000., damage: 19, kind: HitKind::Projectile, mask: 0x1F,
+            balls: Some(crate::collide::BallStack { radius: 235., heights: vec![235.] }),
+            updates: 2, hammer: None, script: None, arc: None, drain: None,
+        };
+        let mut rock = ordinary.clone();
+        rock.name = "rock2".into();
+        rock.kind = HitKind::Normal;
+        rock.arc = Some(RockArc { velocity: [100., 0., 500.], gravity: 1000. });
+        let mut hammer = ordinary.clone();
+        hammer.name = "hammer3".into();
+        hammer.hammer = Some(HammerFlight { back: true, modifier: 10, min_damage: 1, max_damage: 50 });
+        let mut weeper = ordinary.clone();
+        weeper.name = "bolt4".into();
+        weeper.shooter = "weepy".into();
+        weeper.drain = Some(kq8_data::characters::DrainKeys {
+            duration: 5., segment: "WeepLink.kqs".into(), end: "WeepEnd.kqs".into(),
+            sound: "LIFESUCK.AUD".into(), fire_anim: "attack".into(),
+            hurt_anim: "magicReact".into(), done_anim: "stop".into(),
+            shoot_height: 500., hit_height: 500.,
+        });
+        let saved = SavedBolts { bolts: vec![ordinary, rock, hammer, weeper], bolts_shot: 4 };
+        assert!(saved.valid());
+        let decoded: SavedBolts = serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();
+        assert_eq!(decoded, saved);
+        let mut bad = decoded.clone();
+        bad.bolts[0].position[0] = f32::NAN;
+        assert!(!bad.valid());
+        bad = decoded.clone();
+        bad.bolts[0].name = "../bolt1".into();
+        assert!(!bad.valid());
+        bad = decoded;
+        bad.bolts_shot = 2;
+        assert!(!bad.valid());
     }
 }

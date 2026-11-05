@@ -1111,7 +1111,7 @@ pub const HAMMER_MASK: u32 = 0x221F;
 pub const PROJECTILE_TYPE: u32 = 1;
 
 /// Dead City's PRweeper.kq (ranged-weapons.md section 9).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DrainKeys {
     pub duration: f32,
     pub segment: String,

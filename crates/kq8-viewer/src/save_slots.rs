@@ -39,6 +39,8 @@ pub(super) struct Snapshot {
     shot: Option<connor_view::SavedShot>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     fight_rng: Option<kq8_core::emitter::Rng>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    bolts: Option<kq8_core::fight::SavedBolts>,
 }
 
 impl Snapshot {
@@ -57,6 +59,9 @@ impl Snapshot {
         }
         if self.shot.as_ref().is_some_and(|s| !s.valid()) || (self.shot.is_some() && self.swing.is_some()) {
             return Err("save has an invalid ranged shot".into());
+        }
+        if self.bolts.as_ref().is_some_and(|b| !b.valid()) {
+            return Err("save has invalid live projectiles".into());
         }
         let known = |name: &str| {
             kq8_data::game_dir::WORLDS
@@ -184,6 +189,10 @@ impl Snapshot {
         if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
             self.restore_objects_and_vars(&mut sim.active);
             if let Some(rng) = &self.fight_rng { sim.active.world.fight_rng = rng.clone(); }
+            if let Some(bolts) = &self.bolts {
+                sim.active.world.bolts.clone_from(&bolts.bolts);
+                sim.active.world.bolts_shot = bolts.bolts_shot;
+            }
             if let Some(kept) = self.kept.get(&self.world.to_ascii_lowercase()) {
                 sim.active.world.restore_placed_characters(&kept.characters);
                 sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
@@ -375,6 +384,10 @@ pub fn save_slot_with_thumbnail(
         swing,
         shot,
         fight_rng: Some(sim.active.world.fight_rng.clone()),
+        bolts: Some(kq8_core::fight::SavedBolts {
+            bolts: sim.active.world.bolts.clone(),
+            bolts_shot: sim.active.world.bolts_shot,
+        }),
     };
     write_slot(&directory(), slot, &snapshot)
 }
@@ -507,6 +520,7 @@ mod tests {
             swing: None,
             shot: None,
             fight_rng: None,
+            bolts: Some(kq8_core::fight::SavedBolts { bolts: Vec::new(), bolts_shot: 0 }),
             journey: take_journey(&sim, "Daventry"),
             kept,
         }
@@ -545,6 +559,7 @@ mod tests {
         }
         previous_v2.as_object_mut().unwrap().remove("swing");
         previous_v2.as_object_mut().unwrap().remove("fight_rng");
+        previous_v2.as_object_mut().unwrap().remove("bolts");
         assert!(serde_json::from_value::<Snapshot>(previous_v2).unwrap().validate().is_ok());
         // Version-1 slots predate the door/chest fields. All previously
         // supported state still loads; these objects use asset defaults.

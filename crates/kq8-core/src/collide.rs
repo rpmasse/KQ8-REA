@@ -41,7 +41,7 @@ pub fn pair_collides(type_a: u32, mask_a: u32, type_b: u32, mask_b: u32) -> bool
 
 /// The balls an object collides with: all of radius `radius`, centred
 /// straight above its position at `heights`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct BallStack {
     pub radius: f32,
     /// Lowest first.
