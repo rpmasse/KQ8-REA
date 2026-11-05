@@ -2392,6 +2392,37 @@ impl WorldState {
         "0".into()
     }
 
+    /// The armorer and other merchants check for 1 before handing over a
+    /// purchase. The poor box charges one coin; barter scripts pass the
+    /// selected item's type instead (doors.md, script return values).
+    fn pay(&mut self, words: &[String], at: &str) -> String {
+        let [_, kind, quantity] = words else { return "0".into() };
+        let Some(price) = quantity.parse::<i64>().ok().filter(|n| *n > 0) else { return "0".into() };
+        let Some(kind) = self.items.kind(kind).map(|t| t.name.clone()) else { return "0".into() };
+        let balance = self.items.count("Connor", &kind);
+        if balance < price {
+            self.item_note(format!("{at}: payment refused: Connor has {balance} {kind}, needs {price}"));
+            return "0".into();
+        }
+        let mut remaining = price;
+        for i in 0..self.items.objects.len() {
+            let o = &mut self.items.objects[i];
+            if !o.carried_by("Connor") || o.kind != kind || o.quantity <= 0 { continue; }
+            let spent = remaining.min(o.quantity);
+            o.quantity -= spent;
+            remaining -= spent;
+            if o.quantity == 0 {
+                let name = o.name.clone();
+                crate::connor_inventory::unapply(self, &name, "payment");
+                self.delete_one(&name, at);
+                if self.hand.as_deref() == Some(&name) { self.hand = None; }
+            }
+            if remaining == 0 { break; }
+        }
+        self.item_note(format!("{at}: Connor paid {price} {kind}, {} left", balance - price));
+        "1".into()
+    }
+
     fn gold_coin_persists(&mut self, words: &[String], at: &str) -> String {
         let Some(v) = words.get(1).filter(|v| looks_like_number(v)) else {
             self.note(format!("{at}: usage: goldCoinPersists 0|1; nothing"));
@@ -3746,6 +3777,7 @@ impl ScriptHost for WorldState {
             "setLowerGui" | "setUpperGui" | "setMapGui" | "getGuiStatus" => Some(self.gui_command(words, at)),
             "KQMap::activate" | "KQMap::deactivate" | "KQMap::stopLoc" | "KQMap::useFog" | "KQMap::setFogRadius" | "addMapIcon" | "removeMapIcon" => Some(self.map_command(words, at)),
             "onTeleport" | "offTeleport" | "earnTeleport" | "teleportersEarned" => Some(self.teleport_command(words, at)),
+            "KQConner::pay" => Some(self.pay(words, at)),
             "goldCoinPersists" => Some(self.gold_coin_persists(words, at)),
             "setConnorFlag" => Some(self.set_connor_flag(words, at)),
             "KQObject::dither" => Some(self.dither(words, at)),
@@ -6242,6 +6274,15 @@ endif
         a.world.heights = Some(Box::new(|_, _, floor| Some(if floor { 100.0 } else { 800.0 })));
         a.scripts.call("s.cs", &[], &mut a.world);
         a
+    }
+
+    #[test]
+    fn merchant_charges_only_affordable_purchases_and_returns_one_when_paid() {
+        let a = with_items("give SilverCoins 5\nKQConner::pay silvercoins 6\nset refused $Console::Return\nKQConner::pay INVITEM_SilverCoins 3\nset bought $Console::Return\nKQConner::pay silvercoins 2\nset last $Console::Return\nKQConner::pay silvercoins 1\nset empty $Console::Return");
+        for (var, result) in [("refused", "0"), ("bought", "1"), ("last", "1"), ("empty", "0")] {
+            assert_eq!(a.scripts.vars.get(var), Some(result), "{var}");
+        }
+        assert!(a.world.items.find("Connor", "SilverCoins").is_none());
     }
 
     #[test]

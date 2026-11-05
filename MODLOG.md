@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Original-data and regional checks
+
+All 12 regions loaded, rendered 30 frames apiece and exited successfully in the automated Windows region test. The real Barren dock script ran directly from the GOG archive and advanced the named trigger from gongtp3 to gongtp4. Added inventory payment handling for original donation and shop scripts. The automated purchase test covers insufficient funds, partial spending and depletion. Quest completion and the full campaign remain open. Reproduction commands are in the README.
+
 ## 2026-11-05 Windows fork implementation
 
 Integrated upstream through 5ea5a46. The original menu now drives difficulty selection, pause/resume and restart. Melee rechecks the target at the hit cue. The inventory script handler resolves an equipped item's identity when dropping it. The world loader recognizes the final Lucreto actors and terrain switches now update the displayed mesh and material. Implemented the runtime `inc` and `setcat` commands used by Barren's dock script. An archive scan found 29 single-variable increments across five regions, including Temple 4's altar. Whether the entire affected quests complete remains open.

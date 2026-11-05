@@ -38,11 +38,13 @@ cargo run --locked --release -p kq8-cli -- vol-verify
 .\target\release\kq8-viewer.exe --world Daventry --frames 120
 ```
 
-Two additional checks require the installed game assets. The menu routes also require a graphics device. Both checks run unattended.
+The following checks use the installed game assets and run unattended. The menu and region tests require a graphics device. The region test opens each of the 12 regions and renders 30 frames. The Barren test executes the original dock script from the player's archive and checks which gong trigger it selects.
 
 ```powershell
 cargo test --locked -p kq8-viewer campaign_tests -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test regions -- --ignored --nocapture
+cargo test --locked -p kq8-core original_barren_dock_script -- --ignored
 ```
 
 A world loading successfully verifies that it can be opened. Campaign completion also requires ordinary controls to advance the quests, save and restore their consequences, defeat the final boss and reach the ending. The [script coverage report](docs/SCRIPT-COVERAGE.md) inventories commands for that work and explains what its probes measure.
