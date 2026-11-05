@@ -1158,7 +1158,7 @@ pub fn shadow_draw(
         Local<u64>,
         Option<Res<crate::shadow_view::FrameSources>>,
         Option<Res<crate::shadow_view::ShadowWorld>>,
-        Local<Option<u32>>,
+        Local<Option<(u32, bool)>>,
         Res<crate::Shared>,
     ),
 ) {
@@ -1180,8 +1180,9 @@ pub fn shadow_draw(
     let dir = shadow::direction(light.as_ref().and_then(|l| l.lights.suns.first()).map(|s| s.aim));
     let material = material.get_or_insert_with(|| crate::shadow_view::shadow_material(&mut materials)).clone();
     let mask = mask.as_ref().map_or(1, |m| m.0);
-    let mask_changed = *last_mask != Some(mask);
-    *last_mask = Some(mask);
+    let allowed = doors.as_ref().is_none_or(|d| d.active.world.shadows_allowed);
+    let mask_changed = *last_mask != Some((mask, allowed));
+    *last_mask = Some((mask, allowed));
     let mut connor_pieces = 0;
     let mut character_shadows = 0;
     // Rule 37 (2): the near and far buildings receive too (M4 4d-7b-3).
@@ -1215,7 +1216,7 @@ pub fn shadow_draw(
         let body = connor_body.iter().next();
         let opacity = doors.as_ref().and_then(|d| d.active.world.connor_translucency).unwrap_or(256.0);
         let drawn = body.is_some_and(|(_, v)| *v != Visibility::Hidden)
-            && kq8_data::characters::casts_shadow(mask, 1, true, opacity);
+            && kq8_data::characters::casts_shadow(mask, 1, allowed, opacity);
         let shown = c.shown;
         let model = match shown.filter(|_| drawn) {
             Some(frame) => crate::shadow_view::frame_triangles(frame, &children, &parts, &meshes, sources),
@@ -1240,7 +1241,7 @@ pub fn shadow_draw(
     for p in &mut sim.playing {
         let Source::Core(i) = p.source else { continue };
         let Some(a) = world.anims.get(i) else { continue };
-        if !kq8_data::characters::casts_shadow(mask, p.shadow_mask, true, a.translucency.unwrap_or(p.shadow_translucency)) {
+        if !kq8_data::characters::casts_shadow(mask, p.shadow_mask, allowed, a.translucency.unwrap_or(p.shadow_translucency)) {
             crate::shadow_view::show_shadow(&[], &mut p.shadow, &mut commands, &mut meshes, &material);
             continue;
         }
@@ -1263,7 +1264,7 @@ pub fn shadow_draw(
     }
     *spent += started.elapsed();
     if mask_changed {
-        shared.log.lock().unwrap().summary(format!("shadow renderer: mask {mask}, Connor {connor_pieces} pieces, {character_shadows} character shadows shown"));
+        shared.log.lock().unwrap().summary(format!("shadow renderer: mask {mask}, Connor {connor_pieces} pieces, {character_shadows} character shadows shown; allowShadows {}", u8::from(allowed)));
     }
     if report {
         lines.push(format!("update {}: shadows of Connor and the characters: {:.3} ms a frame on average (rule 37); {}", sim.updates, spent.as_secs_f64() * 1000.0 / *frames as f64, sources.line()));

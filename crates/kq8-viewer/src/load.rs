@@ -1525,6 +1525,7 @@ pub struct Objects {
     /// The world's shadow mask (`setShadowMask` in `Options.cs`, else the
     /// built-in 1; `characters.md` rule 36).
     pub shadow_world_mask: u32,
+    pub shadows_allowed: bool,
     /// (shape name as first written, model in model space).
     pub shapes: Vec<(String, Model)>,
     /// A placement, the index of its model in `shapes`, and whether it is
@@ -2082,6 +2083,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         list_files: Default::default(),
         character_lines: Vec::new(),
         shadow_world_mask: None,
+        shadows_allowed: true,
     };
 
     // M6 6e-6c: the portal files in GAME/Kq, for a script's loadKQ.
@@ -2101,6 +2103,8 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
     // the scripts run so `getLoc` and `move` see them (Q20).
     phase("scripts scanned, portal files read", &mut since);
     let mut script = kq8_data::world_script::run("newWorld.cs", &mut placer);
+    placer.shadows_allowed = load_shadow_switch(world, script.vars.clone(), placer.shadows_allowed);
+    placer.log.summary(format!("world.cs Load: allowShadows {}", u8::from(placer.shadows_allowed)));
     // M6 6e-8 (world-change.md rules 12, 14.5): a kept world's objects
     // that scripts loaded while playing (Daventry's `waterfa2.kq`) are
     // loaded again after the start script, so they are in the world from
@@ -2437,6 +2441,31 @@ struct Placer<'a> {
     /// The world's shadow mask (`setShadowMask` in `Options.cs`, else
     /// 1), read when first needed (characters.md rule 36).
     shadow_world_mask: Option<u32>,
+    shadows_allowed: bool,
+}
+
+/// The shadow switch in world.cs's Load branch runs after newWorld.cs.
+/// Evaluate its conditions with the ordinary interpreter, but record only
+/// this setting. The scenery has already been loaded, so newWorld.cs is
+/// an empty call here and other engine commands have no side effects.
+fn load_shadow_switch(world: &World, vars: kq8_data::world_script::Vars, initial: bool) -> bool {
+    struct Switch<'a> { world: &'a World, allowed: bool }
+    impl kq8_core::script::ScriptHost for Switch<'_> {
+        fn read(&self, name: &str) -> Option<Vec<u8>> {
+            if name.eq_ignore_ascii_case("newWorld.cs") { return Some(Vec::new()); }
+            self.world.load(name)?.ok().map(|(_, bytes)| bytes)
+        }
+        fn world_command(&mut self, words: &[String], _: &str) -> Option<String> {
+            if words[0] == "allowShadows" {
+                self.allowed = words.get(1).is_some_and(|v| kq8_core::script::number_value(v) != 0.0);
+            }
+            Some("0".into())
+        }
+        fn log(&mut self, _: String) {}
+    }
+    let mut host = Switch { world, allowed: initial };
+    kq8_core::script::Scripts::new(vars).call("world.cs", &["KQWorld".into(), "Load".into()], &mut host);
+    host.allowed
 }
 
 /// A monster-list line being placed (characters.md rule 4): the line, and
@@ -2508,6 +2537,11 @@ impl kq8_data::world_script::Host for Placer<'_> {
     fn apply_combat_level(&mut self, on: bool, at: &str) {
         self.combat_apply = on;
         self.log.summary(format!("fight: {at}: applyCombatLevel {}: characters loaded from here on get the combat level (fighting.md rule 3)", u8::from(on)));
+    }
+
+    fn allow_shadows(&mut self, on: bool, at: &str) {
+        self.shadows_allowed = on;
+        self.log.summary(format!("{at}: allowShadows {} at world load", u8::from(on)));
     }
 
     fn connor_line(&mut self, words: &[String], at: &str) -> bool {
@@ -3451,21 +3485,20 @@ impl Placer<'_> {
             }
             // 4d-7a: does it cast a shadow (characters.md rule 36)? The
             // world's mask from Options.cs (else the built-in 1);
-            // `allowShadows` taken as on (its default; Daventry's world.cs
-            // says 1).
+            // The startup scripts' current allowShadows switch.
             if let Some(c) = character.as_mut() {
                 let world_mask = *self.shadow_world_mask.get_or_insert_with(|| {
                     kq8_data::characters::shadow_mask_setting(&crate::option_settings::effective_script(self.game)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
                 });
-                let casts = kq8_data::characters::casts_shadow(world_mask, c.keys.shadow_mask, true, p.translucency);
+                let casts = kq8_data::characters::casts_shadow(world_mask, c.keys.shadow_mask, self.shadows_allowed, p.translucency);
                 c.casts_shadow = casts;
                 self.character_lines.push(format!(
-                    "shadow [{}]: {} (world mask {world_mask} AND shadowMask {} = {}; translucency {}; allowShadows on) (rule 36; drawn on the terrain, 4d-7b-2)",
+                    "shadow [{}]: {} (world mask {world_mask} AND shadowMask {} = {}; translucency {}; allowShadows {}) (rule 36; drawn on the terrain, 4d-7b-2)",
                     p.name,
                     if casts { "CASTS a shadow" } else { "no shadow" },
                     c.keys.shadow_mask,
                     world_mask & c.keys.shadow_mask,
-                    p.translucency
+                    p.translucency, u8::from(self.shadows_allowed)
                 ));
             }
             // 4d-6a: how far above the ground grids a character starts
@@ -4958,6 +4991,7 @@ impl Placer<'_> {
             prop_placements: self.prop_placements,
             map: self.map,
             shadow_world_mask,
+            shadows_allowed: self.shadows_allowed,
             shapes: self.shapes,
             placed: self.placed,
             markers: self.markers,
@@ -5494,6 +5528,32 @@ mod campaign_tests {
 
     fn game_install() -> GameDir {
         GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap()
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_world_shadow_defaults_and_rope_script_switches() {
+        let game = game_install();
+        for (name, expected) in [("Daventry", true), ("CastleD", false), ("DeadCity", true),
+            ("Swamp", true), ("Gnome", false), ("Barren", true), ("IceWorld", true),
+            ("Snowexit", true), ("temple1", false), ("temple2", false), ("temple3", false), ("temple4", false)] {
+            let world = World::open(&game, name).unwrap();
+            assert_eq!(load_shadow_switch(&world, Default::default(), !expected), expected, "{name} Load branch");
+        }
+        for (name, allowed) in [("DeadCity", true), ("Gnome", false)] {
+            let world = World::open(&game, name).unwrap();
+            let mut log = Log::create("shadow-script-assets-test").unwrap();
+            let ground = load_ground(&game, &world, &mut log).unwrap();
+            let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+            assert_eq!(objects.shadows_allowed, allowed, "{name} ignored its startup shadow switch");
+            if name == "DeadCity" {
+                let mut active = kq8_core::active::Active::new(objects.vars.clone(), vec![], vec![], ["Connor".into()], objects.scripts.clone());
+                for (file, expected) in [("ropetp1b.cs", false), ("ropetp1a.cs", true)] {
+                    assert!(active.run_script(file, &["ropeTrap".into(), "On".into()]));
+                    assert_eq!(active.world.shadows_allowed, expected, "{file}");
+                }
+            }
+        }
     }
 
     fn world_player(actor: &mut AnimatedAssets, models: &[Animation], name: &str, at: kq8_core::collide::Placement) -> kq8_core::named_anim::NamedAnimPlayer {

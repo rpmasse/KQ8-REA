@@ -147,6 +147,8 @@ pub trait Host {
     /// on characters entering the world get the combat level's factor.
     /// By default nothing is done.
     fn apply_combat_level(&mut self, _on: bool, _at: &str) {}
+    /// `allowShadows 0|1`, independent of the user's shadow categories.
+    fn allow_shadows(&mut self, _on: bool, _at: &str) {}
     /// Permanent scenery is loaded with persistence disabled.
     fn activate_persist_manager(&mut self, _on: bool) {}
     /// `setLoadProgress <percent>` (no number: one step on;
@@ -375,6 +377,10 @@ fn run_script(name: &str, args: &[String], host: &mut dyn Host, out: &mut Script
             "applycombatlevel" => {
                 let on = words.get(1).and_then(|v| v.parse::<f64>().ok()).is_some_and(|v| v != 0.0);
                 host.apply_combat_level(on, &at);
+            }
+            "allowshadows" => {
+                let on = words.get(1).and_then(|v| v.parse::<f64>().ok()).is_some_and(|v| v != 0.0);
+                host.allow_shadows(on, &at);
             }
             "kqconner::setlevel" | "sendevent" => {
                 if !host.connor_line(&words, &at) {
