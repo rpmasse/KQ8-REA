@@ -351,6 +351,38 @@ pub struct MonsterLine {
 }
 
 impl MonsterLine {
+    /// The script's `KQMonster::add` accepts either a full monster-list
+    /// value or only name and type (characters.md rule 4). The script
+    /// interpreter has already split quoted fields into individual words.
+    pub fn from_command(words: &[String]) -> Result<Self, String> {
+        match words {
+            [name, type_name] if !name.is_empty() && !type_name.is_empty() => {
+                let (type_name, skin) = split_skin(unquote(type_name))?;
+                Ok(Self {
+                    key: "KQMonster::add".into(),
+                    name: name.clone(),
+                    type_name,
+                    skin,
+                    position: [0.0; 3],
+                    heading: 0.0,
+                    movement: Field::FromType,
+                    alarm_radius: Field::FromType,
+                    birth_delay: Field::FromType,
+                    team: None,
+                    chase: Field::FromType,
+                    attack_dist: Field::FromType,
+                    extra: [0; 4],
+                    inv_hold: Vec::new(),
+                    inv_drop: Vec::new(),
+                    attack_delay: Field::FromType,
+                    attack_more: None,
+                })
+            }
+            fields if fields.len() == line::COUNT => Self::parse("KQMonster::add", &fields.join("\t")),
+            fields => Err(format!("KQMonster::add: {} fields, expected 2 or {}", fields.len(), line::COUNT)),
+        }
+    }
+
     /// Reads one `monsterN=` value.
     pub fn parse(key: &str, value: &str) -> Result<Self, String> {
         let fields: Vec<&str> = value.split('\t').map(unquote).collect();
@@ -1217,6 +1249,49 @@ impl OrbitKeys {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scripted_monster_add_uses_the_monster_list_fields() {
+        let fields = "rat1 rat @ @ @ @ @ 1000 1000 -1 0 patrol,2,1000,1000,-1,64000,254000,-1 @ @ @ @ @ @ @ @";
+        let words: Vec<String> = fields.split_whitespace().map(str::to_owned).collect();
+        let actual = MonsterLine::from_command(&words).unwrap();
+        let expected = MonsterLine::parse("KQMonster::add", &words.join("\t")).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(actual.position, [1000.0, 1000.0, -1.0]);
+        assert_eq!(actual.movement, Field::FromType);
+
+        let short = MonsterLine::from_command(&["guard".into(), "sprgnbowtype".into()]).unwrap();
+        assert_eq!((short.name.as_str(), short.type_name.as_str(), short.position), ("guard", "sprgnbowtype", [0.0; 3]));
+        assert_eq!(short.movement, Field::FromType);
+        assert!(MonsterLine::from_command(&["missing".into()]).is_err());
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_dead_city_monster_add_lines_resolve_to_their_types() {
+        let game = crate::GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let path = game.volume_path("DeadCity", "kq").unwrap();
+        let archive = crate::VolArchive::open(&path).unwrap();
+        let types_file = game.find("GAME/Kq/Monstats.mtl").unwrap();
+        let (types, errors) = MonsterTypes::parse(&std::fs::read(types_file).unwrap());
+        assert!(errors.is_empty(), "{errors:?}");
+        let mut found = Vec::new();
+        for file in ["RATKARMA.CS", "SKARMA.CS", "SNKARMA.CS", "WEEPER.CS", "WEEPERUP.CS"] {
+            let entry = archive.find(file).unwrap();
+            let data = archive.unpack(entry).unwrap().data;
+            for source in String::from_utf8_lossy(&data).lines() {
+                let words: Vec<String> = source.split_whitespace().map(str::to_owned).collect();
+                let Some(index) = words.iter().position(|w| w.eq_ignore_ascii_case("KQMonster::add")) else { continue };
+                let line = MonsterLine::from_command(&words[index + 1..]).unwrap();
+                let (kind, _) = types.find(&line.type_name).unwrap();
+                assert!(archive.find(&kind.file).is_some(), "{}: {}", line.name, kind.file);
+                assert_eq!(line.movement, Field::FromType, "{}", line.name);
+                found.push((line.name, line.type_name));
+            }
+        }
+        assert_eq!(found.len(), 16);
+        assert!(found.iter().any(|(name, kind)| name == "spiritW" && kind == "spirit"));
+    }
 
     #[test]
     fn only_lucreto_reads_the_distance_for_changing_form() {

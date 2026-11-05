@@ -21,6 +21,8 @@ version `1.0.0.3`. Its SHA-256 is
 In the same installation, `data/DeadCity/kq.vol` supplies the authored scripts
 for the two scale dishes, the feather and the river.
 
+The same Dead City archive supplies 16 `KQMonster::add` lines in `RATKARMA.CS`, `SKARMA.CS`, `SNKARMA.CS`, `WEEPER.CS` and `WEEPERUP.CS`. The [character behavior note, rule 4](../behaviour/characters.md) defines their field order and documented short form. The Rust parser shares the existing monster-list field reader; an original-data regression checks all 16 lines against the GOG `GAME/Kq/Monstats.mtl` and the referenced `.kq` files. The running world does not yet create these monsters.
+
 The current GOG `Daventry/kq.vol` supplies `newWorld.cs` and `permwrld.cs`. The latter disables `activatePersistMgr` while loading permanent scenery and enables it before ordinary props. [World-change behavior, rule 12](../behaviour/world-change.md) describes how the original kept world stores the current state of objects loaded while that manager is active. The Rust save stores changed placements of these props in its own versioned format. The windmill replay checks the bale's restored collision surface and the axe's scripted location after a fresh-process load.
 
 ## Campaign script variables and payments

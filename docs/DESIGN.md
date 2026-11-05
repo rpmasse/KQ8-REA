@@ -49,6 +49,8 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Runtime monster creation.** Dead City's karma scripts call `KQMonster::add` after play has begun. Reuse the existing `MonsterLine` parser and `Monstats.mtl` type lookup rather than interpreting those lines as `loadKQ`. Prepare each referenced type's model and movements while the world loads, then instantiate a character with the command's name, placement, fight fields, inventory, wandering and script behavior at the script tick. Check the 20-field form against the owned GOG data and the documented two-word form with a focused fixture. Verify that its AI, collision, damage, deletion and save/restore all work after a fresh relaunch, including the scripts' field-12 patrol quirk. Unknown types must create nothing and log the original error. Do this as a separate change before claiming the Dead City encounters are complete.
+
 Inventory the original weapons, ammunition, enemy attacks, damage rules and difficulty settings. Replace temporary controls and complete equipping, aiming, attack timing, hit detection, projectiles, consumables, experience, drops, death and game over. Verify special enemies in their M6 encounters.
 
 **Completion check.** Replay controlled melee and ranged encounters. Check hits and misses, ammunition, health before and after impact, potion expiry, rewards, drops and game-over transitions. Link every weapon and enemy rule to a passing scenario.
