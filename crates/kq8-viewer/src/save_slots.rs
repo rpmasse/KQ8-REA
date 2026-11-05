@@ -56,10 +56,18 @@ pub(super) struct Snapshot {
     /// Absent in older slots: retain the loaded world's script default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     shadows_allowed: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    speech: Option<kq8_core::talk::SavedTalk>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    speech_sources: Option<std::collections::BTreeMap<u64, Option<[f32; 3]>>>,
 }
 
 impl Snapshot {
     fn validate(&self) -> Result<(), String> {
+        if self.speech.as_ref().is_some_and(|s| !s.valid()) { return Err("save has invalid speech queues".into()); }
+        if self.speech_sources.as_ref().is_some_and(|sources| sources.len() > 4096 || sources.values().flatten().flatten().any(|v| !v.is_finite())) {
+            return Err("save has invalid speech source positions".into());
+        }
         if !(1..=VERSION).contains(&self.version) {
             return Err(format!(
                 "unsupported save version {} (supported: 1 through {VERSION})",
@@ -225,8 +233,16 @@ impl Snapshot {
     }
 
     pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) -> Result<(), String> {
+        if let Some(sources) = &self.speech_sources {
+            if let Some(mut speech) = world.get_resource_mut::<crate::talk_view::Speech>() { speech.sources.clone_from(sources); }
+        }
         if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
             self.restore_objects_and_vars(&mut sim.active);
+            if let Some(speech) = &self.speech {
+                let now = sim.active.world.now();
+                let captions = sim.active.scripts.vars.get("Options::Captions") == Some("true");
+                sim.active.world.talk.restore(speech, now, captions)?;
+            }
             if self.weapon_state.as_ref().is_some_and(|state| !state.matches_list(crate::door_view::weapon_list(&sim.active.world).as_deref())) {
                 return Err("saved weapon movement list does not match the restored world".into());
             }
@@ -460,6 +476,8 @@ pub fn save_slot_with_thumbnail(
         }),
         drains: Some(sim.active.world.saved_drains()?),
         shadows_allowed: Some(sim.active.world.shadows_allowed),
+        speech: Some(sim.active.world.talk.saved(sim.active.world.now())),
+        speech_sources: world.get_resource::<crate::talk_view::Speech>().map(|s| s.sources.clone()),
     };
     write_slot(&directory(), slot, &snapshot)
 }
@@ -619,6 +637,8 @@ mod tests {
             bolts: Some(kq8_core::fight::SavedBolts { bolts: Vec::new(), bolts_shot: 0 }),
             drains: Some(Vec::new()),
             shadows_allowed: None,
+            speech: None,
+            speech_sources: None,
             journey: take_journey(&sim, "Daventry"),
             kept,
         }

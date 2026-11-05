@@ -116,7 +116,7 @@ impl Book {
 }
 
 /// What a line is for (conversation.md rules 20–22).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum LineKind {
     /// A line of a `speak` or of a conversation's range.
     Normal,
@@ -127,7 +127,7 @@ pub enum LineKind {
 }
 
 /// One `speak`'s lines, waiting in a queue.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct Entry {
     tuple: Tuple,
     /// The `speak`'s first line: the duplicate check (rule 9).
@@ -139,7 +139,7 @@ struct Entry {
 }
 
 /// A line playing now.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Playing {
     /// Its own number, never used again ("Do not reproduce").
     pub id: u64,
@@ -155,6 +155,8 @@ pub struct Playing {
     pub kind: LineKind,
     /// Its camera number `[n]`, conversation lines only (rule 14).
     pub camera: Option<u32>,
+    /// Whether the original line actually started a voice.
+    voiced: bool,
     /// Mouth changes not reached yet, earliest first.
     mouths: VecDeque<Mouth>,
 }
@@ -167,7 +169,7 @@ impl Playing {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct Queue {
     issuer: String,
     lines: VecDeque<Entry>,
@@ -193,7 +195,7 @@ impl Queue {
 }
 
 /// What a `speak` asks for (rule 6), already checked.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Speak {
     pub issuer: String,
     pub first: Tuple,
@@ -205,6 +207,8 @@ pub struct Speak {
 /// What the caller is told.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TalkEvent {
+    /// Restore presentation at an existing line's elapsed time; no camera cut.
+    Resume { id: u64, issuer: String, speaker: String, tuple: Tuple, voice: Option<String>, caption: Option<String>, elapsed: f64, mouth: u16 },
     /// A line starts: play `voice` (Connor's plain, others placed at the
     /// speaker, rule 10), show `caption`, turn other sounds down if
     /// `duck`.
@@ -265,6 +269,10 @@ pub struct Talk {
     /// Lines for `talk.log`, taken by the caller.
     pub log: Vec<String>,
 }
+
+#[path = "talk_checkpoint.rs"]
+mod checkpoint;
+pub use checkpoint::SavedTalk;
 
 fn same(a: &str, b: &str) -> bool {
     a.eq_ignore_ascii_case(b)
@@ -702,6 +710,7 @@ impl Talk {
         let duck = !e.nofade;
         let mouths: VecDeque<Mouth> = voice.as_ref().filter(|_| speaker_there).map(|v| v.mouths.iter().copied().collect()).unwrap_or_default();
         let caption = captions.then(|| shown.text.clone());
+        let voiced = voice.is_some() && speaker_there;
         // conversation.md rule 14: camera numbers only in conversations.
         let camera = shown.camera.filter(|_| conv);
         let what = match e.kind {
@@ -751,6 +760,7 @@ impl Talk {
             last: e.last,
             kind: e.kind,
             camera,
+            voiced,
             mouths,
         });
     }
@@ -790,6 +800,76 @@ mod tests {
 
     fn run(t: &mut Talk, from: u64, to: u64) -> Vec<Finished> {
         (from..to).flat_map(|u| t.update(u as f64 / 15.0, true, &|n| n == "Wizard")).collect()
+    }
+
+    #[test]
+    fn a_saved_voice_resumes_its_phase_and_finishes_each_queued_line_once() {
+        let voices = || -> VoiceLookup { Box::new(|folder, tuple| Some(Voice { path: format!("{folder}/{}", tuple.voice_name()),
+            seconds: 0.4, mouths: vec![Mouth { time: 6, shape: 3 }, Mouth { time: 18, shape: 5 }] })) };
+        let mut original = talk();
+        original.voices = Some(voices());
+        original.queue(&speak("Connor", 55, 1, 2), 100.0);
+        original.update(100.0, true, &|_| true);
+        original.update(100.2, true, &|_| true);
+        let saved: SavedTalk = serde_json::from_slice(&serde_json::to_vec(&original.saved(100.2)).unwrap()).unwrap();
+        assert!(saved.valid());
+        let mut restored = talk();
+        restored.voices = Some(voices());
+        restored.restore(&saved, 500.0, true).unwrap();
+        assert!(restored.events.iter().any(|e| matches!(e, TalkEvent::Resume { elapsed, mouth: 3, .. } if (*elapsed - 0.2).abs() < 1e-8)));
+        assert!(!restored.events.iter().any(|e| matches!(e, TalkEvent::Start { .. } | TalkEvent::Mouth { .. })));
+        assert!(restored.ducking());
+        assert!(restored.update(500.19, true, &|_| true).is_empty());
+        let first = restored.update(500.2, true, &|_| true);
+        assert_eq!(first.iter().map(|f| (f.id, f.tuple.seq, f.last)).collect::<Vec<_>>(), [(0, 1, false)]);
+        let last = restored.update(500.6, true, &|_| true);
+        assert_eq!(last.iter().map(|f| (f.id, f.tuple.seq, f.last)).collect::<Vec<_>>(), [(1, 2, true)]);
+        assert!(restored.update(501.0, true, &|_| true).is_empty());
+        assert!(!restored.ducking());
+        assert_eq!(restored.events.iter().filter(|e| matches!(e, TalkEvent::Mouth { id: 0, shape: 5, .. })).count(), 1);
+        assert!(!restored.events.iter().any(|e| matches!(e, TalkEvent::Mouth { id: 0, shape: 3, .. })), "a consumed mouth cue replayed");
+    }
+
+    #[test]
+    fn saved_delayed_lines_and_a_goodbye_pause_keep_their_state() {
+        let mut original = talk();
+        original.queue_later(speak("Wizard", 7, 1, 1), 100.0);
+        let mut restored = talk();
+        restored.restore(&original.saved(100.2), 500.0, true).unwrap();
+        restored.update(500.0 + TURN_WAIT - 0.21, true, &|_| true);
+        assert!(restored.playing("Wizard").is_none());
+        restored.update(500.0 + TURN_WAIT - 0.2, true, &|_| true);
+        assert_eq!(restored.playing("Wizard").unwrap().tuple.noun, 7);
+
+        let mut original = talk();
+        original.conv_queue("Wizard", Some(Tuple::new(1000, 7, 0, 0, 1)), None, 0.0);
+        original.conv_start(&speak("Wizard", 55, 1, 2), 0.0);
+        original.update(0.0, true, &|_| true);
+        assert_eq!(original.conv_goodbye("Wizard", 0.1, true, &|_| true), Goodbye::Started);
+        original.update(5.0, true, &|_| true);
+        let mut restored = talk();
+        let saved: SavedTalk = serde_json::from_slice(&serde_json::to_vec(&original.saved(5.0)).unwrap()).unwrap();
+        restored.restore(&saved, 0.0, true).unwrap();
+        assert!(restored.conv_paused("Wizard"));
+        assert_eq!(restored.conv_left("Wizard"), 2);
+        assert!(restored.update(10.0, true, &|_| true).is_empty());
+        assert!(restored.conv_playing("Wizard").is_none());
+    }
+
+    #[test]
+    fn saved_text_only_speech_and_invalid_phase_are_handled() {
+        let mut original = talk();
+        original.queue(&speak("Wizard", 7, 1, 1), 0.0);
+        original.update(0.0, true, &|_| true);
+        let saved = original.saved(0.1);
+        let mut restored = talk();
+        restored.restore(&saved, 10.0, false).unwrap();
+        assert!(matches!(restored.events.first(), Some(TalkEvent::Resume { voice: None, caption: None, .. })));
+        let mut json = serde_json::to_value(saved).unwrap();
+        json["queues"][0]["playing"]["started"] = 0.2.into();
+        let invalid: SavedTalk = serde_json::from_value(json).unwrap();
+        assert!(!invalid.valid());
+        assert!(restored.restore(&invalid, 0.0, true).is_err());
     }
 
     #[test]

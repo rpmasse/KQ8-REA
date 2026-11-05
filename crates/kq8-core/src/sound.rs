@@ -228,6 +228,7 @@ pub struct Found {
 /// What the mixer is told to do. `id` names one playing sound.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Order {
+    Seek { id: u64, seconds: f64 },
     /// Start `name` (as in [`Start::name`]) from its beginning.
     Start { id: u64, name: String, looping: bool, gains: [f32; 2] },
     Gains { id: u64, gains: [f32; 2] },
@@ -358,6 +359,17 @@ impl SoundSystem {
     /// 13) or why it found nothing. Returns its id, `None` if skipped.
     pub fn start(&mut self, s: &Start, file: Result<Found, String>, ears: &Ears) -> Option<u64> {
         self.start_at_level(s, file, ears, 1.0)
+    }
+
+    /// Resume a disk-saved voice on the sound clock as well as in the mixer.
+    pub fn seek(&mut self, id: u64, seconds: f64) {
+        if !seconds.is_finite() || seconds < 0.0 { return; }
+        if let Some(p) = self.playing.iter_mut().find(|p| p.id == id) {
+            p.played = seconds.min(p.seconds);
+            let seconds = p.played;
+            self.orders.push(Order::Seek { id, seconds });
+            self.note(format!("seek #{id} to {seconds:.3} seconds (speech checkpoint)"));
+        }
     }
 
     /// [`SoundSystem::start`] with its own level (rule 33): 0 for a tune

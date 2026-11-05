@@ -24,6 +24,7 @@ use kq8_data::aud::Sound;
 /// What the mixer is told to do; `id` names one playing sound.
 #[derive(Debug, Clone)]
 pub enum Command {
+    Seek { id: u64, seconds: f64 },
     Start { id: u64, sound: Arc<Sound>, looping: bool, gains: [f32; 2] },
     Gains { id: u64, gains: [f32; 2] },
     Pause { id: u64 },
@@ -86,6 +87,14 @@ impl Mixer {
     pub fn apply(&mut self, c: Command) {
         let find = |v: &mut Vec<Voice>, id: u64| v.iter().position(|x| x.id == id);
         match c {
+            Command::Seek { id, seconds } => {
+                if seconds.is_finite() && seconds >= 0.0 {
+                    if let Some(n) = find(&mut self.voices, id) {
+                        let v = &mut self.voices[n];
+                        v.pos = (seconds * f64::from(v.sound.rate)).min(v.sound.frames() as f64);
+                    }
+                }
+            }
             Command::Start { id, sound, looping, gains } => {
                 let step = f64::from(sound.rate) / f64::from(self.rate.max(1));
                 if sound.frames() > 0 {
@@ -264,6 +273,21 @@ mod tests {
         let mut out = [0.0f32; 2];
         m.mix(&mut out, 2);
         assert_eq!(out, [0.5, -0.5]);
+    }
+
+    #[test]
+    fn a_resumed_voice_starts_at_its_saved_sample_not_the_beginning() {
+        let mut mixer = Mixer::new(100);
+        mixer.apply(Command::Start { id: 1, sound: sound(100, 1, vec![100, 200, 300, 400]), looping: false, gains: [1.0; 2] });
+        mixer.apply(Command::Seek { id: 1, seconds: 0.02 });
+        let mut sample = [0.0f32; 2];
+        mixer.mix(&mut sample, 2);
+        assert_eq!((sample[0] * 32_768.0).round() as i32, 300);
+        mixer.mix(&mut sample, 2);
+        assert_eq!((sample[0] * 32_768.0).round() as i32, 400);
+        mixer.mix(&mut sample, 2);
+        assert_eq!(sample, [0.0; 2]);
+        assert_eq!(mixer.voices(), 0);
     }
 
     #[test]
