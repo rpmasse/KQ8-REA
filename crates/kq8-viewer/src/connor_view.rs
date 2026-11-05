@@ -363,6 +363,31 @@ pub struct SavedShot {
     transition_playing: Option<SavedSwingTransition>,
 }
 
+/// A standalone Special list with its current cue position. Resolved
+/// movement names are looked up again in the installed game data on load.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedSpecial {
+    movement: String,
+    phase: f32,
+    bank: f32,
+    fresh: bool,
+    steps: Vec<SavedSpecialStep>,
+    at: usize,
+    auto: Option<kq8_core::connor_auto::AutoMove>,
+    wanted: Option<String>,
+    transition_waiting: Option<SavedSwingTransition>,
+    transition_playing: Option<SavedSwingTransition>,
+    death: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+enum SavedSpecialStep {
+    Play(String, String),
+    Kill,
+    Inv(String),
+    Note(String),
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct SavedSwingTransition {
     from: f32,
@@ -434,7 +459,96 @@ impl SavedShot {
     }
 }
 
+impl SavedSpecial {
+    pub fn valid(&self) -> bool {
+        valid_swing_name(&self.movement)
+            && self.phase.is_finite() && (0.0..=1.0).contains(&self.phase) && self.bank.is_finite()
+            && (1..=128).contains(&self.steps.len()) && self.at < self.steps.len()
+            && matches!(&self.steps[self.at], SavedSpecialStep::Play(name, _) if name.eq_ignore_ascii_case(&self.movement))
+            && self.steps.iter().all(|step| match step {
+                SavedSpecialStep::Play(name, written) => valid_swing_name(name) && valid_swing_name(written),
+                SavedSpecialStep::Inv(item) => valid_swing_name(item),
+                SavedSpecialStep::Note(note) => note.len() <= 1024 && !note.chars().any(char::is_control),
+                SavedSpecialStep::Kill => true,
+            })
+            && self.wanted.as_ref().is_none_or(|name| valid_swing_name(name))
+            && self.death.as_ref().is_none_or(|name| valid_swing_name(name))
+            && [self.transition_waiting.as_ref(), self.transition_playing.as_ref()].into_iter().flatten().all(SavedSwingTransition::valid)
+            && self.auto.as_ref().is_none_or(|auto| {
+                use kq8_core::connor_auto::AutoPhase;
+                auto.target.iter().all(|n| n.is_finite())
+                    && auto.turn_updates < u32::MAX / 2
+                    && auto.cue.as_ref().is_none_or(|cue| [cue.who.as_str(), cue.c.as_str(), cue.d.as_str()].into_iter().all(valid_swing_name))
+                    && match auto.phase {
+                        AutoPhase::Turning => true,
+                        AutoPhase::Walking { from, distance } => from.iter().all(|n| n.is_finite()) && distance.is_finite(),
+                    }
+            })
+    }
+}
+
 impl ConnorSim {
+    pub fn saved_special(&self) -> Option<SavedSpecial> {
+        use kq8_core::connor::SpecialStep;
+        let walker = &self.walker;
+        if walker.mode != Mode::Special || self.swing.is_some() || self.shot.is_some()
+            || self.throw.is_some() || self.rock.is_some() || self.rope.is_some()
+            || self.tile.is_some() || self.scales.is_some() || self.choice.is_some()
+            || self.readying || self.pending_set.is_some() || self.held_walk.is_some() {
+            return None;
+        }
+        let steps = walker.special.iter().map(|step| match step {
+            SpecialStep::Play(name, written) => SavedSpecialStep::Play((*name).into(), written.clone()),
+            SpecialStep::Kill => SavedSpecialStep::Kill,
+            SpecialStep::Inv(item) => SavedSpecialStep::Inv(item.clone()),
+            SpecialStep::Note(note) => SavedSpecialStep::Note(note.clone()),
+        }).collect();
+        let saved = SavedSpecial {
+            movement: walker.movement.into(), phase: walker.phase, bank: walker.bank,
+            fresh: walker.fresh, steps, at: walker.special_at, auto: walker.auto.clone(),
+            wanted: walker.wanted.map(str::to_owned),
+            transition_waiting: walker.waiting.map(SavedSwingTransition::take),
+            transition_playing: walker.playing.map(SavedSwingTransition::take),
+            death: walker.death.map(str::to_owned),
+        };
+        saved.valid().then_some(saved)
+    }
+
+    pub fn restore_special(&mut self, saved: &SavedSpecial) -> Result<(), String> {
+        use kq8_core::connor::SpecialStep;
+        if !saved.valid() { return Err("invalid Special movement checkpoint".into()); }
+        let resolve = |name: &str| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
+            .ok_or_else(|| format!("Special movement '{name}' is missing from the installed game data"));
+        let movement = resolve(&saved.movement)?;
+        let steps = saved.steps.iter().map(|step| match step {
+            SavedSpecialStep::Play(name, written) => Ok(SpecialStep::Play(resolve(name)?, written.clone())),
+            SavedSpecialStep::Kill => Ok(SpecialStep::Kill),
+            SavedSpecialStep::Inv(item) => Ok(SpecialStep::Inv(item.clone())),
+            SavedSpecialStep::Note(note) => Ok(SpecialStep::Note(note.clone())),
+        }).collect::<Result<Vec<_>, String>>()?;
+        let wanted = saved.wanted.as_deref().map(&resolve).transpose()?;
+        let death = saved.death.as_deref().map(&resolve).transpose()?;
+        let transition = |t: &SavedSwingTransition| -> Result<kq8_core::connor::Transition, String> {
+            Ok(kq8_core::connor::Transition { from: t.from, to: resolve(&t.to)?, to_phase: t.to_phase, via: resolve(&t.via)? })
+        };
+        let waiting = saved.transition_waiting.as_ref().map(&transition).transpose()?;
+        let playing = saved.transition_playing.as_ref().map(&transition).transpose()?;
+        self.walker.mode = Mode::Special;
+        self.walker.special = steps;
+        self.walker.special_at = saved.at;
+        self.walker.movement = movement;
+        self.walker.phase = saved.phase;
+        self.walker.bank = saved.bank;
+        self.walker.fresh = saved.fresh;
+        self.walker.auto = saved.auto.clone();
+        self.walker.wanted = wanted;
+        self.walker.waiting = waiting;
+        self.walker.playing = playing;
+        self.walker.death = death;
+        self.redraw_from_walker();
+        Ok(())
+    }
+
     pub fn saved_shot(&self) -> Option<SavedShot> {
         let shot = self.shot.as_ref()?;
         let walker = &self.walker;
@@ -2213,6 +2327,8 @@ impl ConnorSim {
         let p = self.walker.phase;
         self.current.2 = p;
         self.previous.2 = p;
+        self.current.3 = self.walker.bank;
+        self.previous.3 = self.walker.bank;
         self.phase_step = self.phase_step_now();
     }
 

@@ -87,7 +87,7 @@ impl WorldState {
         }).collect()
     }
 
-    pub fn restore_drains(&mut self, saved: &[SavedDrain]) -> Result<(), String> {
+    pub fn restore_drains(&mut self, saved: &[SavedDrain], connor_react_saved: bool) -> Result<(), String> {
         if saved.len() > 64 || saved.iter().any(|d| !d.valid()) {
             return Err("invalid Weeper drain checkpoint".into());
         }
@@ -104,7 +104,7 @@ impl WorldState {
                     .ok_or_else(|| format!("Weeper drain {} is missing link template {file}", d.bolt))?;
                 links.push(i);
             }
-            if d.target.eq_ignore_ascii_case("Connor") {
+            if d.target.eq_ignore_ascii_case("Connor") && !connor_react_saved {
                 self.requests.push(Request::ConnorSpecial { items: d.keys.hurt_anim.clone(), at: "restored Weeper drain".into() });
             }
             self.weeper_drains.push(Drain {
