@@ -48,6 +48,46 @@ pub struct FloorView(pub u8);
 #[derive(Resource)]
 pub struct GroundLookup(pub kq8_data::Terrain);
 
+/// Apply the same surface to height queries and to the drawing, including
+/// alternate meshes selected later by a material animator.
+pub fn update_surface(
+    sim: Option<Res<crate::door_view::DoorSim>>,
+    lookup: Option<ResMut<GroundLookup>>,
+    light: Option<Res<GroundLight>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    shared: Res<Shared>,
+) {
+    let (Some(sim), Some(mut lookup), Some(light)) = (sim, lookup, light) else { return };
+    let edits = &sim.active.world.terrain_changes.heights;
+    if !lookup.0.apply_height_matches(edits) { return; }
+    let cell = lookup.0.settings.square_size();
+    let boxes: Vec<_> = edits.iter().map(|e| {
+        let [a, b, c, d] = e.rect.map(|v| (v as f32 / cell).floor() * cell);
+        [a - cell, b - cell, c, d]
+    }).collect();
+    let mut changed = 0;
+    for handle in &light.surface_meshes {
+        use bevy::mesh::VertexAttributeValues;
+        let Some(VertexAttributeValues::Float32x3(vertices)) = meshes.get(handle).and_then(|m| m.attribute(Mesh::ATTRIBUTE_POSITION)) else { continue };
+        let mut changes = Vec::new();
+        for (i, &[vx, vy, vz]) in vertices.iter().enumerate() {
+            let (x, y) = (vx * UNITS_PER_METRE, -vz * UNITS_PER_METRE);
+            if !boxes.iter().any(|&[a,b,c,d]| a <= x && x <= c && b <= y && y <= d) { continue; }
+            if let Some(surface) = lookup.0.height_at(x, y) {
+                let z = surface.height / UNITS_PER_METRE;
+                if (z - vy).abs() > 0.00001 { changes.push((i, z)); }
+            }
+        }
+        if changes.is_empty() { continue; }
+        let mut mesh = meshes.get_mut(handle).expect("existing ground mesh");
+        let Some(VertexAttributeValues::Float32x3(vertices)) = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION) else { continue };
+        changed += changes.len();
+        for (i, z) in changes { vertices[i][1] = z; }
+        mesh.compute_flat_normals();
+    }
+    shared.log.lock().unwrap().summary(format!("terrain: {} height matches, {changed} surface vertices updated", edits.len()));
+}
+
 /// The world's buildings as colliders, for Connor's mover (M2 step 2d-3).
 #[derive(Resource, Default)]
 pub struct Buildings(pub Vec<kq8_core::collide::BuildingCollider>);
@@ -181,6 +221,7 @@ pub fn setup_ground(
             let v = if shown { Visibility::Inherited } else { Visibility::Hidden };
             let (m, game) = mesh(tris, floor);
             let m = light.light_mesh(m, &game, &mut meshes);
+            if !floor { light.surface_meshes.push(m.clone()); }
             commands.spawn((Mesh3d(m), MeshMaterial3d(handle), part, v));
         };
         spawn(&surface_same, false, opaque.clone(), GroundPart::SurfaceSame, true);

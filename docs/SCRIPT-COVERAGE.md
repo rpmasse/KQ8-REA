@@ -15,7 +15,7 @@ What the game's scripts (`.cs`) and object files (`.kq`) ask of the program, fro
 | --- | ---: | ---: | --- | --- | --- |
 | Daventry | 174 | 92 | 8 (11) | 2 (13) | — |
 | CastleD | 17 | 29 | 4 (6) | 0 (0) | — |
-| DeadCity | 281 | 97 | 8 (33) | 1 (1) | Scales |
+| DeadCity | 281 | 97 | 7 (28) | 1 (1) | Scales |
 | Swamp | 93 | 82 | 9 (10) | 1 (1) | Tile2 |
 | Gnome | 111 | 79 | 8 (14) | 1 (1) | — |
 | Barren | 118 | 84 | 7 (12) | 0 (0) | Tile3 |
@@ -49,7 +49,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `setFirstPerson` | **missing** | 8 (0) | Swamp 2, temple1 2, temple2 2, temple3 2 | `Swamp/SWDOOR.CS` |
 | `KQCamera::shake` | **missing** | 5 (0) | Daventry 3, Barren 2 | `Daventry/beer42.CS` |
 | `KQConner::reduceHealth` | **missing** | 5 (0) | temple4 5 | `temple4/altar.cs` |
-| `matchHeights` | **missing** | 5 (0) | DeadCity 5 | `DeadCity/SCALE.CS` |
 | `useAlternateLightmap` | **missing** | 5 (0) | Gnome 4, temple4 1 | `Gnome/fusebox.cs` |
 | `KQCamera::setHeight` | **missing** | 3 (0) | temple3 2, temple4 1 | `temple3/traphz1.cs` |
 | `KQObject::setGroupsActive3D` | **missing** | 3 (0) | IceWorld 3 | `IceWorld/snowmane.cs` |
@@ -158,6 +157,7 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `earnTeleport` | built | 6 (0) | Daventry 1, DeadCity 1, Swamp 1, Gnome 2, IceWorld 1 | `Daventry/KeepDoor.cs` |
 | `offTeleport` | built | 6 (0) | Daventry 1, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1 | `Daventry/Teletrap.cs` |
 | `onTeleport` | built | 6 (0) | Daventry 1, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1 | `Daventry/Teletrap.cs` |
+| `matchHeights` | built | 5 (0) | DeadCity 5 | `DeadCity/SCALE.CS` |
 | `setConnorFlag` | built | 5 (0) | CastleD 1, DeadCity 2, Swamp 1, temple4 1 | `CastleD/casport.cs` |
 | `tileExit` | built | 5 (0) | DeadCity 2, Swamp 3 | `DeadCity/DDOOR4.CS` |
 | `getConnorFlag` | built | 4 (0) | Daventry 3, temple2 1 | `Daventry/drawings.cs` |
@@ -279,7 +279,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `KQMandragorTree` | **not named** | 1 | Swamp 1 | `Swamp/MANDRG.KQ` |
 | `KQOptionsScreen` | **not named** | 1 | Common 1 | `Common/Options.kq` |
 | `KQSaveScreen` | **not named** | 1 | Common 1 | `Common/savegame.kq` |
-| `KQTowerSkeleton` | **not named** | 1 | DeadCity 1 | `DeadCity/SKELTOWR.KQ` |
 | `KQObject` | named | 587 | Daventry 153, CastleD 10, DeadCity 189, Swamp 56, Gnome 42, Barren 50, IceWorld 34, Snowexit 4, temple1 24, temple2 8, temple3 8, temple4 9 | `Daventry/3beers.KQ` |
 | `KQAnimObject` | named | 458 | Daventry 67, CastleD 7, DeadCity 101, Swamp 39, Gnome 47, Barren 128, IceWorld 35, temple1 12, temple2 11, temple3 5, temple4 6 | `Daventry/alchy.kq` |
 | `KQTrap` | named | 344 | Daventry 58, CastleD 2, DeadCity 85, Swamp 33, Gnome 29, Barren 48, IceWorld 30, Snowexit 1, temple1 34, temple2 11, temple3 9, temple4 4 | `Daventry/alchrun.kq` |
@@ -307,5 +306,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `KQDeath` | named | 1 | DeadCity 1 | `DeadCity/DEATH.KQ` |
 | `KQLucreto` | named | 1 | temple4 1 | `temple4/lucend.kq` |
 | `KQPaddleObject` | named | 1 | DeadCity 1 | `DeadCity/paddle2.kq` |
+| `KQTowerSkeleton` | named | 1 | DeadCity 1 | `DeadCity/SKELTOWR.KQ` |
 | `KQWeepBolt` | named | 1 | DeadCity 1 | `DeadCity/PRweeper.kq` |
 

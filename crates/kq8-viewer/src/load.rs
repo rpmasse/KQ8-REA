@@ -1473,6 +1473,7 @@ pub struct MapFile {
 }
 
 pub struct Objects {
+    pub terrain_changes: kq8_core::ground_anim::GroundChanges,
     pub contact_scripts: Vec<(String, String)>,
     /// Carried state read by destination Init scripts (e.g. Daventry's girl.cs).
     pub arriving_flags: Option<(BTreeMap<String, bool>, bool)>,
@@ -3347,13 +3348,19 @@ impl Placer<'_> {
         // animation, shown at its start frame (objects.md "Animated
         // objects at load").
         let mut animation = None;
-        if p.shape.is_none() {
+        // Dead City's scale.kq has both shapeName and an animation list.
+        // Its displayed model comes from the selected movement (sclf.kqs).
+        let anim_object = p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQAnimObject"));
+        if p.shape.is_none() || anim_object {
             match kq8_data::objects::current_loop(&file, s) {
                 Ok(Some(c)) => {
                     p.shape = Some(c.shape.clone());
                     animation = Some(c);
                 }
                 Ok(None) => {}
+                Err(e) if p.shape.is_some() => {
+                    self.log.detail(format!("{label}[{}]: animation lookup failed: {e}; using the named model", p.name));
+                }
                 Err(e) => {
                     self.log.detail(format!("skip {label}[{}]: animation lookup failed: {e}", p.name));
                     *self.skipped_map(unused).entry("animation lookup failed".into()).or_default() += 1;
@@ -4738,6 +4745,7 @@ impl Placer<'_> {
             self.game.find("Options.cs").and_then(|p| std::fs::read(p).ok()).and_then(|b| kq8_data::characters::shadow_mask_setting(&b)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
         });
         Objects {
+            terrain_changes: Default::default(),
             contact_scripts: self.placed.iter().zip(&self.collision)
                 .filter(|((_, _, unused), info)| !*unused && info.calls_on_connor_contact && info.collider_mask & kq8_core::collide::CONNOR_TYPE != 0)
                 .filter_map(|((placed, _, _), info)| Some((placed.name.clone(), info.script.clone()?)))
@@ -5281,6 +5289,48 @@ mod campaign_tests {
 
     fn game_install() -> GameDir {
         GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap()
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_scales_cue_drains_only_the_five_blood_river_rectangles() {
+        use kq8_core::active::Active;
+        use kq8_data::terrain::Level;
+        let game = game_install();
+        let world = World::open(&game, "DeadCity").unwrap();
+        let mut log = Log::create("scales-height-test").unwrap();
+        let mut t = load_ground(&game, &world, &mut log).unwrap().terrain;
+        let before = t.clone();
+        let (_, script) = world.load("scale.cs").unwrap().unwrap();
+        let mut active = Active::new(Default::default(), vec![], vec![], ["scale".into(), "Connor".into()], [("scale.cs".into(), script)]);
+        assert!(active.run_script("scale.cs", &["scale".into(), "Cue".into(), "1".into(), "0".into()]));
+        active.update();
+        let matches = &active.world.terrain_changes.heights;
+        assert_eq!(matches.len(), 5);
+        assert!(matches.iter().all(|m| m.elapsed == 1 && m.frames == 1));
+        assert!(t.apply_height_matches(matches));
+        let mut changed = 0;
+        let size = t.settings.square_size() as i32;
+        for j in 0..t.heights.height {
+            for i in 0..t.heights.width {
+                let inside = matches.iter().any(|m| {
+                    let [a,b,c,d] = m.rect.map(|v| v / size);
+                    (a..c).contains(&(i as i32)) && (b..d).contains(&(j as i32))
+                });
+                let expected = before.point_height_on(if inside { Level::Floor } else { Level::Surface }, i, j);
+                assert_eq!(t.point_height(i, j), expected, "grid vertex {i},{j}");
+                changed += usize::from(t.point_height(i, j) != before.point_height(i, j));
+            }
+        }
+        assert!(changed > 0);
+        let mut restored = before;
+        let record = serde_json::to_vec(&active.world.terrain_changes).unwrap();
+        let kept: kq8_core::ground_anim::GroundChanges = serde_json::from_slice(&record).unwrap();
+        assert!(restored.apply_height_matches(&kept.heights));
+        for j in 0..t.heights.height {
+            for i in 0..t.heights.width { assert_eq!(t.point_height(i,j), restored.point_height(i,j)); }
+        }
+        println!("Dead City: {changed} original surface vertices reached their floor");
     }
 
     #[test]

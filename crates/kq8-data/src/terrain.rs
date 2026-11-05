@@ -194,6 +194,21 @@ pub enum Level {
     Surface,
 }
 
+/// One matchHeights operation in game units. Elapsed time is in simulation ticks.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct HeightMatch {
+    pub rect: [i32; 4],
+    pub frames: u32,
+    pub elapsed: u32,
+}
+
+impl HeightMatch {
+    pub fn valid(&self) -> bool {
+        self.rect[0] < self.rect[2] && self.rect[1] < self.rect[3]
+            && self.frames > 0 && self.elapsed <= self.frames
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Terrain {
     pub settings: TerrainSettings,
@@ -204,6 +219,8 @@ pub struct Terrain {
     /// Ground flags per square (`envInfo.kq` by the square's material,
     /// water.md), row by row from the bottom; empty if not read.
     pub square_flags: Vec<u32>,
+    surface_override: Vec<f32>,
+    applied_matches: Vec<HeightMatch>,
 }
 
 impl Terrain {
@@ -211,7 +228,7 @@ impl Terrain {
         if heights.width < 2 || heights.height < 2 {
             return Err(format!("height grid {}x{} is too small", heights.width, heights.height));
         }
-        Ok(Terrain { settings, heights, floor: None, square_flags: Vec::new() })
+        Ok(Terrain { settings, heights, floor: None, square_flags: Vec::new(), surface_override: Vec::new(), applied_matches: Vec::new() })
     }
 
     /// Adds the floor grid; it must be the same size as the surface grid.
@@ -275,7 +292,37 @@ impl Terrain {
 
     /// Height of grid point (i, j) on one of the two grids.
     pub fn point_height_on(&self, level: Level, i: usize, j: usize) -> Option<f32> {
+        if level == Level::Surface && !self.surface_override.is_empty() {
+            return (i < self.heights.width && j < self.heights.height)
+                .then(|| self.surface_override[j * self.heights.width + i]);
+        }
         self.grid(level).get(i, j).map(|v| v as f32 * self.settings.height_scale)
+    }
+
+    /// Rebuilds from the original grids so a restored operation produces the
+    /// same intermediate heights as uninterrupted simulation. Upper corners
+    /// are excluded, as in the Dead City river rectangles.
+    pub fn apply_height_matches(&mut self, matches: &[HeightMatch]) -> bool {
+        if self.applied_matches == matches { return false; }
+        self.applied_matches = matches.to_vec();
+        let Some(floor) = &self.floor else { return false };
+        let scale = self.settings.height_scale;
+        self.surface_override = self.heights.values().iter().map(|&h| f32::from(h) * scale).collect();
+        let cell = self.settings.square_size() as i32;
+        let width = self.heights.width;
+        for op in matches.iter().filter(|op| op.valid() && op.elapsed > 0) {
+            let [x0, y0, x1, y1] = op.rect.map(|v| v.div_euclid(cell).max(0) as usize);
+            let fraction = op.elapsed as f32 / op.frames as f32;
+            for y in y0..y1.min(self.heights.height) {
+                for x in x0..x1.min(width) {
+                    let i = y * width + x;
+                    let bed = f32::from(floor.values()[i]) * scale;
+                    let h = &mut self.surface_override[i];
+                    *h += (bed - *h) * fraction;
+                }
+            }
+        }
+        true
     }
 
     /// True if square (i, j)'s diagonal runs from its (0, 0) corner to
@@ -493,6 +540,23 @@ mod tests {
         // points[j][i], j = 0 is the bottom row
         let heights = Grid { width: 2, height: 2, values: vec![points[0][0], points[0][1], points[1][0], points[1][1]] };
         Terrain::new(settings, heights).unwrap()
+    }
+
+    #[test]
+    fn height_match_interpolates_and_excludes_upper_edges() {
+        let mut t = terrain([[30, 20], [40, 80]], 2.0)
+            .with_floor(Grid::from_rows(2, 2, vec![10, 0, 0, 0]).unwrap()).unwrap();
+        let side = t.settings.square_size() as i32;
+        let mut change = HeightMatch { rect: [0, 0, side, side], frames: 4, elapsed: 1 };
+        assert!(t.apply_height_matches(std::slice::from_ref(&change)));
+        assert_eq!(t.point_height(0, 0), Some(50.0));
+        assert_eq!(t.point_height(1, 0), Some(40.0));
+        assert_eq!(t.point_height(0, 1), Some(80.0));
+        assert_eq!(t.point_height_on(Level::Floor, 0, 0), Some(20.0));
+        assert!(!t.apply_height_matches(std::slice::from_ref(&change)));
+        change.elapsed = 4;
+        assert!(t.apply_height_matches(&[change]));
+        assert_eq!(t.point_height(0, 0), Some(20.0));
     }
 
     #[test]
