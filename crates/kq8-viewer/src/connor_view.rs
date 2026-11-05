@@ -363,6 +363,22 @@ pub struct SavedShot {
     transition_playing: Option<SavedSwingTransition>,
 }
 
+/// Remaining moving-shot timers on Connor's own 15 Hz update clock. Disk
+/// loads start a new clock, so absolute deadlines cannot be stored.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedShotTiming {
+    next_shot_in: f64,
+    run_back_in: Option<f64>,
+    run: bool,
+}
+
+impl SavedShotTiming {
+    pub fn valid(&self) -> bool {
+        self.next_shot_in.is_finite() && (0.0..=60.0).contains(&self.next_shot_in)
+            && self.run_back_in.is_none_or(|t| t.is_finite() && (0.0..=60.0).contains(&t))
+    }
+}
+
 /// A standalone Special list with its current cue position. Resolved
 /// movement names are looked up again in the installed game data on load.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -488,6 +504,25 @@ impl SavedSpecial {
 }
 
 impl ConnorSim {
+    pub fn saved_shot_timing(&self) -> Option<SavedShotTiming> {
+        let now = self.clock();
+        let saved = SavedShotTiming {
+            next_shot_in: (self.next_moving_shot - now).max(0.0),
+            run_back_in: self.run_back_at.map(|at| (at - now).max(0.0)),
+            run: self.intent.run,
+        };
+        saved.valid().then_some(saved)
+    }
+
+    pub fn restore_shot_timing(&mut self, saved: &SavedShotTiming) -> Result<(), String> {
+        if !saved.valid() { return Err("invalid moving-shot timing checkpoint".into()); }
+        let now = self.clock();
+        self.next_moving_shot = now + saved.next_shot_in;
+        self.run_back_at = saved.run_back_in.map(|t| now + t);
+        self.intent.run = saved.run;
+        Ok(())
+    }
+
     pub fn saved_special(&self) -> Option<SavedSpecial> {
         use kq8_core::connor::SpecialStep;
         let walker = &self.walker;
