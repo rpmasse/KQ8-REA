@@ -165,6 +165,12 @@ pub struct KeptWorld {
     /// Live monsters created by world scripts after the original file load.
     #[serde(default)]
     pub spawned_monsters: Vec<kq8_core::active::SavedMonster>,
+    /// Runtime state of living characters from the installed world files.
+    #[serde(default)]
+    pub characters: Vec<kq8_core::active::SavedPlacedCharacter>,
+    /// `None` means a slot written before this field existed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_list: Option<Vec<String>>,
     /// Older version-1 slots did not store door or chest state.
     #[serde(default)]
     pub interactions: kq8_core::kept_interactions::KeptInteractions,
@@ -195,6 +201,8 @@ impl KeptWorld {
             vars: active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, from)).map(|(n, v)| (n.to_owned(), v.to_owned())).collect(),
             gone, came_in, states: active.world.kept_states_including(&prior_states),
             spawned_monsters: active.world.saved_spawned_monsters(),
+            characters: active.world.saved_placed_characters(),
+            active_list: Some(active.world.active_list.clone()),
             interactions: kq8_core::kept_interactions::KeptInteractions::take(&active.world),
             prop_placements,
             terrain_changes: active.world.terrain_changes.clone(),
@@ -893,11 +901,12 @@ pub fn world_change_step(world: &mut World) {
                 log.lock().unwrap().summary(format!("save restored in {} without replaying Begin", request.world));
                 return;
             }
-            let spawned = world.resource::<WorldChange>().kept.get(&request.world.to_ascii_lowercase())
-                .map(|kept| kept.spawned_monsters.clone()).unwrap_or_default();
-            if !spawned.is_empty() {
+            let kept = world.resource::<WorldChange>().kept.get(&request.world.to_ascii_lowercase()).cloned().unwrap_or_default();
+            if !kept.characters.is_empty() || !kept.spawned_monsters.is_empty() || kept.active_list.is_some() {
                 if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
-                    sim.active.world.restore_spawned_monsters(&spawned);
+                    sim.active.world.restore_placed_characters(&kept.characters);
+                    sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
+                    if let Some(list) = kept.active_list.as_deref() { sim.active.world.restore_active_list(list); }
                 }
             }
             // Rule 9: `Begin` on every arrival.
