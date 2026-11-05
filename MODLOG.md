@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Resume Connor's melee swing from a disk slot
+
+Version-2 slots now optionally keep Connor's live melee movement, animation phase, target, automatic turn, transition state and fight random generator. On reload, movement names resolve against the installed GOG animations before the swing resumes. Saving reports an error if an active swing cannot form a valid checkpoint; a missing movement on load reports a restore failure instead of claiming success. Older slots still load without these fields. In unattended Windows tests against the original Dead City skeleton, a saved pending turn resumed and hit once, an axe swing saved before its `Do` cue changed the skeleton from 60 to 18 health after a fresh launch, and a swing saved after `Do` did not hit twice. The first test attempt saved before the waiting swing request was applied; moving the trigger one update later captured it. The old-slot regression and the 609-test core suite passed (597 passed, 12 ignored). A Temple 4 probe showed `Die Now` disables the menu save input during its 45-update hold. Ranged shots, flinches, weapon swaps, Connor death and camera continuity remain open. Next: carry the other reachable live combat states through disk saves.
+
 ## 2026-11-05 Verify a script-created death across a fresh launch
 
 An unattended Windows test used the original Dead City rat type, created it at runtime, killed it with Connor's Small Axe and saved during its death movement. A new process rebuilt the rat from the installed GOG data, resumed the death and removed it at update 5. The saved experience changed from 10 to 11, exactly the rat's one-point reward; the death also made its original `rt_dead.kqs` corpse. The focused test passed. This closes the fresh-process check left open by the preceding death-save change. Connor's own combat checkpoint and the rest of the campaign remain incomplete.

@@ -24,7 +24,7 @@ pub const AUTO_TURN_RATE: f32 = 3.5;
 
 /// The cue a scripted turn or walk sends when it is done: `KQCueEvent
 /// <c> <d>` to `who`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Cue {
     pub who: String,
     pub c: String,
@@ -32,7 +32,7 @@ pub struct Cue {
 }
 
 /// What was asked.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum AutoKind {
     /// `pointAndCue`: only the turn.
     Point,
@@ -41,7 +41,7 @@ pub enum AutoKind {
 }
 
 /// Where it stands.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum AutoPhase {
     Turning,
     /// Walking straight ahead from `from` until `distance` (flat) is gone.
@@ -49,7 +49,7 @@ pub enum AutoPhase {
 }
 
 /// A scripted turn or walk in progress.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AutoMove {
     pub target: [f32; 2],
     pub kind: AutoKind,

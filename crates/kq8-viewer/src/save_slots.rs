@@ -33,6 +33,10 @@ pub(super) struct Snapshot {
     inventory_order: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     script_events: Option<kq8_core::events::SavedEvents>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    swing: Option<connor_view::SavedSwing>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    fight_rng: Option<kq8_core::emitter::Rng>,
 }
 
 impl Snapshot {
@@ -45,6 +49,9 @@ impl Snapshot {
         }
         if self.version >= 2 && !self.script_events.as_ref().is_some_and(|e| e.valid()) {
             return Err("save has a missing or invalid script event queue".into());
+        }
+        if self.swing.as_ref().is_some_and(|s| !s.valid()) || (self.swing.is_some() && self.fight_rng.is_none()) {
+            return Err("save has an invalid melee swing".into());
         }
         let known = |name: &str| {
             kq8_data::game_dir::WORLDS
@@ -168,9 +175,10 @@ impl Snapshot {
         }
     }
 
-    pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) {
+    pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) -> Result<(), String> {
         if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
             self.restore_objects_and_vars(&mut sim.active);
+            if let Some(rng) = &self.fight_rng { sim.active.world.fight_rng = rng.clone(); }
             if let Some(kept) = self.kept.get(&self.world.to_ascii_lowercase()) {
                 sim.active.world.restore_placed_characters(&kept.characters);
                 sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
@@ -179,7 +187,13 @@ impl Snapshot {
         }
         if let Some(mut connor) = world.get_resource_mut::<connor_view::ConnorSim>() {
             connor.put(self.position, self.heading);
+            if let Some(swing) = &self.swing {
+                connor.restore_swing(swing)?;
+            }
+        } else if self.swing.is_some() {
+            return Err("Connor is unavailable while restoring his melee swing".into());
         }
+        Ok(())
     }
 }
 
@@ -329,6 +343,10 @@ pub fn save_slot_with_thumbnail(
     let key = change.current.to_ascii_lowercase();
     let current = KeptWorld::take_for_disk_save(&sim.active, &change.current, kept.get(&key));
     kept.insert(key, current);
+    let swing = connor.saved_swing();
+    if connor.swing.is_some() && swing.is_none() {
+        return Err("Connor's current melee swing cannot be saved".into());
+    }
     let snapshot = Snapshot {
         version: VERSION,
         world: change.current.clone(),
@@ -342,6 +360,8 @@ pub fn save_slot_with_thumbnail(
         items: sim.active.world.items.objects.clone(),
         inventory_order: sim.active.world.items.inventory_order_counter(),
         script_events: Some(sim.active.world.saved_events()),
+        swing,
+        fight_rng: Some(sim.active.world.fight_rng.clone()),
     };
     write_slot(&directory(), slot, &snapshot)
 }
@@ -471,6 +491,8 @@ mod tests {
             items: sim.world.items.objects.clone(),
             inventory_order: 47,
             script_events: Some(sim.world.saved_events()),
+            swing: None,
+            fight_rng: None,
             journey: take_journey(&sim, "Daventry"),
             kept,
         }
@@ -507,6 +529,8 @@ mod tests {
             world.as_object_mut().unwrap().remove("characters");
             world.as_object_mut().unwrap().remove("active_list");
         }
+        previous_v2.as_object_mut().unwrap().remove("swing");
+        previous_v2.as_object_mut().unwrap().remove("fight_rng");
         assert!(serde_json::from_value::<Snapshot>(previous_v2).unwrap().validate().is_ok());
         // Version-1 slots predate the door/chest fields. All previously
         // supported state still loads; these objects use asset defaults.

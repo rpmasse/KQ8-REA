@@ -323,6 +323,118 @@ pub struct Swing {
     pub point: [f32; 2],
 }
 
+/// The part of Connor's live melee swing that a disk slot must resume.
+/// Movement names are resolved against the installed animation list on load.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedSwing {
+    movement: String,
+    target: Option<String>,
+    big: bool,
+    waiting: bool,
+    point: [f32; 2],
+    walker_mode: Mode,
+    walker_movement: String,
+    phase: f32,
+    bank: f32,
+    fresh: bool,
+    auto: Option<kq8_core::connor_auto::AutoMove>,
+    wanted: Option<String>,
+    transition_waiting: Option<SavedSwingTransition>,
+    transition_playing: Option<SavedSwingTransition>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct SavedSwingTransition {
+    from: f32,
+    to: String,
+    to_phase: f32,
+    via: String,
+}
+
+impl SavedSwingTransition {
+    fn take(t: kq8_core::connor::Transition) -> Self {
+        Self { from: t.from, to: t.to.into(), to_phase: t.to_phase, via: t.via.into() }
+    }
+
+    fn valid(&self) -> bool {
+        self.from.is_finite() && self.to_phase.is_finite() && valid_swing_name(&self.to) && valid_swing_name(&self.via)
+    }
+}
+
+fn valid_swing_name(name: &str) -> bool {
+    !name.is_empty() && name.len() <= 256 && !name.chars().any(char::is_control)
+}
+
+impl SavedSwing {
+    pub fn valid(&self) -> bool {
+        valid_swing_name(&self.movement) && valid_swing_name(&self.walker_movement)
+            && self.target.as_ref().is_none_or(|name| valid_swing_name(name))
+            && matches!(self.walker_mode, Mode::Free | Mode::Special)
+            && self.waiting == (self.walker_mode == Mode::Free)
+            && (self.waiting || self.walker_movement.eq_ignore_ascii_case(&self.movement))
+            && self.point.iter().all(|p| p.is_finite())
+            && self.phase.is_finite() && (0.0..=1.0).contains(&self.phase) && self.bank.is_finite()
+            && self.wanted.as_ref().is_none_or(|name| valid_swing_name(name))
+            && [self.transition_waiting.as_ref(), self.transition_playing.as_ref()].into_iter().flatten().all(SavedSwingTransition::valid)
+            && self.auto.as_ref().is_none_or(|auto| {
+                use kq8_core::connor_auto::AutoPhase;
+                auto.target.iter().all(|n| n.is_finite())
+                    && auto.turn_updates < u32::MAX / 2
+                    && auto.cue.as_ref().is_none_or(|cue| [cue.who.as_str(), cue.c.as_str(), cue.d.as_str()].into_iter().all(valid_swing_name))
+                    && match auto.phase {
+                        AutoPhase::Turning => true,
+                        AutoPhase::Walking { from, distance } => from.iter().all(|n| n.is_finite()) && distance.is_finite(),
+                    }
+            })
+    }
+}
+
+impl ConnorSim {
+    pub fn saved_swing(&self) -> Option<SavedSwing> {
+        let swing = self.swing.as_ref()?;
+        let walker = &self.walker;
+        let saved = SavedSwing {
+            movement: swing.movement.into(), target: swing.target.clone(), big: swing.big,
+            waiting: swing.waiting, point: swing.point, walker_mode: walker.mode,
+            walker_movement: walker.movement.into(), phase: walker.phase, bank: walker.bank,
+            fresh: walker.fresh, auto: walker.auto.clone(), wanted: walker.wanted.map(str::to_owned),
+            transition_waiting: walker.waiting.map(SavedSwingTransition::take),
+            transition_playing: walker.playing.map(SavedSwingTransition::take),
+        };
+        saved.valid().then_some(saved)
+    }
+
+    pub fn restore_swing(&mut self, saved: &SavedSwing) -> Result<(), String> {
+        if !saved.valid() { return Err("invalid melee swing checkpoint".into()); }
+        let resolve = |name: &str| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
+            .ok_or_else(|| format!("melee swing movement '{name}' is missing from the installed game data"));
+        let movement = resolve(&saved.movement)?;
+        let walker_movement = resolve(&saved.walker_movement)?;
+        let wanted = saved.wanted.as_deref().map(&resolve).transpose()?;
+        let transition = |t: &SavedSwingTransition| -> Result<kq8_core::connor::Transition, String> {
+            Ok(kq8_core::connor::Transition { from: t.from, to: resolve(&t.to)?, to_phase: t.to_phase, via: resolve(&t.via)? })
+        };
+        let waiting = saved.transition_waiting.as_ref().map(&transition).transpose()?;
+        let playing = saved.transition_playing.as_ref().map(&transition).transpose()?;
+        if saved.walker_mode == Mode::Special {
+            self.walker.start_special(vec![kq8_core::connor::SpecialStep::Play(movement, kq8_core::connor::plain_movement_name(movement).into())]);
+        }
+        self.walker.mode = saved.walker_mode;
+        self.walker.movement = walker_movement;
+        self.walker.phase = saved.phase;
+        self.walker.bank = saved.bank;
+        self.walker.fresh = saved.fresh;
+        self.walker.auto = saved.auto.clone();
+        self.walker.wanted = wanted;
+        self.walker.waiting = waiting;
+        self.walker.playing = playing;
+        self.swing = Some(Swing { movement, target: saved.target.clone(), big: saved.big, waiting: saved.waiting, point: saved.point });
+        self.melee_target.clone_from(&saved.target);
+        self.redraw_from_walker();
+        Ok(())
+    }
+}
+
 /// `ranged-weapons.md` rule 32: a waiting swing starts when the turn has
 /// this many updates or fewer to go.
 pub const SWING_TURN_UPDATES: f32 = 8.0;
