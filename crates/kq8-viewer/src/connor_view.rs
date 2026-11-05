@@ -372,6 +372,22 @@ pub struct SavedShotTiming {
     run: bool,
 }
 
+/// Time until Connor may flinch again and until his next ouch sound may play.
+/// Both clocks restart on disk load, so keep only the remaining durations.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedHitTiming {
+    flinch_in: f64,
+    ouch_in: f64,
+}
+
+impl SavedHitTiming {
+    pub fn valid(&self) -> bool {
+        [self.flinch_in, self.ouch_in]
+            .into_iter()
+            .all(|t| t.is_finite() && (0.0..=120.0).contains(&t))
+    }
+}
+
 impl SavedShotTiming {
     pub fn valid(&self) -> bool {
         self.next_shot_in.is_finite() && (0.0..=60.0).contains(&self.next_shot_in)
@@ -504,6 +520,25 @@ impl SavedSpecial {
 }
 
 impl ConnorSim {
+    pub fn saved_hit_timing(&self) -> Option<SavedHitTiming> {
+        use kq8_core::fight::{FLINCH_PAUSE, OUCH_EVERY};
+        let now = self.clock();
+        let saved = SavedHitTiming {
+            flinch_in: (self.flinch_end + FLINCH_PAUSE - now).max(0.0),
+            ouch_in: (self.last_ouch + OUCH_EVERY - now).max(0.0),
+        };
+        saved.valid().then_some(saved)
+    }
+
+    pub fn restore_hit_timing(&mut self, saved: &SavedHitTiming) -> Result<(), String> {
+        use kq8_core::fight::{FLINCH_PAUSE, OUCH_EVERY};
+        if !saved.valid() { return Err("invalid Connor hit timing checkpoint".into()); }
+        let now = self.clock();
+        self.flinch_end = now + saved.flinch_in - FLINCH_PAUSE;
+        self.last_ouch = now + saved.ouch_in - OUCH_EVERY;
+        Ok(())
+    }
+
     pub fn saved_shot_timing(&self) -> Option<SavedShotTiming> {
         let now = self.clock();
         let saved = SavedShotTiming {

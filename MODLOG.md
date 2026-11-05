@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-06 Preserve Connor's hit timing across disk saves
+
+Changed: version-2 slots optionally keep the remaining flinch pause and ouch sound limit alongside Connor's existing Special reaction checkpoint. Why: loading a slot during `react` previously reset both deadlines, allowing an early repeated reaction or sound. Tested how: an unattended two-process Windows test used GOG Dead City data, a scripted hit, and three more hits after loading. Result: the save kept `react` at phase 0.3333 with 2.533 seconds until another flinch and 0.733 seconds until another ouch; the first restored movement advanced its phase, the early hit made no new ouch, a post-animation hit inside the flinch pause played an ouch without flinching, and the later hit flinched. Connor's health fell once per hit from 79 to 76. The older-slot regression passed. Still broken: weapon swaps, overlapping combat actions, dialogue and other cutscene state remain incomplete. Next: checkpoint another active combat action and continue the campaign route.
+
 ## 2026-11-06 Preserve moving-shot timing across disk saves
 
 Changed: version-2 slots now optionally keep Connor's remaining crossbow shot cooldown, time until running returns, and run switch. The deadlines are relative to his update clock, which starts again in a new process. Why: without them, loading a slot could permit an extra early bolt or leave the run switch in the wrong state. Tested how: an unattended two-process Windows test used the original GOG Small Crossbow in Dead City and saved after a running shot. Result: the slot held 0.367 seconds until another shot and 0.867 seconds until running returned; after reload an early shot was refused, a later one fired as `bolt2`, and the run switch returned at update 23. The second slot kept the run switch on and no return timer. The older-slot regression passed. Still broken: other Connor combat and cutscene state remains incomplete. Next: resume weapon-swap or flinch state and complete the campaign route.
