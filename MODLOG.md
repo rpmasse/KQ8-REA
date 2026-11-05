@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-05 Original in-game help rules
+
+A separate study of the owned GOG executable established when Connor can show a scripted tutorial and how the 24-topic F1 screen works. The [in-game help note](docs/behaviour/in-game-help.md) distinguishes the three-second script delay, conditions that can postpone delivery, and controls that work even with starting tutorials disabled. The note records static analysis and installed message data. The Rust interface is still in development.
+
 ## 2026-11-05 Lucreto switches combat forms
 
 The [independent GOG study](docs/behaviour/lucreto-forms.md) now governs both directions in Rust. The installed Temple 4 setup exercises equality, a crossing caused only by a change in elevation, and the original reaction delay. The incoming form takes the outgoing placement. Each keeps its own health, and only the ranged form resets its home. Both selected forms subsequently damaged Connor through their own animated attack cues. This was checked in the Rust simulation with the original data. The original executable was studied statically.
