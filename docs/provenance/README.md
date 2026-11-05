@@ -27,6 +27,8 @@ The current GOG `Daventry/kq.vol` supplies `newWorld.cs` and `permwrld.cs`. The 
 
 ## Scripted camera continuation
 
+The Wizard interruption checks use the original `wizard.kq` goodbye/welcome-back keys (cases 7/8), the first two opening lines from `wizard.cs` (1000/4/14/27), the `wizinfo.kq` stay area and talking spot, and the original voice files' SOL durations. The message catalogue `data/Daventry/English/1000.MSG` supplies cameras 2 and 3 for those two lines. Expected queue and camera behavior follows [conversation rules 14 and 20–22](../behaviour/conversation.md). The tests exercise isolated conversations and retained camera mode; the existing conversation-button harness does not generate physical mouse movement.
+
 The camera destination-list checkpoint follows [Camera flights and cuts, rules 1–4](../behaviour/camera.md#camera-flights-and-cuts-addcamloc-flytocamloc-cuttocamloc-traced-2026-10-18): destinations remain ordered until `addCamLoc` requests a new list. The original GOG `vol:Daventry/kq/wtrmwalk.cs` supplies the initial camera position, destination (190000, 230000, 10600), aim (186960, 228000, 10000), range and two-second flight used by the unattended save/reload check. This is an isolated command sequence, not verification of the complete windmill scene. The optional Rust save field is this project's own representation.
 
 ## Campaign script variables and payments
