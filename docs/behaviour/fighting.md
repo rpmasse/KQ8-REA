@@ -424,8 +424,10 @@ Words used here:
       weapon modes (not sure which), one the first time his health falls
       below half of his maximum;
     - below 0 he goes into his dying state: `die`, or `dropweapon` then
-      `firedie` / `icedie` for fire and ice (not followed further: game
-      over is another study).
+      `firedie` / `icedie` for fire and ice. **Q192, 2026-11-06:**
+      `connor-combat-death.md` gives state-entry deferral, the distinct
+      input locks, final-animation completion, three-second hold and
+      Escape/Save/game-over rules; ordinary death stays in Die.
 
 ### 7. Dying
 
@@ -946,7 +948,8 @@ experience sent, corpse shape, the `Die` line to the script.
 4. ~~Whether the dropped items are spread out~~: answered, they are
    thrown (rule 31, corrected after the user's check), except the
    weapon named like a part of the die model (rule 31a, Q169).
-5. Connor's death and game over (rule 29), and the tips' texts (rules
-   29, 33): other studies.
+5. Connor's death and game over (rule 29): **answered 2026-11-06**
+   in `connor-combat-death.md` (Q192). The tips' texts (rules 29, 33)
+   remain for another study.
 6. What "tied to another object" is (rules 28, 37); it is never set for a
    Daventry character as far as the data shows (not sure).

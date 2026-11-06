@@ -71,7 +71,9 @@ back to the game. While it is open the game is paused.
    chosen and Save / Back to Game are off.
 7. **Escape during play** (and the mask button on the top bar,
    `interface.md` rules 12, 14) opens it, except during `handsOff`
-   [traced]. In order:
+   [traced]. The animation input lock alone does not block Escape;
+   see `connor-combat-death.md` (Q192) for its availability during an
+   ordinary death movement before the final hold. In order:
    1. the game-play panels are hidden;
    2. **the game is paused**: the world clock stops (nothing moves,
       timers and potion durations wait), and every sound is paused
@@ -209,8 +211,10 @@ back to the game. While it is open the game is paused.
     are hidden, a "Connor has died" mark is set, the game pauses and the
     **main menu opens**. With the mark set, Save and Back to Game are
     off and New is chosen, so the player must Load, start New, or quit.
-    (What happens before that, the death itself, is `fighting.md` rule
-    29.) **The user's check in the original (2026-10-21):** after Connor
+    The death before this menu, including its three-second hold after
+    the final animation and earlier Escape/Save eligibility, is
+    `connor-combat-death.md` (Q192); the fight starts in `fighting.md`
+    rule 29. **The user's check in the original (2026-10-21):** after Connor
     dies the game is in `handsOff` for a couple of seconds, then the
     menu simply appears (no fade or transition seen).
 
@@ -324,6 +328,7 @@ picked, combat level set, pause on/off, theme start/fade) to a
    (`sound.md` open question 5); later.
 4. Whether the combat level chosen is kept in saved games (not traced;
    the user is not sure either; for the Load/Save study).
-5. The death path: what happens during the couple of seconds of
-   `handsOff` between Connor's death and the menu (the user saw only
-   that it happens; `fighting.md` open question 5, rule 29).
+5. The death path: **answered 2026-11-06** in
+   `connor-combat-death.md` (Q192): ordinary final-animation completion
+   begins the three-second scripted-hands-off hold before this menu.
+   Original runtime/native save continuation remains not tested.
