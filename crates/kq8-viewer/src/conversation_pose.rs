@@ -40,10 +40,11 @@ pub struct SavedTalkPose {
 }
 
 /// Keep the existing conversation format while sharing its pose fields
-/// with a Choice-owned pivot/stop movement.
+/// with a Choice-owned pivot, a reaction or a rope movement.
 pub type SavedControllerPose = SavedTalkPose;
 
 impl SavedTalkPose {
+    pub(super) fn movement(&self) -> &str { &self.movement }
     pub(super) fn reaction(&self) -> Option<&str> { self.reaction.as_deref() }
     pub(super) fn reaction_playing(&self) -> Option<&str> { self.reaction_playing.as_deref() }
     pub(super) fn animation_input_lock(&self) -> bool { self.animation_input_lock }

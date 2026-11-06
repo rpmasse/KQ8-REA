@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-07 Resumed a saved church climb and reached the roof
+
+The original throw keeps the menu closed until Connor can accept input.
+Once hanging, Connor saved on frame 22, restarted, advanced to frame 23
+and climbed out onto the church roof. A first build resumed the motion
+but triggered the upper trap while he was stationary. Retaining the
+previous trap check position delayed that trigger until his actual move.
+Two Windows launches passed in 82.10 seconds. The Candle remains ahead.
+[Command and evidence](docs/daventry-progression.md#church-roof)
+
 ## 2026-11-07 Earned rope at the churchyard
 
 The Windows test reached the churchyard from the previously earned mill

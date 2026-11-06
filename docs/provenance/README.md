@@ -3,6 +3,14 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Church rope and mid-climb saves.** The GOG Daventry archive supplies
+the four church trigger scripts and their boxes. The player's
+`GAME/Kq/Conrope.anm` supplies the climb and dismount movements.
+The separate study describes which settings and movement state survive
+a save and when a rope placement checks for trap entries. The Windows
+regressions exercise those rules with an earned rope. [Rope and Hook,
+rules 13–32](../behaviour/ropeandhook.md), [trap movement](../behaviour/traps.md)
+
 **Connor's first- and third-person movement lists.** The Rust reader
 follows the named sections and numbered item-to-animation entries in
 the player's `GAME/Kq/Connor.kq`. The original-data test reads both

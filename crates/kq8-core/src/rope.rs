@@ -310,7 +310,7 @@ pub const ROPE_LIST: &str = "Conrope.anm";
 pub const ROPE_MOVEMENTS: [&str; 12] = ["baway", "boff", "bon", "btoss", "climb", "draw", "drawdown", "rope", "taway", "toff", "ton", "ttoss"];
 
 /// Which end the climb started from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum End {
     Bottom,
     Top,
@@ -318,7 +318,7 @@ pub enum End {
 
 /// Where the rope state is (rules 13–26): the movement playing, or what
 /// it waits for.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Stage {
     Away,
     Draw,
@@ -493,7 +493,7 @@ pub trait RopeHost {
 /// The rope state (rules 12–26): what was copied at its start, and its
 /// progress. One plain record, so a saved game can keep it later (rule
 /// 32).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Climb {
     pub from: End,
     pub stage: Stage,

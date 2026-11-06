@@ -823,3 +823,61 @@ fn church_rope_is_usable_after_a_fresh_launch_inside_its_trap() {
     check_mill_rope_save(&saved);
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_CHURCH_YARD_SLOT"]
+fn church_climb_resumes_from_its_saved_frame_on_the_wall() {
+    let play = Play::new("church-climb");
+    fs::create_dir_all(&play.slots).unwrap();
+    let yard = earned_slot("KQ8_CHURCH_YARD_SLOT").unwrap_or_else(|| {
+        let yard = Play::new("church-climb-prefix");
+        church_yard(&yard);
+        yard.slots.join("slot-2.json")
+    });
+    fs::copy(yard, play.slots.join("slot-1.json")).unwrap();
+    let start = play.slot(1);
+    assert_eq!(start["label"], "ChurchYard");
+    check_mill_rope_save(&start);
+    let (viewer, _) = play.run("original", &[
+        "--menu-input", "down,enter,release,enter,release", "--key", "left:IDCTL_INVBAR_ROPE,8",
+        "--aim-point", "206337,186373,11000,12", "--hold", "1,0,0,180,202",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=HookInFlight:enter:release:escape,73",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=MidClimb:enter:release:escape,210",
+        "--key", "menu:up:enter:release:left:enter:release,230", "--frames", "1900",
+    ]);
+    // The throw disables player controls. Its menu request must not create a slot.
+    assert!(viewer.contains("gameplay menu request blocked by handsOff at Connor update 73"));
+    let mid = play.slot(2);
+    assert_eq!(mid["label"], "MidClimb");
+    assert_eq!(mid["rope_climb"]["state"]["stage"], "Hanging");
+    let phase = mid["rope_climb"]["pose"]["phase"].as_f64().unwrap();
+    assert!((0.20..0.40).contains(&phase));
+    assert_eq!(mid["rope_climb"]["steps"], serde_json::json!([0.0,0.0]));
+    assert_eq!(mid["trap_checked_at"], mid["position"]);
+    check_mill_rope_save(&mid);
+    let rope_log = |run: &str| fs::read_to_string(play.root.join(run).join("kq8-artifacts/logs/rope.log")).unwrap();
+    let before = rope_log("original");
+    assert_eq!(before.matches("the rope model ended: Connor grabs").count(), 1);
+
+    play.run("from-wall", &[
+        "--menu-input", "down,enter,release,down,enter,release", "--hold", "1,0,0,5,65",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=ChurchRoof:enter:release:escape,200",
+        "--key", "menu:up:enter:release:left:enter:release,215", "--frames", "1700",
+    ]);
+    let finished = rope_log("from-wall");
+    let traps = fs::read_to_string(play.root.join("from-wall/kq8-artifacts/logs/traps.log")).unwrap();
+    assert!(!traps.contains("update 1: trap churchr2: On Connor"));
+    assert_eq!(traps.matches("trap churchr2: On Connor").count(), 1);
+    assert!(finished.contains("up (forwards), frame 23"));
+    assert_eq!(finished.matches("climb: reached the top end").count(), 1);
+    assert!(finished.contains("step heights back to up 325, down 325"));
+    assert_eq!(finished.matches("rope state: over (rule 26)").count(), 1);
+    assert!(!finished.contains("the rope model ended: Connor grabs"));
+    let roof = play.slot(3);
+    assert_eq!(roof["label"], "ChurchRoof");
+    assert!(roof["rope_climb"].is_null());
+    assert_eq!(roof["rope_camera_locked"], false);
+    assert!(roof["position"][2].as_f64().unwrap() > start["position"][2].as_f64().unwrap());
+    check_mill_rope_save(&roof);
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
