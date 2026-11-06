@@ -14,7 +14,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M6 · Campaign and saves | In Daventry, Connor earns the Magic Map, Small Axe, dead hero’s ring, Rope and Hook, and church Candle. Focused checks cover CastleD travel, Dead City scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete the regional quests, optional branches and boss sequences. Verify one continuous New Game through the ending and credits. |
 | M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
 
-**Current campaign boundary.** Connor carried the earned rope from the mill to the church, climbed onto the roof, and used the second rope to descend to the Candle. A fresh launch preserved the Candle alongside the rope and dead hero’s ring. The next story checks are the church urn, the Shadow encounter, the Ashes and the Wizard’s Ring of Light before travel to Dead City. [Daventry campaign evidence](docs/daventry-progression.md#church-candle)
+**Current campaign boundary.** Connor carried the earned rope from the mill to the church and descended to the Candle. From that campaign save, he pushed the urn and opened the tomb door. A fresh launch preserved the moved urn, opened door and Candle. The Shadow encounter, the Ashes and the Wizard’s Ring of Light remain ahead before travel to Dead City. [Daventry campaign evidence](docs/daventry-progression.md#church-urn-and-tomb-door)
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
@@ -84,6 +84,7 @@ cargo test --locked -p kq8-viewer --test daventry_cottage_shield church_climb_re
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield first_person:: -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test connor_death_checkpoint first_person_death_selects_the_third_person_pose_and_resumes_once -- --ignored --exact
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield church::earned_roof_to_candle_and_fresh_reload -- --ignored --exact --test-threads=1
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield church::earned_candle_to_urn_and_open_tomb_door -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --bin kq8-viewer fallen_tree_and_dock_use_the_same_surfaces_on_script_load_and_revisit -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored

@@ -1,5 +1,13 @@
 # STATUS
 
+## 2026-11-07 Church urn opens the tomb door
+
+The next two Windows launches continued the fresh campaign's Candle
+save through the urn and a fresh-process reload. The door was open,
+Connor retained the Candle and the urn award raised his experience
+from 12 to 47. The test passed in 108.96 seconds. The next Daventry
+checkpoint is the Shadow encounter. [Command and evidence](docs/daventry-progression.md#church-urn-and-tomb-door)
+
 ## 2026-11-07 Fresh Normal New Game through the church Candle
 
 The default church regression passed in 1493.97 seconds. All 18 actual

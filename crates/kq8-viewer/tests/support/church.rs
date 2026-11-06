@@ -1,10 +1,14 @@
 use super::{carries_one, check_mill_rope_save, check_saved_church_climb, earned_slot, hero_flag, Play};
 use serde_json::Value;
-use std::{fs, path::Path};
+use std::{fs, path::{Path, PathBuf}};
 
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_CHURCH_ROOF_SLOT"]
 fn earned_roof_to_candle_and_fresh_reload() {
+    earn_candle();
+}
+
+fn earn_candle() -> PathBuf {
     let play = Play::new("church-candle-campaign");
     let source = earned_slot("KQ8_CHURCH_ROOF_SLOT").unwrap_or_else(|| check_saved_church_climb(false));
     fs::create_dir_all(&play.slots).unwrap();
@@ -66,6 +70,7 @@ fn earned_roof_to_candle_and_fresh_reload() {
     check_candle(&after);
     assert_eq!(after["journey"]["stats"], before["journey"]["stats"]);
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+    play.slots.join("slot-5.json")
 }
 
 fn check_candle(save: &Value) {
@@ -73,4 +78,54 @@ fn check_candle(save: &Value) {
     assert!(carries_one(save, "INVITEM_Candle"));
     assert!(hero_flag(save, "Daventry::candle::full", "false"));
     assert!(save["kept"]["daventry"]["gone"].as_array().unwrap().iter().any(|name| name == "candle"));
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_CHURCH_CANDLE_SLOT"]
+fn earned_candle_to_urn_and_open_tomb_door() {
+    let play = Play::new("church-urn-campaign");
+    let source = earned_slot("KQ8_CHURCH_CANDLE_SLOT").unwrap_or_else(earn_candle);
+    fs::create_dir_all(&play.slots).unwrap();
+    fs::copy(source, play.slots.join("slot-1.json")).unwrap();
+    let before = play.slot(1);
+    assert_eq!(before["label"], "CandleReload");
+    check_candle(&before);
+    assert!(hero_flag(&before, "Daventry::Church::urn", "0"));
+    let route = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/routes/daventry_church_urn.json");
+    let (viewer, _) = play.run("push", &[
+        "--menu-input", "down,enter,release,enter,release", "--walk-route", route.to_str().unwrap(),
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=ChurchUrn:enter:release:escape,760",
+        "--key", "menu:up:enter:release:left:enter:release,775", "--frames", "5500",
+    ]);
+    assert!(viewer.contains("walk-route at Push the church urn"));
+    let log = fs::read_to_string(play.root.join("push/kq8-artifacts/logs/doors.log")).unwrap();
+    assert!(log.contains("urn1.cs line 16: set Daventry::Church::urn"));
+    assert_eq!(log.matches("door tombdor: movement 'open' finished").count(), 1);
+    assert!(log.contains("urn1.cs line 33: sendEvent 0 Connor KQStatsChangeRequestEvent 0 0 0 0 35"));
+    let saved = play.slot(2);
+    assert_eq!(saved["label"], "ChurchUrn");
+    check_open_tomb(&saved);
+    assert_eq!(saved["journey"]["stats"]["stats"][4].as_i64(), before["journey"]["stats"]["stats"][4].as_i64().map(|xp| xp + 35));
+    let (reload, _) = play.run("reload", &[
+        "--menu-input", "down,enter,release,down,enter,release",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=ChurchUrnReload:enter:release:escape,30",
+        "--key", "menu:up:enter:release:left:enter:release,45", "--frames", "800",
+    ]);
+    assert!(reload.contains("save restored in Daventry without replaying Begin"));
+    let restored = play.slot(3);
+    assert_eq!(restored["label"], "ChurchUrnReload");
+    check_open_tomb(&restored);
+    assert_eq!(restored["journey"]["stats"], saved["journey"]["stats"]);
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+fn check_open_tomb(save: &Value) {
+    check_candle(save);
+    assert!(hero_flag(save, "Daventry::Church::urn", "1"));
+    let region = &save["kept"]["daventry"];
+    let door = &region["interactions"]["doors"]["tombdor"];
+    assert_eq!(door["state"], "Opened");
+    assert_eq!(door["collision_type"].as_u64().unwrap() & 32, 0);
+    let urn = region["states"].as_array().unwrap().iter().find(|obj| obj["name"] == "urn1").unwrap();
+    assert_eq!(urn["placement"]["position"], serde_json::json!([216850.0,185249.0,8370.0]));
 }

@@ -161,6 +161,24 @@ checkpoint variables unset to earn the earlier saves from New Game.
 The full run log is `kq8-artifacts/fresh-normal-to-church-candle.log`.
 Its final slot is under `kq8-artifacts/church-candle-campaign/1794001160345836400/slots/`.
 
+### Church urn and tomb door
+
+From the `CandleReload` created during the fresh Normal campaign,
+Connor walked to the urn and pushed against it. The installed
+`urn1.cs` set the puzzle flag, started the push animation and opened
+`tombdor` through a timed event. Its later callback returned control
+and awarded 35 experience. The door's open animation finished once.
+
+The two-launch regression passed in 108.96 seconds. Loading the
+`ChurchUrn` save in a fresh process preserved the opened door, the
+collision flag its script cleared, the urn's new position (216850, 185249, 8370)
+and Connor's stats. He still carried his Candle, rope and hero’s ring.
+To repeat just this leg, set `KQ8_CHURCH_CANDLE_SLOT` to the earned
+`CandleReload`. The urn command in the README earns the earlier
+checkpoints itself if optional input variables are unset. The combined
+invocation through the urn has not been run from scratch. The next
+campaign check is reaching the Shadow encounter through the tomb.
+
 ### Earlier ring checks
 
 The source chain starts at Normal New Game. Each later process loads

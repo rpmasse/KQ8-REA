@@ -1,5 +1,12 @@
 # MODLOG
 
+## 2026-11-07 Verified the church urn and opened tomb door
+
+The new Daventry leg continues an earned Candle save through a normal
+push of the urn. It checks the script flag, the door's completed open
+animation, the 35 experience award, the moved urn and the door's saved
+collision state. The two-launch regression passed in 108.96 seconds.
+
 ## 2026-11-07 Verify the third-person switch at combat death
 
 A focused Dead City test selects first person with F2, delivers an

@@ -13,6 +13,12 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 church urn and tomb door.** From the earned Candle, walk through
+the church and push the urn. Follow its original animation callbacks
+through opening the tomb door and returning control to Connor. Save,
+restart, and check the moved urn, opened door, quest flag and experience
+without running the puzzle again.
+
 **M5 ordinary death from first person.** Exercise the original F2
 binding, deliver a controlled fatal hit through the combat event path
 and verify that third person is selected before the death movement.
@@ -601,7 +607,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
 | M4 · Interface and dialogue | Partial. The title and pause menus, named saves, Options, Keyboard, opening replay, HUD, captions, pickup help, the Wizard conversation and the F2 view have Windows checks. Credits displays the original cards. | Finish graphics modes and resolution switching, software palette output, remaining help, inventory and dialogue branches. Establish the original credits timing and score. |
 | M5 · Combat | Partial. Tests cover the first-person axe and Small Crossbow, weapon draws and saves during combat and death. The Weeper, Tower Skeleton, Henchman, Lucreto and several script-created enemies have focused coverage. | Finish the other weapon and damage paths, enemy decisions, bosses and specialised deaths. Exercise each full encounter in campaign play. |
-| M6 · The whole game | Partial. Daventry's verified campaign legs reach the church Candle. Saves retain the ring, rope and Candle. Castle travel, the Dead City scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Continue from the church urn to the Shadow encounter and the Wizard. Complete the remaining quests, regional transitions and saved controllers. Verify one Normal New Game through the ending and credits. |
+| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. The next verified leg pushes the urn and opens the tomb door. Castle travel, the Dead City scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Reach the Shadow encounter and return to the Wizard. Complete the remaining quests, regional transitions and saved controllers. Verify one Normal New Game through the ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
 
 **Starting revision.** This fork incorporates the [October 31 upstream changes](https://github.com/Eric-lz/KQ8R/compare/b6658de39c87b51c41a62f765f08dbf1ee54980c...5ea5a46f791a637b2d2e231e56195726050e57cb), including world persistence and Dead City puzzle work. The remaining implementation starts from those systems and the verified Windows scenarios below.

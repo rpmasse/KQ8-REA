@@ -1,0 +1,10 @@
+{
+  "start": 3,
+  "landmarks": [
+    { "name": "Cross the church toward the eastern aisle", "xy": [213300,183080], "radius": 150 },
+    { "name": "Approach the urn platform", "xy": [214280,184060], "radius": 140 },
+    { "name": "Step onto the platform", "xy": [214420,184200], "radius": 125 },
+    { "name": "West side of the urn", "xy": [215400,185180], "radius": 120 },
+    { "name": "Push the church urn", "xy": [216100,185249], "radius": 75, "until_var": { "name": "Daventry::Church::urn", "value": "1" } }
+  ]
+}
