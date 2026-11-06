@@ -2,45 +2,23 @@
 
 KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The engine reads the original levels, models, scripts, audio and interface assets from your own GOG installation. The target is the original Windows game, including its controls, timing, 4:3 presentation, and the full campaign from New Game through the ending.
 
-**Development build.** Daventry is the most complete region. All 12 worlds open in the Windows build. You can save in Daventry, quit, and load the slot from a fresh launch. The complete campaign and saving during encounters are still in development. The fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb).
+**Development build.** All 12 regions load and render on Windows. Daventry has the longest verified chain of ordinary play. The Rust build can earn the Wizard’s map and the windmill Small Axe, save through the menu and resume in a fresh process. An uninterrupted run from New Game to the ending is still open. This fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb).
 
 ## Project status
 
-| Stage | Current implementation | Remaining work |
+| Stage | What works | What remains |
 | --- | --- | --- |
-| M0–M3 · Data, rendering and movement | Readers for the original assets, world rendering, Connor's movement and collision, and early Daventry scripts and puzzles. | Reproduce the inherited checks on the target Windows build and track exceptions by region. |
-| M4 · Interface and dialogue | Title, pause, Save, Load, Options, Graphics, Keyboard, scripted Help and F1 work. Replay Intro plays the original film. Credits displays the original 25 cards and team photograph. The HUD, speech, captions and some conversations work. Graphics saves resolution, lighting, shadow and brightness choices; lighting, shadow categories and indexed palette brightness apply live, and fresh loads apply resolution. Scripts can suppress shadows independently, and saves retain that switch. | Graphics mode selection, live resolution, software system palettes and final renderer output, inventory and dialogue behavior, and exact credits timing and score calculation. |
-| M5 · Combat | Dead City's Weeper and Tower Skeleton have encounter checks; all six script-created monster types spawn and draw, and nearby copies now update as characters with their face materials. In Temple 4 Lucreto switches between melee and ranged attacks using the original distance rule. A melee stagger can push him into the vortex. Scripted stat changes affect live combat stats and send monsters and Connor through their death sequences. All three scripted Connor defeat branches open the death menu after the original three-second hold. | Complete weapon controls and trajectories, remaining enemies, encounter timing and ordinary death recovery. |
-| M6 · Campaign and saves | Automated routes cover the wizard's rewards, the windmill Small Axe, the Daventry castle round trip and the Dead City scales. Saves restore moved windmill props, timed puzzle events, a scripted raven in flight, original and script-created monsters, unfinished deaths, Connor's live melee swing and standing crossbow attack, queued melee and ranged combat cues, live bolts, moving-shot timing, Small Axe and Small Crossbow weapon swaps, and the Weeper drain with Connor's reaction phase. A scripted hit also restores Connor's reaction, hit timing and last hit kind. Active speech resumes its voice offset, sound origin, caption and remaining queue. Wizard conversations retain approach, weapon-away/out phases, goodbye/pause/return queues, camera mode and HUD state across reloads, then return control. Scripted camera flights retain their remaining steps and destination list for later cuts. Scripted footsteps, occupied trigger state and flagged trigger callbacks also survive disk reloads. Persistent ordinary objects retain damage and hit history. Ordinary copies retain their source files, names, placement, playback and damaging hit kinds through saves; one-shot effects complete once after loading. Authored interior lighting switches work live and restore through quest initialization. The final movie can lead into scored credits. | Check other partners and conversation branches, actual camera drags, remaining trigger/cutscene state, and other weapon swaps and combat actions. Complete region quests, optional branches and boss sequences in an uninterrupted campaign. |
-| M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
+| M0–M3 · Data, worlds and movement | The engine reads the original assets, opens every region and runs Connor’s movement, collision and early Daventry scripts. | Recheck inherited behavior in the Windows build and record differences by region. |
+| M4 · Interface and dialogue | Title, pause, named saves, Options, Keyboard, HUD, captions, inventory tutorials and the Wizard conversation work. Credits shows the 25 original cards and team photograph. Lighting, shadows and indexed palette brightness update in play. | Finish graphics mode and live resolution behavior, software palettes, remaining inventory and dialogue branches, credits timing and score calculation. |
+| M5 · Combat | The Weeper, Tower Skeleton and six script-created monster types have focused checks. Lucreto changes attacks and can stagger into the vortex. Equipped attacks, pending deaths and the three-second game-over hold have save and reload checks. | Complete other weapons, enemies and bosses. Check first-person combat, remaining controller transitions and full encounters in campaign play. |
+| M6 · Campaign and saves | Ordinary Daventry routes earn the map, Small Axe and cottage shield. Focused checks cover CastleD travel, Dead City scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete the regional quests, optional branches and boss sequences. Verify one continuous New Game through the ending and credits. |
+| M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
 
-The earned Daventry replay reaches the Henchman's first attack after crossing the windmill doorway. Completing the encounter and earning the hero's ring remain open.
+**Current campaign boundary.** After earning the Small Axe, Connor can finish the windmill cutscene, leave the doorway and reach the Henchman’s first attack. The duel and the onward hero’s ring route remain open. A separate Normal New Game route verifies that Connor can earn the shield in Sarah’s cottage and use it after loading a save. [Daventry campaign evidence](docs/daventry-progression.md)
 
-An ordinary Daventry route opens Sarah's cottage, earns the shield potion, and uses it after a fresh launch.
+**How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
-Scripted character collision flags update live targeting and movement and survive save/load.
-
-Connor can finish an equipped attack or weapon swap before entering death. Saves retain that pending request or the death animation already in progress.
-
-Directional-choice scenes retain their decision and motion through saves and notify scripts when an animation ends.
-
-Standing enemies keep an unfinished attack when a hit does not make them react.
-
-Third-person scripted camera shake and its sample state survive saving and continue through cuts, follow changes and flights.
-
-Spirit traps preserve their original damage, reactions and occupied state through saves.
-
-Travelling away and returning restores a region's persistent traps, including after saving in another region.
-
-Items left in a region retain their names and can be collected after returning from another region's save.
-
-The first health item, first quest item and Rope and Hook open their original delayed tutorials when Connor can receive them.
-
-Indexed palette brightness updates live in Graphics and is reapplied after films.
-
-First-person presentation and remaining original-camera details still need implementation.
-
-The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
+The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. The [feature reference](docs/FEATURES.md) gives subsystem details and the [status log](STATUS.md) records verified results and open cases. Manual playtesting begins after the Rust implementation is feature-complete.
 
 ## Build and run
 

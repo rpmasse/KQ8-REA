@@ -129,8 +129,8 @@ pending/playing reactions, roof Choice, Wizard Talk and an equipped Small Axe
 attack. The data check covers all four original boxes and both spirit cue
 lists. These are isolated setups with enemy AI off, not a complete Dead City
 altar quest, uninterrupted campaign or original-runtime/native-save comparison.
-No manual testing was performed. The exact broader death-request eligibility
-and game-over timing remain open in Q192.
+For the subsequent checks of spirit hits during a pending reaction and
+after death entry, see [Connor's ordinary combat death](#connors-ordinary-combat-death-2026-11-07).
 
 ## Standing combat reactions (2026-11-06)
 
@@ -159,12 +159,12 @@ and loads again to choose the roof exit. The animation event is fixture setup.
 
 ## Combat death saves (2026-11-06)
 
-Hit deaths retain their animation list, phase and dying hit guard after
-loading, including older death-list slots. Death discards unfinished melee
-and ranged actions. Eight original-asset cases passed with enemy AI off;
-later hits are ignored and each sequence finishes once into the death menu.
-Original game-over timing/save eligibility still need Q192 study. Falling,
-scripted Die Now holds and other overlapping controllers are not covered.
+The initial checkpoint implementation retained the death animation,
+phase and hit guard across a save. Eight original-asset setups exercised
+that implementation with AI off. Q192 subsequently established when
+an equipped attack or swap must finish before Die enters and when the
+menu opens. The [current implementation](#connors-ordinary-combat-death-2026-11-07)
+preserves those pending actions and also reads older death-list slots.
 
 ## Scripted character collision flags (2026-11-06)
 
@@ -669,7 +669,8 @@ miss, roll, flinch, death, drop and shot is in
 - **Hits on Connor:** at the swing's hit moment, within reach (a step
   back gives 1.25 × reach) and in front of it; damage rolled 25–100 %,
   then his protection; he flinches now and then (`react`) or says ouch;
-  below 0 health he dies and stays dead (game over is not built).
+  below zero health the current controller receives a Die request.
+  Accepted death leads to the original animation and game-over sequence.
 - **Readying weapons (M5 5f-3, 5f-4):** a weapon slot readies that
   weapon (again: puts it away); Delete swaps between the hand and the
   ranged weapon (with nothing ready: the one put away last), Alt puts it
@@ -721,8 +722,8 @@ miss, roll, flinch, death, drop and shot is in
   after its range (M5 5f-1).
 - **Combat level:** `--combat-level 1|2|3` (0.66 / 1.0 / 1.5 × the
   creatures' health and damage; stand-in for the menu).
-- Not built: Connor's bows and other weapons' full movement sets, game
-  over, fleeing (no Daventry creature flees), the tips' texts.
+- Remaining combat work includes complete weapon movement sets outside
+  the tested cases, fleeing behavior and the other combat tutorial triggers.
 
 ## The on-screen interface (milestone M4, step 4c)
 
@@ -831,7 +832,8 @@ perfectly"); logged in `rope.log`. Built from `ropeandhook.md`.
 - **While on the rope:** no damage, no other state (scripts, jumps,
   weapons are ignored), characters lose him; items can still be clicked
   and picked up.
-- **Not yet:** saved games (we have none), first person (not built).
+- **Open:** save and reload during an active rope climb, and the
+  first-person presentation when taking or returning the rope.
 
 ## Azriel's Hammer (milestone M6, step 6b, 2026-10-21)
 
@@ -1188,44 +1190,12 @@ An "update" is one step of the game's rules, the same step each time you
 run the test. Unknown options and bad values stop the viewer with a
 message that shows the usage.
 
-## What doesn't work yet
+## Remaining fidelity and campaign work
 
-- **Not playable:** there is no inventory screen, saving, game over, or
-  travel between worlds (so no teleporting: the magic map's "Go" stops
-  before the world change); the story's scenes run only as far as the
-  built parts allow.
-- **Characters:** the fight is a first version (M5 5c): Connor's
-  controls are partly stand-ins; not
-  compared with the original by eye. Their shadows on buildings
-  follow the traced rule (Q135, 4d-7b-5), without the original's cut
-  shadows (the user's decision); checked by the user.
-- **Not drawn:** fire and ice arrow sparks and
-  the dragon fire (they come with fighting), the teleport pad's look.
-- **Sound:** music doesn't pause (no pause yet); monsters have no
-  footsteps (there are no monsters yet); scenery
-  animations (signs, the mill wheel's own movement) make no sound.
-- **Clicking:** doors, chests, items, scripted objects, buildings and the
-  characters with a script react; nothing else does.
-- **Animated objects:** scripts switch them (M3 step 3i), but most
-  Daventry scripts that do it start from things not built yet (fights,
-  talking, `loadKQ` with a name or place). In Gnome (a later world, not
-  part of M3), a rolling rock that runs into Connor does nothing to him
-  yet (in the original he stumbles and takes damage).
-- **Jumping into things:** a standing jump into a tree or wall makes
-  Connor stumble (the crash and its sound), as the user saw in the
-  original; when he starts falling the stumble is cut short and the
-  falling animation takes over (also the user's check). The rule behind
-  it is now A's (Q82). A back flip into a wall slides along it with
-  gravity off until the flip ends (Q84 a, 3l-5; unit test only).
-- **Conversations:** not checked by eye yet; the horn on the beast,
-  `clearSpeak` on a partner and a real mouse drag during a talk were
-  not run.
-- **Camera:** no first person view (F2) or camera shake; the camera's
-  roll is not drawn; the mouse's recentring near the window's edges is
-  not built.
-- **Cutscenes:** the windmill tumble (`miltrap1.cs`) plays the
-  no-weapon version (`KQConner::getDoMode` answers empty hands, 2026-10-18; checked by eye by the user;
-  weapons come with M5).
-- **Water:** no damage yet (poison, lava, swamp).
-- **Collision:** some objects have no box in the game's table and stay
-  walk-through (as in the original, if we read it right).
+- **Campaign and saves.** The full New Game to credits route is open. Each region still needs its quests, optional interactions, bosses and transitions checked in sequence. A save during an unverified controller, puzzle or cutscene remains an open case.
+- **Graphics and camera.** First-person view and arm animations, full graphics-mode behavior, live resolution changes and parts of software palette presentation remain open. Third-person shake and camera flight have automated checks. Physical mouse drag and recentering still need comparison.
+- **Combat.** Complete the remaining weapon controls, projectile paths, enemy decisions and specialised death transitions. The Henchman’s opening attack has a reproducible ordinary route. Defeating him and reaching the hero’s ring in that run remain open.
+- **Interface and dialogue.** The Wizard route covers approach, speech, help, rewards and return to player control. Other partners, conversations interrupted by gameplay, inventory interactions and credits timing still need coverage.
+- **Regional behavior.** Keep individual gaps attached to their regions, including the Gnome rolling-rock collision, hazardous-water damage, scenery sounds and remaining effects. Opening a region establishes that it can load and draw. Its quests need separate evidence.
+
+See [the current status](../STATUS.md) for recent automated results and [the completion plan](DESIGN.md#kq8-rea-completion-plan-2026-11-05) for the remaining milestone gates.
