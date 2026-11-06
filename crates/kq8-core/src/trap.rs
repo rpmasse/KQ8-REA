@@ -35,6 +35,10 @@
 
 use crate::collide::BallStack;
 
+#[path = "trap_checkpoint.rs"]
+mod checkpoint;
+pub use checkpoint::SavedTraps;
+
 /// A trap's own collision type (rule 4).
 pub const TRAP_TYPE: u32 = 0x10;
 /// `trapType` bits (rules 10 and 11).
@@ -218,6 +222,40 @@ fn segment_meets_box(a: [f32; 3], b: [f32; 3], min: [f32; 3], max: [f32; 3]) -> 
 mod tests {
     use super::*;
     use crate::collide::CONNOR_TYPE;
+
+    #[test]
+    fn saved_occupied_sticky_and_one_shot_traps_do_not_repeat_entry() {
+        let balls = BallStack::from_box(MIN, MAX);
+        let known = std::collections::BTreeSet::from(["connor".into()]);
+        let mut original = trap(STICKY, Some(0.9));
+        assert_eq!(call(&original.check(&at("Connor", 10_000.0, &balls))).as_deref(), Some("On Connor"));
+        original.settings.mask = 0;
+        let saved: SavedTraps = serde_json::from_slice(&serde_json::to_vec(&SavedTraps::capture(&[original])).unwrap()).unwrap();
+        let mut loaded = trap(STICKY, Some(0.9));
+        let mut invalid = serde_json::to_value(&saved).unwrap();
+        invalid["states"][0]["inside"] = serde_json::json!(["Connor", "cOnNoR"]);
+        let invalid: SavedTraps = serde_json::from_value(invalid).unwrap();
+        let before = loaded.clone();
+        assert!(invalid.restore(std::slice::from_mut(&mut loaded), &known).is_err());
+        assert_eq!(loaded, before);
+        assert!(saved.restore(&mut [], &known).is_err(), "a missing live trap must not be silently lost");
+        saved.restore(std::slice::from_mut(&mut loaded), &known).unwrap();
+        assert_eq!(loaded.inside, ["Connor"]);
+        assert!(!loaded.shrunk);
+        assert_eq!(loaded.settings.mask, 0);
+        assert_eq!(call(&loaded.check(&at("Connor", 10_000.0, &balls))), None);
+        assert_eq!(call(&loaded.check(&at("Connor", 12_000.0, &balls))).as_deref(), Some("Off Connor"));
+        assert!(loaded.shrunk);
+        assert_eq!(call(&loaded.check(&at("Connor", 10_000.0, &balls))), None);
+        let mut shot = trap(ONE_SHOT, None);
+        shot.check(&at("Connor", 10_000.0, &balls));
+        let saved = SavedTraps::capture(&[shot]);
+        let mut loaded = trap(ONE_SHOT, None);
+        saved.restore(std::slice::from_mut(&mut loaded), &known).unwrap();
+        assert!(loaded.gone);
+        assert_eq!(call(&loaded.check(&at("Connor", 10_000.0, &balls))), None);
+        saved.restore(&mut [], &known).unwrap();
+    }
 
     /// Connor's box and balls (`BOUNDS.KQ` `Connor`: ±200, 0–1,300;
     /// balls of 200 at 200, 600, 1,000 and 1,100).

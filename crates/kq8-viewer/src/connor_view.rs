@@ -2831,7 +2831,7 @@ pub fn connor_step(
     footsounds: Option<Res<FootSounds>>,
     shared: Res<Shared>,
     mut characters: ResMut<crate::door_view::CharacterColliders>,
-    doors: Option<ResMut<crate::door_view::DoorSim>>,
+    mut doors: Option<ResMut<crate::door_view::DoorSim>>,
 ) {
     let (Some(mut sim), Some(lookup)) = (sim, lookup) else { return };
     let sim = &mut *sim;
@@ -2939,7 +2939,7 @@ pub fn connor_step(
     sim.previous = sim.current;
     let bank_before = sim.current.3;
     sim.current = (sim.mover.position, sim.walker.heading, sim.walker.phase, sim.walker.bank);
-    if let Some(mut doors) = doors {
+    if let Some(doors) = doors.as_mut() {
         for contact in &report.hits {
             doors.active.connor_contact(&contact.hit.what, contact.hit.normal);
         }
@@ -3107,7 +3107,7 @@ pub fn connor_step(
             let mut words = cue.split_whitespace();
             let action = words.next().unwrap_or("").to_ascii_lowercase();
             let what = match action.as_str() {
-                "footstep" => footstep(sim, &lookup.0, footsounds.as_deref()),
+                "footstep" => footstep(sim, &lookup.0, footsounds.as_deref(), doors.as_deref().map(|d| &d.active.world.footstep_types)),
                 "playsound" => match words.next() {
                     Some(name) => {
                         let at = sim.mover.position;
@@ -3163,18 +3163,22 @@ pub fn connor_step(
 /// `footsoundType`, else the terrain's flags under him now, give the flags,
 /// the flags the set, a roll the file; a plain one-shot. Returns the log
 /// text.
-fn footstep(sim: &mut ConnorSim, terrain: &kq8_data::Terrain, footsounds: Option<&FootSounds>) -> String {
+fn footstep(sim: &mut ConnorSim, terrain: &kq8_data::Terrain, footsounds: Option<&FootSounds>, overrides: Option<&std::collections::BTreeMap<String, i64>>) -> String {
     use kq8_core::sound::{building_floor_flags, footstep_file, footstep_set, Start};
     let [x, y, _] = sim.mover.position;
     let building = sim.step_ground.building().map(str::to_string);
-    let t = building.as_ref().and_then(|b| footsounds.and_then(|f| f.0.get(&b.to_ascii_lowercase())));
+    let t = building.as_ref().and_then(|b| {
+        let key = b.to_ascii_lowercase();
+        overrides.and_then(|m| m.get(&key)).map(|n| Some(*n))
+            .or_else(|| footsounds.and_then(|f| f.0.get(&key)).copied())
+    });
     let (on, flags, from) = match (building, t) {
         (Some(b), Some(t)) => {
             let from = match t {
                 Some(n) => format!("building footsoundType={n}"),
                 None => "building without footsoundType: 0, so 0x1 (rule 39)".to_string(),
             };
-            (b, building_floor_flags(*t), from)
+            (b, building_floor_flags(t), from)
         }
         _ => ("terrain".to_string(), terrain.flags_at(x, y), "the terrain's envInfo.kq flags under him (rule 39a)".to_string()),
     };

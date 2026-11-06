@@ -6348,3 +6348,22 @@ mod brightness_checks {
         }
     }
 }
+
+#[cfg(test)]
+mod scripted_footstep_checks {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn original_temple1_slosh_script_switches_water_and_dirt_steps() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let world = World::open(&game, "temple1").unwrap();
+        let (_, script) = world.load("sloshtrp.cs").unwrap().unwrap();
+        let mut a = kq8_core::active::Active::new(Default::default(), vec![], vec![], ["temple_e".into()], [("sloshtrp.cs".into(), script)]);
+        for (event, expected, set) in [("On", 3, "water"), ("Off", 0, "dirt")] {
+            assert!(a.run_script("sloshtrp.cs", &["sloshtrp".into(), event.into()]));
+            assert_eq!(a.world.footstep_types.get("temple_e"), Some(&expected));
+            assert_eq!(kq8_core::sound::footstep_set(kq8_core::sound::building_floor_flags(Some(expected))), Some(set));
+        }
+    }
+}
