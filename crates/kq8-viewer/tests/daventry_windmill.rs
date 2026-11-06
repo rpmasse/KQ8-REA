@@ -52,7 +52,7 @@ fn wizard_to_windmill_archer_bale_and_axe() {
         .current_dir(&replay).env("KQ8_SAVE_DIR", &slots)
         .arg("--game").arg(&game)
         .args(["--sound", "off", "--menu-input", "down,enter,release,enter,release"])
-        .args(["--key", "popup:help=142,0"]) // pushing.cs, inside the windmill.
+        .args(["--key", "popup:help=131,0", "--key", "popup:help=142,0"]) // Mushrooms, then pushing.cs inside the windmill.
         .arg("--walk-route").arg(route)
         .args(["--key", "menu:down:down:down:enter:release:enter:release:escape:type=Hillside:enter:release:escape,838",
             "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Windmill:enter:release:escape,1800",

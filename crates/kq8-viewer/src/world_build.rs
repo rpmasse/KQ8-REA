@@ -929,6 +929,7 @@ pub fn world_change_step(world: &mut World) {
                 }
             };
             read.objects.arriving_flags = journey.as_ref().map(|j| (j.flags.clone(), j.in_temple4));
+            read.objects.arriving_help = journey.as_ref().map(|saved| saved.help());
             if let Some(kept) = world.resource::<WorldChange>().kept.get(&request.world.to_ascii_lowercase()) {
                 read.objects.kept_interactions = kept.interactions.clone();
                 kept.terrain_changes.restore_cycles(&mut read.animation.animators);

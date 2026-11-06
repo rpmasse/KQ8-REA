@@ -69,9 +69,15 @@ pub struct Journey {
     pub combat_level: f32,
     /// The next `NoName<n>` number (rule 18).
     pub next_no_name: usize,
-    /// The one-off tips already given (game-wide).
+    /// New slots keep the mask, previous delivery age and held IDs. Older
+    /// slots carry the independently recorded flags below.
+    #[serde(default)]
+    pub help_history: Option<crate::starting_help::History>,
+    #[serde(default)]
     pub helps_asked: std::collections::BTreeSet<String>,
+    #[serde(default)]
     pub connor_tips: [bool; 2],
+    #[serde(default)]
     pub kill_tip: bool,
     pub god_mode: bool,
     pub ai_off: bool,
@@ -93,6 +99,7 @@ impl Journey {
     /// Takes the journey from the world Connor leaves (`from`).
     pub fn take(w: &WorldState, vars: &Vars, from: &str) -> Journey {
         let now = w.updates;
+        let help = w.help_prompts.history(now);
         Journey {
             from: from.to_string(),
             stats: w.connor_stats,
@@ -113,13 +120,21 @@ impl Journey {
             other_maps: w.other_maps.clone(),
             combat_level: w.combat_level,
             next_no_name: w.items.no_name_counter(),
-            helps_asked: w.helps_asked.clone(),
-            connor_tips: w.connor_tips,
-            kill_tip: w.kill_tip,
+            helps_asked: help.legacy_item_flags(),
+            connor_tips: [crate::starting_help::FIRST_HIT, crate::starting_help::LOW_HEALTH]
+                .map(|bit| help.start_help & bit != 0),
+            kill_tip: help.start_help & crate::starting_help::FIRST_KILL != 0,
+            help_history: Some(help),
             god_mode: w.god_mode,
             ai_off: w.ai_off,
             vars: vars.iter().filter(|(n, _)| !belongs_to_world(n, from)).map(|(n, v)| (n.to_string(), v.to_string())).collect(),
         }
+    }
+
+    pub fn help(&self) -> crate::starting_help::History {
+        self.help_history.clone().unwrap_or_else(|| {
+            crate::starting_help::History::from_legacy(&self.helps_asked, self.connor_tips, self.kill_tip)
+        })
     }
 
     /// Gives the journey to the world Connor arrives in: his own start
@@ -129,6 +144,7 @@ impl Journey {
     pub fn give(&self, w: &mut WorldState, vars: &mut Vars) -> Vec<String> {
         w.connor_flags = self.flags.clone();
         w.connor_in_temple4 = self.in_temple4;
+        w.help_prompts.restore_history(&self.help(), w.updates);
         self.give_after_flags(w, vars)
     }
 
@@ -183,9 +199,7 @@ impl Journey {
         w.map_view = self.map_view;
         w.other_maps = self.other_maps.clone();
         w.combat_level = self.combat_level;
-        w.helps_asked = self.helps_asked.clone();
-        w.connor_tips = self.connor_tips;
-        w.kill_tip = self.kill_tip;
+
         w.god_mode = self.god_mode;
         w.ai_off = self.ai_off;
         let mut set = 0;

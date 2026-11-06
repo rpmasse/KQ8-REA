@@ -62,7 +62,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `lockInterior` | start-up only: counted, not run (loading hint?) | 112 (112) | Daventry 26, DeadCity 18, Swamp 6, Gnome 16, Barren 16, IceWorld 9, temple1 10, temple2 5, temple3 6 | `Daventry/PERMWRLD.CS` |
 | `alias` | start-up only: counted, not run | 45 (45) | Daventry 13, DeadCity 3, Swamp 6, Gnome 7, Barren 8, IceWorld 4, temple2 3, temple4 1 | `Daventry/NEWWORLD.CS` |
 | `;KQMonster::inventory` | start-up only: counted, not run (typo in the original?) | 11 (11) | Snowexit 11 | `Snowexit/WORLDINV.CS` |
-| `stopHelp` | start-up only: counted, not run | 10 (10) | DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `DeadCity/conStart.cs` |
 | `KQMonster::setMonUseGravity` | start-up only: counted, not run | 3 (3) | DeadCity 3 | `DeadCity/NEWWORLD.CS` |
 | `KQObject::setGroupsAlways` | start-up only: counted, not run | 1 (1) | Daventry 1 | `Daventry/NEWWORLD.CS` |
 | `loadKQ` | built | 4878 (4470) | Daventry 477, CastleD 38, DeadCity 1468, Swamp 744, Gnome 608, Barren 379, IceWorld 198, Snowexit 22, temple1 383, temple2 233, temple3 245, temple4 77, Common 6 | `Daventry/AX.CS` |
@@ -179,6 +178,7 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `activatePersistMgr` | start-up only: read by the loader | 24 (24) | Daventry 2, CastleD 2, DeadCity 2, Swamp 2, Gnome 2, Barren 2, IceWorld 2, Snowexit 2, temple1 2, temple2 2, temple3 2, temple4 2 | `Daventry/PERMWRLD.CS` |
 | `applyCombatLevel` | start-up only: read by the loader | 12 (12) | Daventry 1, CastleD 1, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `Daventry/NEWWORLD.CS` |
 | `KQConner::setLevel` | start-up only: read by the loader | 10 (10) | DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `DeadCity/conStart.cs` |
+| `stopHelp` | start-up only: read by the loader | 10 (10) | DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `DeadCity/conStart.cs` |
 
 ## Connor's states (`KQMonster::setState Connor <state>`)
 

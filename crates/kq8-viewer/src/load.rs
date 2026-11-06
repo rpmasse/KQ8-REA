@@ -1576,6 +1576,7 @@ pub struct Objects {
     pub contact_scripts: Vec<(String, String)>,
     /// Carried state read by destination Init scripts (e.g. Daventry's girl.cs).
     pub arriving_flags: Option<(BTreeMap<String, bool>, bool)>,
+    pub arriving_help: Option<kq8_core::starting_help::History>,
     pub kept_interactions: kq8_core::kept_interactions::KeptInteractions,
     pub object_copies: Vec<kq8_core::object_checkpoint::ObjectCopy>,
     pub prop_placements: BTreeMap<String, Option<kq8_core::collide::Placement>>,
@@ -5167,6 +5168,7 @@ impl Placer<'_> {
                     .filter_map(|d| Some((d.placement.name.clone(), d.script.clone()?))))
                 .collect(),
             arriving_flags: None,
+            arriving_help: None,
             kept_interactions: Default::default(),
             object_copies: self.saved_copies.into_iter().filter(|(name, _)| self.restored_copies.contains(name)).map(|(_, copy)| copy).collect(),
             prop_placements: self.prop_placements,
@@ -6725,6 +6727,62 @@ mod regional_item_checks {
         assert!(returned.item_shapes.keys().any(|k| k.eq_ignore_ascii_case(&coins.kind)));
         assert!(returned.items.click_box(coins).is_some());
         assert_eq!(returned.items.no_name_counter(), 1200, "reloading stored objects allocates no names");
+    }
+}
+
+#[cfg(test)]
+mod native_pickup_help_checks {
+    use super::*;
+    use kq8_core::connor_start::{self, StartLine};
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn installed_developer_scripts_consume_tutorial_bits_before_granting_items() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let mut log = Log::create("developer-item-help").unwrap();
+        for name in ["DeadCity", "temple1"] {
+            let world = World::open(&game, name).unwrap();
+            let terrain = load_ground(&game, &world, &mut log).unwrap();
+            let objects = load_objects(&game, &world, &terrain.terrain, &mut log, None, None);
+            let stop = objects
+                .connor_start
+                .iter()
+                .position(|line| {
+                    matches!(line,
+                StartLine::Command { words, .. } if words[0].eq_ignore_ascii_case("stopHelp"))
+                })
+                .unwrap();
+            let first_grant = objects
+                .connor_start
+                .iter()
+                .position(|line| {
+                    matches!(line,
+                StartLine::Item { at, .. } if at.to_ascii_lowercase().contains("constart.cs"))
+                })
+                .unwrap();
+            assert!(
+                stop < first_grant,
+                "{name}: stopHelp must precede the seed inventory"
+            );
+            let mut sim = kq8_core::active::Active::new(
+                objects.vars,
+                vec![],
+                vec![],
+                objects.known,
+                objects.scripts,
+            );
+            sim.world.items = objects.items;
+            connor_start::run(&mut sim.world, &objects.connor_start);
+            assert_eq!(sim.world.help_prompts.history(0).start_help, 127);
+            sim.test_command("give Mushroom 1", "later receipt");
+            assert!(
+                sim.world
+                    .help_prompts
+                    .due(100, true, false, false)
+                    .is_none(),
+                "{name}: the consumed flag also suppresses a later ordinary pickup"
+            );
+        }
     }
 }
 

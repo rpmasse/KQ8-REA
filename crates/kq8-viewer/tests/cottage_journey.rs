@@ -1,6 +1,8 @@
 //! M6 acceptance route through the shipped cottage, basket and two castle
 //! portals. Move Connor between distant landmarks to avoid a timed walk.
 //! The interactions, item use, save menu and portal prompts use game input.
+#[path = "support/pickup_help.rs"]
+mod pickup_help;
 use serde_json::Value;
 use std::{fs, path::Path, process::Command};
 
@@ -107,7 +109,7 @@ fn cottage_door_mushrooms_and_castle_round_trip() {
     // stngrl introduction before the fixture positions Connor at the door.
     let first = run("cottage", &[
         "--menu-input", "enter,release,enter,release", "--frames", "2400",
-        "--key", "popup:help=144,0",
+        "--key", "popup:help=144,0", "--key", "popup:help=131,0",
         "--console", "inv,300",
         "--console", "move Connor 0 267900 225300 13981 0 0 1.57,300",
         "--click", "Condoor,308",
@@ -118,9 +120,11 @@ fn cottage_door_mushrooms_and_castle_round_trip() {
         "--console", "sendEvent 0 Connor KQStatsChangeRequestEvent -5 0 0 0 0,371",
         "--key", "1,380",
         "--console", "inv,387",
-        "--key", "menu:down:down:enter:release:enter:release:escape:type=Cottage:enter:release:escape,393",
-        "--key", "menu:up:enter:release:left:enter:release,403",
+        "--key", "menu:down:down:enter:release:enter:release:escape:type=Cottage:enter:release:escape,425",
+        "--key", "menu:up:enter:release:left:enter:release,435",
     ]);
+    let items = fs::read_to_string(root.join("cottage/kq8-artifacts/logs/items.log")).unwrap();
+    pickup_help::check(&items, &first, "INVITEM_Mushroom", 131, 45, "HEALTH ITEMS:");
     assert!(
         first.contains("Save screen -> Save(1, \"Cottage\")"),
         "inspect {}",
@@ -142,6 +146,8 @@ fn cottage_door_mushrooms_and_castle_round_trip() {
             .as_str()
             .unwrap()
             .eq_ignore_ascii_case("Daventry"));
+        assert!(slot["journey"]["helps_asked"]
+            .as_array().unwrap().iter().any(|v| v.as_str() == Some("0x83")));
         assert_eq!(mushrooms(slot), 4, "inspect {}", root.display());
         assert_eq!(
             slot["kept"]["daventry"]["interactions"]["doors"]["condoor"]["state"],
@@ -193,6 +199,8 @@ fn cottage_door_mushrooms_and_castle_round_trip() {
     assert!(returned.contains("restored persistent traps in Daventry before Init"));
     let inventory = fs::read_to_string(root.join("castle/kq8-artifacts/logs/console.log")).unwrap();
     assert_eq!(observed_mushrooms(&inventory), [4, 4]);
+    assert!(!after.contains("starting help: 500.MSG case 131 opened"));
+    assert!(!returned.contains("starting help: 500.MSG case 131 opened"));
     let built: Vec<_> = after.lines().chain(returned.lines())
         .filter_map(|l| l.strip_prefix("world built: ")?.split(':').next())
         .map(str::to_ascii_lowercase)

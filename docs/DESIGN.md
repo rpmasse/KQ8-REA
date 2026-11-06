@@ -13,6 +13,19 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M4 pickup tutorials.** Follow the receipt and scheduling rules in
+[`pickup-tutorials.md`](behaviour/pickup-tutorials.md). At a successful
+inventory addition, consume the matching flag and schedule the first health
+or quest-item tutorial three seconds later, or the rope tutorial 4.5 seconds
+later. Run the installed startup command `stopHelp` in script order. Keep
+Connor's consumed flags, time since delivery and held message order across
+region travel and Rust saves. Translate older Rust slots from their recorded
+flags. The exact restoration of pending original events remains open in Q191.
+
+Check the original Dead City and Temple 1 startup scripts and Daventry's
+candle, watermill, cottage and Wizard interactions. Record receipt, first
+eligible update, panel delivery and resulting inventory independently.
+
 **Automated walking through a tutorial.** A modal help box takes input away
 from gameplay. Release keys held by the unattended walking route while the
 box is open. On dismissal the next movement should issue a fresh key press.

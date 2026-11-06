@@ -97,6 +97,9 @@ impl Snapshot {
     }
 
     fn validate(&self) -> Result<(), String> {
+        if self.journey.help_history.as_ref().is_some_and(|history| !history.valid()) {
+            return Err("save has invalid tutorial flags or duplicate held cases".into());
+        }
         if self.choice.as_ref().is_some_and(|choice| !choice.valid() || !choice.compatible(self.special.is_some(),
             self.weapon_state.as_ref().is_some_and(|w| w.swapping()), self.swing.is_some() || self.shot.is_some() || self.talk_pose.is_some())) {
             return Err("save has invalid or unsupported Choice continuation".into());

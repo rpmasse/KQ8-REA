@@ -32,6 +32,8 @@ Travelling away and returning restores a region's persistent traps, including af
 
 Items left in a region retain their names and can be collected after returning from another region's save.
 
+The first health item, first quest item and Rope and Hook open their original delayed tutorials when Connor can receive them.
+
 Indexed palette brightness updates live in Graphics and is reapplied after films.
 
 First-person presentation and remaining original-camera details still need implementation.
@@ -78,6 +80,7 @@ cargo test --locked -p kq8-viewer --test connor_weapon_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test keyboard_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test credits_menu -- --ignored
 cargo test --locked -p kq8-viewer --test starting_help -- --ignored
+cargo test --locked -p kq8-viewer --test inventory_tutorials -- --ignored
 cargo test --locked -p kq8-viewer --test movies -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test weeper -- --ignored

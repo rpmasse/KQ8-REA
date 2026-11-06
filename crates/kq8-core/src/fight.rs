@@ -675,12 +675,10 @@ impl crate::active::WorldState {
         self.connor_stats_events += 1;
         self.fight_note("Connor", format!("hit by {from}, {}: {} (roll 25-100 %, rule 16); health {before} -> {after}{temple}", kind.name(), dmg.describe()));
         // Rule 29: two one-off tips (logged only; their texts are another study).
-        if !self.connor_tips[0] {
-            self.connor_tips[0] = true;
+        if self.help_prompts.consume(crate::starting_help::FIRST_HIT) {
             self.fight_note("Connor", "first hit by a character: a one-off tip would come here (rule 29; not traced further)");
         }
-        if !self.connor_tips[1] && after * 2 < 10 * c.level {
-            self.connor_tips[1] = true;
+        if after * 2 < 10 * c.level && self.help_prompts.consume(crate::starting_help::LOW_HEALTH) {
             self.fight_note("Connor", "health below half his maximum for the first time: a one-off tip would come here (rule 29; not traced further)");
         }
         let at = format!("hit by {from}");
@@ -1499,8 +1497,8 @@ impl crate::active::WorldState {
         self.active_list.retain(|n| !n.eq_ignore_ascii_case(&name));
         self.requests.push(crate::active::Request::Delete { name: name.clone(), at: format!("{name} died (fighting.md rule 32)") });
         // Rule 33.
-        if !self.kill_tip && !NO_KILL_TIP.iter().any(|t| t.eq_ignore_ascii_case(&type_name)) {
-            self.kill_tip = true;
+        if !NO_KILL_TIP.iter().any(|t| t.eq_ignore_ascii_case(&type_name))
+            && self.help_prompts.consume(crate::starting_help::FIRST_KILL) {
             self.fight_note(&name, format!("first kill (type {type_name}): a one-off tip would come at {:.2} (rule 33; not followed further)", now + KILL_TIP_DELAY));
         }
     }

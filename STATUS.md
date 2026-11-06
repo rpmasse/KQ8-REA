@@ -1,5 +1,35 @@
 # STATUS
 
+## 2026-11-07 Pickup tutorial implementation
+
+The integrated candle and watermill test passed in 66.11 seconds.
+The first quest message opened 45 updates after pickup and the rope
+message opened 68 updates after pickup. The original Dead City and
+Temple 1 startup command ordering passed in 13.35 seconds. In a
+separate three-process test, the cottage health tutorial opened at
+401, exactly 45 updates after the mushroom receipt. All three saves
+kept four remaining mushrooms and Connor's first-health flag across
+the CastleD round trip. The portal test passed in 137.92 seconds.
+The Normal New Game Wizard route passed in 229.76 seconds. It crossed
+the farm after the help popup, received the quest piece during the
+conversation, displayed the queued item and map help, and saved the map.
+
+655 core, 155 data, 7 audio and 41 viewer regular tests passed.
+The integrated viewer and its tests compile. Original runtime and
+pending-event restore ordering are **not tested**. M4–M6 remain open.
+
+## 2026-11-06 Integration build audit for pickup tutorials
+
+The first combined cottage run loaded an older executable from the build
+directory previously shared with the windmill worktree. Its slot had the
+legacy flag but lacked the new help-history field. Rebuilding only the
+local crates exposed a separate type error in an integration edit.
+`world_build` owns an `Option<Box<Journey>>`. Two method-pointer forms
+failed to compile. The implementation worktree's tested closure borrows
+the boxed journey and calls its method through Rust's normal dereference.
+That form is restored here. Keep the main checkout's build directory
+exclusive to this checkout for subsequent tests.
+
 ## 2026-11-06 Daventry replay reaches the Henchman's attack
 
 The earned-slot diagnostic passed in two independent Windows processes.
