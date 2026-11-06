@@ -7,6 +7,23 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Items left in a region (2026-11-06)
+
+A loose item keeps its name, type, quantity, position, angles, visibility
+and pickup script when Connor leaves its region. Other owners' inventories
+belong to that region. Connor's own inventory accompanies him. A previously
+collected item can be laid back in its old region, superseding the earlier
+removal. Permanent startup objects come from the installed files on return.
+The Daventry data check verifies the original ring script, the missing
+collected coin pile, and the model and click box of a newly created stack.
+The next game-wide NoName number is preserved when loading existing items.
+Older Rust slots without regional item records use the earlier startup
+path. Mid-flight thrown item continuation is **not tested**.
+
+The two-process Normal New Game check saved six coins in Connor's purse
+in CastleD, then restored a seven-coin pile in Daventry. Two clicks raised
+the purse to thirteen. The next allocation used NoName24.
+
 ## Trap state when returning to a region (2026-11-06)
 
 When Connor accepts a portal, the recreation releases his place in the

@@ -139,12 +139,16 @@ impl Journey {
         // His start items in this world (`Connor.kq`'s inventory) go.
         let dropped: Vec<String> = w.items.objects.iter().filter(|o| o.carried_by(CONNOR)).map(|o| o.name.clone()).collect();
         w.items.objects.retain(|o| !o.carried_by(CONNOR));
+        for name in &dropped {
+            w.known.remove(&name.to_ascii_lowercase());
+        }
         let mut clashes = Vec::new();
         for item in &self.items {
             if w.items.index(&item.name).is_some() {
                 clashes.push(item.name.clone());
             }
-            w.items.objects.push(item.clone());
+            w.known.insert(item.name.to_ascii_lowercase());
+            w.items.arrive_with(item);
         }
         w.items.start_no_names_at(self.next_no_name);
         lines.push(format!("journey: {} items carried in (this world's start items {dropped:?} replaced); NoName counter at {}", self.items.len(), w.items.no_name_counter()));
@@ -276,6 +280,8 @@ numItems=2
         let mut a = world();
         a.world.connor_stats = Some(ConnorStats { stats: Stats([80, 60, 19, 11, 1234]), level: 8 });
         a.world.items.make("Mushroom", 3, Place::Carried("Connor".into())).unwrap();
+        a.world.items.mark_added("NoName0");
+        a.world.items.mark_added("NoName0");
         a.world.items.make("Crystal", 1, Place::World { position: [1.0, 2.0, 3.0], angles: [0.0; 3] }).unwrap();
         a.world.hand = Some("NoName0".into());
         a.world.connor_flags.insert("BeenToCastle".into(), true);
@@ -307,5 +313,9 @@ numItems=2
         assert_eq!((again.stats, &again.items, &again.hand, &again.flags, again.combat_level), (j.stats, &j.items, &j.hand, &j.flags, j.combat_level));
         assert_eq!(again.potions, j.potions);
         assert_eq!(connor_summary(&b.world), connor_summary(&a.world));
+        assert!(b.world.known.contains("noname0"));
+        let carried_order = b.world.items.get("NoName0").unwrap().added;
+        let later = b.world.items.make("Crystal", 1, Place::Carried("Connor".into())).unwrap();
+        assert!(later.added > carried_order, "a pickup after travel follows the carried items");
     }
 }

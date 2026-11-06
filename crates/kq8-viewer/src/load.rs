@@ -1926,10 +1926,17 @@ pub struct Marker {
 /// and loads the models they name (rules: docs/behaviour/objects.md).
 /// `terrain` gives the ground rules and, for the log, how far each placed
 /// model's lowest point is from the ground under it.
+#[derive(Clone, Debug)]
+pub enum ItemLoad {
+    Region(kq8_core::item::RegionItems),
+    Slot { objects: Vec<kq8_core::item::ItemObject>, next_name: usize, order: u64 },
+}
+
 /// A world Connor arrives in through a world change (M6 6e-3,
 /// `world-change.md` rules 18, 21).
 #[derive(Debug, Clone)]
 pub struct Arrival {
+    pub items: Option<ItemLoad>,
     /// The game-wide `NoName<n>` counter carried over (rule 18): the new
     /// world's start names nothing below it.
     pub no_name_from: usize,
@@ -1960,7 +1967,7 @@ pub struct Arrival {
 /// things), and the `NoName` counter goes on from the carried one.
 /// `progress`: the scripts' `setLoadProgress` percent, for the loading
 /// screen (M6 6e-4a, `world-change.md` rule 24).
-pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, log: &mut Log, arrival: Option<Arrival>, progress: Option<std::sync::Arc<std::sync::atomic::AtomicU32>>) -> Objects {
+pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, log: &mut Log, mut arrival: Option<Arrival>, progress: Option<std::sync::Arc<std::sync::atomic::AtomicU32>>) -> Objects {
     use kq8_data::world_script::{LoadKq, LoadName};
     // Where the time goes (the user's question, 2026-10-23).
     crate::timeline::reset();
@@ -2066,6 +2073,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         saved_props: arrival.as_ref().map(|a| a.prop_placements.clone()).unwrap_or_default(),
         prop_placements: BTreeMap::new(),
         persist_props: true,
+        restoring_region_items: matches!(arrival.as_ref().and_then(|a| a.items.as_ref()), Some(ItemLoad::Region(_))),
         kept_applied: Vec::new(),
         portal_movements,
         skip_con_start: arrival.is_some(),
@@ -2312,6 +2320,14 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
     if !object_shapes.is_empty() {
         placer.log.summary(format!("loadObject shapes made ready (anim-scripts.md rule 34): {object_shapes:?}"));
     }
+    // Supply the surviving objects before preparing their model, click box
+    // and body transform. Init will see the restored names and scripts.
+    if let Some(items) = arrival.as_mut().and_then(|a| a.items.take()) {
+        match items {
+            ItemLoad::Region(saved) => saved.restore(&mut placer.items),
+            ItemLoad::Slot { objects, next_name, order } => placer.items.restore_objects(objects, next_name, order),
+        }
+    }
     let (item_shapes, item_lines) = placer.item_models(&script);
     let items = std::mem::take(&mut placer.items);
     let gone_skipped = std::mem::take(&mut placer.gone_skipped);
@@ -2420,6 +2436,7 @@ struct Placer<'a> {
     saved_props: BTreeMap<String, kq8_core::collide::Placement>,
     prop_placements: BTreeMap<String, Option<kq8_core::collide::Placement>>,
     persist_props: bool,
+    restoring_region_items: bool,
     kept_applied: Vec<String>,
     /// Portals' own lists' movements for the Special state (M6 6e-7).
     portal_movements: Vec<(String, String)>,
@@ -2688,6 +2705,11 @@ impl kq8_data::world_script::Host for Placer<'_> {
         use kq8_core::item::{read_make, Place};
         let command = words[0].to_ascii_lowercase();
         if command == "kqmonster::inventory" || command == "give" {
+            if self.persist_props && self.restoring_region_items {
+                // A kept world loads these objects by name. Its original
+                // world-inventory creation lines are absent on return.
+                return Some(String::new());
+            }
             let m = match read_make(words) {
                 Ok(m) => m,
                 Err(e) => {
@@ -2710,6 +2732,7 @@ impl kq8_data::world_script::Host for Placer<'_> {
             };
             return match self.items.make(&m.kind, m.quantity, place) {
                 Ok(o) => {
+                    o.permanent_startup = !self.persist_props;
                     let name = o.name.clone();
                     if o.carried_by("Connor") {
                         self.connor_start.push(kq8_core::connor_start::StartLine::Item { name: name.clone(), at: at.to_string() });
@@ -6644,7 +6667,7 @@ mod runtime_stat_default_checks {
             ObjectCopy { file: "boardpx.kq".into(), name: "AlphaProbe".into(), placement: Placement::at([400., 500., 600.]) },
             ObjectCopy { file: "drborded.kq".into(), name: "belstnd1".into(), placement: Placement::at([700., 800., 900.]) },
         ];
-        let arrival = Arrival { no_name_from: 12, exit_movement: None, kept_vars: vec![],
+        let arrival = Arrival { no_name_from: 12, items: None, exit_movement: None, kept_vars: vec![],
             gone: ["zedprobe".into(), "belstnd1".into()].into_iter().collect(),
             came_in: vec!["boardpx.kq".into()], object_copies: copies.clone(), states: Default::default(),
             prop_placements: Default::default(), kept_maps: Default::default() };
@@ -6659,6 +6682,49 @@ mod runtime_stat_default_checks {
         }
         assert!(objects.placed.iter().any(|(p, _, unused)| !unused && p.name.eq_ignore_ascii_case("boxsmx")), "legacy filename-only activation still loads its original name");
         assert!(objects.templates.iter().any(|t| t.file == "boardpx.kq"));
+    }
+}
+
+#[cfg(test)]
+mod regional_item_checks {
+    use super::*;
+    use kq8_core::item::{Place, RegionItems};
+
+    fn arrival(no_name_from: usize, items: Option<ItemLoad>) -> Arrival {
+        Arrival { no_name_from, items, exit_movement: None, kept_vars: vec![],
+            gone: Default::default(), came_in: vec![], object_copies: vec![],
+            states: Default::default(), prop_placements: Default::default(), kept_maps: Default::default() }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn daventry_region_restores_item_names_models_and_global_counter_before_init() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let world = World::open(&game, "Daventry").unwrap();
+        let mut log = Log::create("regional-item-data").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let mut first = load_objects(&game, &world, &ground.terrain, &mut log, Some(arrival(0, None)), None);
+        let ring = first.items.index("NoName3").unwrap();
+        assert_eq!(first.items.objects[ring].script.as_deref(), Some("ring.cs"));
+        first.items.objects[ring].hidden = true;
+        let coins = first.items.index("NoName4").unwrap();
+        assert_eq!(first.items.objects[coins].quantity, 6);
+        first.items.objects[coins].place = Place::Carried("Connor".into());
+        let place = Place::World { position: [158281.,305600.,9742.], angles: [0.,0.,1.5] };
+        let created = first.items.make("SilverCoins", 7, place.clone()).unwrap().name.clone();
+        let saved = RegionItems::capture(&first.items, &Default::default());
+        assert!(saved.valid(first.items.no_name_counter()));
+        drop(first);
+        let returned = load_objects(&game, &world, &ground.terrain, &mut log,
+            Some(arrival(1200, Some(ItemLoad::Region(saved)))), None);
+        let ring = returned.items.get("NoName3").unwrap();
+        assert!(ring.hidden && ring.script.as_deref() == Some("ring.cs"));
+        assert!(returned.items.get("NoName4").is_none());
+        let coins = returned.items.get(&created).unwrap();
+        assert_eq!((coins.quantity, &coins.place), (7, &place));
+        assert!(returned.item_shapes.keys().any(|k| k.eq_ignore_ascii_case(&coins.kind)));
+        assert!(returned.items.click_box(coins).is_some());
+        assert_eq!(returned.items.no_name_counter(), 1200, "reloading stored objects allocates no names");
     }
 }
 

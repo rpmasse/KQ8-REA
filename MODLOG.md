@@ -1,5 +1,65 @@
 # MODLOG
 
+## 2026-11-06 Region item tables and original item names
+
+World travel now separates the inventory that accompanies Connor from
+loose items and other owners' items left in a region. Permanent startup
+items are created afresh. The stored region supplies persistent items
+before the loader prepares models, click boxes and Init scripts. A disk
+load supplies the full current item table. Both use the installed item
+type definitions and shapes. Removing an authored pile, changing an item's
+script or visibility, and taking an item back to its original region now
+have a representation in the region record. Restoring an existing item
+uses its original name, while new items use the game-wide NoName counter.
+Items that arrive with Connor remain addressable by name and new pickups
+follow his carried items in inventory order. Older slots can omit the
+regional field.
+
+Sources are world-change rules 12–18, item creation and ownership rules,
+Daventry's installed WorldInv.cs, and the existing Rust save representation.
+650 core and 41 viewer regular checks passed. The Daventry data check
+restored ring.cs, the hidden ring, a new seven-coin pile and its click box,
+excluded the collected starting pile and preserved the next ID at 1200.
+It passed in 18.07 s. Core checks cover another owner's inventory,
+deleted and transient objects, repeat application, old slots and invalid
+records. The first compiler check caught the loader trying to tag an item
+through a read-only reference. Item creation now returns the newly inserted
+mutable item. Script coverage regenerated with no change.
+
+The first native run failed after 42.84 s. It selected NoName9 rather than
+the new NoName22 because both piles contain seven coins. The creation log
+and coordinates identified the fixture error. The next run failed after
+151.38 s. NoName22 returned correctly, but the original opening sequence
+ran for the first time on returning to Daventry, and it owned controls at
+the scheduled clicks and saves. Work stopped for an audit of world.cs lines
+81–93 and stngrl.cs line 25. Ordinary New Game on Normal runs that opening
+on the outward visit and clears its first-visit flag. The original portal,
+return clicks and save schedule were used again.
+
+That final run passed across two Windows processes in 134.30 s. The three
+slots show six coins in CastleD, six after returning to Daventry and thirteen
+after the repeated pickup clicks. The global counter is 24, 24 and 25 in
+the three slots. The new object is NoName24. Evidence is in
+`kq8-artifacts/regional-items/1793971039340187300` and
+`kq8-artifacts/regional-items-normal-route.log`. The two failed roots are
+1793969936738873700 and 1793970404794336200. Final viewer/test compilation
+passed without Rust warnings.
+
+Run from the repository root in PowerShell:
+
+```powershell
+$env:KQ8_GAME_DIR=(Resolve-Path "..\King's Quest 8 GOG").Path
+cargo test --locked -p kq8-core --lib
+cargo test --locked -p kq8-viewer --bin kq8-viewer daventry_region_restores_item_names -- --ignored
+cargo test --locked -p kq8-viewer --test regional_items -- --ignored --test-threads=1
+```
+
+Expected native result: the Castle slot records the newly created pile by
+name and omits the collected starting pile. After loading CastleD and
+returning to Daventry, two clicks produce one seven-coin gain. The next
+creation uses the expected global ID. No manual tests. Original runtime
+and mid-flight item continuation are **not tested**.
+
 ## 2026-11-06 Study handoff for ordinary combat death (Q192)
 
 The separate original-engine study traced ordinary lethal damage through

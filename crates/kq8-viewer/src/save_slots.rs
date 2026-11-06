@@ -79,6 +79,13 @@ pub(super) struct Snapshot {
 }
 
 impl Snapshot {
+    pub(super) fn item_load(&self) -> load::ItemLoad {
+        load::ItemLoad::Slot {
+            objects: self.items.clone(),
+            next_name: self.journey.next_no_name,
+            order: self.inventory_order,
+        }
+    }
     // A conversation finishes `away` in trap_step after weapon synchronization.
     // Keep the old drawn list until the next door_step switches to bare hands.
     fn conversation_weapon_change_pending(&self) -> bool {
@@ -198,6 +205,9 @@ impl Snapshot {
                 && !s.split(['/', '\\']).any(|p| matches!(p, "." | ".."))
         };
         for (world, kept) in &self.kept {
+            if kept.items.as_ref().is_some_and(|items| !items.valid(self.journey.next_no_name)) {
+                return Err(format!("save has invalid regional items for {world}"));
+            }
             if kept.traps.as_ref().is_some_and(|traps| !traps.valid()) {
                 return Err(format!("save has invalid trap state for {world}"));
             }
@@ -631,6 +641,36 @@ mod tests {
     }
 
     #[test]
+    fn laying_a_carried_item_back_in_its_region_supersedes_the_old_removal() {
+        let mut saved = fixture();
+        let mut sim = active();
+        let mut item = saved.items[0].clone();
+        sim.world.items.restore_objects(vec![item.clone()], 30, item.added);
+        let first = KeptWorld::take(&sim, "Swamp", None);
+        assert!(first.gone.contains(&item.name.to_ascii_lowercase()));
+        item.place = Place::World { position: [33.,45.,12.], angles: [0.;3] };
+        sim.world.items.restore_objects(vec![item.clone()], 30, item.added);
+        let later = KeptWorld::take(&sim, "Swamp", Some(&first));
+        assert!(!later.gone.contains(&item.name.to_ascii_lowercase()));
+        saved.kept.insert("swamp".into(), later);
+        let json = serde_json::to_value(&saved).unwrap();
+        let regional = &json["kept"]["swamp"]["items"]["objects"];
+        assert_eq!(regional.as_array().unwrap().len(), 1);
+        assert_eq!(regional[0]["name"], item.name);
+        saved.validate().unwrap();
+        let mut old = json.clone();
+        old["kept"]["swamp"].as_object_mut().unwrap().remove("items");
+        let old: Snapshot = serde_json::from_value(old).unwrap();
+        assert!(old.kept["swamp"].items.is_none());
+        old.validate().unwrap();
+        let mut bad = json;
+        let entries = bad["kept"]["swamp"]["items"]["objects"].as_array_mut().unwrap();
+        entries.push(entries[0].clone());
+        let bad: Snapshot = serde_json::from_value(bad).unwrap();
+        assert!(bad.validate().unwrap_err().contains("invalid regional items for swamp"));
+    }
+
+    #[test]
     #[ignore = "requires KQ8_GAME_DIR"]
     fn departed_dead_city_keeps_spirit_fields_without_replaying_entry_on_return() {
         let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
@@ -905,6 +945,7 @@ mod tests {
             script: None,
             do_not_point_at: true,
             added: 44,
+            permanent_startup: false,
         };
         sim.world.items.objects.push(item.clone());
         sim.world.items.objects.push(ItemObject {
@@ -930,6 +971,7 @@ mod tests {
             "swamp".into(),
             KeptWorld {
                 traps: None,
+                items: None,
                 terrain_changes: Default::default(),
                 prop_placements: Default::default(),
                 interactions: Default::default(),

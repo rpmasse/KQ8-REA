@@ -187,6 +187,8 @@ pub struct KeptWorld {
     /// own full trap list, including objects outside the persist manager.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub traps: Option<kq8_core::trap::SavedTraps>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<kq8_core::item::RegionItems>,
 }
 
 impl KeptWorld {
@@ -206,6 +208,14 @@ impl KeptWorld {
         gone.extend(if disk_save { active.world.gone_names_for_disk_save() } else { active.world.gone_names() });
         let object_copies = active.world.saved_object_copies();
         for copy in &object_copies { gone.remove(&copy.name.to_ascii_lowercase()); }
+        // Connor may bring a previously collected item back and lay it
+        // in this world. Its live instance supersedes the older removal.
+        for item in &active.world.items.objects {
+            if !item.carried_by("Connor") && !matches!(item.place, kq8_core::item::Place::Gone)
+                && !active.world.is_deleted(&item.name) {
+                gone.remove(&item.name.to_ascii_lowercase());
+            }
+        }
         let mut came_in = previous.map(|p| p.came_in.clone()).unwrap_or_default();
         for file in active.world.came_in_files() {
             if !came_in.contains(&file) { came_in.push(file); }
@@ -215,9 +225,10 @@ impl KeptWorld {
             .filter(|(name, _)| !gone.contains(*name))
             .filter_map(|(name, place)| place.map(|p| (name.clone(), p)))
             .collect();
+        let items = (!disk_save).then(|| kq8_core::item::RegionItems::capture(&active.world.items, &gone));
         Self {
             vars: active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, from)).map(|(n, v)| (n.to_owned(), v.to_owned())).collect(),
-            gone, came_in, object_copies, states: active.world.kept_states_including(&prior_states),
+            gone, came_in, object_copies, items, states: active.world.kept_states_including(&prior_states),
             spawned_monsters: if disk_save { active.world.saved_spawned_monsters_for_disk_save() } else { active.world.saved_spawned_monsters() },
             characters: if disk_save { active.world.saved_placed_characters_for_disk_save() } else { active.world.saved_placed_characters() },
             active_list: Some(active.world.active_list.clone()),
@@ -820,6 +831,10 @@ pub fn world_change_step(world: &mut World) {
                 // Loading a saved world reconstructs its originally generated
                 // names before restoring its item table and live counter.
                 no_name_from: name_start,
+                items: match world.resource::<WorldChange>().restoring.as_ref() {
+                    Some(save) => Some(save.item_load()),
+                    None => kept.items.clone().map(load::ItemLoad::Region),
+                },
                 exit_movement,
                 kept_vars: kept.vars.clone(),
                 gone: kept.gone.clone(),

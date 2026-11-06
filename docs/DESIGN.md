@@ -13,6 +13,42 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 items left in a region.** World-change rules 12–18 keep loose
+items and other owners' inventories with their region. Connor carries his
+inventory between regions. Capture the surviving objects' names, owners,
+placements, counts, scripts, visibility and pickup order using the existing
+item representation. Use the original persist-manager switch to distinguish
+permanent scenery's fresh items from stored region items.
+
+On a return, rebuild permanent objects normally. Suppress the shipped
+startup's persistent item creation because the original loads its saved
+objects instead. Install the regional table before preparing item models
+and running Init. Keep the global NoName counter moving forward only for
+real allocations. Restore named item lookup and pickup ordering for Connor's
+carried inventory. A current disk save still has its full item table.
+An older slot missing the regional table keeps the previous startup path.
+
+Verify with original Daventry items and the Castle portal. Change and
+collect authored items, leave a newly created item on the ground, save in
+CastleD, exit, load there and return. Check the exact original item names,
+counts, placement/visibility, once-only pickup and the next generated name.
+Also check another owner's inventory, permanent-item eligibility, old slots
+and invalid regional records. This component covers item state across
+regional travel. Campaign gates use the separate ordinary-controls replay.
+
+The first native fixture matched the wrong seven-coin pile. The corrected
+fixture obtains its exact name from the creation log. Its second run
+confirmed the item loaded with the right position, model and click box,
+but direct-world startup meant the original first-visit opening happened
+when Connor returned to Daventry. The requested clicks and saves were
+blocked by that scene. The revised foundation starts New Game on Normal
+and lets world.cs clear its own first-visit flag before leaving. The
+return keeps the same coordinates, clicks and Save inputs.
+
+The Normal New Game run passed with three disk slots across two Windows
+processes. Connor carried six coins to CastleD and collected the seven
+left in Daventry once after returning. The next created item used NoName24.
+
 **M6 trap state across region travel.** World-change rules 5.3 and 11–15
 retain trap state from objects loaded under the persist manager. At an
 accepted portal handover, remove only Connor from the named departure

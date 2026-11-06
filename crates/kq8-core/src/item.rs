@@ -114,6 +114,59 @@ pub struct ItemObject {
     /// (0: never); the quest strip lists in this order (M4 4c-3,
     /// `inventory.md` rule 5).
     pub added: u64,
+    /// Objects created by the world's permanent startup script reload
+    /// from that script. The default for older Rust slots is persistent.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub permanent_startup: bool,
+}
+
+/// The part of the original item table that belongs to a departed world.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct RegionItems {
+    objects: Vec<ItemObject>,
+    order: u64,
+}
+
+impl RegionItems {
+    pub fn capture(items: &Items, gone: &std::collections::BTreeSet<String>) -> Self {
+        let objects: Vec<_> = items.objects.iter().filter(|item| {
+            if item.permanent_startup || gone.contains(&item.name.to_ascii_lowercase()) {
+                return false;
+            }
+            match &item.place {
+                Place::World { .. } => true,
+                Place::Carried(owner) => !owner.eq_ignore_ascii_case("Connor")
+                    && !gone.contains(&owner.to_ascii_lowercase()),
+                Place::Gone => false,
+            }
+        }).cloned().collect();
+        let order = objects.iter().fold(items.last_added, |order, item| order.max(item.added));
+        Self { objects, order }
+    }
+
+    pub fn valid(&self, next_no_name: usize) -> bool {
+        let mut names = std::collections::BTreeSet::new();
+        self.order < u64::MAX / 2 && self.objects.iter().all(|item| {
+            !item.name.is_empty() && !item.name.chars().any(char::is_control)
+                && names.insert(item.name.to_ascii_lowercase()) && !item.kind.is_empty()
+                && item.name.to_ascii_lowercase().strip_prefix("noname")
+                    .and_then(|n| n.parse::<usize>().ok()).is_none_or(|n| n < next_no_name)
+                && !item.permanent_startup && item.added <= self.order
+                && match &item.place {
+                    Place::World { position, angles } => position.iter().chain(angles).all(|n| n.is_finite()),
+                    Place::Carried(owner) => !owner.is_empty() && !owner.eq_ignore_ascii_case("Connor"),
+                    Place::Gone => false,
+                }
+        })
+    }
+
+    /// The loader has just recreated permanent objects. The saved objects
+    /// already have their final names. Restoring them allocates no new IDs.
+    pub fn restore(&self, items: &mut Items) {
+        items.objects.retain(|item| item.permanent_startup);
+        items.objects.extend(self.objects.iter().cloned());
+        items.last_added = items.last_added.max(self.order);
+    }
 }
 
 impl ItemObject {
@@ -275,6 +328,14 @@ impl Items {
         self.last_added
     }
 
+    pub(crate) fn arrive_with(&mut self, item: &ItemObject) {
+        self.last_added = self.last_added.max(item.added);
+        // This instance entered with Connor, outside the destination's
+        // permanent startup script, even if that script created its
+        // counterpart on an earlier visit.
+        self.objects.push(ItemObject { permanent_startup: false, ..item.clone() });
+    }
+
     /// Replace runtime objects, keeping the type definitions, click boxes
     /// and body transforms loaded from this installation's assets.
     pub fn restore_objects(&mut self, objects: Vec<ItemObject>, next_name: usize, order: u64) {
@@ -298,14 +359,14 @@ impl Items {
 
     /// Makes a new item object of type `kind` (any spelling rule 2
     /// allows). `Err` if there is no such type.
-    pub fn make(&mut self, kind: &str, quantity: i64, place: Place) -> Result<&ItemObject, String> {
+    pub fn make(&mut self, kind: &str, quantity: i64, place: Place) -> Result<&mut ItemObject, String> {
         let t = self.types.find(kind).ok_or_else(|| format!("no item type '{kind}' (looked for {})", kq8_data::items::full_name(kind)))?;
         let kind = t.name.clone();
         let name = format!("NoName{}", self.next_no_name);
         self.next_no_name += 1;
         let added = self.next_added(&place);
-        self.objects.push(ItemObject { name, kind, quantity, third: -1, place, hidden: false, script: None, do_not_point_at: true, added });
-        Ok(self.objects.last().expect("just pushed"))
+        self.objects.push(ItemObject { name, kind, quantity, third: -1, place, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
+        Ok(self.objects.last_mut().expect("just pushed"))
     }
 
     /// An item object with a name of its own (`Connor.kq`
@@ -318,7 +379,7 @@ impl Items {
             return Err(format!("an item named '{name}' exists already"));
         }
         let added = self.next_added(&place);
-        self.objects.push(ItemObject { name: name.to_string(), kind, quantity, third, place, hidden: false, script: None, do_not_point_at: true, added });
+        self.objects.push(ItemObject { name: name.to_string(), kind, quantity, third, place, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
         Ok(self.objects.last().expect("just pushed"))
     }
 
@@ -794,6 +855,44 @@ item1=\tKQInventoryItemType\tINVITEM_SilverCoins\t4030\t0\t0\t0\t0\t0\t1\tMoney\
 
     pub fn items() -> Items {
         Items::new(types(), [("crystl.kqs".to_string(), [-60.0, -80.0, 0.0], [70.0, 80.0, 290.0])])
+    }
+
+    #[test]
+    fn returned_region_keeps_live_local_owners_and_does_not_allocate_their_names_again() {
+        let mut departing = items();
+        let ground = Place::World { position: [2., 3., 4.], angles: [0., 0., 1.57] };
+        let loose = departing.make("Crystal", 3, ground.clone()).unwrap();
+        loose.hidden = true;
+        loose.script = Some("pickup.cs".into());
+        departing.make("SilverCoins", 7, Place::Carried("Wizard".into())).unwrap();
+        departing.make("Crystal", 1, Place::Carried("Connor".into())).unwrap();
+        departing.make("Crystal", 4, ground.clone()).unwrap().permanent_startup = true;
+        departing.make("Crystal", 1, Place::Gone).unwrap();
+        departing.make("Crystal", 9, Place::Carried("RemovedOwner".into())).unwrap();
+        let region = RegionItems::capture(&departing, &["removedowner".into()].into_iter().collect());
+        assert!(region.valid(departing.no_name_counter()));
+        assert!(!region.valid(1), "a stored generated name must precede the global counter");
+        let saved = serde_json::to_value(&region).unwrap();
+        let decoded: RegionItems = serde_json::from_value(saved.clone()).unwrap();
+        let mut rebuilt = items();
+        rebuilt.start_no_names_at(19);
+        rebuilt.make("SilverCoins", 2, ground.clone()).unwrap().permanent_startup = true;
+        decoded.restore(&mut rebuilt);
+        decoded.restore(&mut rebuilt);
+        assert_eq!(rebuilt.objects.iter().map(|o| o.name.as_str()).collect::<Vec<_>>(),
+            ["NoName19","NoName0","NoName1"]);
+        assert_eq!(rebuilt.objects[1].place, ground);
+        assert!(rebuilt.objects[1].hidden);
+        assert_eq!(rebuilt.objects[1].script.as_deref(), Some("pickup.cs"));
+        assert_eq!(rebuilt.objects[2].quantity, 7);
+        assert!(rebuilt.objects[2].carried_by("Wizard"));
+        assert_eq!(rebuilt.no_name_counter(), 20);
+        let mut duplicate = saved.clone();
+        duplicate["objects"][1]["name"] = "NONAME0".into();
+        assert!(!serde_json::from_value::<RegionItems>(duplicate).unwrap().valid(20));
+        let mut foreign = saved;
+        foreign["objects"][1]["place"]["Carried"] = "Connor".into();
+        assert!(!serde_json::from_value::<RegionItems>(foreign).unwrap().valid(20));
     }
 
     #[test]

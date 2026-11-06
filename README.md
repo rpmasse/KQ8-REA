@@ -30,6 +30,8 @@ Spirit traps preserve their original damage, reactions and occupied state throug
 
 Travelling away and returning restores a region's persistent traps, including after saving in another region.
 
+Items left in a region retain their names and can be collected after returning from another region's save.
+
 Indexed palette brightness updates live in Graphics and is reapplied after films.
 
 First-person presentation and remaining original-camera details still need implementation.
