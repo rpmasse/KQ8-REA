@@ -188,6 +188,8 @@ pub enum Request {
     /// `KQCamera::follow Connor|none` (`camera.md` rule 1): `true` =
     /// follow Connor, `false` = stay where it is.
     CameraFollow { connor: bool, at: String },
+    /// Independent camera-sync angular shake (camera-shake.md, Q187).
+    CameraShake { parameters: crate::camera_shake::Parameters, at: String },
     /// The player swings and zooms the camera around `point` instead of
     /// Connor (`conversation.md` rule 14, the right button; M4 4e-5);
     /// `None`: around Connor again. `KQCamera::follow` ends it too.
@@ -2140,6 +2142,24 @@ impl WorldState {
         };
         self.note(format!("{at}: KQCamera::follow {who}: {}", if connor { "the camera follows Connor" } else { "the camera stays where it is (camera.md rule 1)" }));
         self.requests.push(Request::CameraFollow { connor, at: at.to_string() });
+        "0".into()
+    }
+
+    /// Five-argument camera shake, with the original atof-style conversion.
+    fn camera_shake(&mut self, words: &[String], at: &str) -> String {
+        let [_, seconds, x_max, x_rate, z_max, z_rate] = words else {
+            self.note(format!("{at}: usage: KQCamera::shake seconds xMax xPeriod zMax zPeriod"));
+            return "1".into();
+        };
+        let value = |word: &str| number_value(word) as f32;
+        let parameters = crate::camera_shake::Parameters { seconds:value(seconds),
+            maximum:[value(x_max),value(z_max)],rate:[value(x_rate),value(z_rate)] };
+        if !parameters.valid() {
+            self.note(format!("{at}: KQCamera::shake: invalid/nonfinite parameters; refused"));
+            return "1".into();
+        }
+        self.requests.push(Request::CameraShake { parameters, at:at.to_string() });
+        self.note(format!("{at}: KQCamera::shake: {} s, angular maxima {:?}, phase rates {:?}; replaces the effect at camera sync",parameters.seconds,parameters.maximum,parameters.rate));
         "0".into()
     }
 
@@ -4341,6 +4361,7 @@ impl ScriptHost for WorldState {
             "KQConner::JumpDir" => Some(self.jump_dir(at)),
             "KQConner::endJump" => Some(self.end_jump(at)),
             "KQCamera::setRange" => Some(self.set_range(words, at)),
+            "KQCamera::shake" => Some(self.camera_shake(words, at)),
             "KQCamera::addCamLoc" | "KQCamera::flyToCamLoc" | "KQCamera::cutToCamLoc" => Some(self.cam_loc(words, at)),
             "KQMonster::inventory" | "give" => Some(self.make_item(words, at)),
             "KQMonster::checkInventory" => Some(self.check_inventory(words, at)),
@@ -9419,6 +9440,19 @@ endif
         let (dir, end, ends, log) = run(None);
         assert_eq!((dir.as_deref(), end.as_deref(), ends), (Some("0"), Some("0"), 0));
         assert!(log.contains("returns 0 if forward, 1 if backward") && log.contains("use when Connor is in the jump state"), "{log}");
+    }
+
+    #[test]
+    fn camera_shake_requires_five_finite_arguments_and_uses_atof_conversion() {
+        use crate::camera_shake::Parameters;
+        let mut a=with_object("KQCamera::shake 4 .02 4 .03 5\nKQCamera::shake 0 bad 2 -.6 3\nKQCamera::shake 4 .01 2 .01\nKQCamera::shake NaN .01 2 .01 2\n","x");
+        a.world.requests.clear();
+        a.click("basket1",[0.0,-1000.0,0.0],2350.0,None);
+        let parameters:Vec<_>=a.world.requests.iter().filter_map(|r| match r { Request::CameraShake {parameters,..}=>Some(*parameters),_=>None }).collect();
+        assert_eq!(parameters,[Parameters {seconds:4.0,maximum:[0.02,0.03],rate:[4.0,5.0]},
+            Parameters {seconds:0.0,maximum:[0.0,-0.6],rate:[2.0,3.0]}]);
+        let log=a.take_log().join("\n");
+        assert!(log.contains("usage: KQCamera::shake") && log.contains("invalid/nonfinite parameters"));
     }
 
     #[test]

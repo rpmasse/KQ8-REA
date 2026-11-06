@@ -19,16 +19,16 @@ notes answer Q190 (Henchman), Q188 (spirit traps) and Q187 (camera shake),
 and partly answer Q186 (brightness). Session B stays on those notes and
 original readable data; raw study material remains ignored and unpublished.
 The Wait attack-deadline correction and fixed-tick input checks below have
-been implemented. The following settled rules still need implementation:
+been implemented. The following settled rules guide the remaining work:
 
 - Spirit traps: default state 2 and double entry drain, repeated state-1
   Cue drains, integral zero floor, separate possibly lethal Normal hit,
   forced-reaction semantics and original occupancy/save fields. Preserve
   the authored Cue 2 no-op. Verify each health stage and continuation.
-- Camera shake: independent 15-Hz angular samples, original 0.293 phase
-  rate and amplitude ramp, fixed-cut accumulation, follow/flight ordering
-  and exact saved sample/amplitude continuation. Verify original beer and
-  gong script calls with stationary Connor and after a fresh-process load.
+- Camera shake: the third-person generator, fixed-cut accumulation,
+  shared follow/flight updates and saved sample/amplitude continuation
+  are implemented below. First-person presentation and the remaining
+  input/probe/timer-phase fidelity gaps still require work.
 - Brightness: original slider-driven live palette rebuild, source-space
   matching, renderer-specific conversion and haze/background choices.
   Do not add a brightness-driven display-gamma curve: the corrected study
@@ -40,6 +40,62 @@ These are additional concrete M4–M6 gaps, not a replacement for the complete
 interface, combat, twelve-region and uninterrupted-campaign gates below.
 Static study is not an original-runtime comparison or completed Rust feature.
 Continue using automated checks; no manual testing before feature completion.
+
+**Camera-shake implementation (2026-11-06).** Implement the
+documented original sample generator first: one replaceable effect,
+independent 15-Hz sample count, accumulated single-precision amplitudes,
+0.293 phase multiplier, 60 samples then stop for four seconds, and saved
+count/current amplitudes/configuration. Check the note's independently
+derived beer/gong sample values, nonintegral and zero durations, replacement,
+and uninterrupted versus JSON-resumed sample streams. Reject nonfinite
+checkpoint/input values rather than propagating invalid camera arithmetic.
+
+Then route KQCamera::shake through core requests to the camera. Fixed cuts
+accumulate the sample angles without changing position or roll; normal
+follow feeds its camera parameters rather than drawing a final overlay.
+Keep active shake through cuts/follow changes/flights, with flight work
+later in the same sync. Retain optional state in old/new disk records and
+log every sample/amplitude/mode/final pose. Q193 asks the authorized study
+session to settle shared-angle/update-order details and the missing
+first-person foundation before those branches can be called complete.
+Do not invent eye height or treat third-person-only work as full parity.
+
+Automate original beer/gong calls with stationary Connor, replacement,
+pause, a fixed cut/flight, and a fresh-process save during the ramp. Compare
+numeric samples and continued poses, not screenshots. Update source
+provenance, status/README/feature scope and failures; publish each coherent
+step. These component checks do not replace full quest/campaign gates.
+
+Q193 has now settled additional shared state: moved notifications, not
+full updates, shift previous/current actor transforms. Stillness replaces
+previous on the fourth sync after age zero. Height uses the original
+absolute signed sum; tilt and backward tests use the same retained records.
+Separate a full camera calculation from an actor notification. With placing
+off retain calculated offset/history but aim from the unchanged actual
+position. Sample once, then run the distinct shake, flight/turn-back and
+held-input phases; later full updates consume mouse deltas only once and
+do not sample again. The original universal relative deadline of moved
+notifications versus camera sync remains unproven and must stay explicit.
+First-person eye/slope/mode and model/list/skin rules are documented by
+the follow-up; first-person implementation and exact downstream clipping
+remain gaps, not a completed camera feature. Keep the final milestone
+gates unchanged.
+
+The implemented component preserves f32 ramp accumulation and optional
+JSON continuation; KQCamera::shake routes to the live camera. A sync
+advances stillness, samples once, performs the shake calculation, performs
+a distinct flight/turn-back calculation and finally services held Page
+input. Mouse deltas/one-shot controls and fixed-mode Page zoom are consumed
+once across those calculations. Flight motion now uses that same heading,
+distance and height controller; the separate flight-yaw/settle calculation
+has been removed. A cut retains the controller state; a follow command
+keeps an existing flight. Final flight placing/idle/turn-back changes occur
+before its last calculation. Preserve the newly clarified signed-side snap
+thresholds instead of the old symmetric improvement. Candidate offset is
+retained before height hold/optional placing. Component/native results and
+fixture failures are recorded in MODLOG and STATUS. First-person, exact
+physical drag/recentring, retained collision-probe/normal-length semantics
+and universal moved-versus-sync deadlines remain explicit camera gaps.
 
 **M5/M6 runtime object's initial stats plan (2026-11-06).** Objects rule 6 says runtime loadKQ follows the same file-loading steps, and anim-scripts rule 19 gives stats defaults (zero except doors' 10,000). Keep immutable stats prototypes by original source filename when parsing object files, separate from each live object's injured stats and saved records. Both dormant activation and newly named template copies initialize their live map and clear inherited hit history after the name-use guard, before Init. A kept world's existing objects still receive their saved stats after original defaults; that must not alter the prototypes used by later fresh copies. Check original stats/defaults, Init-time changes, same-name refusal without damage reset, and legal name reuse after a completed deletion event in core. In Windows, use the installed bell-stand script and LadyBell item to create bell.kq (one health), save after a one-point hit reaches zero without Die, reload, then delete/recreate the bell and require one fresh health and no old hit kind before another hit. This is a bell creation/save/reuse check, not the complete Lady-of-the-Lake quest or campaign.
 

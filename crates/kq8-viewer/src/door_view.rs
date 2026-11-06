@@ -1538,6 +1538,10 @@ pub fn trap_step(
                 Some(c) => format!("{at}: applied: {}", c.follow(follow, connor.mover.position)),
                 None => format!("{at}: KQCamera::follow: no game camera; not applied"),
             },
+            Request::CameraShake { parameters, at } => match camera.as_mut() {
+                Some(c) => format!("{at}: applied: {}",c.start_shake(parameters)),
+                None => format!("{at}: KQCamera::shake: no game camera; not applied"),
+            },
             Request::CameraAround { point, at } => match camera.as_mut() {
                 Some(c) => format!("{at}: applied: {}", c.around(point)),
                 None => format!("{at}: camera around a point: no game camera; not applied"),

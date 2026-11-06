@@ -13,12 +13,12 @@ What the game's scripts (`.cs`) and object files (`.kq`) ask of the program, fro
 
 | World | Scripts | Commands used | Missing (uses) | Stub (uses) | Connor states not built |
 | --- | ---: | ---: | --- | --- | --- |
-| Daventry | 174 | 92 | 7 (10) | 1 (1) | — |
+| Daventry | 174 | 92 | 6 (7) | 1 (1) | — |
 | CastleD | 17 | 29 | 3 (5) | 0 (0) | — |
 | DeadCity | 281 | 97 | 5 (5) | 1 (1) | — |
 | Swamp | 93 | 82 | 8 (9) | 0 (0) | Tile2 |
 | Gnome | 111 | 79 | 6 (9) | 1 (1) | — |
-| Barren | 118 | 84 | 6 (8) | 0 (0) | Tile3 |
+| Barren | 118 | 84 | 5 (6) | 0 (0) | Tile3 |
 | IceWorld | 78 | 82 | 8 (12) | 1 (29) | — |
 | Snowexit | 13 | 35 | 4 (4) | 0 (0) | — |
 | temple1 | 59 | 51 | 5 (6) | 0 (0) | — |
@@ -44,7 +44,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `resetHazeColor` | **missing** | 11 (0) | Daventry 1, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `Daventry/WORLD.CS` |
 | `KQMonster::preSpecial` | **missing** | 8 (0) | Swamp 1, Gnome 4, Barren 2, IceWorld 1 | `Swamp/Swhnchmn.cs` |
 | `setFirstPerson` | **missing** | 8 (0) | Swamp 2, temple1 2, temple2 2, temple3 2 | `Swamp/SWDOOR.CS` |
-| `KQCamera::shake` | **missing** | 5 (0) | Daventry 3, Barren 2 | `Daventry/beer42.CS` |
 | `KQConner::reduceHealth` | **missing** | 5 (0) | temple4 5 | `temple4/altar.cs` |
 | `KQCamera::setHeight` | **missing** | 3 (0) | temple3 2, temple4 1 | `temple3/traphz1.cs` |
 | `KQObject::setGroupsActive3D` | **missing** | 3 (0) | IceWorld 3 | `IceWorld/snowmane.cs` |
@@ -151,6 +150,7 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `earnTeleport` | built | 6 (0) | Daventry 1, DeadCity 1, Swamp 1, Gnome 2, IceWorld 1 | `Daventry/KeepDoor.cs` |
 | `offTeleport` | built | 6 (0) | Daventry 1, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1 | `Daventry/Teletrap.cs` |
 | `onTeleport` | built | 6 (0) | Daventry 1, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1 | `Daventry/Teletrap.cs` |
+| `KQCamera::shake` | built | 5 (0) | Daventry 3, Barren 2 | `Daventry/beer42.CS` |
 | `matchHeights` | built | 5 (0) | DeadCity 5 | `DeadCity/SCALE.CS` |
 | `setConnorFlag` | built | 5 (0) | CastleD 1, DeadCity 2, Swamp 1, temple4 1 | `CastleD/casport.cs` |
 | `tileExit` | built | 5 (0) | DeadCity 2, Swamp 3 | `DeadCity/DDOOR4.CS` |
