@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-07 From the hero’s ring to the watermill
+
+A separate Windows regression took the fresh Normal campaign’s final
+ring save to the mill in 131.20 seconds. Connor followed the northern
+ridge and western descent, struck the tree with his Small Axe and
+finished its scripted falling sequence. The resulting save has 50
+health, the ring, the axe and the tree-down flag. The original script
+loaded both fallen-tree objects and the dock. Crossing them and taking
+the rope still require verification.
+[Watermill route](docs/daventry-progression.md#watermill-tree)
+
 ## 2026-11-07 Fresh Normal New Game through the ring and disk reload
 
 The full Windows regression passed in 951.45 seconds. It started with

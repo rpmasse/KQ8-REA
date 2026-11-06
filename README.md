@@ -14,7 +14,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M6 · Campaign and saves | In Daventry, Connor earns the map and Small Axe, defeats the Henchman and takes the dead hero’s ring. Focused checks cover CastleD travel, Dead City scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete the regional quests, optional branches and boss sequences. Verify one continuous New Game through the ending and credits. |
 | M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
 
-**Current campaign boundary.** Connor used the cottage Crystal against the tomb archer, opened the door with the Small Axe and pushed the coffin lid. He took the ring through a visible click and kept it after a fresh launch. The remaining Daventry route includes the Shadow encounter, the Candle, the Ashes and the Wizard’s Ring of Light before travel to Dead City. [Daventry campaign evidence](docs/daventry-progression.md)
+**Current campaign boundary.** Connor used the cottage Crystal against the tomb archer, opened the door with the Small Axe and pushed the coffin lid. He took the ring through a visible click and kept it after a fresh launch. A separate test loaded that earned save, walked to the watermill and felled the tree with his axe. Traversing the crossing to obtain the rope is the next check. The remaining Daventry quests include the Shadow encounter, the Candle, the Ashes and the Wizard’s Ring of Light before travel to Dead City. [Daventry campaign evidence](docs/daventry-progression.md)
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
@@ -76,6 +76,7 @@ cargo test --locked -p kq8-viewer --test daventry_wizard -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_windmill -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_hero_ring breakable_route_dispatches -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_crystal_to_hero_ring_and_fresh_reload -- --ignored --exact --test-threads=1
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_hero_ring_to_watermill_tree -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored
 cargo test --locked -p kq8-viewer --test placed_characters -- --ignored

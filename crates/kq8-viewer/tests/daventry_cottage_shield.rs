@@ -561,6 +561,10 @@ fn earn_hero_door() -> PathBuf {
 #[test]
 #[ignore = "requires GOG assets and graphics; KQ8_HERO_DOOR_SLOT or KQ8_CRYSTAL_YARD_SLOT can repeat earned legs"]
 fn earned_crystal_to_hero_ring_and_fresh_reload() {
+    earn_hero_ring();
+}
+
+fn earn_hero_ring() -> PathBuf {
     let hero = Play::new("hero-coffin-reload");
     let source = std::env::var_os("KQ8_HERO_DOOR_SLOT").map(PathBuf::from).unwrap_or_else(earn_hero_door);
     fs::create_dir_all(&hero.slots).unwrap();
@@ -634,4 +638,44 @@ fn earned_crystal_to_hero_ring_and_fresh_reload() {
         fs::read(hero.game.join("Options.cs")).unwrap(),
         hero.options
     );
+    hero.slots.join("slot-3.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; KQ8_HERO_RING_SLOT repeats the watermill leg"]
+fn earned_hero_ring_to_watermill_tree() {
+    let mill = Play::new("hero-ring-watermill");
+    let ring = std::env::var_os("KQ8_HERO_RING_SLOT").map(PathBuf::from).unwrap_or_else(earn_hero_ring);
+    fs::create_dir_all(&mill.slots).unwrap();
+    fs::copy(ring, mill.slots.join("slot-1.json")).unwrap();
+    let start = mill.slot(1);
+    assert_eq!(start["label"], "HeroRingReload");
+    assert_eq!(start["journey"]["ai_off"], false);
+    assert_eq!(start["journey"]["god_mode"], false);
+    assert!(carries_one(&start, "INVITEM_RingOfDeadHero") && carries_one(&start, "INVITEM_SmallAx"));
+    assert!(hero_flag(&start, "Daventry::MillTree::down", "0"));
+
+    let route = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/routes/daventry_ring_watermill.json");
+    let (viewer, _) = mill.run("tree", &[
+        "--menu-input", "down,enter,release,enter,release",
+        "--walk-route", route.to_str().unwrap(), "--key", "popup:help=132,0",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=MillTree:enter:release:escape,1550",
+        "--key", "menu:up:enter:release:left:enter:release,1565", "--frames", "8800",
+    ]);
+    assert!(viewer.contains("walk-route at Water mill tree on update"));
+    let logs = mill.root.join("tree/kq8-artifacts/logs");
+    let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    assert!(fight.contains("Do (conaxe.anm/attack2): hits object MillTree"));
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
+    for prop in ["MillTre2", "MillTre3", "Dock3"] {
+        assert!(doors.contains(&format!("{prop} comes into the world")), "{prop}");
+    }
+    let saved = mill.slot(2);
+    assert_eq!(saved["label"], "MillTree");
+    assert!(saved["journey"]["stats"]["stats"][0].as_i64().unwrap() > 0);
+    assert!(hero_flag(&saved, "Daventry::MillTree::down", "1"));
+    assert!(carries_one(&saved, "INVITEM_RingOfDeadHero") && carries_one(&saved, "INVITEM_SmallAx"));
+    assert_eq!(saved["journey"]["ai_off"], false);
+    assert_eq!(saved["journey"]["god_mode"], false);
+    assert_eq!(fs::read(mill.game.join("Options.cs")).unwrap(), mill.options);
 }
