@@ -1,5 +1,44 @@
 # STATUS
 
+## 2026-11-07 Earned Henchman defeat and west-yard reload
+
+The two-process Windows test passed in 131.52 seconds. The prepared
+windmill save contained a shield, four mushrooms, the Small Axe and
+the map. Connor used the shield at 615, fought within the original
+melee reach and exhausted the four mushrooms. The guard entered Die
+at 817. At 907 his final animation ended, Connor received 30
+experience and reached level 4, and the original script returned
+control and removed clicker2. The GuardDuel menu save had 40 health.
+A fresh process loaded it, walked beyond the guard at update 45
+and saved WestYard with 40 health. The guard and click target stayed
+removed. AI and damage stayed active and the GOG options byte check
+passed. The two-process windmill acquisition and axe reload passed
+in 178.21 seconds. The onward hero's ring route remains open.
+
+The same duel test also passed without any supplied checkpoint in
+640.92 seconds. Five Windows processes followed the original menu saves
+from Normal New Game to WestYard, ending at level 4 with 40 health.
+The guard entered Die at 813, completed at 903 and stayed removed
+across the reload. This is the current verified campaign boundary.
+
+## 2026-11-07 Post-Henchman save audit
+
+The original death script completed, awarded 30 experience and created
+hm_dead.kqs in the prepared duel. The old replay reported the removed
+fighter as missing before saving. After using the recorded corpse,
+the first integration still missed a 150-unit test waypoint and never
+started its attacks. The guard's own position and Connor's melee reach
+establish the correct encounter boundary.
+
+At that boundary a second run defeated the guard, saved GuardDuel,
+loaded it in a fresh process and crossed the west opening at update 46.
+Both the guard and clicker2 stayed removed. The final assertion expected
+identical health after standing in the yard. The original sprigwnd3
+archer actually hit Connor five times, taking health from 40 to 23.
+Verify the saved level, other stats and removal records, and account
+for damage from the live world after loading. Save soon after crossing
+instead of waiting in the archer's line of fire.
+
 ## 2026-11-07 Cottage basket and Wizard reward verified
 
 The camera obstruction from the audit below is resolved. The walking

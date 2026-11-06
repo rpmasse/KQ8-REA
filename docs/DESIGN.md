@@ -13,6 +13,29 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 Henchman encounter after earning supplies.** Load the shield, mushrooms,
+map and Small Axe earned through normal Daventry play. Follow the original
+scene and leave the door westward. Use the shield after control returns,
+approach within the Small Axe's reach, make strong swings and eat earned
+mushrooms as needed. Verify actual damage, Die entry, experience, the named
+corpse, the original script's return of control, a post-victory disk save
+and a fresh-process walk through the yard.
+
+The first supplied duel took the guard from 300 health into Die at 793.
+The original completion awarded 30 experience and created his corpse at
+883. The old replay then treated the removed fighter as a missing target
+and exited before saving. Recognize a named corpse created during that
+encounter. Keep the error for a missing target with no such evidence.
+Run the same windmill input sequence for the ordinary and prepared
+Wizard saves, including the original mushroom and hay-bale tutorials.
+
+After the corpse fix the first integrated process overshot the replay's
+150-unit approach marker. It crossed the real melee range but issued
+no attack or healing input before Connor died. Use the guard's own
+stationary position and Connor's original 2,350-unit melee reach as
+the combat landmark. Keep damage, attack rolls, healing, shield
+duration and the original victory script unchanged.
+
 **M6 supplies from the cottage to the Wizard.** Continue from the real
 unspent village shield save. Use a camera ray to click the original
 basket and collect its five mushrooms. Leave the open doorway and

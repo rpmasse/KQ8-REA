@@ -1,6 +1,8 @@
 //! Continue the earned Small Axe route through the hero's tomb, without debug state.
 #[path = "support/daventry.rs"]
 mod daventry;
+#[path = "support/windmill.rs"]
+mod windmill;
 use serde_json::Value;
 use std::{fs, path::{Path, PathBuf}, process::Command};
 
@@ -80,22 +82,11 @@ fn earned_windmill_exit_reaches_guard_in_two_processes() {
 fn earn_axe(game: &Path, root: &Path) -> PathBuf {
     let earned = root.join("earned");
     daventry::earn_magic_map(game, &earned);
-    let dir = earned.join("windmill"); fs::create_dir_all(&dir).unwrap();
-    let route = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/routes/daventry_windmill.json");
-    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer")).current_dir(&dir)
-        .env("KQ8_SAVE_DIR", earned.join("slots")).arg("--game").arg(game)
-        .args(["--sound", "off", "--menu-input", "down,enter,release,enter,release", "--key", "popup:help=142,0"])
-        .arg("--walk-route").arg(route)
-        .args(["--key", "menu:down:down:down:enter:release:enter:release:escape:type=Hillside:enter:release:escape,838",
-            "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Windmill:enter:release:escape,1800",
-            "--key", "menu:up:enter:release:left:enter:release,1810", "--frames", "6500"]).output().unwrap();
-    fs::write(dir.join("stderr.log"), output.stderr).unwrap();
-    assert!(output.status.success(), "inspect {}", dir.display());
-    earned.join("slots/slot-3.json")
+    windmill::earn_axe(game, &earned)
 }
 
 #[test]
-#[ignore = "unfinished campaign: stops at Henchman (see STATUS); requires KQ8_GAME_DIR/graphics; KQ8_AXE_SLOT repeats the leg"]
+#[ignore = "unfinished retreat and hero-ring route; requires KQ8_GAME_DIR/graphics; KQ8_AXE_SLOT repeats the leg"]
 fn earned_small_axe_to_hero_ring_and_disk_reload() {
     let game = daventry::game();
     let options = fs::read(game.join("Options.cs")).unwrap();

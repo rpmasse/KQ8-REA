@@ -1,5 +1,77 @@
 # MODLOG
 
+## 2026-11-07 Defeat the Henchman and leave the windmill after reload
+
+The prepared Daventry route retains the cottage shield and mushrooms
+through the Wizard and windmill. On the tested route, the two original
+ground stacks brought five mushrooms to ten. The archer fight and
+Small Axe pickup left one shield, four mushrooms, the axe and Magic
+Map at 30 health. Both windmill callers now run the same input sequence,
+including acknowledgment of the original mushroom tutorial. The
+windmill test compares the hillside count with what the starting slot
+carried and verifies that its shield survives to the axe slot.
+
+Walking directly past the guard still failed with supplies. The shield
+raised protection from 2 to 50, but the route met the live Henchman's
+cylinder and the windmill wall. He landed seven spear hits before
+Connor died at 782. The stationary guard is at (137200,250000,15045),
+with cylinder radius 850, in addition to Connor's 200-unit ball radius.
+The subsequent duel uses the original strong swing, shield slot and
+earned mushrooms. It changes no combat values.
+
+The first supplied duel actually killed the guard at 793. His final
+movement awarded 30 experience and created hm_dead.kqs at 883. The
+walking test then reported a missing target, because the game had
+removed the fighter before the replay finished putting the axe away.
+The driver now recognizes a corpse with the same name created after
+that fight began. A target with no matching fighter or new corpse
+still reports an error.
+
+The first integrated duel overshot a 150-unit waypoint and issued no
+swings before Connor died at 753. The corrected test uses the guard's
+actual position and Connor's 2,350-unit melee reach. That run killed
+the guard, wrote the victory save and crossed west after a fresh
+load. Its final health equality check failed because the test waited
+in the archer sprigwnd3's line of fire. Five ordinary hits reduced
+health from 40 to 23. The final test checks the restored stats against
+actual damage and saves shortly after crossing. The windmill's first
+axe reload also ended at its 500-frame bound before the scheduled save:
+only 27 simulation updates had elapsed. Raising that diagnostic frame
+ceiling allowed the same normal Save command to run.
+
+The windmill acquisition, original axe distance checks
+and fresh-process raised-bale reload passed in 178.21 seconds. The
+prepared duel and reload passed in 131.52 seconds. The shield was used
+at 615. Strong axe hits put the guard into Die at 817 and the original
+completion awarded 30 experience at 907. Connor reached level 4 and
+40 health. The corpse was drawn, handsOff cleared and clicker2 was
+removed. A fresh process loaded GuardDuel, walked across the west yard
+at 45 and wrote WestYard with the guard and clicker2 still gone. The
+installed Options.cs matched after the two processes. Local artifacts
+are in `kq8-artifacts/prepared-henchman/1793982816457517100`.
+
+The complete default invocation then passed in 640.92 seconds, using
+five Windows processes and no supplied checkpoint. It earned the
+cottage shield, collected the basket, completed the Wizard conversation,
+earned the Small Axe and fought the guard. He entered Die at 813
+and awarded 30 experience at 903. After a normal save and fresh
+reload, Connor crossed the west opening at 41. His final WestYard
+slot retained level 4 and 40 health. This also exercises the previously
+unverified fully chained default cottage-to-Wizard start with the
+final camera picker. The final run is
+`kq8-artifacts/prepared-henchman/1793983065427316000`.
+
+Set `KQ8_GAME_DIR` to the owned GOG folder and run these automated tests.
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_supplies_defeat_the_henchman_and_reopen_the_west_yard -- --ignored --exact --test-threads=1
+cargo test --locked -p kq8-viewer --test daventry_windmill -- --ignored --test-threads=1
+```
+
+An earned `KQ8_PREPARED_AXE_SLOT` repeats the two-process duel.
+`KQ8_WIZARD_SLOT` repeats the windmill leg. The separate retreat
+tactic and the hero's tomb, coffin and ring continuation are open.
+
 ## 2026-11-07 Carry the cottage supplies to the Wizard
 
 The replay can now aim through an actual gameplay pixel. It checks the
@@ -34,9 +106,10 @@ and separately earned the shield again on Normal for the dose check.
 It passed in 391.26 seconds. With the optional variable unset, the
 Wizard test invokes the same New Game shield acquisition before
 continuing. The earlier default run reached the basket obstruction.
-Its fully chained default invocation with the final camera change is
-**not tested**. The earned guard duel and onward ring route have
-separate acceptance gates.
+At the time of this entry, the fully chained default invocation with
+the final camera change was **not tested**. The subsequent five-process
+Henchman acceptance run covers that start. The onward ring route has
+its own acceptance gate.
 
 ## 2026-11-07 Align the project status with the verified build
 

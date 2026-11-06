@@ -29,6 +29,46 @@ Physical access can add prerequisites that an inventory check alone cannot show.
 
 ### Current continuation boundary after the Small Axe
 
+The prepared route now defeats the Henchman with ordinary weapon and
+consumable inputs and leaves the windmill after a post-victory reload.
+Connor carried the shield and five cottage mushrooms to the Wizard,
+collected five more mushrooms on the way to the mill, defeated the
+archer and earned the Small Axe. One verified windmill slot had
+30 health, four mushrooms, the unconsumed shield, the axe and map.
+Enemy AI and normal damage were enabled throughout.
+
+Connor used the shield after the original scene returned control and
+attacked when the stationary guard was within the axe's 2,350-unit
+reach. In the verified repeat the guard entered Die at 817. His
+animation ended at 907, awarding 30 experience and raising Connor to
+level 4. The original script returned control and removed clicker2,
+and the game left the guard's corpse. A fresh process loaded the menu save, crossed
+the west opening at 45 and saved with 40 health. Both removals stayed
+recorded. The two-process check took 131.52 seconds from an earned
+windmill slot. The windmill acquisition and fresh-process axe reload
+took 178.21 seconds in a separate prepared-map test.
+
+Set `KQ8_GAME_DIR` to the owned GOG installation and run the duel test.
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_supplies_defeat_the_henchman_and_reopen_the_west_yard -- --ignored --exact --test-threads=1
+```
+
+The default path earns the prerequisites through Normal New Game.
+`KQ8_PREPARED_AXE_SLOT` repeats only the duel and reload from an earned
+windmill save. The retreat tactic and the full hero's ring route retain
+their own acceptance checks.
+
+The default test passed in 640.92 seconds across five fresh Windows
+processes with all checkpoint-input variables unset. The first two
+processes earned the shield, mushrooms and map. The third earned the
+axe, the fourth defeated the guard and saved, and the fifth loaded
+that victory and walked west. The guard entered Die at 813 and
+awarded his experience at 903. Connor crossed the west opening at 41,
+with level 4 and 40 health in the final slot.
+
+#### Earlier attempts at passing the guard
+
 Two subsequent tests examined walking around the guard. Both started
 with the same earned Small Axe save, 30 health, enemy AI and normal
 damage. The first attempted a northern jump and collided with the
@@ -45,8 +85,6 @@ healing and armour supplies placed by the original game. Daventry's
 WorldInv.cs includes three individual mushrooms near the beginning,
 and shield potions at (292519, 197716, 15246) and (251242, 259475, 13540).
 The shield lasts 20 seconds and raises protection to at least 50.
-Verify acquisition and survival with ordinary controls before counting
-this as a campaign route.
 
 Two attempts to collect all four village supplies stopped before any
 item click. The first ran into Sarah's closed cottage door at 678.
@@ -60,9 +98,8 @@ shield in the east room at 710. Its box was 1,427 units from Connor,
 within the original 4,700-unit reach. The first health-item notice
 opened at 755. A fresh process loaded the earned potion, used it with
 key 5 and recorded protection increasing from 0 to 50 for 20 seconds.
-The route took 146.04 seconds. This establishes a resource the player
-can earn before visiting the windmill. Carrying it to the encounter
-and surviving the guard remain open.
+The route took 146.04 seconds. The prepared duel above then carried
+the potion to the guard and survived the encounter.
 
 With `KQ8_GAME_DIR` set to the GOG folder, reproduce with
 `cargo test --locked -p kq8-viewer --test daventry_cottage_shield -- --ignored --test-threads=1`.
