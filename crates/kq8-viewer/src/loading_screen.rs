@@ -98,7 +98,7 @@ pub fn open(world: &mut World, to: &str, log: &Arc<Mutex<Log>>) {
         .ok_or("not found".to_string())
         .and_then(|p| std::fs::read(p).map_err(|e| e.to_string()))
         .and_then(|b| kq8_data::Palette::parse(&b))
-        .map(|p| kq8_data::palette::as_shown(p.colors));
+        .map(|p| crate::option_settings::screen_palette(&game, p.shown_colors()));
     let mut notes = Vec::new();
     let (mut image, mut red, mut black) = (None, None, None);
     match palette {

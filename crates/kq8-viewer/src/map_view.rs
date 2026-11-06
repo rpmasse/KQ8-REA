@@ -55,6 +55,8 @@ fn read_palettes(game: &GameDir, note: &mut impl FnMut(String) -> String) -> Vec
         .map(|name| {
             let rel = format!("{PICTURE_FOLDER}/{name}");
             match game.find(&rel).ok_or("not found".to_string()).and_then(|p| std::fs::read(p).map_err(|e| e.to_string())).and_then(|b| kq8_data::Palette::parse(&b)) {
+                // Match map indices in the stored colour space. The HUD's
+                // display palette applies brightness after the match.
                 Ok(p) => Some(p.colors),
                 Err(e) => {
                     note(format!("palette {rel}: {e}; that world's map keeps its colours"));

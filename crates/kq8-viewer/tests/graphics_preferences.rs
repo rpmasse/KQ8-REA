@@ -3,6 +3,33 @@ use std::{fs, path::Path, process::Command};
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn fresh_brightness_preferences_reach_world_and_interface_palettes() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let original = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/palette-brightness/{nonce}"));
+    for (value, factor) in [(0, "0.300"), (50, "1.000"), (100, "1.700")] {
+        let dir = root.join(value.to_string());
+        fs::create_dir_all(dir.join("kq8-artifacts")).unwrap();
+        fs::write(dir.join("kq8-artifacts/Options.cs"), format!("setBrightness {value}\n")).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+            .current_dir(&dir).arg("--game").arg(&game)
+            .args(["--world", "DeadCity", "--frames", "80", "--sound", "off", "--no-ai", "--god"])
+            .output().unwrap();
+        fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+        let viewer = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
+        assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+        let lines: Vec<_> = viewer.lines().filter(|l| l.contains(&format!("brightness {value} palette factor {factor}"))).collect();
+        assert!(!lines.is_empty(), "brightness did not reach decoded world palettes; inspect {}", dir.display());
+        if value == 50 { assert!(lines.iter().all(|l| l.contains("0 entries changed"))); }
+        else { assert!(lines.iter().any(|l| !l.contains(", 0 entries changed"))); }
+        assert!(viewer.contains(&format!("gui: fresh palette brightness {value}; display gamma not applied")));
+    }
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), original);
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
 fn graphics_menu_switches_live_shadow_categories_off_and_on() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let original = fs::read(game.join("Options.cs")).unwrap();

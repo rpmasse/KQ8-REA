@@ -15,6 +15,8 @@ use crate::log::Log;
 /// The archives of one world, opened once.
 pub struct World {
     pub name: String,
+    /// Palette adjustment fixed for this load; display gamma is separate.
+    brightness: u8,
     vols: Vec<(String, std::sync::Arc<VolArchive>)>,
     /// Textures already read and converted, by name and palette (2,855
     /// loads were 264 textures in Daventry; the user asked for faster
@@ -28,7 +30,7 @@ pub struct World {
     /// palette was unpacked 235 times in Daventry, each object's `.kq` once
     /// per copy), by their label.
     unpacked: std::sync::Mutex<std::collections::HashMap<String, Vec<u8>>>,
-    /// Palettes already read, by what was asked for (each still model read
+    /// Stored palettes before brightness, by what was asked for (each still model read
     /// the world's palette again: 235 times in Daventry).
     palettes: std::sync::Mutex<std::collections::HashMap<Option<String>, [Rgb; 256]>>,
 }
@@ -53,7 +55,7 @@ impl World {
                 vols.push((v.to_string(), std::sync::Arc::new(a)));
             }
         }
-        Ok(World { name: canonical.to_string(), vols, textures: Default::default(), shapes: Default::default(), unpacked: Default::default(), palettes: Default::default() })
+        Ok(World { name: canonical.to_string(), brightness: crate::option_settings::brightness(game), vols, textures: Default::default(), shapes: Default::default(), unpacked: Default::default(), palettes: Default::default() })
     }
 
     /// Unpacks the first entry called `name` (any case) from any archive.
@@ -762,14 +764,16 @@ pub fn load_haze(game: &GameDir, world: &World, settings: Option<&kq8_data::Terr
         }
     };
     let palette_name = world_palette_name(world, "loadingPalette").unwrap_or_else(|| format!("{}.ppl", world.name));
-    let palette = match load_palette(world, Some(&palette_name), game, log) {
+    // Match resetHazeColor against the stored palette, then adjust the chosen
+    // entry. Brightness must not change which authored palette index it selects.
+    let palette = match stored_palette(world, Some(&palette_name), game, log) {
         Ok(p) => Some(p),
         Err(e) => {
             log.summary(format!("haze: palette {palette_name}: {e}; haze colour and background black"));
             None
         }
     };
-    let screen = |c: [u8; 3]| c.map(|v| v as f32 / 255.0);
+    let screen = |c: [u8; 3]| kq8_data::palette::brightness_color(c, world.brightness).map(|v| v as f32 / 255.0);
     let mut colour = [0.0; 3];
     match (script.as_deref().and_then(reset_haze_color), &palette) {
         (Some(want), Some(p)) => {
@@ -884,6 +888,10 @@ fn find_model(game: &GameDir, world: &World, model: &str) -> Result<(String, Vec
 /// Default: `<world>.ppl` from the world's archives (measured best for
 /// Daventry; see docs/behaviour/QUESTIONS.md Q3).
 fn load_palette(world: &World, spec: Option<&str>, game: &GameDir, log: &mut Log) -> Result<[Rgb; 256], String> {
+    stored_palette(world, spec, game, log).map(|p| kq8_data::palette::with_brightness(p, world.brightness))
+}
+
+fn stored_palette(world: &World, spec: Option<&str>, game: &GameDir, log: &mut Log) -> Result<[Rgb; 256], String> {
     let key = spec.map(str::to_ascii_lowercase);
     if let Some(p) = world.palettes.lock().unwrap().get(&key) {
         return Ok(*p);
@@ -909,7 +917,10 @@ fn read_palette(world: &World, spec: Option<&str>, game: &GameDir, log: &mut Log
         }
     };
     let pal = Palette::parse(&bytes).map_err(|e| format!("{label}: {e}"))?;
-    log.summary(format!("palette: {label} ({:?}, {} entries)", pal.format, pal.entry_count));
+    let shown = kq8_data::palette::with_brightness(pal.shown_colors(), world.brightness);
+    let changed = shown.iter().zip(pal.shown_colors()).filter(|(a, b)| **a != *b).count();
+    log.summary(format!("palette: {label} ({:?}, {} entries); brightness {} palette factor {:.3}, {changed} entries changed; display gamma not applied",
+        pal.format, pal.entry_count, world.brightness, 0.3 + 1.4 * f32::from(world.brightness) / 100.0));
     // As stored, entry 0 black (models-and-textures.md Q3, Q22).
     Ok(pal.shown_colors())
 }
@@ -975,7 +986,7 @@ fn read_texture(world: &World, game: &GameDir, name: &str, palette: &[Rgb; 256],
     let own_vs_world = match (&bmp.embedded_palette, histogram) {
         (Some(own), Some(h)) => {
             let used = (0..256).filter(|&i| h[i] > 0);
-            let drawn = |i: usize| if i == 0 { Some([0, 0, 0]) } else { own.get(i).copied() };
+            let drawn = |i: usize| if i == 0 { Some([0, 0, 0]) } else { own.get(i).copied().map(|c| kq8_data::palette::brightness_color(c, world.brightness)) };
             let differ = used.filter(|&i| drawn(i) != Some(palette[i])).count();
             format!(" own_palette=yes used_colours_differing_from_world_palette={differ}")
         }
@@ -6269,5 +6280,71 @@ mod campaign_tests {
         }
         let seconds = switched.expect("the held separation must switch forms after recovery");
         assert!((1. - 1e-6..=2. + 1. / kq8_core::UPDATES_PER_SECOND).contains(&seconds), "{seconds}");
+    }
+}
+
+#[cfg(test)]
+mod brightness_checks {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn gog_palette_brightness_reaches_texture_upload_and_keeps_haze_index() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let mut log = Log::create("palette-brightness-data").unwrap();
+        let menu = kq8_core::main_menu::Art::open(game.root()).unwrap().render(&Default::default());
+        for value in [0, 50, 100] {
+            let adjusted = kq8_core::main_menu::Art::open(game.root()).unwrap().with_brightness(value).render(&Default::default());
+            assert_eq!((adjusted.width, adjusted.height), (menu.width, menu.height));
+            if value == 50 { assert_eq!(adjusted.rgba, menu.rgba); }
+            else { assert_ne!(adjusted.rgba, menu.rgba); }
+        }
+        for name in ["Daventry", "DeadCity"] {
+            let mut world = World::open(&game, name).unwrap();
+            let spec = world_palette_name(&world, "connorPalette").unwrap_or_else(|| format!("{name}.ppl"));
+            let original = stored_palette(&world, Some(&spec), &game, &mut log).unwrap();
+            let (_, bytes) = world.load("con0.bmp").unwrap_or_else(|| World::open(&game, "Daventry").unwrap().load("con0.bmp").unwrap()).unwrap();
+            let bitmap = Bitmap::parse(&bytes).unwrap();
+            assert_eq!(bitmap.bit_count, 8);
+            let (_, script) = world.load("world.cs").unwrap().unwrap();
+            let want = kq8_data::haze::reset_haze_color(&script).unwrap();
+            let loading = world_palette_name(&world, "loadingPalette").unwrap_or_else(|| format!("{name}.ppl"));
+            let haze_palette = stored_palette(&world, Some(&loading), &game, &mut log).unwrap();
+            let index = kq8_data::haze::palette_haze_colour(&haze_palette, want);
+            for value in [0, 50, 100] {
+                world.brightness = value;
+                let palette = load_palette(&world, Some(&spec), &game, &mut log).unwrap();
+                if value == 50 { assert_eq!(palette, original); }
+                else { assert_ne!(palette, original); }
+                let Look::Texture { width, height, rgba, .. } = load_texture(&world, &game, "con0.bmp", &palette, &mut log) else { panic!("Connor texture missing") };
+                assert_eq!((width, height), (bitmap.width, bitmap.height));
+                for (pixel, &i) in rgba.chunks_exact(4).zip(&bitmap.pixels) {
+                    // Independent floating reference for the documented rule;
+                    // byte quantization is allowed at most one intensity step.
+                    let raw = original[i as usize];
+                    let factor = 0.3 + 1.4 * f64::from(value) / 100.0;
+                    let scale = factor.min(255.0 / f64::from(*raw.iter().max().unwrap()));
+                    for axis in 0..3 {
+                        let expected = (f64::from(raw[axis]) * scale) as i16;
+                        assert!((i16::from(pixel[axis]) - expected).abs() <= 1);
+                    }
+                    assert_eq!(pixel[3], 255);
+                }
+                let image = crate::object_light::texture_image(width, height, rgba.clone(), bevy::image::ImageAddressMode::Repeat);
+                assert_eq!(image.data.as_deref(), Some(rgba.as_slice()), "upload changed the decoded palette colours");
+                let haze = load_haze(&game, &world, None, &mut log);
+                let expected = kq8_data::palette::brightness_color(haze_palette[index], value).map(|v| f32::from(v) / 255.0);
+                assert_eq!(haze.colour, expected, "brightness changed the nearest stored haze index");
+                log.summary(format!("brightness check: {name} {value}, {} texture pixels, unchanged dimensions {width}x{height}, haze index {index}", rgba.len() / 4));
+            }
+            // True-colour texture data has no palette stage.
+            let mut true_colour = bitmap.clone();
+            true_colour.width = 1; true_colour.height = 1; true_colour.bit_count = 24;
+            true_colour.pixels = vec![40, 120, 220];
+            for value in [0, 50, 100] {
+                let palette = kq8_data::palette::with_brightness(original, value);
+                assert_eq!(to_rgba(&true_colour, &palette), [40, 120, 220, 255]);
+            }
+        }
     }
 }

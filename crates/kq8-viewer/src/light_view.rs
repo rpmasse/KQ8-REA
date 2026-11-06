@@ -18,8 +18,8 @@
 //!   linear colour space (the sRGB curve) before it is stored. Products
 //!   of sRGB values are not exactly sRGB of products: dark tones come out
 //!   a little darker than a plain multiply.
-//! - STAND-IN (open question 3): the brightness setting (`setBrightness`)
-//!   is ignored.
+//! - The setBrightness palette stage runs before texture upload. The
+//!   separate display-gamma stage is not applied yet (object-lighting rule 17).
 //!
 //! - Point lights on the ground (object-lighting.md rule 26, M1 7e): with
 //!   `useDynamicLighting 1`, every frame the points painted the frame

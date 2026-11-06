@@ -314,6 +314,12 @@ impl Art {
         })
     }
 
+    /// Apply the palette stage once to newly opened screen artwork.
+    pub fn with_brightness(mut self, value: u8) -> Self {
+        self.palette = kq8_data::palette::with_brightness(self.palette, value);
+        self
+    }
+
     pub(crate) fn label(&self, id: u8) -> &str {
         self.texts.get(&id).map_or("", |s| s.trim())
     }

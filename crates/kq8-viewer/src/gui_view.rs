@@ -484,7 +484,7 @@ pub fn load_gui(game: &GameDir, region: &crate::load::World, main: &mut Log) -> 
     let (pal_names, pal_note) = crate::load::screen_palette_paths(game, world);
     let Some((pal_path, pal_bytes)) = first_found(game, &pal_names) else { return fail(main, format!("no palette found ({pal_note}; tried {pal_names:?})")) };
     let palette = match kq8_data::Palette::parse(&pal_bytes) {
-        Ok(p) => p.shown_colors(),
+        Ok(p) => crate::option_settings::screen_palette(game, p.shown_colors()),
         Err(e) => return fail(main, format!("{pal_path}: {e}")),
     };
     let wide = crate::talk_view::set800mode(game);
@@ -517,6 +517,7 @@ pub fn load_gui(game: &GameDir, region: &crate::load::World, main: &mut Log) -> 
         screen[0], screen[1]
     );
     main.summary(&head);
+    main.summary(format!("gui: fresh palette brightness {}; display gamma not applied", crate::option_settings::brightness(game)));
     if let Some(l) = &mut log {
         l.detail("gui.log: panels shown and hidden with the reason and real time; per stats event the values sent and the bar widths (docs/behaviour/interface.md)");
         l.detail(&head);

@@ -435,7 +435,7 @@ impl Menu {
         log: &mut crate::log::Log,
     ) -> Result<Self, String> {
         Ok(Self {
-            art: Art::open(path)?,
+            art: Art::open(path)?.with_brightness(Preferences::load(path).settings.graphics.brightness),
             state: Choice::default(),
             slot_page: None,
             options: None,
