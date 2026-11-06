@@ -412,12 +412,12 @@ pub fn follow_mode(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     /// A `.dil` (as bytes) with the given maps: (width, height, offset x,
     /// offset y); texel values count up from 1.
-    fn dil(maps: &[(u8, u8, u8, u8)]) -> BuildingLight {
+    pub(crate) fn dil(maps: &[(u8, u8, u8, u8)]) -> BuildingLight {
         let total: usize = maps.iter().map(|m| m.0 as usize * m.1 as usize).sum();
         let mut d = Vec::new();
         for v in [5u32, 4, 0, 0, 0, 0, maps.len() as u32, 2 * total as u32] {

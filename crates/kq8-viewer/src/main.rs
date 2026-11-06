@@ -49,6 +49,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 mod anim_gpu;
 mod anim_view;
 mod building_light;
+mod alternate_lighting;
 mod connor_view;
 mod console;
 mod console_words;
