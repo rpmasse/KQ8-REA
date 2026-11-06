@@ -125,6 +125,31 @@ until update 616, so a key scheduled at 615 was correctly refused.
 Both the garden save and the earlier windmill save passed when the
 key followed the end of the scene.
 
+**Fighting the hill archer.** Two further runs loaded the earned
+two-mushroom WestYard save. In the first, Connor reached the steps
+and swung the Small Axe in range. A bolt had already reduced his
+health below zero at 957. His pending swing killed the archer at 969,
+then Connor entered Die at 992. The first mushroom had been consumed
+while Connor still had full health. In the second run one mushroom
+was reserved for close combat. Connor hit the archer for 100 at
+961, leaving it with 30 health. A bolt reduced Connor to −1 at 985.
+Neither run earned a living checkpoint beyond the archer.
+
+**The cottage Crystal.** Daventry's original item script places one
+50-health Crystal at (290629, 200036, 13916). An orbit from the north
+room failed to find a visible pixel. Sampling the original cottage
+walls showed clear views from the east room. In a separate trial, a
+real click at pixel (9, 465) hit the Crystal first; Connor picked it
+up from 3,327 units away, within the 4,700-unit limit, and saved it.
+
+The checked-in garden route now also acquires the Crystal. A fresh
+Normal New Game earned the shield, then a second process picked up
+the Crystal at update 46, opened the basket, picked three garden
+mushrooms and saved. A third process loaded that inventory, met
+the Wizard and saved with one Crystal, one shield, eight mushrooms
+and the original story items. This run used no supplied checkpoint
+and passed in 399.88 seconds.
+
 With `KQ8_GAME_DIR` set to the GOG installation, the following
 check starts from Normal New Game by default. Set `KQ8_SHIELD_SLOT`
 to an earned VillageShield menu save to repeat from the cottage.

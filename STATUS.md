@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-07 Fresh Normal New Game through the cottage Crystal and Wizard
+
+The three-process garden regression passed in 399.88 seconds from a
+fresh save directory. Connor earned the cottage shield, the Crystal,
+eight mushrooms and then the original Wizard rewards. GardenWizard
+held all three supplies. The Crystal provides a recovery item for
+the hill archer. Two garden-only attempts had reached actual melee
+range, but both ended in Connor's death before he earned the ring.
+
 ## 2026-11-07 Connor's original view-specific asset tables
 
 The viewer's third-person base and weapon movement lists come from
