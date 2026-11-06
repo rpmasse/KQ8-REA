@@ -13,6 +13,18 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 collision when a script loads scenery.** Use the startup loader to
+prepare the original object boxes and interior collision trees for named
+scenery that can enter a running world. Keep them outside the live
+collision lists until the script calls `loadKQ`. On that call, register
+them in load order with Connor's movement, camera and picking, and apply
+their ordinary near/far and deletion rules. Use Daventry's mill tree as
+the Windows acceptance case. Compare contact with both fallen-tree
+objects and the dock after the scripted fall and after loading its menu
+save. Then take the rope by entering the original mill trap and clicking
+the placed object. Keep the campaign check and the focused collision
+comparison distinct in the results.
+
 **M6 keep the Crystal approach on open floor.** A fresh Normal run
 picked up the Crystal but stopped in Fall at the vertical surface
 near (292236, 196787). Sweeping Connor's original collision shape

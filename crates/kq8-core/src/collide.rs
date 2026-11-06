@@ -134,6 +134,9 @@ pub fn pull_back(touch: [f32; 3], from: [f32; 3]) -> [f32; 3] {
 #[derive(Debug, Clone)]
 pub struct BuildingCollider {
     pub name: String,
+    /// Keep its index stable for picking and lighting when the collision
+    /// group is switched off or its object is deleted.
+    pub enabled: bool,
     nodes: Vec<BspNode>,
     solid: Vec<bool>,
     planes: Vec<([f32; 3], f32)>,
@@ -179,7 +182,7 @@ impl BuildingCollider {
         placement: Placement,
     ) -> Self {
         let (world_min, world_max) = world_box(bounds.0, bounds.1, &placement);
-        BuildingCollider { name: name.to_string(), nodes, solid, planes, placement, bounds, world_min, world_max }
+        BuildingCollider { name: name.to_string(), enabled: true, nodes, solid, planes, placement, bounds, world_min, world_max }
     }
 
     /// The rough check: does the box `lo..hi` (world space) overlap the
@@ -188,13 +191,13 @@ impl BuildingCollider {
     /// and never changes a result, as long as `lo..hi` covers everything
     /// the balls can touch: `BallStack::reach`.)
     pub fn overlaps(&self, lo: [f32; 3], hi: [f32; 3]) -> bool {
-        (0..3).all(|k| lo[k] <= self.world_max[k] && hi[k] >= self.world_min[k])
+        self.enabled && (0..3).all(|k| lo[k] <= self.world_max[k] && hi[k] >= self.world_min[k])
     }
 
     /// Sweeps the mover's balls from `from` to `to` (mover positions, world
     /// space) through the BSP; the earliest touch of any ball, pulled back.
     pub fn sweep(&self, stack: &BallStack, from: [f32; 3], to: [f32; 3]) -> Option<Contact> {
-        if length(sub(to, from)) < BUILDING_MIN_MOVE || self.nodes.is_empty() {
+        if !self.enabled || length(sub(to, from)) < BUILDING_MIN_MOVE || self.nodes.is_empty() {
             return None;
         }
         let mut best: Option<(f32, usize, BspHit)> = None;
@@ -220,7 +223,7 @@ impl BuildingCollider {
     /// (camera.md "Obstacles": buildings block the view by their BSP).
     /// Starting inside solid is not a hit.
     pub fn line_hit(&self, from: [f32; 3], to: [f32; 3]) -> Option<[f32; 3]> {
-        if self.nodes.is_empty() || length(sub(to, from)) < BUILDING_MIN_MOVE {
+        if !self.enabled || self.nodes.is_empty() || length(sub(to, from)) < BUILDING_MIN_MOVE {
             return None;
         }
         let (s, e) = (self.placement.to_own(from), self.placement.to_own(to));
@@ -231,7 +234,7 @@ impl BuildingCollider {
     /// Whether a point (world space) is in a solid leaf. For checks and
     /// logs only; the passes use `sweep`.
     pub fn solid_at(&self, p: [f32; 3]) -> bool {
-        if self.nodes.is_empty() {
+        if !self.enabled || self.nodes.is_empty() {
             return false;
         }
         let p = self.placement.to_own(p);
@@ -874,6 +877,21 @@ mod tests {
         assert!(w.overlaps(lo, hi));
         let (lo, hi) = connor().reach([0.0, 0.0, 0.0], [10.0, 0.0, 0.0]);
         assert!(!w.overlaps(lo, hi));
+    }
+
+    #[test]
+    fn disabling_an_interior_removes_its_movement_and_ray_hits_until_reenabled() {
+        let mut b = floor_and_ceiling(5000.);
+        let from = [0., 0., 1000.];
+        let to = [0., 0., -1000.];
+        let (lo, hi) = connor().reach(from, to);
+        for enabled in [true, false, true] {
+            b.enabled = enabled;
+            assert_eq!(b.sweep(&connor(), from, to).is_some(), enabled);
+            assert_eq!(b.line_hit(from, to).is_some(), enabled);
+            assert_eq!(b.solid_at(to), enabled);
+            assert_eq!(b.overlaps(lo, hi), enabled);
+        }
     }
 
     fn crate_box(min: [f32; 3], max: [f32; 3], placement: Placement) -> BoxCollider {

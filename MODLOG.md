@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-07 Collision for scenery loaded during play
+
+The viewer prepares the collision boxes and interior trees of named
+scenery from the same original data it uses at startup. It registers
+them when their `loadKQ` event arrives, in loading order. Collision
+groups govern the new surfaces. Disabling or deleting a building
+preserves its index while removing its movement and camera contacts.
+
+Daventry’s live tree replay registered the two fallen-tree boxes
+and the dock interior. A comparison using Connor's original collision
+dimensions found identical contacts on both tree tops and on 375
+walkable points of the dock after reloading. Reproduce the comparison
+with the `fallen_tree_and_dock_use_the_same_surfaces_on_script_load_and_revisit`
+command in the README. It reads the game installation at runtime.
+
 ## 2026-11-07 Take the cottage Crystal from open floor
 
 A full campaign repetition earned the shield and clicked the

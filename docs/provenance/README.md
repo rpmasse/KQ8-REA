@@ -11,6 +11,15 @@ models in `GAME/Common`. The separate study describes when to select
 each list and how the original draws the active model. [Camera study,
 Q193](../behaviour/camera.md#first-person-body-and-animations-q193-2026-11-06)
 
+**Scenery added by a running script.** The separate study describes
+how a named `loadKQ` uses the startup rules and checks the object's
+active groups against the current character or camera position. The
+collision and placement inputs come directly from the player's GOG
+installation. Daventry's `milltree.cs`, the three files it loads,
+`GAME/patch/BOUNDS.KQ` and `Dock3.dig` supply the regression case.
+[Object loading](../behaviour/objects.md), [collision groups](../behaviour/object-lighting.md),
+[movement against interiors](../behaviour/connor-physics.md)
+
 Source types:
 
 - **Observed**: worked out by reading the player's own game data files.

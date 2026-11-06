@@ -123,6 +123,16 @@ pub const ITEM_TOO_FAR: f32 = 0.83;
 pub const ITEM_GROUPS: [u32; 3] = [0x2, 0x448, 0];
 
 impl DistanceTest {
+    pub fn activity(&self, distance: f32, limit: f32, hidden: bool, rules: &ActiveRules) -> Activity {
+        if hidden {
+            Activity::Off
+        } else if rules.always_near.contains(&self.name.to_ascii_lowercase()) {
+            Activity::Near
+        } else {
+            Activity::of(distance, limit, self.too_far)
+        }
+    }
+
     /// For `placement`, with `ball` = (centre, radius) in game units,
     /// model space, or `None` (radius 100 at the position).
     pub fn new(placement: &Placement, ball: Option<([f32; 3], f32)>, ball_from: &'static str) -> Self {
@@ -362,13 +372,7 @@ pub fn update_activity(
                 changes.push(format!("draw distance: [{}] shown by a script (setHidden 0): drawn from now on (objects.md \"Hidden objects\" rule 3)", test.name));
             }
         }
-        let activity = if hidden {
-            Activity::Off
-        } else if rules.always_near.contains(&test.name.to_ascii_lowercase()) {
-            Activity::Near
-        } else {
-            Activity::of(d, limit, test.too_far)
-        };
+        let activity = test.activity(d, limit, hidden, &rules);
         if test.character && activity != Activity::Off {
             characters.0.insert(test.name.to_ascii_lowercase());
         }
@@ -478,6 +482,7 @@ pub fn apply_collider_switches(
     sim: Option<ResMut<crate::door_view::DoorSim>>,
     colliders: Option<ResMut<crate::terrain_view::ObjectColliders>>,
     view: Option<ResMut<crate::terrain_view::ViewBlockerSet>>,
+    mut buildings: Option<ResMut<crate::terrain_view::Buildings>>,
     shared: Res<Shared>,
 ) {
     if switches.0.is_empty() {
@@ -493,6 +498,11 @@ pub fn apply_collider_switches(
                 continue;
             }
             s.active.switch_collider(&name, on);
+        }
+        if let Some(buildings) = &mut buildings {
+            for building in buildings.0.iter_mut().filter(|b| b.name.eq_ignore_ascii_case(&name)) {
+                building.enabled = on;
+            }
         }
         let (boxes, views) = if on {
             let (boxes, views) = out.0.remove(&key).unwrap_or_default();
