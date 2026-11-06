@@ -1519,10 +1519,9 @@ pub fn gui_step(
     }
     let first = gui.stats_events.is_none();
     gui.stats_events = Some(events);
-    // Dying states are M5: never dead yet.
     let red = kq8_core::potions::red_numbers(&sim.active.world.potions);
     let old_level = gui.meters.level;
-    let sent = gui.meters.send(&stats, false, red);
+    let sent = gui.meters.send(&stats, sim.active.world.connor_death_entered, red);
     let width = |name: &str| {
         gui.control(name).map_or(0, |c| (gui_draw::scaled(c.rect[2], gui.scale) - gui_draw::scaled(c.rect[0], gui.scale)).max(0) as u32)
     };

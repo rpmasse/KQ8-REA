@@ -36,6 +36,14 @@ fn connor_stats_death_plays_normal_and_saved_fire_sequences_before_game_over() {
         assert!(logs.1.contains(" finished: Die state"), "the death movement did not finish; inspect {}", root.display());
     };
     check(&normal, "Normal", "[\"die\"]");
+    let hold = normal.0.lines().find(|l| l.contains("finished: Die state holds until update")).unwrap();
+    let start: u64 = hold.strip_prefix("update ").unwrap().split(':').next().unwrap().parse().unwrap();
+    let menu_key = format!("menu,{}", start + 3);
+    let blocked = run("escape-in-hold", &["--world", "DeadCity", "--frames", "900",
+        "--command", "sendEvent 0 Connor KQStatsChangeRequestEvent -100000 0 0 0 0,10", "--key", &menu_key]);
+    check(&blocked, "Normal", "[\"die\"]");
+    assert!(blocked.0.contains("gameplay menu request blocked by handsOff"));
+    assert!(!blocked.0.contains("menu: shown Choice { game: true"));
     run("save-fire-history", &["--world", "DeadCity", "--frames", "1500",
         "--command", "KQConner::setLevel 8,1",
         "--command", "sendEvent 0 Connor KQStatsChangeRequestEvent 80 0 0 0 0,2",

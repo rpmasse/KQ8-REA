@@ -603,20 +603,21 @@ impl crate::active::WorldState {
         if self.connor_dying {
             return;
         }
-        self.connor_dying = true;
-        if matches!(
-            self.connor_state,
-            Some(crate::character::state_number::WAIT | crate::character::state_number::MOVE)
-        ) {
+        use crate::character::state_number::{MOVE, WAIT};
+        self.pending_combat_death = Some(kind);
+        if self.connor_state == Some(MOVE)
+            || (self.connor_state.unwrap_or(WAIT) == WAIT && self.connor_wait_retains_stop) {
             self.enter_connor_death();
         }
-        self.requests
-            .push(crate::active::Request::ConnorDies { kind, at });
+        if !self.requests.iter().any(|r| matches!(r, crate::active::Request::ConnorDies { .. })) {
+            self.requests.push(crate::active::Request::ConnorDies { kind, at });
+        }
     }
 
     /// Zero once on actual entry, never on re-entry or a later direct
     /// stats request. Q194's second same-time delta can leave health -1.
     pub fn enter_connor_death(&mut self) {
+        self.pending_combat_death = None;
         if self.connor_death_entered {
             return;
         }
@@ -683,7 +684,7 @@ impl crate::active::WorldState {
         }
         let at = format!("hit by {from}");
         if after < 0 {
-            self.fight_note("Connor", format!("health {after} is below 0: his dying state, kind {} (rules 18, 29); game over is another study", kind.name()));
+            self.fight_note("Connor", format!("health {after} is below 0: requests Die, hit kind {} (rules 18, 29)", kind.name()));
             self.request_connor_death(kind,at);
         } else {
             // Rules 23, 29 (batch 2 D-7): his own percent, and a special

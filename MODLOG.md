@@ -1,5 +1,65 @@
 # MODLOG
 
+## 2026-11-07 Connor's ordinary death, pending requests and the menu
+
+Implemented the [original ordinary death rules](docs/behaviour/connor-combat-death.md)
+from study A. A lethal request waits for a standing attack or weapon swap
+to release its movement. An accepted request clamps health to zero and
+selects the equipped animation using the last hit. Movement end checks
+reincarnation. If it is off, Connor freezes and game over follows three
+seconds later. The vortex Die Now command shares this final action.
+Escape uses the scripted input gate. A save before the hold records
+the pending request or current animation and can load legacy Rust
+slots. Exit from first person, remaining specialised controllers and
+original save-event ordering remain open.
+
+The integrated crossbow swap passed across two Windows processes in
+53.87 seconds. A second hit changed the pending Fire request to Ice.
+The final swap end admitted Die in the same update, and the Ice
+sequence completed before the three-second deadline. A setting changed
+during playback was read at the final end and restored Connor to full
+health. The original Temple 4 script data passed in 3.32 seconds and
+the vortex defeat menu passed in 48.69 seconds.
+
+The three earlier controller checks in the implementation worktree
+covered saved ordinary and elemental deaths, equipped attacks and
+stats-event deaths. The two checkpoint functions passed in 768.09
+seconds and the stats function in 215.43 seconds. An initial swap
+fixture used a host probe that did not set the reincarnation variable.
+The log also exposed a one-update delay between swap end and Die entry.
+The corrected fixture uses the normal console variable command and
+the actual movement-end callback.
+
+The first integrated spirit regression expected both hits to arrive
+after Wait had selected Stop. The original entry hit still owned React
+at update 20. The second drain therefore saw negative health, and Die
+was accepted when the reaction finished at 26. Record this 24.22-second
+failed assertion and check the same two cues during React and after
+Wait has requested Stop. Monitor actual applied hits and state entry
+separately.
+
+The two-schedule spirit check passed in 47.60 seconds and passed again
+in 48.21 seconds with the final diagnostic text. At 20 the two cues
+left health at -3 before a single Die entry at 26. At 35 Wait could
+enter Die on the first lethal hit. The following direct stats event
+still ran, and its separate hit was ignored. Diagnostic text now
+distinguishes a request for Die from its later entry.
+
+The integrated regular suites passed 657 core, 155 data, 7 audio and
+41 viewer tests. The viewer and test targets compile. Set `KQ8_GAME_DIR`
+to the original GOG folder, then run the unattended checks below.
+
+```powershell
+cargo test --locked -p kq8-viewer --test connor_death_checkpoint -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test connor_stats_death -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test spirit_trap simultaneous_spirit_cues_preserve_later_negative_stats_after_one_dying_entry -- --ignored --exact
+cargo test --locked -p kq8-viewer --test regions temple4_connors_vortex_defeat_opens_the_death_menu_after_45_updates -- --ignored --exact
+```
+
+Expect one accepted animation, a hold 45 updates from its final end
+and the original death-menu choices. Original runtime, native Sierra
+saves and manual testing are **not tested**.
+
 ## 2026-11-07 Pickup tutorial timing and persistence
 
 Q196 establishes separate first-health, first-quest and rope receipt

@@ -18,7 +18,7 @@ The earned Daventry replay reaches the Henchman's first attack after crossing th
 
 Scripted character collision flags update live targeting and movement and survive save/load.
 
-Saves retain Connor's combat death sequence and prevent later hits or unfinished attacks from restarting it.
+Connor can finish an equipped attack or weapon swap before entering death. Saves retain that pending request or the death animation already in progress.
 
 Directional-choice scenes retain their decision and motion through saves and notify scripts when an animation ends.
 

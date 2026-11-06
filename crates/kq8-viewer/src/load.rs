@@ -6185,7 +6185,7 @@ mod campaign_tests {
                 let mut mover = Mover::new([0.; 3], true);
                 active.set_connor_stats(ConnorStats { level: 2, stats: Stats([20, 10, 0, 0, 0]) });
                 let (pose, entry) = (walker.movement, active.world.updates);
-                active.enter_scripted_death(&mut walker, &mut mover);
+                active.enter_scripted_death(&mut walker, &mut mover, &|_| None);
                 assert_eq!((walker.mode, walker.movement, active.world.connor_collision()), (Mode::ScriptedDie, pose, (0, 0)));
                 assert!(!mover.use_gravity && !mover.keep_on_ground && active.world.connor_dying);
                 assert_eq!(active.world.connor_stats.unwrap().stats.0[0], 0);
@@ -6197,7 +6197,7 @@ mod campaign_tests {
                     active.update();
                 }
                 assert!(active.finish_scripted_death(&mut walker));
-                assert_eq!((walker.mode, walker.movement), (Mode::Dead, pose));
+                assert_eq!((walker.mode, walker.movement), (Mode::ScriptedDie, pose));
                 assert_eq!(active.world.connor_collision(), (0, 0));
                 assert!(active.world.presentations.is_empty());
                 assert!(!active.world.requests.iter().any(|r| matches!(r, Request::Move { who, .. } if who.eq_ignore_ascii_case("KQCamera"))));

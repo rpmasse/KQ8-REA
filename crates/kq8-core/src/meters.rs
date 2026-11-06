@@ -142,6 +142,9 @@ mod tests {
         // 1 health of 200 (level 20) is 0 by division, but not 0: 1.
         let low = ConnorStats { stats: Stats([1, 0, 0, 0, 0]), level: 20 };
         assert_eq!(health_percent(&low, false), 1);
+        let pending = ConnorStats { stats: Stats([-1, 0, 0, 0, 0]), level: 30 };
+        assert_eq!(health_percent(&pending, false), 1, "pending Die still uses the ordinary meter");
+        assert_eq!(health_percent(&pending, true), 0, "accepted Die sets the meter to zero");
         // interface.md check 2: the bricks at level 1 give level 2,
         // health 20 of 20, experience 40 of 20: 200 %, drawn as 100 %.
         let bricks = ConnorStats { stats: Stats([20, 15, 2, 1, 40]), level: 2 };

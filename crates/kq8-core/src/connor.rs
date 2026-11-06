@@ -417,7 +417,7 @@ impl JumpKind {
 /// walking or running in water gives the standing jump.
 pub const JUMP_FROM: [&str; 8] = ["stop", "walk", "run", "back", "left", "right", "waterwalk", "waterrun"];
 
-/// The scripted Die Now delay is separate from an ordinary lethal hit.
+/// Both death paths use this clock once the final completion action runs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ScriptedDeath {
     #[default]
@@ -437,6 +437,8 @@ pub enum Mode {
     Land,
     /// Fatal landing: `jumpdie` once, then dead.
     Dying,
+    /// Ordinary combat Die owns the final animation and its input lock.
+    CombatDie,
     /// A script entered Die Now. Keep the current pose during the game-over delay.
     ScriptedDie,
     /// The Die state: holds the last frame of `jumpdie`.
@@ -489,6 +491,7 @@ impl Mode {
             Mode::Fall => "fall",
             Mode::Land => "land",
             Mode::Dying => "dying",
+            Mode::CombatDie => "combat Die",
             Mode::ScriptedDie => "scripted Die",
             Mode::Dead => "dead",
             Mode::Crash => "crash",
@@ -913,7 +916,7 @@ impl Walker {
             // Push: the keys' path, with `push` as the choice (rule 6).
             Mode::Free | Mode::Push => None,
             Mode::Talk => self.talk_play,
-            Mode::Rope | Mode::Throw | Mode::ScriptedDie => Some(self.movement),
+            Mode::Rope | Mode::Throw | Mode::ScriptedDie | Mode::CombatDie => Some(self.movement),
             Mode::Fall => Some(self.kind.hold()),
             // runJump has no landing animation; it never gets Land.
             Mode::Land => Some(self.kind.end().unwrap_or("jumpend")),
@@ -1123,6 +1126,21 @@ impl Walker {
         self.animation_input_lock=true;
         self.ask(wanted,loops,&mut notes);
         self.reaction_started();
+        notes
+    }
+
+    /// A Die movement is an ordinary locked request. Changing owner does
+    /// not rewind the previous animation when its normal end must run first.
+    pub fn request_die_movement<'a>(&mut self, wanted: &'static str, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) -> Vec<String> {
+        self.mode = Mode::CombatDie;
+        self.auto = None;
+        self.special.clear();
+        self.special_at = 0;
+        self.reaction = None;
+        self.reaction_playing = None;
+        self.animation_input_lock = true;
+        let mut notes = Vec::new();
+        self.ask(wanted, loops, &mut notes);
         notes
     }
 
@@ -1971,6 +1989,27 @@ mod tests {
     /// `jumpend` in the data).
     fn once() -> MovementLoop {
         MovementLoop { duration: 10.0 / 15.0, step_sum: [0.0; 3], speed: 1.0, repeat: false, frames: 11, ..Default::default() }
+    }
+
+    #[test]
+    fn die_owns_an_uncuttable_previous_movement_until_its_genuine_end() {
+        let mut list = stop_list();
+        list.extend([("previous", once()), ("die", once())]);
+        let loops = lookup(&list);
+        let mut walker = Walker::new(0.0);
+        walker.movement = "previous";
+        walker.phase = 0.5;
+        walker.request_die_movement("die", &loops);
+        assert_eq!((walker.mode, walker.movement, walker.wanted, walker.phase),
+            (Mode::CombatDie, "previous", Some("die"), 0.5));
+        assert!(walker.animation_input_lock);
+        let mut ends = Vec::new();
+        for _ in 0..24 {
+            let step = walker.update(intent(1, 1, false), &loops);
+            if let Some(name) = step.ended { ends.push(name); }
+        }
+        assert_eq!(ends, ["previous", "die"]);
+        assert_eq!((walker.mode, walker.movement, walker.phase), (Mode::CombatDie, "die", 1.0));
     }
 
     #[test]

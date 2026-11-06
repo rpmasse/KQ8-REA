@@ -213,11 +213,18 @@ fn open_if_requested(world: &mut World) {
     let Some(connor) = world.get_resource::<crate::connor_view::ConnorSim>() else {
         return;
     };
-    let dead = connor.walker.mode == kq8_core::connor::Mode::Dead;
+    let dead = connor.walker.mode == kq8_core::connor::Mode::Dead
+        || world.get_resource::<crate::door_view::DoorSim>().is_some_and(|sim|
+            sim.active.world.scripted_death == kq8_core::connor::ScriptedDeath::GameOver);
     let escape = world
         .resource::<ButtonInput<KeyCode>>()
         .just_pressed(KeyCode::Escape);
-    if !dead && (connor.hands_off || (!escape && !requested.0)) {
+    if !dead && !escape && !requested.0 {
+        return;
+    }
+    if !dead && connor.hands_off {
+        world.resource::<crate::Shared>().log.lock().unwrap().summary(
+            format!("menu: gameplay menu request blocked by handsOff at Connor update {}", connor.updates));
         return;
     }
     let log = world.resource::<crate::Shared>().log.clone();

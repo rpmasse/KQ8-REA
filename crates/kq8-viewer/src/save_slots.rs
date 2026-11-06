@@ -46,6 +46,10 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     connor_dying: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    combat_death: Option<connor_view::SavedCombatDeath>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pending_combat_death: Option<kq8_core::fight::HitKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     weapon_state: Option<connor_view::SavedWeaponState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     combat_cues: Option<connor_view::SavedCombatCues>,
@@ -139,14 +143,19 @@ impl Snapshot {
             return Err("save has invalid Connor hit timing".into());
         }
         if self.hit_timing.as_ref().is_some_and(|timing| timing.has_reaction_pose())
-            && (self.special.is_some() || self.swing.is_some() || self.shot.is_some() || self.talk_pose.is_some() || self.choice.is_some()) {
+            && (self.special.is_some() || self.swing.is_some() || self.shot.is_some() || self.talk_pose.is_some()
+                || self.choice.is_some() || self.combat_death.is_some()) {
             return Err("save has competing reaction/controller poses".into());
         }
         if self.special.as_ref().is_some_and(|s| !s.valid())
             || (self.special.is_some() && (self.shot.is_some() || self.swing.is_some())) {
             return Err("save has an invalid Special movement".into());
         }
-        if self.connor_dying.is_some_and(|dying| dying != self.special.as_ref().is_some_and(|s| s.combat_death())) {
+        let entered_die = self.combat_death.is_some() || self.special.as_ref().is_some_and(|s| s.combat_death());
+        if self.connor_dying.is_some_and(|dying| dying != entered_die)
+            || entered_die && self.pending_combat_death.is_some()
+            || self.combat_death.as_ref().is_some_and(|d| !d.valid() || self.special.is_some()
+                || self.swing.is_some() || self.shot.is_some() || self.talk_pose.is_some() || self.choice.is_some()) {
             return Err("save has inconsistent Connor combat-death state".into());
         }
         if self.weapon_state.as_ref().is_some_and(|w| !w.valid(self.special.as_ref()))
@@ -295,8 +304,10 @@ impl Snapshot {
         active.world.connor_heading = self.heading;
         // Older slots already retain the explicit hit-death list marker.
         // Health zero alone is alive and must never imply this state.
-        active.world.connor_dying = self.connor_dying.unwrap_or_else(|| self.special.as_ref().is_some_and(|s| s.combat_death()));
+        active.world.connor_dying = self.connor_dying.unwrap_or_else(|| self.combat_death.is_some()
+            || self.special.as_ref().is_some_and(|s| s.combat_death()));
         active.world.connor_death_entered = active.world.connor_dying;
+        active.world.pending_combat_death = self.pending_combat_death;
         if let Some(on) = self.shadows_allowed { active.world.shadows_allowed = on; }
         if let Some(types) = &self.footstep_types { active.world.footstep_types.clone_from(types); }
         if self.version >= 2 {
@@ -363,12 +374,18 @@ impl Snapshot {
             if let Some(timing) = &self.hit_timing {
                 connor.restore_hit_timing(timing)?;
             }
+            if let Some(death) = &self.combat_death {
+                connor.restore_combat_death(death)?;
+            } else if self.special.as_ref().is_some_and(|s| s.combat_death()) {
+                connor.walker.animation_input_lock = true;
+            }
             if let Some(cues) = &self.combat_cues {
                 connor.restore_combat_cues(cues)?;
             }
             if let Some(pose) = &self.talk_pose { connor.restore_talk_pose(pose)?; }
             if let Some(choice) = &self.choice { connor.restore_choice(choice)?; }
-        } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() || self.choice.is_some()
+        } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.combat_death.is_some()
+            || self.pending_combat_death.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() || self.choice.is_some()
             || self.hit_timing.as_ref().is_some_and(|timing| timing.has_reaction_pose()) {
             return Err("Connor is unavailable while restoring his attack".into());
         }
@@ -565,6 +582,8 @@ pub fn save_slot_with_thumbnail(
         hit_timing: Some(hit_timing),
         special,
         connor_dying: Some(sim.active.world.connor_dying),
+        combat_death: connor.saved_combat_death(),
+        pending_combat_death: sim.active.world.pending_combat_death,
         weapon_state: Some(weapon_state),
         combat_cues: Some(combat_cues),
         fight_rng: Some(sim.active.world.fight_rng.clone()),
@@ -1012,6 +1031,8 @@ mod tests {
             hit_timing: None,
             special: None,
             connor_dying: None,
+            combat_death: None,
+            pending_combat_death: None,
             weapon_state: None,
             combat_cues: None,
             fight_rng: None,
