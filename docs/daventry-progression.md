@@ -27,6 +27,32 @@ These scripts are relevant to a complete recreation. Some can provide access or 
 
 Physical access can add prerequisites that an inventory check alone cannot show. A full Daventry-to-Dead City run must start with an empty save directory and use ordinary player controls across all three ingredient pickups, wizard exchanges and both travel prompts.
 
+### Current continuation boundary after the Small Axe
+
+The New Game → wizard → windmill Small Axe route and reload passed again on
+2026-11-06 in 402.85 seconds. The new `daventry_hero_ring` scenario continues
+from that earned state into the original Henchtp/ax/Henchman cutscene, with
+AI and damage enabled. Its standing charged-attack and normal-attack attempts
+both died at the Henchman, at updates 761/762. No ring was obtained; later
+path landmarks, the tomb guard, coffin and ring reload remain untested.
+The candidate route is deliberately retained as an ignored failing scenario,
+with the two-attempt handoff in STATUS.md and Q190 for missing encounter
+evidence. These failures do not by themselves prove an engine bug.
+
+To reproduce the full candidate chain, run the following from the repository
+root with `KQ8_GAME_DIR` set. It currently fails at the encounter. An optional
+`KQ8_AXE_SLOT` can point to an earned windmill slot-3.json to repeat only the
+new leg. Do not use that override as evidence of a new uninterrupted run.
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_hero_ring earned_small_axe -- --ignored --nocapture
+```
+
+The separate `breakable_route_dispatches` test in that file passed against
+the original tomb door through an ordinary axe swing. It explicitly sets up
+position/equipment and protects Connor with AI off; it is a replay-tool
+diagnostic, not campaign acceptance.
+
 ### Verified through the first wizard meeting
 
 The unattended Windows run started at New Game → Normal with a fresh save directory. Connor completed the opening sequence and walked from Sarah's cottage to the wizard. The replay pressed his configured forward and turn keys, leaving movement, collision, health and enemy AI active. A first route hit the farmhouse wall. The final route walked around its south side. On reaching the wizard the replay submitted a named world click, which ran his normal distance and script handling.

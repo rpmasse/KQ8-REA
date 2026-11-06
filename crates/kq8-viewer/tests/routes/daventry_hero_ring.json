@@ -1,0 +1,19 @@
+{
+  "start": 3,
+  "landmarks": [
+    {"name": "Return across the windmill floor", "xy": [144300, 249800], "radius": 220},
+    {"name": "Henchman's approach trigger", "xy": [143000, 249800], "radius": 220},
+    {"name": "Windmill exit", "xy": [141400, 249800], "radius": 220},
+    {"name": "Henchman", "xy": [138100, 250000], "radius": 240, "fight": "Henchman", "big_swing": false},
+    {"name": "Back to the windmill path", "xy": [136000, 252500], "radius": 300},
+    {"name": "Windmill hillside", "xy": [139500, 262500], "radius": 260},
+    {"name": "Northward hills", "xy": [160000, 270000], "radius": 320},
+    {"name": "Eastern hills", "xy": [190000, 285000], "radius": 320},
+    {"name": "Hero's hill approach", "xy": [220000, 300000], "radius": 300},
+    {"name": "Hero's tomb door", "xy": [225804, 308950], "radius": 220, "break_object": "tombdor2"},
+    {"name": "Hero's tomb guard", "xy": [225800, 311000], "radius": 260, "fight": "sprigan", "big_swing": false},
+    {"name": "Coffin's southern side", "xy": [225700, 312600], "radius": 180},
+    {"name": "Push the coffin lid", "xy": [225700, 314100], "radius": 130},
+    {"name": "Dead hero ring", "xy": [225502, 314158], "radius": 650, "click": "NoName3"}
+  ]
+}
