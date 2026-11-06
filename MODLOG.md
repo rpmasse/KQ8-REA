@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-07 Earn the Rope and Hook in the running mill and after reload
+
+The new Windows regression starts at Normal New Game by default.
+At the mill it distinguishes scenery added during play from scenery
+restored from a slot. Connor opens the original door, jumps onto the
+stopped millstone, passes the gear and jumps to the rope platform.
+The normal click hit the rope on update 491 after the tree reload and
+1632 on the live route. Both fresh process reloads preserved the rope,
+the hero’s ring and the earned experience. Fourteen launches passed
+in 1405.41 seconds. Earlier routes stopped at the closed door and
+against the vertical face of the platform. Empty optional checkpoint
+variables now have the same effect as leaving them unset.
+
 ## 2026-11-07 Collision for scenery loaded during play
 
 The viewer prepares the collision boxes and interior trees of named

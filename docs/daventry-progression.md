@@ -56,6 +56,36 @@ compared Connor’s contact positions before and after a world reload.
 The two tree tops matched at heights 8679 and 8429, along with 375
 walkable contacts on the dock.
 
+### Watermill Rope and Hook
+
+The full Windows regression passed in **1405.41 seconds** from fresh
+Normal New Game. Nine processes earned the ring and reloaded it. A
+tenth took that save to the tree. Two later pairs checked the rope in
+different circumstances. One started from the newly created tree save.
+The other started with the ring, felled the tree and went straight to
+the rope in that process. Each branch loaded its rope save and saved
+again. Both final slots contained one rope, one dead hero’s ring, 35
+health, level 5 and 122 experience. AI and ordinary damage stayed enabled.
+
+The route opens `Watmdoor`, jumps from the floor to the stopped
+`milstone`, walks around the gear and jumps onto the upper platform.
+The two landings were at heights 8625 and 10164 in both runs. Connor
+entered `miltrap2` and the normal camera click hit `ropenhok` first.
+The installed `ropenhok.cs` gave the Rope and Hook and removed the
+placed object. Its pickup tutorial appeared and was acknowledged.
+An earlier straight approach hit the closed door. Trying to walk up
+the front of the platform also hit a vertical wall. The original mill
+interior and gear boxes explain the two jumps and the path between them.
+
+Run `earned_mill_rope_on_live_and_reloaded_scenery` as shown in the
+README. Leave optional input slots unset to reproduce the full run.
+For a short repeat of both mill branches, set `KQ8_HERO_RING_SLOT` to
+an earned `HeroRingReload` and `KQ8_MILL_TREE_SLOT` to a `MillTree`
+earned on the same campaign. Local outputs are in
+`kq8-artifacts/new-game-through-mill-rope.log`,
+`kq8-artifacts/mill-rope-reloaded/1793996162509460100` and
+`kq8-artifacts/mill-rope-live/1793996281955904300`.
+
 ### Earlier ring checks
 
 The source chain starts at Normal New Game. Each later process loads
