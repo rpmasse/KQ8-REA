@@ -211,7 +211,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 
 | Word | In our code | Uses | Worlds | First seen in |
 | --- | --- | ---: | --- | --- |
-| `Lookup` | **not named** | 4 | DeadCity 4 | `DeadCity/TRPTRP12.CS` |
 | `INVITEM_StoneOrder` | **not named** | 1 | Barren 1 | `Barren/Altarboy.cs` |
 | `Preload` | **not named** | 1 | IceWorld 1 | `IceWorld/icelord.cs` |
 | `ConnorAction` | named | 431 | Daventry 103, CastleD 8, DeadCity 100, Swamp 42, Gnome 51, Barren 53, IceWorld 34, Snowexit 2, temple1 13, temple2 13, temple3 8, temple4 4 | `Daventry/Alchdoor.cs` |
@@ -232,6 +231,7 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `Exit` | named | 5 | CastleD 1, DeadCity 1, Barren 1, IceWorld 1, temple1 1 | `CastleD/casport.cs` |
 | `Push` | named | 5 | Daventry 3, CastleD 1, Barren 1 | `Daventry/BRICKS.CS` |
 | `DoChoice` | named | 4 | Daventry 1, Barren 2, IceWorld 1 | `Daventry/ROOFTRAP.CS` |
+| `Lookup` | named | 4 | DeadCity 4 | `DeadCity/TRPTRP12.CS` |
 | `StartChoice` | named | 4 | Daventry 1, Barren 2, IceWorld 1 | `Daventry/ROOFTRAP.CS` |
 | `Accept` | named | 3 | Barren 1, IceWorld 1, Snowexit 1 | `Barren/portal6.cs` |
 | `Decline` | named | 3 | Barren 1, IceWorld 1, Snowexit 1 | `Barren/portal6.cs` |

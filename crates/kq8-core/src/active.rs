@@ -4855,6 +4855,24 @@ impl Active {
             }
             return;
         }
+        // anim-scripts.md rules 19–20: a combat character owns its
+        // current stats in Fight, and dies through its movement controller.
+        if let Some(i) = self.world.character_index(&e.target).filter(|&i| {
+            self.world.anims[i].character.as_ref().is_some_and(|c| c.fight.is_some())
+        }) {
+            let (before, after, kind) = {
+                let f = self.world.anims[i].character.as_mut().unwrap().fight.as_mut().unwrap();
+                let before = f.stats;
+                f.stats.add(d);
+                (before, f.stats, f.last_kind.unwrap_or(crate::fight::HitKind::Normal))
+            };
+            self.world.note(format!("{head}: live combat stats {:?} -> {:?}", before.0, after.0));
+            if after.dead() {
+                self.world.note(format!("{head}: health below 0: dying state, last hit {} (rules 19–20)", kind.name()));
+                self.world.character_dies(i, kind, false);
+            }
+            return;
+        }
         let key = e.target.to_ascii_lowercase();
         let known = self.world.stats.contains_key(&key);
         let s = self.world.stats.entry(key).or_default();
@@ -8168,6 +8186,60 @@ endif
         let ai = c.ai.as_mut().unwrap();
         (ai.settings.alarm_radius, ai.settings.attack_dist, ai.settings.home_radius, ai.settings.chase_radius) = (4000.0, 1500.0, 3000.0, 6000.0);
         a
+    }
+
+    #[test]
+    fn stats_events_change_live_monster_fight_stats_and_keep_zero_alive() {
+        let mut a = fighter();
+        a.world.hit_character(0, "Connor", 3, crate::fight::HitKind::Projectile);
+        let before = a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats;
+        let event = |a: &mut Active, data: &[&str]| a.stats_change(&Pending { due: 0.0, seq: 0,
+            target: "gob".into(), kind: "KQStatsChangeRequestEvent".into(),
+            data: data.iter().map(|s| s.to_string()).collect(), from: "test".into() }, "");
+        event(&mut a, &["2", "-150", "4", "150", "5"]);
+        let f = a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap();
+        assert_eq!(f.stats, Stats([before.0[0] + 2, before.0[1] - 150, before.0[2] + 4, 100, before.0[4] + 5]));
+        assert!(f.dying.is_none());
+        let health = f.stats.0[0];
+        event(&mut a, &[&(-health).to_string(), "0", "0", "-30", "0"]);
+        let f = a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap();
+        assert_eq!((f.stats.0[0], f.stats.0[3]), (0, 70));
+        assert!(f.dying.is_none(), "zero health is not below zero");
+    }
+
+    #[test]
+    fn fatal_monster_stats_event_uses_last_hit_and_waits_for_death_completion() {
+        use crate::fight::HitKind;
+        for prior in [None, Some(HitKind::Projectile), Some(HitKind::Fire), Some(HitKind::Ice)] {
+            let mut a = fighter();
+            a.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
+            let o = &mut a.world.anims[0];
+            for movement in ["die", "projdie", "firedie", "icedie"] {
+                o.player.movements.push(crate::named_anim::tests::movement(movement, 0.0, 1.0, false, false, vec![]));
+            }
+            let f = o.character.as_mut().unwrap().fight.as_mut().unwrap();
+            f.last_kind = prior;
+            f.settings.dead_dts = Some("g2dead.kqs".into());
+            f.stats.0[0] = 2;
+            a.world.sources.insert("gob.cs".into(), b"if test $2 == Die\n inc S::Dead\n set S::Kind $3\nendif\n".to_vec());
+            a.world.anims[0].script = Some("gob.cs".into());
+            let e = Pending { due: 0.0, seq: 0, target: "gob".into(), kind: "KQStatsChangeRequestEvent".into(), data: vec!["-3".into()], from: "test".into() };
+            a.stats_change(&e, "");
+            let c = a.world.anims[0].character.as_ref().unwrap();
+            assert_eq!(c.state, crate::character::State::Die);
+            assert_eq!(c.fight.as_ref().unwrap().last_kind, Some(prior.unwrap_or(crate::fight::HitKind::Normal)));
+            let expected = match prior { None | Some(HitKind::Normal) => "die", Some(HitKind::Projectile) => "projdie",
+                Some(HitKind::Fire) => "firedie", Some(HitKind::Ice) => "icedie" };
+            assert!(a.world.anims[0].player.movement_name().eq_ignore_ascii_case(expected));
+            assert_eq!(a.world.connor_stats.unwrap().stats.0[4], 0);
+            assert_eq!(a.scripts.vars.get("S::Dead"), None, "Die script must wait for the movement");
+            a.stats_change(&e, "");
+            watch(&mut a, &[], 50);
+            assert_eq!(a.scripts.vars.get("S::Dead"), Some("1"));
+            assert_eq!(a.scripts.vars.get("S::Kind"), Some(prior.unwrap_or(crate::fight::HitKind::Normal).name()));
+            assert_eq!(a.world.connor_stats.unwrap().stats.0[4], 3);
+            assert!(a.world.anims[0].gone);
+        }
     }
 
     #[test]
