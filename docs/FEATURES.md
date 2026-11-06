@@ -770,8 +770,10 @@ miss, roll, flinch, death, drop and shot is in
   map icon on the right (empty). **Space** slides the whole bar away or
   back in a fifth of a second. A change of health or experience while
   the bar is away pops the meters up alone for 1.5 s. A changed number
-  flashes its slot. A level-up plays the flame over the level number
-  and a sound (checked by the user against the original). Cutscenes (`handsOff`) slide the bar away and show
+  flashes its slot. A level-up plays a flame over the level number
+  and a sound. The original flame and slot flashes have 17 frames.
+  Each frame lasts 100 ms. Frame zero appears once more at 1.7 s
+  and the effect disappears at 1.8 s. Cutscenes (`handsOff`) slide the bar away and show
   the spinning mask; afterwards it comes back only if it was shown.
   The caption sits on top of the bar. Clicks on the bar don't reach the
   world. Logged in `gui.log`. Checked by the user 2026-10-18.

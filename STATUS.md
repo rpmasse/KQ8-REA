@@ -1,5 +1,13 @@
 # STATUS
 
+## 2026-11-07 Original HUD frame timing
+
+The church Candle level-up now plays the installed flame and equipment
+flashes at ten frames per second. The 17-frame effects show frame zero
+again at 1700 ms and hide at 1800 ms, reproducing the original's final
+interval. The Windows replay observed the first draw after expiry at
+1846 ms. All 876 standard workspace tests passed. [Frame behavior](docs/FEATURES.md)
+
 ## 2026-11-07 Church urn opens the tomb door
 
 The next two Windows launches continued the fresh campaign's Candle
