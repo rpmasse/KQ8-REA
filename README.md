@@ -80,6 +80,7 @@ cargo test --locked -p kq8-viewer --test placed_characters -- --ignored
 cargo test --locked -p kq8-viewer --test death_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test connor_death_checkpoint -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test choice_checkpoint -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test henchman_combat -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test ordinary_once_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test alternate_interior -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test connor_swing_checkpoint -- --ignored --test-threads=1
