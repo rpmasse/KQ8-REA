@@ -249,12 +249,12 @@ fn earn_garden_wizard(play: &Play) {
     start_at_earned_shield(play);
     let mut landmarks: Vec<Value> =
         serde_json::from_str(include_str!("routes/daventry_cottage_exit.json")).unwrap();
-    landmarks.insert(0, serde_json::json!({
-        "name": "Look toward the Crystal from the east room",
-        "xy": [292175, 196971],
-        "radius": 130,
-        "aim": "NoName19",
-    }));
+    // The garden path has already left the shelf by the time the Crystal is clicked.
+    landmarks.splice(0..1, [
+        serde_json::json!({"name":"Look toward the Crystal from open floor",
+            "xy":[291725,197646],"radius":140,"aim":"NoName19"}),
+        serde_json::json!({"name":"Cross the east room","xy":[290950,197330],"radius":170}),
+    ]);
     let garden: Vec<Value> =
         serde_json::from_str(include_str!("routes/daventry_cottage_garden.json")).unwrap();
     landmarks.extend(garden);

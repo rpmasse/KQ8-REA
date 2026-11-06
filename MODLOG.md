@@ -1,5 +1,28 @@
 # MODLOG
 
+## 2026-11-07 Take the cottage Crystal from open floor
+
+A full campaign repetition earned the shield and clicked the
+Crystal, then failed to leave the shelf area. The movement log shows
+Connor entering Fall and staying at (292236, 196787, 14307), where
+the down and slide passes repeatedly met the cottage. Sweeps of
+Connor's original collision dimensions through HOUSE1.DIG from
+four earned shield positions reproduced the wall on the previous
+approach. A sightline farther west left room for another 780 units
+of motion on all four sweep paths. The replay now crosses this open
+floor toward the east-room passage. The original engine's behavior
+at that wall remains a study question, Q197.
+
+In separate Windows runs from the failing shield save and the earlier
+successful save, the normal ray hit the Crystal and basket. The
+resulting menu saves held one Crystal, one shield and five mushrooms.
+The basket clicks occurred on updates 120 and 132. Local evidence is
+in `kq8-artifacts/cottage-crystal/1793990771040` and `1793990839658`.
+The earlier stopped run is under
+`kq8-artifacts/hero-garden/1793990308128978700/garden`. The [Daventry
+route](docs/daventry-progression.md#road-to-the-heros-tomb) gives the
+automated campaign command.
+
 ## 2026-11-07 Approach the coffin lid from the southwest
 
 A full, unseeded repetition reached HeroDoor but stopped at the last
