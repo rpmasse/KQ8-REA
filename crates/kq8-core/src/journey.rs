@@ -44,6 +44,9 @@ pub struct Journey {
     /// The world left.
     pub from: String,
     pub stats: Option<crate::stats::ConnorStats>,
+    /// Missing from older records: no prior hit, so Normal on a stats death.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_hit_kind: Option<crate::fight::HitKind>,
     /// His item objects, as they were (place `Carried("Connor")`).
     pub items: Vec<ItemObject>,
     pub hand: Option<String>,
@@ -93,6 +96,7 @@ impl Journey {
         Journey {
             from: from.to_string(),
             stats: w.connor_stats,
+            last_hit_kind: w.connor_last_hit,
             items: w.items.objects.iter().filter(|o| o.carried_by(CONNOR)).cloned().collect(),
             hand: w.hand.clone(),
             weapon_ready: w.weapon_ready.clone(),
@@ -148,6 +152,7 @@ impl Journey {
             lines.push(format!("journey: WARNING: carried items with a name this world already has: {clashes:?}"));
         }
         w.connor_stats = self.stats;
+        w.connor_last_hit = self.last_hit_kind;
         // The bottom bar takes the numbers after a stats event
         // (`interface.md` rule 24).
         w.connor_stats_events += 1;
