@@ -769,3 +769,57 @@ fn earned_mill_rope_on_live_and_reloaded_scenery() {
     take_mill_rope(&Play::new("mill-rope-reloaded"), &tree, false);
     take_mill_rope(&Play::new("mill-rope-live"), &ring, true);
 }
+
+fn church_yard(play: &Play) {
+    let source = earned_slot("KQ8_MILL_ROPE_SLOT").unwrap_or_else(|| {
+        let mill = Play::new("church-mill-prefix");
+        take_mill_rope(&mill, &earn_hero_ring(), true);
+        mill.slots.join("slot-3.json")
+    });
+    fs::create_dir_all(&play.slots).unwrap();
+    fs::copy(source, play.slots.join("slot-1.json")).unwrap();
+    let start = play.slot(1);
+    assert_eq!(start["label"], "MillRopeReload");
+    check_mill_rope_save(&start);
+    let route = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/routes/daventry_mill_church.json");
+    let (viewer, _) = play.run("walk", &[
+        "--menu-input", "down,enter,release,enter,release", "--walk-route", route.to_str().unwrap(),
+        "--key", "popup:help=128,0", "--key", "popup:help=139,0", "--key", "popup:help=132,0",
+        "--key", "popup:help=145,0",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=ChurchYard:enter:release:escape,860",
+        "--key", "menu:up:enter:release:left:enter:release,875", "--frames", "5000",
+    ]);
+    assert!(viewer.contains("walk-route landed on update") && viewer.contains("walk-route at Reached the church rope trap"));
+    let logs = play.root.join("walk/kq8-artifacts/logs");
+    let traps = fs::read_to_string(logs.join("traps.log")).unwrap();
+    assert_eq!(traps.matches("trap churchr1: On Connor").count(), 1);
+    let gui = fs::read_to_string(logs.join("gui.log")).unwrap();
+    assert!(gui.contains("hook icon HookUp") && gui.contains("acknowledged case 145"));
+    let saved = play.slot(2);
+    assert_eq!(saved["label"], "ChurchYard");
+    check_mill_rope_save(&saved);
+    assert_eq!(saved["rope_place"]["settings"]["status"], "Bottom");
+    assert_eq!(saved["rope_place"]["settings"]["place"], serde_json::json!([206337.0,186373.0,8304.0]));
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_MILL_ROPE_SLOT"]
+fn church_rope_is_usable_after_a_fresh_launch_inside_its_trap() {
+    let play = Play::new("church-rope-place");
+    church_yard(&play);
+    let (viewer, items) = play.run("reload", &[
+        "--menu-input", "down,enter,release,down,enter,release", "--key", "left:IDCTL_INVBAR_ROPE,15",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=ChurchHeld:enter:release:escape,45",
+        "--key", "menu:up:enter:release:left:enter:release,60", "--frames", "800",
+    ]);
+    assert!(viewer.contains("save restored in Daventry without replaying Begin"));
+    let logs = play.root.join("reload/kq8-artifacts/logs");
+    assert!(!fs::read_to_string(logs.join("traps.log")).unwrap().contains("trap churchr1: On Connor"));
+    assert!(fs::read_to_string(logs.join("gui.log")).unwrap().contains("hook icon HookUp"));
+    assert!(items.contains("at the foot of a rope"));
+    let saved = play.slot(3);
+    assert_eq!(saved["label"], "ChurchHeld");
+    assert_eq!(saved["journey"]["hand"], "NoName31");
+    check_mill_rope_save(&saved);
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}

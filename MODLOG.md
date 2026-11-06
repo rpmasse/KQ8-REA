@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-07 Keep the church rope place through a menu save
+
+A fresh load inside the church trigger preserved the item but lost
+the anchor. The viewer now saves its original rope settings and rebases
+the age of the last script change to the new game clock. An unattended
+route takes the earned rope from the mill to the church and selects it
+after a fresh launch. The trigger fires once across those two launches.
+The Windows regression passed in 120.77 seconds; the core check also
+passed for both camera spots, limits and the restored clock.
+
 ## 2026-11-07 Identify the remaining original credits rules
 
 The installed credits screen definition names its GUI, palette, cursor

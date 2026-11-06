@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-07 Earned rope at the churchyard
+
+The Windows test reached the churchyard from the previously earned mill
+save with AI and damage enabled. A fresh process loaded the save made
+inside the first church trigger. The upward hook appeared and the rope
+could be selected. Two launches passed in 120.77 seconds. The earlier
+build lost the active anchor at this point. Saving an active climb
+and reaching the Candle are separate checks.
+[Command and evidence](docs/daventry-progression.md#churchyard-rope-place)
+
 ## 2026-11-07 Fresh Normal New Game through the watermill rope
 
 The unattended Windows test passed in 1405.41 seconds across 14 launches.
