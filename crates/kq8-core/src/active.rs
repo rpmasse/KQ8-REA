@@ -804,8 +804,6 @@ pub struct WorldState {
     /// Experience due for an item added (`potions.md` rule 41; M5 5g-8):
     /// game time, amount, the item type.
     pub pickup_experience: Vec<(f64, i64, String)>,
-    /// The help pop-ups of rule 41 already asked for (logged only).
-    pub helps_asked: BTreeSet<String>,
     /// The objects whose `groupsAlways` has bit 2048 (`potions.md` rule
     /// 31), set by the loader (M5 5g-7).
     pub reveal_objects: Vec<String>,
@@ -965,8 +963,6 @@ pub struct WorldState {
     pub connor_last_hit: Option<crate::fight::HitKind>,
     /// At 15 updates per second, the scripted game-over check is due 45 updates after entry.
     pub scripted_death: crate::connor::ScriptedDeath,
-    /// The one-off tips of rule 29 were sent (logged only).
-    pub connor_tips: [bool; 2],
     /// The fight's random draws (the rolls, M5 5c).
     pub fight_rng: crate::emitter::Rng,
     /// The weapon Connor has ready (its type name; `inventory.md` rule 9,
@@ -1015,8 +1011,6 @@ pub struct WorldState {
     /// Azriel's Hammer came back (rule 9): the thrower and a log text,
     /// taken by the viewer (Connor plays `catch`).
     pub hammers_back: Vec<(String, String)>,
-    /// The first-kill tip was sent (rule 33; logged only).
-    pub kill_tip: bool,
     /// Thrown items in the air (`items.md` rule 12; M5 5c-8).
     pub flights: Vec<crate::item::Flight>,
     /// Weapons laid where a death left them, waiting for their line test
@@ -4307,6 +4301,11 @@ impl ScriptHost for WorldState {
                     .push_back(crate::credits::Presentation::Movie(words[1].clone()));
                 Some("0".into())
             }
+            command if command.eq_ignore_ascii_case("stopHelp") => {
+                self.help_prompts.stop_help();
+                self.note(format!("{at}: stopHelp set Connor startHelp to 127"));
+                Some("0".into())
+            }
             "doPopup" => {
                 let Some(case) = words.get(1).and_then(|n| n.parse().ok()) else {
                     self.note(format!("{at}: doPopup requires a message case"));
@@ -4642,7 +4641,6 @@ impl Active {
                 connor_hidden_logged: None,
                 reveal_objects: Vec::new(),
                 pickup_experience: Vec::new(),
-                helps_asked: BTreeSet::new(),
                 reveal_calls: Vec::new(),
                 dithered: BTreeMap::new(),
                 bmp_swaps: BTreeMap::new(),
@@ -4699,7 +4697,6 @@ impl Active {
                 connor_death_entered: false,
                 connor_last_hit: None,
                 scripted_death: Default::default(),
-                connor_tips: [false; 2],
                 fight_rng: crate::emitter::Rng::new(0x5EED_F1647),
                 weapon_ready: None,
                 weapon_mode: crate::weapons::WeaponMode::None,
@@ -4718,7 +4715,6 @@ impl Active {
                 projectile_caller: None,
                 hammer_calls: Vec::new(),
                 hammers_back: Vec::new(),
-                kill_tip: false,
                 flights: Vec::new(),
                 laid_checks: Vec::new(),
                 new_inv_item: None,

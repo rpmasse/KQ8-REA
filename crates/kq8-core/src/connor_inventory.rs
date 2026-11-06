@@ -206,7 +206,7 @@ pub fn receive(w: &mut WorldState, name: &str, lay_at: Option<[f32; 3]>, why: &s
 
 /// `potions.md` rules 40–41 (M5 5g-8): what Connor does when any item is
 /// added, every time: built-in experience for some quest items (0.3 s
-/// later or at once), and the help pop-ups (logged only: not studied).
+/// later or at once), and the original inventory help requests.
 fn added_extras(w: &mut WorldState, kind: &str, category: &str) {
     if let Some(&(_, exp, later)) = crate::potions::PICKUP_EXPERIENCE.iter().find(|(k, ..)| k.eq_ignore_ascii_case(kind)) {
         if later {
@@ -218,18 +218,20 @@ fn added_extras(w: &mut WorldState, kind: &str, category: &str) {
             w.item_note(line);
         }
     }
-    let help = match category {
-        "HealthItem" => Some(("0x83", 3.0, "the first health item or potion")),
-        "QuestItem" => Some(("0x84", 0.0, "the first quest item")),
-        _ => None,
+    use crate::starting_help::{HEALTH_ITEM, QUEST_ITEM, ROPE};
+    let (case, delay, bit) = match category {
+        "HealthItem" => (131, 3.0, HEALTH_ITEM),
+        "QuestItem" => (132, 3.0, QUEST_ITEM),
+        "Rope" if kind.eq_ignore_ascii_case("INVITEM_RopeAndHook") => (128, 4.5, ROPE),
+        _ => return,
     };
-    if let Some((id, after, what)) = help.filter(|(id, ..)| !w.helps_asked.contains(*id)) {
-        w.helps_asked.insert(id.to_string());
-        w.item_note(format!("{what} ({kind}): help pop-up {id} asked for{} (potions.md rule 41; pop-ups not studied: logged only)", if after > 0.0 { format!(" {after} s later") } else { String::new() }));
+    if !w.help_prompts.consume(bit) {
+        return;
     }
-    if kind.eq_ignore_ascii_case("INVITEM_RopeAndHook") {
-        w.item_note("INVITEM_RopeAndHook added: help pop-up 0x80 asked for 4.5 s later (potions.md rule 41; logged only)");
-    }
+    let delay_updates = (delay * crate::UPDATES_PER_SECOND).ceil() as u64;
+    let first_update = w.updates + delay_updates;
+    w.help_prompts.schedule(first_update, case);
+    w.item_note(format!("{kind} added: inventory help case {case}, first eligible update {first_update}"));
 }
 
 /// Rule 14: applies item `name` to Connor. Returns the log line.
@@ -764,6 +766,71 @@ mod tests {
         a.world.updates = 60 * 15;
         timers(&mut a.world);
         assert_eq!(a.world.reveal_calls, vec![("keepwall".to_string(), false), ("wizchest1".to_string(), false)]);
+    }
+
+    #[test]
+    fn native_item_receipts_consume_their_bits_before_delivery() {
+        let mut a = active();
+        a.world.updates = 300;
+        // Installation of an existing carried stack is not a fresh receipt.
+        a.world
+            .items
+            .add_named("found", "Mushroom", 1, -1, Place::Carried("Connor".into()))
+            .unwrap();
+        assert_eq!(a.world.help_prompts.history(300).start_help, 0);
+        carry(&mut a, "Mushroom", 2);
+        assert_eq!(a.world.items.count("Connor", "INVITEM_Mushroom"), 3);
+        carry(&mut a, "Clarity", 1);
+        carry(&mut a, "Candle", 1);
+        carry(&mut a, "Candle", 1);
+        carry(&mut a, "RopeAndHook", 1);
+        assert_eq!(a.world.help_prompts.history(300).start_help, 7);
+        let q = &mut a.world.help_prompts;
+        assert_eq!(q.due(344, true, false, false), None);
+        assert_eq!(q.due(345, true, false, false), Some(131));
+        assert_eq!(q.due(345, true, false, false), None);
+        assert_eq!(q.due(368, true, false, false), None);
+        assert_eq!(q.due(390, true, false, false), Some(132));
+        assert_eq!(q.due(435, true, false, false), Some(128));
+        a.world.updates = 500;
+        carry(&mut a, "RopeAndHook", 1);
+        assert_eq!(a.world.help_prompts.due(568, true, false, false), None);
+    }
+
+    #[test]
+    fn quest_and_rope_have_separate_delays_and_ignore_the_current_preference_at_receipt() {
+        let mut a = active();
+        a.world.updates = 300;
+        carry(&mut a, "Candle", 1);
+        assert_eq!(a.world.help_prompts.history(300).start_help, 2);
+        assert_eq!(a.world.help_prompts.due(344, true, false, false), None);
+        assert_eq!(a.world.help_prompts.due(345, false, false, false), None);
+        a.world.updates = 400;
+        carry(&mut a, "Candle", 1);
+        assert_eq!(a.world.help_prompts.due(445, true, false, false), None);
+        a.world.updates = 500;
+        carry(&mut a, "RopeAndHook", 1);
+        assert_eq!(a.world.help_prompts.due(567, true, false, false), None);
+        assert_eq!(a.world.help_prompts.due(568, true, true, false), None);
+        assert_eq!(a.world.help_prompts.due(582, true, false, false), None);
+        assert_eq!(a.world.help_prompts.due(583, true, false, false), Some(128));
+    }
+
+    #[test]
+    fn stop_help_keeps_older_requests_and_blocks_future_receipts() {
+        let mut a = active();
+        carry(&mut a, "Candle", 1);
+        assert_eq!(a.world.help_prompts.due(45, true, true, false), None);
+        assert_eq!(a.test_command("stopHelp", "test"), Some("0".into()));
+        assert_eq!(a.world.help_prompts.history(45).held_cases, [132]);
+        assert_eq!(a.world.help_prompts.history(45).start_help, 127);
+        carry(&mut a, "Clarity", 1);
+        carry(&mut a, "RopeAndHook", 1);
+        assert_eq!(a.world.help_prompts.due(60, true, false, false), Some(132));
+        a.world.updates = 200;
+        assert_eq!(a.test_command("doPopup 127", "test"), Some("0".into()));
+        assert_eq!(a.world.help_prompts.due(245, true, false, false), Some(127));
+        assert_eq!(a.world.help_prompts.due(300, true, false, false), None);
     }
 
     #[test]

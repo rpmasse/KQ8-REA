@@ -287,7 +287,7 @@ fn run_script(name: &str, args: &[String], host: &mut dyn Host, out: &mut Script
             }
             "set" | "loadkq" | "getloc" | "kqobject::getloc" | "move" | "kqobject::sethidden" => {}
             "kqmonster::inventory" | "give" | "kqobject::setscript" | "kqobject::setdontlook" => {}
-            "applycombatlevel" | "activatepersistmgr" | "kqconner::setlevel" | "sendevent" => {}
+            "applycombatlevel" | "activatepersistmgr" | "kqconner::setlevel" | "stophelp" | "sendevent" => {}
             c if c.ends_with(".cs") => {}
             // Not run: counted without looking at its variables.
             _ => {
@@ -382,7 +382,7 @@ fn run_script(name: &str, args: &[String], host: &mut dyn Host, out: &mut Script
                 let on = words.get(1).and_then(|v| v.parse::<f64>().ok()).is_some_and(|v| v != 0.0);
                 host.allow_shadows(on, &at);
             }
-            "kqconner::setlevel" | "sendevent" => {
+            "kqconner::setlevel" | "stophelp" | "sendevent" => {
                 if !host.connor_line(&words, &at) {
                     *out.other_commands.entry(command).or_default() += 1;
                 }

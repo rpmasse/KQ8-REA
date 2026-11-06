@@ -1002,6 +1002,9 @@ pub fn spawn_doors(
         active.world.connor_in_temple4 = in_temple4;
     }
     active.world.terrain_changes = std::mem::take(&mut objects.terrain_changes);
+    if let Some(help) = objects.arriving_help.take() {
+        active.world.help_prompts.restore_history(&help, active.world.updates);
+    }
     active.start();
     objects.kept_interactions.restore_special_actors(&mut active.world);
     let mut sim = DoorSim { active, spawns: Vec::new(), drawn, collider, attack_dist, pending: Vec::new(), world_clicks: Vec::new(), swing_clicks: Vec::new(), shot_clicks: Vec::new(), click_states: Default::default(), log, trap_log, connor_checked_at: None, item_log, talk_log, conversation_log, chest_drawn, chest_collider, object_drawn, object_collider, rope_log: Log::create("rope").ok(), rope_clicks: Vec::new(), rope_asked: None };

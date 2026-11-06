@@ -1,5 +1,68 @@
 # MODLOG
 
+## 2026-11-07 Pickup tutorial timing and persistence
+
+Q196 establishes separate first-health, first-quest and rope receipt
+flags. The Rust inventory consumes each flag once, then schedules its
+help through the existing UI delivery rules. The original developer
+startup command `stopHelp` consumes all seven flags and preserves
+pending notices. Region travel restores Connor's help history before
+destination Init. Rust slots retain the flags, last delivery age and
+held case order. Older slots recover their recorded flags. The original
+pending-event reconstruction is still open under Q191. The four other
+source flags' full trigger conditions remain open.
+
+In the integrated Windows run the original candle script granted the
+candle at update 307 and its tutorial opened at 352. The watermill
+script granted the Rope and Hook at 393 and its tutorial opened at 461.
+Both items were in the inventory, the rope awarded 10 experience and
+the installed Options.cs matched its original bytes. The test took
+66.11 seconds. It uses a Normal New Game with AI off and supplies
+positions at the original objects. It verifies item interaction and
+tutorial delivery. The installed Dead City and Temple 1 startup test
+also passed in 13.35 seconds. Both scripts run stopHelp before their
+first developer grant. The coverage report now recognizes all ten
+authored uses of the startup command.
+
+The integrated three-process cottage test passed in 137.92 seconds.
+The basket gave five mushrooms at update 356. Case 131 opened at 401.
+After Connor used one mushroom, the Daventry, CastleD and returned
+Daventry slots each contained four mushrooms and the same consumed bit.
+Their recorded delivery ages increased from 24 to 192 to 277 updates.
+
+The Normal New Game Wizard route passed in 229.76 seconds. After the
+movement tutorial, the replay released its keys at 526, reached the
+farm corner at 597 and the Wizard at 933. The original conversation
+gave Piece1 at 1807. Its help became eligible at 1852 and opened at
+2902 after Connor could receive it. The separate map tutorial opened
+at 2959 and the original map reward was present in the menu save.
+
+The first main cottage check used an older executable left in the same
+Cargo output directory by the windmill worktree. Its save lacked
+help_history and its log contained the previous message. That 58.77-second
+run was discarded. A clean build also rejected two method-pointer edits
+to the boxed journey. Restoring the tested borrowing closure resolved the
+compiler error. An earlier isolated rope check looked for a trap event
+in the wrong log. The corrected check reads both traps.log and doors.log.
+
+With `KQ8_GAME_DIR` set to the owned GOG folder, run these automated
+checks from the repository root.
+
+```powershell
+cargo test --locked -p kq8-core -p kq8-data -p kq8-audio --lib
+cargo test --locked -p kq8-viewer --bin kq8-viewer
+cargo test --locked -p kq8-viewer --bin kq8-viewer installed_developer_scripts_consume_tutorial_bits_before_granting_items -- --ignored
+cargo test --locked -p kq8-viewer --test inventory_tutorials -- --ignored
+cargo test --locked -p kq8-viewer --test cottage_journey -- --ignored
+cargo test --locked -p kq8-viewer --test daventry_wizard -- --ignored
+```
+
+Expect one notice per eligible receipt, no duplicate on the return to
+Daventry, and continued delivery after the Wizard's conversation.
+The regular suites passed 655 core, 155 data, 7 audio and 41 viewer
+tests, and the viewer and test targets passed cargo check. Source and
+limits are recorded in [the original pickup study](docs/behaviour/pickup-tutorials.md).
+
 ## 2026-11-06 Resume automated walking after a help popup
 
 The Wizard route held its simulated movement keys while tutorial 141 owned

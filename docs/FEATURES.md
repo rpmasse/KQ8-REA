@@ -7,6 +7,23 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Inventory pickup tutorials (2026-11-07)
+
+Taking the first health or quest item schedules its original message three
+seconds later. The Rope and Hook has its own 4.5-second delay. Picking up
+more of the same kind leaves the first-receipt flag consumed. Connor's
+activity, earlier help and the player's tutorial setting determine when
+a panel can open. Reading the installed starting inventory uses the saved
+ownership of those items. The original `stopHelp` script command consumes
+all seven flags and preserves notices that were already waiting.
+
+The recreation saves the consumed flags, elapsed time since the last
+delivery and order of held messages. Older Rust saves recover the flags
+they recorded. Restoring original pending event deadlines remains open.
+The automated Daventry test uses the shipped candle and rope scripts
+and checks the item, experience and help message. It starts on Normal
+and positions Connor at each object for this component check.
+
 ## Items left in a region (2026-11-06)
 
 A loose item keeps its name, type, quantity, position, angles, visibility

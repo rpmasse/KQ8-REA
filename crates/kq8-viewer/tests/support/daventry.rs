@@ -1,4 +1,6 @@
 //! Daventry campaign replays beginning in the original Normal New Game.
+#[path = "pickup_help.rs"]
+mod pickup_help;
 use serde_json::Value;
 use std::{
     fs,
@@ -28,7 +30,7 @@ pub fn earn_magic_map(game: &Path, root: &Path) {
         .arg("--game").arg(game).args(["--sound", "off", "--menu-input", "enter,release,enter,release"])
         // The original introduction, movement, camera and map requests.
         .args(["--key", "popup:help=144,0", "--key", "popup:help=141,0",
-            "--key", "popup:help=127,0", "--key", "popup:help=153,0"])
+            "--key", "popup:help=127,0", "--key", "popup:help=132,0", "--key", "popup:help=153,0"])
         .arg("--walk-route").arg(&route)
         // The 13 original English voice lines last about 111 seconds.
         // Leave time for the five map movements and the final spoken line.
@@ -57,6 +59,8 @@ pub fn earn_magic_map(game: &Path, root: &Path) {
             root.display()
         );
     }
+    let item_log = fs::read_to_string(logs.join("items.log")).unwrap();
+    pickup_help::check(&item_log, &viewer, "INVITEM_Piece1", 132, 45, "INVENTORY:");
     let map_help = viewer
         .lines()
         .find(|line| line.contains("starting help: 500.MSG case 153 opened"))
