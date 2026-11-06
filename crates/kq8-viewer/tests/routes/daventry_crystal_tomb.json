@@ -1,0 +1,22 @@
+{
+  "start": 3,
+  "landmarks": [
+    {"name":"Windmill hillside","xy":[135000,258000],"radius":350},
+    {"name":"Above the windmill rise","xy":[139500,262500],"radius":330},
+    {"name":"Eastern bend of the windmill trail","xy":[147000,262500],"radius":340},
+    {"name":"Northern windmill trail","xy":[147400,270100],"radius":270},
+    {"name":"Western hillside path","xy":[149400,283700],"radius":250},
+    {"name":"Bend above the hillside","xy":[149400,284500],"radius":170},
+    {"name":"Cave approach","xy":[159400,293700],"radius":260},
+    {"name":"East of the cave","xy":[169000,303300],"radius":260},
+    {"name":"West end of the northern trail","xy":[178200,313300],"radius":260},
+    {"name":"Northern trail","xy":[191800,313300],"radius":260},
+    {"name":"East end of the northern trail","xy":[205400,311300],"radius":260},
+    {"name":"Western approach to the hero hill","xy":[218600,307300],"radius":230},
+    {"name":"Below the hero hill","xy":[220600,306500],"radius":210},
+    {"name":"Foot of the tomb steps","xy":[225500,306500],"radius":1600,"inventory_slot":2},
+    {"name":"Hero tomb guard","xy":[225854,308000],"radius":2350,"fight":"sprigan","big_swing":true},
+    {"name":"Hero tomb door","xy":[225804,309917],"radius":1800,"break_object":"tombdor2","big_swing":false},
+    {"name":"Inside the open tomb","xy":[225700,310700],"radius":190}
+  ]
+}

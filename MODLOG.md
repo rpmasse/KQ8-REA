@@ -1,5 +1,41 @@
 # MODLOG
 
+## 2026-11-07 Take the dead hero's ring and retain it after a fresh launch
+
+Checked witnesses now cover the ordinary route through the tomb
+archer, the Knight's dialogue, the door, the coffin and the ring.
+The Crystal windmill test passed in 184.20 seconds. The Henchman
+duel and west-yard reload passed in 131.66 seconds with the Crystal
+still carried. In an onward run it restored 8 health to 40 at the
+foot of the steps. The archer died, and the door script opened the
+tomb. The first coffin attempt ran past the original open flag,
+trying to stand inside the coffin. Another approach contacted only
+the overlapping click blocker. Sweeps using the actual two frame
+motions and original box sizes reproduced both results. Neither
+failure counted as earning the ring.
+
+A separate earned HeroDoor checkpoint retained the archer's death
+and open door with the coffin still closed. From it, the original
+Push and EndLoop events opened the coffin. The walking test stops
+pushing on the script's observed value. From the southwest corner,
+the normal ray selected NoName3 first, and the original pickup
+increased the ring count from zero to one. A fresh process repeated
+the menu save at level 5 and 50 health. The checked-in two-process
+test passed from this HeroDoor slot in 96.54 seconds; 41 regular
+viewer tests passed. The new walking condition only reads the game's
+script variable. Movement and collision continue to use the normal
+input path.
+
+Local logs: `kq8-artifacts/hero-door/1793988478589` and
+`kq8-artifacts/hero-coffin/1793988691889`. The earlier coffin failures
+are under `kq8-artifacts/west-yard-hero-hill/1793987593355` and
+`kq8-artifacts/crystal-hero-ring/1793988019909033900`. The [campaign
+notes](docs/daventry-progression.md#verified-through-the-dead-heros-ring)
+give the command. The optimized Windows executable also opened
+Normal Daventry and exited after 15 updates with the GOG Options.cs
+unchanged. That build is 97,559,040 bytes with SHA-256
+`1126a3918736b3599fcbfad3b68a68ca33b2e06ee8381aac80f626c0acce1670`.
+
 ## 2026-11-07 Acquire the cottage Crystal before the Wizard meeting
 
 The original Daventry item script places a 50-health Crystal inside

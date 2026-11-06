@@ -2,7 +2,7 @@
 
 KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The engine reads the original levels, models, scripts, audio and interface assets from your own GOG installation. The target is the original Windows game, including its controls, timing, 4:3 presentation, and the full campaign from New Game through the ending.
 
-**Development build.** All 12 regions load and render on Windows. Daventry has the longest verified chain of ordinary play. The Rust build can earn the Wizard’s map and the windmill Small Axe, save through the menu and resume in a fresh process. An uninterrupted run from New Game to the ending is still open. This fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb).
+**Development build.** All 12 regions load and render on Windows. In Daventry, linked menu saves now carry Connor from Normal New Game to the dead hero’s ring. The ring and both tomb flags survive a fresh launch. The full campaign through the ending remains open. This fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb).
 
 ## Project status
 
@@ -11,10 +11,10 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M0–M3 · Data, worlds and movement | The engine reads the original assets, opens every region and runs Connor’s movement, collision and early Daventry scripts. | Recheck inherited behavior in the Windows build and record differences by region. |
 | M4 · Interface and dialogue | Title, pause, named saves, Options, Keyboard, HUD, captions, inventory tutorials and the Wizard conversation work. Credits shows the 25 original cards and team photograph. Lighting, shadows and indexed palette brightness update in play. | Finish graphics mode and live resolution behavior, software palettes, remaining inventory and dialogue branches, credits timing and score calculation. |
 | M5 · Combat | The Weeper, Tower Skeleton and six script-created monster types have focused checks. Lucreto changes attacks and can stagger into the vortex. Equipped attacks, pending deaths and the three-second game-over hold have save and reload checks. | Complete other weapons, enemies and bosses. Check first-person combat, remaining controller transitions and full encounters in campaign play. |
-| M6 · Campaign and saves | Ordinary Daventry routes earn the map, Small Axe and cottage shield. Focused checks cover CastleD travel, Dead City scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete the regional quests, optional branches and boss sequences. Verify one continuous New Game through the ending and credits. |
+| M6 · Campaign and saves | In Daventry, Connor earns the map and Small Axe, defeats the Henchman and takes the dead hero’s ring. Focused checks cover CastleD travel, Dead City scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete the regional quests, optional branches and boss sequences. Verify one continuous New Game through the ending and credits. |
 | M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
 
-**Current campaign boundary.** Connor can earn the cottage supplies, the Wizard’s map and the Small Axe, defeat the Henchman, save, and walk beyond the guard after a fresh launch. A separate run from Normal New Game carried eight mushrooms, the cottage Crystal and the shield to the Wizard. The next Daventry quest is opening the hero’s tomb and earning the ring. [Daventry campaign evidence](docs/daventry-progression.md)
+**Current campaign boundary.** Connor used the cottage Crystal against the tomb archer, opened the door with the Small Axe and pushed the coffin lid. He took the ring through a visible click and kept it after a fresh launch. The remaining Daventry route includes the Shadow encounter, the Candle, the Ashes and the Wizard’s Ring of Light before travel to Dead City. [Daventry campaign evidence](docs/daventry-progression.md)
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
@@ -75,6 +75,7 @@ cargo test --locked -p kq8-viewer --test cottage_journey -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_wizard -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_windmill -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_hero_ring breakable_route_dispatches -- --ignored
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_crystal_to_hero_ring_and_fresh_reload -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored
 cargo test --locked -p kq8-viewer --test placed_characters -- --ignored

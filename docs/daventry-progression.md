@@ -12,6 +12,55 @@ Daventry has two regional exits. Castle Daventry contains a required ingredient 
 | Make the Ring of Light | Present each ingredient to the wizard while he is in state 2 and finish the casting sequence. | `wizard.cs` consumes each offered item and remembers it. Its three flags are tested together. The final `castring4` callback grants the Ring of Light and changes the wizard’s state to 3. |
 | Leave Daventry | Enter the churchyard tomb’s gate with the Ring of Light and accept the travel prompt. | On a first visit, `sdwtrap1.cs` checks Connor’s inventory and then records `Daventry::BeenThere::DoneThat`. `davgate4.kq` names Dead City and its arrival coordinates. Later visits use the recorded flag. |
 
+### Verified through the dead hero's ring
+
+The source chain starts at Normal New Game. Each later process loads
+the preceding process's unchanged menu save. Connor acquired the
+Crystal, shield and eight mushrooms before the Wizard meeting. The
+windmill leg earned the axe, and the Henchman leg left a WestYard
+save with 40 health, four mushrooms and the Crystal. Both legs used
+enemy AI and ordinary damage. The Crystal windmill and Henchman
+regressions passed in 184.20 and 131.66 seconds respectively.
+
+At the tomb, the Crystal can restore health lost on the approach.
+In one recorded fight it healed Connor from 8 to 40. Connor killed
+the archer, struck the door with the axe, and the original script
+opened it. After the Knight's dialogue returned control, Connor
+walked inside and saved HeroDoor with 50 health. The archer was
+gone, the door was unlocked and the coffin was still closed.
+
+A fresh process loaded HeroDoor and approached the lid. Its original
+Push event started the fall; the end of the animation marked the
+coffin open and disabled its click blocker. On update 74 the walking
+check observed that flag. Connor stepped to the southwest corner
+and clicked the ring through gameplay pixel (822, 378) at update 93.
+It was the first item hit, 1,396.4 units from Connor, within the
+4,700-unit reach. The menu saved HeroRing. Another process loaded it
+and saved again with exactly one ring, level 5, 50 health, the archer
+gone and both tomb flags intact.
+
+The checked-in two-process coffin and ring-reload regression also
+passed from that earned HeroDoor checkpoint in 96.54 seconds.
+
+Two earlier routes are recorded under the road-to-the-tomb section.
+One opened the coffin but kept trying to stand inside it. A second
+hit the overlapping click blocker before touching the lid. The
+original collision boxes and the recorded movement steps reproduced
+the difference: the successful 173.2-unit forward movement reached
+both objects, whereas the 146.3-unit movement on the other approach
+reached only the blocker. The current route saves inside the open
+door, loads that checkpoint and recognizes completion when the
+original coffin script records it. It clicks from reachable ground.
+
+Set `KQ8_GAME_DIR` to the GOG installation. The command can earn its
+own prerequisites. To repeat a shorter leg, set `KQ8_CRYSTAL_YARD_SLOT`
+to an earned WestYard save with the Crystal, or `KQ8_HERO_DOOR_SLOT`
+to the live HeroDoor save with its coffin still closed.
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_crystal_to_hero_ring_and_fresh_reload -- --ignored --exact --test-threads=1
+```
+
 ### Other Daventry branches
 
 These scripts are relevant to a complete recreation. Some can provide access or equipment for the main route. The ingredient test above names only the Candle, Ashes and dead hero’s ring.

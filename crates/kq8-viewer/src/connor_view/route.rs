@@ -19,6 +19,8 @@ struct Landmark {
     aim: Option<String>,
     /// Press a normal inventory number key once when this point is reached.
     inventory_slot: Option<usize>,
+    /// Continue walking toward the point until the original script records this value.
+    until_var: Option<ScriptValue>,
     /// At this landmark, turn in place and press the bound Jump key.
     jump_toward: Option<[f32; 2]>,
     /// Stop here and use ordinary hand-weapon attacks against this character.
@@ -41,6 +43,12 @@ struct Landmark {
 struct Scene {
     trigger: String,
     controller: String,
+}
+
+#[derive(Deserialize)]
+struct ScriptValue {
+    name: String,
+    value: String,
 }
 
 #[derive(Resource, Deserialize, Default)]
@@ -90,6 +98,8 @@ impl Replay {
                     || (l.retreat && l.fight.is_none())
                     || l.inventory_slot.is_some_and(|n| !(1..=crate::gui_view::INVENTORY_DIGITS.len()).contains(&n)
                         || l.scene.is_some() || l.jump_toward.is_some())
+                    || l.until_var.as_ref().is_some_and(|v| v.name.trim().is_empty() || l.scene.is_some()
+                        || l.fight.is_some() || l.break_object.is_some() || l.jump_toward.is_some())
                     || l.scene.as_ref().is_some_and(|s| s.trigger.is_empty() || s.controller.is_empty())
                     || l.direction.is_some_and(|d| !d.iter().all(|v| v.is_finite()) || d == [0., 0.])
                     || !l.xy.iter().all(|v| v.is_finite())
@@ -232,7 +242,11 @@ pub fn steer(
     let distance = (landmark.xy[0] - pos[0]).hypot(landmark.xy[1] - pos[1]);
     let moving_out = landmark.direction.is_none_or(|d| previous.is_some_and(|p|
         (pos[0] - p[0]) * d[0] + (pos[1] - p[1]) * d[1] > 0.));
-    if (landmark.scene.is_none() && distance <= landmark.radius && moving_out) || (landmark.retreat && replay.fight_start.is_some()) {
+    let arrived = match &landmark.until_var {
+        Some(target) => doors.active.scripts.vars.get(&target.name) == Some(target.value.as_str()),
+        None => distance <= landmark.radius && moving_out,
+    };
+    if (landmark.scene.is_none() && arrived) || (landmark.retreat && replay.fight_start.is_some()) {
         let retreat = landmark.retreat;
         if let Some(name) = landmark.fight.clone().or_else(|| landmark.break_object.clone()) {
             let big_swing = landmark.big_swing.unwrap_or(true);
@@ -340,6 +354,11 @@ pub fn steer(
             "walk-route at {} on update {}: ({:.0}, {:.0}, {:.0}), distance {distance:.0}",
             point.name, sim.updates, pos[0], pos[1], pos[2]
         ));
+        if let Some(target) = point.until_var {
+            shared.log.lock().unwrap().summary(format!(
+                "walk-route observed {} = {} at {}", target.name, target.value, point.name
+            ));
+        }
         if let Some(name) = point.click {
             clicks.0.push((name, 0));
         }
