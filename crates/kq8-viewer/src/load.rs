@@ -1568,6 +1568,15 @@ pub struct MapFile {
     pub haze: Option<f64>,
 }
 
+/// Geometry prepared from the same files and placement rules as the
+/// startup scene, but registered only when the named object comes in.
+#[derive(Default)]
+pub struct WaitingCollision {
+    pub object: Option<kq8_core::collide::BoxCollider>,
+    pub camera_box: Option<kq8_core::collide::BoxCollider>,
+    pub interior: Option<(kq8_core::collide::BuildingCollider, kq8_core::active::ActiveBuilding)>,
+}
+
 pub struct Objects {
     /// The original type table and files used by scripts' `KQMonster::add`.
     pub monster_types: Option<kq8_data::characters::MonsterTypes>,
@@ -1607,6 +1616,7 @@ pub struct Objects {
     pub building_types: Vec<u32>,
     /// Each building as a click target (M3 step 3g-2), same order.
     pub building_clicks: Vec<kq8_core::active::ActiveBuilding>,
+    pub waiting_collision: BTreeMap<String, WaitingCollision>,
     /// Placed objects other than buildings and doors whose collision type
     /// blocks the camera's view (bit 0x8 or 0x1000), by their box (2f-2).
     pub view_boxes: Vec<kq8_core::collide::BoxCollider>,
@@ -5027,11 +5037,14 @@ impl Placer<'_> {
         let mut buildings = Vec::new();
         let mut building_types = Vec::new();
         let mut building_clicks = Vec::new();
+        let mut waiting_collision: BTreeMap<String, WaitingCollision> = self.dormant.iter()
+            .map(|(_, name, _)| (name.to_ascii_lowercase(), WaitingCollision::default())).collect();
         let mut footsounds = BTreeMap::new();
         let mut digs: BTreeMap<String, Option<kq8_data::building::Building>> = BTreeMap::new();
         for (k, (p, i, unused)) in self.placed.iter().enumerate() {
             let shape = &self.shapes[*i].0;
-            if *unused || !shape.to_ascii_lowercase().ends_with(".dig") {
+            if !shape.to_ascii_lowercase().ends_with(".dig")
+                || (*unused && !waiting_collision.contains_key(&p.name.to_ascii_lowercase())) {
                 continue;
             }
             let dig = digs.entry(shape.to_ascii_lowercase()).or_insert_with(|| {
@@ -5057,7 +5070,7 @@ impl Placer<'_> {
                 c.world_max[2]
             ));
             let info = &self.collision[k];
-            building_clicks.push(kq8_core::active::ActiveBuilding {
+            let click = kq8_core::active::ActiveBuilding {
                 name: p.name.clone(),
                 collision_type: info.collider_type,
                 script: info.script.clone(),
@@ -5067,16 +5080,21 @@ impl Placer<'_> {
                 do_not_point_at: info.do_not_point_at,
                 bounds: c.bounds,
                 placement: c.placement,
-            });
+            };
             footsounds.insert(p.name.to_ascii_lowercase(), info.footsound_type);
             if let Some(n) = info.footsound_type {
                 log.summary(format!("footsteps: building [{}] footsoundType={n} (sound.md rule 39)", p.name));
             }
+            if *unused {
+                waiting_collision.get_mut(&p.name.to_ascii_lowercase()).unwrap().interior = Some((c, click));
+                continue;
+            }
+            building_clicks.push(click);
             buildings.push(c);
             building_types.push(info.collider_type);
         }
         log.summary(format!("collision: {} building colliders", buildings.len()));
-        let (objects, clickables, view_boxes) = object_colliders(self.game, &self.shapes, &self.placed, &self.collision, &self.markers, (&self.dormant_monsters, &self.dormant), log);
+        let (objects, clickables, view_boxes) = object_colliders(self.game, &self.shapes, &self.placed, &self.collision, &self.markers, (&self.dormant_monsters, &self.dormant), &mut waiting_collision, log);
         // M5 5d-3: the templates, with their boxes from BOUNDS.KQ.
         let table = self.game.find("GAME/patch/BOUNDS.KQ").and_then(|p| std::fs::read(p).ok()).map(|b| kq8_data::bounds::BoundingBoxes::parse(&b).0);
         let templates: Vec<TemplateAssets> = self
@@ -5169,6 +5187,7 @@ impl Placer<'_> {
             buildings,
             building_types,
             building_clicks,
+            waiting_collision,
             view_boxes,
             objects,
             doors,
@@ -5243,6 +5262,7 @@ fn object_colliders(
     collision: &[CollisionInfo],
     markers: &[Marker],
     (dormant_monsters, dormant): (&[kq8_core::active::Monster], &[(String, String, Option<String>)]),
+    waiting_collision: &mut BTreeMap<String, WaitingCollision>,
     log: &mut Log,
 ) -> (Vec<kq8_core::collide::BoxCollider>, Vec<kq8_core::active::Clickable>, Vec<kq8_core::collide::BoxCollider>) {
     use kq8_core::collide::{pair_collides, BoxCollider, ColliderKind, Placement, CONNOR_MASK, CONNOR_TYPE};
@@ -5373,16 +5393,20 @@ fn object_colliders(
         // Clickable (doors.md rule 10): picked by its box, whatever it
         // collides with.
         // Blocks the camera's view (camera.md "Obstacles"), whatever it
-        // collides with. (Not for one waiting for a `loadKQ`: only its
-        // click box is prepared, see below.)
-        if info.collider_type & VIEW_BLOCKING != 0 && !waiting {
-            view_boxes.push(BoxCollider {
+        // collides with. A waiting object's box enters at its load event.
+        if info.collider_type & VIEW_BLOCKING != 0 {
+            let b = BoxCollider {
                 name: p.name.clone(),
                 min: entry.min,
                 max: entry.max,
                 placement: Placement { rotation: kq8_data::objects::rotation(p.angles), position: p.position },
                 kind: kind(info, p),
-            });
+            };
+            if waiting {
+                waiting_collision.entry(p.name.to_ascii_lowercase()).or_default().camera_box = Some(b);
+            } else {
+                view_boxes.push(b);
+            }
         }
         // Not clickable but with a script (the barrels, type 0x141): kept
         // too, for its script (`clicking.md` rule 21: every object with a
@@ -5408,11 +5432,6 @@ fn object_colliders(
                 log.detail(format!("collision: {what}: clickable, box {} by {from}; off until a script's loadKQ brings it in (not solid yet)", entry.name));
             }
             clickables.push(c);
-        }
-        if waiting {
-            // Its solid box is not prepared (stand-in): only the click.
-            *left_out.entry("waiting for a loadKQ (click box only)").or_default() += 1;
-            continue;
         }
         if !pair_collides(CONNOR_TYPE, CONNOR_MASK, info.collider_type, info.collider_mask) {
             *left_out.entry("type and mask: not tested against Connor").or_default() += 1;
@@ -5449,7 +5468,12 @@ fn object_colliders(
             if p.drawn() { "" } else { " (hidden: still collides)" }
         ));
         *by_class.entry(class.to_string()).or_default() += 1;
-        objects.push(BoxCollider { name: p.name.clone(), min: entry.min, max: entry.max, placement, kind: kind(info, p) });
+        let solid = BoxCollider { name: p.name.clone(), min: entry.min, max: entry.max, placement, kind: kind(info, p) };
+        if waiting {
+            waiting_collision.entry(p.name.to_ascii_lowercase()).or_default().object = Some(solid);
+        } else {
+            objects.push(solid);
+        }
     }
     log.summary(format!(
         "collision: {} object colliders (per class {by_class:?}; {by_name} found by the object's own name, the rest by shape; {lowered} only with the shape name lower-cased, Q39); left out: {left_out:?}",
@@ -6682,6 +6706,56 @@ mod regional_item_checks {
         Arrival { no_name_from, items, exit_movement: None, kept_vars: vec![],
             gone: Default::default(), came_in: vec![], object_copies: vec![],
             states: Default::default(), prop_placements: Default::default(), kept_maps: Default::default() }
+    }
+
+    #[test]
+    #[ignore = "reads the installed Daventry collision geometry"]
+    fn fallen_tree_and_dock_use_the_same_surfaces_on_script_load_and_revisit() {
+        use kq8_core::collide::{BallStack, ObjectHit};
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let world = World::open(&game, "Daventry").unwrap();
+        let mut log = Log::create("mill-collision-comparison").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let original = load_objects(&game, &world, &ground.terrain, &mut log, Some(arrival(0, None)), None);
+        let mut after_tree = arrival(0, None);
+        after_tree.gone.insert("milltree".into());
+        after_tree.came_in = ["milltre2.kq", "milltre3.kq", "dock3.kq"].into_iter().map(str::to_owned).collect();
+        let restored = load_objects(&game, &world, &ground.terrain, &mut log, Some(after_tree), None);
+        let (min, max) = kq8_core::connor_mover::CONNOR_BOX;
+        let body = BallStack::from_box(min, max);
+        for name in ["milltre2", "milltre3"] {
+            let pending = original.waiting_collision[name].object.as_ref().unwrap();
+            assert!(!original.objects.iter().any(|b| b.name.eq_ignore_ascii_case(name)));
+            let live = restored.objects.iter().find(|b| b.name.eq_ignore_ascii_case(name)).unwrap();
+            let top = pending.placement.to_world([
+                (pending.min[0] + pending.max[0]) * 0.5, (pending.min[1] + pending.max[1]) * 0.5, pending.max[2],
+            ]);
+            let from = [top[0], top[1], top[2] + 600.];
+            let to = [top[0], top[1], top[2] - 300.];
+            let hit = |b: &kq8_core::collide::BoxCollider| match b.sweep(&body, from, to) {
+                Some(ObjectHit::Contact(hit)) => hit,
+                _ => panic!("Connor missed {name} at {top:?}"),
+            };
+            let prepared_hit = hit(pending);
+            assert!(prepared_hit.normal[2] > 0.9);
+            assert_eq!(prepared_hit.touch, hit(live).touch);
+            println!("{name}: matching support at {:?}", prepared_hit.touch);
+        }
+        let (dock, _) = original.waiting_collision["dock3"].interior.as_ref().unwrap();
+        assert!(!original.buildings.iter().any(|b| b.name.eq_ignore_ascii_case("dock3")));
+        let restored_dock = restored.buildings.iter().find(|b| b.name.eq_ignore_ascii_case("dock3")).unwrap();
+        let mut faces = 0;
+        for x in (183000..190500).step_by(400) {
+            for y in (214000..236200).step_by(400) {
+                let from = [x as f32, y as f32, dock.world_max[2] + 1000.];
+                let to = [from[0], from[1], dock.world_min[2] - 500.];
+                let hits = [dock, restored_dock].map(|b| b.sweep(&body, from, to).map(|h| (h.touch, h.normal)));
+                assert_eq!(hits[0], hits[1], "dock sweep from {from:?}");
+                if hits[0].is_some_and(|(_, n)| n[2] > 0.8) { faces += 1; }
+            }
+        }
+        assert!(faces > 0, "no floor on the original dock");
+        println!("Dock3: {faces} matching walkable sweep contacts");
     }
 
     #[test]

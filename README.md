@@ -77,6 +77,7 @@ cargo test --locked -p kq8-viewer --test daventry_windmill -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_hero_ring breakable_route_dispatches -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_crystal_to_hero_ring_and_fresh_reload -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_hero_ring_to_watermill_tree -- --ignored --exact --test-threads=1
+cargo test --locked -p kq8-viewer --bin kq8-viewer fallen_tree_and_dock_use_the_same_surfaces_on_script_load_and_revisit -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored
 cargo test --locked -p kq8-viewer --test placed_characters -- --ignored

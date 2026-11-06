@@ -105,6 +105,13 @@ pub struct ViewBlockerSet {
 #[derive(Resource, Default)]
 pub struct ObjectColliders(pub Vec<kq8_core::collide::BoxCollider>);
 
+/// Named scenery which the level's scripts may add later.
+#[derive(Resource)]
+pub struct WaitingScenery(pub std::collections::BTreeMap<String, crate::load::WaitingCollision>);
+
+#[derive(Component)]
+pub struct WaitingDistance(pub crate::draw_distance::DistanceTest);
+
 /// The order the object colliders entered the world (indices into
 /// `ObjectColliders`), the order Connor's sweep tests them in
 /// (`connor-physics.md` "Against a building" step 7, Q88; M3 3l-4): by
@@ -485,6 +492,8 @@ pub fn setup_objects(
         }
         // Draw distance (M1 6h): one test per object, on each of its parts.
         let test = (!*unused).then(|| balls.test_at(p, *i));
+        let waiting = (*unused && objects.waiting_collision.contains_key(&p.name.to_ascii_lowercase()))
+            .then(|| balls.test_at(p, *i));
         let opacity = p.opacity();
         if opacity < 1.0 {
             see_through += 1;
@@ -503,6 +512,9 @@ pub fn setup_objects(
             }
             if let Some(t) = &test {
                 e.insert(t.clone());
+            }
+            if let Some(t) = &waiting {
+                e.insert(WaitingDistance(t.clone()));
             }
             if let Some(c) = carried.take() {
                 e.insert(c);
@@ -561,6 +573,9 @@ pub fn setup_objects(
             if let Some(t) = &test {
                 e.insert(t.clone());
             }
+            if let Some(t) = &waiting {
+                e.insert(WaitingDistance(t.clone()));
+            }
             if let Some(w) = wall_lights.take() {
                 e.insert(w);
             }
@@ -570,6 +585,7 @@ pub fn setup_objects(
         "wall point lights (M1 7d): {} building copies can be lit; without a collider (no lights): {:?}",
         wall_lit.0, wall_lit.1
     ));
+    commands.insert_resource(WaitingScenery(std::mem::take(&mut objects.waiting_collision)));
     let drawn_surfaces: usize = shadow_receivers.iter().map(|(_, b)| b.surfaces.len()).sum();
     let all_surfaces: usize = objects.placed.iter().filter(|(_, i, unused)| !*unused && !built_walls[*i].is_empty()).map(|(_, i, _)| shadow_surfaces[*i].len()).sum();
     log.summary(format!(

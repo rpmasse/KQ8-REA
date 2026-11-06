@@ -669,6 +669,10 @@ fn earned_hero_ring_to_watermill_tree() {
     let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
     for prop in ["MillTre2", "MillTre3", "Dock3"] {
         assert!(doors.contains(&format!("{prop} comes into the world")), "{prop}");
+        let shape = if prop == "Dock3" { "interior BSP" } else { "object box" };
+        let registered = viewer.lines().filter(|line| line.contains(&format!("loadKQ: {prop} came in:"))
+            && line.contains(&format!("registered collision [\"{shape}\"]"))).count();
+        assert_eq!(registered, 1, "{prop} should have exactly one live registration");
     }
     let saved = mill.slot(2);
     assert_eq!(saved["label"], "MillTree");

@@ -1179,6 +1179,7 @@ per_world!(
     crate::shadow_view::ShadowWorld,
     terrain_view::ColliderOrder,
     terrain_view::ObjectColliders,
+    terrain_view::WaitingScenery,
     terrain_view::Buildings,
     crate::shadow_view::BuildingShadows,
     crate::shadow_view::FrameSources,

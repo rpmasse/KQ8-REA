@@ -227,18 +227,64 @@ pub fn apply_loads(
     sim: Option<ResMut<DoorSim>>,
     anim: Option<ResMut<crate::anim_view::AnimSim>>,
     sound: Option<ResMut<crate::sound_view::SoundSim>>,
-    mut parts: Query<(Entity, &crate::terrain_view::ObjectName, &mut Visibility)>,
+    mut parts: Query<(Entity, &crate::terrain_view::ObjectName, &mut Visibility, &Transform, Option<&crate::terrain_view::WaitingDistance>)>,
+    (mut waiting, mut colliders, mut order, mut buildings, mut view): (
+        ResMut<crate::terrain_view::WaitingScenery>, ResMut<ObjectColliders>,
+        ResMut<crate::terrain_view::ColliderOrder>, ResMut<Buildings>, ResMut<ViewBlockerSet>,
+    ),
+    (connor, camera, light, rules, mut switches): (
+        Option<Res<ConnorSim>>, Query<&Transform, With<Camera3d>>, Res<crate::object_light::ObjectLight>,
+        Res<crate::draw_distance::ActiveRules>, ResMut<crate::draw_distance::ColliderSwitches>,
+    ),
     shared: Res<Shared>,
 ) {
     if queue.0.is_empty() {
         return;
     }
     let (Some(mut sim), mut anim, mut sound) = (sim, anim, sound) else { return };
+    let reference = connor.as_ref().filter(|_| !rules.camera)
+        .map(|c| Vec3::from(crate::to_bevy(c.mover.position, [0.; 3])))
+        .or_else(|| camera.iter().next().map(|t| t.translation));
     for name in std::mem::take(&mut queue.0) {
         let mut shown = 0;
-        for (e, _, mut v) in parts.iter_mut().filter(|(_, n, _)| n.0.eq_ignore_ascii_case(&name)) {
+        let mut geometry = Vec::new();
+        let shape = waiting.0.remove(&name.to_ascii_lowercase());
+        if sim.active.world.is_deleted(&name) {
+            sim.active.loaded(&name);
+            continue;
+        }
+        if let Some(shape) = shape {
+            if let Some(solid) = shape.object {
+                order.0.push(colliders.0.len());
+                colliders.0.push(solid);
+                geometry.push("object box");
+            }
+            if let Some(camera_box) = shape.camera_box {
+                view.boxes.push(camera_box);
+                geometry.push("camera box");
+            }
+            if let Some((solid, click)) = shape.interior {
+                buildings.0.push(solid);
+                view.building_types.push(click.collision_type);
+                sim.active.add_buildings([click]);
+                geometry.push("interior BSP");
+            }
+        }
+        for (e, _, mut v, transform, distance) in parts.iter_mut().filter(|(_, n, _, _, _)| n.0.eq_ignore_ascii_case(&name)) {
             *v = Visibility::Inherited;
             commands.entity(e).remove::<crate::terrain_view::ShownWithH>();
+            if let Some(distance) = distance {
+                let test = &distance.0;
+                if let Some(reference) = reference.filter(|_| shown == 0) {
+                    let d = (reference - transform.transform_point(test.centre)).length() * crate::UNITS_PER_METRE;
+                    let activity = test.activity(d - test.radius, light.haze.visible,
+                        sim.active.world.hidden_now(&name, test.hidden), &rules);
+                    if activity.groups(test.groups[0], test.groups[1], test.groups[2]) & crate::draw_distance::COLLIDER_BIT == 0 {
+                        switches.0.push((name.clone(), false, activity, d));
+                    }
+                }
+                commands.entity(e).insert(test.clone()).remove::<crate::terrain_view::WaitingDistance>();
+            }
             shown += 1;
         }
         let animated = anim.as_mut().is_some_and(|a| a.bring_in(&name, &mut sim.active));
@@ -251,7 +297,7 @@ pub fn apply_loads(
         }
         let sounding = sound.as_mut().is_some_and(|s| s.wake(&name));
         let line = format!(
-            "update {}: loadKQ: {name} came in: {shown} drawn part(s) shown{}{} (its click box, if it has one, is on from now on; a solid box for Connor: not done)",
+            "update {}: loadKQ: {name} came in: {shown} drawn part(s) shown{}{}; registered collision {geometry:?}",
             sim.active.world.updates,
             if animated { ", animation played by the world's rules" } else { "" },
             if sounding { ", sound object on" } else { "" }
@@ -1083,7 +1129,7 @@ pub fn trap_step(
     mut loads: ResMut<LoadQueue>,
     mut drawn: Query<(&crate::terrain_view::ObjectName, &mut Transform)>,
     lookup: Option<Res<crate::terrain_view::GroundLookup>>,
-    buildings: Option<Res<Buildings>>,
+    mut buildings: Option<ResMut<Buildings>>,
     order: Option<Res<crate::terrain_view::ColliderOrder>>,
     (buttons, right_at, mut set_haze, mut ground_anim): (Res<ButtonInput<MouseButton>>, Res<RightAt>, ResMut<crate::object_light::SetHaze>, Option<ResMut<crate::ground_anim_view::GroundAnimSim>>),
     shared: Res<Shared>,
@@ -1733,6 +1779,12 @@ pub fn trap_step(
             }
             Request::Delete { name, at } => {
                 let mut off = 0;
+                if let Some(buildings) = &mut buildings {
+                    for b in buildings.0.iter_mut().filter(|b| b.name.eq_ignore_ascii_case(&name)) {
+                        b.enabled = false;
+                        off += 1;
+                    }
+                }
                 if let Some(c) = colliders.as_mut() {
                     for b in c.0.iter_mut().filter(|b| b.name.eq_ignore_ascii_case(&name)) {
                         switch_off(b);
