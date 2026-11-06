@@ -39,6 +39,12 @@ The Wizard interruption checks use the original `wizard.kq` goodbye/welcome-back
 
 The camera destination-list checkpoint follows [Camera flights and cuts, rules 1–4](../behaviour/camera.md#camera-flights-and-cuts-addcamloc-flytocamloc-cuttocamloc-traced-2026-10-18): destinations remain ordered until `addCamLoc` requests a new list. The original GOG `vol:Daventry/kq/wtrmwalk.cs` supplies the initial camera position, destination (190000, 230000, 10600), aim (186960, 228000, 10000), range and two-second flight used by the unattended save/reload check. This is an isolated command sequence, not verification of the complete windmill scene. The optional Rust save field is this project's own representation.
 
+## Camera shake and shared flight calculations
+
+The waveform and continuation use [camera-shake rules 1–6/12](../behaviour/camera-shake.md); its third-person branches and update ordering use rules 9/13–22. [Camera's Q193 actor-history, flight/cut and signed turn-back rules](../behaviour/camera.md) supply the retained transforms, fourth-sync stillness, absolute signed height sum, candidate offset before height hold/placing, and one shared heading controller. This implementation session used those prose descriptions and existing Rust, without inspecting Mask.exe, disassembly or study scratch files. The original symmetric-snap improvement is superseded by the current 1:1 scope.
+
+The installed Daventry archive supplies beer42.cs, hibeer.cs and hibeer2.cs; Barren supplies gongtp1.cs and gsetup.cs. The ignored data check reads all five at runtime and checks their parameters against the independently derived study-note values. The Windows component scenario supplies those beer/gong parameters as diagnostic commands in Daventry, saves the rising ramp through the real menu, resumes in a fresh process, and supplies a separate cut/follow/flight sequence. It is not an original-runtime capture or the complete beer/gong quests. Optional Rust snapshot fields are our own representation. First-person presentation, physical drag/recentring, collision-probe/normal-length memory and absolute ordinary movement/timer deadlines remain incomplete or unverified.
+
 ## Campaign script variables and payments
 
 | Behavior | Reference |

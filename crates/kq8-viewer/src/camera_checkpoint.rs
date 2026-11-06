@@ -25,12 +25,14 @@ pub struct SavedCamera {
     move_skipped: bool,
     after_flight: Option<bool>,
     follow_due: Option<bool>,
+    #[serde(default)]
+    shake: kq8_core::camera_shake::Shake,
 }
 
 impl SavedCamera {
     pub fn valid(&self) -> bool {
         let pose = |p: Pose| p.0.into_iter().chain([p.1, p.2]).all(f32::is_finite);
-        self.cam.valid_checkpoint() && pose(self.previous) && pose(self.current) && self.glide_from.is_none_or(pose)
+        self.cam.valid_checkpoint() && self.shake.valid() && pose(self.previous) && pose(self.current) && self.glide_from.is_none_or(pose)
             && [self.roll_before, self.view.tilt, self.view.heading, self.view.roll].into_iter().all(f32::is_finite)
             && self.last_connor.is_none_or(|p| p.0.into_iter().chain([p.1]).all(f32::is_finite))
             && self.around.is_none_or(|p| p.into_iter().all(f32::is_finite))
@@ -48,7 +50,7 @@ impl GameCam {
             view: self.view, places: self.places, aims: self.aims, last_connor: self.last_connor,
             pending_start: self.pending.contains(&"start (stand-in)"), pending_follow: self.pending.iter().any(|p| *p != "start (stand-in)"),
             around: self.around, skip_next_move: self.skip_next_move, move_skipped: self.move_skipped,
-            after_flight: self.after_flight, follow_due: self.follow_due }
+            after_flight: self.after_flight, follow_due: self.follow_due, shake:self.shake.clone() }
     }
 
     pub fn restore(&mut self, saved: &SavedCamera) -> Result<(), String> {
@@ -60,6 +62,7 @@ impl GameCam {
         self.places = saved.places; self.aims = saved.aims; self.last_connor = saved.last_connor;
         self.around = saved.around; self.skip_next_move = saved.skip_next_move; self.move_skipped = saved.move_skipped;
         self.after_flight = saved.after_flight; self.follow_due = saved.follow_due;
+        self.shake.clone_from(&saved.shake);
         self.pending.clear();
         if saved.pending_start { self.pending.push("start (stand-in)"); }
         if saved.pending_follow { self.pending.push("disk follow continuation"); }
@@ -67,6 +70,9 @@ impl GameCam {
         self.script_moves.clear();
         self.log.detail(format!("camera checkpoint restored at ({:.3}, {:.3}, {:.3}), following {}, around {:?}, flight {:?}, {} destination spots",
             self.cam.position[0], self.cam.position[1], self.cam.position[2], self.following, self.around, self.flight.as_ref().map(|f| (f.k, f.n)), self.spots.0.len()));
+        if self.shake.active() {
+            self.log.detail(format!("camera shake restored after sample {}, amplitudes {:?}; next sync continues",self.shake.count(),self.shake.amplitude()));
+        }
         Ok(())
     }
 }
@@ -83,7 +89,51 @@ mod tests {
             log: Log::create("camera-checkpoint-unit").unwrap(), following: false, spots: Spots::default(),
             flight: None, flight_fresh: false, view: View { tilt: 0.0, heading: 0.0, roll: 0.0, locked: false },
             places: false, aims: false, last_connor: None, pending: vec![], script_moves: vec![], around: None,
-            skip_next_move: false, move_skipped: false, after_flight: None, follow_due: None }
+            skip_next_move: false, move_skipped: false, after_flight: None, follow_due: None, shake:Default::default() }
+    }
+
+    #[test]
+    fn a_shake_checkpoint_keeps_the_current_ramp_and_fixed_view_without_restarting() {
+        let mut original=camera();
+        original.move_to(0,[100.,200.,3000.],[-0.3,0.2,0.7]);
+        original.start_shake(kq8_core::camera_shake::Parameters {seconds:4.,maximum:[0.02,0.03],rate:[4.,5.]});
+        for _ in 0..29 { original.shake_sync(); }
+        let saved:SavedCamera=serde_json::from_slice(&serde_json::to_vec(&original.saved()).unwrap()).unwrap();
+        let mut restored=camera(); restored.restore(&saved).unwrap();
+        assert_eq!(restored.current,original.current); assert_eq!(restored.view,original.view);
+        assert_eq!(restored.shake.count(),29);
+        assert_eq!(restored.shake_sync(),original.shake_sync());
+        assert_eq!(restored.current,original.current);
+        assert_eq!(restored.shake.count(),30);
+        let mut legacy=serde_json::to_value(&saved).unwrap(); legacy.as_object_mut().unwrap().remove("shake");
+        restored.restore(&serde_json::from_value(legacy).unwrap()).unwrap();
+        assert!(!restored.shake.active());
+        let mut bad=serde_json::to_value(&saved).unwrap(); bad["shake"]["count"]=999.into();
+        let before=restored.current;
+        assert!(restored.restore(&serde_json::from_value(bad).unwrap()).is_err());
+        assert_eq!(restored.current,before);
+    }
+
+    #[test]
+    fn fixed_shake_accumulates_and_replacement_or_stop_never_restores_a_base_pose() {
+        let mut g=camera();
+        g.move_to(0,[100.,200.,3000.],[-0.3,0.2,0.7]);
+        let parameters=kq8_core::camera_shake::Parameters {seconds:4.,maximum:[0.02,0.03],rate:[4.,5.]};
+        g.start_shake(parameters);
+        let first=g.current;
+        assert!(!g.shake_sync());
+        assert!((g.current.1-first.1-0.0006143527).abs()<1e-7);
+        assert!((g.current.2-first.2-0.0009944087).abs()<1e-7);
+        for _ in 1..17 { g.shake_sync(); }
+        let prior=g.current;
+        g.start_shake(parameters); g.shake_sync();
+        assert_eq!(g.shake.count(),1);
+        assert!((g.current.1-prior.1-0.0006143527).abs()<1e-7);
+        assert_eq!(g.cam.position,first.0); assert_eq!(g.view.roll,0.2);
+        for _ in 1..60 { g.shake_sync(); }
+        let last=g.current;
+        assert!(!g.shake_sync()); assert_eq!(g.current,last);
+        assert!(!g.shake.active()); assert_eq!(g.view.roll,0.2);
     }
 
     #[test]

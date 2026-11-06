@@ -195,6 +195,29 @@ again. The view looks a little below the point 1,400 above his feet, so
 it points at about his chest (M3 3o). Checked in the logs (`camera.log`)
 and by eye: the user (2026-10-19) found it matches the original.
 
+Scripted third-person shake now uses the original 15-Hz angular ramp and
+phase rates. It accumulates in a non-aiming cut, feeds the ordinary aiming
+controller while following, and survives replacement/cut/follow/flight
+changes and disk reloads without restarting its saved sample. Flight motion
+uses that same controller, including the original asymmetric turn-back
+snap. Automated numerical checks cover both original beer/gong parameter
+sets, rising-ramp disk continuation and the separate shake/flight updates.
+Original runtime and physical mouse drag/recentring are **not tested**;
+first-person presentation, collision-probe/normal-length memory and the
+universal original moved/timer deadline phase remain incomplete.
+
+Automated component check, from the repository root in PowerShell:
+
+```powershell
+$env:KQ8_GAME_DIR = (Resolve-Path "..\King's Quest 8 GOG").Path
+cargo test --locked -p kq8-viewer --test camera_shake -- --ignored --test-threads=1
+```
+
+Expected: one passing test across three Windows processes; the saved shake
+resumes its next sample, reaches 60 once and stops, and all 16 supplied
+flight steps continue through a cut and a follow change. This is isolated
+diagnostic setup, not full quest/campaign acceptance or manual testing.
+
 ## Daventry comes alive (milestone M3)
 
 - **Doors:** a left click on a door uses it, as with the game's play

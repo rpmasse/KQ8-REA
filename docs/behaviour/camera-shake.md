@@ -1,10 +1,17 @@
-# Camera shake (Q187)
+# Camera shake (Q187, Q193 integration follow-up)
 
 Study session A, 2026-11-06. Static study of the installed GOG 1.03
 `Mask.exe`, its camera command and update/save handling, and the original
 Daventry/Barren scripts. Original runtime capture, manual play and native
 save/reload are **not tested**. Numerical sample examples below are
 derived from the traced constants, not captured original frames.
+
+Q193 follow-up, 2026-11-06: the branch is selected by **aiming**, not
+position-following. The shared-angle, input and F11 rules below supersede
+the earlier aim-only/non-placing description. `camera.md` now gives the
+first-person foundation. The ordinary moved-message deadline relative to
+the independent camera timer remains a narrow open question; the camera
+sync's internal order and the queue boundary are settled below.
 
 ## Purpose
 
@@ -62,8 +69,9 @@ follow, fixed cut cameras and flights; it is not a world-position shake.
    envelope need not end exactly at zero.
 7. **Stopping resets parameters, not every visible camera pose.** Stop
    clears the active flag, sample count and both amplitudes. For third
-   person it restores the ordinary default pitch and heading-offset
-   values, not a saved copy of the player's pre-shake tilt. In first
+   person it restores the retained default pitch and heading-offset
+   values, normally **−0.2 and 0 radians**, not a saved copy of the
+   player's pre-shake tilt. **Third-person roll is left alone.** In first
    person the restored pitch/roll/heading-offset are **−0.175, 0,
    3.14 radians**. The stop branch does not itself rebuild the visible
    view. Normal movement, a flight or a later explicit camera action
@@ -72,25 +80,26 @@ follow, fixed cut cameras and flights; it is not a world-position shake.
 
 ### Which view receives the waves
 
-8. **Following in third person.** The samples replace the camera's
-   current pitch and heading-offset parameters; for the ordinary
-   placing/following path the pitch also receives the standard **−0.2**
-   downward bias. The normal camera update then applies its existing
-   aim, heading-drag, range and height rules (`camera.md`). Thus the
-   heading sample participates in the normal desired-heading/error
-   calculation; it is not simply an extra final rotation after that
-   calculation. Repeated full camera updates during the shake can also
-   advance normal height/range corrections, but there is no separate
-   oscillating position term.
-9. **A fixed third-person cut (`follow none`).** Each X/Z sample is
+8. **Third person with aiming on.** The samples replace the camera's
+   current pitch and shared heading-offset parameters, and pitch also
+   receives the standard **−0.2** downward bias. A full normal camera
+   update then runs, including its tilt reset, aim, heading-drag, range
+   and height rules (`camera.md`). **Correction Q193:** this branch uses
+   the **aims** switch, including an aim-only follow whose position does
+   not follow. The independent **places** switch determines whether the
+   calculated position is applied. Z enters the ordinary heading
+   controller as detailed below; it is not an independent render-only
+   overlay. Repeated full updates can also advance ordinary height/range
+   calculations, without a separate oscillating position term.
+9. **Third person with aiming off (`follow none`).** Each X/Z sample is
    **added to the camera's current drawn pitch/heading**. The fixed
    position and roll stay the same. The samples consequently accumulate
    as angular increments, rather than being offsets from an immutable
    pre-shake view. This is the path used by both original Barren gong
    calls. Replacing or stopping a shake does not undo accumulated view
-   changes. An aim-only third-person camera uses this non-placing
-   shake path too; a separate normal aiming update can subsequently
-   affect the result.
+   changes. An aim-only follow does **not** use this accumulation branch
+   while its aiming switch is on. A later explicit command can of course
+   replace the accumulated view.
 10. **First person.** The samples become pitch/heading offsets with
     **−0.175 pitch and 3.14 heading** added. The view is rebuilt using
     the followed actor's heading and the existing first-person camera
@@ -116,6 +125,133 @@ follow, fixed cut cameras and flights; it is not a world-position shake.
     time. For a fixed cut, the accumulated current view must also
     survive. No exact native file ordering is asserted here; native
     original-game save/reload was not exercised in this study.
+
+### Shared angles and ordinary updates (Q193)
+
+13. **F11 does not select another shake branch.** Normal/fixed distance
+    is separate from first/third person and the aims/places switches.
+    F11 keeps the active shake and sample counter. It changes the full
+    update's distance behavior and whether movement resets tilt. It does
+    not turn following into the fixed-cut accumulation of rule 9.
+14. **The shake-triggered full update can erase sampled X immediately.**
+    In third person with normal distance, the ordinary aiming update
+    compares the followed object's current and retained previous base
+    positions. If **|Δx| + |Δy| > 10 units** and the current pitch
+    parameter differs from its retained default, it replaces the pitch
+    parameter with that default (normally **−0.2**) before producing the
+    view pitch. This reset does not require a new moved notification at
+    that moment: retained movement is sufficient. Thus it can erase
+    `X sample − 0.2` during the shake's own full update. Fixed-distance
+    mode suppresses this reset. A later moved-triggered full update can
+    perform it as well. Shake sampling itself is not cancelled.
+15. **Z is the mouse/aim controller's shared heading offset.** It is
+    replaced by the next shake sample, but a full update can use or
+    replace it before then. The ordinary heading error includes it;
+    after the controller's idle/catch-up/locked/turn-back action, this
+    offset is also added to the resulting heading. In the locked state
+    the intermediate heading is the direct aim heading, so the result
+    is aim plus offset. In idle the intermediate heading is unchanged,
+    so another full update can add the retained offset again. Do not
+    assume one angular contribution per shake sample when other full
+    updates run between samples.
+16. **Normal drag and turn-back rules still own that offset.** At drag
+    start, the offset may be replaced with the negative current heading
+    error; because that error already includes Z, it is not computed
+    independently of the sampled Z. During an existing drag the current
+    shared offset is used: a new shake sample has overwritten it, and
+    that existing drag does not recapture its old pre-shake offset. The
+    first update after an ordinary drag release
+    resets it to the retained default heading offset (normally zero)
+    and changes the heading state to idle. The recentred-drag exception
+    in `camera.md` retains it. With no active mouse values, the turn-back
+    switch replaces it with the default offset before turning/locking.
+    A live drag takes precedence over that no-drag turn-back branch.
+17. **Flight and stop are separate later work.** Each flight step adds
+    its position/roll step, replaces the shared heading offset with
+    **zero**, and runs a full update; on completion it also clears
+    turn-back and restores placing. These flight steps occur after the
+    shake's sample/update in that camera sync, including its first-person
+    direct redraw if first person was active. Stop alone resets only the
+    shake flag/count/amplitudes and the angles specified in rule 7. It
+    does not directly rebuild the view; later full updates in the same
+    sync can nevertheless rebuild it. **Q193 flight clarification:**
+    flight setup enables the existing turn-back switch, rather than a
+    separate heading interpolator. The same ordinary four-state heading
+    controller consequently supplies the one-third/lopsided-snap or
+    already-locked behavior on normal non-final steps. Aiming is not
+    forced on. Setup does not immediately full-update and does not reset
+    that controller's history; subsequent steps do not reassert switches
+    that another command changed. On completion, before the last step's
+    full update, it clears turn-back, resets the ordinary heading state
+    to **idle** and enables placing. That last full update alone performs
+    final range/height/aim work with the current distance/input settings;
+    no separate final settle or forced exact-yaw pass follows. See
+    `camera.md` flight rules 4–5 for start/cut/completion details.
+18. **The order inside one camera sync is fixed.** First the stillness
+    bookkeeping is advanced. Next comes the shake sample and its full
+    update/direct redraw, or its stop/reset when exhausted. Next a flight
+    step runs and performs its full update; without a flight, a retained
+    turn-back switch instead causes another full update. Finally the
+    held Page tilt/zoom input is serviced and can cause another full
+    update. These are distinct updates, not a single update with all
+    changes combined. The later updates do not advance the shake counter
+    again, but can consume the retained sampled angles, reset pitch,
+    advance avoidance and change the final view.
+19. **Moved notifications are separate queued work.** The moved handler
+    copies the current actor transform to its previous record, accepts
+    the notification's new actor transform, resets its stillness counter
+    and runs a full update. It does not generate a shake sample. The
+    timer group's camera sync runs to completion before the event queue
+    handles notifications posted during that timer broadcast. The queue
+    orders by event time and keeps insertion order at equal times. This
+    establishes the boundary, but **does not establish one universal
+    order for an ordinary Connor movement notification and an independent
+    camera timer due in the same simulation interval**. Their exact
+    relative deadlines/creation order in the ordinary route were not
+    settled by two static tracing attempts. A script's immediate moved
+    notification still runs after its script/event returns, as described
+    in `camera.md`. Do not claim exact ordinary route phase parity from
+    this follow-up.
+20. **An aim-only full update retains calculated position history.**
+    With placing off, leash, height and avoidance still calculate a
+    candidate position. The update remembers the candidate's final
+    aim-to-camera offset, updates its collision probe from that candidate,
+    and in normal distance mode remembers that candidate's distance.
+    This history/probe update precedes the optional `fixHeight` height
+    lock: that lock can then put the candidate Z back at the current
+    actual Z without recomputing the retained offset/probe.
+    It then leaves the camera's actual location unchanged. The later
+    aiming calculation uses that **actual unchanged location**, not the
+    candidate, for its pitch/heading toward the aim point. Previous and
+    current actor-transform records are updated by moved notifications
+    and the stillness bookkeeping, not advanced to a candidate by every
+    full update. This distinction matters to later held-mouse updates
+    and to resuming position-following.
+21. **Inputs are not all deferred to the last phase.** Every full update
+    reads current mouse values, calculates their change from its retained
+    mouse history and updates that history. A new mouse delta is consumed
+    on the first such update; another at unchanged values sees zero delta
+    and applies the held-drag previous-offset behavior from `camera.md`.
+    The first update of a new drag consumes its initialization instead.
+    Normal-distance/first-person held Page tilt is added **once in the
+    final sync input phase**, then a full update runs. Fixed-distance
+    held Page zoom is applied **inside** a full update, with a simulation
+    timestamp guard so it changes the distance at most once at the same
+    time; a later full update at that time does not zoom again. The final
+    fixed-distance Page update request itself is suppressed while the
+    camera mouse button is held; another cause of a full update can still
+    reach the timestamp-guarded zoom. Mouse/heading history and avoidance
+    do not have a general “only once per sync” guard.
+22. **The direct first-person shake redraw differs from a normal full
+    first-person update.** Both use the actor-relative eye offset
+    described in `camera.md`. The shake redraw composes its offset
+    rotation with the followed actor's **pitch and heading**, discarding
+    actor roll. It skips the normal support-slope calculation, its
+    unsupported-update counter, the ordinary movement tilt reset and the
+    full update's tilt clamp. A later normal full update can therefore
+    replace that base with the ordinary **support-slope plus heading**
+    foundation, clamp/reset the current pitch and redraw without sampling
+    again. F11 does not suppress the first-person movement tilt reset.
 
 ## Numbers and units
 
@@ -189,10 +325,37 @@ the period words must not be interpreted as seconds per cycle.
 - While shaking, separately place/cut, change follow and start a
   flight. Log the shake state remaining live, and the final pose after
   the flight's later update, rather than assuming simple addition.
+- For Q193, record each full update's cause, current/previous actor
+  positions, actual/candidate camera positions, retained candidate
+  offset, mouse history, shared pitch/Z offset, heading state and
+  simulation timestamp. Compare normal distance and F11 while Connor's
+  retained horizontal movement exceeds 10; normal distance can erase X
+  within the shake update itself. An aim-only follow must keep actual
+  position while aiming from it, and still retain candidate history.
+  Unchanged mouse values must not repeat a delta; fixed-distance Page
+  zoom must not repeat at one timestamp. Check a separate later full
+  update after a first-person shake sample to distinguish slope handling.
+  During an unmodified flight with aiming on, also log turn-back and
+  heading state: turn-back begins on, completion clears it and starts
+  the final full update idle. A small final yaw error can remain. With
+  shake and flight together, the shake-triggered full update and the
+  flight's later full update can each advance that same heading
+  controller; do not add a third flight-specific yaw calculation or
+  another final range/height pass.
+
+The first-person body/list/skin presentation follows `camera.md`,
+"First-person body and animations" (Q193). In particular, a first-person
+shake redraw does not create an arms actor or select another movement
+list: F2's Connor mode owns that selection. Actor/model placement is
+settled there; exact close-up clipping/depth outcomes remain unresolved.
 
 ## Open questions
 
 Original runtime comparisons, native saved-slot resumption and the
 complete beer/gong campaign routes remain untested. No absolute
 wall-clock start delay is asserted: the first sample is the next
-scheduled camera sync after the command.
+scheduled camera sync after the command. The exact relative deadlines
+and ordinary-route order of Connor's moved notifications versus the
+independent camera timer remain unverified (rule 19); stop that issue
+after the two static attempts above rather than infer an order from the
+implementation session's scheduling.

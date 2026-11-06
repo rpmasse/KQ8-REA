@@ -14,7 +14,6 @@ use bevy::input::mouse::AccumulatedMouseMotion;
 use bevy::prelude::*;
 use kq8_core::camera::{connor_moved, follow_switch, ground_line_hit, view_angles, view_direction, wrap, Camera, Followed, Input, Mode, ViewBlockers, DEFAULT_TILT, FOLLOW_TURN_FROM};
 use kq8_core::camera_flight::{Flight, Spots, View};
-use kq8_core::connor_mover::GroundLookup as _;
 use kq8_core::collide::{BoxCollider, BuildingCollider};
 
 use crate::connor_view::{key_code, ConnorSim};
@@ -107,6 +106,52 @@ struct Keys {
     mouse: Option<MouseButton>,
 }
 
+/// One sample of the current controls, shared by distinct full updates in
+/// the same sync. Mouse deltas/presses are consumed once; held Page input
+/// belongs to the final normal phase or the first fixed-mode calculation.
+struct SyncInput {
+    input: Input,
+    consumed: bool,
+    zoomed: bool,
+}
+
+impl SyncInput {
+    fn new(input: Input) -> Self { Self { input, consumed: false, zoomed: false } }
+
+    fn for_update(&mut self, mode: Mode, final_phase: bool) -> Input {
+        let mut input = self.input;
+        if self.consumed {
+            input.mouse_x = 0.0; input.mouse_forward = 0.0;
+            input.change_mode = false; input.reset_tilt = false;
+        }
+        self.consumed = true;
+        let fixed = matches!(mode, Mode::Fixed { .. }) != input.change_mode;
+        if fixed {
+            if self.zoomed { input.tilt_keys = 0; }
+            self.zoomed |= input.tilt_keys != 0;
+        } else if !final_phase {
+            input.tilt_keys = 0;
+        }
+        input
+    }
+}
+
+/// Cut setup has disabled avoidance. These adapters let its one normal
+/// calculation retain the same floor and drawn-surface height queries.
+struct CutScene<'a> {
+    ground: &'a dyn Fn(f32, f32) -> Option<f32>,
+    surface_line: &'a dyn Fn([f32; 3], [f32; 3]) -> Option<[f32; 3]>,
+}
+impl kq8_core::connor_mover::GroundLookup for CutScene<'_> {
+    fn ground(&self, x: f32, y: f32) -> Option<(f32, [f32; 3])> {
+        (self.ground)(x,y).map(|h| (h,[0.0,0.0,1.0]))
+    }
+}
+impl ViewBlockers for CutScene<'_> {
+    fn first_block(&self, _: [f32; 3], _: [f32; 3]) -> Option<([f32; 3], String)> { None }
+    fn surface_hit(&self, from: [f32; 3], to: [f32; 3]) -> Option<[f32; 3]> { (self.surface_line)(from,to) }
+}
+
 impl GameCam {
     /// The camera's position after the last update (game units).
     pub fn position(&self) -> [f32; 3] {
@@ -160,7 +205,7 @@ pub struct GameCam {
     pub following: bool,
     /// `camera.md` "Camera flights and cuts" (M3 3m-4): the spot list,
     /// the flight under way, the view of a flight or cut (with the roll,
-    /// logged, not drawn), and the "places" / "aims" switches `follow`
+    /// drawn), and the "places" / "aims" switches `follow`
     /// sets.
     spots: Spots,
     flight: Option<Flight>,
@@ -193,9 +238,48 @@ pub struct GameCam {
     /// `follow_due` carries it from the flight's last update to the tick.
     after_flight: Option<bool>,
     follow_due: Option<bool>,
+    shake: kq8_core::camera_shake::Shake,
 }
 
 impl GameCam {
+    pub fn start_shake(&mut self, parameters: kq8_core::camera_shake::Parameters) -> String {
+        let line = match self.shake.start(parameters) {
+            Ok(()) => format!("shake started: {} s, angular maxima {:?}, phase rates {:?}; next camera sync is sample 1",parameters.seconds,parameters.maximum,parameters.rate),
+            Err(why) => format!("shake refused: {why}"),
+        };
+        self.log.detail(format!("camera update {}: {line}",self.updates));
+        line
+    }
+
+    /// One camera sync. Aiming samples require a full update afterwards;
+    /// non-aiming samples accumulate in the drawn angles without a move.
+    fn shake_sync(&mut self) -> bool {
+        use kq8_core::camera_shake::Tick;
+        match self.shake.tick() {
+            Tick::Idle => false,
+            Tick::Stopped | Tick::Invalid => {
+                self.cam.reset_shake_angles();
+                self.log.detail(format!("camera tick {}: shake stopped; shared angles reset, drawn pose retained",self.updates));
+                false
+            }
+            Tick::Sample(sample) => {
+                if self.aims {
+                    self.cam.shake_angles(sample.angle);
+                } else {
+                    self.cam.view_tilt += sample.angle[0];
+                    self.cam.heading = wrap(self.cam.heading + sample.angle[1]);
+                    self.view.tilt = self.cam.view_tilt;
+                    self.view.heading = self.cam.heading;
+                    self.current = (self.cam.position,self.cam.view_tilt,self.cam.heading);
+                }
+                self.log.detail(format!("camera tick {}: shake sample {}: amplitude {:.10} {:.10}, angle {:.10} {:.10}, aiming {}, placing {}, view {:.10} {:.10}, position {:.3} {:.3} {:.3}",
+                    self.updates,sample.number,sample.amplitude[0],sample.amplitude[1],sample.angle[0],sample.angle[1],self.aims,self.places,
+                    self.cam.view_tilt,self.cam.heading,self.cam.position[0],self.cam.position[1],self.cam.position[2]));
+                self.aims
+            }
+        }
+    }
+
     /// `tile-puzzle.md` rule 7a (I-4): the hold switch.
     pub fn set_hold(&mut self, on: bool) -> String {
         let was = std::mem::replace(&mut self.cam.hold, on);
@@ -241,8 +325,8 @@ impl GameCam {
             return format!("the camera stays where it is (places and aims off){flying}");
         }
         self.cam.avoid = true;
-        let ended = match self.flight.take() {
-            Some(f) => format!(" (the flight ends at update {} of {}: STAND-IN, the original adds its steps until the end, overruled by the leash)", f.k, f.n),
+        let flying = match self.flight.as_ref() {
+            Some(f) => format!(" (the flight continues from update {} of {}; its remaining steps precede the ordinary full updates)", f.k, f.n),
             None => String::new(),
         };
         let p = self.cam.position;
@@ -252,6 +336,9 @@ impl GameCam {
         let off = wrap(heading - towards);
         let turns = off.abs() > FOLLOW_TURN_FROM;
         self.cam.tilt = DEFAULT_TILT;
+        // Setup copies the live transform without changing stillness;
+        // the queued notification is serviced by camera_step.
+        self.cam.not_moved(connor_base);
         // "When the camera updates at all" item 2: one update right after
         // the command, with the aim point counting as not moved.
         self.pending.push("follow");
@@ -271,7 +358,7 @@ impl GameCam {
             self.log.detail(format!("camera tick {}: {switch}", self.updates));
         }
         format!(
-            "the camera follows Connor again, from where it is: view heading {heading:.3}, Connor at {towards:.3} ({off:+.3} off): {}{ended}{}",
+            "the camera follows Connor again, from where it is: view heading {heading:.3}, Connor at {towards:.3} ({off:+.3} off): {}{flying}{}",
             if turns { "turns back 1/3 per update" } else { "0.4 rad or less: the heading goes by the four states" },
             if switch.is_empty() { String::new() } else { format!("; {switch}") }
         )
@@ -314,6 +401,11 @@ impl GameCam {
         self.places = true;
         self.aims = true;
         self.cam.avoid = true;
+        // Rebind the retained stationary actor record without adding a
+        // new update cause to this existing Q126 conversation stand-in.
+        if let Some(base) = point.or(self.last_connor.map(|actor| actor.0)) {
+            self.cam.not_moved(base);
+        }
         let line = match point {
             Some(p) => format!("the camera swings around ({:.0}, {:.0}, {:.0}) (aim 1400 above), not Connor; Connor's moves don't move it (Q126 stand-in)", p[0], p[1], p[2]),
             None => "the camera follows Connor again".to_string(),
@@ -343,12 +435,11 @@ impl GameCam {
         View { tilt, heading, roll: self.view.roll, locked: false }
     }
 
-    /// Draws the view of a flight or cut from where the camera is; the
-    /// follow camera's heading goes on from it.
+    /// Retain the angles produced by the shared camera controller.
     fn show_view(&mut self) {
-        self.cam.placed();
-        self.cam.heading = self.view.heading;
-        self.cam.view_tilt = self.view.tilt;
+        self.view.heading = self.cam.heading;
+        self.view.tilt = self.cam.view_tilt;
+        self.view.locked = self.cam.heading_state == kq8_core::camera::HeadingState::Locked;
         self.current = (self.cam.position, self.view.tilt, self.view.heading);
     }
 
@@ -365,8 +456,7 @@ impl GameCam {
         self.view = self.start_view();
         let f = Flight::new(p, self.view.roll, spot, aim, seconds, end_roll);
         self.following = false;
-        self.cam.avoid = false;
-        self.cam.tilt = DEFAULT_TILT;
+        f.begin(&mut self.cam);
         self.places = false;
         let line = format!(
             "flight: N = {} updates from ({:.1}, {:.1}, {:.1}) to the spot ({:.0}, {:.0}, {:.0}), step ({:.2}, {:.2}, {:.2}), roll {:.3} -> {:.3}; aiming at ({:.0}, {:.0}, {:.0}) + 1400; places off, aims {}",
@@ -398,61 +488,47 @@ impl GameCam {
             None => String::new(),
         };
         self.following = false;
-        self.cam.avoid = false;
-        self.cam.tilt = DEFAULT_TILT;
-        let c = kq8_core::camera_flight::cut(spot, aim, roll, &mut self.view, self.places, self.aims, self.cam.range, ground, surface_line);
-        let (p, from) = (c.position, c.pulled_from);
-        self.cam.position = p;
+        kq8_core::camera_flight::cut(&mut self.cam, &mut self.view, spot, aim, roll);
+        let scene = CutScene { ground, surface_line };
+        let report = self.cam.full_update(Followed {base:aim,facing:0.0}, false, &Input::default(), &scene, Some(&scene), self.places, self.aims);
+        let p = self.cam.position;
         self.show_view();
         self.previous = self.current;
-        let height = c.height.map_or(String::new(), height_note);
+        let height = report.height.map_or(String::new(), |h| height_note((h,report.terrain_below)));
         let line = format!(
             "cut to the spot ({:.0}, {:.0}, {:.0}){}; at ({:.1}, {:.1}, {:.1}), view heading {:.3}, tilt {:+.3}, roll {:.3}; places {}, aims {}{height}{flying}",
             spot[0], spot[1], spot[2],
-            from.map_or(String::new(), |d| format!(", pulled onto the range from {d:.1}")),
+            report.pulled_in.map_or(String::new(), |d| format!(", obstacle pull-in {d:.1}")),
             p[0], p[1], p[2], self.view.heading, self.view.tilt, self.view.roll, self.places, self.aims
         );
         self.log.detail(format!("camera update {}: {line}", self.updates));
         line
     }
 
-    /// One update of the flight under way (`camera_step`).
-    fn flight_step(&mut self, ground: &dyn Fn(f32, f32) -> Option<f32>, surface_line: &dyn Fn([f32; 3], [f32; 3]) -> Option<[f32; 3]>) {
-        if std::mem::take(&mut self.flight_fresh) {
-            return;
-        }
-        let Some(f) = self.flight.as_mut() else { return };
-        let mut p = self.cam.position;
-        let s = f.update(&mut p, &mut self.view, self.aims, self.cam.range, ground, surface_line);
+    /// Position/roll motion followed by the same full camera calculation.
+    fn flight_step(&mut self, input: &mut SyncInput, followed: Followed, lookup: &GroundLookup, view: &Blockers<'_>, shared: &Shared) {
+        if std::mem::take(&mut self.flight_fresh) { return; }
+        let Some(f) = self.flight.as_mut() else { return; };
+        let s = f.advance(&mut self.cam, &mut self.view.roll, &mut self.places);
         let step = f.step;
-        self.cam.position = p;
-        self.show_view();
+        let controls = input.for_update(self.cam.mode, false);
+        self.full_update(followed, false, &controls, lookup, view, "flight", shared);
+        let p = self.cam.position;
         let mut line = format!(
-            "camera update {}: flight {}/{}: at ({:.1}, {:.1}, {:.1}), step ({:.2}, {:.2}, {:.2}), roll {:.3}, view heading {:.3}, tilt {:+.3}{}; places {}, aims {}",
-            self.updates, s.k, s.n, p[0], p[1], p[2], step[0], step[1], step[2], self.view.roll, self.view.heading, self.view.tilt,
-            s.aimed.map_or(String::new(), |a| format!(" ({a})")),
-            s.k >= s.n || self.places, self.aims
+            "camera update {}: flight {}/{}: at ({:.1}, {:.1}, {:.1}), step ({:.2}, {:.2}, {:.2}), roll {:.3}, view heading {:.3}, tilt {:+.3}; places {}, aims {}",
+            self.updates, s.k, s.n, p[0], p[1], p[2], step[0], step[1], step[2], self.view.roll, self.cam.heading, self.cam.view_tilt,
+            self.places, self.aims
         );
         if s.k >= s.n {
-            // Rule 4, the last update: "places" back on, pulled onto the range.
-            self.places = true;
-            if std::mem::take(&mut self.cam.turn_back) {
-                line += "; the \"turn back\" switch goes OFF (a flight ended)";
-            }
-            line += &format!(
-                "; last update: its last step (on the spot unless a move during the flight, rule 6), places on: {}{}; the flight is over, the camera stays here",
-                s.pulled_from.map_or("within the range: stays".to_string(), |d| format!("{d:.1} from the point 1400 above the aim: pulled onto the range ({:.0}, {:.0})", self.cam.range.0, self.cam.range.1)),
-                s.height.map_or(String::new(), height_note)
-            );
+            line += "; last update: its last step, places on and heading idle before the one full update; the flight is over";
             self.flight = None;
             if let Some(hold) = self.after_flight.take() {
                 self.follow_due = Some(hold);
-                line += "; Connor is followed again (tile-puzzle.md rule 13)";
+                line += "; Connor follow notice queued (tile-puzzle.md rule 13)";
             }
         }
         self.log.detail(line);
     }
-
     /// `handsOff 1` (`anim-scripts.md` rule 21): fixed mode (F11) goes back
     /// to normal mode; the mouse is ignored while it is on (`camera_step`).
     pub fn hands_off(&mut self) -> Option<String> {
@@ -603,6 +679,7 @@ pub fn make(
         move_skipped: false,
         after_flight: None,
         follow_due: None,
+        shake: Default::default(),
     };
     g.log.detail("update x y z distance_to_aim terrain_below height_above_terrain tilt mode range_min range_max | connor_moving blocked_by hit swing_step swing_left pulled_in inside_building | causes (one line per camera update; a tick without one has no line) | height_step aim_moved_sum wanted start_z before_z | heading_state_before->after error turn left [mouse_offset] [switched] heading view_tilt | centre_line_at_connor (height above his feet where the view's centre line passes him; his box is 1,300 tall)");
     Some(g)
@@ -657,6 +734,56 @@ pub fn camera_input(
     }
 }
 
+
+impl GameCam {
+    #[allow(clippy::too_many_arguments)]
+    fn full_update(&mut self, followed: Followed, moved: bool, input: &Input, lookup: &GroundLookup, view: &Blockers<'_>, cause: &str, shared: &Shared) {
+        let base=followed.base;
+        let report = self.cam.full_update(followed, moved, input, &lookup.0, Some(view), self.places, self.aims);
+        // Check from the numbers: is the camera inside a building's solid?
+        let inside: Vec<&str> = view.buildings.iter().filter(|b| b.solid_at(self.cam.position)).map(|b| b.name.as_str()).collect();
+        self.show_view();
+        let p = self.cam.position;
+        let line = format!(
+            "{} {:.1} {:.1} {:.1} {:.1} {} {} {:.3} {} {} {} | {} {} {} {} {} {} {} | {} | {} | {} {:.3} {:+.3} | {}",
+            self.updates,
+            p[0],
+            p[1],
+            p[2],
+            report.distance,
+            report.terrain_below.map_or("none".into(), |t| format!("{t:.1}")),
+            report.terrain_below.map_or("none".into(), |t| format!("{:.1}", p[2] - t)),
+            self.cam.tilt,
+            match self.cam.mode {
+                Mode::Normal => "normal".to_string(),
+                Mode::Fixed { distance } => format!("fixed({distance:.0})"),
+            },
+            self.cam.range.0,
+            self.cam.range.1,
+            report.moving,
+            report.blocked.as_ref().map_or("-".to_string(), |(_, w)| w.replace(' ', "_")),
+            report.blocked.as_ref().map_or("-".to_string(), |(h, _)| format!("({:.0},{:.0},{:.0})", h[0], h[1], h[2])),
+            report.swing.map_or("-".to_string(), |(s, _)| format!("{s:.3}")),
+            report.swing.map_or("-".to_string(), |(_, l)| format!("{l:.3}")),
+            report.pulled_in.map_or("-".to_string(), |d| format!("{d:.1}")),
+            if inside.is_empty() { "-".to_string() } else { inside.join(",") },
+            cause,
+            report.height.map_or("-".to_string(), |h| format!("{} {:.1} {:.1} {:.1} {:.1}", h.words(), h.sum, h.wanted, h.start, h.before)),
+            report.heading.map_or("-".to_string(), |h| h.words()),
+            self.cam.heading,
+            self.cam.view_tilt,
+            kq8_core::camera::centre_line_height(p, self.cam.view_tilt, self.cam.heading, base).map_or("-".to_string(), |h| format!("{h:.0}"))
+        );
+        self.log.detail(line);
+        if !report.events.is_empty() {
+            let mut main = shared.log.lock().unwrap();
+            for e in report.events {
+                main.detail(format!("camera update {}: {e}", self.updates));
+            }
+        }
+    }
+}
+
 /// One camera update, right after Connor's (fixed 15 per second).
 #[allow(clippy::too_many_arguments)]
 pub fn camera_step(
@@ -701,29 +828,9 @@ pub fn camera_step(
         g.log.detail(format!("camera tick {}: Connor's first move since the rope was taken at the top: not followed, the camera stays (ropeandhook.md rule 9); the flag is cleared", g.updates));
     }
     let script_moves = std::mem::take(&mut g.script_moves);
-    // `KQCamera::follow none` (camera.md rule 1): it stays where it is,
-    // unless a flight is under way (M3 3m-4).
-    if !g.following {
-        g.mouse = Vec2::ZERO;
-        g.pending.clear();
-        let ground = |x: f32, y: f32| lookup.0.ground(x, y).map(|h| h.0);
-        g.flight_step(&ground, &surface_line(&lookup.0));
-        if let Some(hold) = g.follow_due.take() {
-            g.follow(true, sim.mover.position);
-            g.set_hold(hold);
-        }
-        return;
-    }
-    // One range for walking and running: the user saw no difference in
-    // the original (Q27 e), so the run switch does not change it.
     let held = |k: Option<KeyCode>| choice.game && k.is_some_and(|k| keys.pressed(k));
-    // handsOff (anim-scripts.md rule 21): the mouse-look button does
-    // nothing; the camera's own keys still work.
     let input = Input {
         mouse_held: choice.game && !sim.hands_off && g.keys.mouse.is_some_and(|b| buttons.pressed(b)),
-        // Directions checked by eye by the user against the original
-        // (2026-10-11): mouse left swings the camera left, mouse down
-        // (towards you; screen y grows downwards) zooms in.
         mouse_x: -g.mouse.x,
         mouse_forward: g.mouse.y,
         shift: held(g.keys.shift),
@@ -734,99 +841,60 @@ pub fn camera_step(
     g.mouse = Vec2::ZERO;
     g.pressed_mode = false;
     g.pressed_reset = false;
-    // Ticks without a "moved" message (Connor is moving, the previous aim
-    // point), then the causes of a camera update this tick.
-    let base = g.around.unwrap_or(sim.mover.position);
-    if g.cam.tick(moved, base, input.mouse_held) {
-        g.log.detail(format!("camera tick {}: 3 updates without \"Connor moved\": still; the previous aim point reset to where he stands", g.updates));
-    }
-    let mut causes: Vec<String> = Vec::new();
-    if moved {
-        causes.push(if script_moves.is_empty() { "moved".into() } else { "moved(script)".into() });
-    }
-    if !script_moves.is_empty() {
-        g.log.detail(format!(
-            "camera tick {}: script's move Connor ({}): {}",
-            g.updates,
-            script_moves.join("; "),
-            if moved { "\"Connor moved\" after the script: one camera update below, from where the script left the camera" } else { "changed nothing: no message" }
-        ));
-    }
+    let mut controls = SyncInput::new(input);
     let pending = std::mem::take(&mut g.pending);
-    if pending.contains(&"start (stand-in)") {
-        // Part of the start stand-in (Q27 d): the view starts looking
-        // straight at Connor where he is now (`--at` puts him there after
-        // the camera was made).
-        g.cam.look_at(Camera::aim_for(base));
+    let view = view_blockers(&lookup.0,buildings.as_deref(),blockers.as_deref(),doors.as_deref());
+    let live_actor = Followed {base:g.around.unwrap_or(sim.mover.position),facing:sim.walker.heading};
+    if !script_moves.is_empty() {
+        g.log.detail(format!("camera tick {}: script's move Connor ({}): {}",g.updates,script_moves.join("; "),
+            if moved && g.following { "queued moved full update before this Rust camera sync" } else { "no followed moved notification" }));
     }
-    if !pending.is_empty() {
-        // `follow` (and our start): the aim point counts as not moved.
-        g.cam.not_moved(base);
-        causes.extend(pending.iter().map(|c| c.replace(' ', "_")));
-    }
-    if g.cam.turn_back {
-        causes.push("turn_back".into());
-    }
-    // Item 5: a mouse movement during a drag runs an update at once (one
-    // per game update here, with the movement since the last); holding the
-    // button still is no cause by itself.
-    let mouse_moved = input.mouse_held && (input.mouse_x != 0.0 || input.mouse_forward != 0.0);
-    // Pressing or letting go of the button also runs one (M3 3o-7: holding
-    // it locks the view at Connor's present spot on screen, letting go
-    // lets him drift; the user's check).
-    let pressed_or_released = std::mem::replace(&mut g.mouse_was_held, input.mouse_held) != input.mouse_held;
-    if mouse_moved || pressed_or_released || input.tilt_keys != 0 || input.reset_tilt || input.change_mode {
-        causes.push("player".into());
-    }
-    if causes.is_empty() {
-        return;
-    }
-    // The view blockers as they stand now (doors move).
-    let view = view_blockers(&lookup.0, buildings.as_deref(), blockers.as_deref(), doors.as_deref());
-    let report = g.cam.update_with(Followed { base, facing: sim.walker.heading }, moved, &input, &lookup.0, Some(&view));
-    // Check from the numbers: is the camera inside a building's solid?
-    let inside: Vec<&str> = view.buildings.iter().filter(|b| b.solid_at(g.cam.position)).map(|b| b.name.as_str()).collect();
-    g.current = (g.cam.position, g.cam.view_tilt, g.cam.heading);
-    let p = g.cam.position;
-    let line = format!(
-        "{} {:.1} {:.1} {:.1} {:.1} {} {} {:.3} {} {} {} | {} {} {} {} {} {} {} | {} | {} | {} {:.3} {:+.3} | {}",
-        g.updates,
-        p[0],
-        p[1],
-        p[2],
-        report.distance,
-        report.terrain_below.map_or("none".into(), |t| format!("{t:.1}")),
-        report.terrain_below.map_or("none".into(), |t| format!("{:.1}", p[2] - t)),
-        g.cam.tilt,
-        match g.cam.mode {
-            Mode::Normal => "normal".to_string(),
-            Mode::Fixed { distance } => format!("fixed({distance:.0})"),
-        },
-        g.cam.range.0,
-        g.cam.range.1,
-        report.moving,
-        report.blocked.as_ref().map_or("-".to_string(), |(_, w)| w.replace(' ', "_")),
-        report.blocked.as_ref().map_or("-".to_string(), |(h, _)| format!("({:.0},{:.0},{:.0})", h[0], h[1], h[2])),
-        report.swing.map_or("-".to_string(), |(s, _)| format!("{s:.3}")),
-        report.swing.map_or("-".to_string(), |(_, l)| format!("{l:.3}")),
-        report.pulled_in.map_or("-".to_string(), |d| format!("{d:.1}")),
-        if inside.is_empty() { "-".to_string() } else { inside.join(",") },
-        causes.join(","),
-        report.height.map_or("-".to_string(), |h| format!("{} {:.1} {:.1} {:.1} {:.1}", h.words(), h.sum, h.wanted, h.start, h.before)),
-        report.heading.map_or("-".to_string(), |h| h.words()),
-        g.cam.heading,
-        g.cam.view_tilt,
-        kq8_core::camera::centre_line_height(p, g.cam.view_tilt, g.cam.heading, base).map_or("-".to_string(), |h| format!("{h:.0}"))
-    );
-    g.log.detail(line);
-    if !report.events.is_empty() {
-        let mut main = shared.log.lock().unwrap();
-        for e in report.events {
-            main.detail(format!("camera update {}: {e}", g.updates));
+    if g.following && (!pending.is_empty() || moved) {
+        if pending.contains(&"start (stand-in)") {
+            g.cam.look_at(Camera::aim_for(live_actor.base));
         }
+        if !pending.is_empty() { g.cam.not_moved(live_actor.base); }
+        g.cam.record_actor(live_actor,true);
+        let mut causes: Vec<String> = pending.iter().map(|s| s.replace(' ',"_")).collect();
+        if moved { causes.push(if script_moves.is_empty() { "moved".into() } else { "moved(script)".into() }); }
+        let sample = controls.for_update(g.cam.mode,false);
+        g.full_update(live_actor,true,&sample,&lookup,&view,&causes.join(","),&shared);
+    } else {
+        g.cam.record_actor(live_actor,false);
+    }
+    // The ordinary moved notification above retains this Rust schedule's
+    // phase. Q193 does not establish a universal original timer deadline.
+    // Inside the sync the documented order is exact: stillness, one shake
+    // sample, flight OR turn-back, then held Page tilt/zoom.
+    let followed = g.cam.followed(live_actor);
+    if g.cam.tick(false,followed.base,input.mouse_held) {
+        g.log.detail(format!("camera tick {}: fourth sync after age zero: still; previous actor reset",g.updates));
+    }
+    if g.shake_sync() {
+        let sample = controls.for_update(g.cam.mode,false);
+        g.full_update(followed,false,&sample,&lookup,&view,"shake",&shared);
+    }
+    if g.flight.is_some() {
+        g.flight_step(&mut controls,followed,&lookup,&view,&shared);
+    } else if g.cam.turn_back {
+        let sample = controls.for_update(g.cam.mode,false);
+        g.full_update(followed,false,&sample,&lookup,&view,"turn_back",&shared);
+    }
+    let mouse_moved = input.mouse_held && (input.mouse_x != 0.0 || input.mouse_forward != 0.0);
+    let pressed_or_released = std::mem::replace(&mut g.mouse_was_held,input.mouse_held) != input.mouse_held;
+    let page_update = input.tilt_keys != 0 && !(matches!(g.cam.mode,Mode::Fixed {..}) && input.mouse_held);
+    // Mouse/change/reset events can provide the only full update in a sync.
+    // If another cause already consumed them, only Page requests another.
+    let player_update = page_update || (!controls.consumed && (mouse_moved || pressed_or_released || input.reset_tilt || input.change_mode));
+    if player_update {
+        let sample = controls.for_update(g.cam.mode,true);
+        g.full_update(followed,false,&sample,&lookup,&view,"player",&shared);
+    }
+    if let Some(hold) = g.follow_due.take() {
+        g.follow(true,sim.mover.position);
+        g.set_hold(hold);
     }
 }
-
 /// Draws the view from the game camera, blended between its last two
 /// updates: from its position, along its view heading and tilt.
 pub fn camera_draw(
@@ -867,5 +935,31 @@ fn onoff(on: bool) -> &'static str {
         "on"
     } else {
         "off"
+    }
+}
+
+#[cfg(test)]
+mod sync_input_tests {
+    use super::*;
+
+    #[test]
+    fn extra_full_updates_consume_mouse_and_fixed_zoom_once_but_defer_normal_page_tilt() {
+        let mut controls = SyncInput::new(Input {mouse_held:true,mouse_x:0.2,mouse_forward:0.3,tilt_keys:1,reset_tilt:true,..Input::default()});
+        let first = controls.for_update(Mode::Normal,false);
+        assert_eq!((first.mouse_x,first.mouse_forward,first.tilt_keys),(0.2,0.3,0));
+        assert!(first.reset_tilt);
+        let next = controls.for_update(Mode::Normal,false);
+        assert_eq!((next.mouse_x,next.mouse_forward,next.tilt_keys),(0.0,0.0,0));
+        assert!(next.mouse_held && !next.reset_tilt);
+        let page = controls.for_update(Mode::Normal,true);
+        assert_eq!(page.tilt_keys,1);
+        let mut controls = SyncInput::new(Input {tilt_keys:1,..Input::default()});
+        assert_eq!(controls.for_update(Mode::Fixed {distance:3000.0},false).tilt_keys,1);
+        assert_eq!(controls.for_update(Mode::Fixed {distance:3000.0},false).tilt_keys,0);
+        assert_eq!(controls.for_update(Mode::Fixed {distance:3000.0},true).tilt_keys,0);
+        let mut controls = SyncInput::new(Input {change_mode:true,tilt_keys:-1,..Input::default()});
+        assert_eq!(controls.for_update(Mode::Normal,false).tilt_keys,-1);
+        let later = controls.for_update(Mode::Fixed {distance:3000.0},true);
+        assert!(!later.change_mode); assert_eq!(later.tilt_keys,0);
     }
 }

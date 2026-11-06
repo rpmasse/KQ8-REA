@@ -4,6 +4,11 @@ Study session A, 2026-10-11; "Obstacles" added 2026-10-13; height rule
 and "when the camera updates" refined 2026-10-18 (Q97, Q99); the view's
 heading ("Turning the view toward Connor", replacing the wrong "swing
 behind Connor"), the mouse value and Q27/Q53/Q100 added 2026-10-19.
+Q193 follow-up, 2026-11-06: followed-object records, repeated full updates,
+first-person eye/slope/toggle rules and shake integration refined by
+static executable study. Original runtime checks for these additions
+are **not tested**; `camera-shake.md` records the remaining queue-phase
+unknown.
 Sources: game data files, the game's own
 manual (`MASK/Manual.pdf`, "Controlling the Camera"), and `Mask.exe`
 (studied, described here in our own words). Covers the gameplay camera that
@@ -138,11 +143,12 @@ needed for normal play; keep them behind a debug switch.
       wanted height, it goes straight to it.
    3. **Otherwise it only moves if Connor moved.** "Moved" here means
       that the aim point has changed since the camera's previous
-      record of it by more than **20**, measured as the **signed sum**
-      Δx + Δy + Δz (see "Do not reproduce"). Normally the previous
-      record is from the update before; after 3 updates without a
-      "Connor moved" message (see "When the camera updates at all") it
-      is reset to where he stands, so the sum is 0.
+      record of it by more than **20**, measured as the **absolute value
+      of the signed sum**, **|Δx + Δy + Δz|** (Q193 correction; see
+      "Do not reproduce"). The two actor records are maintained by
+      moved notifications and stillness sync, **not by every full camera
+      update**; see "Retained actor records" below. Several full updates
+      can therefore use the same movement difference.
       - **Moved:** the new height = the camera's height **at the start
         of this update** + 10% × (wanted height − the height after
         steps 1–2). Both up and down (smooth rise and fall). "Lifted"
@@ -153,8 +159,11 @@ needed for normal play; keep them behind a debug switch.
         the player is swinging the camera with the mouse this update
         and the camera was "lifted" in an earlier update does it snap
         to the wanted height.
-   So the camera never eases toward the wanted height while Connor
-   stands still; it only snaps (within 100) or is lifted off the ground.
+   Once stillness has made the retained movement difference zero, it
+   only snaps (within 100) or lifts off the ground. While an earlier
+   displacement is still retained, an extra full update from shake or
+   another cause can repeat easing even if Connor's feet have just
+   stopped changing.
 3. The terrain height under the camera comes from the world's terrain (M1).
    It is the **floor grid** (the ground under water, `water.md`), not the
    drawn surface, so over Daventry's river the camera may come down to
@@ -228,7 +237,11 @@ needed for normal play; keep them behind a debug switch.
    (not fixed) mode, once he has moved more than 10 units horizontally
    (measured as |Δx| + |Δy|) while the tilt is not at default, it snaps back.
    This matches the manual ("it will automatically reset itself as soon as
-   Connor moves").
+   Connor moves"). **Q193:** the two positions come from retained actor
+   transforms, not the immediately preceding full camera update. The
+   reset can consequently happen within a shake-triggered full update
+   before another moved notification arrives. First person has its own
+   reset rule below, which F11 does not suppress.
 
 ### Turning the view toward Connor (traced 2026-10-19; was "Swinging back behind Connor")
 
@@ -246,8 +259,8 @@ Words used here: the **error** is the angle, round the vertical, from
 the direction the camera looks to the direction from the camera to the
 aim point (plus the mouse offset below, normally 0), wrapped to −π…π.
 Positive = the aim point is to the left (anticlockwise seen from above).
-"Moving" and "still" are as in "Connor is moving" under "Obstacles"
-(still = 3 or more updates without a "Connor moved" message).
+"Moving" and "still" use the notification-age bookkeeping under
+"Retained actor records", rather than the number of full camera updates.
 
 The view heading is in one of four states, kept from update to update.
 It starts in state 0. Each time the view is aimed (every camera update
@@ -295,21 +308,40 @@ for the switches):
      update's exact aim) when no mouse drag is going on, the "turn back"
      switch is off, and Connor is still or has just switched between
      going forward and going backward.
-   - **Turning back:** the "follow Connor after a cutscene" turn: 1/3 of
-     the error per update, with the lopsided snap (rules there); under
-     0.02 the state becomes locked.
+   - **Turning back:** use the signed, wrapped error **wanted heading +
+     shared heading offset − current view heading** as measured before
+     this update's heading change. If its magnitude is at most the
+     single-precision 0.02 threshold, become locked without turning this
+     update. Otherwise turn toward the target, with this original
+     asymmetric snap: on the **positive-error side**, take one third
+     only when **magnitude / 3 > 0.21**; otherwise take the whole error.
+     On the **negative-error side**, take one third only when
+     **magnitude × (10 / 3) > 0.21**; otherwise take the whole error.
+     These are approximately 0.63 and 0.063 rad thresholds respectively,
+     tested **before** applying the turn. Equality takes the whole error.
+     The stored floating-point comparisons, rather than rounded decimal
+     thresholds, determine boundary cases. Snapping alone does not set
+     the state locked; a later update sees the small residual and does
+     so. The shared heading offset is added after this state action as
+     described in `camera-shake.md`.
 5. "The error at the end of the previous update", used for the growth
    test, is measured after the heading change of that update.
 
-**"Switched between going forward and going backward":** the game
-compares the direction of Connor's last move with the way he faces
-(from the previous update's position and facing): a move that goes
-along his back by more than 0.1 of its length counts as "backward",
-anything else (forward, sideways, turning on the spot) as "forward".
+**"Switched between going forward and going backward":** for a nonzero
+move the game compares the 3D displacement between the retained actor
+positions with the facing of the **previous retained actor transform**
+(Q193), not the camera's previous full-update pose. A move that goes
+along his back by more than 0.1 of its length counts as "backward";
+forward/sideways moves outside that condition count as "forward".
 It is "switched" when this differs from the previous time it was
 measured. It is only measured in the cases named above (catching up, or
 locked while he is moving), so it is a rare event: in practice it means
 the view stops chasing him when he starts or stops stepping back.
+**Zero displacement edge:** this calculation has no zero-length guard.
+Its normalization produces an unordered comparison, which takes the
+backward classification in the traced path. The earlier description
+that every turn in place counts forward was too broad. This edge is
+static evidence, not an original runtime observation.
 
 **What this looks like in play:** Connor walks off to one side: the
 view holds still until he is a quarter radian (about 14°) off the
@@ -399,7 +431,8 @@ to the camera. The nearest of these blocks it:
       on (it is by default; nothing found switches it off), Connor is
       moving (see below), and Connor's feet are not under the ground at
       his spot (floor grid):
-      - Take Connor's aim point from **one update ago** (A) and the point
+      - Take Connor's **previous retained actor aim point** (A, Q193)
+        and the point
         where the view line was blocked (H). Take the point halfway
         between them (M). The new offset points from the aim point
         towards M, with the same length as before. **This is a 3D
@@ -443,7 +476,8 @@ on these occasions:
    doesn't move; the aim point counts as not moved for the height rule).
 3. **Every update while the "turn back" switch is on.** `follow
    <object>` switches it on when the camera faces more than 0.4 rad away
-   from the object (see "`follow Connor` after a cutscene"). It is
+   from the object (see "`follow Connor` after a cutscene"). Starting a
+   flight also switches it on (Q193 flight clarification below). It is
    switched off only when a flight ends, or by a later `follow` that
    finds the camera farther than the range's maximum. **One `follow`
    that finds both** (more than 0.4 rad off and farther than the
@@ -465,6 +499,12 @@ on these occasions:
    zooming" rule 6); while Page Up/Down is held, the tilt changes and
    the camera updates once per update (in fixed mode they zoom instead,
    and update the same way).
+6. **Camera shake** (Q187/Q193): each camera sync samples it and can run
+   a full normal update even while the followed object stands still.
+   Its direct first-person and no-aim redraws differ from that full
+   update. Several causes can run distinct full updates in one sync;
+   see `camera-shake.md` rules 13–22 for shared angles, retained candidate
+   position history and per-input consumption.
 
 **When the message arrives.** Messages go through the game's event
 queue: they are handled **after** whatever is running at the moment has
@@ -492,12 +532,46 @@ So when a trap's `On` does `move Connor …` and then `move KQCamera …`
 If Connor stands still with the view blocked, nothing changes until he
 moves or the player moves the camera.
 
-**"Connor is moving"** (step 8.2 and "Turning the view toward Connor"): the camera
-keeps the aim point from its previous "Connor moved" message. It counts
-him as moving from the first message until 3 updates have passed without
-one. After 3 still updates, the previous aim point is reset to where he
-stands. So the first update of a new walk after standing still never
-starts a swing (not checked in the game).
+**Retained actor records (Q193, static study).** The camera retains the
+followed actor's **current and previous transforms**, including base
+positions and facing. On an accepted moved notification it shifts
+current into previous, copies the notification into current, sets its
+movement age to zero and runs a full camera update. A full update by
+itself leaves **both actor records unchanged**, whether caused by shake,
+turn-back, a mouse change, held Page input or a flight step. A cut/flight
+setup explicitly gives both records the same authored aim point instead.
+
+At the start of each camera sync, movement age advances. A sync starting
+at age 0 marks the actor moving; a sync starting at age **3** marks it
+still and replaces previous with current. Thus, from a moved notice's
+age-zero reset, the copy/still transition is on the **fourth subsequent
+camera sync** without another notice, not after three full updates.
+The moved handler itself does **not** change that moving/still flag.
+A fresh camera initializes age to **0** but the flag to **still**; its
+first sync therefore changes the flag to moving even without a notice
+yet. Equal retained positions still produce zero displacement. Follow
+setup does not directly reset age or the flag: it copies the actor's
+current transform and queues an initial moved notice, including when
+the actor is stationary. That notice supplies the usual age-zero reset.
+The precise original ordinary movement-notice phase relative to that
+timer remains open (`camera-shake.md` rule 19).
+
+These retained records feed distinct tests:
+
+| Use | Test/history |
+| --- | --- |
+| Height easing eligibility | **|Δx + Δy + Δz| > 20** between their base positions; adding the same head height cancels |
+| Ordinary third-person tilt reset | **|Δx| + |Δy| > 10**, normal distance only |
+| First-person tilt reset | Same horizontal test, no active mouse tilt; independent of F11 |
+| Forward/backward switch | Their 3D displacement and previous actor facing; compared with the last classification made by that helper |
+| Avoidance's old aim point | Previous actor base plus head height |
+
+The backward helper may change its remembered direction classification
+when a full update calls it; that does **not** advance the actor
+transforms. Likewise each full update may retain new candidate camera
+offset/length history while these actor records stay fixed. Repeating a
+full update can repeat height easing or a tilt reset against the same
+actor displacement. Do not turn every update into a new actor sample.
 
 #### Obstacle numbers
 
@@ -507,22 +581,67 @@ starts a swing (not checked in the game).
 | point used for the new direction | halfway between A and H (0.5) |
 | swing step per update | 0.66 × the first turn (radians) |
 | shortening when dragging into a wall | ×0.95 per update |
-| "still" after | 3 updates without movement |
+| "still" transition | sync starting at notification age 3; fourth subsequent sync after age-zero reset |
 | what blocks | the drawn ground, collision type bit 0x8 or 0x1000 |
 
 ### First person (F2)
 
-1. The view is from Connor's eyes, facing where he faces.
-2. Tilt is limited to between −0.54 rad and +1.57 rad (the first-person
-   limits differ from third person).
-3. Mouse forward/back tilts (factor 0.1 × 10 per unit of mouse value).
-4. If the player has tilted and Connor then moves more than 10 units (and
-   the mouse is not tilting), the tilt snaps back to the default.
-5. The game also tips the view to follow the slope of the ground Connor
-   stands on (amount scaled by 2/π of the slope angle, within the tilt
-   limits). Details are open question 5.
-6. Connor's first-person animations and arm models come from the
-   `...FpAnimList` and `ConnerFpSkinList` entries in `GAME/Kq/Connor.kq`.
+1. **The eye is a fixed actor-relative point**, not a head-bone sample.
+   Entering first person sets its offset to **(0, +50, +1200) game
+   units** in the followed actor's model axes. The eye is that offset
+   rotated by the actor's full rotation, plus the actor's base position.
+   Because Connor's model faces **−Y**, this is 50 units behind its
+   facing direction and 1,200 above its base when upright. There is no
+   animation-frame head bob or terrain-height clamp of this final eye
+   point in the path traced here. Camera tilt does not rotate the eye
+   offset; the actor's rotation does.
+2. **Entering first person sets angle offsets to (−0.175, 0, 3.14)
+   radians**: pitch, roll, heading. The ordinary first-person view uses
+   an actor-heading base with the support-slope pitch below, discarding
+   the actor's own pitch and roll from that base. With the row-vector
+   rotation convention in `models-and-textures.md`, the view rotation is
+   **offset rotation × base rotation**. The heading offset is the stored
+   **3.14**, not an exact π substituted by the recreation.
+3. **Tilt controls and reset.** The pitch parameter is limited to
+   **−0.54 through +1.57 radians** in a normal full update. Mouse
+   forward/back tilts by its value change times **0.1 × 10**; a new drag
+   initializes history and adds no change on that first update. If
+   **|Δx| + |Δy| > 10** between the retained actor records, pitch differs
+   from the retained ordinary default and the mouse's vertical value is
+   zero, the parameter resets to that default, normally **−0.2**, even
+   though entry and shake-stop use **−0.175**. F11 does not suppress this
+   first-person reset. Held Page tilt is handled as described in
+   `camera-shake.md` rule 21.
+4. **Support slope (Q193; replaces the old rough summary).** It uses
+   Connor's current supporting collision normal, including a building
+   support, rather than independently sampling the terrain at the eye.
+   Let **N = (nx, ny, nz)** be that normal made unit length, **H** its
+   horizontal direction made unit length, and **B** the actor's model
+   **+Y** direction rotated by the actor's heading alone. Let **a** be
+   `acos(B dot H)`, limited to 0…π. The base pitch correction is
+   **asin(−(nx² + ny²) / nz) × (π/2 − a) × 0.6366197466850281**.
+   The last constant is the stored single-precision approximation of
+   2/π. The squared horizontal components really are used; replacing
+   that `asin` by the ordinary geometric slope angle changes the result.
+   A flat support produces zero correction (the zero horizontal-vector
+   normalization's unordered angle is treated as zero on this path).
+   This is the base rotation's pitch, before composition with rule 2's
+   offset rotation; do not independently add it as a final screen tilt.
+5. **Slope limit and loss of support.** Before composing the view, the
+   game limits the slope correction so that **pitch parameter + slope
+   correction** stays within **−0.54…+1.57**. It remembers that limited
+   correction while supported. The unsupported counter advances on
+   **normal full first-person updates**, not every rendered frame or
+   shake sample: updates 1–3 without support keep the last correction,
+   update 4 and later use zero; support resets the counter and refreshes
+   the correction. The direct first-person shake redraw does not advance
+   this counter or recalculate slope (`camera-shake.md` rule 22).
+6. Connor's first-person presentation comes from the active movement's
+   model, the `...FpAnimList` entries and `ConnerFpSkinList` in
+   `GAME/Kq/Connor.kq`; see "First-person body and animations" below.
+   **Correction Q193:** F2's separate zero/one drawing-related change is
+   the **shadow mask**, not an ordinary-body visibility switch. Do not
+   implement that old description as hiding Connor's whole actor.
 7. **`setThirdPerson`** (traced 2026-10-17, Q89 b) is a toggle with a
    memory, kept in the script variable
    `<World>::SetThirdPerson::WasFirstPerson`. Cutscene scripts call it in
@@ -538,6 +657,141 @@ starts a swing (not checked in the game).
      sets the variable to 0.)
    - So a call without its pair leaves the first-person key locked, or
      unlocked when it should be locked.
+8. **Camera toggle continuation.** Changing to first person first asks
+   to follow Connor, saves the third-person offset and angle parameters,
+   then installs rules 1–2. Returning restores those saved parameters.
+   Both directions seed the view heading toward the followed actor's
+   aim point and immediately run a full update. Neither direction
+   restores an immutable old world-space camera pose: the internal
+   third-person position/range calculations can continue while the drawn
+   view is at the first-person eye. Changing to the mode already active
+   does nothing; entering first person requires Connor to be found.
+   The toggle does not clear or restart an active shake.
+9. **Normal F2 eligibility.** `Connor.sae` routes F2 through Connor. His
+   `handsOff` or `animSetHandsOff` guard refuses it with `no.aud`.
+   Otherwise **`bCanChangeFPMode=0`** silently refuses it; the default
+   permits changing. An accepted request reaches the camera toggle and
+   changes Connor's own first-person mode, shadow mask and animation
+   selection too. Scripted
+   `setThirdPerson` keeps the paired-call memory and permission behavior
+   in rule 7; do not replace it with an unconditional “set mode false”.
+10. **Derived numerical checks.** With an identity actor rotation, the
+    eye is base + (0, 50, 1200), independently of looking up/down.
+    For a supporting unit normal approximately **(0, .5, .8660254)**,
+    the base slope correction is about **−.2928428 rad** with B along
+    +Y, **+.2928428** with B along −Y, and approximately zero with B
+    perpendicular to H, before limits/composition. This is not a direct
+    final Euler-pitch sample. These numbers are derived static checks;
+    original runtime output and native save continuation are **not
+    tested**. Exact relative queue phase remains open separately.
+
+### First-person body and animations (Q193, 2026-11-06)
+
+These are static executable and original-data findings. Original runtime,
+pixel output and native save/resume checks are **not tested**. The limited
+clipping questions in rule 7 remain open.
+
+1. **One actor and one current movement model.** Normal F2 does not
+   create a second arms actor or keep an independently animated copy of
+   the third-person body. It changes Connor's active movement list and
+   asks for his current movement name again. When that movement is
+   rebuilt, its own `loop=` supplies the model and animation. That model
+   supplies the body/arm and weapon parts that are drawn; F2 does not
+   hide selected nodes by names such as `body`, `head` or `legs`.
+   A node called `body` in a first-person shape is not evidence that the
+   third-person body must also be drawn.
+2. **Choose by drawn weapon mode, then item type.** With no weapon
+   drawn, use the first entry of `FpAnimList` (`connerFp.anm` in the
+   shipped data). With a melee weapon drawn, use `ShortFpAnimList` and
+   the selected melee item's type; with a ranged weapon drawn, use
+   `LongFpAnimList` and the selected ranged item's type. Third person
+   uses the corresponding `AnimList`, `ShortAnimList`, `LongAnimList`.
+   This is a replacement of the active list, not an additional list
+   whose animation runs alongside it. Use the authored type-to-file
+   mapping, not filename guesses: for example, first-person
+   `SmCrossBow` maps to `Consbowfp.anm`, `ShortBow` to `Coscbwfp.anm`,
+   and `NoRanged` to `connerFp.anm`. The lookup expects a matching type;
+   no semantic fallback to a similarly named weapon is established.
+3. **Switching modes re-requests the movement, not its old phase.**
+   F2 retains Connor's gameplay state and current movement name. It
+   submits that name through the ordinary movement request, transition
+   and interruption rules (`connor-movement.md`, "Starting and
+   stopping"). It does not force every in-progress one-shot to end.
+   An uninterruptible current animation can therefore keep its existing
+   model until ordinary completion/request handling rebuilds it.
+   A rebuilt movement takes the newly selected list's authored start
+   phase, speed, loop/interruption flags and cues. There is no copying
+   of the previous model's normalized phase into its first-person
+   counterpart and no saved third-person phase to resume on F2 back.
+   The refresh also asks through the active movement controller, so
+   handle repeated requests with those same ordinary rules rather than
+   creating a second playback clock. This study does not replace the
+   existing rules for a queued transition or a one-shot's ending.
+4. **Arm skins replace the active model's base arm material.** First
+   person chooses `skinList_firstperson` (`ConnerFpSkinList`); third
+   person chooses `skinList` (`ConnerSkinList`). F2 keeps the current
+   skin entry index and uses that entry of the newly active list; it
+   does not choose a fresh armour combination merely because the view
+   changed. The list's entry zero is the base material to replace:
+   `armcon0.bmp` in first person, `con0.bmp` in third person. Other
+   materials, including the weapon's own material, are not all replaced
+   indiscriminately. The shipped lists have 76 entries each. Examples
+   in the first-person data: mask 0 uses `armcon0.bmp`, gloves mask 1
+   uses `armcon1.bmp`, boots mask 2 still uses `armcon0.bmp`, and gloves
+   plus boots mask 3 uses `armcon1.bmp`. Strength uses the special
+   `armconfx.bmp` entry (mask 2048), as in `potions.md` rule 25. A
+   model/animation change refreshes the active skin mapping. Exact
+   missing armour-combination and missing-bitmap behavior remains Q184;
+   this follow-up does not settle those cases.
+5. **Placement comes from the active model and Connor's drawing
+   transform.** The ordinary render query submits the current movement
+   model using Connor's drawing transform. Its authored mesh-node
+   transforms then place its parts in that actor's space, as described
+   in `models-and-textures.md`; they are not a new weapon offset copied
+   from the camera's eye offset. The traced F2 and current-shape render
+   paths add no second camera-relative arms transform, view-pitch
+   compensation or independent third-person-body pass. For example,
+   `Fp_bsatk.kqs` contains both a sword part and a `body` part; use its
+   authored per-frame placement rather than attaching the ordinary
+   inventory-world weapon shape at an invented hand point. This
+   establishes model/actor placement, not every downstream pixel
+   clipping outcome (rule 7).
+6. **Shadow and conversation presentation.** Accepted normal F2 entry
+   sets Connor's `shadowMask` to **0**; exit sets it to **1**, rather
+   than restoring an arbitrary prior mask. The cast test consequently
+   produces no Connor shadow in first person. The same first-person
+   checks also suppress his ordinary gesture/lip-code presentation.
+   They do not create a separate full-body model for conversation.
+   F2 itself leaves the interface panels in place (`interface.md`
+   rule 17).
+7. **Bounded evidence limit: exact near clipping remains unresolved.**
+   Two bounded static paths were followed: F2 through list/skin/movement
+   changes, and the active shape through render query and actor/model
+   transforms. They settle the rules above. They have **not** settled
+   the numerical near clipping plane or every material/depth/occlusion
+   outcome for arms and weapons close to walls or to the eye. No
+   separate first-person clipping plane, depth-buffer clear, always-on-
+   top weapon pass or weapon wall-retraction rule is asserted here.
+   Stop that remaining clipping issue at this handoff; do not supply a
+   guessed overlay policy as original parity. Native saved-game
+   continuation of the switched model/skin/queued movement is also
+   **not tested**.
+8. **Observable/data checks.** Log the same Connor actor identity,
+   drawn weapon mode, selected item type, active `.anm`, current and
+   waiting movement, active shape/loop, phase and skin entry before
+   and after F2. With interruptible `walk`, the new selected movement
+   must rebuild using `fp_walk.kqs`; a mode switch must not preserve a
+   separately ticking third-person walk. With an uninterruptible
+   one-shot, distinguish list selection from the later model rebuild.
+   Check `shadowMask` 1 → 0 → 1, including a pre-existing mask other
+   than 1. For model placement, a data-only check is
+   `target/debug/kq8.exe shape-parts GAME/Common/Fp_bsatk.kqs --game
+   "../King's Quest 8 GOG"`: it reports sword and body parts with their
+   own frame placements. `fp_stop.kqs` and `fp_walk.kqs` have a `body`
+   part whose node translation is (0,0,798.5) in the reported first and
+   last frames; the name alone must not trigger a whole-body hide rule.
+   These CLI checks read original data; they do not measure native
+   renderer pixels or settle rule 7.
 
 ### Shake and cutscene cameras
 
@@ -603,7 +857,7 @@ starts a swing (not checked in the game).
     about 8,520 (Connor's base + 1,400; the ground under the camera,
     6,924 in our data, + 1,400 is lower); the camera is 1,230 above it,
     so no snap; if Connor's jump to the script's spot (from where he
-    entered the trap) is "moved" (signed sum over 20), the height eases
+    entered the trap) is "moved" (absolute signed sum over 20), the height eases
     once: 9,750 + 10% × (8,520 − 9,750) ≈ 9,627; the step-4 update is
     normally "not moved" (he only lands), so the height stays. The tilt
     becomes about −0.2 + (−0.63) ≈ −0.83 (looking down at him). The
@@ -679,21 +933,33 @@ view toward what is followed). `follow <object>` switches both on
      15) + 1 updates** (2 s → 31 updates, 2.067 s; 3 s → 46).
    - **Path and speed:** a **straight line** from where the camera is to
      the spot, the same step every update ((spot − start) ÷ N): constant
-     speed, no easing in or out. It is exactly on the spot after update N.
+     speed, no easing in or out. The position steps reach the spot at N
+     before that update's ordinary range/height settling; that settling
+     can move it away again.
    - **Roll:** from its present value to `endRoll` in N equal steps.
      `endRoll` is only read when the line has exactly x y z seconds
      endRoll; otherwise it is **0**, so a flight without it levels a
      rolled camera.
-   - At the start: it **stops following** and avoidance is off (as for a
-     cut); the aim point becomes what it "follows"; the tilt and heading
-     offsets go back to the defaults; **"places" is switched off** for
-     the flight ("aims" stays as it was).
+   - **At the start (Q193 clarification):** it stops following the live
+     object, switches avoidance off and **turn-back on**, and gives both
+     retained actor transforms the authored aim point with movement age
+     zero. Pitch and shared heading offset return to their retained
+     defaults (normally **−0.2 and 0**). **Placing is switched off;
+     aiming stays as it was.** It keeps the current drawn heading, roll
+     and ordinary heading-controller history; it does not start a second
+     flight-yaw controller or immediately run a full camera update.
    - **Every update of the flight:** the step is added to the position,
-     the roll step to the roll, then the normal follow update runs: it
-     does not place the camera ("places" off) but, if "aims" is on, aims
-     it (rule 5).
-   - **The last update (N):** "places" is switched **on** again before
-     that update's follow update runs, so the camera is pulled onto the
+     the roll step to the roll, the shared heading offset is set to
+     **zero**, then a **full normal camera update** runs. Placing remains
+     off unless another command changed it; aiming and turn-back use
+     their current ordinary switches (rule 5). The step does not reset
+     pitch or reassert turn-back/placing-off each time. A shake's X or a
+     later camera command can therefore change the pitch used by that
+     full update, while the step clears sampled Z.
+   - **The last update (N):** before the final position/roll step and
+     full update, **turn-back is cleared, the ordinary heading state is
+     set to idle, and placing is switched on**. Aiming is unchanged.
+     The camera is consequently pulled onto the
      range around the aim point like after a cut: farther than the
      range's maximum → pulled in to max − 1 **along the line to the
      aim point + 1,400**, nearer than the minimum → pushed to min + 1,
@@ -708,16 +974,26 @@ view toward what is followed). `follow <object>` switches both on
      The same holds for a cut's one update. Avoidance is off,
      so no obstacle pull-in or swing. **So the camera can jump at the
      end of a flight** (watermill: about 1,227 units, rule 7).
+     **This settling happens solely inside that full update**, with its
+     usual candidate/history/probe work; there is no extra final range,
+     height or yaw pass. These min/max examples assume normal distance;
+     if F11 fixed distance is active, the same full update applies its
+     retained fixed length instead, then its ordinary height/minimum
+     rules. Later commands that re-enabled avoidance are likewise
+     honored by the full update rather than overridden by flight logic.
    - **After the flight** "places" **stays on** (even after a `follow
      none`; "aims" stays as it was), so a later cut is pulled onto the
      range and given the height rule (rule 3). It stays where that last
      update put it: it follows nothing, so it isn't updated again until a `move
      KQCamera`, `follow`, cut, flight or shake (the mouse look is off
      during `handsOff`).
-   - Connor is told when the flight ends (an internal message used by
-     some of his special states; scripts don't see it). The end is not
-     a cue: scripts time what follows with `sendEvent`. (The death-hall
-     stones' state uses it: `tile-puzzle.md` rule 13.)
+   - A completion notice for Connor is queued in the last-step branch,
+     before that position/roll step and full update. It is handled after
+     the camera sync returns, so it does not interleave with that update.
+     This is an internal message used by some of his special states;
+     scripts don't see a completion cue and time their later actions
+     with `sendEvent`. The death-hall stones' state uses it
+     (`tile-puzzle.md` rule 13. Original runtime not tested here).
 4a. **The roll** (traced 2026-10-30, Q182):
    - **Axis:** the roll turns the camera about **its own line of sight**
      (the direction it looks in), after the heading and tilt; the
@@ -763,23 +1039,40 @@ view toward what is followed). `follow <object>` switches both on
    - `flyToCamLoc x y z [seconds [endRoll]]`: at least 3 numbers (else
      the usage text); `seconds` when there are 4 or more (below 0 → 0);
      `endRoll` only when there are **exactly 5**; with 6 or more it is 0.
-5. **What the camera looks at during and after a flight or cut**, when
-   "aims" is on: the point **1,400 above the aim point**, from the
-   camera's position, every update:
-   - **tilt** = default tilt (**−0.2**) + the angle up to that point, set
-     exactly each update (so the camera looks slightly below the raised
-     point; in effect at about the aim point's own height when the
-     camera is a few thousand units away and a little below it);
-   - **heading:** within **0.02 rad** it locks on and from then on
-     follows the point exactly each update; otherwise, as in "`follow
-     Connor` after a cutscene": more than 0.63 rad off on the
-     anticlockwise side (0.063 rad on the clockwise side) → turns by
-     **1/3 of the remaining angle per update**, less → snaps onto it
-     (the same lopsided rule; see "Do not reproduce");
-   - **roll** = the flight's roll (rule 4), not changed by aiming.
-   With "aims" off (a `follow none` and no `follow` since) the view
-   keeps its heading and tilt through the whole flight; only the
-   position and roll change.
+5. **Aiming during a flight or cut (Q193 correction): one ordinary
+   third-person heading controller.** With aiming on, the target is
+   **1,400 above the authored aim point**, viewed from the actual camera
+   position. The full update sets view pitch to the **current pitch
+   parameter plus the angle up** to that point; the parameter starts at
+   default **−0.2**, but a shake/input/command can replace it. Roll is
+   the current flight/cut roll and is not reset by third-person aiming.
+   - **An unmodified flight's non-final steps have turn-back on.** In
+     the ordinary four-state controller, with no mouse drag, that
+     selects turning-back unless the previous full update's heading
+     state was already locked; then it keeps exact lock. Turning-back
+     uses the usual **1/3 of remaining error**, lopsided snap and
+     **0.02-radian** lock test described above. Those are ordinary
+     controller actions, not an extra calculation after the full update.
+     A live drag uses the ordinary mouse branch instead. More than one
+     full update in a sync can advance this controller more than once.
+   - **The final step resets it to idle and clears turn-back first.**
+     The final full update therefore uses ordinary idle/catch-up rules,
+     rather than forcibly turning back or locking. It can leave a small
+     remaining yaw error, and there is **no guaranteed exact-end yaw**.
+     Do not run a dedicated flight-yaw calculation, force the previous
+     lock back on, or add another final aim after this update.
+   - **A cut differs at setup:** it directly seeds the heading toward
+     the cut's aim point, retains the existing heading state and
+     turn-back switch, then runs its one full update. It does not
+     independently enable turn-back. Placing/aiming also retain their
+     existing settings. A cut during a flight consequently keeps the
+     old flight's step/count and current turn-back until another command
+     or the flight's eventual completion changes it.
+   - With aiming off, the ordinary third-person aiming calculation is
+     skipped; an unmodified flight retains drawn heading/pitch while
+     position and roll advance. Shake and explicit commands can still
+     change those angles. First-person full updates use the separate
+     foundation in "First person", not a second flight-yaw calculation.
 6. **Together with other commands** (traced; none of these happen in
    Daventry's data):
    - `move KQCamera` during a flight sets place and angles at once; the
@@ -888,6 +1181,9 @@ view toward what is followed). `follow <object>` switches both on
 
 - `MASK/Connor.sae`, `MASK/Camera.sae`: bindings.
 - `GAME/Kq/walk.cs`, `run.cs`: `KQCamera::setRange` per movement mode.
+- `GAME/Kq/Connor.kq`: first/third-person movement-list and skin-list
+  mappings; the selected `...Fp.anm` files and their `GAME/Common/*.kqs`
+  shapes provide first-person geometry, movement parameters and cues.
 - World scripts (`daventry/kq/*.cs` and others): `KQCamera::follow`,
   cutscene commands.
 - Terrain height (from M1 terrain work): the floor grid for the height
@@ -927,10 +1223,11 @@ view toward what is followed). `follow <object>` switches both on
 
 ## Do not reproduce
 
-- **The lopsided snap** when `follow Connor` turns the camera back
-  toward him (below 0.63 rad on one side, about 0.063 rad on the other):
-  use one snap angle on both sides (0.063 rad, the smaller), and turn by
-  1/3 of the remaining angle per 1/15 s, done per second.
+- **The lopsided snap:** the earlier recommendation to use 0.063 rad
+  symmetrically is **superseded for the user's 1:1 original-behavior
+  scope** (Q193, 2026-11-06). Preserve the signed thresholds and
+  comparison order in "Turning the view toward Connor" rule 4.
+  Symmetric snapping would be a deliberate later change.
 
 - **Fly or cut with no spot in the list:** the original reads a spot it
   never set (whatever was in memory). Do nothing instead (keep the
@@ -946,11 +1243,12 @@ view toward what is followed). `follow <object>` switches both on
   - height: close `1 − 0.9^(15 × elapsed seconds)` of the remaining gap;
   - tilt: 0.225 rad/s; fixed-mode zoom: 1,875 units/s.
 
-- **The "moved" test of the height rule** adds the signed changes
-  Δx + Δy + Δz of the aim point, so a move of, say, +300 in x and −300
-  in y counts as "not moved" and the height freezes for that update.
-  Use the sum of the sizes (|Δx| + |Δy| + |Δz| > 20) instead; it gives
-  the same result for every move that is mostly along one axis.
+- **The "moved" test of the height rule** takes the absolute value of
+  the signed sum, **|Δx + Δy + Δz| > 20** (Q193), so +300 in x and
+  −300 in y still counts as "not moved". A sum-of-magnitudes test is a
+  deliberate change, not an original-parity rule. Also preserve the
+  notification/stillness ownership of the two actor records when
+  checking original timing; extra full updates do not advance them.
 - **The "turn back" switch that never clears** ("When the camera
   updates at all", item 3): after a `follow` that finds the camera more
   than 0.4 rad off, the original locks the heading onto Connor and
@@ -967,6 +1265,21 @@ view toward what is followed). `follow <object>` switches both on
 
 ## How to check
 
+- **Q193 retained records (derived, original runtime not tested):** with
+  previous base (0,0,0) and current base (30,−30,0), the height movement
+  test is zero but the tilt-reset horizontal test is 60. With current
+  (−30,0,0), both tests pass; negative travel is not excluded by height's
+  outer absolute value. Run two full updates without another moved
+  notice: both actor transforms must remain unchanged. After a notice
+  resets age to zero, retain their difference through the next three
+  camera syncs and replace previous with current on the fourth. Check
+  the fresh-camera flag separately: age zero starts still, then its
+  first sync marks moving. For aim-only following, log unchanged actual
+  position alongside candidate offset/length/probe history and aiming
+  from actual position. Log per-full-update mouse history and fixed-
+  distance Page timestamps when several causes run at the same time.
+  First-person numerical examples are in that section above; distinguish
+  its normal full update from the direct shake redraw.
 - Log camera distance to Connor while walking in a straight line: it
   should settle at just under 2,500 (walk) or 5,000 (run).
 - Log camera height above terrain on a hill: never below 1,400 for long;
@@ -1045,7 +1358,14 @@ view toward what is followed). `follow <object>` switches both on
    or his facing changes ("When the camera updates at all"). Still
    open: the turn direction of the swing is inferred from the signs of
    the two angles, not checked in the game.
-5. First-person slope tilt details and the eye height.
+5. Answered by static study 2026-11-06 (Q193), "First person": fixed
+   actor-local eye (0, 50, 1200), support-normal slope formula, limits,
+   three-update unsupported hold, angle composition and toggle/lock
+   behavior. The bounded body/animation follow-up also settles active
+   model/list/skin selection, restart/request rules, actor-space model
+   placement and the shadow mask. Exact close-up clipping/depth outcomes
+   remain unresolved after two static paths; original runtime and native
+   save/resume are **not tested** ("First-person body and animations").
 6. Whether the camera updates at the same rate as Connor: answered
    2026-10-18 (Q99): it updates when he sends a "moved" message (one
    per committed move that changes something), handled one update after

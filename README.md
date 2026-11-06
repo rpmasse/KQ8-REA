@@ -24,7 +24,9 @@ Directional-choice scenes retain their decision and motion through saves and not
 
 Standing enemies keep an unfinished attack when a hit does not make them react.
 
-New original-engine research documents remaining spirit-trap, camera-shake and renderer-brightness differences; these are still implementation work.
+Third-person scripted camera shake and its sample state survive saving and continue through cuts, follow changes and flights.
+
+Spirit traps, live brightness, first-person presentation and remaining original-camera details still need implementation.
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
 

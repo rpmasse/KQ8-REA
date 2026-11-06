@@ -6,8 +6,8 @@
 //! all", "Turning the view toward Connor"). [`Camera::tick`] runs once per
 //! game update (15 per second); a camera update ([`Camera::update_with`])
 //! runs only when the caller has a cause for one (M3 3n-1), and ends by
-//! aiming the view: its heading by four states (M3 3o-1). Not here yet:
-//! first person, shake.
+//! aiming the view: its heading by four states (M3 3o-1). Shake supplies
+//! shared angles from `camera_shake`; first person is not implemented here.
 //!
 //! The view's tilt is the player's tilt (−0.2 by default, negative looks
 //! down) plus the angle up to the aim point (M3 3o-2). Stand-in: in fixed
@@ -26,8 +26,8 @@ pub const AIM_HEIGHT: f32 = 1400.0;
 pub const MIN_HEIGHT: f32 = 1400.0;
 /// Within this of its wanted height the camera jumps to it...
 pub const HEIGHT_SNAP: f32 = 100.0;
-/// ...otherwise, if the aim point moved more than this (|Δx| + |Δy| +
-/// |Δz|) since the camera's previous record of it...
+/// ...otherwise, if the absolute SIGNED sum |Δx + Δy + Δz| exceeds this
+/// since the camera's retained previous actor record (Q193)...
 pub const HEIGHT_MOVED: f32 = 20.0;
 /// ...it eases this share of the gap per update at 15 updates per second
 /// (`height_share`; replaces the hand-tuned 0.5 of before M3 3n-2).
@@ -74,8 +74,7 @@ pub enum HeightThen {
 pub struct HeightStep {
     pub lift: Lift,
     pub then: HeightThen,
-    /// The aim point's movement since the previous record, |Δx| + |Δy| +
-    /// |Δz| (moved if more than 20).
+    /// The original absolute signed sum |Δx + Δy + Δz| (more than 20).
     pub sum: f32,
     pub wanted: f32,
     /// The height at the start of the update and before the height rule.
@@ -407,7 +406,7 @@ pub struct Camera {
     pub mode: Mode,
     /// (min, max) distance, set by `KQCamera::setRange`.
     pub range: (f32, f32),
-    /// Connor's base at the previous camera update (the tilt reset).
+    /// Connor's previous notified transform (the tilt reset).
     last_base: Option<[f32; 3]>,
     mouse_was_held: bool,
     /// Obstacle avoidance on (it is by default; nothing found switches it
@@ -415,7 +414,7 @@ pub struct Camera {
     pub avoid: bool,
     pub swing: Option<Swing>,
     /// The previous update's offset (camera − aim), and the camera's
-    /// previous record of the aim point (reset by `tick` after 3 still
+    /// previous record of the aim point (reset by the fourth age-zero sync
     /// updates and by `not_moved`).
     prev_offset: Option<[f32; 3]>,
     prev_aim: Option<[f32; 3]>,
@@ -444,8 +443,11 @@ pub struct Camera {
     last_error: f32,
     dragging: bool,
     backward: Option<bool>,
-    /// Connor's facing at the previous camera update.
+    /// Connor's facing in the previous notified transform.
     last_facing: Option<f32>,
+    /// Q193: transforms shift only on a moved notice, not on a full update.
+    #[serde(default)]
+    current_actor: Option<([f32; 3], f32)>,
 }
 
 /// What one update did, for the log.
@@ -485,9 +487,9 @@ fn add(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
 /// cameras"): a view more than this far (radians) off Connor switches the
 /// "turn back" switch on.
 pub const FOLLOW_TURN_FROM: f32 = 0.4;
-/// The turn back snaps onto Connor once the rest is under this (one snap
-/// angle on both sides, the note's "Do not reproduce").
-pub const FOLLOW_TURN_SNAP: f32 = 0.063;
+/// Q193: the original compares differently scaled signed-side errors to
+/// this double value before turning; keep its asymmetric snap for 1:1.
+const TURN_SNAP_COMPARISON: f64 = 0.21;
 
 /// The view direction of `move KQCamera … rx ry rz` (camera.md "Shake and
 /// cutscene cameras"): rx = tilt (positive looks up), rz = heading (0 looks
@@ -522,10 +524,13 @@ pub fn follow_switch(was: bool, off: f32, distance: f32, max: f32) -> bool {
     on
 }
 
-/// One update of the turn back: a third of what is left, then the snap.
+/// Remaining error after the original signed-side turn-back step (Q193).
+/// Positive errors snap at about 0.63, negative at about 0.063; the test
+/// precedes the step. The caller handles the separate <=0.02 lock branch.
 pub fn follow_turn_step(offset: f32) -> f32 {
-    let left = offset * (2.0 / 3.0);
-    if left.abs() < FOLLOW_TURN_SNAP { 0.0 } else { left }
+    let size = f64::from(offset.abs());
+    let scaled = if offset >= 0.0 { size / 3.0 } else { size * (10.0 / 3.0) };
+    if scaled > TURN_SNAP_COMPARISON { offset - offset / 3.0 } else { 0.0 }
 }
 
 /// The angle of `v` round the vertical (atan2 of y, x).
@@ -574,6 +579,7 @@ impl Camera {
             && self.range.0.is_finite() && self.range.1.is_finite() && self.range.0 >= 0.0 && self.range.1 >= self.range.0
             && [self.last_base, self.prev_offset, self.prev_aim].into_iter().flatten().flatten().all(f32::is_finite)
             && self.last_facing.is_none_or(f32::is_finite)
+            && self.current_actor.is_none_or(|(p,f)| p.into_iter().chain([f]).all(f32::is_finite))
             && self.swing.is_none_or(|s| s.step.is_finite() && s.target.is_finite())
             && match self.mode { Mode::Normal => true, Mode::Fixed { distance } => distance.is_finite() && distance >= 0.0 }
     }
@@ -602,6 +608,7 @@ impl Camera {
             dragging: false,
             backward: None,
             last_facing: None,
+            current_actor: None,
         }
     }
 
@@ -613,6 +620,20 @@ impl Camera {
         self.view_tilt = self.tilt + up;
         self.last_error = 0.0;
     }
+
+    /// Q187/Q193: shared third-person parameters, applied by a full update.
+    pub fn shake_angles(&mut self, angle: [f32; 2]) {
+        self.tilt = DEFAULT_TILT + angle[0];
+        self.mouse_offset = angle[1];
+    }
+
+    /// Stop resets parameters without cutting the visible pose back.
+    pub fn reset_shake_angles(&mut self) {
+        self.tilt = DEFAULT_TILT;
+        self.mouse_offset = 0.0;
+    }
+
+    pub fn clear_heading_offset(&mut self) { self.mouse_offset = 0.0; }
 
     /// `KQCamera::setRange <min> <max>`: refused unless min < max.
     pub fn set_range(&mut self, min: f32, max: f32) -> bool {
@@ -628,9 +649,11 @@ impl Camera {
     /// whose base is at `base`, without obstacles; "Connor moved" if the
     /// base changed since the last call (tests).
     pub fn update(&mut self, base: [f32; 3], input: &Input, ground: &dyn GroundLookup) -> Report {
-        let moved = self.last_base.is_some_and(|l| connor_moved((l, 0.0), (base, 0.0)));
-        self.tick(moved, base, input.mouse_held);
-        self.update_with(Followed { base, facing: 0.0 }, moved, input, ground, None)
+        let moved = self.current_actor.is_some_and(|before| connor_moved(before,(base,0.0)));
+        self.record_actor(Followed {base,facing:0.0},moved);
+        let report=self.full_update(Followed {base,facing:0.0},moved,input,ground,None,true,true);
+        self.tick(false,base,input.mouse_held);
+        report
     }
 
     /// The aim point for an object whose base is at `base`.
@@ -640,8 +663,8 @@ impl Camera {
 
     /// Once per game update, before any camera update (camera.md "Connor
     /// is moving"): `moved` = a "Connor moved" message came this update.
-    /// After 3 updates without one he counts as still and the camera's
-    /// previous record of the aim point is reset to where he stands. Also
+    /// The fourth sync after age zero makes him still and resets the
+    /// previous actor record to where he stands. Also
     /// forgets the mouse button once it is let go (the first update after
     /// pressing uses no movement). Returns true when he has just become
     /// still (for the log).
@@ -651,15 +674,17 @@ impl Camera {
         }
         if moved {
             self.still = 0;
-            return false;
         }
-        self.still += 1;
-        if self.still == STILL_UPDATES {
+        let stopped = self.still == STILL_UPDATES;
+        if self.still == 0 { self.moving = true; }
+        if stopped {
             self.moving = false;
+            self.last_base = Some(base);
+            self.last_facing = self.current_actor.map(|(_,f)| f).or(self.last_facing);
             self.prev_aim = Some(Self::aim_for(base));
-            return true;
         }
-        false
+        self.still = self.still.saturating_add(1);
+        stopped
     }
 
     /// The camera was put somewhere by a script, a flight or a cut: the
@@ -673,12 +698,50 @@ impl Camera {
     /// becomes the present one, so this update counts as "not moved".
     pub fn not_moved(&mut self, base: [f32; 3]) {
         self.prev_aim = Some(Self::aim_for(base));
+        self.last_base = Some(base);
+        let facing=self.current_actor.map_or(self.last_facing.unwrap_or(0.0),|(_,f)| f);
+        self.last_facing=Some(facing);
+        self.current_actor=Some((base,facing));
+    }
+
+    /// A cut/flight gives both retained transforms the authored aim point.
+    pub fn seed_actor(&mut self, followed: Followed) {
+        self.current_actor = Some((followed.base, followed.facing));
+        self.last_base = Some(followed.base);
+        self.last_facing = Some(followed.facing);
+        self.prev_aim = Some(Self::aim_for(followed.base));
+        self.still = 0;
+    }
+
+    pub fn record_actor(&mut self, followed: Followed, moved: bool) {
+        let before=self.current_actor.unwrap_or((followed.base,followed.facing));
+        if moved || self.current_actor.is_none() {
+            self.last_base=Some(before.0);
+            self.last_facing=Some(before.1);
+            self.prev_aim=Some(Self::aim_for(before.0));
+            self.current_actor=Some((followed.base,followed.facing));
+            if moved { self.still=0; }
+        }
+    }
+
+    pub fn followed(&self, fallback: Followed) -> Followed {
+        self.current_actor.map_or(fallback,|(base,facing)| Followed {base,facing})
     }
 
     /// One camera update, with the obstacle rules (camera.md "Obstacles",
     /// steps 6–9) when `view` is given. `moved`: a "Connor moved" message is
     /// among this update's causes.
     pub fn update_with(&mut self, followed: Followed, moved: bool, input: &Input, ground: &dyn GroundLookup, view: Option<&dyn ViewBlockers>) -> Report {
+        let changed=self.current_actor.is_some_and(|before| connor_moved(before,(followed.base,followed.facing)));
+        self.record_actor(followed,moved||changed);
+        self.full_update(followed,moved,input,ground,view,true,true)
+    }
+
+    /// One calculation, without advancing retained actor transforms (Q193).
+    /// An aim-only calculation retains its candidate offset but aims from
+    /// the unchanged actual camera position.
+    #[allow(clippy::too_many_arguments)]
+    pub fn full_update(&mut self, followed: Followed, _moved: bool, input: &Input, ground: &dyn GroundLookup, view: Option<&dyn ViewBlockers>, places: bool, aims: bool) -> Report {
         let base = followed.base;
         let start = self.position;
         // The direction to the aim point before this update's swing (a
@@ -688,9 +751,7 @@ impl Camera {
         // "Connor is moving": from the update after his first "moved"
         // message until 3 updates have passed without one (`tick`).
         let moving_now = self.moving;
-        if moved {
-            self.moving = true;
-        }
+        // Moved notices change records/age; only sync changes this flag.
         report.moving = moving_now;
         let aim = Self::aim_for(base);
         let (min, max) = self.range;
@@ -768,26 +829,20 @@ impl Camera {
         }
 
         // Step 4: the height (camera.md "Height above the ground" rule 2).
-        // "Moved" by the sum of sizes, not the original's signed sum ("Do
-        // not reproduce").
-        let sum = self.prev_aim.map_or(0.0, |p| (0..3).map(|k| (aim[k] - p[k]).abs()).sum());
+        // Q193: preserve the original absolute signed sum, including
+        // cancelling axis changes, for the 1:1 recreation.
+        let sum = self.prev_aim.map_or(0.0, |p| (0..3).map(|k| aim[k]-p[k]).sum::<f32>().abs());
         let floor = |x: f32, y: f32| ground.ground(x, y).map(|g| g.0);
         let surface = |a: [f32; 3], b: [f32; 3]| view.and_then(|v| v.surface_hit(a, b));
-        if self.hold {
-            // tile-puzzle.md rule 7a: the hold switch keeps its height.
-            self.position[2] = start[2];
-            report.events.push("hold: height kept (tile-puzzle.md rule 7a)".into());
-        } else {
-            let (p, h) = height_rule(start, self.position, base[2], max, sum, height_share(UPDATE_SECONDS), mx != 0.0, self.lifted, &floor, &surface);
-            self.position = p;
-            if h.lift != Lift::No {
-                self.lifted = true;
-            }
-            if h.then == HeightThen::Eased {
-                self.lifted = false;
-            }
-            report.height = Some(h);
+        let (p, h) = height_rule(start, self.position, base[2], max, sum, height_share(UPDATE_SECONDS), mx != 0.0, self.lifted, &floor, &surface);
+        self.position = p;
+        if h.lift != Lift::No {
+            self.lifted = true;
         }
+        if h.then == HeightThen::Eased {
+            self.lifted = false;
+        }
+        report.height = Some(h);
 
         // Step 5: pushed out to the minimum.
         if matches!(self.mode, Mode::Normal) && length(sub(self.position, aim)) < min {
@@ -799,8 +854,12 @@ impl Camera {
             self.avoid_obstacles(aim, base, mx != 0.0 || mf != 0.0, moving_now, ground, view, &mut report);
         }
         self.prev_offset = Some(sub(self.position, aim));
-        self.prev_aim = Some(aim);
         report.swing = self.swing.map(|s| (s.step, wrap(s.target - azimuth(sub(self.position, aim)))));
+        // Q193: candidate history precedes fixHeight and optional placing.
+        if self.hold {
+            self.position[2] = start[2];
+            report.events.push("hold: height kept after candidate history (tile-puzzle.md rule 7a, Q193)".into());
+        }
 
         // Tilt snaps back once the followed object moves (normal mode).
         if let (Mode::Normal, Some(last)) = (self.mode, self.last_base) {
@@ -811,9 +870,8 @@ impl Camera {
             }
         }
         self.tilt = self.tilt.clamp(-TILT_LIMIT, TILT_LIMIT);
-        report.heading = Some(self.aim_view(aim, followed, input.mouse_held, moving_now, towards_start));
-        self.last_base = Some(base);
-        self.last_facing = Some(followed.facing);
+        if !places { self.position=start; }
+        if aims { report.heading = Some(self.aim_view(aim, followed, input.mouse_held, moving_now, towards_start)); }
         report.aim = aim;
         report.distance = length(sub(self.position, aim));
         report
@@ -846,7 +904,7 @@ impl Camera {
         // round Connor, wherever he is on screen).
         if dragging {
             if !self.dragging {
-                self.mouse_offset = -wrap(towards_start - self.heading);
+                self.mouse_offset = -wrap(towards_start + self.mouse_offset - self.heading);
             }
             self.heading_state = HeadingState::Locked;
         } else if self.dragging {
@@ -855,7 +913,7 @@ impl Camera {
         }
         self.dragging = dragging;
         // 3. The "turn back" switch.
-        if self.turn_back {
+        if self.turn_back && !dragging {
             self.mouse_offset = 0.0;
             if before != HeadingState::Locked {
                 self.heading_state = HeadingState::TurningBack;
@@ -872,28 +930,30 @@ impl Camera {
                 } else if e.abs() < HEADING_LOCK {
                     self.heading_state = HeadingState::Locked;
                 } else if e.abs() > CATCH_UP_ANY {
-                    self.heading = towards + self.mouse_offset - e.signum() * CATCH_UP_MOVING;
+                    self.heading = towards - e.signum() * CATCH_UP_MOVING;
                 } else if e * self.last_error >= 0.0 && e.abs() > self.last_error.abs() {
                     self.heading += e.signum() * CATCH_UP_GAIN * (e.abs() - self.last_error.abs());
                 }
             }
             HeadingState::Locked => {
-                self.heading = towards + self.mouse_offset;
+                self.heading = towards;
                 // Unlocked after this exact aim (STAND-IN for the order, Q113 b).
                 if !dragging && !self.turn_back && (!moving || self.measure_switch(followed, &mut switched)) {
                     self.heading_state = HeadingState::Idle;
                 }
             }
             HeadingState::TurningBack => {
-                if e.abs() < HEADING_LOCK {
+                if e.abs() <= HEADING_LOCK {
                     self.heading_state = HeadingState::Locked;
                 } else {
-                    // A third of the rest, one snap angle ("Do not reproduce").
+                    // Original lopsided snap, measured before the step (Q193).
                     self.heading = towards + self.mouse_offset - follow_turn_step(e);
                 }
             }
         }
-        self.heading = wrap(self.heading);
+        // Q193: shared offset is consumed after the state action. In idle
+        // another full update can add the same retained shake sample again.
+        self.heading = wrap(self.heading + self.mouse_offset);
         self.last_error = error(self);
         HeadingStep { before, after: self.heading_state, error: start, turn: wrap(self.heading - old), left: self.last_error, offset: self.mouse_offset, switched }
     }
@@ -994,6 +1054,89 @@ impl Camera {
 mod tests {
     use super::*;
 
+    #[test]
+    fn shared_shake_heading_offset_is_consumed_by_each_full_update() {
+        // Q193: idle adds the retained offset again; locked uses aim + offset.
+        let mut c=Camera::new([0.,-4000.,1400.]);
+        c.mouse_offset=0.001; c.tilt=-0.19;
+        let followed=Followed {base:[0.;3],facing:0.};
+        c.update_with(followed,false,&Input::default(),&Flat(0.),None);
+        assert!((c.heading-0.001).abs()<1e-6);
+        c.update_with(followed,false,&Input::default(),&Flat(0.),None);
+        assert!((c.heading-0.002).abs()<1e-6,"another full update must consume the shared offset again");
+        c.heading_state=HeadingState::Locked; c.mouse_offset=0.02;
+        c.update_with(followed,false,&Input::default(),&Flat(0.),None);
+        assert!((c.heading-0.02).abs()<1e-6);
+    }
+
+    #[test]
+    fn a_live_drag_owns_the_shared_offset_even_when_turn_back_is_set() {
+        let mut c=Camera::new([0.,-4000.,1400.]);
+        c.heading=0.03; c.mouse_offset=0.01; c.turn_back=true;
+        let report=c.update_with(Followed {base:[0.;3],facing:0.},false,
+            &Input {mouse_held:true,..Default::default()},&Flat(0.),None);
+        assert!((report.heading.unwrap().offset-0.02).abs()<1e-6,"drag start uses the error including the sampled Z");
+        assert!((c.heading-0.02).abs()<1e-6,"live drag must not be replaced by the no-drag turn-back branch");
+    }
+
+    #[test]
+    fn moving_tilt_reset_and_stop_follow_the_original_shared_parameter_rules() {
+        for mode in [Mode::Normal,Mode::Fixed {distance:4000.}] {
+            let mut c=Camera::new([0.,-4000.,1400.]); c.mode=mode;
+            c.update_with(Followed {base:[0.;3],facing:0.},false,&Input::default(),&Flat(0.),None);
+            c.shake_angles([0.01,0.001]);
+            c.update_with(Followed {base:[100.,0.,0.],facing:0.},false,&Input::default(),&Flat(0.),None);
+            let expected=if mode==Mode::Normal {DEFAULT_TILT} else {DEFAULT_TILT+0.01};
+            assert!((c.tilt-expected).abs()<1e-6,"retained movement resets normal-distance tilt even without a moved notification");
+            let drawn=(c.position,c.view_tilt,c.heading);
+            c.reset_shake_angles();
+            assert_eq!((c.position,c.view_tilt,c.heading),drawn,"stop must not rebuild the view");
+            assert_eq!((c.tilt,c.mouse_offset),(DEFAULT_TILT,0.));
+        }
+    }
+
+    #[test]
+    fn repeated_full_updates_keep_actor_records_and_repeat_height_easing() {
+        let mut c=Camera::new([0.,-3000.,3000.]);
+        c.record_actor(Followed {base:[0.;3],facing:0.},false);
+        let actor=Followed {base:[300.,0.,0.],facing:0.}; c.record_actor(actor,true);
+        let previous=(c.last_base,c.current_actor,c.prev_aim);
+        let a=c.full_update(actor,false,&Input::default(),&Flat(0.),None,true,true);
+        let z=c.position[2];
+        let b=c.full_update(actor,false,&Input::default(),&Flat(0.),None,true,true);
+        assert_eq!((a.height.unwrap().sum,b.height.unwrap().sum),(300.,300.));
+        assert!((z-2840.).abs()<0.01 && (c.position[2]-2696.).abs()<0.01);
+        assert_eq!((c.last_base,c.current_actor,c.prev_aim),previous);
+        assert_eq!(c.still,0,"full updates do not advance sync age");
+    }
+
+    #[test]
+    fn aim_only_keeps_candidate_history_but_aims_from_actual_position() {
+        let start=[0.,-10000.,3000.]; let mut c=Camera::new(start);
+        let actor=Followed {base:[0.;3],facing:0.}; c.record_actor(actor,false);
+        c.full_update(actor,false,&Input::default(),&Flat(0.),None,false,true);
+        assert_eq!(c.position,start);
+        assert!(length(c.prev_offset.unwrap())<5000.,"candidate history must follow the leash calculation");
+        let up=view_angles(sub(Camera::aim_for(actor.base),start)).0;
+        assert!((c.view_tilt-(DEFAULT_TILT+up)).abs()<1e-6,"aiming must use the actual unplaced position");
+        assert_eq!(c.followed(actor).base,actor.base);
+    }
+
+    #[test]
+    fn held_height_is_applied_after_the_candidate_offset_is_retained() {
+        let mut c=Camera::new([0.,-3000.,500.]);
+        let actor=Followed {base:[0.;3],facing:0.}; c.record_actor(actor,false);
+        c.hold=true;
+        let report=c.full_update(actor,false,&Input::default(),&Flat(0.),None,true,true);
+        assert_eq!(report.height.unwrap().lift,Lift::ToGround);
+        assert_eq!(c.position[2],500.,"fixHeight keeps the actual height");
+        assert_eq!(c.prev_offset.unwrap()[2],0.,"candidate was lifted to aim height first");
+        assert_eq!(c.view_tilt,c.tilt,"held view uses only the pitch parameter");
+        c.hold=false;
+        c.full_update(actor,false,&Input {mouse_held:true,..Input::default()},&Flat(0.),None,true,true);
+        assert_eq!(c.position[2],1400.,"the held-mouse calculation starts from the retained candidate");
+    }
+
     struct Flat(f32);
     impl GroundLookup for Flat {
         fn ground(&self, _: f32, _: f32) -> Option<(f32, [f32; 3])> {
@@ -1027,8 +1170,14 @@ mod tests {
             o = next;
             steps += 1;
         }
-        // 1.0 × (2/3)^n < 0.063 from n = 7.
-        assert_eq!(steps, 7);
+        // The pre-step negative test reaches its snap on update 8.
+        assert_eq!(steps, 8);
+        assert_eq!(follow_turn_step(0.5),0.0);
+        assert!((follow_turn_step(-0.5)+1.0/3.0).abs()<1e-6);
+        assert_eq!(follow_turn_step(0.62),0.0);
+        assert!(follow_turn_step(0.64)>0.0);
+        assert_eq!(follow_turn_step(-0.062),0.0);
+        assert!(follow_turn_step(-0.064)<0.0);
     }
 
     fn horizontal(c: &Camera, aim: [f32; 3]) -> f32 {
@@ -1095,10 +1244,9 @@ mod tests {
         let h = r.height.unwrap();
         assert_eq!((h.then, h.sum), (HeightThen::Eased, 75.0));
         assert!((c.position[2] - (3000.0 - 0.1 * (3000.0 - MIN_HEIGHT))).abs() < 0.01, "{}", c.position[2]);
-        // +300 in x and −300 in y: the original's signed sum says 0; the
-        // sum of sizes says moved ("Do not reproduce").
+        // Q193: the original takes |sum|; opposite axes can cancel.
         let r = c.update([390.0, -300.0, 0.0], &Input::default(), &Flat(0.0));
-        assert_eq!(r.height.unwrap().then, HeightThen::Eased);
+        assert_eq!((r.height.unwrap().then,r.height.unwrap().sum),(HeightThen::Kept,0.0));
         assert!((height_share(UPDATE_SECONDS) - 0.1).abs() < 1e-6);
         assert!((height_share(1.0) - (1.0 - 0.9f32.powi(15))).abs() < 1e-5);
     }
@@ -1247,9 +1395,10 @@ mod tests {
     /// One game update and one camera update with `view`, Connor at (x, y, 0).
     fn step(c: &mut Camera, x: f32, y: f32, input: &Input, view: &dyn ViewBlockers) -> Report {
         let base = [x, y, 0.0];
-        let moved = c.last_base.is_some_and(|l| connor_moved((l, 0.0), (base, 0.0)));
-        c.tick(moved, base, input.mouse_held);
-        c.update_with(Followed { base, facing: 0.0 }, moved, input, &Flat(0.0), Some(view))
+        let moved=c.current_actor.is_some_and(|before| connor_moved(before,(base,0.)));
+        let report=c.update_with(Followed {base,facing:0.},moved,input,&Flat(0.),Some(view));
+        c.tick(false,base,input.mouse_held);
+        report
     }
 
     #[test]
@@ -1274,6 +1423,9 @@ mod tests {
     fn standing_still_behind_a_wall_nothing_moves() {
         let wall = Walls(vec![([-5000.0, -1000.0], [5000.0, -1000.0])]);
         let mut c = Camera::new([0.0, -3000.0, MIN_HEIGHT]);
+        // Q193: a fresh age-zero camera becomes moving at its first sync
+        // even before a notice. Establish the genuinely still case here.
+        for _ in 0..4 { c.tick(false,[0.;3],false); }
         for _ in 0..5 {
             let r = step(&mut c, 0.0, 0.0, &Input::default(), &wall);
             assert!(r.blocked.is_some() && !r.moving);
@@ -1352,10 +1504,13 @@ mod tests {
     fn a_hit_closer_than_100_keeps_the_camera_in_front() {
         let wall = Walls(vec![([-50000.0, -30.0], [50000.0, -30.0])]);
         let mut c = Camera::new([0.0, -3000.0, MIN_HEIGHT]);
-        for x in [0.0, 75.0, 150.0] {
-            step(&mut c, x, 0.0, &Input::default(), &wall);
-        }
-        let d = length(sub(c.position, [150.0, 0.0, AIM_HEIGHT]));
+        step(&mut c,0.,0.,&Input::default(),&wall);
+        // Q193: first sync marks moving, so the first actual pull-in is
+        // already at the next notification. A later step can push back
+        // onto the ordinary minimum range without crossing this wall.
+        let report=step(&mut c,75.,0.,&Input::default(),&wall);
+        assert!(report.blocked.is_some() && report.pulled_in.is_some());
+        let d = length(sub(c.position, [75.0, 0.0, AIM_HEIGHT]));
         assert!((d - PULL_IN_MIN).abs() < 0.01, "{d}");
         assert!(c.position[1] < 0.0, "same side as before: {:?}", c.position);
     }
@@ -1433,16 +1588,16 @@ mod tests {
     }
 
     #[test]
-    fn still_after_3_updates_without_a_message_and_the_aim_record_reset() {
+    fn still_on_the_fourth_sync_after_a_moved_notice() {
         let mut c = Camera::new([0.0, 3000.0, MIN_HEIGHT]);
-        c.update([0.0; 3], &Input::default(), &Flat(0.0));
-        let r = c.update([75.0, 0.0, 0.0], &Input::default(), &Flat(0.0));
-        assert!(!r.moving, "the first update of a walk doesn't count as moving");
-        assert!(c.moving);
-        // He stops: 2 ticks still moving, the 3rd makes him still.
-        assert!(!c.tick(false, [75.0, 0.0, 0.0], false));
-        assert!(!c.tick(false, [75.0, 0.0, 0.0], false));
-        assert!(c.moving);
+        c.update_with(Followed {base:[0.;3],facing:0.},false,&Input::default(),&Flat(0.),None);
+        let r=c.update_with(Followed {base:[75.,0.,0.],facing:0.},true,&Input::default(),&Flat(0.),None);
+        assert!(!r.moving && !c.moving,"the notice does not set the moving flag");
+        // Age zero is checked before incrementing; fourth subsequent sync stops.
+        for _ in 0..3 {
+            assert!(!c.tick(false,[75.,0.,0.],false));
+            assert!(c.moving);
+        }
         assert!(c.tick(false, [75.0, 0.0, 0.0], false));
         assert!(!c.moving);
         assert_eq!(c.prev_aim, Some(Camera::aim_for([75.0, 0.0, 0.0])));
@@ -1451,9 +1606,10 @@ mod tests {
     /// One tick and camera update with Connor at `base` facing `facing`
     /// (no obstacles).
     fn aim_step(c: &mut Camera, base: [f32; 3], facing: f32, input: &Input) -> HeadingStep {
-        let moved = c.last_base.is_some_and(|l| connor_moved((l, 0.0), (base, 0.0)));
-        c.tick(moved, base, input.mouse_held);
-        c.update_with(Followed { base, facing }, moved, input, &Flat(0.0), None).heading.unwrap()
+        let moved=c.current_actor.is_some_and(|before| connor_moved(before,(base,facing)));
+        let heading=c.update_with(Followed {base,facing},moved,input,&Flat(0.),None).heading.unwrap();
+        c.tick(false,base,input.mouse_held);
+        heading
     }
 
     #[test]
@@ -1483,18 +1639,19 @@ mod tests {
         assert!(states[locked].2.abs() < HEADING_LOCK);
         // Then exactly on him while he walks.
         assert!(states[locked + 1..].iter().all(|s| s.0 == HeadingState::Locked && s.2.abs() < 1e-5), "{:?}", &states[locked..]);
-        // He stops: unlocked once he counts as still (3 updates), after
+        // He stops: unlocked once the fourth sync marks him still, after
         // that update's exact aim.
         let mut after = Vec::new();
         for _ in 0..4 {
             after.push(aim_step(&mut c, [x - 75.0, 0.0, 0.0], std::f32::consts::FRAC_PI_2, &Input::default()).after);
         }
-        assert_eq!(after, [HeadingState::Locked, HeadingState::Locked, HeadingState::Idle, HeadingState::Idle]);
+        assert_eq!(after, [HeadingState::Locked,HeadingState::Locked,HeadingState::Locked,HeadingState::Idle]);
     }
 
     #[test]
     fn a_big_error_is_cut_to_a_quarter_radian_at_once_then_held() {
         let mut c = Camera::new([0.0, -3000.0, MIN_HEIGHT]);
+        for _ in 0..4 { c.tick(false,[0.;3],false); }
         c.look_at(Camera::aim_for([0.0; 3]));
         c.heading += 0.8;
         let h = aim_step(&mut c, [0.0; 3], 0.0, &Input::default());
@@ -1552,7 +1709,7 @@ mod tests {
         }
         assert!((left[0].1 - 2.0 / 3.0).abs() < 1e-4 && left[0].0 == HeadingState::TurningBack);
         let lock = left.iter().position(|s| s.0 == HeadingState::Locked).unwrap();
-        assert!(left[lock - 1].1 == 0.0, "snapped under 0.063 first: {left:?}");
+        assert!(left[lock - 1].1 == 0.0, "positive error snapped near 0.63 before locking: {left:?}");
         // The switch stays on: locked even though he stands still.
         assert!(left[lock..].iter().all(|s| s.0 == HeadingState::Locked));
     }
