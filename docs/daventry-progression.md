@@ -54,9 +54,18 @@ The second opened the door using its original toggle script and crossed
 the threshold at 550. Connor reached the east room, then stopped 397
 units short of a replay waypoint at 869. A sweep against the original
 cottage geometry confirms a clear line from the recorded camera to the
-potion center. The real click picker still has to resolve other objects
-along that line. The cottage-door route and the shield pickup can be
-checked separately.
+potion center. A separate two-process route now verifies that pickup.
+The normal click ray first hit Sarah's door at update 528, then the
+shield in the east room at 710. Its box was 1,427 units from Connor,
+within the original 4,700-unit reach. The first health-item notice
+opened at 755. A fresh process loaded the earned potion, used it with
+key 5 and recorded protection increasing from 0 to 50 for 20 seconds.
+The route took 146.04 seconds. This establishes a resource the player
+can earn before visiting the windmill. Carrying it to the encounter
+and surviving the guard remain open.
+
+With `KQ8_GAME_DIR` set to the GOG folder, reproduce with
+`cargo test --locked -p kq8-viewer --test daventry_cottage_shield -- --ignored --test-threads=1`.
 
 The New Game → wizard → windmill Small Axe route and reload passed again on
 2026-11-06 in 402.85 seconds. The new `daventry_hero_ring` scenario continues

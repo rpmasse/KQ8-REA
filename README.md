@@ -16,6 +16,8 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 The earned Daventry replay reaches the Henchman's first attack after crossing the windmill doorway. Completing the encounter and earning the hero's ring remain open.
 
+An ordinary Daventry route opens Sarah's cottage, earns the shield potion, and uses it after a fresh launch.
+
 Scripted character collision flags update live targeting and movement and survive save/load.
 
 Connor can finish an equipped attack or weapon swap before entering death. Saves retain that pending request or the death animation already in progress.

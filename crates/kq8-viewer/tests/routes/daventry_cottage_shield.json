@@ -1,0 +1,11 @@
+{
+  "start": 300,
+  "landmarks": [
+    {"name": "Sarah's door", "xy": [280850, 196280], "radius": 180, "aim": "saradoor"},
+    {"name": "Cottage entrance", "xy": [283200, 196296], "radius": 200},
+    {"name": "Cottage interior", "xy": [289450, 196296], "radius": 185},
+    {"name": "East room entrance", "xy": [290150, 196971], "radius": 140},
+    {"name": "East room", "xy": [291950, 196971], "radius": 150},
+    {"name": "Shield beside the east wall", "xy": [292190, 197290], "radius": 120, "aim": "NoName20"}
+  ]
+}

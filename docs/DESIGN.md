@@ -13,6 +13,18 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 shield potion in Sarah's cottage.** Start a Normal New Game and
+open Sarah's original door. Use the bound movement keys to reach the
+east room. The owned cottage geometry provides a clear camera line to
+the potion from within its original pickup reach. Use the normal
+world-click ray and require the potion to be the first object hit.
+Save through the menu and start a second process from that earned
+slot. Press the original fifth consumable key, check the protection
+increase while the dose runs, and verify its removal and restored
+protection after twenty simulation seconds. Keep AI and damage enabled.
+This tests an early resource available on the way to the windmill.
+The later fight and travel still need their own campaign checks.
+
 **M5 ordinary combat death.** Implement the three stages described by
 [the original death study](behaviour/connor-combat-death.md). A lethal
 hit asks Connor's current controller for Die. Wait with an unfinished

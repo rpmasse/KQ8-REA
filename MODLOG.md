@@ -1,5 +1,39 @@
 # MODLOG
 
+## 2026-11-07 Earn and use Sarah's cottage shield
+
+The first village-supply replay walked into Sarah's closed door. The
+second opened it through the authored script and reached the east room
+but stopped before issuing a potion click. The cottage collision mesh
+showed that the recorded camera had a clear line to the shield. The
+original item rule uses distance to its box and the first object on the
+click ray. The earlier route had required an arbitrary 155-unit waypoint.
+
+An independent pickup from the same room hit the potion first at update
+739 and collected it from 1,377 units away. A fresh process consumed
+the saved dose with key 5. The integrated route now issues camera-ray
+clicks on arrival, using the same picking code as the physical mouse.
+It opens the original door and takes the potion without any position,
+inventory, AI or quest overrides. The test compares the installed
+Options.cs bytes before the first launch and after the second.
+
+In the integrated run the door was the first hit at 528. The shield
+was first at 710 from 1,427 units, and its health-item tutorial opened
+at 755. The menu saved one unconsumed dose. After loading, the original
+key raised protection from 0 to 50. The active slot recorded 18 seconds
+left out of 20. Expiry at 312, exactly 300 updates after use, removed
+the dose and restored protection to 0. The two-process Windows test
+passed in 146.04 seconds. All 41 regular viewer tests and viewer/test
+compilation passed. Full village supply collection and combat use at
+the windmill are **not tested** by this component.
+
+With `KQ8_GAME_DIR` set to the original GOG installation, run
+`cargo test --locked -p kq8-viewer --test daventry_cottage_shield -- --ignored --test-threads=1`.
+Expect the normal menu to save the earned shield, a second process to
+load it and the protection value to return to its starting value
+after the dose expires. Local evidence is in
+`kq8-artifacts/cottage-shield/1793978796683139600`.
+
 ## 2026-11-07 Two attempts to pass the windmill guard
 
 The first route reached the left fence while jumping and stopped on

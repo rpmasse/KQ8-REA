@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-07 Earned shield from Sarah's cottage
+
+A Normal New Game route opened Sarah's door and collected the shield
+in the east room. Both camera rays hit the intended object first.
+The real menu saved the unconsumed potion. A fresh process loaded it
+and used the normal slot-5 key. Protection rose from 0 to 50 at
+update 12 and returned to 0 at 312. The three slots document the
+earned potion, its active timer and its removal. The integrated test
+passed in 146.04 seconds with damage and enemy AI on. The original
+Options.cs byte comparison passed. The full four-supply detour and
+the Henchman encounter remain open.
+
 ## 2026-11-07 West of the windmill
 
 The two ordinary attempts to get past the stationary guard stopped.
