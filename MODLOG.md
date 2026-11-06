@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-07 Two attempts to pass the windmill guard
+
+The first route reached the left fence while jumping and stopped on
+Connor's death at 860 in 83.34 seconds. A sweep against the installed
+mill geometry identified a clear segment towards (133850, 251500).
+The second route crossed the doorway, took the first spear hit outside
+and continued moving west. The guard's three hits reduced health from
+30 to 14, then 5, then -10. The later walk stopped at 691 in 74.23
+seconds. The original tomb, coffin and hero's ring reload remain
+unverified in this branch. See the [campaign notes](docs/daventry-progression.md).
+
+Local reproduction uses the diagnostic worktree `target/hero-campaign`
+and an earned `KQ8_AXE_SLOT` from the windmill test. Set `KQ8_GAME_DIR`
+to the read-only GOG folder. Run
+`cargo test --locked -p kq8-viewer --test daventry_hero_ring walk_around_windmill_guard -- --ignored --test-threads=1`
+in that worktree using its own Cargo target directory. The saved logs
+are in `kq8-artifacts/hero-ring-bypass` runs 1793970900837591900 and
+1793976510851596500 there. The main branch includes the passing
+windmill-exit test and keeps the full duel open.
+
 ## 2026-11-07 Connor's ordinary death, pending requests and the menu
 
 Implemented the [original ordinary death rules](docs/behaviour/connor-combat-death.md)
