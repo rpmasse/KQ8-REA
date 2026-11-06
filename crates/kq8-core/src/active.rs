@@ -1539,12 +1539,21 @@ impl WorldState {
         self.doors.iter().position(|d| d.door.name.eq_ignore_ascii_case(name))
     }
 
+    fn sync_character_collision(&mut self, index: usize) {
+        let actor = &self.anims[index];
+        let Some(character) = actor.character.as_deref() else { return; };
+        for click in self.clickables.iter_mut().filter(|click| !click.gone && click.name.eq_ignore_ascii_case(&actor.player.name)) {
+            click.placement = actor.player.placement();
+            click.collision_type = character.collision_type;
+        }
+    }
+
     pub fn trap_index(&self, name: &str) -> Option<usize> {
         self.traps.iter().position(|t| t.settings.name.eq_ignore_ascii_case(name))
     }
 
     /// `KQObject::collision <name> <+-bits>`: adds or removes bits of an
-    /// object's collision mask (traps.md rule 16; traps and doors).
+    /// object's collision mask (traps.md rule 16; characters, traps and doors).
     fn collision_mask(&mut self, words: &[String], at: &str) -> String {
         let (Some(name), Some(bits)) = (words.get(1), words.get(2)) else {
             self.note(format!("{at}: usage: KQObject::collision <name> <bits>"));
@@ -1554,8 +1563,18 @@ impl WorldState {
             self.note(format!("{at}: collision {name} {bits}: not a whole number"));
             return "1".into();
         };
+        if bits == 0 {
+            self.note(format!("{at}: collision {name} 0: refused"));
+            return "1".into();
+        }
         let change = |m: u32| if bits >= 0 { m | bits as u32 } else { m & !(bits.unsigned_abs() as u32) };
-        let (old, new, inside) = if let Some(i) = self.trap_index(name) {
+        let character = self.character_index(name);
+        let (old, new, inside) = if let Some(i) = character {
+            let c = self.anims[i].character.as_deref_mut().unwrap();
+            let old = c.collision_mask;
+            c.set_collision(c.collision_type, change(old));
+            (old, c.collision_mask, Vec::new())
+        } else if let Some(i) = self.trap_index(name) {
             let t = &mut self.traps[i];
             let old = t.settings.mask;
             t.settings.mask = change(old);
@@ -1570,6 +1589,7 @@ impl WorldState {
             self.note(format!("{at}: collision {name} {bits}: {why}; not changed"));
             return "1".into();
         };
+        if let Some(index) = character { self.sync_character_collision(index); self.update_character_colliders(); }
         let mut line = format!("{at}: collision {name} {bits:+}: mask {old:#x} -> {new:#x}");
         if !inside.is_empty() {
             // traps.md rule 16: nothing sent now; they get Off when they leave.
@@ -1594,7 +1614,13 @@ impl WorldState {
             return "1".into();
         }
         let change = |t: u32| if bits > 0 { t | bits as u32 } else { t & !(bits.unsigned_abs() as u32) };
-        let (old, new) = if let Some(i) = self.door_index(name) {
+        let character = self.character_index(name);
+        let (old, new) = if let Some(i) = character {
+            let c = self.anims[i].character.as_deref_mut().unwrap();
+            let old = c.collision_type;
+            c.set_collision(change(old), c.collision_mask);
+            (old, c.collision_type)
+        } else if let Some(i) = self.door_index(name) {
             let d = &mut self.doors[i];
             let old = d.collision_type;
             d.collision_type = change(old);
@@ -1618,12 +1644,13 @@ impl WorldState {
             self.note(format!("{at}: collisionType {name} {bits}: {why}; not changed"));
             return "1".into();
         };
+        if let Some(index) = character { self.sync_character_collision(index); self.update_character_colliders(); }
         self.note(format!(
             "{at}: collisionType {name} {bits:+}: {old:#x} -> {new:#x} (clickable {} -> {})",
             old & CLICKABLE != 0,
             new & CLICKABLE != 0
         ));
-        if (old ^ new) & CONNOR_MASK != 0 {
+        if character.is_none() && (old ^ new) & CONNOR_MASK != 0 {
             // No Daventry door script does this; the collider list is not
             // rebuilt in this step.
             self.note(format!("{at}: NOTE bits Connor collides with changed on {name}; not applied to his collision (not done)"));
@@ -2433,7 +2460,9 @@ impl WorldState {
             }
             if let Some(hidden) = entry.hidden { self.plain_hidden.insert(name.clone(), hidden); }
             if let Some(state) = entry.state_seen { self.state_seen.insert(name, state); }
+            self.sync_character_collision(index);
         }
+        self.update_character_colliders();
     }
 
     /// Keep the saved order, which matters when `MaxMonsters` is full.
@@ -2475,8 +2504,10 @@ impl WorldState {
                 }
                 if let Some(hidden) = entry.hidden { self.plain_hidden.insert(name.to_ascii_lowercase(), hidden); }
                 if let Some(state) = entry.state_seen { self.state_seen.insert(name.to_ascii_lowercase(), state); }
+                self.sync_character_collision(index);
             }
         }
+        self.update_character_colliders();
     }
 
     /// `KQMonster::add`: the same 20-field line as monsters.kq, or the
@@ -3437,6 +3468,7 @@ impl WorldState {
     }
 
     pub fn collision_type_of(&self, name: &str) -> Option<u32> {
+        if let Some(i) = self.character_index(name) { return Some(self.anims[i].character.as_deref().unwrap().collision_type); }
         if let Some(i) = self.object_index(name) {
             return Some(self.objects[i].collision_type);
         }
@@ -10644,6 +10676,100 @@ mod trap_lookup_tests {
         assert_eq!(late.scripts.vars.get("T::Lookup"), Some("1"));
         assert_eq!(late.scripts.vars.get("T::InitCueSeen"), Some("done"));
         assert_eq!(late.scripts.vars.get("T::LateKnown"), Some("0"));
+    }
+}
+
+#[cfg(test)]
+mod character_collision_tests {
+    use super::*;
+
+    fn world(proxy: bool) -> Active {
+        let mut a = Active::new(Default::default(), vec![], vec![], [], []);
+        let mut player = crate::named_anim::tests::still_then_open("Dragon");
+        player.base = Placement::at([0.,1000.,0.]);
+        let (min, max) = ([-100.,-100.,0.], [100.,100.,1000.]);
+        let mut c = crate::character::Character::new(false, 0, 0., false, false, false, 7);
+        c.bounds = Some((min,max)); c.in_range = true;
+        c.mover = Some(Box::new(crate::connor_mover::Mover::character(player.base.position, false, min, max,
+            (0x4002,0x281f), (325.,325.), 0)));
+        c.set_collision(0x4002,0x281f);
+        a.add_anims([AnimObject { player, script: None, gone: false, character: Some(Box::new(c)), translucency: None }]);
+        a.world.characters_in_range.insert("dragon".into());
+        a.world.characters_solid.insert("dragon".into());
+        if proxy {
+            let mut retired = Clickable::plain("Dragon", "KQMonster", min, max, Placement::at([9.;3]), 33);
+            retired.gone = true; a.world.clickables.push(retired);
+            a.world.clickables.push(Clickable::plain("Dragon", "KQMonster", min, max, Placement::at([0.;3]), 0x4002));
+        }
+        a.world.update_character_colliders();
+        a
+    }
+
+    #[test]
+    fn character_type_changes_drive_aiming_real_actor_and_live_proxy_immediately() {
+        for proxy in [false,true] {
+            let mut a = world(proxy);
+            let aim = |w: &WorldState| w.mask_pick([0.,0.,500.], [0.,1.,0.], crate::weapons::AIM_PICK, &[], &[]);
+            assert!(aim(&a.world).is_none());
+            assert_eq!(a.console_command("KQObject::collisionType DRAGON +64", "fuse").as_deref(), Some("0"));
+            let picked = aim(&a.world).unwrap();
+            assert_eq!((picked.name.as_str(),picked.character,picked.collision_type), ("Dragon",Some(0),0x4042));
+            assert_eq!(a.world.collision_type_of("dragon"), Some(0x4042));
+            assert_eq!(a.world.character_colliders[0].collision_type, 0x4042);
+            if proxy {
+                assert_eq!(a.world.clickables[0].collision_type, 33, "retired proxy must not revive");
+                assert_eq!(a.world.clickables[1].collision_type, 0x4042);
+            }
+            a.console_command("KQObject::collisionType Dragon -64", "fuse");
+            assert!(aim(&a.world).is_none());
+            assert_eq!(a.world.anims[0].character.as_ref().unwrap().collision_type, 0x4002);
+            assert_eq!(a.console_command("KQObject::collisionType Dragon 0", "fuse").as_deref(), Some("1"));
+        }
+    }
+
+    #[test]
+    fn character_mask_and_type_restore_derived_mover_flags_and_preserve_eligibility() {
+        let mut a = world(true);
+        a.console_command("KQObject::collisionType Dragon +68", "test");
+        a.console_command("KQObject::collision Dragon -2056", "test"); // terrain 0x800 and building 0x8
+        let c = a.world.anims[0].character.as_ref().unwrap();
+        assert_eq!((c.collision_type,c.collision_mask,c.hits_buildings), (0x4046,0x2017,false));
+        assert!(!c.mover.as_ref().unwrap().terrain_in_passes && c.mover.as_ref().unwrap().falls);
+        assert_eq!(a.world.character_colliders[0].collision_mask, 0x2017);
+        let records = a.world.saved_placed_characters_for_disk_save();
+        let records: Vec<SavedPlacedCharacter> = serde_json::from_slice(&serde_json::to_vec(&records).unwrap()).unwrap();
+        let mut b = world(true); b.world.restore_placed_characters(&records);
+        let c = b.world.anims[0].character.as_ref().unwrap();
+        assert_eq!((c.collision_type,c.collision_mask,c.hits_buildings), (0x4046,0x2017,false));
+        assert!(!c.mover.as_ref().unwrap().terrain_in_passes && c.mover.as_ref().unwrap().falls);
+        assert_eq!(b.world.clickables[1].collision_type, 0x4046);
+        assert_eq!((b.world.character_colliders[0].collision_type,b.world.character_colliders[0].collision_mask), (0x4046,0x2017));
+        b.console_command("KQObject::collision Dragon +2056", "test");
+        b.console_command("KQObject::collisionType Dragon -4", "test");
+        let c = b.world.anims[0].character.as_ref().unwrap();
+        assert!(c.hits_buildings && c.mover.as_ref().unwrap().terrain_in_passes && !c.mover.as_ref().unwrap().falls);
+        assert_eq!(b.console_command("KQObject::collision Dragon 0", "test").as_deref(), Some("1"));
+        b.world.characters_solid.clear();
+        b.console_command("KQObject::collisionType Dragon -64", "test");
+        assert!(b.world.character_colliders.is_empty(), "a flag change must not force a far/hidden collider back on");
+    }
+
+    #[test]
+    fn special_checkpoint_restores_live_flags_without_updating_a_retired_proxy() {
+        let mut a = world(true);
+        a.console_command("KQObject::collisionType Dragon +68", "test");
+        a.console_command("KQObject::collision Dragon -2056", "test");
+        a.console_command("KQMonster::setState Dragon Special open", "test");
+        let kept = crate::kept_interactions::KeptInteractions::take(&a.world);
+        let kept: crate::kept_interactions::KeptInteractions =
+            serde_json::from_slice(&serde_json::to_vec(&kept).unwrap()).unwrap();
+        let mut b = world(true);
+        kept.restore_special_actors(&mut b.world);
+        let c = b.world.anims[0].character.as_deref().unwrap();
+        assert_eq!((c.state,c.collision_type,c.collision_mask), (crate::character::State::Special,0x4046,0x2017));
+        assert!(!c.hits_buildings && !c.mover.as_ref().unwrap().terrain_in_passes && c.mover.as_ref().unwrap().falls);
+        assert_eq!((b.world.clickables[0].collision_type,b.world.clickables[1].collision_type), (33,0x4046));
+        assert_eq!((b.world.character_colliders[0].collision_type,b.world.character_colliders[0].collision_mask), (0x4046,0x2017));
     }
 }
 

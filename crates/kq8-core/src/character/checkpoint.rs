@@ -202,8 +202,7 @@ impl SpawnedCharacter {
         c.resume_move_at = self.resume_move_due.map_or(f64::NEG_INFINITY, |t| absolute(t, now));
         c.falling_from = self.falling_from;
         c.mover_started = self.mover_started;
-        c.collision_type = self.collision_type;
-        c.collision_mask = self.collision_mask;
+        c.set_collision(self.collision_type, self.collision_mask);
     }
 
     pub(crate) fn valid(&self) -> bool {
@@ -294,15 +293,14 @@ impl SpecialActor {
         c.walk.step = self.step;
         c.falling_from = self.fall_from;
         c.mover_started = self.mover_started;
-        c.collision_type = self.collision_type;
-        c.collision_mask = self.collision_mask;
+        c.set_collision(self.collision_type, self.collision_mask);
         if let (Some(saved), Some(m)) = (&self.mover, c.mover.as_deref_mut()) {
             saved.restore(m);
         }
         if let Some(click) = w
             .clickables
             .iter_mut()
-            .find(|click| click.name.eq_ignore_ascii_case(name))
+            .find(|click| !click.gone && click.name.eq_ignore_ascii_case(name))
         {
             click.placement = a.player.placement();
             click.collision_type = c.collision_type;

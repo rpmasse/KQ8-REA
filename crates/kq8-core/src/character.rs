@@ -307,6 +307,18 @@ impl Character {
         }
     }
 
+    /// Scripted collision changes and restored fields share the loader's
+    /// derived mover switches (characters.md rule 8).
+    pub fn set_collision(&mut self, collision_type: u32, collision_mask: u32) {
+        self.collision_type = collision_type;
+        self.collision_mask = collision_mask;
+        self.hits_buildings = collision_mask & 0x8 != 0;
+        if let Some(mover) = self.mover.as_deref_mut() {
+            mover.terrain_in_passes = collision_mask & 0x800 != 0;
+            mover.falls = collision_type & 4 != 0;
+        }
+    }
+
     /// A random number 0..1 from its own draws (M5: random wander points,
     /// the fidget choice and times, the reaction delay).
     pub fn random(&mut self) -> f32 {
