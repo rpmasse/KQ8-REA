@@ -14,6 +14,18 @@ Daventry has two regional exits. Castle Daventry contains a required ingredient 
 
 ### Verified through the dead hero's ring
 
+On November 7 the complete regression passed in **951.45 seconds**
+starting from a fresh Normal New Game with all optional input slots
+unset. Nine Windows processes ran in order. Three covered the cottage,
+garden and Wizard, one the windmill, two the Henchman and yard, one
+the tomb door and two the coffin and disk reload. Each handoff used
+the preceding menu save. In the final save, `HeroRingReload`, Connor
+was alive at level 5 with 50 health and exactly one ring. The coffin
+was open, the door unlocked and the tomb archer gone. AI and ordinary
+damage stayed enabled. The local result is in
+`kq8-artifacts/new-game-ring-open-floor.log` and its final saves are
+in `kq8-artifacts/hero-coffin-reload/1793990934437532100/slots`.
+
 The source chain starts at Normal New Game. Each later process loads
 the preceding process's unchanged menu save. Connor acquired the
 Crystal, shield and eight mushrooms before the Wizard meeting. The
