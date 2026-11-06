@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-07 Road from the windmill to the hero's tomb
+
+Two automated runs loaded the WestYard slot earned from Normal New Game.
+The first stopped against a pine. The second walked around it, made a
+WestRoad menu save at 21 health and reached the hill below the tomb. The
+archer killed Connor on update 982, before he reached the steps. The
+hero's ring and the route into Dead City remain open. See
+[the route notes](docs/daventry-progression.md#road-to-the-heros-tomb)
+for the damage record and the original sources for more supplies.
+
 ## 2026-11-07 Earned Henchman defeat and west-yard reload
 
 The two-process Windows test passed in 131.52 seconds. The prepared
