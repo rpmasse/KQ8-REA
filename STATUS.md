@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-07 Earned the church Candle
+
+From the earned church roof, Connor used the second rope to descend,
+picked the Candle through the normal camera and kept it on a fresh
+launch. The four-process test passed in 180.60 seconds. His save
+contained the Candle, Rope and Hook and dead hero’s ring, with 60
+health at level 6. The next story check is pushing the urn and opening
+the route into the tomb. [Evidence and command](docs/daventry-progression.md#church-candle)
+
 ## 2026-11-07 First-person camera and combat
 
 F2 selects the original actor-relative camera and movement lists.

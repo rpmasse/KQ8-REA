@@ -1,4 +1,6 @@
 //! Earn the village shield with ordinary controls, save, then use it after a fresh launch.
+#[path = "support/church.rs"]
+mod church;
 #[path = "support/pickup_help.rs"]
 mod pickup_help;
 #[path = "support/first_person.rs"]
@@ -832,7 +834,7 @@ fn church_climb_resumes_from_its_saved_frame_on_the_wall() {
     check_saved_church_climb(false);
 }
 
-fn check_saved_church_climb(first_person: bool) {
+fn check_saved_church_climb(first_person: bool) -> PathBuf {
     let play = Play::new(if first_person { "church-climb-first-person" } else { "church-climb" });
     fs::create_dir_all(&play.slots).unwrap();
     let yard = earned_slot("KQ8_CHURCH_YARD_SLOT").unwrap_or_else(|| {
@@ -895,4 +897,5 @@ fn check_saved_church_climb(first_person: bool) {
     assert!(roof["position"][2].as_f64().unwrap() > start["position"][2].as_f64().unwrap());
     check_mill_rope_save(&roof);
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+    play.slots.join("slot-3.json")
 }
