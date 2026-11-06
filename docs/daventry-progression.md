@@ -29,6 +29,35 @@ Physical access can add prerequisites that an inventory check alone cannot show.
 
 ### Current continuation boundary after the Small Axe
 
+Two subsequent tests examined walking around the guard. Both started
+with the same earned Small Axe save, 30 health, enemy AI and normal
+damage. The first attempted a northern jump and collided with the
+separate left fence. Connor died at update 860. The second used the
+original building collision data to select a westward opening. The
+cutscene returned control at 603 and Connor crossed the outer doorway
+at 614. At 660 he had reached (138307, 250671) on the way to
+(133850, 251500). Three spear hits dealt 16, 9 and 15 damage. He died
+at 691. Neither run reached the hero's tomb. Stop changing these yard
+landmarks until there is new evidence.
+
+An independent way to prepare for the encounter is to collect the
+healing and armour supplies placed by the original game. Daventry's
+WorldInv.cs includes three individual mushrooms near the beginning,
+and shield potions at (292519, 197716, 15246) and (251242, 259475, 13540).
+The shield lasts 20 seconds and raises protection to at least 50.
+Verify acquisition and survival with ordinary controls before counting
+this as a campaign route.
+
+Two attempts to collect all four village supplies stopped before any
+item click. The first ran into Sarah's closed cottage door at 678.
+The second opened the door using its original toggle script and crossed
+the threshold at 550. Connor reached the east room, then stopped 397
+units short of a replay waypoint at 869. A sweep against the original
+cottage geometry confirms a clear line from the recorded camera to the
+potion center. The real click picker still has to resolve other objects
+along that line. The cottage-door route and the shield pickup can be
+checked separately.
+
 The New Game → wizard → windmill Small Axe route and reload passed again on
 2026-11-06 in 402.85 seconds. The new `daventry_hero_ring` scenario continues
 from that earned state into the original Henchtp/ax/Henchman cutscene, with

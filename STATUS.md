@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-07 West of the windmill
+
+The two ordinary attempts to get past the stationary guard stopped.
+The first jump hit the left fence. The second route crossed the
+windmill doorway outward and continued towards a clear westward
+opening. Three spear hits killed Connor before he reached that opening.
+The hero's ring and its reload remain unverified. The campaign notes
+record the two runs and the original village supplies that can be
+earned before entering the windmill.
+
+The separate four-item walking route stopped at the original cottage
+door, then at an interior waypoint on the second run. Opening Sarah's
+door and entering the east room are verified. Neither run clicked the
+potion. See the Daventry campaign notes for its reach and visibility
+check. Full encounter and campaign completion remain open.
+
 ## 2026-11-07 Ordinary combat death and delayed game over
 
 Connor's pending death and his accepted death animation now survive
