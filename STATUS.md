@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-07 Fresh Normal New Game through the watermill rope
+
+The unattended Windows test passed in 1405.41 seconds across 14 launches.
+It earned every prerequisite from an empty save directory and checked two
+ways of continuing after the tree fell. Connor collected the rope in the
+running world and after loading a tree save. Both routes opened the mill
+door, made the two jumps, entered the original rope trap and took the
+placed rope through a visible click. Each route then reloaded the result
+in a new process. Both final saves contained one rope and one dead hero’s
+ring, with Connor at level 5, 35 health and 122 experience toward his next
+level. The next campaign check is the church climb and the Candle.
+[Command and evidence](docs/daventry-progression.md#watermill-rope-and-hook)
+
 ## 2026-11-07 From the hero’s ring to the watermill
 
 A separate Windows regression took the fresh Normal campaign’s final
@@ -10,9 +23,8 @@ health, the ring, the axe and the tree-down flag. The original script
 loaded both fallen-tree objects and the dock. The Windows viewer now
 registers their physical surfaces during play. The original-data test
 matched both tree contacts and 375 walkable dock contacts against a
-world reloaded with the same objects. In a separate Windows run, Connor
-opened the mill door and jumped onto the stopped millstone. The rope
-pickup on the upper platform is the next campaign check.
+world reloaded with the same objects. The later rope test above covers
+the mill door, stopped millstone and upper platform in play.
 [Watermill route](docs/daventry-progression.md#watermill-tree)
 
 ## 2026-11-07 Fresh Normal New Game through the ring and disk reload

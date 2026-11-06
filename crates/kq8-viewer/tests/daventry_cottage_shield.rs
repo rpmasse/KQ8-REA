@@ -17,6 +17,10 @@ struct Play {
     slots: PathBuf,
 }
 
+fn earned_slot(variable: &str) -> Option<PathBuf> {
+    std::env::var_os(variable).filter(|path| !path.is_empty()).map(PathBuf::from)
+}
+
 impl Play {
     fn new(case: &str) -> Self {
         let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
@@ -164,7 +168,7 @@ fn cottage_basket_and_wizard_keep_the_earned_supplies() {
 }
 
 fn start_at_earned_shield(play: &Play) {
-    if let Some(slot) = std::env::var_os("KQ8_SHIELD_SLOT") {
+    if let Some(slot) = earned_slot("KQ8_SHIELD_SLOT") {
         fs::create_dir_all(&play.slots).unwrap();
         fs::copy(slot, play.slots.join("slot-1.json")).unwrap();
         play.check_shield();
@@ -339,8 +343,8 @@ fn earn_garden_wizard(play: &Play) {
 #[ignore = "requires KQ8_GAME_DIR and a graphics device; KQ8_PREPARED_AXE_SLOT can repeat the duel"]
 fn earned_supplies_defeat_the_henchman_and_reopen_the_west_yard() {
     let play = Play::new("prepared-henchman");
-    let earned = if let Some(existing) = std::env::var_os("KQ8_PREPARED_AXE_SLOT") {
-        PathBuf::from(existing)
+    let earned = if let Some(existing) = earned_slot("KQ8_PREPARED_AXE_SLOT") {
+        existing
     } else {
         let wizard = Play::new("guard-wizard");
         earn_prepared_wizard(&wizard);
@@ -515,8 +519,8 @@ fn hero_flag(save: &Value, name: &str, value: &str) -> bool {
 
 fn earn_hero_door() -> PathBuf {
     let hero = Play::new("crystal-hero-ring");
-    let yard = if let Some(path) = std::env::var_os("KQ8_CRYSTAL_YARD_SLOT") {
-        PathBuf::from(path)
+    let yard = if let Some(path) = earned_slot("KQ8_CRYSTAL_YARD_SLOT") {
+        path
     } else {
         let garden = Play::new("hero-garden");
         earn_garden_wizard(&garden);
@@ -566,7 +570,7 @@ fn earned_crystal_to_hero_ring_and_fresh_reload() {
 
 fn earn_hero_ring() -> PathBuf {
     let hero = Play::new("hero-coffin-reload");
-    let source = std::env::var_os("KQ8_HERO_DOOR_SLOT").map(PathBuf::from).unwrap_or_else(earn_hero_door);
+    let source = earned_slot("KQ8_HERO_DOOR_SLOT").unwrap_or_else(earn_hero_door);
     fs::create_dir_all(&hero.slots).unwrap();
     fs::copy(source, hero.slots.join("slot-1.json")).unwrap();
     let start = hero.slot(1);
@@ -644,8 +648,12 @@ fn earn_hero_ring() -> PathBuf {
 #[test]
 #[ignore = "requires GOG assets and graphics; KQ8_HERO_RING_SLOT repeats the watermill leg"]
 fn earned_hero_ring_to_watermill_tree() {
+    let ring = earned_slot("KQ8_HERO_RING_SLOT").unwrap_or_else(earn_hero_ring);
+    earn_mill_tree(&ring);
+}
+
+fn earn_mill_tree(ring: &Path) -> PathBuf {
     let mill = Play::new("hero-ring-watermill");
-    let ring = std::env::var_os("KQ8_HERO_RING_SLOT").map(PathBuf::from).unwrap_or_else(earn_hero_ring);
     fs::create_dir_all(&mill.slots).unwrap();
     fs::copy(ring, mill.slots.join("slot-1.json")).unwrap();
     let start = mill.slot(1);
@@ -682,4 +690,82 @@ fn earned_hero_ring_to_watermill_tree() {
     assert_eq!(saved["journey"]["ai_off"], false);
     assert_eq!(saved["journey"]["god_mode"], false);
     assert_eq!(fs::read(mill.game.join("Options.cs")).unwrap(), mill.options);
+    mill.slots.join("slot-2.json")
+}
+
+fn take_mill_rope(play: &Play, source: &Path, from_ring: bool) {
+    fs::create_dir_all(&play.slots).unwrap();
+    fs::copy(source, play.slots.join("slot-1.json")).unwrap();
+    let start = play.slot(1);
+    assert_eq!(start["label"], if from_ring { "HeroRingReload" } else { "MillTree" });
+    assert!(carries_one(&start, "INVITEM_RingOfDeadHero") && carries_one(&start, "INVITEM_SmallAx"));
+    assert!(!carries_one(&start, "INVITEM_RopeAndHook"));
+    assert_eq!(start["journey"]["ai_off"], false);
+    assert_eq!(start["journey"]["god_mode"], false);
+    assert!(hero_flag(&start, "Daventry::MillTree::down", if from_ring { "0" } else { "1" }));
+
+    let routes = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/routes");
+    let climb: Value = serde_json::from_slice(&fs::read(routes.join("daventry_mill_rope.json")).unwrap()).unwrap();
+    let route = if from_ring {
+        let mut trip: Value = serde_json::from_slice(&fs::read(routes.join("daventry_ring_watermill.json")).unwrap()).unwrap();
+        trip["landmarks"].as_array_mut().unwrap().extend_from_slice(climb["landmarks"].as_array().unwrap());
+        trip
+    } else { climb };
+    let path = play.root.join("route.json");
+    fs::write(&path, serde_json::to_vec(&route).unwrap()).unwrap();
+    let save_at = if from_ring { 2200 } else { 900 };
+    let save = format!("menu:down:down:down:enter:release:enter:release:escape:type=MillRope:enter:release:escape,{save_at}");
+    let quit = format!("menu:up:enter:release:left:enter:release,{}", save_at + 15);
+    let (viewer, items) = play.run("climb", &[
+        "--menu-input", "down,enter,release,enter,release", "--walk-route", path.to_str().unwrap(),
+        "--key", "popup:help=132,0", "--key", "popup:help=139,0", "--key", "popup:help=128,0",
+        "--key", &save, "--key", &quit, "--frames", "11500",
+    ]);
+    assert_eq!(viewer.matches("walk-route landed on update").count(), 2);
+    for target in ["Watmdoor", "ropenhok"] {
+        assert!(viewer.lines().any(|line| line.contains(&format!("test --aim {target} (camera through gameplay pixel"))
+            && line.contains(&format!("hits {target} first"))), "{target}");
+    }
+    if from_ring {
+        assert!(viewer.lines().any(|line| line.contains("loadKQ: Dock3 came in:")
+            && line.contains("registered collision [\"interior BSP\"]")));
+    }
+    let logs = play.root.join("climb/kq8-artifacts/logs");
+    let traps = fs::read_to_string(logs.join("traps.log")).unwrap();
+    assert!(traps.contains("trap miltrap2: On Connor"));
+    assert!(items.contains("ropenhok.cs line 4: give"));
+    assert_eq!(items.matches("INVITEM_RopeAndHook 0 -> 1").count(), 1);
+    let saved = play.slot(2);
+    assert_eq!(saved["label"], "MillRope");
+    check_mill_rope_save(&saved);
+    let (reload, items) = play.run("reload", &[
+        "--menu-input", "down,enter,release,down,enter,release",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=MillRopeReload:enter:release:escape,45",
+        "--key", "menu:up:enter:release:left:enter:release,60", "--frames", "1500",
+    ]);
+    assert!(reload.contains("save restored in Daventry without replaying Begin"));
+    assert!(!items.contains("INVITEM_RopeAndHook 0 -> 1"));
+    let restored = play.slot(3);
+    assert_eq!(restored["label"], "MillRopeReload");
+    check_mill_rope_save(&restored);
+    assert_eq!(restored["journey"]["stats"]["stats"][4], saved["journey"]["stats"]["stats"][4]);
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+fn check_mill_rope_save(save: &Value) {
+    assert!(carries_one(save, "INVITEM_RopeAndHook") && carries_one(save, "INVITEM_RingOfDeadHero"));
+    assert!(hero_flag(save, "Daventry::MillTree::down", "1"));
+    assert!(save["kept"]["daventry"]["gone"].as_array().unwrap().iter().any(|name| name == "ropenhok"));
+    assert!(save["journey"]["stats"]["stats"][0].as_i64().unwrap() > 0);
+    assert_eq!(save["journey"]["god_mode"], false);
+    assert_eq!(save["journey"]["ai_off"], false);
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_HERO_RING_SLOT and KQ8_MILL_TREE_SLOT"]
+fn earned_mill_rope_on_live_and_reloaded_scenery() {
+    let ring = earned_slot("KQ8_HERO_RING_SLOT").unwrap_or_else(earn_hero_ring);
+    let tree = earned_slot("KQ8_MILL_TREE_SLOT").unwrap_or_else(|| earn_mill_tree(&ring));
+    take_mill_rope(&Play::new("mill-rope-reloaded"), &tree, false);
+    take_mill_rope(&Play::new("mill-rope-live"), &ring, true);
 }

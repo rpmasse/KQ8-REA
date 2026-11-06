@@ -1,0 +1,14 @@
+{
+  "start": 3,
+  "landmarks": [
+    { "name": "East bank", "xy": [191980, 236300], "radius": 210 },
+    { "name": "East of the watermill", "xy": [193440, 234860], "radius": 190 },
+    { "name": "Open the watermill door", "xy": [193800, 227700], "radius": 180, "aim": "Watmdoor" },
+    { "name": "Mill doorway", "xy": [192200, 227480], "radius": 140 },
+    { "name": "Jump from the floor to the stopped millstone", "xy": [191140, 229700], "radius": 145, "jump_toward": [188650, 229700] },
+    { "name": "South of the mill gear", "xy": [189800, 229050], "radius": 115 },
+    { "name": "Walk along the exposed edge of the stone", "xy": [188950, 229090], "radius": 115 },
+    { "name": "Jump from the millstone to the rope platform", "xy": [188630, 229235], "radius": 85, "jump_toward": [188805, 227240] },
+    { "name": "Take rope from the mill", "xy": [187950, 227940], "radius": 320, "aim": "ropenhok" }
+  ]
+}
