@@ -792,6 +792,65 @@ impl Lips {
     }
 }
 
+/// Connor.kq selects a different set of movement files for each view (Q193).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ConnorAnimLists {
+    pub stowed: Option<String>,
+    pub hand: Vec<(String, String)>,
+    pub ranged: Vec<(String, String)>,
+}
+
+impl ConnorAnimLists {
+    pub fn from_file(file: &[Section], actor: &Section, first_person: bool) -> Self {
+        let [stowed, hand, ranged] = if first_person {
+            ["FpAnimList", "ShortFpAnimList", "LongFpAnimList"]
+        } else {
+            ["AnimList", "ShortAnimList", "LongAnimList"]
+        };
+        let read = |key: &str| -> Vec<(String, String)> {
+            let Some(list) = actor
+                .get(key)
+                .and_then(|name| file.iter().find(|s| s.name.eq_ignore_ascii_case(name.trim())))
+            else {
+                return Vec::new();
+            };
+            let mut rows = Vec::new();
+            for (key, value) in &list.entries {
+                let Some(index) = key
+                    .to_ascii_lowercase()
+                    .strip_prefix("animlist")
+                    .and_then(|n| n.parse::<usize>().ok())
+                else {
+                    continue;
+                };
+                let mut words = value.split_whitespace();
+                if let (Some(item), Some(filename)) = (words.next(), words.next()) {
+                    rows.push((index, (item.to_owned(), filename.to_owned())));
+                }
+            }
+            rows.sort_by_key(|(index, _)| *index);
+            rows.into_iter().map(|(_, row)| row).collect()
+        };
+        Self {
+            stowed: read(stowed).into_iter().next().map(|(_, file)| file),
+            hand: read(hand),
+            ranged: read(ranged),
+        }
+    }
+
+    /// The actual file named for the selected item. An unlisted type has no match.
+    pub fn equipped<'a>(list: &'a [(String, String)], item: &str) -> Option<&'a str> {
+        let prefix = crate::items::PREFIX;
+        let item = match item.split_at_checked(prefix.len()) {
+            Some((head, name)) if head.eq_ignore_ascii_case(prefix) => name,
+            _ => item,
+        };
+        list.iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(item))
+            .map(|(_, file)| file.as_str())
+    }
+}
+
 /// A `.anm` movement list (`KQAnimLoopList`, the same format as
 /// `Conner.anm`, rule 6): its section's name and every movement in list
 /// order.
@@ -1249,6 +1308,105 @@ impl OrbitKeys {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn connor_view_lists_follow_the_named_sections_and_entry_numbers() {
+        let file = kq_text::parse(b"[Actor]\nAnimList=Body\nFpAnimList=Eyes\nShortFpAnimList=Hands\n[Body]\nAnimList0=None body.anm\n[Eyes]\nAnimList1=None later.anm\nAnimList0=None stowed.anm\n[Hands]\nAnimListExtra=Wrong wrong.anm\nAnimList2=Knife blade.anm\n");
+        let first = ConnorAnimLists::from_file(&file, &file[0], true);
+        let third = ConnorAnimLists::from_file(&file, &file[0], false);
+        assert_eq!(third.stowed.as_deref(), Some("body.anm"));
+        assert_eq!(first.stowed.as_deref(), Some("stowed.anm"));
+        assert_eq!(first.hand.len(), 1);
+        assert_eq!(
+            ConnorAnimLists::equipped(&first.hand, "invitem_KNIFE"),
+            Some("blade.anm")
+        );
+        assert_eq!(ConnorAnimLists::equipped(&first.hand, "Wrong"), None);
+        assert!(first.ranged.is_empty() && third.hand.is_empty());
+    }
+
+    #[test]
+    #[ignore = "requires the original GOG installation in KQ8_GAME_DIR"]
+    fn connor_view_files_resolve_the_original_first_person_movements_and_arm_skins() {
+        let game = crate::GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let read = |name: &str| {
+            let path = game
+                .find(&format!("GAME/Kq/{name}"))
+                .unwrap_or_else(|| panic!("{name}"));
+            std::fs::read(path).unwrap()
+        };
+        let file = kq_text::parse(&read("Connor.kq"));
+        let actor = &file[0];
+        let third = ConnorAnimLists::from_file(&file, actor, false);
+        let first = ConnorAnimLists::from_file(&file, actor, true);
+        assert_eq!(third.stowed.as_deref(), Some("conner.anm"));
+        assert_eq!(first.stowed.as_deref(), Some("connerFp.anm"));
+        for lists in [&third, &first] {
+            assert_eq!((lists.hand.len(), lists.ranged.len()), (13, 10));
+            for name in lists
+                .stowed
+                .iter()
+                .chain(lists.hand.iter().chain(&lists.ranged).map(|(_, f)| f))
+            {
+                let bank = AnimList::parse(&read(name)).unwrap_or_else(|e| panic!("{name}: {e}"));
+                assert!(!bank.movements.is_empty(), "{name}");
+            }
+        }
+        for (list, item, expected) in [
+            (&first.hand, "Fists", "conFisFp.anm"),
+            (&first.hand, "SmallAx", "conAxeFp.anm"),
+            (&first.ranged, "SmCrossBow", "Consbowfp.anm"),
+            (&first.ranged, "ShortBow", "Coscbwfp.anm"),
+            (&first.ranged, "NoRanged", "connerFp.anm"),
+        ] {
+            assert_eq!(ConnorAnimLists::equipped(list, item), Some(expected));
+        }
+        let bank = AnimList::parse(&read(first.stowed.as_deref().unwrap())).unwrap();
+        let stop = bank.current(Some("stop")).unwrap();
+        assert!(!stop.fell_back && stop.shape.eq_ignore_ascii_case("fp_stop.kqs"));
+        let skin_section = actor.get("skinList_firstperson").unwrap();
+        let skins =
+            SkinList::from_section(file.iter().find(|s| s.name.eq_ignore_ascii_case(skin_section)).unwrap()).unwrap();
+        assert_eq!(skins.entries.len(), 76);
+        for (bits, material) in [
+            (0, "armcon0.bmp"),
+            (1, "armcon1.bmp"),
+            (2, "armcon0.bmp"),
+            (3, "armcon1.bmp"),
+            (2048, "armconfx.bmp"),
+        ] {
+            assert!(skins.exact(bits).is_some_and(|s| s.eq_ignore_ascii_case(material)));
+        }
+        let sword_bank = ConnorAnimLists::equipped(&first.hand, "BroadSword").unwrap();
+        let sword = AnimList::parse(&read(sword_bank))
+            .unwrap()
+            .current(Some("attack"))
+            .unwrap();
+        assert!(!sword.fell_back && sword.shape.eq_ignore_ascii_case("fp_bsatk.kqs"));
+        let model = |name: &str| {
+            let path = game.find(&format!("GAME/Common/{name}")).unwrap();
+            crate::Shape::parse(&std::fs::read(path).unwrap()).unwrap()
+        };
+        let sword = model(&sword.shape);
+        for part in ["body", "bsword"] {
+            assert!(sword.nodes.iter().any(|n| usize::try_from(n.name)
+                .ok()
+                .and_then(|i| sword.names.get(i))
+                .is_some_and(|s| s.eq_ignore_ascii_case(part))));
+        }
+        let has_material = |model: &crate::Shape, name: &str| {
+            model
+                .materials
+                .as_ref()
+                .unwrap()
+                .materials
+                .iter()
+                .any(|m| m.texture.eq_ignore_ascii_case(name))
+        };
+        let base = skins.exact(0).unwrap();
+        assert!(has_material(&model(&stop.shape), base) && has_material(&sword, base));
+        assert!(has_material(&sword, "Monstr01.bmp"));
+    }
 
     #[test]
     fn scripted_monster_add_uses_the_monster_list_fields() {

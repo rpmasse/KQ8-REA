@@ -2066,14 +2066,13 @@ pub fn door_click_input(
 /// `LongAnimList` (M5 5f-4); none: his own (`None`).
 pub(crate) fn weapon_list(w: &kq8_core::active::WorldState) -> Option<String> {
     let ready = w.weapon_ready.as_deref()?;
-    let short = ready.strip_prefix(kq8_data::items::PREFIX).unwrap_or(ready);
     let f = w.connor_fight.as_ref()?;
     let lists = match w.weapon_mode {
         kq8_core::weapons::WeaponMode::Hand => &f.short_lists,
         kq8_core::weapons::WeaponMode::Ranged => &f.long_lists,
         kq8_core::weapons::WeaponMode::None => return None,
     };
-    lists.iter().find(|(n, _)| n.eq_ignore_ascii_case(short)).map(|(_, f)| f.clone())
+    kq8_data::characters::ConnorAnimLists::equipped(lists, ready).map(str::to_owned)
 }
 
 /// One update of the doors (15 per second), before Connor's: clicks,

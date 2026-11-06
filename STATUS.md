@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-07 Connor's original view-specific asset tables
+
+The viewer's third-person base and weapon movement lists come from
+the sections named by the installed Connor.kq. Automated checks also
+resolved every first-person weapon file, the arm skin entries and
+the authored idle and broadsword attack models from GAME/Common.
+The README gives the source-check command. First-person camera and
+controller integration remain open.
+
 ## 2026-11-07 Garden supplies through the windmill and Henchman
 
 The GardenWizard save led to thirteen mushrooms at the hillside,
