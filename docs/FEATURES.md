@@ -7,6 +7,15 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Standing combat reactions (2026-11-06)
+
+Wait repairs its attack deadline only when a hit actually selects a reaction;
+uninterruptible, locked or low-roll hits retain the pending attack. Five core
+cases pass. Native artifacts retain Henchman's damaged health and attack
+through loading, with one Do and ordinary completion. The combined retreat
+fixture failed twice because backward was still held at impact; it remains
+stopped in STATUS and does not prove an encounter or campaign pass.
+
 ## Directional-choice saves (2026-11-06)
 
 Choice scenes retain their original point list, measured circle, decision,
