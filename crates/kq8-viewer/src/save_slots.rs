@@ -66,8 +66,16 @@ pub(super) struct Snapshot {
     footstep_types: Option<BTreeMap<String, i64>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     traps: Option<kq8_core::trap::SavedTraps>,
+    /// The start of the next sweep. A script or rope can place Connor
+    /// inside a new trap without entering it until he next moves.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    trap_checked_at: Option<[f32; 3]>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     rope_place: Option<kq8_core::rope::SavedRope>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    rope_climb: Option<connor_view::SavedClimb>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    rope_camera_locked: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     speech: Option<kq8_core::talk::SavedTalk>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -103,8 +111,19 @@ impl Snapshot {
     }
 
     fn validate(&self) -> Result<(), String> {
+        if self.trap_checked_at.is_some_and(|p| !p.into_iter().all(f32::is_finite)) {
+            return Err("save has invalid trap sweep position".into());
+        }
         if self.rope_place.as_ref().is_some_and(|r| !r.valid()) {
             return Err("save has invalid rope place settings".into());
+        }
+        if let Some(climb) = &self.rope_climb {
+            if !climb.valid() || self.rope_place.is_none() || self.camera.is_none()
+                || self.special.is_some() || self.swing.is_some() || self.shot.is_some()
+                || self.talk_pose.is_some() || self.choice.is_some() || self.combat_death.is_some()
+                || self.hit_timing.as_ref().is_some_and(|t| t.has_reaction_pose()) {
+                return Err("save has inconsistent rope climb or movement ownership".into());
+            }
         }
         if self.journey.help_history.as_ref().is_some_and(|history| !history.valid()) {
             return Err("save has invalid tutorial flags or duplicate held cases".into());
@@ -311,6 +330,13 @@ impl Snapshot {
             active.world.rope = saved.restore(active.world.now());
             active.world.rope_note(format!("restored rope place: {}", active.world.rope.status.name()));
         }
+        if let Some(locked) = self.rope_camera_locked {
+            active.world.rope_first_person_lock = locked;
+        }
+        if let Some(climb) = &self.rope_climb {
+            active.world.connor_roping = true;
+            active.world.connor_on_rope = climb.on_rope();
+        }
         // Older slots already retain the explicit hit-death list marker.
         // Health zero alone is alive and must never imply this state.
         active.world.connor_dying = self.connor_dying.unwrap_or_else(|| self.combat_death.is_some()
@@ -357,6 +383,7 @@ impl Snapshot {
             if let Some(traps) = &self.traps {
                 let w = &mut sim.active.world;
                 traps.restore(&mut w.traps, &w.known)?;
+                sim.connor_checked_at = self.trap_checked_at;
             }
             if let Some(drains) = &self.drains {
                 sim.active.world.restore_drains(drains, self.special.is_some())?;
@@ -393,10 +420,13 @@ impl Snapshot {
             }
             if let Some(pose) = &self.talk_pose { connor.restore_talk_pose(pose)?; }
             if let Some(choice) = &self.choice { connor.restore_choice(choice)?; }
+            if let Some(climb) = &self.rope_climb { connor.restore_climb(climb)?; }
         } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.combat_death.is_some()
             || self.pending_combat_death.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() || self.choice.is_some()
             || self.hit_timing.as_ref().is_some_and(|timing| timing.has_reaction_pose()) {
             return Err("Connor is unavailable while restoring his attack".into());
+        } else if self.rope_climb.is_some() {
+            return Err("Connor is unavailable while restoring his rope climb".into());
         }
         if let Some(saved) = &self.camera {
             world.get_resource_mut::<crate::game_camera::GameCam>().ok_or("camera unavailable on restore")?.restore(saved)?;
@@ -604,7 +634,10 @@ pub fn save_slot_with_thumbnail(
         shadows_allowed: Some(sim.active.world.shadows_allowed),
         footstep_types: Some(sim.active.world.footstep_types.clone()),
         traps: Some(kq8_core::trap::SavedTraps::capture(&sim.active.world.traps)),
+        trap_checked_at: sim.connor_checked_at,
         rope_place: Some(kq8_core::rope::SavedRope::capture(&sim.active.world.rope, sim.active.world.now())),
+        rope_climb: connor.saved_climb()?,
+        rope_camera_locked: Some(sim.active.world.rope_first_person_lock),
         speech: Some(sim.active.world.talk.saved(sim.active.world.now())),
         speech_sources: world.get_resource::<crate::talk_view::Speech>().map(|s| s.sources.clone()),
         conversation: Some(sim.active.world.saved_conversation()),
@@ -768,6 +801,32 @@ mod tests {
                 "blocked":[false,false],"moving":{"state":"Normal","on_ground":true,"use_gravity":true,"keep_on_ground":true,
                     "fall_timer":0.,"air_updates":0,"pull":[0.,0.,-1.],"submerged":false}}});
         serde_json::from_value(json).unwrap()
+    }
+
+    #[test]
+    fn rope_climb_rejects_a_mismatched_stage_model_or_controller_pose() {
+        use connor_view::SavedClimb;
+        let mut pose = serde_json::to_value(choice_fixture()).unwrap()["choice"]["pose"].clone();
+        pose["movement"] = "conrope.anm/climb".into();
+        let mut json = serde_json::json!({
+            "state": {"from":"Bottom", "stage":"Hanging", "place":[1,2,3], "dir":[0,0,0],
+                "cam":[null,null], "top_limit":0, "bottom_limit":0, "hand_before":"None",
+                "weapon_before":null, "first_to_third":false, "aim":[1,2,3], "range":[4,8],
+                "saved_steps":[325,325], "done":false},
+            "pose":pose, "steps":[0,0], "direction":0, "was_climbing":false, "model":null, "ended":[]
+        });
+        let valid = |value: &serde_json::Value| serde_json::from_value::<SavedClimb>(value.clone()).unwrap().valid();
+        assert!(valid(&json));
+        json["pose"]["movement"] = "stop".into();
+        assert!(!valid(&json));
+        json["state"]["stage"] = "RopeModel".into();
+        json["model"] = serde_json::json!(["conrope.anm/rope",0.1,0.2]);
+        assert!(valid(&json));
+        json["model"][1] = 0.5.into();
+        assert!(!valid(&json));
+        json["model"][1] = 0.1.into();
+        json["state"]["from"] = "Top".into();
+        assert!(!valid(&json));
     }
 
     #[test]
@@ -1051,7 +1110,10 @@ mod tests {
             shadows_allowed: None,
             footstep_types: None,
             traps: None,
+            trap_checked_at: None,
             rope_place: None,
+            rope_climb: None,
+            rope_camera_locked: None,
             speech: None,
             speech_sources: None,
             conversation: None,

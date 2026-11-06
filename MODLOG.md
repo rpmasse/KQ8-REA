@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-07 Resume the church climb after a disk save
+
+Connor formerly stood on the roof immediately after loading a save
+made while hanging. The slot now carries the active rope controller,
+animation phase, mover, camera range, step heights and lock. Its trap
+check also resumes from the last checked position. This prevents a
+stationary load inside a new trigger from firing its script early.
+The church regression passed in 82.10 seconds. It checks the original
+throw, a mid-climb menu save, frame 22 advancing to 23 after restart,
+and an ordinary dismount with both step heights restored. An attempted
+menu save during the throw correctly remained unavailable.
+
 ## 2026-11-07 Keep the church rope place through a menu save
 
 A fresh load inside the church trigger preserved the item but lost

@@ -76,6 +76,9 @@ pub struct Controls {
 #[path = "conversation_pose.rs"]
 mod conversation_pose;
 pub use conversation_pose::{SavedTalkPose, SavedControllerPose};
+#[path = "rope_checkpoint.rs"]
+mod rope_checkpoint;
+pub use rope_checkpoint::SavedClimb;
 
 #[path = "choice_checkpoint.rs"]
 mod choice_checkpoint;

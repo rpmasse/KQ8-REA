@@ -97,7 +97,7 @@ pub struct DoorSim {
     /// `traps.log`; `None` if it could not be made.
     trap_log: Option<Log>,
     /// Where the traps last checked Connor.
-    connor_checked_at: Option<[f32; 3]>,
+    pub(crate) connor_checked_at: Option<[f32; 3]>,
     /// `items.log`; `None` if it could not be made.
     item_log: Option<Log>,
     /// `rope.log` (M6 6a).

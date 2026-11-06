@@ -111,6 +111,25 @@ repeat. Without the variable the command first earns its own starting
 slot. That combined invocation has not been timed. This check ends
 with the rope selected at the church wall, before the climb.
 
+### Church roof
+
+Connor selected the rope at the wall and clicked into the world. The
+original `Conrope.anm` throw and grab ran once. The menu is unavailable
+during the throw while his controls are disabled. Once hanging, he
+climbed to frame 22 and saved. Previously a fresh load put him in a
+normal standing pose. The Rust slot now restores the rope controller,
+its current movement, the camera's aim and range, and his step heights.
+The next forward input advanced to frame 23. He reached the top on
+update 60. The roof trigger fired on update 106 as he moved there.
+Both step heights returned to 325 and control returned on update 115.
+The roof save retained the rope, the ring, 35 health and 122 experience.
+
+The test passed across two Windows launches in 82.10 seconds from the
+earned `ChurchYard` in the preceding section. To repeat just this leg,
+set `KQ8_CHURCH_YARD_SLOT` to that slot before running the church climb
+test in the README. Without it the test earns the churchyard save first.
+The remaining church route uses another rope to reach the interior.
+
 ### Earlier ring checks
 
 The source chain starts at Normal New Game. Each later process loads
