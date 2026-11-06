@@ -7,6 +7,15 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Combat death saves (2026-11-06)
+
+Hit deaths retain their animation list, phase and dying hit guard after
+loading, including older death-list slots. Death discards unfinished melee
+and ranged actions. Eight original-asset cases passed with enemy AI off;
+later hits are ignored and each sequence finishes once into the death menu.
+Original game-over timing/save eligibility still need Q192 study. Falling,
+scripted Die Now holds and other overlapping controllers are not covered.
+
 ## Scripted character collision flags (2026-11-06)
 
 Scripts change the live character's collision type/mask, updating targeting,
