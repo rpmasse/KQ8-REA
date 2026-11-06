@@ -39,6 +39,7 @@ use crate::Shared;
 #[derive(Debug, Clone)]
 pub struct PortalArrival {
     pub portal: String,
+    pub departure_trap: Option<String>,
     /// `KQPortal::ConLoc`: x, y, z, tilt x, tilt y, heading.
     pub con_loc: [f32; 6],
     /// `KQPortal::CamLoc`.
@@ -53,6 +54,7 @@ impl PortalArrival {
         let six = |l: [f64; 3], d: [f64; 3]| [l[0], l[1], l[2], d[0], d[1], d[2]].map(|v| v as f32);
         PortalArrival {
             portal: p.name.clone(),
+            departure_trap: None,
             con_loc: six(p.dest_connor_loc, p.dest_connor_dir),
             cam_loc: six(p.dest_cam_loc, p.dest_cam_dir),
             exit_anim: p.exit_anim.clone(),
@@ -190,10 +192,11 @@ pub fn leave_step(sim: Option<ResMut<DoorSim>>, connor: Option<Res<ConnorSim>>, 
             let mut log = shared.log.lock().unwrap();
             match world_of(&state.keys) {
                 Ok(to) => {
-                    let arrival = PortalArrival::from_keys(&state.keys);
+                    let mut arrival = PortalArrival::from_keys(&state.keys);
+                    arrival.departure_trap = state.trap;
                     log.summary(format!(
-                        "portal {} (trap {:?}): the hand-over: to {to}, ConLoc {:?}, CamLoc {:?} (world-change.md rules 5-6); Connor taken off the trap without Off (rule 5.3: the old world is taken down)",
-                        state.portal, state.trap, arrival.con_loc, arrival.cam_loc
+                        "portal {} (trap {:?}): the hand-over: to {to}, ConLoc {:?}, CamLoc {:?} (world-change.md rules 5-6)",
+                        state.portal, arrival.departure_trap, arrival.con_loc, arrival.cam_loc
                     ));
                     change.asked = Some(crate::world_build::Request { world: to, at: None, why: format!("portal {}", state.portal), portal: Some(Box::new(arrival)) });
                 }

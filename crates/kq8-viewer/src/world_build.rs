@@ -183,6 +183,10 @@ pub struct KeptWorld {
     pub prop_placements: std::collections::BTreeMap<String, kq8_core::collide::Placement>,
     #[serde(default)]
     pub terrain_changes: kq8_core::ground_anim::GroundChanges,
+    /// Trap state of a departed region. The current disk snapshot has its
+    /// own full trap list, including objects outside the persist manager.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub traps: Option<kq8_core::trap::SavedTraps>,
 }
 
 impl KeptWorld {
@@ -220,6 +224,11 @@ impl KeptWorld {
             interactions: kq8_core::kept_interactions::KeptInteractions::take(&active.world),
             prop_placements,
             terrain_changes: active.world.terrain_changes.clone(),
+            traps: (!disk_save).then(|| kq8_core::trap::SavedTraps::capture(
+                active.world.traps.iter().filter(|trap| {
+                    active.world.persistent_stat_objects.contains(&trap.settings.name.to_ascii_lowercase())
+                })
+            )),
         }
     }
 }
@@ -254,7 +263,8 @@ pub fn playing(change: Res<WorldChange>, menu: Option<Res<crate::startup_menu::M
 /// is not open (`world-change.md` rule 26: the game pauses; the panels
 /// and the sounds go on).
 pub fn running(change: Res<WorldChange>, sim: Option<Res<crate::door_view::DoorSim>>, menu: Option<Res<crate::startup_menu::Menu>>, gui: Option<Res<crate::gui_view::Gui>>) -> bool {
-    playing(change, menu) && !sim.is_some_and(|s| s.active.world.portal_asking())
+    !change.asked.as_ref().is_some_and(|r| r.portal.is_some()) && playing(change, menu)
+        && !sim.is_some_and(|s| s.active.world.portal_asking())
         && !gui.is_some_and(|g| g.popup.is_some())
 }
 
@@ -713,6 +723,19 @@ pub fn world_change_step(world: &mut World) {
                 (Box::new(j), connor_summary(w))
             });
             // Rules 12-13 (6e-8): the world's variables and what left it.
+            // The accepted handover is queued during a fixed update. Finish
+            // that event, then detach immediately before capturing the old
+            // world, so its movement sweep cannot produce a second On.
+            if let Some(name) = request.portal.as_ref().and_then(|portal| portal.departure_trap.as_deref()) {
+                let removed = world.get_resource_mut::<crate::door_view::DoorSim>().is_some_and(|mut sim| {
+                    let Some(trap) = sim.active.world.traps.iter_mut()
+                        .find(|trap| trap.settings.name.eq_ignore_ascii_case(name)) else { return false };
+                    let occupants = trap.inside.len();
+                    trap.inside.retain(|who| !who.eq_ignore_ascii_case("Connor"));
+                    trap.inside.len() < occupants
+                });
+                log.lock().unwrap().summary(format!("world change: {name}: removed Connor from departure trap: {removed}"));
+            }
             let previous = world.resource::<WorldChange>().kept.get(&from.to_ascii_lowercase());
             let kept = world.get_resource::<crate::door_view::DoorSim>().map(|sim| KeptWorld::take(&sim.active, &from, previous));
             if let Some(k) = kept {
@@ -810,7 +833,13 @@ pub fn world_change_step(world: &mut World) {
             let (name, shared_log, thread_percent) = (request.world.clone(), log.clone(), percent.clone());
             let read = std::thread::Builder::new().name("world read".into()).spawn(move || {
                 let mut log = shared_log.lock().unwrap();
-                GameDir::open(&opts.game).map_err(|e| e.to_string()).and_then(|game| read_world(&game, &name, &opts, arrival, Some(thread_percent), &mut log))
+                let game = GameDir::open(&opts.game).map_err(|e| e.to_string())?;
+                let mut read = read_world(&game, &name, &opts, arrival, Some(thread_percent), &mut log)?;
+                if let Some(saved) = &kept.traps {
+                    saved.restore_for_arrival(&mut read.objects.traps)?;
+                    log.summary(format!("world change: restored persistent traps in {name} before Init"));
+                }
+                Ok(read)
             });
             let read = match read {
                 Ok(handle) => handle,
@@ -920,11 +949,19 @@ pub fn world_change_step(world: &mut World) {
                 return;
             }
             let kept = world.resource::<WorldChange>().kept.get(&request.world.to_ascii_lowercase()).cloned().unwrap_or_default();
-            if !kept.characters.is_empty() || !kept.spawned_monsters.is_empty() || kept.active_list.is_some() {
-                if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
-                    sim.active.world.restore_placed_characters(&kept.characters);
-                    sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
-                    if let Some(list) = kept.active_list.as_deref() { sim.active.world.restore_active_list(list); }
+            if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
+                let w = &mut sim.active.world;
+                if !kept.characters.is_empty() || !kept.spawned_monsters.is_empty() || kept.active_list.is_some() {
+                    w.restore_placed_characters(&kept.characters);
+                    w.restore_spawned_monsters(&kept.spawned_monsters);
+                    if let Some(list) = kept.active_list.as_deref() { w.restore_active_list(list); }
+                }
+                if kept.traps.is_some() {
+                    let surviving: std::collections::BTreeSet<_> = w.known.iter()
+                        .filter(|name| !w.is_deleted(name)).cloned().collect();
+                    for trap in &mut w.traps {
+                        trap.inside.retain(|name| surviving.contains(&name.to_ascii_lowercase()));
+                    }
                 }
             }
             // Rule 9: `Begin` on every arrival.

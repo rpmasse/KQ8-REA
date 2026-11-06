@@ -19,8 +19,8 @@ pub struct SavedTraps {
 }
 
 impl SavedTraps {
-    pub fn capture(traps: &[Trap]) -> Self {
-        Self { states: traps.iter().map(|t| State { name: t.settings.name.to_ascii_lowercase(),
+    pub fn capture<'a>(traps: impl IntoIterator<Item = &'a Trap>) -> Self {
+        Self { states: traps.into_iter().map(|t| State { name: t.settings.name.to_ascii_lowercase(),
             inside: t.inside.clone(), shrunk: t.shrunk, gone: t.gone, mask: t.settings.mask, spirit: t.settings.spirit }).collect() }
     }
 
@@ -36,6 +36,16 @@ impl SavedTraps {
     }
 
     pub fn restore(&self, traps: &mut [Trap], known: &BTreeSet<String>) -> Result<(), String> {
+        self.apply(traps, |name| known.contains(&name.to_ascii_lowercase()))
+    }
+
+    /// Region objects read their fields before Init. Occupant references can
+    /// name actors recreated later in the load. Resolve those before Begin.
+    pub fn restore_for_arrival(&self, traps: &mut [Trap]) -> Result<(), String> {
+        self.apply(traps, |_| true)
+    }
+
+    fn apply(&self, traps: &mut [Trap], keep_occupant: impl Fn(&str) -> bool) -> Result<(), String> {
         if !self.valid() { return Err("invalid saved trap state".into()); }
         for t in &self.states {
             if !t.gone && !traps.iter().any(|v| v.settings.name.eq_ignore_ascii_case(&t.name)) {
@@ -47,7 +57,7 @@ impl SavedTraps {
         }
         for t in &self.states {
             if let Some(trap) = traps.iter_mut().find(|v| v.settings.name.eq_ignore_ascii_case(&t.name)) {
-                trap.inside = t.inside.iter().filter(|n| known.contains(&n.to_ascii_lowercase())).cloned().collect();
+                trap.inside = t.inside.iter().filter(|n| keep_occupant(n)).cloned().collect();
                 trap.shrunk = t.shrunk; trap.gone = t.gone; trap.settings.mask = t.mask;
                 if let Some(spirit) = t.spirit { trap.settings.spirit = Some(spirit); }
             }

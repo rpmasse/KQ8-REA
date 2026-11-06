@@ -198,6 +198,9 @@ impl Snapshot {
                 && !s.split(['/', '\\']).any(|p| matches!(p, "." | ".."))
         };
         for (world, kept) in &self.kept {
+            if kept.traps.as_ref().is_some_and(|traps| !traps.valid()) {
+                return Err(format!("save has invalid trap state for {world}"));
+            }
             if kept.terrain_changes.heights.iter().any(|op| !op.valid())
                 || kept.terrain_changes.heights.iter().filter(|op| op.elapsed < op.frames).count() > 32 {
                 return Err("save has invalid terrain changes".into());
@@ -627,6 +630,63 @@ mod tests {
         Active::new(Default::default(), vec![], vec![], [], [])
     }
 
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn departed_dead_city_keeps_spirit_fields_without_replaying_entry_on_return() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let world = load::World::open(&game, "DeadCity").unwrap();
+        let mut log = Log::create("kept-spirit-data").unwrap();
+        let ground = load::load_ground(&game, &world, &mut log).unwrap();
+        let objects = load::load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let mut traps: Vec<_> = objects.traps.into_iter().filter(|t| t.settings.spirit.is_some()).collect();
+        assert_eq!(traps.len(), 4);
+        let mut departing = active();
+        departing.world.persistent_stat_objects = objects.persistent_stat_objects;
+        departing.add_traps(traps.clone());
+        let original = &mut departing.world.traps[0];
+        let name = original.settings.name.clone();
+        original.settings.spirit.as_mut().unwrap().spirit_state = 1;
+        original.settings.spirit.as_mut().unwrap().trap_status = 1;
+        original.inside.push("Connor".into());
+        original.settings.mask = 0;
+        let mut transient = original.clone();
+        transient.settings.name = "FixtureOutsidePersistManager".into();
+        departing.add_traps([transient]);
+
+        let kept = KeptWorld::take(&departing, "DeadCity", None);
+        let mut slot = fixture();
+        slot.kept.insert("deadcity".into(), kept);
+        let json = serde_json::to_value(&slot).unwrap();
+        let records = &json["kept"]["deadcity"]["traps"]["states"];
+        assert_eq!(records.as_array().unwrap().len(), 4);
+        let saved: Snapshot = serde_json::from_value(json.clone()).unwrap();
+        saved.validate().unwrap();
+        saved.kept["deadcity"].traps.as_ref().unwrap().restore_for_arrival(&mut traps).unwrap();
+        let mut returning = Active::new(Default::default(), vec![], vec![], ["Connor".into()], objects.scripts);
+        returning.set_connor_stats(kq8_core::stats::ConnorStats {
+            level: 2, stats: kq8_core::stats::Stats([20, 10, 0, 0, 0]),
+        });
+        returning.add_traps(traps);
+        returning.start();
+        returning.update();
+        let restored = returning.world.traps.iter().find(|t| t.settings.name == name).unwrap();
+        assert_eq!(restored.inside, ["Connor"]);
+        assert_eq!(restored.settings.mask, 0);
+        let spirit = restored.settings.spirit.unwrap();
+        assert_eq!((spirit.spirit_state, spirit.trap_status, spirit.damage), (1, 1, 0.2));
+        assert_eq!(returning.world.connor_stats.unwrap().stats.0[0], 20);
+        let mut legacy = json.clone();
+        legacy["kept"]["deadcity"].as_object_mut().unwrap().remove("traps");
+        let legacy: Snapshot = serde_json::from_value(legacy).unwrap();
+        legacy.validate().unwrap();
+        assert!(legacy.kept["deadcity"].traps.is_none());
+        let mut invalid = json;
+        let records = invalid["kept"]["deadcity"]["traps"]["states"].as_array_mut().unwrap();
+        records.push(records[0].clone());
+        let invalid: Snapshot = serde_json::from_value(invalid).unwrap();
+        assert!(invalid.validate().unwrap_err().contains("invalid trap state for deadcity"));
+    }
+
     fn choice_fixture() -> Snapshot {
         let mut json = serde_json::to_value(fixture()).unwrap();
         json["choice"] = serde_json::json!({"state":{"list":{"script":"rooftrap.cs","points":[["0",[220000.,183200.]],["1",[230000.,183200.]]]},
@@ -869,6 +929,7 @@ mod tests {
         kept.insert(
             "swamp".into(),
             KeptWorld {
+                traps: None,
                 terrain_changes: Default::default(),
                 prop_placements: Default::default(),
                 interactions: Default::default(),

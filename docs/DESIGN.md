@@ -13,6 +13,38 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 trap state across region travel.** World-change rules 5.3 and 11–15
+retain trap state from objects loaded under the persist manager. At an
+accepted portal handover, remove only Connor from the named departure
+trap without sending an exit event. Preserve its stored box and subclass
+fields. Use the existing trap records to capture eligible traps on world
+departure. Rebuild their mask, ordered occupants, sticky box, removal
+state and spirit fields before the returning world's Init and Lookup.
+Resolve occupant names against the rebuilt world, including returning
+actors. Keep the versioned current-world disk snapshot and read older
+slots missing the optional regional records.
+
+Check eligibility, malformed state, legacy saves, and silent departure in
+code. Extend the unattended cottage and castle route to change a real trap
+mask, accept both original portals, and check that the mask survives the
+return and a fresh process reading the intervening save. Use the installed
+Dead City spirit data to check return state and absence of a new entry
+drain. Record which campaign paths these checks cover.
+
+The first Castle check saved the changed mask but also saved Connor inside
+the portal trap. The log showed the first removal, followed by a second
+On during the old world's movement sweep on update 68. The accepted
+handover queues teardown at the end of the frame. Carry the trap name with
+the request, allow the current event to finish, gate subsequent simulation
+updates, and detach Connor immediately before capturing the departing
+world. The same test must now see one On and an empty saved occupant list.
+
+The corrected route passes across three processes. The Castle slot retains
+Daventry's changed mask and empty departure trap. Returning through the
+second portal reconstructs the saved fields before Init, and the next
+Daventry slot retains that mask. All four Dead City spirit boxes also pass
+the regional record check. An uninterrupted Dead City campaign remains open.
+
 **M4 live palette changes (2026-11-06, implemented component; output gates open).** Follow brightness.md
 Q186's surface-palette rules. Retain the original palette and index pixels
 beside each decoded indexed texture, sharing immutable inputs through the
