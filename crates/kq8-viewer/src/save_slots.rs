@@ -57,6 +57,10 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     shadows_allowed: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    footstep_types: Option<BTreeMap<String, i64>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    traps: Option<kq8_core::trap::SavedTraps>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     speech: Option<kq8_core::talk::SavedTalk>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     speech_sources: Option<std::collections::BTreeMap<u64, Option<[f32; 3]>>>,
@@ -82,6 +86,11 @@ impl Snapshot {
     }
 
     fn validate(&self) -> Result<(), String> {
+        if self.traps.as_ref().is_some_and(|s| !s.valid()) { return Err("save has invalid trap state".into()); }
+        if self.footstep_types.as_ref().is_some_and(|m| m.len() > 4096 || m.keys().any(|n|
+            n.is_empty() || n.len() > 1024 || n.chars().any(char::is_control) || n.to_ascii_lowercase() != *n)) {
+            return Err("save has invalid scripted footstep types".into());
+        }
         if self.conversation.as_ref().is_some_and(|s| !s.valid()) || self.talk_pose.as_ref().is_some_and(|s| !s.valid())
             || self.camera.as_ref().is_some_and(|s| !s.valid()) || self.panels.as_ref().is_some_and(|s| !s.valid_checkpoint()) {
             return Err("save has invalid conversation, pose, camera or panel state".into());
@@ -248,6 +257,7 @@ impl Snapshot {
         active.world.connor_at = Some(self.position);
         active.world.connor_heading = self.heading;
         if let Some(on) = self.shadows_allowed { active.world.shadows_allowed = on; }
+        if let Some(types) = &self.footstep_types { active.world.footstep_types.clone_from(types); }
         if self.version >= 2 {
             if let Some(events) = self.script_events.take() {
                 active.world.restore_events(events);
@@ -279,6 +289,10 @@ impl Snapshot {
                 sim.active.world.restore_placed_characters(&kept.characters);
                 sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
                 if let Some(list) = kept.active_list.as_deref() { sim.active.world.restore_active_list(list); }
+            }
+            if let Some(traps) = &self.traps {
+                let w = &mut sim.active.world;
+                traps.restore(&mut w.traps, &w.known)?;
             }
             if let Some(drains) = &self.drains {
                 sim.active.world.restore_drains(drains, self.special.is_some())?;
@@ -508,6 +522,8 @@ pub fn save_slot_with_thumbnail(
         }),
         drains: Some(sim.active.world.saved_drains()?),
         shadows_allowed: Some(sim.active.world.shadows_allowed),
+        footstep_types: Some(sim.active.world.footstep_types.clone()),
+        traps: Some(kq8_core::trap::SavedTraps::capture(&sim.active.world.traps)),
         speech: Some(sim.active.world.talk.saved(sim.active.world.now())),
         speech_sources: world.get_resource::<crate::talk_view::Speech>().map(|s| s.sources.clone()),
         conversation: Some(sim.active.world.saved_conversation()),
@@ -626,6 +642,28 @@ mod tests {
         }
     }
 
+    #[test]
+    fn scripted_footstep_types_round_trip_and_old_slots_keep_loaded_defaults() {
+        let mut snapshot = fixture();
+        snapshot.footstep_types = Some(BTreeMap::from([("temple_e".into(), 3)]));
+        let mut restored: Snapshot = serde_json::from_slice(&serde_json::to_vec(&snapshot).unwrap()).unwrap();
+        restored.validate().unwrap();
+        let mut fresh = active();
+        fresh.world.footstep_types.insert("temple_e".into(), 0);
+        restored.restore_objects_and_vars(&mut fresh);
+        assert_eq!(fresh.world.footstep_types.get("temple_e"), Some(&3));
+        let mut old = serde_json::to_value(fixture()).unwrap();
+        old.as_object_mut().unwrap().remove("footstep_types");
+        let mut old: Snapshot = serde_json::from_value(old).unwrap();
+        old.restore_objects_and_vars(&mut fresh);
+        assert_eq!(fresh.world.footstep_types.get("temple_e"), Some(&3));
+        snapshot.footstep_types = Some(BTreeMap::new());
+        snapshot.restore_objects_and_vars(&mut fresh);
+        assert!(fresh.world.footstep_types.is_empty());
+        snapshot.footstep_types = Some(BTreeMap::from([("Temple_E".into(), 3)]));
+        assert!(snapshot.validate().is_err());
+    }
+
     fn fixture() -> Snapshot {
         let mut sim = active();
         sim.scripts.vars.set("Daventry::Waterfall", "1".into());
@@ -706,6 +744,8 @@ mod tests {
             bolts: Some(kq8_core::fight::SavedBolts { bolts: Vec::new(), bolts_shot: 0 }),
             drains: Some(Vec::new()),
             shadows_allowed: None,
+            footstep_types: None,
+            traps: None,
             speech: None,
             speech_sources: None,
             conversation: None,

@@ -21,7 +21,7 @@ What the game's scripts (`.cs`) and object files (`.kq`) ask of the program, fro
 | Barren | 118 | 84 | 6 (8) | 0 (0) | Tile3 |
 | IceWorld | 78 | 82 | 8 (12) | 1 (29) | — |
 | Snowexit | 13 | 35 | 4 (4) | 0 (0) | — |
-| temple1 | 59 | 51 | 6 (8) | 0 (0) | — |
+| temple1 | 59 | 51 | 5 (6) | 0 (0) | — |
 | temple2 | 37 | 55 | 6 (8) | 0 (0) | — |
 | temple3 | 30 | 45 | 6 (8) | 0 (0) | — |
 | temple4 | 17 | 68 | 8 (12) | 0 (0) | — |
@@ -51,7 +51,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `KQObject::setGroupsActive3D` | **missing** | 3 (0) | IceWorld 3 | `IceWorld/snowmane.cs` |
 | `KQObject::setGroupsActive3DFar` | **missing** | 3 (0) | IceWorld 3 | `IceWorld/snowmane.cs` |
 | `purgeResources` | **missing** | 3 (0) | IceWorld 1, temple2 2 | `IceWorld/icelord.cs` |
-| `KQObject::setFootStepSound` | **missing** | 2 (0) | temple1 2 | `temple1/sloshtrp.cs` |
 | `checkSave` | **missing** | 2 (0) | Daventry 1, Common 1 | `Daventry/savegmh.cs` |
 | `mouseAction` | **missing** | 2 (0) | Daventry 2 | `Daventry/AX.CS` |
 | `KQCamera::setHeight2` | **missing** | 1 (0) | temple4 1 | `temple4/archon.cs` |
@@ -166,6 +165,7 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `setcat` | built | 3 (0) | Barren 3 | `Barren/dockup.cs` |
 | `KQCamera::setCamRelConner` | built | 2 (0) | Daventry 1, DeadCity 1 | `Daventry/RAVENCNR.CS` |
 | `KQConner::setRequiredWeaponMode` | built | 2 (0) | DeadCity 2 | `DeadCity/towSklTp.CS` |
+| `KQObject::setFootStepSound` | built | 2 (0) | temple1 2 | `temple1/sloshtrp.cs` |
 | `deadHallTeleport` | built | 2 (0) | DeadCity 2 | `DeadCity/DDOOR4.CS` |
 | `goldCoinPersists` | built | 2 (0) | Gnome 2 | `Gnome/apothgnm.cs` |
 | `pauseAnim` | built | 2 (0) | Daventry 2 | `Daventry/OUTDOOR.CS` |

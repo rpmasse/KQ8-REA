@@ -808,6 +808,8 @@ pub struct WorldState {
     /// pair remembered per object, for the viewer (`characters.md` rule
     /// 4a; batch 2 D-6). `normal` removes it.
     pub bmp_swaps: BTreeMap<String, (String, String)>,
+    /// Scripted footsoundType values; loaded building defaults remain in the caller.
+    pub footstep_types: BTreeMap<String, i64>,
     /// Connor's handsOff is on (a cutscene), set by the caller before each
     /// update (M5 5g-9, `potions.md` rule 26).
     pub connor_hands_off: bool,
@@ -4299,6 +4301,21 @@ impl ScriptHost for WorldState {
             "checkDistance" => Some(self.check_distance(words, at)),
             "KQMonster::goHome" | "KQMonster::setAlarmRadius" | "KQMonster::setChaseRadius" | "KQMonster::setHomeRadius" => Some(self.monster_ai_command(words, at)),
             "makeTranslucent" => Some(self.make_translucent(words, at)),
+            "KQObject::setFootStepSound" => {
+                let (Some(name), Some(value)) = (words.get(1), words.get(2)) else {
+                    self.note(format!("{at}: usage: KQObject::setFootStepSound object type"));
+                    return Some("1".into());
+                };
+                let key = name.to_ascii_lowercase();
+                if !self.known.contains(&key) {
+                    self.note(format!("{at}: KQObject::setFootStepSound: unknown object '{name}'"));
+                    return Some("1".into());
+                }
+                let value = number_value(value) as i64;
+                self.footstep_types.insert(key, value);
+                self.note(format!("{at}: KQObject::setFootStepSound {name} {value} (sound.md rule 39)"));
+                Some("0".into())
+            }
             "allowShadows" => {
                 self.shadows_allowed = words.get(1).is_some_and(|v| number_value(v) != 0.0);
                 self.note(format!("{at}: allowShadows {}", u8::from(self.shadows_allowed)));
@@ -4465,6 +4482,7 @@ impl Active {
                 reveal_calls: Vec::new(),
                 dithered: BTreeMap::new(),
                 bmp_swaps: BTreeMap::new(),
+                footstep_types: BTreeMap::new(),
                 item_voices: Vec::new(),
                 hand: None,
                 gold_persists: false,
@@ -10155,5 +10173,27 @@ mod talk_tests {
         // The file as 16 bits, the others as bytes.
         assert_eq!(a.world.test_message(&w("KQMonster::testMessage 66536 319 0 0 1000 63 0 0"), "t"), "0");
         assert_eq!(a.world.test_message(&w("KQMonster::testMessage 1 2 3"), "t"), "1");
+    }
+}
+
+#[cfg(test)]
+mod scripted_footstep_tests {
+    use super::*;
+
+    #[test]
+    fn footstep_command_changes_known_targets_and_keeps_out_of_range_fallback() {
+        let mut a = Active::new(Default::default(), vec![], vec![], ["Floor".into()], []);
+        let words = |s: &str| s.split_whitespace().map(str::to_string).collect::<Vec<_>>();
+        for (value, set) in [(3, "water"), (0, "dirt"), (2, "rock"), (9, "dirt"), (-1, "dirt")] {
+            let command = words(&format!("KQObject::setFootStepSound FLOOR {value}"));
+            assert_eq!(a.world.world_command(&command, "test"), Some("0".into()));
+            assert_eq!(a.world.footstep_types.get("floor"), Some(&value));
+            assert_eq!(crate::sound::footstep_set(crate::sound::building_floor_flags(Some(value))), Some(set));
+        }
+        let before = a.world.footstep_types.clone();
+        for command in ["KQObject::setFootStepSound Missing 3", "KQObject::setFootStepSound Floor"] {
+            assert_eq!(a.world.world_command(&words(command), "test"), Some("1".into()));
+            assert_eq!(a.world.footstep_types, before);
+        }
     }
 }
