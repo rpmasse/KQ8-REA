@@ -395,8 +395,10 @@ Words used here:
 
 ### 6. Connor being hit
 
-29. Traced, Connor's side only as far as the fight needs:
-    - hits are ignored while he is dying;
+29. Traced, Connor's side only as far as the fight needs; the
+    spirit-trap follow-up (Q194, 2026-11-06) refines state dispatch:
+    - hits are ignored while he is dying or in the rope state; a
+      separately queued direct stats-change request has neither guard;
     - the roll is 25–100 % (rule 16), then his protection;
     - he **flinches** by the same rule 23 (his `react`). **Corrected
       2026-10-28 (batch 2, traced):** Connor's `normalReactPercent` is
@@ -406,7 +408,16 @@ Words used here:
       about **two thirds** of hits (when *R* rounds to more than 0.5 *D*;
       the old text said about 13 %), and only when his running
       movement can be cut short and his last flinch ended over 2 s ago;
-      else his `ouchSound` (`conrow3.aud`) at most once a second;
+      else his `ouchSound` (`conrow3.aud`) at most once a second.
+      **Q194 scope:** this selector is shared by Connor's ordinary
+      standing/moving, Choice and Connor Talk states. A nonzero
+      forced-reaction flag (the fourth `KQAttackEvent` text integer)
+      bypasses the percent, interruptibility and two-second **selection**
+      gates, but the resulting movement request still follows ordinary
+      transition/interruption rules; it does not forcibly cut the
+      animation or change the owning state to Special. Special uses
+      the base damage/death/sound path and does not add a forced
+      `react` request. See `traps.md` for the full bounded Q194 rules;
     - his health is kept at most 10 × level;
     - two one-off tips are sent to Connor (cue numbers, not traced
       further): one the first time he is hit by a character in one of his

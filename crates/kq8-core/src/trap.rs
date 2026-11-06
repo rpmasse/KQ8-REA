@@ -64,6 +64,8 @@ pub struct TrapSettings {
     pub trap_type: u32,
     /// `innerPercent` (a share, e.g. 0.9), `None` if not given.
     pub inner_percent: Option<f32>,
+    /// Spirit subclass's loaded and mutable fields (Q188); none for KQTrap.
+    pub spirit: Option<crate::spirit_trap::SpiritTrap>,
 }
 
 /// A trap in the world.
@@ -264,6 +266,37 @@ mod tests {
     const MIN: [f32; 3] = [-200.0, -200.0, 0.0];
     const MAX: [f32; 3] = [200.0, 200.0, 1300.0];
 
+    #[test]
+    fn spirit_checkpoint_keeps_fields_without_entry_and_validates_class_before_mutation() {
+        use crate::spirit_trap::SpiritTrap;
+        let known=["connor".to_string()].into_iter().collect();
+        for state in [0,1,2] { for status in [0,1] {
+            let mut original=trap(0,None);
+            original.settings.spirit=Some(SpiritTrap {damage:0.125,spirit_state:state,trap_status:status});
+            original.inside=vec!["Connor".into()]; original.settings.mask=0;
+            let saved:SavedTraps=serde_json::from_slice(&serde_json::to_vec(&SavedTraps::capture(&[original.clone()])).unwrap()).unwrap();
+            assert!(saved.valid());
+            let mut loaded=trap(0,None); loaded.settings.spirit=Some(SpiritTrap::default());
+            saved.restore(std::slice::from_mut(&mut loaded),&known).unwrap();
+            assert_eq!(loaded,original);
+            let before=loaded.clone();
+            saved.restore(std::slice::from_mut(&mut loaded),&known).unwrap();
+            assert_eq!(loaded,before,"reading fields does not execute an entry or Cue");
+            let mut generic=trap(STICKY,Some(0.8)); let before=generic.clone();
+            assert!(saved.restore(std::slice::from_mut(&mut generic),&known).is_err());
+            assert_eq!(generic,before,"class validation precedes every mutable field");
+            let mut old=serde_json::to_value(&saved).unwrap();
+            old["states"][0].as_object_mut().unwrap().remove("spirit");
+            let old:SavedTraps=serde_json::from_value(old).unwrap();
+            loaded.settings.spirit=Some(SpiritTrap::default());
+            old.restore(std::slice::from_mut(&mut loaded),&known).unwrap();
+            assert_eq!(loaded.settings.spirit,Some(SpiritTrap::default()));
+        }}
+        let mut invalid=trap(0,None);
+        invalid.settings.spirit=Some(SpiritTrap {damage:f32::NAN,..SpiritTrap::default()});
+        assert!(!SavedTraps::capture(&[invalid]).valid());
+    }
+
     fn trap(trap_type: u32, inner: Option<f32>) -> Trap {
         Trap::new(TrapSettings {
             name: "walktp1".into(),
@@ -275,6 +308,7 @@ mod tests {
             mask: 4,
             trap_type,
             inner_percent: inner,
+            spirit: None,
         })
     }
 

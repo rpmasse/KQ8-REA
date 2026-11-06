@@ -9,6 +9,8 @@ struct State {
     shrunk: bool,
     gone: bool,
     mask: u32,
+    #[serde(default)]
+    spirit: Option<crate::spirit_trap::SpiritTrap>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -19,7 +21,7 @@ pub struct SavedTraps {
 impl SavedTraps {
     pub fn capture(traps: &[Trap]) -> Self {
         Self { states: traps.iter().map(|t| State { name: t.settings.name.to_ascii_lowercase(),
-            inside: t.inside.clone(), shrunk: t.shrunk, gone: t.gone, mask: t.settings.mask }).collect() }
+            inside: t.inside.clone(), shrunk: t.shrunk, gone: t.gone, mask: t.settings.mask, spirit: t.settings.spirit }).collect() }
     }
 
     pub fn valid(&self) -> bool {
@@ -28,6 +30,7 @@ impl SavedTraps {
         self.states.len() <= 4096 && self.states.iter().all(|t| {
             let mut occupants = BTreeSet::new();
             name(&t.name) && traps.insert(t.name.to_ascii_lowercase()) && t.inside.len() <= 4096
+                && t.spirit.is_none_or(|s| s.valid())
                 && t.inside.iter().all(|n| name(n) && occupants.insert(n.to_ascii_lowercase()))
         })
     }
@@ -38,11 +41,15 @@ impl SavedTraps {
             if !t.gone && !traps.iter().any(|v| v.settings.name.eq_ignore_ascii_case(&t.name)) {
                 return Err(format!("saved trap '{}' is absent from the restored world", t.name));
             }
+            if t.spirit.is_some() && traps.iter().any(|v| v.settings.name.eq_ignore_ascii_case(&t.name) && v.settings.spirit.is_none()) {
+                return Err(format!("saved spirit trap '{}' has another restored class",t.name));
+            }
         }
         for t in &self.states {
             if let Some(trap) = traps.iter_mut().find(|v| v.settings.name.eq_ignore_ascii_case(&t.name)) {
                 trap.inside = t.inside.iter().filter(|n| known.contains(&n.to_ascii_lowercase())).cloned().collect();
                 trap.shrunk = t.shrunk; trap.gone = t.gone; trap.settings.mask = t.mask;
+                if let Some(spirit) = t.spirit { trap.settings.spirit = Some(spirit); }
             }
         }
         Ok(())

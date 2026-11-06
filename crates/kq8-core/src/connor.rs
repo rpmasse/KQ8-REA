@@ -517,6 +517,18 @@ pub struct Walker {
     pub blocked_back: bool,
     /// The movement asked for and not reached yet (rule 1).
     pub wanted: Option<&'static str>,
+    /// A state-controlled request waiting for playback. Its retained name
+    /// changes only when it starts; a newer common/lip request cancels it.
+    pub state_wanted: Option<&'static str>,
+    /// Q194/Q195: the state's retained reaction request. This can outlive
+    /// the reaction's playback and a lip request does not rewrite it.
+    pub reaction: Option<&'static str>,
+    /// The reaction actually playing; only its natural end sets the
+    /// reaction deadline. A discarded waiting request has no end.
+    pub reaction_playing: Option<&'static str>,
+    /// `animSetHandsOff`, independent of scripted handsOff and playback.
+    /// A lip request clears it even when its movement must wait.
+    pub animation_input_lock: bool,
     /// The mover's `submerged` from the end of the last update's move
     /// (water.md "Wading animations" rule 3).
     pub submerged: bool,
@@ -628,6 +640,10 @@ impl Walker {
             blocked_forward: false,
             blocked_back: false,
             wanted: None,
+            state_wanted: None,
+            reaction: None,
+            reaction_playing: None,
+            animation_input_lock: false,
             waiting: None,
             playing: None,
             choice: "stop",
@@ -709,6 +725,7 @@ impl Walker {
         self.talk_play = None;
         self.wanted = None;
         self.waiting = None;
+        self.state_wanted = None;
         // No choice yet: the keys' choice (`stop` with no key) is a new
         // request, made the ordinary way.
         self.choice = "";
@@ -716,13 +733,13 @@ impl Walker {
     }
 
     /// A lip-sync gesture code for Connor (`conversation.md` rule 18, M4
-    /// 4e-7): codes 8–15 play `gesturea`…`gestureh`, 16 plays `stop`, at
-    /// once from phase 0, only when he stands still with the keys choosing
-    /// (Wait, or the talk state outside its approach), no start or stop
-    /// movement playing, no weapon drawn and not in first person (never, for
-    /// now). `name`: the movement, as loaded (`None`: not in his list).
+    /// 4e-7, Q195): codes 8–15 request `gesturea`…`gestureh`, 16 requests
+    /// `stop`, when standing empty handed (third person here). The ordinary
+    /// request may wait behind an uninterruptible clip or transition. It
+    /// clears the animation lock immediately, retaining the state's name.
+    /// `name`: the movement, as loaded (`None`: not in his list).
     /// Returns what happened, for the log.
-    pub fn gesture(&mut self, code: u16, name: Option<&'static str>) -> String {
+    pub fn gesture<'a>(&mut self, code: u16, name: Option<&'static str>, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) -> String {
         let wanted = match code {
             8..=15 => kq8_data::characters::GESTURES[(code - 8) as usize],
             16 => "stop",
@@ -731,12 +748,8 @@ impl Walker {
         let Some(name) = name else {
             return format!("code {code}: '{wanted}' is not in his movement list; nothing");
         };
-        let why = if !self.keys_choose() || self.mode == Mode::Push {
-            Some(format!("in {} (not standing in Wait or the talk state)", self.mode.name()))
-        } else if self.moving() {
+        let why = if self.moving() {
             Some(format!("he is moving ({})", self.choice))
-        } else if let Some(t) = self.playing {
-            Some(format!("{} is playing", t.via))
         } else if self.hand_mode != EMPTY_HANDS {
             Some("a weapon is drawn".to_string())
         } else {
@@ -745,13 +758,9 @@ impl Walker {
         if let Some(why) = why {
             return format!("code {code}: '{wanted}' not played: {why} (rule 18)");
         }
-        let from = self.movement;
-        self.movement = name;
-        self.phase = 0.0;
-        self.fresh = true;
-        self.wanted = None;
-        self.waiting = None;
-        format!("code {code}: plays '{name}' from phase 0 (was '{from}'; rule 18)")
+        let was_locked = std::mem::replace(&mut self.animation_input_lock, false);
+        let notes = self.animation_request(name, loops);
+        format!("code {code}: requests '{name}'; animation input lock {was_locked} -> false; retained state request {:?}; {} (rule 18a)", self.reaction, notes.join("; "))
     }
 
     /// He leaves his talk state (`conversation.md` rule 15): Move if he is
@@ -1050,6 +1059,10 @@ impl Walker {
 
     fn clear_transitions(&mut self) {
         self.wanted = None;
+        self.state_wanted = None;
+        self.reaction = None;
+        self.reaction_playing = None;
+        self.animation_input_lock = false;
         self.waiting = None;
         self.playing = None;
         self.choice = "stop";
@@ -1060,6 +1073,7 @@ impl Walker {
     /// movement switches at once from phase 0 if the current one can be
     /// cut short (or has ended); otherwise the request is kept for its end.
     fn ask<'a>(&mut self, wanted: &'static str, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>, notes: &mut Vec<String>) {
+        self.state_wanted = None;
         self.wanted = Some(wanted);
         if let Some(old) = self.waiting.take() {
             notes.push(format!("waiting transition {} dropped", old.via));
@@ -1085,11 +1099,57 @@ impl Walker {
         if current.is_none_or(|l| l.cut_short || self.phase >= 1.0) {
             notes.push(format!("no transition {} -> {wanted}: switched at once from phase 0", self.movement));
             self.movement = wanted;
+            self.reaction_playing = None;
             self.phase = 0.0;
             self.fresh = true;
             self.wanted = None;
+            self.reaction_started();
         } else {
             notes.push(format!("{} can't be cut short: {wanted} kept until it ends", self.movement));
+        }
+    }
+
+    /// Q194: selection bypasses gates, playback still uses ordinary ask.
+    /// Repeated retained names keep their phase. Special here can only be
+    /// the viewer's temporary melee representation; scripted Special never
+    /// calls this method.
+    pub fn request_reaction<'a>(&mut self, wanted: &'static str, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) -> Vec<String> {
+        let mut notes=Vec::new();
+        if self.reaction == Some(wanted) {
+            notes.push(format!("retained state request {wanted}: no duplicate request or lock change (Q195)"));
+            return notes;
+        }
+        self.reaction=Some(wanted);
+        self.animation_input_lock=true;
+        self.ask(wanted,loops,&mut notes);
+        self.reaction_started();
+        notes
+    }
+
+    fn reaction_started(&mut self) {
+        if self.state_wanted == Some(self.movement) {
+            self.reaction = None;
+            self.state_wanted = None;
+        }
+        if self.reaction == Some(self.movement) {
+            self.reaction_playing = self.reaction;
+        }
+        if self.reaction == Some(self.movement) && self.mode == Mode::Special {
+            self.mode=Mode::Free;
+            self.special.clear(); self.special_at=0;
+            self.choice="stop";
+        }
+    }
+
+    /// A state-controlled movement replaces the retained name and writes
+    /// its own input lock. Common script/lip requests do neither (Q195).
+    fn state_movement<'a>(&mut self, wanted: &'static str, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>, notes: &mut Vec<String>) {
+        self.animation_input_lock = false;
+        self.ask(wanted, loops, notes);
+        if self.movement == wanted {
+            self.reaction = None;
+        } else {
+            self.state_wanted = Some(wanted);
         }
     }
 
@@ -1103,17 +1163,25 @@ impl Walker {
     /// the keys choose; elsewhere not done (not described). Returns the
     /// log notes.
     pub fn script_request<'a>(&mut self, wanted: &'static str, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) -> Vec<String> {
-        let mut notes = Vec::new();
         if !self.keys_choose() {
-            notes.push(format!("in {}: not done (a request outside his keys' states is not described)", self.mode.name()));
-            return notes;
+            return vec![format!("in {}: not done (a request outside his keys' states is not described)", self.mode.name())];
         }
+        self.animation_request(wanted, loops)
+    }
+
+    /// The common animation request used directly by lip gestures and by
+    /// accepted script events. Same-name playback starts afresh (rule 5);
+    /// state-selected reaction deduplication happens before this (Q195).
+    fn animation_request<'a>(&mut self, wanted: &'static str, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) -> Vec<String> {
+        self.state_wanted = None;
+        let mut notes = Vec::new();
         if wanted == self.movement && self.playing.is_none() && self.waiting.is_none() {
             if loops(self.movement).is_none_or(|l| l.cut_short || self.phase >= 1.0) {
                 notes.push(format!("{wanted} again: afresh from phase 0 (rule 5)"));
                 self.phase = 0.0;
                 self.fresh = true;
                 self.wanted = None;
+                self.reaction_started();
             } else {
                 notes.push(format!("{wanted} again, can't be cut short: kept until it ends"));
                 self.wanted = Some(wanted);
@@ -1155,7 +1223,7 @@ impl Walker {
             }
         }
         self.choice = "stop";
-        self.ask("stop", loops, &mut notes);
+        self.state_movement("stop", loops, &mut notes);
         notes
     }
 
@@ -1165,6 +1233,8 @@ impl Walker {
     fn end_transition<'a>(&mut self, t: Transition, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>, notes: &mut Vec<String>) {
         self.playing = None;
         self.movement = t.to;
+        self.reaction_playing = None;
+        self.reaction_started();
         // A repeating loop's phase 1 is its phase 0 (the frame shown
         // there); kept as 1, the next update stepped a whole loop at once
         // (`waterrun` → `run` at 1.000000: 2,558 forward, H-2).
@@ -1172,7 +1242,14 @@ impl Walker {
         self.phase = if repeats { t.to_phase.rem_euclid(1.0) } else { t.to_phase };
         notes.push(format!("{} ended: {} from phase {}", t.via, t.to, t.to_phase));
         match self.wanted {
-            Some(w) if w != t.to => self.ask(w, loops, notes),
+            Some(w) if w != t.to => {
+                let state_wanted = self.state_wanted;
+                self.ask(w, loops, notes);
+                if state_wanted == Some(w) {
+                    if self.movement == w { self.reaction = None; }
+                    else { self.state_wanted = state_wanted; }
+                }
+            }
             _ => self.wanted = None,
         }
     }
@@ -1291,7 +1368,7 @@ impl Walker {
             }
         }
         // Rule 16: the Special movement playing has ended: the next item.
-        if self.mode == Mode::Special && self.phase >= 1.0 {
+        if self.mode == Mode::Special && self.phase >= 1.0 && !self.animation_input_lock {
             self.special_at += 1;
             self.special_items(&mut notes);
             if self.mode != Mode::Special {
@@ -1310,13 +1387,13 @@ impl Walker {
                 self.set_mode(next);
             }
         }
-        if let Some(m) = self.mode_movement() {
+        if let Some(m) = (!self.animation_input_lock).then(|| self.mode_movement()).flatten() {
             if m != self.movement {
                 self.movement = m;
                 self.phase = 0.0;
                 self.fresh = true;
             }
-        } else {
+        } else if !self.animation_input_lock {
             // While a wall block is on he stands, whatever the keys ask.
             // Pushing: `push` instead of the keys' choice (rule 6).
             let mut choice = if self.mode == Mode::Push {
@@ -1340,7 +1417,7 @@ impl Walker {
             if choice != self.choice {
                 self.choice = choice;
                 notes.push(format!("asks for {choice}"));
-                self.ask(choice, loops, &mut notes);
+                self.state_movement(choice, loops, &mut notes);
             }
         }
         let played = self.movement;
@@ -1391,7 +1468,7 @@ impl Walker {
         // end. Never from a jump's start to its landing's end (Q41).
         // The talk state turns him whatever plays, its approach movements
         // too (conversation.md rule 13, Q125 a).
-        let turns = ((self.keys_choose() && !self.blocked()) || matches!(self.mode, Mode::Crash | Mode::Talk)) && !self.turn_by_script;
+        let turns = !self.animation_input_lock && ((self.keys_choose() && !self.blocked()) || matches!(self.mode, Mode::Crash | Mode::Talk)) && !self.turn_by_script;
         if turns {
             self.heading += f32::from(intent.turn) * TURN_RATE * dt;
         }
@@ -1439,6 +1516,7 @@ impl Walker {
             notes.push(format!("{played} reached phase {:.4}: {} starts", self.phase, t.via));
             self.playing = Some(t);
             self.movement = t.via;
+            self.reaction_playing = None;
             self.phase = 0.0;
             own
         } else if l.repeat {
@@ -1461,7 +1539,12 @@ impl Walker {
                 step.ended = Some(played);
             }
             let own = l.one_shot_step(from, self.phase).map(|v| v * l.speed.signum());
-            if self.phase >= 1.0 && self.keys_choose() {
+            let reaction_ended = from < 1.0 && self.phase >= 1.0 && self.reaction_playing == Some(played);
+            if reaction_ended {
+                self.reaction_playing=None;
+                notes.push(format!("reaction {played} ended naturally; {} owner retained",self.mode.name()));
+            }
+            if self.phase >= 1.0 && (self.keys_choose() || self.animation_input_lock) {
                 match self.playing {
                     Some(t) => self.end_transition(t, loops, &mut notes),
                     // Rule 6, last case: a one-shot ending with no
@@ -1470,15 +1553,34 @@ impl Walker {
                         if let Some(w) = self.wanted.take() {
                             notes.push(format!("{played} ended: {w} from phase 0"));
                             self.movement = w;
+                            self.reaction_playing = None;
                             self.phase = 0.0;
                             self.fresh = true;
+                            self.reaction_started();
                         } else if self.mode == Mode::Free && self.choice == "stop" && played != "stop" && !played.starts_with("gesture") {
                             // characters.md rule 22 (Q160): in Wait, a
                             // movement other than Stop or a gesture that
                             // ends asks for Stop (a script's `portalx`).
                             notes.push(format!("{played} ended in Wait: asks for stop (characters.md rule 22)"));
-                            self.ask("stop", loops, &mut notes);
+                            self.state_movement("stop", loops, &mut notes);
                         }
+                    }
+                }
+            }
+            // Q195: common end handling starts the waiting movement first.
+            // Standing Wait then asks for Stop itself, even if that cuts a
+            // newly started interruptible gesture. Talk has no such request.
+            if reaction_ended && self.mode == Mode::Free {
+                if self.choice == "stop" {
+                    self.state_movement("stop", loops, &mut notes);
+                } else {
+                    // Move keeps its forward/back selection during the
+                    // animation lock; its own end handler requests that
+                    // selection, if different from actual playback.
+                    let selected = choose_movement(intent, self.submerged);
+                    if selected != self.movement {
+                        self.choice = selected;
+                        self.state_movement(selected, loops, &mut notes);
                     }
                 }
             }
@@ -1635,34 +1737,43 @@ mod tests {
 
     #[test]
     fn gestures_play_only_while_he_stands() {
-        // conversation.md rule 18.
+        // conversation.md rules 18/18a: eligibility does not test the
+        // owning state or current clip's interruption/transition flags.
+        let mut list = stop_list();
+        for name in ["gesturea", "gesturec"] { list.push((name, MovementLoop { cut_short: true, ..once() })); }
+        list.push(("stopwalk", once()));
+        let loops = lookup(&list);
         let mut w = Walker::new(0.0);
-        assert!(w.gesture(10, Some("gesturec")).contains("plays 'gesturec'"));
+        assert!(w.gesture(10, Some("gesturec"), &loops).contains("requests 'gesturec'"));
         assert_eq!((w.movement, w.phase), ("gesturec", 0.0));
-        assert!(w.gesture(16, Some("stop")).contains("plays 'stop'"));
-        assert!(w.gesture(9, None).contains("not in his movement list"));
-        assert!(w.gesture(7, Some("gesturea")).contains("not a gesture code"));
-        // In the talk state, standing: yes; during the approach: no.
+        assert!(w.gesture(16, Some("stop"), &loops).contains("requests 'stop'"));
+        assert!(w.gesture(9, None, &loops).contains("not in his movement list"));
+        assert!(w.gesture(7, Some("gesturea"), &loops).contains("not a gesture code"));
         w.enter_talk();
         w.choice = "stop";
-        assert!(w.gesture(8, Some("gesturea")).contains("plays"));
+        assert!(w.gesture(8, Some("gesturea"), &loops).contains("requests"));
         w.talk_play = Some("stopwalk");
-        assert!(w.gesture(8, Some("gesturea")).contains("not played"));
+        w.movement = "stopwalk";
+        w.phase = 0.2;
+        assert!(w.gesture(8, Some("gesturea"), &loops).contains("kept until it ends"));
+        assert_eq!((w.mode, w.movement, w.wanted), (Mode::Talk, "stopwalk", Some("gesturea")));
         // Q125 a: during the approach a turn key turns him, forward does
         // nothing.
-        let list = [("stopwalk", MovementLoop { duration: 1.0, speed: 1.0, frames: 15, ..Default::default() })];
         let (heading, movement) = (w.heading, w.movement);
         w.movement = "stopwalk";
-        w.update(intent(1, 1, false), &lookup(&list));
+        w.update(intent(1, 1, false), &loops);
         assert!(w.heading > heading, "turned left: {}", w.heading);
         assert_eq!((w.movement, w.talk_play), ("stopwalk", Some("stopwalk")), "was {movement}");
         // Walking: no.
         let mut w = Walker::new(0.0);
         w.choice = "walk";
-        assert!(w.gesture(8, Some("gesturea")).contains("moving"));
+        assert!(w.gesture(8, Some("gesturea"), &loops).contains("moving"));
         let mut w = Walker::new(0.0);
         w.mode = Mode::Special;
-        assert!(w.gesture(8, Some("gesturea")).contains("not played"));
+        assert!(w.gesture(8, Some("gesturea"), &loops).contains("requests"));
+        assert_eq!(w.mode, Mode::Special, "a lip request does not exit Special");
+        w.hand_mode = 0;
+        assert!(w.gesture(8, Some("gesturea"), &loops).contains("a weapon is drawn"));
     }
 
     #[test]
@@ -1860,6 +1971,119 @@ mod tests {
     /// `jumpend` in the data).
     fn once() -> MovementLoop {
         MovementLoop { duration: 10.0 / 15.0, step_sum: [0.0; 3], speed: 1.0, repeat: false, frames: 11, ..Default::default() }
+    }
+
+    #[test]
+    fn a_reaction_waits_for_interruption_and_keeps_ordinary_owner_and_input_lock() {
+        let mut list=stop_list(); list.push(("portal",once())); list.push(("react",once()));
+        let loops=lookup(&list);
+        for mode in [Mode::Free,Mode::Talk] {
+            let mut w=Walker::new(0.0); w.mode=mode;
+            w.script_request("portal",&loops); w.phase=0.3;
+            w.request_reaction("react",&loops);
+            assert_eq!((w.mode,w.movement,w.phase,w.wanted),(mode,"portal",0.3,Some("react")));
+            let heading=w.heading;
+            for _ in 0..20 {
+                w.update(intent(1,1,false),&loops);
+                if w.movement=="react" { break; }
+            }
+            assert_eq!((w.mode,w.movement,w.phase),(mode,"react",0.0));
+            assert_eq!(w.heading,heading,"the ordinary reaction input lock suppresses turning");
+            w.update(intent(1,1,false),&loops); let phase=w.phase;
+            w.request_reaction("react",&loops);
+            assert_eq!(w.phase,phase,"a retained reaction does not restart");
+            for _ in 0..20 { w.update(intent(0,0,false),&loops); if w.reaction_playing.is_none() { break; } }
+            assert!(w.reaction_playing.is_none()); assert_eq!(w.mode,mode);
+            assert_eq!(w.animation_input_lock, mode == Mode::Talk);
+            assert_eq!(w.reaction, (mode == Mode::Talk).then_some("react"));
+        }
+        // The viewer represents an ordinary uninterruptible attack with
+        // Special internally. Its Do is not discarded just on selection.
+        let mut w=Walker::new(0.0);
+        w.start_special(vec![SpecialStep::Play("portal","portal".into())]);
+        w.request_reaction("react",&loops);
+        assert_eq!((w.mode,w.movement),(Mode::Special,"portal"));
+        for _ in 0..20 { w.update(intent(0,0,false),&loops); if w.movement=="react" { break; } }
+        assert_eq!((w.mode,w.movement),(Mode::Free,"react"));
+        assert!(w.special.is_empty());
+    }
+
+    #[test]
+    fn lip_requests_queue_unlock_and_retain_reaction_without_synthetic_ends() {
+        let mut list = stop_list();
+        list.extend([("portal", once()), ("react", once()), ("gestureg", MovementLoop { duration: 3.0, cut_short: true, ..once() })]);
+        let loops = lookup(&list);
+        let mut w = Walker::new(0.0);
+        w.enter_talk(); w.update(intent(0,0,false), &loops);
+        w.request_reaction("react", &loops);
+        w.update(intent(0,0,false), &loops);
+        let phase = w.phase;
+        w.gesture(14, Some("gestureg"), &loops);
+        assert_eq!((w.movement,w.phase,w.wanted), ("react",phase,Some("gestureg")));
+        assert_eq!((w.reaction,w.reaction_playing,w.animation_input_lock), (Some("react"),Some("react"),false));
+        w.request_reaction("react", &loops);
+        assert_eq!((w.wanted,w.animation_input_lock), (Some("gestureg"),false), "retained-name dedup does not reassert the lock");
+        let mut reaction_ends = 0;
+        for _ in 0..65 {
+            let s = w.update(intent(0,0,false), &loops);
+            reaction_ends += usize::from(s.ended == Some("react"));
+        }
+        assert_eq!(reaction_ends, 1);
+        assert_eq!((w.mode,w.movement,w.phase,w.reaction,w.reaction_playing,w.animation_input_lock),
+            (Mode::Talk,"gestureg",1.0,Some("react"),None,false), "Talk holds the gesture's final pose");
+        w.request_reaction("react", &loops);
+        assert_eq!((w.movement,w.phase,w.animation_input_lock), ("gestureg",1.0,false));
+        w.gesture(14, Some("gestureg"), &loops);
+        assert_eq!(w.phase, 0.0, "the common same-gesture request restarts playback");
+
+        // A waiting reaction is replaced without ever playing/ending.
+        let mut w = Walker::new(0.0);
+        w.enter_talk(); w.update(intent(0,0,false), &loops);
+        w.script_request("portal", &loops); w.phase = 0.2;
+        w.request_reaction("react", &loops);
+        w.gesture(14, Some("gestureg"), &loops);
+        assert_eq!((w.reaction,w.reaction_playing,w.wanted,w.animation_input_lock), (Some("react"),None,Some("gestureg"),false));
+        let mut ends = Vec::new();
+        for _ in 0..65 { ends.extend(w.update(intent(0,0,false), &loops).ended); }
+        assert!(!ends.contains(&"react"));
+        assert_eq!((w.mode,w.movement,w.reaction), (Mode::Talk,"gestureg",Some("react")));
+    }
+
+    #[test]
+    fn wait_and_move_apply_their_own_requests_after_a_genuine_reaction_end() {
+        let mut list = stop_list();
+        list.extend([("react", once()), ("gestureg", MovementLoop { cut_short: true, ..once() }), ("walk", walk(1.0))]);
+        let loops = lookup(&list);
+        let mut w = Walker::new(0.0);
+        w.request_reaction("react", &loops);
+        w.gesture(14, Some("gestureg"), &loops);
+        for _ in 0..20 { if w.update(intent(0,0,false), &loops).ended == Some("react") { break; } }
+        assert_eq!((w.movement,w.reaction,w.animation_input_lock), ("stop",None,false), "Wait's own Stop can cut the newly started gesture");
+        let mut w = Walker::new(0.0);
+        w.choice = "walk"; w.movement = "walk";
+        w.request_reaction("react", &loops);
+        for _ in 0..20 { if w.update(intent(1,0,false), &loops).ended == Some("react") { break; } }
+        assert_eq!((w.movement,w.choice,w.reaction,w.animation_input_lock), ("walk","walk",None,false), "Move resumes its retained forward selection");
+    }
+
+    #[test]
+    fn a_state_request_rewrites_the_retained_name_only_when_it_starts() {
+        let mut list = stop_list();
+        list.extend([("react", once()), ("portal", once()), ("gestureg", MovementLoop { cut_short: true, ..once() })]);
+        let loops = lookup(&list);
+        let mut w = Walker::new(0.0);
+        w.request_reaction("react", &loops);
+        w.script_request("portal", &loops);
+        for _ in 0..20 { if w.update(intent(0,0,false), &loops).ended == Some("react") { break; } }
+        assert_eq!((w.movement,w.wanted,w.state_wanted,w.reaction,w.animation_input_lock),
+            ("portal",Some("stop"),Some("stop"),Some("react"),false));
+        let mut resumed = w.clone();
+        for _ in 0..20 { resumed.update(intent(0,0,false), &loops); }
+        assert_eq!((resumed.movement,resumed.reaction,resumed.state_wanted), ("stop",None,None));
+        w.gesture(14, Some("gestureg"), &loops);
+        assert_eq!((w.state_wanted,w.wanted,w.reaction), (None,Some("gestureg"),Some("react")), "the lip request cancels only the waiting state request");
+        for _ in 0..20 { w.update(intent(0,0,false), &loops); }
+        assert_eq!((w.movement,w.reaction), ("gestureg",Some("react")));
     }
 
     #[test]

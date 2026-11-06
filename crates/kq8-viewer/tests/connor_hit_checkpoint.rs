@@ -23,7 +23,7 @@ fn connor_hit_timing_resumes_after_disk_reload() {
         "--world", "DeadCity", "--command", "KQMonster::setReactPercent Connor 0,1",
         "--command", "KQConner::setLevel 8,1",
         "--command", "sendEvent 0 Connor KQStatsChangeRequestEvent 80 0 0 0 0,2",
-        "--command", "sendEvent 0 Connor KQAttackEvent trap 0 2 1,15",
+        "--command", "sendEvent 0 Connor KQAttackEvent trap 0 2 0,15",
         "--frames", "70",
         "--key", "menu:down:down:enter:release:enter:release:escape:type=Hit:enter:release:escape,20",
     ]);
@@ -32,32 +32,35 @@ fn connor_hit_timing_resumes_after_disk_reload() {
         serde_json::from_slice(&fs::read(slots.join(format!("slot-{n}.json"))).unwrap()).unwrap()
     };
     let first = read(1);
-    assert_eq!(first["special"]["movement"], "react");
-    let phase = first["special"]["phase"].as_f64().unwrap();
+    assert!(first["special"].is_null(), "ordinary reaction must retain its controller");
+    assert_eq!(first["hit_timing"]["reaction_pose"]["movement"], "react");
+    let phase = first["hit_timing"]["reaction_pose"]["phase"].as_f64().unwrap();
     assert!((phase - 1.0 / 3.0).abs() < 0.001, "saved hit pose changed; inspect {}", root.display());
     let hit = &first["hit_timing"];
-    assert!(hit["flinch_in"].as_f64().is_some_and(|t| (2.0..=2.8).contains(&t)));
+    assert_eq!(hit["flinch_in"], 0.0, "only a genuine reaction end starts the pause");
+    assert_eq!(hit["reaction_playing"], "react");
+    assert_eq!(hit["animation_input_lock"], true);
     assert!(hit["ouch_in"].as_f64().is_some_and(|t| (0.0..=1.0).contains(&t)));
 
     let after = run("restore", &[
         "--menu-input", "down,enter,release,enter,release", "--frames", "700",
         "--command", "KQMonster::setReactPercent Connor 0,1",
-        "--command", "sendEvent 0 Connor KQAttackEvent trap 0 2 1,2",
-        "--command", "sendEvent 0 Connor KQAttackEvent trap 0 2 1,20",
-        "--command", "sendEvent 0 Connor KQAttackEvent trap 0 2 1,60",
+        "--command", "sendEvent 0 Connor KQAttackEvent trap 0 2 0,2",
+        "--command", "sendEvent 0 Connor KQAttackEvent trap 0 2 0,20",
+        "--command", "sendEvent 0 Connor KQAttackEvent trap 0 2 0,60",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=AfterHit:enter:release:escape,70",
     ]);
     assert!(after.contains("save restored in DeadCity without replaying Begin")
         && after.contains("Save screen -> Save(2, \"AfterHit\")"), "inspect {}", root.display());
     let connor = fs::read_to_string(root.join("restore/kq8-artifacts/logs/connor.log")).unwrap();
     let fields: Vec<&str> = connor.lines().find(|line| line.starts_with("1 ")).unwrap().split_whitespace().collect();
-    let mode = fields.iter().position(|field| *field == "special").unwrap();
+    let mode = fields.iter().position(|field| *field == "free").unwrap();
     assert_eq!(fields[mode + 1], "react");
     let resumed_phase: f64 = fields[mode + 3].parse().unwrap();
     assert!((resumed_phase - (phase + 1.0 / 12.0)).abs() < 0.002,
         "Connor restarted react rather than continuing; inspect {}", root.display());
     let fight = fs::read_to_string(root.join("restore/kq8-artifacts/logs/fight.log")).unwrap();
-    assert!(fight.contains("no flinch ('react' can't be cut short now (mode special)); no ouch sound")
+    assert!(fight.contains("no flinch ('react' can't be cut short now (mode free)); no ouch sound")
         && fight.contains("no flinch (his last flinch ended")
         && fight.contains("his ouch sound conrow3.aud")
         && fight.contains("flinches: 'react'"), "hit limits did not resume; inspect {}", root.display());

@@ -257,7 +257,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `KQConAnimList` | **not named** | 6 | Common 6 | `Common/Connor.kq` |
 | `KQInventoryItem` | **not named** | 5 | Common 5 | `Common/Connor.kq` |
 | `KQSwampTile` | **not named** | 5 | Swamp 5 | `Swamp/gastrap1.KQ` |
-| `KQSpiriTrap` | **not named** | 4 | DeadCity 4 | `DeadCity/spirtp1.kq` |
 | `RiverControl` | **not named** | 4 | DeadCity 4 | `DeadCity/rivercn2.kq` |
 | `KQDragonHead` | **not named** | 2 | IceWorld 2 | `IceWorld/draglhed.kq` |
 | `KQMandragorRoot` | **not named** | 2 | Swamp 2 | `Swamp/mandrtl.KQ` |
@@ -301,6 +300,7 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `KQOrbitObj` | named | 12 | Daventry 9, Common 3 | `Daventry/orbit10.kq` |
 | `KQChest` | named | 10 | Daventry 4, Swamp 4, IceWorld 2 | `Daventry/jar.kq` |
 | `KQGeometryTalker` | named | 7 | Daventry 2, DeadCity 1, Swamp 1, IceWorld 3 | `Daventry/Ugly.KQ` |
+| `KQSpiriTrap` | named | 4 | DeadCity 4 | `DeadCity/spirtp1.kq` |
 | `KQSkinList` | named | 3 | Common 3 | `Common/Connor.kq` |
 | `KQBoulder` | named | 1 | Gnome 1 | `Gnome/boulder.kq` |
 | `KQDeath` | named | 1 | DeadCity 1 | `DeadCity/DEATH.KQ` |

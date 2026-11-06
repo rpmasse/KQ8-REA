@@ -386,13 +386,26 @@ pub struct SavedShotTiming {
 pub struct SavedHitTiming {
     flinch_in: f64,
     ouch_in: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    reaction: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    reaction_playing: Option<String>,
+    #[serde(default)]
+    animation_input_lock: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    reaction_pose: Option<SavedControllerPose>,
 }
 
 impl SavedHitTiming {
+    pub fn has_reaction_pose(&self) -> bool { self.reaction_pose.is_some() }
     pub fn valid(&self) -> bool {
         [self.flinch_in, self.ouch_in]
             .into_iter()
             .all(|t| t.is_finite() && (0.0..=120.0).contains(&t))
+            && self.reaction.as_deref().is_none_or(valid_swing_name)
+            && self.reaction_playing.as_deref().is_none_or(valid_swing_name)
+            && self.reaction_pose.as_ref().is_none_or(|pose| pose.valid() && pose.reaction() == self.reaction.as_deref()
+                && pose.reaction_playing() == self.reaction_playing.as_deref() && pose.animation_input_lock() == self.animation_input_lock)
     }
 }
 
@@ -675,6 +688,11 @@ impl ConnorSim {
         let saved = SavedHitTiming {
             flinch_in: (self.flinch_end + FLINCH_PAUSE - now).max(0.0),
             ouch_in: (self.last_ouch + OUCH_EVERY - now).max(0.0),
+            reaction: self.walker.reaction.map(str::to_owned),
+            reaction_playing: self.walker.reaction_playing.map(str::to_owned),
+            animation_input_lock: self.walker.animation_input_lock,
+            reaction_pose: ((self.walker.reaction.is_some() || self.walker.reaction_playing.is_some() || self.walker.animation_input_lock)
+                && self.walker.mode == Mode::Free && self.choice.is_none()).then(|| self.capture_controller_pose()),
         };
         saved.valid().then_some(saved)
     }
@@ -682,6 +700,14 @@ impl ConnorSim {
     pub fn restore_hit_timing(&mut self, saved: &SavedHitTiming) -> Result<(), String> {
         use kq8_core::fight::{FLINCH_PAUSE, OUCH_EVERY};
         if !saved.valid() { return Err("invalid Connor hit timing checkpoint".into()); }
+        let reaction = saved.reaction.as_deref().map(|name| find(&self.movements,self.weapon_set.as_deref(),name).map(|m| m.name)
+            .ok_or_else(|| format!("saved reaction '{name}' is absent"))).transpose()?;
+        let reaction_playing = saved.reaction_playing.as_deref().map(|name| find(&self.movements,self.weapon_set.as_deref(),name).map(|m| m.name)
+            .ok_or_else(|| format!("saved playing reaction '{name}' is absent"))).transpose()?;
+        if let Some(pose) = &saved.reaction_pose { self.restore_controller_pose(pose,Mode::Free,"reaction")?; }
+        self.walker.reaction = reaction;
+        self.walker.reaction_playing = reaction_playing;
+        self.walker.animation_input_lock = saved.animation_input_lock;
         let now = self.clock();
         self.flinch_end = now + saved.flinch_in - FLINCH_PAUSE;
         self.last_ouch = now + saved.ouch_in - OUCH_EVERY;
@@ -1532,7 +1558,7 @@ pub fn connor_keys(
     for (what, pressed) in key_events {
         // handsOff (anim-scripts.md rule 21): presses are swallowed,
         // releases still count.
-        if pressed && sim.hands_off {
+        if pressed && (sim.hands_off || sim.walker.animation_input_lock) {
             continue;
         }
         if pressed {
@@ -1656,7 +1682,7 @@ pub fn connor_keys(
 /// cancels an automatic turn at his next update. Logged in `connor.log`,
 /// with "auto-turn cancelled" only on a down during an automatic turn.
 fn turn_key_event(sim: &mut ConnorSim, dir: i8, down: bool, what: &str, shared: &Shared) {
-    let hands_off = sim.hands_off;
+    let hands_off = sim.hands_off || sim.walker.animation_input_lock;
     let e = if down { sim.turn_keys.press(dir, hands_off) } else { sim.turn_keys.release(dir, hands_off) };
     let turning = sim.walker.auto.as_ref().is_some_and(|a| a.phase == kq8_core::connor_auto::AutoPhase::Turning);
     if e.is_down() {
@@ -1785,53 +1811,75 @@ impl ConnorSim {
     }
 
     /// `fighting.md` rules 23, 24, 29 (M5 5c-4): a hit took health and he
-    /// lives. He flinches (his `react`, keys ignored while it plays, as a
-    /// Special list) when the roll was over 0.9 *D*, his movement can be
+    /// lives. He requests `react` in the owning state when the roll is
+    /// above normalReactPercent * D, his movement can be
     /// cut short (the keys choose it, no start or stop transition plays,
     /// its `loop=` line says so or it has ended) and his last flinch ended
     /// over 2 s ago; otherwise his ouch sound, at most once a second (a
     /// flinch also starts that second). Returns the line for `fight.log`.
-    pub fn hurt(&mut self, roll_over: bool, special: Option<&str>, ouch: &str, now: f64) -> String {
+    pub fn hurt(&mut self, roll_over: bool, forced: bool, special: Option<&str>, ouch: &str, now: f64) -> String {
         use kq8_core::fight::{FLINCH_PAUSE, OUCH_EVERY};
-        let can_cut = self.can_be_cut_short();
-        let w = &self.walker;
-        // fighting.md rule 23 (batch 2 D-7): a special react a script set
-        // (its own roll passed) plays instead of `react`.
-        let wanted = special.unwrap_or("react");
-        let react = self.drawn(wanted).map(|m| (m.name, m.movement_loop.duration / m.movement_loop.speed.abs().max(1e-3)));
-        let why_not = if special.is_none() && !roll_over {
+        let can_cut=self.can_be_cut_short();
+        let mode=self.walker.mode;
+        // Native Wait/Move/Choice share Free here. A melee action's
+        // temporary Special representation is still ordinary combat.
+        let selector=matches!(mode,Mode::Free|Mode::Talk) || (mode==Mode::Special && (self.swing.is_some() || self.shot.is_some()));
+        let wanted=special.unwrap_or("react");
+        let react=self.drawn(wanted).map(|m| (m.name,m.movement_loop.duration/m.movement_loop.speed.abs().max(1e-3)));
+        let why_not=if !selector {
+            Some(format!("{} uses base hurt handling, without reaction selection",mode.name()))
+        } else if !forced && special.is_none() && !roll_over {
             Some("the roll is not above his normalReactPercent x D".to_string())
-        } else if !can_cut {
-            Some(format!("'{}' can't be cut short now (mode {})", w.movement, w.mode.name()))
-        } else if now < self.flinch_end + FLINCH_PAUSE {
-            Some(format!("his last flinch ended {:.2} s ago (2 s pause)", now - self.flinch_end))
+        } else if !forced && !can_cut {
+            Some(format!("'{}' can't be cut short now (mode {})",self.walker.movement,mode.name()))
+        } else if !forced && now <= self.flinch_end+FLINCH_PAUSE {
+            Some(format!("his last flinch ended {:.2} s ago (2 s pause)",now-self.flinch_end))
         } else if react.is_none() {
             Some(format!("no {wanted} in his list"))
-        } else {
-            None
-        };
-        let line = match (why_not, react) {
-            (None, Some((name, length))) => {
-                self.walker.start_special(vec![kq8_core::connor::SpecialStep::Play(name, wanted.into())]);
-                self.flinch_end = now + f64::from(length);
-                self.last_ouch = now;
-                format!("flinches: '{name}' ({length:.2} s, keys ignored meanwhile; rules 23, 29)")
+        } else { None };
+        let line=match (why_not,react) {
+            (None,Some((name,length))) => {
+                let before=(self.walker.movement,self.walker.phase);
+                let retained=self.walker.reaction == Some(name);
+                let was_locked=self.walker.animation_input_lock;
+                let movements=&self.movements;
+                let bank=self.weapon_set.as_deref();
+                let loops=|n:&str| find(movements,bank,n).map(|m| &m.movement_loop);
+                let notes=self.walker.request_reaction(name,&loops);
+                if !was_locked && self.walker.animation_input_lock {
+                    self.turn_keys.turn=0;
+                    self.intent.turn=0;
+                }
+                let playing=self.walker.movement==name;
+                if (self.walker.movement,self.walker.phase)!=before {
+                    self.current.2=self.walker.phase; self.previous.2=self.walker.phase;
+                    self.phase_step=self.phase_step_now();
+                }
+                if self.swing.as_ref().is_some_and(|s| s.movement!=self.walker.movement) {
+                    self.swing=None;
+                    self.log.detail(format!("connor update {}: reaction replaced the melee movement; its unfinished attack is cancelled",self.updates));
+                }
+                if self.shot.as_ref().is_some_and(|s| s.movement!=self.walker.movement) {
+                    self.shot=None;
+                    self.log.detail(format!("connor update {}: reaction replaced the ranged movement; its unfinished shot is cancelled",self.updates));
+                }
+                self.last_ouch=now;
+                format!("{}: '{name}' ({length:.2} s, forced {forced}, ordinary owner {}); {} (Q194/Q195)",if retained {"retained reaction"} else if playing {"flinches"} else {"reaction queued"},self.walker.mode.name(),notes.join("; "))
             }
-            (why, _) => {
-                let why = why.unwrap_or_default();
-                if now + 1e-6 >= self.last_ouch + OUCH_EVERY {
-                    self.last_ouch = now;
-                    self.sounds.push(kq8_core::sound::Start::placed_one_shot(ouch, self.mover.position, "his ouch sound (fighting.md rule 24)".into()));
+            (why,_) => {
+                let why=why.unwrap_or_default();
+                if now+1e-6>=self.last_ouch+OUCH_EVERY {
+                    self.last_ouch=now;
+                    self.sounds.push(kq8_core::sound::Start::placed_one_shot(ouch,self.mover.position,"his ouch sound (fighting.md rule 24)".into()));
                     format!("no flinch ({why}): his ouch sound {ouch} (rule 24)")
                 } else {
-                    format!("no flinch ({why}); no ouch sound, the last was {:.2} s ago (at most once a second, rule 24)", now - self.last_ouch)
+                    format!("no flinch ({why}); no ouch sound, the last was {:.2} s ago (at most once a second, rule 24)",now-self.last_ouch)
                 }
             }
         };
-        self.log.detail(format!("connor update {}: hurt: {line}", self.updates));
+        self.log.detail(format!("connor update {}: hurt: {line}",self.updates));
         line
     }
-
     /// His running movement can be cut short now (`fighting.md` rules 23,
     /// 40): the keys choose it (or it is his swing) and no start or stop
     /// transition plays, and its `loop=` line with its `interruptable`
@@ -2605,14 +2653,19 @@ impl ConnorSim {
             }
         }
         // The held turn key goes down again (Q104 a: a down event).
-        if let Some(dir) = self.turn_keys.held_last() {
-            let e = self.turn_keys.press(dir, false);
-            self.walker.turn_press = true;
-            self.intent.turn = self.turn_keys.turn;
-            let cleared = self.walker.key_event(MoveKey::Turn, true);
-            sent.push(format!("Turn: {e} (blocks cleared {cleared:?})"));
-        }
+        sent.extend(self.turn_sent_again());
         if sent.is_empty() { "no movement key held".into() } else { format!("held keys sent again: {}", sent.join(", ")) }
+    }
+
+    /// Only the held turn is replayed after animSetHandsOff clears; the
+    /// scripted handsOff path above also replays forward/back (rule 23).
+    pub fn turn_sent_again(&mut self) -> Option<String> {
+        let dir = self.turn_keys.held_last()?;
+        let e = self.turn_keys.press(dir, self.hands_off || self.walker.animation_input_lock);
+        if e.is_down() { self.walker.turn_press = true; }
+        self.intent.turn = self.turn_keys.turn;
+        let cleared = if e.is_down() { self.walker.key_event(MoveKey::Turn, true) } else { (false, false) };
+        Some(format!("Turn: {e} (blocks cleared {cleared:?})"))
     }
 
     /// `characters.md` rules 3-4 (Q155): into the Choice state at once,
@@ -2879,7 +2932,7 @@ pub fn connor_step(
     // M4 4d-12-3: the characters solid for him now.
     let solid = characters.list.clone();
     scene.characters = &solid;
-    if let Some((_, what)) = sim.repeat.filter(|_| !sim.hands_off) {
+    if let Some((_, what)) = sim.repeat.filter(|_| !sim.hands_off && !sim.walker.animation_input_lock) {
         let cleared = sim.walker.key_event(what, true);
         if cleared != (false, false) {
             let line = format!("connor update {}: {what:?} held (repeat): blocks cleared (forward, back): {cleared:?}", sim.updates);
@@ -2889,7 +2942,8 @@ pub fn connor_step(
     }
     // handsOff (Q89 a stand-in): the keys count as let go (the run
     // switch stays as it is).
-    let mut intent = if sim.hands_off { Intent { forward: 0, turn: 0, ..sim.intent } } else { sim.intent };
+    let mut intent = if sim.hands_off { Intent { forward: 0, turn: 0, ..sim.intent } }
+        else if sim.walker.animation_input_lock { Intent { turn: 0, ..sim.intent } } else { sim.intent };
     let mut jump = std::mem::take(&mut sim.jump_pressed) && !sim.hands_off;
     // characters.md rules 7-8, 11 (Q155): in the Choice state forward and
     // back choose, he never walks; the turn keys pivot him; before the
@@ -2917,6 +2971,8 @@ pub fn connor_step(
     // Choice owns Free movements, but not the Special movement of a
     // nested weapon swap whose completion restores a fresh Choice.
     let choice_owned_movement = sim.choosing();
+    let reaction_before = sim.walker.reaction_playing;
+    let animation_was_locked = sim.walker.animation_input_lock;
     let tick = {
         let ConnorSim { mover, walker, movements, weapon_set, .. } = &mut *sim;
         let loops = |name: &str| find(movements, weapon_set.as_deref(), name).map(|m| &m.movement_loop);
@@ -2928,6 +2984,10 @@ pub fn connor_step(
         sim.jump_start_z = Some(z_before);
     }
     let kq8_core::connor_update::Tick { step, report, wall_stop, notes: jump_notes, auto_end, auto_turn_ended } = tick;
+    if animation_was_locked && !sim.walker.animation_input_lock && !sim.hands_off {
+        let replay = sim.turn_sent_again().unwrap_or_else(|| "no turn key held".into());
+        sim.log.detail(format!("connor update {}: animation input lock cleared; {replay} (anim-scripts.md rule 23)", sim.updates));
+    }
     // Q104 a: the end of an automatic turn sets the turn direction to 0;
     // a held turn key is not sent again.
     if auto_turn_ended {
@@ -2949,6 +3009,10 @@ pub fn connor_step(
     }
     // M3 3i-7: a play-once movement ended: for getEndLoop listeners.
     if let Some(e) = step.as_ref().and_then(|s| s.ended) {
+        if reaction_before == Some(e) {
+            sim.flinch_end = sim.clock();
+            sim.log.detail(format!("connor update {}: reaction {e} ended; next ordinary selection strictly after {:.6}",sim.updates,sim.flinch_end+kq8_core::fight::FLINCH_PAUSE));
+        }
         sim.ended.push(kq8_core::connor::plain_movement_name(e).to_string());
         if choice_owned_movement && sim.choosing() {
             sim.choice_movement_ended(e);

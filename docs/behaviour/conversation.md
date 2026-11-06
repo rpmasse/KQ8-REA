@@ -315,7 +315,9 @@ Words used here:
       "can be cut short", and a character standing in `Stop` qualifies
       anyway, so `speak` lines gesture too.)
     - Connor plays it only if he stands still, has no weapon drawn and
-      is not in first person.
+      is not in first person. These are eligibility checks, not a
+      promise that the requested movement starts immediately; see
+      rule 18a for a gesture received during a reaction.
     Data: 1,110 lip-sync files of the game have codes 8–16 (4,080
     codes; Daventry 93 files, 393 codes; e.g. `S0RS0400.081`, the
     Wizard's welcome-back line 1000/4/0/8/1, codes 8, 10, 12). Movement
@@ -323,6 +325,144 @@ Words used here:
     `gesturea`…: `wizard.anm` (Movement14–21), `girl.anm`,
     `knight.anm` and others; Connor's `Conner.anm`, `CONNER2.anm`,
     `Connerfp.anm`.
+
+18a. **Connor's lip gestures during a reaction (Q195, static study
+     2026-11-06).** Connor's gesture eligibility does **not** include
+     the NPC's current-movement cut-short/end test. It also does not
+     require his animation input lock to be off or his reaction pause
+     to have expired. "Standing" here is the movement controller's
+     absence of a walking movement, not a requirement to own the Wait
+     state. There is no owning-state, completed-Talk-approach or
+     current-transition eligibility check. Standing Special, and a
+     standing moment during Talk's approach, therefore qualify with
+     empty hands and third-person view too. The resulting animation
+     request does not itself exit Special or Talk.
+
+     - An eligible lip code requests its movement **in that handler**;
+       it does not post a new `KQAnimPlayEvent`. It uses Connor's
+       ordinary animation request with **animation input lock off**.
+       The request replaces the single waiting movement, then uses
+       the normal transition/cut-short/end rules in `anim-scripts.md`
+       rule 4. There is no unconditional direct playback cut.
+     - The lock changes **when the request is made**, even if playback
+       must wait. Thus a lip gesture can clear `animSetHandsOff` while
+       an uninterruptible `react` continues. This does not clear the
+       separate scripted `handsOff` switch. On a change from locked to
+       unlocked, with scripted `handsOff` off, the usual held-turn
+       replay occurs (`anim-scripts.md` rule 23). Later input follows
+       the current Talk controller's ordinary approach/walking rules;
+       releasing this lock does not change the owning state.
+     - In the shipped empty-hands `GAME/Kq/Conner.anm`, `react` plays
+       once, cannot be cut short, and has **no transitions**. A code
+       **14** received while it plays therefore leaves `react` running
+       and makes **`gestureg` wait**. If the reaction was only waiting
+       behind another movement, that waiting reaction is discarded and
+       the gesture takes its slot. A later eligible lip code or another
+       animation request can replace the waiting gesture in turn. When
+       the current movement is interruptible or has ended, the same
+       request can start at once under the normal rules.
+       An eligible lip code asking for the **same cuttable gesture
+       already playing restarts it** from its own authored loop start
+       (phase 0 for the shipped Connor gestures). It does not keep the
+       old phase. The state-selected reaction's retained-name check
+       below is not a same-name suppression rule for lip gestures.
+     - The state's **last requested movement name** is separate from
+       both current playback and the waiting slot. A lip gesture does
+       not rewrite it. It can still say `react` while a gesture waits
+       or plays; that does not mean a reaction still owns playback or
+       the input lock. Selecting that same retained reaction again
+       does not issue a duplicate request or reassert its lock
+       (`traps.md`, Q194). Ordinary state-controlled movement changes
+       maintain that name by their own rules. Do not automatically
+       erase it merely because a lip request changes the animation.
+     - A lip request does **not** set the reaction deadline. If a real
+       `react` finishes naturally, its end notification starts the
+       latest waiting movement first, then sets the reaction deadline
+       to **the notification's game time plus 2 seconds**. A reaction
+       discarded while waiting never supplies such an end notification.
+       Replacing a playing movement does not fabricate its natural end
+       either. An already queued genuine end notification remains a
+       separate event. A gesture's own end does not count as a reaction
+       end and does not restart the reaction pause. This common end
+       handling does **not** clear the animation input lock or change
+       the state's retained movement name by itself.
+     - After the talking spot has been reached, Talk keeps ownership
+       through these requests and ends. They do not send
+       `TalkComplete`, advance a conversation line or enter Special.
+       At a natural `react` end with **nothing waiting**, standing Talk
+       holds the reaction's final pose, retains its `React` state
+       movement name and keeps the lock value it had before the end
+       (**on** if no later request cleared the reaction's lock).
+       With a lip gesture waiting, that gesture starts, the retained
+       name can remain `React`, and the lock stays **off** because the
+       **lip request** already cleared it. Neither natural end nor
+       gesture startup adds a new unlock operation.
+       With no newer waiting movement, a completed gesture can hold
+       its last frame: Talk does not automatically request `stop` just
+       because that gesture ended. A later lip code **16** requests
+       `stop`; later gestures and ordinary starts/stops of walking also
+       select subsequent movements. An overwritten waiting reaction is
+       not resumed automatically.
+     - **Standing Wait adds its own end action.** After the common
+       reaction-end handling above, Wait requests **`Stop` with the
+       animation lock off**. This request is the source of its unlock;
+       the reaction ending alone is not. With nothing waiting, `Stop`
+       starts and the retained state movement name becomes `Stop`.
+       If a shipped interruptible lip gesture has just started from
+       the waiting slot, Wait's `Stop` request cuts it in that same
+       end handling and retains `Stop` instead. Wait makes this
+       decision from the **ended name** `React`, not from the newly
+       playing gesture. For a modified uninterruptible replacement,
+       the Stop request would still clear the lock but the retained
+       name is rewritten only if that request actually starts. Ends
+       named `Stop` or beginning with `gesture` do not trigger Wait's
+       extra Stop request. Do not apply Wait's extra action to Talk.
+     - **Move has a different end action.** After the common end
+       handling, it checks the movement controller's currently selected
+       movement. If that selection is nonempty and differs from the
+       movement actually playing, Move requests the selection with
+       **animation lock off**. If the request starts, the retained
+       state movement name becomes that selected name. With unchanged
+       forward/walk intent and no newer waiting request, a natural
+       `react` end therefore resumes the selected walking movement,
+       clears the lock through that request and retains the walking
+       name. Setting the reaction lock clears the mover's turn intent,
+       **not its forward/back intent**, so the original forward
+       selection remains available. If the selection is empty or
+       already matches actual playback, Move makes no extra request
+       here; there is no unconditional generic end unlock or forced
+       `Stop` action to substitute for these checks.
+     - **`KQAnimPlayEvent` is distinct:** its common movement request
+       has the same waiting-slot and transition behavior, but does not
+       itself assign Connor's `animSetHandsOff` value or rewrite the
+       state's last requested movement name. Do not implement a lip
+       gesture merely by posting that event and assume the lock
+       consequence is the same.
+
+     **Data/checks:** `Conner.anm`'s `react` has 13 frames, repeat off,
+     cut-short off, no transitions; `gestureg` has 46 frames, repeat
+     off, cut-short on, no transitions. With Connor standing, empty
+     handed and in third-person Talk, log current movement, waiting
+     movement, retained state movement name, both input locks and the
+     reaction deadline before/after code 14. During an uninterruptible
+     `react`, expect current `react`, waiting `gestureg`, animation lock
+     off, unchanged retained reaction name/deadline. At the genuine
+     reaction end expect the latest waiting movement to start and the
+     two-second deadline to be set. Compare the owning states with no
+     intervening requests/input changes: Wait then requests `Stop` and
+     unlocks; completed-approach stationary Talk holds the ended
+     reaction and prior lock; Move with retained forward/walk intent
+     requests walking and unlocks. Repeat Wait/Talk with a waiting lip
+     gesture: Wait's Stop cuts the shipped gesture, while Talk keeps it
+     playing with the lip request's off lock and retained reaction name.
+     Send the same eligible gesture code twice during cuttable playback
+     and check that its phase starts over each time. Repeat with `react`
+     only waiting:
+     it must never play or generate a synthetic reaction end. Compare
+     the same movement sent by `KQAnimPlayEvent`, which leaves the
+     animation input lock alone. These are static executable/data
+     conclusions; the original Wizard timing, rendered playback and
+     native save/reload continuation are **not tested**.
 
 ### The player's clicks during a conversation
 

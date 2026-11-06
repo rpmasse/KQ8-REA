@@ -13,6 +13,85 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**Spirit-trap component (2026-11-06, implemented; campaign gate open).** Recognize the
+original KQSpiriTrap class alongside generic trap boxes. Read damage,
+spiritState and trapStatus with defaults .2/2/0; keep their mutable values
+in the existing trap checkpoint as an optional extension. Restoring them
+must not synthesize an entry/drain. Preserve ordered generic occupants,
+including Connor-first/other-first and nonempty-exit quirks. Process the
+subclass's entry/exit and Cue 0/1/2 behavior separately from its optional
+ordinary script; every occupied Cue 1 drains again and Cue 2 is a no-op.
+
+Use a small pure health calculation from traps.md Q188: f32 damage,
+one/two entry fractions, whole-point truncation and the original low 1%
+constants (a zero floor even at level 10). Deliver the stats change and
+then the separate strength-1 Normal forced-reaction hit through the normal
+health/combat/event paths. Resolve the ambiguous internal forced flag and
+event service order with the authorized study before wiring those parts;
+do not guess from the scripted event's fourth word. Preserve ordinary
+protection, rope/dying guards and movement interruption semantics.
+
+Check data/default fields for all four installed Dead City traps and both
+original spirit movement Cue lists. Check exact health tables, repeated
+drains, protection 100, low-health death, immunity-stage differences,
+multi-visitor occupancy and current/legacy/invalid checkpoint records.
+Then automate Windows entry, repeated original Cue delivery and a fresh
+process save/reload while occupied, checking separate stats/hit/reaction
+logs and unchanged GOG Options.cs. Use numeric logs only. This controller
+component does not replace the complete Dead City altar/spirits route or
+the uninterrupted campaign gate. Record failures, provenance and remaining
+scope before publishing; no manual testing.
+
+Q194 is now answered: the fourth text word is the force flag, and both
+health stages are queued FIFO using the handler's already-computed delta.
+Multiple pending Cues can see the same health. Preserve the source's
+same-time low-health edge rather than making the pair atomic. For known
+ordinary Wait/Move entry, mirror dying's zero-health entry before later
+queued events; do not clamp again after another direct delta arrives.
+Other state-change eligibility remains governed by its existing controller
+and the still-open ordinary-death transition study.
+
+The existing hurt helper starts a Special list; Q194 corrects that model.
+Keep ordinary/Choice/Talk ownership and request the selected movement via
+the walker's existing transition/interrupt path. Add a reaction input lock
+until that movement ends; a forced selection can wait behind an
+uninterruptible animation and repeated requests must not restart its pose.
+Script-owned Special receives ordinary damage/sound without this selector.
+Retain the artificial melee action's pending Do until the ordinary request
+actually replaces/finishes its animation. Preserve a reaction's queued
+request/pose and input lock using optional hit/controller checkpoint fields;
+old records keep their existing representation. Check these paths with core
+transition fixtures and Windows forced/unforced, protected/unprotected,
+pending/playing/save/reload cases, then rerun existing hit/death/Choice checks.
+
+Q195 further distinguishes the retained state request name, actual reaction
+playback/end notification, and animation input lock. Lip gestures use the
+ordinary request directly with the lock OFF; they do not impose the NPC
+cut-short eligibility gate, cut uninterruptible react, rewrite the retained
+state name, or fabricate reaction-end cooldown. Keep the latest waiting
+gesture and start it after a real reaction end. Same retained reaction
+selection suppresses a duplicate request and does not reassert the lock.
+Store those independent fields in optional controller/hit checkpoints and
+replay held turn on a real animation unlock through the existing control
+bridge. A later state-controlled movement updates its retained name. Talk
+keeps its own later end rules, including held final gesture poses. Correct
+the old direct-gesture assignment instead of adding an NPC interruption
+gate or blocking all dialogue gestures during reaction. The real Wizard
+probe exposed this missing distinction and will be repeated unchanged.
+
+The Q195 end follow-up establishes that completion itself does not unlock.
+Wait requests Stop with lock off after the common waiting-slot/deadline
+handling; Move requests its different selected movement with lock off and
+preserves forward/back selection through the reaction. Standing Talk holds
+its ended pose/lock unless a later request has changed them. A queued
+state-controlled request updates the retained name only when it starts;
+keep that request's origin in the controller checkpoint so a later common
+lip request can replace it without erasing the retained name. Repeated
+cuttable lip gestures restart through the common animation path. There is
+no lip eligibility gate for owning state, completed Talk approach or an
+active transition. These are narrow controller corrections from Q195,
+not a general input or state-machine refactor.
+
 **Original-engine study handoff (2026-11-06).** The user authorized an
 isolated study session A to inspect the owned GOG executable. Its prose
 notes answer Q190 (Henchman), Q188 (spirit traps) and Q187 (camera shake),

@@ -156,11 +156,22 @@ KQAttackEvent $1 0 $CurRelHealth 1`.
     sent to Connor, it hurts him (rule 17). Kind is the weapon type
     (0 normal, 1 projectile, 2 fire, 3 ice, the same numbers as an
     object's `Die` reasons); it is remembered as the last thing that hit
-    him. The flag is not used by the hurt rule traced here. The rocks
-    send kind 0, damage `CurRelHealth` (2 × level), flag 1.
+    him. **Correction Q194, 2026-11-06:** the fourth text integer is
+    read and passed as the same **forced-reaction flag** used by spirit
+    traps. It is not an internal-only field and not globally unused.
+    A nonzero flag bypasses the ordinary reaction-selection gates in
+    Connor's standing/moving, Choice and Connor Talk hit handler; the
+    chosen movement still uses ordinary animation request/interruption
+    rules. Special's base hurt handler does not add that reaction
+    request. See `traps.md`, "The force flag and Connor's receiving
+    state", for the bounded state rules. The rocks send kind 0,
+    damage `CurRelHealth` (2 × level), flag 1; `rollside.cs` first asks
+    for Special, whose receiving route therefore matters.
 17. **Connor being hurt** (the shared hurt rule; full fighting is M5):
-    - ignored while he is dead or dying, and in one other state (not
-      identified);
+    - ignored while he is in the dying state or the **rope state**
+      (the older unidentified other-state guard, identified in the
+      Q188/Q194 follow-up); this guards the attack, not a separately
+      queued stats-change event;
     - damage 0 is ignored for health;
     - the hit is damage × a random factor between 0.25 and 1.0, rounded
       to the nearest whole number;

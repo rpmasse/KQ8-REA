@@ -20,6 +20,14 @@ pub struct SavedTalkPose {
     fresh: bool,
     talk_play: Option<String>,
     wanted: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    state_wanted: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    reaction: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    reaction_playing: Option<String>,
+    #[serde(default)]
+    animation_input_lock: bool,
     auto: Option<kq8_core::connor_auto::AutoMove>,
     waiting: Option<SavedSwingTransition>,
     playing: Option<SavedSwingTransition>,
@@ -36,6 +44,9 @@ pub struct SavedTalkPose {
 pub type SavedControllerPose = SavedTalkPose;
 
 impl SavedTalkPose {
+    pub(super) fn reaction(&self) -> Option<&str> { self.reaction.as_deref() }
+    pub(super) fn reaction_playing(&self) -> Option<&str> { self.reaction_playing.as_deref() }
+    pub(super) fn animation_input_lock(&self) -> bool { self.animation_input_lock }
     pub fn finished_weapon_away(&self) -> bool {
         self.movement.eq_ignore_ascii_case("away") && self.phase == 1.0
             && self.talk_play.as_deref().is_some_and(|s| s.eq_ignore_ascii_case("out"))
@@ -44,7 +55,9 @@ impl SavedTalkPose {
 
     pub fn valid(&self) -> bool {
         valid_swing_name(&self.movement) && self.phase.is_finite() && (0.0..=1.0).contains(&self.phase) && self.bank.is_finite()
-            && [&self.talk_play, &self.wanted].into_iter().flatten().all(|s| valid_swing_name(s))
+            && [&self.talk_play, &self.wanted, &self.state_wanted, &self.reaction, &self.reaction_playing].into_iter().flatten().all(|s| valid_swing_name(s))
+            && self.state_wanted.as_deref().is_none_or(|s| Some(s) == self.wanted.as_deref())
+            && self.reaction_playing.as_deref().is_none_or(|s| s == self.movement)
             && [&self.waiting, &self.playing].into_iter().flatten().all(SavedSwingTransition::valid)
             && self.moving.pull.iter().all(|n| n.is_finite()) && self.moving.fall_timer.is_finite() && self.moving.fall_timer >= 0.0
             && self.auto.as_ref().is_none_or(|a| a.target.iter().all(|n| n.is_finite()) && a.turn_updates < u32::MAX / 2
@@ -63,7 +76,9 @@ impl ConnorSim {
     pub(super) fn capture_controller_pose(&self) -> SavedControllerPose {
         let w = &self.walker;
         SavedTalkPose { movement: w.movement.into(), phase: w.phase, bank: w.bank, fresh: w.fresh,
-            talk_play: w.talk_play.map(str::to_owned), wanted: w.wanted.map(str::to_owned), auto: w.auto.clone(),
+            talk_play: w.talk_play.map(str::to_owned), wanted: w.wanted.map(str::to_owned), reaction: w.reaction.map(str::to_owned), auto: w.auto.clone(),
+            state_wanted: w.state_wanted.map(str::to_owned),
+            reaction_playing: w.reaction_playing.map(str::to_owned), animation_input_lock: w.animation_input_lock,
             waiting: w.waiting.map(SavedSwingTransition::take), playing: w.playing.map(SavedSwingTransition::take),
             hand_mode: w.hand_mode, hands_off: self.hands_off, turn_by_script: w.turn_by_script, turn_press: w.turn_press,
             blocked: [w.blocked_forward, w.blocked_back], moving: Moving { state: self.mover.state, on_ground: self.mover.on_ground,
@@ -77,11 +92,14 @@ impl ConnorSim {
 
     pub(super) fn restore_controller_pose(&mut self, saved: &SavedControllerPose, mode: Mode, label: &str) -> Result<(), String> {
         if !saved.valid() { return Err(format!("invalid {label} pose")); }
-        let resolve = |name: &str| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
+        let resolve = |name: &str| find(&self.movements,self.weapon_set.as_deref(),name).map(|m| m.name)
             .ok_or_else(|| format!("saved {label} movement '{name}' is absent"));
         let movement = resolve(&saved.movement)?;
         let talk_play = saved.talk_play.as_deref().map(&resolve).transpose()?;
         let wanted = saved.wanted.as_deref().map(&resolve).transpose()?;
+        let state_wanted = saved.state_wanted.as_deref().map(&resolve).transpose()?;
+        let reaction = saved.reaction.as_deref().map(&resolve).transpose()?;
+        let reaction_playing = saved.reaction_playing.as_deref().map(&resolve).transpose()?;
         let transition = |t: &SavedSwingTransition| -> Result<kq8_core::connor::Transition, String> {
             Ok(kq8_core::connor::Transition { from: t.from, to: resolve(&t.to)?, to_phase: t.to_phase, via: resolve(&t.via)? })
         };
@@ -89,7 +107,9 @@ impl ConnorSim {
         let playing = saved.playing.as_ref().map(&transition).transpose()?;
         self.walker.mode = mode; self.walker.movement = movement; self.walker.phase = saved.phase;
         self.walker.bank = saved.bank; self.walker.fresh = saved.fresh; self.walker.talk_play = talk_play;
-        self.walker.wanted = wanted; self.walker.auto = saved.auto.clone(); self.walker.waiting = waiting; self.walker.playing = playing;
+        self.walker.wanted = wanted; self.walker.reaction = reaction; self.walker.auto = saved.auto.clone(); self.walker.waiting = waiting; self.walker.playing = playing;
+        self.walker.state_wanted = state_wanted;
+        self.walker.reaction_playing = reaction_playing; self.walker.animation_input_lock = saved.animation_input_lock;
         self.walker.hand_mode = saved.hand_mode; self.hands_off = saved.hands_off;
         self.walker.turn_by_script = saved.turn_by_script; self.walker.turn_press = saved.turn_press;
         self.walker.blocked_forward = saved.blocked[0]; self.walker.blocked_back = saved.blocked[1];
