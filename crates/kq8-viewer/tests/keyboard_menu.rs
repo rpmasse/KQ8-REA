@@ -84,3 +84,29 @@ fn remapped_physical_keys_reach_connor_and_the_interface_after_restart() {
     );
     assert_eq!(fs::read(original_path).unwrap(), original);
 }
+#[test]
+#[ignore = "requires GOG assets and graphics"]
+fn original_selection_masks_advance_on_each_menu_screen() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+    let original = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/menu-masks/{nonce}"));
+    for (page, input) in [
+        ("Main", None),
+        ("Options", Some("down,enter,release")),
+        ("Graphics", Some("down,enter,release,enter,release")),
+        ("Keyboard", Some("down,enter,release,click=310x145")),
+    ] {
+        let dir = root.join(page);
+        fs::create_dir_all(&dir).unwrap();
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"));
+        cmd.current_dir(&dir).arg("--game").arg(&game).args(["--sound", "off", "--menu", "--frames", "85"]);
+        if let Some(keys) = input { cmd.args(["--menu-input", keys]); }
+        let output = cmd.output().unwrap();
+        fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+        let log = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
+        assert!(output.status.success() && log.contains("RESULT: PASS"), "{}", dir.display());
+        assert!(log.contains(&format!("menu: {page} mask advanced on its 100 ms clock")), "{}", dir.display());
+    }
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), original);
+}

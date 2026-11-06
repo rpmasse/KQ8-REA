@@ -370,6 +370,11 @@ impl Art {
     }
 
     pub fn render(&self, state: &Choice) -> Canvas {
+        self.render_frame(state, 0)
+    }
+
+    /// The menu's selection mask loops through its installed frames.
+    pub fn render_frame(&self, state: &Choice, mask_frame: usize) -> Canvas {
         let mut canvas = Canvas::new(640, 480);
         let draw = |canvas: &mut Canvas, file: &str, rect: [i32; 4], frame: usize| {
             let frames = &self.pictures[file];
@@ -432,7 +437,7 @@ impl Art {
             &mut canvas,
             "mskcur.pba",
             [cursor[0], row[1], cursor[2], row[3]],
-            0,
+            mask_frame % self.pictures["mskcur.pba"].len(),
         );
         if let Some(dialog) = state.dialog {
             draw(&mut canvas, "gm_win2.pbm", [140, 180, 500, 300], 0);
@@ -591,6 +596,22 @@ mod tests {
         }
         let mut selection = Choice::default();
         let menu = art.render(&selection);
+        let second = art.render_frame(&selection, 1);
+        let mask = art.layout.find(146).unwrap().rect;
+        let row = art.rows[selection.row];
+        let mut changed = 0;
+        for (i, (first, next)) in menu.rgba.chunks_exact(4).zip(second.rgba.chunks_exact(4)).enumerate() {
+            if first != next {
+                let width = menu.width as usize;
+                let (x, y) = ((i % width) as i32, (i / width) as i32);
+                assert!(x >= mask[0] && x < mask[2] && y >= row[1] && y < row[3]);
+                changed += 1;
+            }
+        }
+        assert!(changed > 0, "the installed mask must change visible pixels");
+        let count = art.pictures["mskcur.pba"].len();
+        assert_eq!(count, 16);
+        assert!(menu.rgba == art.render_frame(&selection, count).rgba);
         assert_eq!(
             selection.input(Key::Click(80, 130), &art.rows),
             Action::Stay

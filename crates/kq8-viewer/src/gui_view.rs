@@ -37,7 +37,7 @@ use crate::Shared;
 /// Original GUI picture clock (interface.md Q171).
 const GUI_FRAME_MS: f64 = 100.0;
 
-fn picture_tick(elapsed_ms: f64) -> usize {
+pub(crate) fn picture_tick(elapsed_ms: f64) -> usize {
     (elapsed_ms / GUI_FRAME_MS) as usize
 }
 
