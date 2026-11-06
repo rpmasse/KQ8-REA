@@ -14,6 +14,8 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M6 · Campaign and saves | Automated routes cover the wizard's rewards, the windmill Small Axe, the Daventry castle round trip and the Dead City scales. Saves restore moved windmill props, timed puzzle events, a scripted raven in flight, original and script-created monsters, unfinished deaths, Connor's live melee swing and standing crossbow attack, queued melee and ranged combat cues, live bolts, moving-shot timing, Small Axe and Small Crossbow weapon swaps, and the Weeper drain with Connor's reaction phase. A scripted hit also restores Connor's reaction, hit timing and last hit kind. Active speech resumes its voice offset, sound origin, caption and remaining queue. Wizard conversations retain approach, weapon-away/out phases, goodbye/pause/return queues, camera mode and HUD state across reloads, then return control. Scripted camera flights retain their remaining steps and destination list for later cuts. Scripted footsteps, occupied trigger state and flagged trigger callbacks also survive disk reloads. Persistent ordinary objects retain damage and hit history. Ordinary copies retain their source files, names, placement, playback and damaging hit kinds through saves; one-shot effects complete once after loading. The final movie can lead into scored credits. | Check other partners and conversation branches, actual camera drags, remaining trigger/cutscene state, and other weapon swaps and combat actions. Complete region quests, optional branches and boss sequences in an uninterrupted campaign. |
 | M7 · Fidelity | Original behavior notes and focused comparisons are available. | Verify the completed recreation against the original game. |
 
+The next Daventry campaign replay currently stops at Henchman combat; the hero-ring route has not passed.
+
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
 
 ## Build and run
@@ -63,6 +65,7 @@ cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored
 cargo test --locked -p kq8-viewer --test cottage_journey -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_wizard -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_windmill -- --ignored
+cargo test --locked -p kq8-viewer --test daventry_hero_ring breakable_route_dispatches -- --ignored
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored
 cargo test --locked -p kq8-viewer --test placed_characters -- --ignored

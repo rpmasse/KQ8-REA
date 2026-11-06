@@ -19,6 +19,10 @@ struct Landmark {
     jump_toward: Option<[f32; 2]>,
     /// Stop here and use ordinary hand-weapon attacks against this character.
     fight: Option<String>,
+    /// Use the same normal weapon input against a breakable's live health.
+    break_object: Option<String>,
+    /// Omit to preserve the earlier replay's Shift+click; false is a plain click.
+    big_swing: Option<bool>,
 }
 
 #[derive(Resource, Deserialize, Default)]
@@ -45,6 +49,7 @@ impl Replay {
         if replay.landmarks.is_empty()
             || replay.landmarks.iter().any(|l| {
                 l.name.is_empty()
+                    || (l.fight.is_some() && l.break_object.is_some())
                     || !l.xy.iter().all(|v| v.is_finite())
                     || l.jump_toward
                         .is_some_and(|point| !point.iter().all(|v| v.is_finite()))
@@ -127,16 +132,20 @@ pub fn steer(
     let pos = sim.mover.position;
     let distance = (landmark.xy[0] - pos[0]).hypot(landmark.xy[1] - pos[1]);
     if distance <= landmark.radius {
-        if let Some(name) = landmark.fight.clone() {
-            let Some(fighter) = world
-                .character_index(&name)
-                .and_then(|i| world.anims[i].character.as_ref()?.fight.as_ref())
-            else {
+        if let Some(name) = landmark.fight.clone().or_else(|| landmark.break_object.clone()) {
+            let big_swing = landmark.big_swing.unwrap_or(true);
+            let alive = if landmark.break_object.is_some() {
+                world.stats.get(&name.to_ascii_lowercase()).map(|stats| !stats.dead())
+            } else {
+                world.character_index(&name).and_then(|i| world.anims[i].character.as_ref()?.fight.as_ref())
+                    .map(|fighter| fighter.dying.is_none() && !fighter.stats.dead())
+            };
+            let Some(alive) = alive else {
                 shared
                     .log
                     .lock()
                     .unwrap()
-                    .summary(format!("walk-route: no fighter named {name}"));
+                    .summary(format!("walk-route: no combat target with live stats named {name}"));
                 exit.write(AppExit::error());
                 return;
             };
@@ -151,7 +160,7 @@ pub fn steer(
                 exit.write(AppExit::error());
                 return;
             }
-            if fighter.dying.is_none() && !fighter.stats.dead() {
+            if alive {
                 let mut wanted = Vec::new();
                 if tick % 8 == 0
                     && world
@@ -167,7 +176,7 @@ pub fn steer(
                     }
                 } else if tick % 4 == 0 {
                     // Only dispatch after the normal Draw key equips the weapon.
-                    swings.0.push((name, tick, true));
+                    swings.0.push((name, tick, big_swing));
                 }
                 replay.keys(&mut keys, &wanted);
                 return;

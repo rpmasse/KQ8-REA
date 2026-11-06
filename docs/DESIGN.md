@@ -173,6 +173,47 @@ The windmill checkpoint also covers movable props. Push the bale, collect the ax
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
 
+#### Daventry campaign continuation after the Small Axe (2026-11-06, in progress)
+
+Advance the main-story route toward the dead hero's ring rather than treating
+isolated checkpoint fixtures as campaign evidence. First reproduce the earned
+Normal New Game → first wizard meeting → windmill Small Axe route with AI
+and damage enabled. Read the owned GOG tomb-door, coffin, ring and approach
+scripts/data to establish the next interactions and positions. Extend the
+bound-key walking/ordinary-click replay to reach the hero's tomb, equip the
+earned axe through inventory controls, break its original door through normal
+weapon hits, survive its guard and obtain the ring. Do not give equipment,
+teleport Connor, force quest flags, disable AI or inject damage for campaign
+acceptance. Use locally earned checkpoints only to repeat the new leg; its
+default path must still link back to New Game. Keep diagnostics clearly
+separate from acceptance evidence. Record any route or implementation failure
+and fix only rules established by behavior notes/original data. Save and
+reload the earned outcome in another process. No manual testing. If this
+reveals a dependency or a missing engine rule, record it without claiming
+the ring or Daventry complete.
+
+The New Game/wizard/windmill/reload foundation passed in 402.85 seconds.
+The first continuation ran the original Henchman trigger and cutscene but
+Connor died at update 761. The replay had used only Shift/charged attacks:
+the original axe attack2 is 2.4 seconds, versus 0.8 for attack. Allow each
+landmark to choose a normal swing (existing routes retain charged swings),
+and repeat this combat leg without changing engine rules or health. This
+is a recorded failed campaign attempt, not evidence that the ring works.
+
+The normal-swing attempt also died at the Henchman, update 762 (enemy
+205 health remaining). Stop this encounter's variations after two attempts,
+as AGENTS.md requires, and retain the failing ignored campaign test and
+artifacts. Its later path is a candidate, not a verified route. Q190 requests
+the original Henchman-specific controller/attack evidence; a standing-only
+replay with no remaining healing items may simply be inadequate play. No
+engine stats or timing were changed. A separate explicit-position/equipment,
+god/no-AI diagnostic verifies the new breakable replay through normal input:
+one ordinary axe hit at update 41 takes tombdor2 from health 1 to -29,
+calls its original Die Normal once, opens it and removes its click bit.
+It passed in 29.92 seconds; the viewer suite passed 29 tests. That diagnostic
+does not satisfy the campaign route. The ring/coffin/guard and ring reload
+remain untested, and M4–M6 remain incomplete.
+
 #### Runtime-copy identity and ordinary animation continuation (2026-11-06, implemented)
 
 M6 still loses template-created ordinary objects on a disk load or world
