@@ -635,6 +635,17 @@ impl Camera {
 
     pub fn clear_heading_offset(&mut self) { self.mouse_offset = 0.0; }
 
+    /// Perspective changes save and restore the angle parameters only.
+    pub fn offset_angles(&self) -> [f32; 2] { [self.tilt, self.mouse_offset] }
+    pub fn restore_offset_angles(&mut self, [pitch, heading]: [f32; 2]) {
+        self.tilt = pitch;
+        self.mouse_offset = heading;
+    }
+
+    pub fn retained_horizontal_motion(&self, base: [f32; 3]) -> f32 {
+        self.last_base.map_or(0.0, |last| (base[0] - last[0]).abs() + (base[1] - last[1]).abs())
+    }
+
     /// `KQCamera::setRange <min> <max>`: refused unless min < max.
     pub fn set_range(&mut self, min: f32, max: f32) -> bool {
         if min < max {

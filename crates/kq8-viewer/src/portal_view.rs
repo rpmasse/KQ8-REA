@@ -24,8 +24,7 @@
 //! (`conner.anm`) plays the movement from his loaded list; another list
 //! (`Elevator.anm`, …) is named to the Special state, which plays it only
 //! if this world loaded that list (the portals' own lists are loaded with
-//! 6e-6 / 6e-7). We have no first person and no time-step limit: those
-//! two are logged only.
+//! 6e-6 / 6e-7). The original portal's two-frame time-step limit is logged only.
 
 use bevy::prelude::*;
 use kq8_data::magic_map::PortalKeys;
@@ -148,7 +147,7 @@ pub fn arrival_step(mut commands: Commands, now: Option<ResMut<ArrivalNow>>, sim
                 return;
             }
             // Rule 20.4: the movement is over.
-            lines.push(format!("update {updates}: {}: the arrival movement ended; first person allowed again and the time step back to 1 s (logged only: we have neither)", a.portal));
+            lines.push(format!("update {updates}: {}: the arrival movement ended; first person allowed after handsOff 0; the time-step change is logged only", a.portal));
             match &a.exit_script {
                 Some(script) => {
                     let ran = sim.active.run_script(script, &[a.portal.clone(), "Exit".into()]);

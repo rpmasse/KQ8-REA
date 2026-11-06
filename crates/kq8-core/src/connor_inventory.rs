@@ -351,14 +351,19 @@ const ROPE_REMARK: kq8_data::msg::Tuple = kq8_data::msg::Tuple { file: 0, noun: 
 const ROPE_TOP_AIM: f32 = 1000.0;
 
 /// The rope's first-person lock on or off (`ropeandhook.md` rules 9, 12,
-/// 13, 26); the log text. We have no first person, so it changes nothing
-/// else.
+/// 13, 26). Restore the view only if this rope interaction forced it off.
 pub fn rope_lock(w: &mut WorldState, on: bool, why: &str) -> String {
     if w.rope_first_person_lock == on {
         return String::new();
     }
     w.rope_first_person_lock = on;
-    format!("; {why}: the first-person key {} (no first person yet: logged only)", if on { "locked" } else { "allowed again" })
+    if on {
+        w.resume_after_rope = w.first_person;
+        w.first_person = false;
+    } else if std::mem::take(&mut w.resume_after_rope) {
+        w.first_person = w.connor_at.is_some();
+    }
+    format!("; {why}: the first-person key {}, first person {}", if on { "locked" } else { "allowed again" }, w.first_person)
 }
 
 /// Rule 9: at most one scroll remark every 3 s.
@@ -534,7 +539,7 @@ fn hold(w: &mut WorldState, name: &str, t: &kq8_data::items::ItemType, head: &st
                     (None, _) => "no setRopeCam2 spot was ever set: the camera stays".into(),
                     (_, None) => "Connor's place unknown: the camera stays".into(),
                 };
-                w.rope_note(format!("rope button at status top: third person forced (we have no first person: nothing to switch){lock}; {camera} (rule 9)"));
+                w.rope_note(format!("rope button at status top: third person forced{lock}; {camera} (rule 9)"));
                 extra = format!("; at the top of a rope: {camera} (ropeandhook.md rule 9)");
             }
         }
@@ -934,6 +939,24 @@ mod tests {
         a.world.connor_roping = false;
         a.world.hit_connor("goblin", 5, crate::fight::HitKind::Normal);
         assert!(stats(&a)[0] < health, "off the rope he is hurt again");
+    }
+
+    #[test]
+    fn saved_rope_lock_returns_to_the_view_used_before_the_rope() {
+        for first in [true, false] {
+            let mut original = active();
+            original.world.first_person = first;
+            rope_lock(&mut original.world, true, "rope held at top");
+            rope_lock(&mut original.world, true, "already locked");
+            assert!(!original.world.first_person);
+            let bytes = serde_json::to_vec(&original.world.view_flags()).unwrap();
+            let mut loaded = active();
+            loaded.world.restore_view_flags(serde_json::from_slice(&bytes).unwrap());
+            assert!(!loaded.world.first_person_key(false));
+            rope_lock(&mut loaded.world, false, "rope put back");
+            assert_eq!(loaded.world.first_person, first);
+            assert!(loaded.world.first_person_key(false));
+        }
     }
 
     #[test]

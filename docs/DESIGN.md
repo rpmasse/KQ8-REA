@@ -22,6 +22,35 @@ by rule 32 in the rope study. Compare saves made beside the wall and
 during the climb. Keep the original scripts, trap state and movement
 in charge throughout.
 
+**M4–M5 original first-person view.** Follow the separated Q193
+camera and movement study. Start with the original actor-relative eye,
+row-vector rotation and support-slope math. A normal full update can
+reset or clamp pitch and advances its unsupported counter. A shake
+redraw instead uses the actor's pitch and heading and leaves that
+counter alone. Check the study's numerical examples and four-update
+support loss before wiring the shared camera fields.
+
+Use the original keyboard binding and permission/animation gates.
+Save the third-person parameters on entry and restore them on exit.
+Read the actual first-person unarmed, short and long movement and skin
+lists from Connor.kq. Re-request the current movement through its
+ordinary transition rules. Draw its authored model in the actor's
+existing place and apply the original shadow mask. Preserve durable
+camera and controller state through Rust save/load. Use the same path
+for paired scripted third-person changes and the required death exit.
+The local math tests cover the actor-relative eye, support slope,
+three unsupported updates, mouse hold/reset, the direct shake path
+and serializing those parameters. A separate core test checks the
+audible hands-off refusal, the silent script lock and paired
+third-person calls through the script interpreter. Connect model
+selection to the original binding, render the selected pose and retain
+the current camera and movement separately when a slot is saved.
+
+Verify with the installed unarmed, axe and ranged lists and a normal
+Windows F2/key/save/reload route. Exact original near clipping remains
+open. Verify a climb entered in first person also returns to that view
+when Connor finishes his dismount after loading a mid-climb slot.
+
 **M6 collision when a script loads scenery.** Use the startup loader to
 prepare the original object boxes and interior collision trees for named
 scenery that can enter a running world. Keep them outside the live

@@ -634,6 +634,8 @@ impl State {
 pub struct Mover {
     pub position: [f32; 3],
     pub on_ground: bool,
+    /// Normal of the actual walkable support selected by the down pass.
+    pub support_normal: Option<[f32; 3]>,
     pub use_gravity: bool,
     pub keep_on_ground: bool,
     /// Seconds of falling so far (reset when the down pass lands him on
@@ -769,6 +771,7 @@ impl Mover {
         Mover {
             position,
             on_ground: true,
+            support_normal: None,
             use_gravity,
             keep_on_ground: true,
             fall_timer: 0.0,
@@ -977,6 +980,7 @@ impl Mover {
         let mut report = Report { check: "none", across: "none", ..Default::default() };
         let mut hits = 0;
         self.on_ground = false;
+        self.support_normal = None;
         self.down_and_check(world, false, &mut hits, &mut report);
         report.events.extend(world.take_notes());
         report
@@ -1000,12 +1004,14 @@ impl Mover {
     ) -> Report {
         let mut report = Report { check: "none", across: "none", ..Default::default() };
         if self.state == State::Dead {
+            self.support_normal = None;
             report.ground = world.ground(self.position[0], self.position[1]);
             return report;
         }
         let before_z = self.position[2];
         self.push_from = self.position;
         report.began_on_ground = self.on_ground;
+        self.support_normal = None;
 
         // 1. Start of the update.
         if self.on_ground || !self.use_gravity {
@@ -1145,6 +1151,7 @@ impl Mover {
             if normal[2] > WALKABLE_NORMAL_Z {
                 report.down = DownResult::Walkable;
                 self.on_ground = true;
+                self.support_normal = Some(normal);
                 self.fall_timer = 0.0;
             } else {
                 report.down = DownResult::Steep;
@@ -1206,9 +1213,11 @@ impl Mover {
                 if normal[2] > WALKABLE_NORMAL_Z {
                     report.check = "walkable";
                     self.on_ground = true;
+                    self.support_normal = Some(normal);
                 } else {
                     report.check = "steep";
                     self.on_ground = false;
+                    self.support_normal = None;
                     self.pull = down_slope(normal);
                     if self.falls {
                         if !self.use_gravity {

@@ -633,6 +633,13 @@ fn main() -> ExitCode {
     .add_systems(Update, renderer::report_renderer)
     .insert_resource(ClearColor(Color::srgb(0.18, 0.2, 0.24)))
     .insert_resource(shared.clone());
+    // Timed menu replays request a save on a particular fixed update.
+    // The menu opens after rendering. Multiple catch-up ticks in one
+    // frame can otherwise advance an animation past the requested save.
+    if args.key.iter().any(|(name, _)| name.eq_ignore_ascii_case("menu") || name.to_ascii_lowercase().starts_with("menu:")) {
+        let step = Time::<Fixed>::from_hz(kq8_core::UPDATES_PER_SECOND).timestep();
+        app.world_mut().resource_mut::<Time<Virtual>>().set_max_delta(step);
+    }
     match &mut scene {
         Scene::Model(_, light) => { app.insert_resource(light.take().expect("the model's light is put in once")); }
         Scene::Ground(Some(read)) => { app.insert_resource(world_build::object_light(read, &opts)); }
@@ -697,7 +704,7 @@ fn main() -> ExitCode {
                 .insert_resource(Time::<Fixed>::from_hz(kq8_core::UPDATES_PER_SECOND))
                 // Doors first, so a door's box is where it is drawn when
                 // Connor moves (M3 step 3a).
-                .add_systems(FixedUpdate, (console::console_step, connor_view::test_hold_step, draw_distance::apply_collider_switches, door_view::door_step, connor_view::late_set_step, door_view::character_gravity, connor_view::connor_step, connor_view::push_apply, rope_view::rope_step, door_view::trap_step, talk_view::talk_step, door_view::apply_loads, copies_view::spawn_copies, game_camera::camera_step, effects_view::effects_step, anim_view::anim_step).chain().run_if(world_build::running))
+                .add_systems(FixedUpdate, (console::console_step, connor_view::test_hold_step, draw_distance::apply_collider_switches, connor_view::late_set_step, door_view::door_step, door_view::character_gravity, connor_view::connor_step, connor_view::push_apply, rope_view::rope_step, door_view::trap_step, talk_view::talk_step, door_view::apply_loads, copies_view::spawn_copies, game_camera::camera_step, effects_view::effects_step, anim_view::anim_step).chain().run_if(world_build::running))
                 .add_systems(world_build::BuildWorld, (terrain_view::setup_ground, terrain_view::setup_objects, terrain_view::setup_h_label, ground_anim_view::setup_ground_anim, terrain_view::update_surface, light_view::setup_light_label, object_light::report_lights, ground_haze::report_ground_haze).chain())
                 .add_systems(FixedUpdate, terrain_view::update_surface.after(door_view::door_step).before(connor_view::connor_step).run_if(world_build::running))
                 .add_systems(Update, (game_camera::camera_input, terrain_view::fly_input, connor_view::connor_keys, door_view::door_click_input, connor_view::connor_draw, door_view::door_draw, door_view::hide_deleted, (item_view::item_draw, item_view::corpse_draw, item_view::bolt_draw), effects_view::effects_draw, ground_anim_view::ground_anim_step, ground_anim_view::ground_anim_draw, anim_view::anim_draw, potion_view::dither_step, connor_view::unlit_step, game_camera::camera_draw, (terrain_view::toggle_markers, terrain_view::toggle_floor, door_view::toggle_ai, door_view::toggle_god), light_view::toggle_light, light_view::report_light, terrain_view::update_camera_label, terrain_view::report_camera).chain().run_if(world_build::running))

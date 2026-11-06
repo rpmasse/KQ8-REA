@@ -1213,8 +1213,9 @@ pub fn shadow_draw(
     if let Some(c) = connor.as_ref() {
         let body = connor_body.iter().next();
         let opacity = doors.as_ref().and_then(|d| d.active.world.connor_translucency).unwrap_or(256.0);
+        let actor_mask = if doors.as_ref().is_some_and(|d| d.active.world.first_person) { 0 } else { 1 };
         let drawn = body.is_some_and(|(_, v)| *v != Visibility::Hidden)
-            && kq8_data::characters::casts_shadow(mask, 1, allowed, opacity);
+            && kq8_data::characters::casts_shadow(mask, actor_mask, allowed, opacity);
         let shown = c.shown;
         let model = match shown.filter(|_| drawn) {
             Some(frame) => crate::shadow_view::frame_triangles(frame, &children, &parts, &meshes, sources),

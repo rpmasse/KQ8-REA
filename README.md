@@ -10,7 +10,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | --- | --- | --- |
 | M0–M3 · Data, worlds and movement | The engine reads the original assets, opens every region and runs Connor’s movement, collision and early Daventry scripts. | Recheck inherited behavior in the Windows build and record differences by region. |
 | M4 · Interface and dialogue | Title, pause, named saves, Options, Keyboard, HUD, captions, inventory tutorials and the Wizard conversation work. Credits shows the 25 original cards and team photograph. Lighting, shadows and indexed palette brightness update in play. | Finish graphics mode and live resolution behavior, software palettes, remaining inventory and dialogue branches, credits timing and score calculation. |
-| M5 · Combat | The Weeper, Tower Skeleton and six script-created monster types have focused checks. Lucreto changes attacks and can stagger into the vortex. Equipped attacks, pending deaths and the three-second game-over hold have save and reload checks. | Complete other weapons, enemies and bosses. Check first-person combat, remaining controller transitions and full encounters in campaign play. |
+| M5 · Combat | First-person axe strikes and Small Crossbow shots use Connor’s original animations. Equipped attacks, pending deaths and the three-second game-over hold have save and reload checks. The Weeper, Tower Skeleton, Lucreto and six script-created monster types have focused checks. | Complete the remaining weapons, enemies, bosses and controller transitions. Verify full encounters during campaign play. |
 | M6 · Campaign and saves | In Daventry, Connor earns the map, Small Axe, dead hero’s ring and Rope and Hook. Focused checks cover CastleD travel, Dead City scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete the regional quests, optional branches and boss sequences. Verify one continuous New Game through the ending and credits. |
 | M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
 
@@ -18,10 +18,11 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
-For example, the `connor_view_` check below reads both sets of weapon
-animation tables in your `GAME/Kq/Connor.kq` and opens the original
-first-person idle and broadsword models. Their files are verified;
-switching to first person during play is still in development.
+Press **F2** during play to switch between first and third person. The
+viewer selects Connor’s arm and weapon animations from the tables in
+your installed `GAME/Kq/Connor.kq`. Drawing a weapon, using a rope and
+loading a save can all cross a view change. Near-wall clipping and more
+weapons still need comparison. [First-person controls and evidence](docs/FEATURES.md#connors-view-specific-animation-files-2026-11-07)
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. The [feature reference](docs/FEATURES.md) gives subsystem details and the [status log](STATUS.md) records verified results and open cases. Manual playtesting begins after the Rust implementation is feature-complete.
 
@@ -80,6 +81,7 @@ cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_hero_rin
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_mill_rope_on_live_and_reloaded_scenery -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield church_rope_is_usable_after_a_fresh_launch_inside_its_trap -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield church_climb_resumes_from_its_saved_frame_on_the_wall -- --ignored --exact --test-threads=1
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield first_person:: -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --bin kq8-viewer fallen_tree_and_dock_use_the_same_surfaces_on_script_load_and_revisit -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored

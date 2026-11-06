@@ -19,6 +19,13 @@ models in `GAME/Common`. The separate study describes when to select
 each list and how the original draws the active model. [Camera study,
 Q193](../behaviour/camera.md#first-person-body-and-animations-q193-2026-11-06)
 
+The first-person eye, support correction, shadow mask, shake path and
+view-change rules follow the separate Q193 study. Weapon events in the
+Rust checks come from the installed unarmed, axe and Small Crossbow
+movement files. Rope and dialogue temporarily change perspective under
+the conditions documented in their own studies. [Original camera](../behaviour/camera.md),
+[Rope and Hook](../behaviour/ropeandhook.md), [conversation](../behaviour/conversation.md)
+
 **Scenery added by a running script.** The separate study describes
 how a named `loadKQ` uses the startup rules and checks the object's
 active groups against the current character or camera position. The

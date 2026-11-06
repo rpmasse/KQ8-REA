@@ -781,9 +781,9 @@ pub struct WorldState {
     pub script_shapes: BTreeMap<String, crate::door::DoorMovement>,
     /// Scripts a world command asked to run at once (`ScriptHost::take_calls`).
     calls_out: Vec<(String, Vec<String>)>,
-    /// `setThirdPerson` (`camera.md` "First person" rule 7): the
-    /// first-person key is locked, and the variable
-    /// `…::SetThirdPerson::WasFirstPerson` (we are always in third person).
+    /// The active perspective and the script's paired-call memory (Q89/Q193).
+    pub first_person: bool,
+    pub camera_world: String,
     first_person_locked: bool,
     was_first_person: bool,
     /// Connor's jump, set by the caller before scripts run (M3 3m-1,
@@ -845,9 +845,9 @@ pub struct WorldState {
     /// set by the caller (M6 6a-3).
     pub connor_roping: bool,
     /// The rope's own first-person lock (rules 9, 12, 13, 26; M6 6a-2):
-    /// kept apart from `setThirdPerson`'s. We have no first person: only
-    /// logged.
+    /// kept apart from the paired `setThirdPerson` script calls.
     pub rope_first_person_lock: bool,
+    pub(crate) resume_after_rope: bool,
     /// Lines for `rope.log` (M6 6a), taken by the caller.
     pub rope_log: Vec<String>,
     /// The current world's magic map (M6 6d, `magic-map.md` rule 3), set
@@ -2164,23 +2164,67 @@ impl WorldState {
         "0".into()
     }
 
-    /// `setThirdPerson [1]` (`camera.md` "First person" rule 7), a toggle
-    /// cutscenes call in pairs. We have no first person, so we are always
-    /// in third person: with the variable at 1 (never, here) it would go
-    /// back to first person; otherwise the first-person key's lock flips
-    /// (`setThirdPerson 1` also sets the variable to 0). Camera place,
-    /// distance and tilt are not touched.
+    /// Connor's normal F2 action. The animation and script input gates
+    /// refuse audibly before the silent perspective lock is consulted.
+    pub fn first_person_key(&mut self, animation_locked: bool) -> bool {
+        if self.connor_hands_off || animation_locked {
+            self.sounds.push(Start::plain_one_shot("no.aud", "CameraFirstPerson: hands off".into()));
+            return false;
+        }
+        if self.first_person_locked || self.rope_first_person_lock || self.connor_portal.is_some()
+            || self.conversation.as_ref().is_some_and(|c| c.stage != crate::conversation::Stage::Asked)
+            || self.connor_at.is_none() {
+            return false;
+        }
+        self.first_person = !self.first_person;
+        true
+    }
+
+    pub fn view_flags(&self) -> crate::camera_first_person::ModeFlags {
+        crate::camera_first_person::ModeFlags {
+            active: self.first_person, script_locked: self.first_person_locked,
+            resume_after_script: self.was_first_person,
+            rope_locked: self.rope_first_person_lock, resume_after_rope: self.resume_after_rope,
+        }
+    }
+
+    pub fn restore_view_flags(&mut self, flags: crate::camera_first_person::ModeFlags) {
+        self.first_person = flags.active;
+        self.first_person_locked = flags.script_locked;
+        self.was_first_person = flags.resume_after_script;
+        self.rope_first_person_lock = flags.rope_locked;
+        self.resume_after_rope = flags.resume_after_rope;
+    }
+
+    fn remember_script_view(&mut self, active: bool) {
+        self.was_first_person = active;
+        if !self.camera_world.is_empty() {
+            self.vars_out.push((format!("{}::SetThirdPerson::WasFirstPerson", self.camera_world), u8::from(active).to_string()));
+        }
+    }
+
+    /// Paired calls in cutscenes restore first person only when it was active.
     fn set_third_person(&mut self, words: &[String], at: &str) -> String {
+        if self.first_person {
+            self.first_person = false;
+            self.first_person_locked = true;
+            self.remember_script_view(true);
+            self.note(format!("{at}: setThirdPerson: switched to third person, first-person key is now locked"));
+            return "0".into();
+        }
         if self.was_first_person {
-            self.was_first_person = false;
+            self.remember_script_view(false);
             self.first_person_locked = false;
-            self.note(format!("{at}: setThirdPerson: WasFirstPerson 1: key unlocked, back to first person (we have no first person; logged only)"));
+            self.first_person = self.connor_at.is_some();
+            self.note(format!("{at}: setThirdPerson: WasFirstPerson 1: key unlocked, first person {}", self.first_person));
             return "0".into();
         }
         self.first_person_locked = !self.first_person_locked;
-        let one = if words.get(1).is_some_and(|w| w == "1") { " (setThirdPerson 1: variable set to 0)" } else { "" };
+        if words.get(1).is_some_and(|w| w == "1") {
+            self.remember_script_view(false);
+        }
         self.note(format!(
-            "{at}: setThirdPerson: third person, WasFirstPerson 0: the first-person key is now {}{one} (we have no first person; camera untouched)",
+            "{at}: setThirdPerson: third person, WasFirstPerson 0: the first-person key is now {}",
             if self.first_person_locked { "locked" } else { "allowed" }
         ));
         "0".into()
@@ -4633,6 +4677,7 @@ impl Active {
                 connor_on_rope: false,
                 connor_roping: false,
                 rope_first_person_lock: false,
+                resume_after_rope: false,
                 rope_log: Vec::new(),
                 map: None,
                 map_marks: Default::default(),
@@ -4677,6 +4722,8 @@ impl Active {
                 monster_templates: BTreeMap::new(),
                 spawned_monsters: BTreeMap::new(),
                 script_shapes: BTreeMap::new(),
+                first_person: false,
+                camera_world: String::new(),
                 first_person_locked: false,
                 was_first_person: false,
                 connor_jump: None,
@@ -6333,7 +6380,9 @@ impl Active {
                 // conversation.md rule 18: Connor's gesture codes, for his
                 // walker (the caller's).
                 crate::talk::TalkEvent::Mouth { speaker, shape: shape @ 8..=16, .. } if speaker.eq_ignore_ascii_case(CONNOR) => {
-                    self.world.connor_gestures.push(*shape);
+                    if !self.world.first_person {
+                        self.world.connor_gestures.push(*shape);
+                    }
                 }
                 crate::talk::TalkEvent::Mouth { speaker, shape, .. } => {
                     if let Some(i) = self.world.character_index(speaker) {
@@ -8627,7 +8676,7 @@ endif
         // fighting.md rules 39-41, 16 (M5 5c-5).
         let mut a = fighter();
         a.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
-        a.world.connor_fight = Some(crate::fight::ConnorFight { ouch_sound: "conrow3.aud".into(), min_damage_factor: 0.75, max_damage_factor: 4.0, short_lists: vec![], long_lists: vec![], shoot_offsets: vec![], start_projectile: None, start_offset: [0.0; 3] });
+        a.world.connor_fight = Some(crate::fight::ConnorFight { ouch_sound: "conrow3.aud".into(), min_damage_factor: 0.75, max_damage_factor: 4.0, third_person: Default::default(), first_person: Default::default(), shoot_offsets: vec![], start_projectile: None, start_offset: [0.0; 3] });
         // The goblin at (0, 0, 100); Connor 2,000 south of it, facing it
         // (heading pi faces +y).
         let from = [0.0, -2000.0, 100.0];
@@ -9463,6 +9512,33 @@ getGuiStatus
         assert!(locked < allowed, "{log}");
         assert!(log.contains("at most (2 + 1) / 15 s"), "{log}");
         assert!(log.contains("held movement keys sent again"), "{log}");
+    }
+
+    #[test]
+    fn first_person_key_obeys_the_input_gates_and_paired_cutscenes_restore_the_view() {
+        let mut a = with_object("if test $2 == ConnorAction\n setThirdPerson\nendif\n", "x");
+        a.world.camera_world = "Daventry".into();
+        a.world.connor_at = Some([0.; 3]);
+        a.world.connor_hands_off = true;
+        let sounds = a.world.sounds.len();
+        assert!(!a.world.first_person_key(false));
+        a.world.connor_hands_off = false;
+        assert!(!a.world.first_person_key(true));
+        assert_eq!(a.world.sounds.len(), sounds + 2);
+        assert!(a.world.first_person_key(false));
+        a.click("basket1", [0., -1000., 0.], 2350., None);
+        let remembered = "Daventry::SetThirdPerson::WasFirstPerson";
+        assert_eq!(a.scripts.vars.get(remembered), Some("1"));
+        assert!(!a.world.first_person && a.world.first_person_locked);
+        assert!(!a.world.first_person_key(false));
+        assert_eq!(a.world.sounds.len(), sounds + 2);
+        a.click("basket1", [0., -1000., 0.], 2350., None);
+        assert_eq!(a.scripts.vars.get(remembered), Some("0"));
+        assert!(a.world.first_person && !a.world.first_person_locked);
+        assert!(a.world.first_person_key(false));
+        assert!(!a.world.first_person);
+        a.world.connor_at = None;
+        assert!(!a.world.first_person_key(false));
     }
 
     #[test]

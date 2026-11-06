@@ -1112,6 +1112,37 @@ impl Walker {
         }
     }
 
+    /// F2 asks for the same action in another bank. Keep the identity
+    /// and phase of the old model until the ordinary request can rebuild it.
+    pub fn rerequest_view<'a>(&mut self, old_model: &'static str, action: &'static str,
+        loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) -> Vec<String> {
+        if self.talk_play == Some(self.movement) {
+            self.talk_play = Some(action);
+        }
+        if let Some(SpecialStep::Play(current, _)) = self.special.get_mut(self.special_at) {
+            if *current == self.movement { *current = action; }
+        }
+        if let Some(playing) = &mut self.playing {
+            if playing.via == self.movement { playing.via = old_model; }
+        }
+        self.movement = old_model;
+        let mut notes = Vec::new();
+        self.ask(action, loops, &mut notes);
+        if let (Some(pending), Some((bank, _))) = (&mut self.waiting, old_model.split_once('/')) {
+            if !pending.via.contains('/') {
+                pending.via = intern(&special_movement_name(bank, pending.via));
+            }
+        }
+        notes
+    }
+
+    /// A forced action can still be playing its previous view's model.
+    /// Let the animation controller deliver the end or transition first.
+    fn retains_view_for(&self, action: &str) -> bool {
+        self.movement.contains('/') && self.wanted == Some(action) &&
+            (plain_movement_name(self.movement) == action || self.playing.is_some_and(|t| t.via == self.movement))
+    }
+
     /// Q194: selection bypasses gates, playback still uses ordinary ask.
     /// Repeated retained names keep their phase. Special here can only be
     /// the viewer's temporary melee representation; scripted Special never
@@ -1387,6 +1418,9 @@ impl Walker {
         }
         // Rule 16: the Special movement playing has ended: the next item.
         if self.mode == Mode::Special && self.phase >= 1.0 && !self.animation_input_lock {
+            if self.mode_movement().is_some_and(|m| self.retains_view_for(m)) {
+                self.wanted = None;
+            }
             self.special_at += 1;
             self.special_items(&mut notes);
             if self.mode != Mode::Special {
@@ -1406,7 +1440,7 @@ impl Walker {
             }
         }
         if let Some(m) = (!self.animation_input_lock).then(|| self.mode_movement()).flatten() {
-            if m != self.movement {
+            if m != self.movement && !self.retains_view_for(m) {
                 self.movement = m;
                 self.phase = 0.0;
                 self.fresh = true;
@@ -1562,7 +1596,8 @@ impl Walker {
                 self.reaction_playing=None;
                 notes.push(format!("reaction {played} ended naturally; {} owner retained",self.mode.name()));
             }
-            if self.phase >= 1.0 && (self.keys_choose() || self.animation_input_lock) {
+            let talk_refresh = self.mode == Mode::Talk && self.talk_play.is_some_and(|m| self.retains_view_for(m));
+            if self.phase >= 1.0 && (self.keys_choose() || self.animation_input_lock || talk_refresh) {
                 match self.playing {
                     Some(t) => self.end_transition(t, loops, &mut notes),
                     // Rule 6, last case: a one-shot ending with no
@@ -1989,6 +2024,82 @@ mod tests {
     /// `jumpend` in the data).
     fn once() -> MovementLoop {
         MovementLoop { duration: 10.0 / 15.0, step_sum: [0.0; 3], speed: 1.0, repeat: false, frames: 11, ..Default::default() }
+    }
+
+    #[test]
+    fn changing_view_finishes_the_old_attack_then_uses_the_new_lists_start_and_cues() {
+        let old = MovementLoop { cues: vec![(0.75, "old do".into())], ..once() };
+        let new = MovementLoop { start: 0.4, cues: vec![(0.45, "new do".into())], ..once() };
+        let list = vec![("third.anm/hit", old), ("hit", new)];
+        let loops = lookup(&list);
+        let mut walker = Walker::new(0.0);
+        walker.mode = Mode::Talk;
+        walker.movement = "hit";
+        walker.phase = 0.5;
+        walker.rerequest_view("third.anm/hit", "hit", &loops);
+        assert_eq!((walker.mode, walker.movement, walker.phase, walker.wanted),
+            (Mode::Talk, "third.anm/hit", 0.5, Some("hit")));
+        let mut cues = Vec::new();
+        let mut ends = Vec::new();
+        for _ in 0..12 {
+            let step = walker.update(intent(0, 0, false), &loops);
+            cues.extend(loops(step.played).unwrap().cues_between(step.played_from, step.played_to));
+            ends.extend(step.ended);
+            if step.played == "hit" {
+                assert!((step.played_from - 0.4).abs() < 0.001);
+                break;
+            }
+        }
+        assert_eq!(ends, ["third.anm/hit"]);
+        assert_eq!(cues, ["old do", "new do"]);
+    }
+
+    #[test]
+    fn changing_view_uses_the_source_lists_transition_before_switching_the_model() {
+        let old = MovementLoop { transitions: vec![Transition {
+            from: -1.0, to: "walk", to_phase: 0.3, via: "via",
+        }], ..walk(1.0) };
+        let list = vec![("third.anm/walk", old), ("third.anm/via", once()), ("walk", walk(1.0))];
+        let loops = lookup(&list);
+        let mut walker = Walker::new(0.0);
+        walker.mode = Mode::Talk;
+        walker.movement = "walk";
+        walker.phase = 0.65;
+        walker.rerequest_view("third.anm/walk", "walk", &loops);
+        assert_eq!(walker.waiting.unwrap().via, "third.anm/via");
+        let mut ended = false;
+        for _ in 0..14 {
+            let step = walker.update(intent(0, 0, false), &loops);
+            if step.ended == Some("third.anm/via") {
+                ended = true;
+                assert_eq!((walker.movement, walker.phase), ("walk", 0.3));
+                break;
+            }
+        }
+        assert!(ended);
+    }
+
+    #[test]
+    fn view_change_during_a_weapon_swap_keeps_the_original_away_until_it_ends() {
+        let list = vec![("third.anm/away", once()), ("away", once()), ("first.anm/out", once()), ("stop", walk(1.0))];
+        let loops = lookup(&list);
+        let mut walker = Walker::new(0.0);
+        walker.start_special(vec![SpecialStep::Play("away", "away".into()), SpecialStep::Play("first.anm/out", "out".into())]);
+        walker.phase = 0.5;
+        walker.fresh = false;
+        walker.rerequest_view("third.anm/away", "away", &loops);
+        let mut ended = Vec::new();
+        for tick in 0..30 {
+            let s = walker.update(intent(0, 0, false), &loops);
+            if tick == 0 {
+                assert_eq!(s.played, "third.anm/away");
+                assert_eq!(s.played_from, 0.5);
+            }
+            ended.extend(s.ended);
+            if walker.mode == Mode::Free { break; }
+        }
+        assert_eq!(ended, ["third.anm/away", "first.anm/out"]);
+        assert_eq!(walker.mode, Mode::Free);
     }
 
     #[test]

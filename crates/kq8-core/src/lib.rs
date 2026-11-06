@@ -14,6 +14,7 @@ pub mod options_menu;
 pub mod save_menu;
 pub mod anim;
 pub mod camera;
+pub mod camera_first_person;
 pub mod camera_flight;
 pub mod camera_shake;
 pub mod caption;

@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-07 First-person view and actor movements
+
+The configured F2 key selects Connor's original first-person camera,
+arm skin and movement tables. Weapon draws, melee and ranged cues
+use the selected actor list. An uninterruptible movement retains
+its model and phase through a view change. Later movements use the
+new list. Disk slots record the camera and actor choices separately
+along with queued weapon changes. Rope climbs and dialogue remember
+when they forced third person. The Daventry axe, Dead City Small
+Crossbow, scripted model and church climb have unattended Windows
+checks. Timed menu input uses one simulation update per rendered
+frame at most so a save scheduled during a draw lands on that update.
+All five first-person Windows regressions passed in 367.63 seconds.
+The release executable opened a fresh Normal New Game successfully.
+
 ## 2026-11-07 Resume the church climb after a disk save
 
 Connor formerly stood on the roof immediately after loading a save

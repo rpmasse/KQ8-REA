@@ -439,6 +439,7 @@ pub const CONNOR_MOVEMENTS: [&str; 60] = [
 /// One of Connor's movements: its animation and playback speed.
 pub struct ConnorMovement {
     pub name: &'static str,
+    pub first_person: bool,
     /// Index into `ConnorAssets::animations`.
     pub animation: usize,
     pub speed: f32,
@@ -455,6 +456,7 @@ pub struct ConnorMovement {
 }
 
 pub struct ConnorAssets {
+    pub base_list: String,
     pub movements: Vec<ConnorMovement>,
     pub animations: Vec<Animation>,
     /// `MASK/Connor.sae`.
@@ -486,6 +488,8 @@ pub struct LateSets {
     pub palette: PaletteColors,
     pub lip_base: Option<String>,
     pub sets: Vec<(String, String)>,
+    /// First-person tables are read on demand when that view selects the file.
+    pub first_person_files: std::collections::BTreeSet<String>,
 }
 
 /// A movement list file (`conSword.anm`): from the world's archives, else
@@ -511,6 +515,8 @@ pub fn ghost_texture(world: &World, texture: &str, palette: &PaletteColors) -> O
 #[derive(Default)]
 pub struct PotionLooks {
     pub skins: kq8_data::characters::SkinList,
+    pub arm_skins: kq8_data::characters::SkinList,
+    pub arm_materials: Vec<(String, Look)>,
     pub faces: kq8_data::characters::SkinList,
     pub body_skin: Option<String>,
     pub iron: Option<(String, Look)>,
@@ -581,13 +587,29 @@ pub fn connor_set(
     sections: &[kq8_data::kq_text::Section],
     set_list: &str,
     file: Option<&str>,
+    entire_list: bool,
     movements: &mut Vec<ConnorMovement>,
     animations: &mut Vec<Animation>,
     index_of: &mut BTreeMap<String, usize>,
 ) -> Result<(), String> {
     use kq8_data::kq_text;
+    let words = if entire_list {
+        let table = sections.iter().find(|s| s.name.eq_ignore_ascii_case(set_list))
+            .ok_or_else(|| format!("missing Connor movement list {set_list}"))?;
+        let count = table.number("nMovement").ok_or("missing nMovement")??;
+        if !count.is_finite() || count < 1.0 || count.fract() != 0.0 || count > table.entries.len() as f64 {
+            return Err(format!("{set_list}: invalid nMovement {count}"));
+        }
+        (0..count as usize).map(|i| {
+            let key = format!("Movement{i}");
+            table.get(&key).map(|name| kq8_core::connor::intern(name.trim()))
+                .ok_or_else(|| format!("{set_list} has no {key}"))
+        }).collect::<Result<Vec<_>, _>>()?
+    } else {
+        CONNOR_MOVEMENTS.to_vec()
+    };
     let mut missing = Vec::new();
-    for word in CONNOR_MOVEMENTS {
+    for &word in &words {
         let mut with_ask = sections.to_vec();
         with_ask.extend(kq_text::parse(format!("[ConnorAsks]\nanimLoops={set_list}\ncurrAnimName={word}\n").as_bytes()));
         let c = kq8_data::objects::current_loop(&with_ask, with_ask.last().unwrap())?.ok_or("no animation list")?;
@@ -626,7 +648,7 @@ pub fn connor_set(
         ));
         // Transitions: only those whose movements are loaded
         // (connor-movement.md "Starting and stopping").
-        let known = |n: &str| CONNOR_MOVEMENTS.into_iter().find(|k| k.eq_ignore_ascii_case(n));
+        let known = |n: &str| words.iter().copied().find(|k| k.eq_ignore_ascii_case(n));
         let mut transitions = Vec::new();
         for t in &c.transitions {
             let line = format!("{} {} {} {}", t.from, t.to, t.to_phase, t.via);
@@ -655,6 +677,7 @@ pub fn connor_set(
         }
         movements.push(ConnorMovement {
             name,
+            first_person: entire_list,
             animation,
             speed: c.speed,
             start: c.start,
@@ -1578,6 +1601,8 @@ pub struct WaitingCollision {
 }
 
 pub struct Objects {
+    /// Realm name for world-scoped script variables.
+    pub realm: String,
     /// The original type table and files used by scripts' `KQMonster::add`.
     pub monster_types: Option<kq8_data::characters::MonsterTypes>,
     pub monster_add_targets: std::collections::BTreeSet<String>,
@@ -1940,7 +1965,7 @@ pub struct Marker {
 #[derive(Clone, Debug)]
 pub enum ItemLoad {
     Region(kq8_core::item::RegionItems),
-    Slot { objects: Vec<kq8_core::item::ItemObject>, next_name: usize, order: u64 },
+    Slot { objects: Vec<kq8_core::item::ItemObject>, next_name: usize, order: u64, first_person_banks: Vec<String> },
 }
 
 /// A world Connor arrives in through a world change (M6 6e-3,
@@ -2076,6 +2101,10 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         log.summary(format!("world change: NoName counter from {} (world-change.md rule 18); conStart.cs not run (rule 21)", a.no_name_from));
     }
     let mut placer = Placer {
+        saved_first_person_banks: match arrival.as_ref().and_then(|a| a.items.as_ref()) {
+            Some(ItemLoad::Slot { first_person_banks, .. }) => first_person_banks.iter().map(|name| name.to_ascii_lowercase()).collect(),
+            _ => Default::default(),
+        },
         gone: arrival.as_ref().map(|a| a.gone.clone()).unwrap_or_default(),
         gone_skipped: Vec::new(),
         kept_states: arrival.as_ref().map(|a| a.states.clone()).unwrap_or_default(),
@@ -2336,7 +2365,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
     if let Some(items) = arrival.as_mut().and_then(|a| a.items.take()) {
         match items {
             ItemLoad::Region(saved) => saved.restore(&mut placer.items),
-            ItemLoad::Slot { objects, next_name, order } => placer.items.restore_objects(objects, next_name, order),
+            ItemLoad::Slot { objects, next_name, order, .. } => placer.items.restore_objects(objects, next_name, order),
         }
     }
     let (item_shapes, item_lines) = placer.item_models(&script);
@@ -2436,6 +2465,7 @@ struct Located {
 /// Places objects one by one as the scripts load them, and keeps the
 /// numbers for the log.
 struct Placer<'a> {
+    saved_first_person_banks: std::collections::BTreeSet<String>,
     /// Objects that left this world on an earlier visit (M6 6e-8), lower
     /// case, and those skipped.
     gone: std::collections::BTreeSet<String>,
@@ -3026,27 +3056,30 @@ impl Placer<'_> {
             // fighting.md rules 24, 39-41 (M5 5c-4): his ouch sound, the big
             // swing's factors, the hand weapons' movement lists.
             let num = |k: &str, d: f32| section.number(k).and_then(Result::ok).map_or(d, |v| v as f32);
-            let lists = kq8_data::characters::ConnorAnimLists::from_file(&file, section, false);
-            let base_list = lists.stowed.unwrap_or_else(|| "Conner.anm".into());
-            let short_lists = lists.hand;
+            let third_person = kq8_data::characters::ConnorAnimLists::from_file(&file, section, false);
+            let first_person = kq8_data::characters::ConnorAnimLists::from_file(&file, section, true);
+            let base_list = third_person.stowed.clone().unwrap_or_else(|| "Conner.anm".into());
             // ranged-weapons.md rules 10, 17, 21 (M5 5f-4): the ranged
             // weapons' lists, the shoot offsets by item, the start values.
-            let long_lists = lists.ranged;
             let shoot_offsets = kq8_data::characters::shoot_offsets(section);
             let start_offset = [num("shootOffsetX", 0.0), num("shootOffsetY", 0.0), num("shootOffsetZ", 0.0)];
             let start_projectile = section.get("projectileFile").map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
             self.log.summary(format!(
                 "connor: ranged (ranged-weapons.md rules 10, 17, 21): {} lists ({}); {} shoot offsets; start projectile {start_projectile:?}, offset {start_offset:?}",
-                long_lists.len(),
-                long_lists.iter().map(|(w, a)| format!("{w} {a}")).collect::<Vec<_>>().join(", "),
+                third_person.ranged.len(),
+                third_person.ranged.iter().map(|(w, a)| format!("{w} {a}")).collect::<Vec<_>>().join(", "),
                 shoot_offsets.len()
+            ));
+            self.log.summary(format!(
+                "connor: first-person lists from Connor.kq: stowed {:?}, {} hand and {} ranged",
+                first_person.stowed, first_person.hand.len(), first_person.ranged.len()
             ));
             self.connor_fight = Some(kq8_core::fight::ConnorFight {
                 ouch_sound: section.get("ouchSound").map_or(kq8_core::fight::DEFAULT_OUCH.to_string(), |s| s.trim().to_string()),
                 min_damage_factor: num("minDamageFactor", 1.0),
                 max_damage_factor: num("maxDamageFactor", 1.0),
-                short_lists,
-                long_lists,
+                third_person,
+                first_person,
                 shoot_offsets,
                 start_projectile,
                 start_offset,
@@ -3102,8 +3135,21 @@ impl Placer<'_> {
             }
             // potions.md rules 25, 30 (M5 5g-5): his skin and face lists.
             let list_of = |key: &str| section.get(key).and_then(|n| file.iter().find(|s| s.name.eq_ignore_ascii_case(n.trim()))).and_then(kq8_data::characters::SkinList::from_section).unwrap_or_default();
-            let mut potion_looks = PotionLooks { skins: list_of("skinList"), faces: list_of("lipsList"), ..Default::default() };
+            let mut potion_looks = PotionLooks {
+                skins: list_of("skinList"), arm_skins: list_of("skinList_firstperson"),
+                faces: list_of("lipsList"), ..Default::default()
+            };
             self.log.quiet = true;
+            let arm_names: std::collections::BTreeSet<_> = potion_looks.arm_skins.entries.iter()
+                .map(|(name, _)| name.to_ascii_lowercase()).collect();
+            for name in arm_names {
+                if self.world.load(&name).is_some() {
+                    let look = load_texture(self.world, self.game, &name, &palette, self.log);
+                    if matches!(look, Look::Texture { .. }) {
+                        potion_looks.arm_materials.push((name, look));
+                    }
+                }
+            }
             potion_looks.body_skin = potion_looks.skins.exact(0).map(str::to_string);
             if let Some(iron) = potion_looks.skins.bit_of("INVITEM_Strength").and_then(|b| potion_looks.skins.exact(b)).map(str::to_string) {
                 let look = load_texture(self.world, self.game, &iron, &palette, self.log);
@@ -3146,7 +3192,7 @@ impl Placer<'_> {
             ));
             let lip_base = lips.as_ref().map(|(b, _)| b.clone());
             let mut assets =
-                ConnorAssets { movements: Vec::new(), animations: Vec::new(), keys, camera_keys, collision_box, lips, potion_looks, late: None };
+                ConnorAssets { base_list, movements: Vec::new(), animations: Vec::new(), keys, camera_keys, collision_box, lips, potion_looks, late: None };
             let mut index_of: BTreeMap<String, usize> = BTreeMap::new();
             // His own set (Conner.anm), then each hand weapon's (M5 5c fix:
             // **stand-in**, see `weapon_sets`), loaded as `<file>/<name>`.
@@ -3154,10 +3200,24 @@ impl Placer<'_> {
             let (weapons, late) = self.weapon_sets();
             sets.extend(weapons);
             self.log.summary(format!("connor: weapon sets not loaded now, loaded when the weapon is given (M6 6c-2): {:?}", late.iter().map(|(_, f)| f.clone()).collect::<Vec<_>>()));
-            assets.late = Some(LateSets { game: self.game.clone(), world: self.world.name.clone(), palette: palette.clone(), lip_base, sets: late });
+            let mut first_person_files: std::collections::BTreeSet<String> = self.connor_fight.as_ref().map(|f| {
+                let fp = &f.first_person;
+                fp.stowed.iter().chain(fp.hand.iter().chain(&fp.ranged).map(|(_, name)| name))
+                    .map(|name| name.to_ascii_lowercase()).collect()
+            }).unwrap_or_default();
             for (sections, set_list, file) in &sets {
-                connor_set(self.game, self.world, &palette, self.log, sections, set_list, file.as_deref(), &mut assets.movements, &mut assets.animations, &mut index_of)?;
+                connor_set(self.game, self.world, &palette, self.log, sections, set_list, file.as_deref(), false, &mut assets.movements, &mut assets.animations, &mut index_of)?;
             }
+            // Only filenames in the installed first-person catalogue can be
+            // read from a slot. Later equipment changes use the remaining set.
+            for file in &self.saved_first_person_banks {
+                if !first_person_files.remove(file) { continue; }
+                let sections = read_set(self.game, self.world, file);
+                let list = sections.first().ok_or_else(|| format!("saved first-person bank {file} is unavailable"))?;
+                connor_set(self.game, self.world, &palette, self.log, &sections, &list.name, Some(file), true,
+                    &mut assets.movements, &mut assets.animations, &mut index_of)?;
+            }
+            assets.late = Some(LateSets { game: self.game.clone(), world: self.world.name.clone(), palette: palette.clone(), lip_base, sets: late, first_person_files });
             self.special_movements(&anm, &list, &palette, &mut assets, &mut index_of);
             // potions.md rule 29 (M5 5g-6): the `I_` versions of his
             // textures that this world has (the first two letters replaced).
@@ -3934,7 +3994,7 @@ impl Placer<'_> {
             }
         }
         let mut sets = Vec::new();
-        let all: Vec<(String, String, bool)> = f.short_lists.iter().map(|(w, a)| (w.clone(), a.clone(), false)).chain(f.long_lists.iter().map(|(w, a)| (w.clone(), a.clone(), true))).collect();
+        let all: Vec<(String, String, bool)> = f.third_person.hand.iter().map(|(w, a)| (w.clone(), a.clone(), false)).chain(f.third_person.ranged.iter().map(|(w, a)| (w.clone(), a.clone(), true))).collect();
         for (weapon, file, ranged) in all {
             if ranged && weapon.eq_ignore_ascii_case("NoRanged") {
                 continue;
@@ -4031,7 +4091,7 @@ impl Placer<'_> {
             for m in ["away", "out", "throw"] {
                 wanted.insert((None, m.to_string()));
             }
-            for (_, file) in &f.short_lists {
+            for (_, file) in &f.third_person.hand {
                 for m in kq8_core::fight::SWINGS {
                     wanted.insert((Some(file.clone()), m.to_string()));
                 }
@@ -4043,7 +4103,7 @@ impl Placer<'_> {
             }
             // ranged-weapons.md rules 6, 20 (M5 5f-4): the ranged lists'
             // swap and shot.
-            for (w, file) in &f.long_lists {
+            for (w, file) in &f.third_person.ranged {
                 if w.eq_ignore_ascii_case("NoRanged") {
                     continue;
                 }
@@ -4155,6 +4215,7 @@ impl Placer<'_> {
             ));
             assets.movements.push(ConnorMovement {
                 name: kq8_core::connor::intern(&name),
+                first_person: false,
                 animation,
                 speed: c.speed,
                 start: c.start,
@@ -5161,6 +5222,7 @@ impl Placer<'_> {
             kq8_data::characters::shadow_mask_setting(&crate::option_settings::effective_script(self.game)).unwrap_or(kq8_data::characters::BUILT_IN_SHADOW_MASK)
         });
         Objects {
+            realm: self.world.name.clone(),
             monster_types: self.monster_types,
             monster_add_targets: self.monster_add_targets,
             terrain_changes: Default::default(),
@@ -5746,6 +5808,38 @@ mod campaign_tests {
 
     fn game_install() -> GameDir {
         GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap()
+    }
+
+    #[test]
+    #[ignore = "requires the original GOG installation"]
+    fn original_first_person_banks_load_authored_models_and_attacks() {
+        let game = game_install();
+        let world = World::open(&game, "Daventry").unwrap();
+        let file = kq8_data::kq_text::parse(&std::fs::read(game.find("GAME/Kq/Connor.kq").unwrap()).unwrap());
+        let view = kq8_data::characters::ConnorAnimLists::from_file(&file, &file[0], true);
+        let mut log = Log::create("first-person-models").unwrap();
+        let palette = load_palette(&world, Some("Daventry.ppl"), &game, &mut log).unwrap();
+        let unarmed = view.stowed.as_deref().unwrap();
+        let axe = kq8_data::characters::ConnorAnimLists::equipped(&view.hand, "SmallAx").unwrap();
+        let bow = kq8_data::characters::ConnorAnimLists::equipped(&view.ranged, "SmCrossBow").unwrap();
+        for name in [unarmed, axe, bow] {
+            let sections = read_set(&game, &world, name);
+            let mut movements = Vec::new();
+            let mut animations = Vec::new();
+            connor_set(&game, &world, &palette, &mut log, &sections, &sections[0].name,
+                Some(name), true, &mut movements, &mut animations, &mut BTreeMap::new()).unwrap();
+            assert_eq!(movements.len(), sections[0].number("nMovement").unwrap().unwrap() as usize);
+            for action in ["stop", "attack"] {
+                let qualified = kq8_core::connor::special_movement_name(name, action);
+                let movement = movements.iter().find(|m| m.name.eq_ignore_ascii_case(&qualified)).unwrap();
+                if name == bow && action == "attack" {
+                    let cues: Vec<_> = movement.cues.iter().filter(|(_, cue)| cue.trim().eq_ignore_ascii_case("do")).collect();
+                    assert_eq!(cues.len(), 1);
+                    assert!((cues[0].0 - 0.272727).abs() < 0.00001);
+                }
+                assert!(animations[movement.animation].frame_count > 0);
+            }
+        }
     }
 
     #[test]

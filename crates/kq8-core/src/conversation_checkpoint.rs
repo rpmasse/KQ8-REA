@@ -7,6 +7,8 @@ struct State {
     info: Option<String>,
     lines: Speak,
     keep_weapon: bool,
+    #[serde(default)]
+    resume_first_person: bool,
     case: Option<Case>,
     stage: Stage,
     walk_from: [f32; 3],
@@ -40,7 +42,7 @@ impl SavedConversation {
 impl WorldState {
     pub fn saved_conversation(&self) -> SavedConversation {
         SavedConversation { active: self.conversation.as_ref().map(|c| State { partner: c.partner.clone(), partner_at: c.partner_at,
-            info: c.info.as_ref().map(|i| i.name.clone()), lines: c.lines.clone(), keep_weapon: c.keep_weapon,
+            info: c.info.as_ref().map(|i| i.name.clone()), lines: c.lines.clone(), keep_weapon: c.keep_weapon, resume_first_person: c.resume_first_person,
             case: c.case, stage: c.stage, walk_from: c.walk_from, approach_updates: c.approach_updates, cuts_stopped: c.cuts_stopped }),
             leave: self.connor_leave.clone(), hands_off: self.connor_hands_off }
     }
@@ -51,7 +53,7 @@ impl WorldState {
             if !self.known.contains(&c.partner.to_ascii_lowercase()) { return Err(format!("saved conversation partner '{}' is absent", c.partner)); }
             let info = c.info.as_ref().map(|name| self.conv_infos.iter().find(|i| i.name.eq_ignore_ascii_case(name)).cloned()
                 .ok_or_else(|| format!("saved conversation info '{name}' is absent"))).transpose()?;
-            Ok(Conversation { partner: c.partner.clone(), partner_at: c.partner_at, info, lines: c.lines.clone(), keep_weapon: c.keep_weapon,
+            Ok(Conversation { partner: c.partner.clone(), partner_at: c.partner_at, info, lines: c.lines.clone(), keep_weapon: c.keep_weapon, resume_first_person: c.resume_first_person,
                 case: c.case, stage: c.stage, walk_from: c.walk_from, approach_updates: c.approach_updates,
                 cuts_stopped: c.cuts_stopped, at: "disk conversation checkpoint".into() })
         }).transpose()?;

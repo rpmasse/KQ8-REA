@@ -24,9 +24,15 @@ tables named in the installed Connor.kq. The same reader resolves
 the original first-person tables. An automated GOG-data check reads
 all listed movement files, the unarmed idle and broadsword attack
 models and the 76-entry arm skin list. The sword model includes both
-body and sword parts, with separate materials. The F2 camera, movement
-transition, skin switch and rendered first-person combat still need
-an integrated gameplay check.
+body and sword parts, with separate materials. The physical F2 binding
+switches the camera and selects the installed arm and weapon models.
+An uninterruptible movement can keep its previous model until it ends.
+A menu save tracks the camera and the current actor model independently.
+Daventry’s earned axe struck the coffin lid with the first-person axe
+animation. A separate Dead City test supplied a Small Crossbow, fired one
+bolt, saved and switched back to third person on load. Another checkpoint
+kept the outgoing draw animation while switching views. Close-up clipping
+and the remaining weapons still need comparison with the original.
 
 ## Connor's ordinary combat death (2026-11-07)
 
@@ -43,8 +49,9 @@ gate before the final hold begins.
 Rust saves preserve the pending request and the accepted animation as
 separate states. Older slots with a death stored as a Special movement
 are supported. The Temple 4 vortex shares the final hold through its
-scripted Die Now command. Exit from first person, specialised controller
-coverage and comparison with a native Sierra save remain open.
+scripted Die Now command. Ordinary combat death switches to third
+person. Further specialised controller coverage and comparison with a
+native Sierra save remain open.
 
 ## Inventory pickup tutorials (2026-11-07)
 
@@ -349,8 +356,8 @@ uses that same controller, including the original asymmetric turn-back
 snap. Automated numerical checks cover both original beer/gong parameter
 sets, rising-ramp disk continuation and the separate shake/flight updates.
 Original runtime and physical mouse drag/recentring are **not tested**;
-first-person presentation, collision-probe/normal-length memory and the
-universal original moved/timer deadline phase remain incomplete.
+the collision probe, its remembered normal length and the original
+movement/timer deadline phase still need comparison.
 
 Automated component check, from the repository root in PowerShell:
 
@@ -853,8 +860,10 @@ perfectly"); logged in `rope.log`. Built from `ropeandhook.md`.
 - **While on the rope:** no damage, no other state (scripts, jumps,
   weapons are ignored), characters lose him; items can still be clicked
   and picked up.
-- **Open:** save and reload during an active rope climb, and the
-  first-person presentation when taking or returning the rope.
+- **Church climb.** The earned rope remains usable after loading inside
+  its trigger. A mid-climb save resumes on the saved animation frame.
+  When the climb forced third person, the dismount restores first
+  person even across a restart. [Church roof](daventry-progression.md#church-roof)
 
 ## Azriel's Hammer (milestone M6, step 6b, 2026-10-21)
 
@@ -1214,8 +1223,8 @@ message that shows the usage.
 ## Remaining fidelity and campaign work
 
 - **Campaign and saves.** The full New Game to credits route is open. Each region still needs its quests, optional interactions, bosses and transitions checked in sequence. A save during an unverified controller, puzzle or cutscene remains an open case.
-- **Graphics and camera.** First-person view and arm animations, full graphics-mode behavior, live resolution changes and parts of software palette presentation remain open. Third-person shake and camera flight have automated checks. Physical mouse drag and recentering still need comparison.
-- **Combat.** Complete the remaining weapon controls, projectile paths, enemy decisions and specialised death transitions. A prepared Daventry route defeats the Henchman and survives a post-victory reload. Reaching the hero’s ring in that campaign remains open.
+- **Graphics and camera.** Remaining work includes original first-person clipping, full graphics-mode behavior, live resolution changes, software palette presentation and comparison of physical mouse drag and recentering.
+- **Combat.** Complete the remaining weapon controls, projectile paths, enemy decisions and specialised death transitions. The Normal campaign now includes the Henchman and the dead hero’s ring. Other full encounters still need campaign coverage.
 - **Interface and dialogue.** The Wizard route covers approach, speech, help, rewards and return to player control. Other partners, conversations interrupted by gameplay, inventory interactions and credits timing still need coverage.
 - **Regional behavior.** Keep individual gaps attached to their regions, including the Gnome rolling-rock collision, hazardous-water damage, scenery sounds and remaining effects. Opening a region establishes that it can load and draw. Its quests need separate evidence.
 

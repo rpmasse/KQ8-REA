@@ -98,6 +98,7 @@ pub struct CameraChoice {
 }
 
 struct Keys {
+    first_person: Option<KeyCode>,
     change_mode: Option<KeyCode>,
     tilt_up: Option<KeyCode>,
     tilt_down: Option<KeyCode>,
@@ -113,10 +114,11 @@ struct SyncInput {
     input: Input,
     consumed: bool,
     zoomed: bool,
+    first_person: bool,
 }
 
 impl SyncInput {
-    fn new(input: Input) -> Self { Self { input, consumed: false, zoomed: false } }
+    fn new(input: Input) -> Self { Self { input, consumed: false, zoomed: false, first_person: false } }
 
     fn for_update(&mut self, mode: Mode, final_phase: bool) -> Input {
         let mut input = self.input;
@@ -125,7 +127,7 @@ impl SyncInput {
             input.change_mode = false; input.reset_tilt = false;
         }
         self.consumed = true;
-        let fixed = matches!(mode, Mode::Fixed { .. }) != input.change_mode;
+        let fixed = !self.first_person && (matches!(mode, Mode::Fixed { .. }) != input.change_mode);
         if fixed {
             if self.zoomed { input.tilt_keys = 0; }
             self.zoomed |= input.tilt_keys != 0;
@@ -155,7 +157,7 @@ impl ViewBlockers for CutScene<'_> {
 impl GameCam {
     /// The camera's position after the last update (game units).
     pub fn position(&self) -> [f32; 3] {
-        self.cam.position
+        if self.first_person.is_some() { self.current.0 } else { self.cam.position }
     }
 
     /// `KQCamera::setRange` from a script (M3 step 3d-3); false = refused.
@@ -180,6 +182,8 @@ pub use checkpoint::SavedCamera;
 #[derive(Resource)]
 pub struct GameCam {
     cam: Camera,
+    first_person: Option<FirstPersonView>,
+    actor: Option<ActorFrame>,
     /// (position, view tilt, view heading) after the last two updates.
     previous: ([f32; 3], f32, f32),
     current: ([f32; 3], f32, f32),
@@ -241,7 +245,54 @@ pub struct GameCam {
     shake: kq8_core::camera_shake::Shake,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct FirstPersonView {
+    eye: kq8_core::camera_first_person::FirstPerson,
+    saved_angles: [f32; 2],
+    saved_roll: f32,
+    mouse_vertical: f32,
+}
+
+impl FirstPersonView {
+    fn valid(&self) -> bool {
+        self.eye.valid() && self.saved_angles.iter().all(|v| v.is_finite())
+            && self.saved_roll.is_finite() && self.mouse_vertical.is_finite()
+    }
+}
+
+#[derive(Clone, Copy)]
+struct ActorFrame {
+    base: [f32; 3],
+    angles: [f32; 3],
+    support: Option<[f32; 3]>,
+}
+
 impl GameCam {
+    fn perspective(&mut self, first_person: bool, actor: ActorFrame) {
+        if first_person == self.first_person.is_some() { return; }
+        if first_person {
+            self.follow(true, actor.base);
+            self.first_person = Some(FirstPersonView {
+                eye: Default::default(), saved_angles: self.cam.offset_angles(),
+                saved_roll: self.view.roll, mouse_vertical: 0.0,
+            });
+        } else if let Some(previous) = self.first_person.take() {
+            self.cam.restore_offset_angles(previous.saved_angles);
+            self.view.roll = previous.saved_roll;
+        }
+        self.cam.look_at(Camera::aim_for(actor.base));
+        self.pending.push("perspective");
+        self.log.detail(format!("camera update {}: first person {first_person}", self.updates));
+    }
+
+    fn show_eye(&mut self, pose: kq8_core::camera_first_person::Pose) {
+        let [tilt, roll, heading] = pose.angles;
+        self.view.tilt = tilt;
+        self.view.roll = roll;
+        self.view.heading = heading;
+        self.current = (pose.eye, tilt, heading);
+    }
+
     pub fn start_shake(&mut self, parameters: kq8_core::camera_shake::Parameters) -> String {
         let line = match self.shake.start(parameters) {
             Ok(()) => format!("shake started: {} s, angular maxima {:?}, phase rates {:?}; next camera sync is sample 1",parameters.seconds,parameters.maximum,parameters.rate),
@@ -258,11 +309,22 @@ impl GameCam {
         match self.shake.tick() {
             Tick::Idle => false,
             Tick::Stopped | Tick::Invalid => {
-                self.cam.reset_shake_angles();
+                if let Some(first) = self.first_person.as_mut() {
+                    first.eye.stop_shake();
+                } else {
+                    self.cam.reset_shake_angles();
+                }
                 self.log.detail(format!("camera tick {}: shake stopped; shared angles reset, drawn pose retained",self.updates));
                 false
             }
             Tick::Sample(sample) => {
+                if let (Some(first), Some(actor)) = (self.first_person.as_mut(), self.actor) {
+                    let pose = first.eye.shake_sample(actor.base, actor.angles, sample.angle);
+                    self.show_eye(pose);
+                    self.log.detail(format!("camera tick {}: first-person shake sample {}: eye {:?}, angles {:?}",
+                        self.updates, sample.number, pose.eye, pose.angles));
+                    return false;
+                }
                 if self.aims {
                     self.cam.shake_angles(sample.angle);
                 } else {
@@ -619,6 +681,7 @@ pub fn make(
             _ => None,
         });
     let keys = Keys {
+        first_person: key(connor_keys, "CameraFirstPerson", 0.0),
         change_mode: key(camera_keys, "CameraChangeMode", 0.0),
         tilt_up: key(camera_keys, "RotateX", 0.05),
         tilt_down: key(camera_keys, "RotateX", -0.05),
@@ -649,6 +712,8 @@ pub fn make(
     let mut cam = Camera::new(position);
     cam.look_at(Camera::aim_for(connor_at));
     let mut g = GameCam {
+        first_person: None,
+        actor: None,
         previous: (position, cam.view_tilt, cam.heading),
         current: (position, cam.view_tilt, cam.heading),
         glide_from: None,
@@ -695,6 +760,8 @@ pub fn camera_input(
     buttons: Res<ButtonInput<MouseButton>>,
     motion: Res<AccumulatedMouseMotion>,
     game: Option<ResMut<GameCam>>,
+    connor: Option<Res<ConnorSim>>,
+    doors: Option<ResMut<DoorSim>>,
     mut choice: ResMut<CameraChoice>,
     mut fly: ResMut<Fly>,
     camera: Query<&Transform, With<Camera3d>>,
@@ -717,6 +784,14 @@ pub fn camera_input(
     }
     if !choice.game {
         return;
+    }
+    if game.keys.first_person.is_some_and(|key| keys.just_pressed(key)) {
+        if let (Some(connor), Some(mut doors)) = (connor, doors) {
+            let changed = doors.active.world.first_person_key(connor.hands_off || connor.walker.animation_input_lock);
+            if changed {
+                shared.log.lock().unwrap().summary(format!("CameraFirstPerson: first person {}", doors.active.world.first_person));
+            }
+        }
     }
     // The mouse's own movement (not the cursor's place, so a drag doesn't
     // stop at the window's edge: our method) as a share of the window.
@@ -743,6 +818,21 @@ impl GameCam {
         // Check from the numbers: is the camera inside a building's solid?
         let inside: Vec<&str> = view.buildings.iter().filter(|b| b.solid_at(self.cam.position)).map(|b| b.name.as_str()).collect();
         self.show_view();
+        if let (Some(first), Some(actor)) = (self.first_person.as_mut(), self.actor) {
+            let vertical = if input.mouse_held {
+                // The viewer reports mouse down as positive; it tilts the eye down.
+                first.mouse_vertical -= input.mouse_forward;
+                Some(first.mouse_vertical)
+            } else {
+                first.mouse_vertical = 0.0;
+                None
+            };
+            let pose = first.eye.full_update(actor.base, actor.angles, actor.support,
+                self.cam.retained_horizontal_motion(followed.base), vertical, input.tilt_keys, input.reset_tilt);
+            self.show_eye(pose);
+            self.log.detail(format!("camera tick {}: first person {cause}: eye {:?}, angles {:?}, support {:?}",
+                self.updates, pose.eye, pose.angles, actor.support));
+        }
         let p = self.cam.position;
         let line = format!(
             "{} {:.1} {:.1} {:.1} {:.1} {} {} {:.3} {} {} {} | {} {} {} {} {} {} {} | {} | {} | {} {:.3} {:+.3} | {}",
@@ -803,6 +893,14 @@ pub fn camera_step(
     let g = &mut *game;
     g.updates += 1;
     g.roll_before = g.view.roll;
+    let actor = ActorFrame {
+        base: sim.mover.position, angles: kq8_data::objects::angles_of(sim.turn_matrix()),
+        support: sim.mover.support_normal,
+    };
+    g.actor = Some(actor);
+    if let Some(doors) = doors.as_ref() {
+        g.perspective(doors.active.world.first_person, actor);
+    }
     // A gliding move since the last tick (the rope climb) is drawn from
     // where the camera was before it.
     g.previous = match g.glide_from.take() {
@@ -846,6 +944,7 @@ pub fn camera_step(
     g.pressed_mode = false;
     g.pressed_reset = false;
     let mut controls = SyncInput::new(input);
+    controls.first_person = g.first_person.is_some();
     let pending = std::mem::take(&mut g.pending);
     let view = view_blockers(&lookup.0,buildings.as_deref(),blockers.as_deref(),doors.as_deref());
     let live_actor = Followed {base:g.around.unwrap_or(sim.mover.position),facing:sim.walker.heading};
@@ -886,7 +985,7 @@ pub fn camera_step(
     }
     let mouse_moved = input.mouse_held && (input.mouse_x != 0.0 || input.mouse_forward != 0.0);
     let pressed_or_released = std::mem::replace(&mut g.mouse_was_held,input.mouse_held) != input.mouse_held;
-    let page_update = input.tilt_keys != 0 && !(matches!(g.cam.mode,Mode::Fixed {..}) && input.mouse_held);
+    let page_update = input.tilt_keys != 0 && !(g.first_person.is_none() && matches!(g.cam.mode,Mode::Fixed {..}) && input.mouse_held);
     // Mouse/change/reset events can provide the only full update in a sync.
     // If another cause already consumed them, only Page requests another.
     let player_update = page_update || (!controls.consumed && (mouse_moved || pressed_or_released || input.reset_tilt || input.change_mode));

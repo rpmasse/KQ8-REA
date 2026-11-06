@@ -44,6 +44,9 @@ pub use tile::{unlit_step, TileCall};
 /// One drawable movement: its loop for the walker and its number of frames.
 pub struct DrawnMovement {
     pub name: &'static str,
+    /// Identifies the playing model even while another view's bank is requested.
+    pub qualified: &'static str,
+    pub first_person: bool,
     pub movement_loop: MovementLoop,
     pub frames: usize,
     /// Its animation's number for the new drawing (Animation memory 4f):
@@ -242,6 +245,7 @@ pub struct ConnorSim {
     /// put-away is playing (no slot clicks meanwhile: the user's check,
     /// 5d fix 10).
     pub weapon_target: Option<String>,
+    pub first_person: bool,
     pending_set: Option<(Option<String>, WeaponMode, usize)>,
     readying: bool,
     /// The mode and item of `weapon_target`, and the mode of `weapon_set`,
@@ -442,6 +446,14 @@ pub struct SavedSpecial {
 pub struct SavedWeaponState {
     weapon_set: Option<String>,
     weapon_target: Option<String>,
+    /// A script may change the camera before this controller can select
+    /// its next model. Older slots only recorded the camera mode.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    actor_first_person: Option<bool>,
+    /// On a mode change an old model or transition may still be playing.
+    /// Restore its bank before reconstructing the saved controller.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    first_person_banks: Vec<String>,
     pending_set: Option<(Option<String>, WeaponMode, usize)>,
     readying: bool,
     target_mode: WeaponMode,
@@ -471,6 +483,14 @@ impl SavedCombatCues {
 }
 
 impl SavedWeaponState {
+    pub fn actor_first_person(&self, camera: bool) -> bool {
+        self.actor_first_person.unwrap_or(camera)
+    }
+
+    pub fn first_person_banks(&self) -> &[String] {
+        &self.first_person_banks
+    }
+
     pub fn swapping(&self) -> bool { self.readying }
     pub fn retains_drawn_list(&self) -> bool {
         self.weapon_set.is_some() && self.weapon_set == self.weapon_target
@@ -489,6 +509,9 @@ impl SavedWeaponState {
     pub fn valid(&self, special: Option<&SavedSpecial>) -> bool {
         let name = |value: &Option<String>| value.as_ref().is_none_or(|s| valid_swing_name(s));
         if !name(&self.weapon_set) || !name(&self.weapon_target) || !name(&self.ready_item) {
+            return false;
+        }
+        if self.first_person_banks.len() > 64 || self.first_person_banks.iter().any(|file| !valid_swing_name(file)) {
             return false;
         }
         if self.readying && special.is_none() {
@@ -609,7 +632,10 @@ impl SavedSpecial {
         valid_swing_name(&self.movement)
             && self.phase.is_finite() && (0.0..=1.0).contains(&self.phase) && self.bank.is_finite()
             && (1..=128).contains(&self.steps.len()) && self.at < self.steps.len()
-            && matches!(&self.steps[self.at], SavedSpecialStep::Play(name, _) if name.eq_ignore_ascii_case(&self.movement))
+            && matches!(&self.steps[self.at], SavedSpecialStep::Play(name, _) if
+                name.eq_ignore_ascii_case(&self.movement) || (self.movement.contains('/')
+                    && self.wanted.as_deref() == Some(name.as_str())
+                    && kq8_core::connor::plain_movement_name(&self.movement).eq_ignore_ascii_case(name)))
             && self.steps.iter().all(|step| match step {
                 SavedSpecialStep::Play(name, written) => valid_swing_name(name) && valid_swing_name(written),
                 SavedSpecialStep::Inv(item) => valid_swing_name(item),
@@ -675,7 +701,7 @@ impl ConnorSim {
     pub fn restore_combat_cues(&mut self, saved: &SavedCombatCues) -> Result<(), String> {
         if !saved.valid() { return Err("invalid pending combat cues".into()); }
         let shots = saved.shots.iter().map(|(name, phase, moving)| {
-            let found = self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
+            let found = self.saved_movement_name(name)
                 .ok_or_else(|| format!("pending shot movement '{name}' is missing from the installed game data"))?;
             Ok((found, *phase, *moving))
         }).collect::<Result<Vec<_>, String>>()?;
@@ -686,8 +712,14 @@ impl ConnorSim {
     }
 
     pub fn saved_weapon_state(&self, special: Option<&SavedSpecial>) -> Option<SavedWeaponState> {
+        let first_person_banks: std::collections::BTreeSet<_> = self.movements.iter()
+            .filter(|movement| movement.first_person)
+            .filter_map(|movement| movement.name.split_once('/').map(|(bank, _)| bank))
+            .collect();
         let saved = SavedWeaponState {
             weapon_set: self.weapon_set.clone(), weapon_target: self.weapon_target.clone(),
+            actor_first_person: Some(self.first_person),
+            first_person_banks: first_person_banks.into_iter().map(str::to_owned).collect(),
             pending_set: self.pending_set.clone(), readying: self.readying,
             target_mode: self.target_mode, ready_item: self.ready_item.clone(),
             set_mode: self.set_mode, held_walk: self.held_walk.clone(),
@@ -794,7 +826,7 @@ impl ConnorSim {
     pub fn restore_special(&mut self, saved: &SavedSpecial) -> Result<(), String> {
         use kq8_core::connor::SpecialStep;
         if !saved.valid() { return Err("invalid Special movement checkpoint".into()); }
-        let resolve = |name: &str| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
+        let resolve = |name: &str| self.saved_movement_name(name)
             .ok_or_else(|| format!("Special movement '{name}' is missing from the installed game data"));
         let movement = resolve(&saved.movement)?;
         let steps = saved.steps.iter().map(|step| match step {
@@ -844,7 +876,7 @@ impl ConnorSim {
 
     pub fn restore_shot(&mut self, saved: &SavedShot) -> Result<(), String> {
         if !saved.valid() { return Err("invalid ranged shot checkpoint".into()); }
-        let resolve = |name: &str| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
+        let resolve = |name: &str| self.saved_movement_name(name)
             .ok_or_else(|| format!("ranged shot movement '{name}' is missing from the installed game data"));
         let movement = resolve(&saved.movement)?;
         let walker_movement = resolve(&saved.walker_movement)?;
@@ -887,7 +919,7 @@ impl ConnorSim {
 
     pub fn restore_swing(&mut self, saved: &SavedSwing) -> Result<(), String> {
         if !saved.valid() { return Err("invalid melee swing checkpoint".into()); }
-        let resolve = |name: &str| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
+        let resolve = |name: &str| self.saved_movement_name(name)
             .ok_or_else(|| format!("melee swing movement '{name}' is missing from the installed game data"));
         let movement = resolve(&saved.movement)?;
         let walker_movement = resolve(&saved.walker_movement)?;
@@ -947,21 +979,89 @@ pub struct FootSounds(pub std::collections::BTreeMap<String, Option<i64>>);
 /// (`confists.anm/stop` for `stop`), else his own (M5 5c fix,
 /// **stand-in**, Q138).
 fn find<'a>(movements: &'a [DrawnMovement], set: Option<&str>, name: &str) -> Option<&'a DrawnMovement> {
-    set.and_then(|f| {
-        let wanted = kq8_core::connor::special_movement_name(f, name);
-        movements.iter().find(|m| m.name.eq_ignore_ascii_case(&wanted))
-    })
-    .or_else(|| movements.iter().find(|m| m.name == name))
+    if let Some(file) = set.filter(|_| !name.contains('/')) {
+        let wanted = kq8_core::connor::special_movement_name(file, name);
+        if let Some(movement) = movements.iter().find(|m| m.name.eq_ignore_ascii_case(&wanted)) {
+            return Some(movement);
+        }
+        // A loaded first-person list replaces the actor's ordinary list.
+        // A missing action cannot be drawn using the full third-person body.
+        if movements.iter().any(|m| m.first_person && m.name.split_once('/')
+            .is_some_and(|(bank, _)| bank.eq_ignore_ascii_case(file))) {
+            return None;
+        }
+    }
+    movements.iter().find(|m| m.name.eq_ignore_ascii_case(name) || m.qualified.eq_ignore_ascii_case(name))
 }
 
 impl ConnorSim {
+    fn saved_movement_name(&self, name: &str) -> Option<&'static str> {
+        let movement = self.drawn(name)?;
+        // Preserve an explicitly named old model through a mode change.
+        // Its plain action could now belong to a different weapon or view.
+        Some(if name.contains('/') { movement.qualified } else { kq8_core::connor::plain_movement_name(movement.name) })
+    }
+
+    fn drawn_bank_after_toggle(&self, w: &kq8_core::active::WorldState) -> Option<String> {
+        w.connor_fight.as_ref()?.opposite_bank(self.first_person, self.set_mode, self.weapon_set.as_deref()).map(str::to_owned)
+    }
+
+    pub(crate) fn refresh_perspective(&mut self, w: &kq8_core::active::WorldState) -> Option<String> {
+        if self.first_person == w.first_person { return None; }
+        let banks = w.connor_fight.as_ref()?;
+        let next = self.drawn_bank_after_toggle(w);
+        if next.is_none() && (w.first_person || self.set_mode != WeaponMode::None) { return None; }
+        let action = kq8_core::connor::plain_movement_name(self.walker.movement);
+        if let Some(bank) = &next {
+            let wanted = kq8_core::connor::special_movement_name(bank, action);
+            if !self.movements.iter().any(|m| m.qualified.eq_ignore_ascii_case(&wanted)) { return None; }
+        }
+        let old = self.drawn(self.walker.movement)?.qualified;
+        let target = banks.opposite_bank(self.first_person, self.target_mode, self.weapon_target.as_deref()).map(str::to_owned);
+        if let Some((file, mode, at)) = &mut self.pending_set {
+            let mapped = banks.opposite_bank(self.first_person, *mode, file.as_deref()).map(str::to_owned);
+            // The swap controller queued its next clip when the player chose
+            // the weapon. It has not started; resolve it in the new bank.
+            if let Some(kq8_core::connor::SpecialStep::Play(movement, _)) = self.walker.special.get_mut(*at) {
+                let plain = kq8_core::connor::plain_movement_name(movement);
+                *movement = find(&self.movements, mapped.as_deref(), plain)?.name;
+            }
+            *file = mapped;
+        }
+        self.first_person = w.first_person;
+        self.weapon_set = next;
+        self.weapon_target = target;
+        let movements = &self.movements;
+        let bank = self.weapon_set.as_deref();
+        let loops = |n: &str| find(movements, bank, n).map(|m| &m.movement_loop);
+        let notes = self.walker.rerequest_view(old, action, &loops);
+        let selected_attack = |movement: &'static str, waiting: bool| {
+            if waiting {
+                find(movements, bank, kq8_core::connor::plain_movement_name(movement)).map_or(movement, |m| m.name)
+            } else if movement.eq_ignore_ascii_case(old) {
+                self.walker.movement
+            } else {
+                movement
+            }
+        };
+        if let Some(swing) = &mut self.swing { swing.movement = selected_attack(swing.movement, swing.waiting); }
+        if let Some(shot) = &mut self.shot { shot.movement = selected_attack(shot.movement, shot.waiting); }
+        self.redraw_from_walker();
+        Some(format!("first person {}: bank {:?}; re-request {action} from {old}: {}",
+            self.first_person,self.weapon_set,notes.join("; ")))
+    }
+
+    pub(crate) fn target_matches(&self, list: &Option<String>, item: Option<&str>) -> bool {
+        self.weapon_target == *list && self.ready_item.as_deref() == item
+    }
+
     fn movement_loop(&self, name: &str) -> Option<&MovementLoop> {
         self.drawn(name).map(|m| &m.movement_loop)
     }
 
     /// See [`find`].
     fn drawn(&self, name: &str) -> Option<&DrawnMovement> {
-        find(&self.movements, self.weapon_set.as_deref(), name).or_else(|| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)))
+        find(&self.movements, self.weapon_set.as_deref(), name)
     }
 }
 
@@ -1034,9 +1134,13 @@ fn animation_loop(a: &crate::load::Animation) -> MovementLoop {
 
 /// A movement drawn with its animation's loop, frames and parts.
 #[allow(clippy::type_complexity)]
-fn drawn_movement(m: &crate::load::ConnorMovement, loops: &[MovementLoop], frames: &[usize], parts: &[Vec<kq8_data::shape::FrameParts>], anims: &[usize]) -> DrawnMovement {
+fn drawn_movement(m: &crate::load::ConnorMovement, loops: &[MovementLoop], frames: &[usize], parts: &[Vec<kq8_data::shape::FrameParts>], anims: &[usize], base_list: &str) -> DrawnMovement {
     DrawnMovement {
         name: m.name,
+        qualified: if m.name.contains('/') { m.name } else {
+            kq8_core::connor::intern(&kq8_core::connor::special_movement_name(base_list, m.name))
+        },
+        first_person: m.first_person,
         anim: anims.get(m.animation).copied().unwrap_or(usize::MAX),
         movement_loop: MovementLoop {
             speed: m.speed,
@@ -1173,22 +1277,49 @@ pub fn late_set_step(
     let (Some(mut c), Some(sim), Some(light)) = (connor, sim, light) else { return };
     let c = &mut *c;
     let carried: Vec<String> = sim.active.world.items.objects.iter().filter(|o| o.carried_by(kq8_core::talk::CONNOR)).map(|o| o.kind.to_ascii_lowercase()).collect();
-    let Some(mut late) = c.late.take_if(|l| l.sets.iter().any(|(k, _)| carried.contains(k))) else { return };
-    let due: Vec<(String, String)> = late.sets.iter().filter(|(k, _)| carried.contains(k)).cloned().collect();
+    let mut wanted_fp = std::collections::BTreeSet::new();
+    if sim.active.world.first_person {
+        let world = &sim.active.world;
+        if let Some(banks) = &world.connor_fight {
+            use kq8_core::weapons::WeaponMode;
+            let hand = kq8_core::connor_inventory::hand_weapon(world);
+            let ranged = world.ranged_weapon();
+            for file in [
+                banks.first_person.stowed.as_deref(),
+                banks.bank(true, WeaponMode::Hand, Some(hand.as_deref().unwrap_or(kq8_core::weapons::FISTS))),
+                banks.bank(true, WeaponMode::Ranged, ranged.as_deref()),
+                banks.bank(true, world.weapon_mode, world.weapon_ready.as_deref()),
+            ].into_iter().flatten() {
+                wanted_fp.insert(file.to_ascii_lowercase());
+            }
+        }
+        if !c.first_person {
+            if let Some(drawn) = c.drawn_bank_after_toggle(&sim.active.world) {
+                wanted_fp.insert(drawn.to_ascii_lowercase());
+            }
+        }
+    }
+    let Some(mut late) = c.late.take_if(|l| l.sets.iter().any(|(k, _)| carried.contains(k))
+        || !wanted_fp.is_disjoint(&l.first_person_files)) else { return };
+    let mut due: Vec<(String, String, bool)> = late.sets.iter().filter(|(k, _)| carried.contains(k))
+        .map(|(kind,file)| (kind.clone(),file.clone(),false)).collect();
     late.sets.retain(|(k, _)| !carried.contains(k));
+    for file in wanted_fp.into_iter().filter(|file| late.first_person_files.remove(file)) {
+        due.push(("first person".into(),file,true));
+    }
     let started = std::time::Instant::now();
     let mut log = shared.log.lock().unwrap();
     match crate::load::World::open(&late.game, &late.world) {
         Err(e) => log.summary(format!("connor: weapon sets {due:?}: world {} can't be opened again: {e}; not loaded", late.world)),
         Ok(world) => {
-            for (kind, file) in due {
+            for (kind, file, entire_list) in due {
                 let sections = crate::load::read_set(&late.game, &world, &file);
                 let Some(list) = sections.first().map(|s| s.name.clone()) else {
                     log.summary(format!("connor: weapon set {file} ({kind}): not found; not loaded"));
                     continue;
                 };
                 let (mut movements, mut animations, mut index_of) = (Vec::new(), Vec::new(), std::collections::BTreeMap::new());
-                if let Err(e) = crate::load::connor_set(&late.game, &world, &late.palette, &mut log, &sections, &list, Some(&file), &mut movements, &mut animations, &mut index_of) {
+                if let Err(e) = crate::load::connor_set(&late.game, &world, &late.palette, &mut log, &sections, &list, Some(&file), entire_list, &mut movements, &mut animations, &mut index_of) {
                     log.summary(format!("connor: weapon set {file} ({kind}): {e}; not loaded"));
                     continue;
                 }
@@ -1238,7 +1369,7 @@ pub fn late_set_step(
                 let mut new = 0;
                 for m in &movements {
                     if !c.movements.iter().any(|d| d.name == m.name) {
-                        c.movements.push(drawn_movement(m, &loops, &frames, &parts, &anims));
+                        c.movements.push(drawn_movement(m, &loops, &frames, &parts, &anims, &file));
                         new += 1;
                     }
                 }
@@ -1339,7 +1470,7 @@ pub fn spawn_connor(
         Some(stats) => main_log.summary(format!("object light: Connor at his start (first frame): {stats}")),
         None => main_log.summary("object light: Connor has no smooth corners in his first frame"),
     }
-    let movements: Vec<DrawnMovement> = assets.movements.iter().map(|m| drawn_movement(m, &loops, &frame_counts, &frame_parts, &anims)).collect();
+    let movements: Vec<DrawnMovement> = assets.movements.iter().map(|m| drawn_movement(m, &loops, &frame_counts, &frame_parts, &anims, &assets.base_list)).collect();
     for d in &movements {
         main_log.summary(format!(
             "connor: {} moves at {:.1} units/s ({} frames)",
@@ -1460,6 +1591,7 @@ pub fn spawn_connor(
         moving_aim: None,
         weapon_set: None,
         weapon_target: None,
+        first_person: false,
         pending_set: None,
         readying: false,
         target_mode: WeaponMode::None,
@@ -2159,8 +2291,13 @@ impl ConnorSim {
     /// heading (as he is drawn; `ranged-weapons.md` rule 23).
     pub fn turn_matrix(&self) -> [[f32; 3]; 3] {
         let (_, heading, _, bank) = self.current;
+        self.turn_matrix_at(heading, bank)
+    }
+
+    fn turn_matrix_at(&self, heading: f32, bank: f32) -> [[f32; 3]; 3] {
+        let [pitch, roll, _] = self.placement.angles;
         let lean = kq8_data::objects::rotation([0.0, bank, 0.0]);
-        let r = kq8_data::objects::rotation([0.0, 0.0, heading]);
+        let r = kq8_data::objects::rotation([pitch, roll, heading]);
         std::array::from_fn(|i| std::array::from_fn(|j| (0..3).map(|k| lean[i][k] * r[k][j]).sum()))
     }
 
@@ -2639,9 +2776,16 @@ impl ConnorSim {
     #[allow(clippy::too_many_arguments)]
     pub fn move_to(&mut self, flags: u32, position: [f32; 3], turn: [f32; 3], at: &str, world: &dyn MoverWorld, inside: bool) -> String {
         let old = (self.mover.position, self.walker.heading);
-        self.mover.position = if flags & 1 != 0 { std::array::from_fn(|k| old.0[k] + position[k]) } else { position };
-        self.walker.heading = if flags & 2 != 0 { old.1 + turn[2] } else { turn[2] };
-        let tilt = if turn[0] != 0.0 || turn[1] != 0.0 { " (his turn about x and y ignored: he only turns about z)" } else { "" };
+        let [pitch, roll, _] = self.placement.angles;
+        let placed = kq8_core::collide::Placement { position: old.0, rotation: kq8_data::objects::rotation([pitch, roll, old.1]) };
+        let (moved, note) = kq8_core::active::moved_placement(placed, flags, position, turn);
+        self.mover.position = moved.position;
+        // The established relative-turn rule composes only a world-Z turn.
+        // Preserve the walker's unwrapped heading for existing script users.
+        self.placement.angles = if flags & 2 == 0 { turn }
+            else if note.is_none() { [pitch, roll, old.1 + turn[2]] } else { [pitch, roll, old.1] };
+        self.walker.heading = self.placement.angles[2];
+        let tilt = note.map_or_else(String::new, |reason| format!(" ({reason})"));
         let set = self.mover.position;
         let drop = self.mover.after_move(world);
         let mut rest = format!("; the move step: gravity step {drop:.1} -> z {:.1}", self.mover.position[2]);
@@ -3402,15 +3546,7 @@ pub fn connor_draw(
     let p: [f32; 3] = std::array::from_fn(|i| p0[i] + (p1[i] - p0[i]) * a);
     let heading = h0 + (h1 - h0) * a;
     let bank = b0 + (b1 - b0) * a;
-    let mut placement = sim.placement.clone();
-    placement.position = p;
-    placement.angles[2] = heading;
-    // The lean first, about the model's forward axis (−Y; a turn about Y,
-    // positive tips his head towards +X, his left), then his placement.
-    let lean = kq8_data::objects::rotation([0.0, bank, 0.0]);
-    let r = placement.transform().m;
-    let m: [[f32; 3]; 3] = std::array::from_fn(|i| std::array::from_fn(|j| (0..3).map(|k| lean[i][k] * r[k][j]).sum()));
-    let t = bevy_transform_from(m, p);
+    let t = bevy_transform_from(sim.turn_matrix_at(heading, bank), p);
     for mut b in &mut body {
         *b = t;
     }
