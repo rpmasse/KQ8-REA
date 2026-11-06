@@ -1,5 +1,43 @@
 # MODLOG
 
+## 2026-11-07 Carry the cottage supplies to the Wizard
+
+The replay can now aim through an actual gameplay pixel. It checks the
+current viewport and HUD coverage and uses the ordinary camera drag to
+look past an obstruction. Movement stays released until the clicked
+object is the first one on the ray. The original core handles picking,
+reach, inventory and scripts. A search has a 150-update limit. The older
+CLI aim command remains available for coordinate-based probes.
+
+The first walk collected the basket but hit the petrified girl's
+original collision box on exit. The revised walk went north of her and
+earned the Wizard's rewards. In the first integrated repeat the camera
+started inside the stone mother's box, which received the click instead.
+A western detour then hit an actual cottage wall before its new waypoint.
+Keep both failures in STATUS. The final route uses the established
+walk, waits for a visible pixel and moves the camera through normal
+controls when that pixel is obstructed.
+
+On the final continuation, pixel (443,322) selected St_smom at update
+120. The replay released its movement and turned the camera. Pixel
+(407,325) reached basket2 first at 123. Five mushrooms entered Connor's
+inventory. His Wizard piece tutorial opened at 2784 and map help at
+2841. The menu saved PreparedWizard with one Mask1, Piece1, Magic Map,
+shield and five mushrooms. The original Piece1A was exchanged, the
+basket was empty, metConnor was set, AI was on and damage was enabled.
+The installed Options.cs was read before each test and checked afterward.
+
+With `KQ8_GAME_DIR` set to the original GOG install, run
+`cargo test --locked -p kq8-viewer --test daventry_cottage_shield -- --ignored --test-threads=1`.
+The final two-case run used `KQ8_SHIELD_SLOT` for the Wizard continuation
+and separately earned the shield again on Normal for the dose check.
+It passed in 391.26 seconds. With the optional variable unset, the
+Wizard test invokes the same New Game shield acquisition before
+continuing. The earlier default run reached the basket obstruction.
+Its fully chained default invocation with the final camera change is
+**not tested**. The earned guard duel and onward ring route have
+separate acceptance gates.
+
 ## 2026-11-07 Align the project status with the verified build
 
 Condensed the README milestone table and identified the exact Daventry

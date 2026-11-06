@@ -67,6 +67,20 @@ and surviving the guard remain open.
 With `KQ8_GAME_DIR` set to the GOG folder, reproduce with
 `cargo test --locked -p kq8-viewer --test daventry_cottage_shield -- --ignored --test-threads=1`.
 
+The cottage-to-Wizard test continues from an earned, unconsumed shield
+slot. Connor collects the five mushrooms in Sarah's basket, leaves
+through the open door and walks north of the petrified girl to reach
+the established Wizard route. A fresh process initially found the
+petrified mother's clickable box in front of the basket. The final
+walking replay pauses and uses the normal camera-drag input until a
+visible gameplay pixel selects the requested object. At update 120 the
+pixel selected St_smom, so the replay held its click. At 123 a new pixel
+selected basket2, and its original script granted all five mushrooms.
+Connor then earned Mask1, Piece1 and the Magic Map through the original
+conversation. His named save kept all five mushrooms and the shield.
+The optional `KQ8_SHIELD_SLOT` input repeats the continuation from
+a previously earned VillageShield slot.
+
 The New Game → wizard → windmill Small Axe route and reload passed again on
 2026-11-06 in 402.85 seconds. The new `daventry_hero_ring` scenario continues
 from that earned state into the original Henchtp/ax/Henchman cutscene, with

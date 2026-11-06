@@ -14,7 +14,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M6 · Campaign and saves | Ordinary Daventry routes earn the map, Small Axe and cottage shield. Focused checks cover CastleD travel, Dead City scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete the regional quests, optional branches and boss sequences. Verify one continuous New Game through the ending and credits. |
 | M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
 
-**Current campaign boundary.** After earning the Small Axe, Connor can finish the windmill cutscene, leave the doorway and reach the Henchman’s first attack. The duel and the onward hero’s ring route remain open. A separate Normal New Game route verifies that Connor can earn the shield in Sarah’s cottage and use it after loading a save. [Daventry campaign evidence](docs/daventry-progression.md)
+**Current campaign boundary.** Connor can earn Sarah’s cottage shield, collect five mushrooms from the basket and carry them to the Wizard’s first map reward. After earning the Small Axe, he can finish the windmill cutscene and reach the Henchman’s first attack. A post-victory reload and the onward hero’s ring route remain open. [Daventry campaign evidence](docs/daventry-progression.md)
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 

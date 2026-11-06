@@ -125,6 +125,10 @@ pub fn steer(
     mut exit: MessageWriter<AppExit>,
 ) {
     let Some(sim) = sim else { return };
+    if aims.landmark.is_some() {
+        replay.keys(&mut keys, &[]);
+        return;
+    }
     // Gameplay ignores key presses while a popup owns input. Release the
     // diagnostic route's held keys so resuming creates a new press edge.
     if gui.is_some_and(|g| g.popup.is_some()) {
@@ -326,7 +330,7 @@ pub fn steer(
             clicks.0.push((name, 0));
         }
         if let Some(name) = point.aim {
-            aims.0.push((name, sim.updates));
+            aims.landmark = Some((name, sim.updates));
         }
         if point.jump_toward.is_some() {
             if let Some(key) = sim.controls.jump {

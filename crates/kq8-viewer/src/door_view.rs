@@ -274,9 +274,24 @@ pub struct CommandAt(pub Vec<(String, u64)>);
 #[derive(Resource, Default)]
 pub struct RightAt(pub Option<u64>);
 
-/// `--aim NAME,N` (each may be given more than once).
+/// CLI probes may aim offscreen. A walking replay uses the normal
+/// on-screen pointer ray, with the same UI and nearer-object occlusion.
 #[derive(Resource)]
-pub struct AimAt(pub Vec<(String, u64)>);
+pub struct AimAt {
+    pub probes: Vec<(String, u64)>,
+    pub landmark: Option<(String, u64)>,
+    pub orbit: bool,
+}
+
+impl AimAt {
+    fn turn_for_target(&mut self, shared: &Shared, sim: &mut DoorSim, reason: String) {
+        if !self.orbit {
+            shared.log.lock().unwrap().summary(&reason);
+            sim.log.detail(reason);
+        }
+        self.orbit = true;
+    }
+}
 
 /// `--swing NAME,N[,big]` (M5 5c-5 test; each may be given more than once).
 #[derive(Resource)]
@@ -1825,10 +1840,26 @@ pub fn door_click_input(
     shared: Res<Shared>,
     keys: Res<crate::keyboard_input::GameKeys>,
     (objects, lookup): (Option<Res<crate::terrain_view::ObjectColliders>>, Option<Res<crate::terrain_view::GroundLookup>>),
+    mut exit: MessageWriter<AppExit>,
 ) {
     let Some(mut sim) = sim else { return };
     let updates = sim.active.world.updates;
-    let due = aim.0.iter().position(|(_, n)| updates >= *n).map(|i| aim.0.remove(i).0);
+    let landmark = aim.landmark.as_ref().is_some_and(|(_, tick)| updates >= *tick);
+    let due = if landmark {
+        let (name, start) = aim.landmark.as_ref().unwrap();
+        // A horizontal drag of 2% of the window per tick turns the view
+        // through 360 degrees in about 134 updates, including the press.
+        if updates.saturating_sub(*start) > 150 {
+            shared.log.lock().unwrap().summary(format!("walk-route could not see {name} after a full camera turn"));
+            aim.landmark = None;
+            aim.orbit = false;
+            exit.write(AppExit::error());
+            return;
+        }
+        Some(name.clone())
+    } else {
+        aim.probes.iter().position(|(_, tick)| updates >= *tick).map(|i| aim.probes.remove(i).0)
+    };
     if due.is_none() && !buttons.just_pressed(MouseButton::Left) {
         return;
     }
@@ -1840,11 +1871,13 @@ pub fn door_click_input(
         return;
     }
     // M4 4c-2: a click on a shown panel is the interface's, not the world's.
+    let panel_at = |w: &Window, c: Vec2| {
+        let (x, y) = (c.x / w.width(), c.y / w.height());
+        cover.0.iter().find(|(_, [l, t, r, b])| x >= *l && x < *r && y >= *t && y < *b).map(|(n, _)| *n)
+    };
     if due.is_none() {
         let on_panel = window.single().ok().and_then(|w| {
-            let c = w.cursor_position()?;
-            let (x, y) = (c.x / w.width(), c.y / w.height());
-            cover.0.iter().find(|(_, [l, t, r, b])| x >= *l && x < *r && y >= *t && y < *b).map(|(n, _)| *n)
+            panel_at(w, w.cursor_position()?)
         });
         if let Some(panel) = on_panel {
             sim.log.detail(format!("update {updates}: mouse click on the panel {panel}: not a world click"));
@@ -1873,11 +1906,37 @@ pub fn door_click_input(
                 let line = format!("update {updates}: test --aim {name}: no clickable object by that name with a box");
                 shared.log.lock().unwrap().summary(&line);
                 sim.log.detail(line);
+                if landmark {
+                    aim.landmark = None;
+                    aim.orbit = false;
+                    exit.write(AppExit::error());
+                }
                 return;
             };
-            let d: [f32; 3] = std::array::from_fn(|k| target[k] - origin[k]);
-            let len = d.iter().map(|v| v * v).sum::<f32>().sqrt().max(1e-6);
-            (origin, d.map(|v| v / len), format!("test --aim {name} (camera to the middle of its box)"))
+            if landmark {
+                let world_point = Vec3::new(target[0], target[2], -target[1]) / UNITS_PER_METRE;
+                let pixel = camera.world_to_viewport(at, world_point).ok().filter(|p| {
+                    camera.logical_viewport_rect().is_some_and(|r| r.contains(*p))
+                        && window.single().is_ok_and(|w| panel_at(w, *p).is_none())
+                });
+                let pixel_ray = pixel.and_then(|p| {
+                    camera.viewport_to_world(at, p).ok().map(|ray| (p, ray))
+                });
+                let Some((pixel, ray)) = pixel_ray else {
+                    let reason = format!("update {updates}: walk-route turns the camera for {name}: target outside the gameplay area or covered by a panel");
+                    aim.turn_for_target(&shared, &mut sim, reason);
+                    return;
+                };
+                (
+                    to_game(ray.origin * UNITS_PER_METRE),
+                    to_game(*ray.direction),
+                    format!("test --aim {name} (camera through gameplay pixel {:.0},{:.0} to the middle of its box)", pixel.x, pixel.y),
+                )
+            } else {
+                let d: [f32; 3] = std::array::from_fn(|k| target[k] - origin[k]);
+                let len = d.iter().map(|v| v * v).sum::<f32>().sqrt().max(1e-6);
+                (origin, d.map(|v| v / len), format!("test --aim {name} (camera to the middle of its box)"))
+            }
         }
         None => {
             let Ok(window) = window.single() else { return };
@@ -1897,6 +1956,15 @@ pub fn door_click_input(
         }
         Pick::Nothing => (format!("{from} meets nothing clickable"), None),
     };
+    if let Some((target, _)) = aim.landmark.as_ref().filter(|_| landmark) {
+        if !picked.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(target)) {
+            let reason = format!("{line}; walk-route turns the camera for {target}");
+            aim.turn_for_target(&shared, &mut sim, reason);
+            return;
+        }
+        aim.landmark = None;
+        aim.orbit = false;
+    }
     // ropeandhook.md rule 10 (M6 6a-3): with the rope in hand any click in
     // the world, whatever it meets, starts the climb.
     if action == WorldClick::Climb {

@@ -13,6 +13,28 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 supplies from the cottage to the Wizard.** Continue from the real
+unspent village shield save. Use a camera ray to click the original
+basket and collect its five mushrooms. Leave the open doorway and
+walk around the petrified girl's collision box before joining the
+existing Wizard route. Let the original conversation grant the quest
+piece and map. Verify all three rewards, the carried supplies, the
+consumed basket flag, the saved Wizard flag and normal damage/AI in
+the resulting disk slot. Keep the separate potion-use check.
+
+Two runs hit the basket from the original camera. A fresh process
+instead put its camera inside St_smom's clickable box, so that actor
+received the click. For walking-route aims, project the target into
+the current viewport, reject points outside it or under an interface
+panel, and send the same pixel ray as normal mouse input. Preserve the
+existing unrestricted diagnostic --aim command. Approach the basket
+from a reachable point. A western detour met an actual wall before
+reaching its waypoint. Keep the proven walking path and stop on
+approach while the normal bound camera-drag control brings the target
+into view. The replay may click only when that gameplay pixel picks the
+requested object first. Bound the search to one camera revolution.
+Verify the nearest target and resulting script grant in the same run.
+
 **M6 shield potion in Sarah's cottage.** Start a Normal New Game and
 open Sarah's original door. Use the bound movement keys to reach the
 east room. The owned cottage geometry provides a clear camera line to
