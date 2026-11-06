@@ -106,7 +106,10 @@ Words used here:
 
    Chickens, the pig and bats: health 5, damage 5, protection 3,
    experience 0, reach 0 (they never attack). The Knight, the Henchman
-   and `sprdump` are scripted (not covered here).
+   and `sprdump` are scripted (not covered here). **Henchman follow-up,
+   2026-11-06 (Q190):** `henchman.md` describes his authored scene and
+   ordinary guard combat, including the uninterruptible attack and a
+   standing hurt/deadline correction to rules 11 and 22.7 below.
 
 ### 2. When an attack is due
 
@@ -166,8 +169,13 @@ Words used here:
 11. **When it is cut short** (traced): if the attack never ends because
     something replaced it, the "never" is put right the next time one of
     these happens: the character **enters** its standing or moving state
-    (a state change), or it **is hit** (rule 22): then too the attack time
-    becomes now + `attackDelay` (chase timer 5 s).
+    (a state change), or a hit takes the standing hurt path that **selects
+    a reaction** (rule 22): then too the attack time becomes now +
+    `attackDelay` (chase timer 5 s). **Correction 2026-11-06 (Q190):** in
+    Wait, a hit that does not select a reaction leaves a running attack's
+    "never" deadline alone; the former wording "is hit" was too broad.
+    The moving hurt path was not re-traced in this follow-up; this
+    correction applies to Wait (`henchman.md` rule 12).
 11b. **The swallowed swing** (traced, added 2026-10-20 after the user's
     check in the original: "sometimes he makes the attack sound but no
     animation, then he attacks normally; when walking or running away
@@ -287,8 +295,12 @@ Words used here:
        it moves at `run` whenever it starts moving (rule 27);
     5. if its `likelyToFlee` is **above 0.5**, it **must flee** (rule 37);
     6. the damage (rule 16); if it dies, the rest is skipped;
-    7. if its attack time was "never" (an attack under way), it becomes
-       now + `attackDelay` (rule 11);
+    7. **Wait, corrected 2026-11-06 (Q190):** only on the path that
+       actually selects a flinch or forced reaction, if its attack time
+       was "never" (an attack under way), it becomes now + `attackDelay`
+       (rule 11). A nonreacting hit does not repair it. This standing
+       path differs from the older broad description; the moving path
+       was not re-traced in this follow-up;
     8. the flinch or the ouch sound (rules 23, 24);
     9. it learns **where Connor is now** (as if it had just seen him);
     10. the **alarm with "run"** spreads (rule 26).

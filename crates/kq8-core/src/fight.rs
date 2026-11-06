@@ -17,7 +17,8 @@
 //!   end (any movement named `Attack` or `Attack2` ending, an idle fidget
 //!   too) makes it now + `attackDelay` and the chase timer 5 s; cut short
 //!   by something else, the "never" is put right at the next entry into
-//!   Wait or Move (or a hit, 5c-6). The attack models have no step: it
+//!   Wait or Move. A hit in Wait repairs it only on an actual reaction
+//!   (Q190); the older non-Wait hit path is unchanged. The attack models have no step: it
 //!   stands still while it keeps turning; a moving one's stuck check is
 //!   off until its `walk` / `run` plays again.
 //! - Rule 11b, **not reproduced** (the user's decision, "Do not
@@ -903,11 +904,6 @@ impl crate::active::WorldState {
             self.character_dies(j, kind, false);
             return;
         }
-        // 22.7: an attack under way: its next is due attackDelay from now.
-        if f.attack_time == NEVER {
-            f.attack_time = now + f64::from(f.settings.attack_delay);
-            notes.push(format!("its attack was under way: next attack due at {:.2} (rule 22.7)", f.attack_time));
-        }
         // 22.8: the flinch (rule 23) or the ouch sound (rule 24).
         let percent = f.settings.normal_react_percent.unwrap_or(REACT_PERCENT);
         let special = f.settings.special_react_anim.clone().filter(|_| f.settings.special_react_percent.is_some_and(|p| dmg.flinch_roll(p)));
@@ -923,6 +919,12 @@ impl crate::active::WorldState {
         } else {
             None
         };
+        // Q190, Wait's corrected rule 22.7: only an actual reaction
+        // repairs a running attack. Other states retain the older path.
+        if f.attack_time == NEVER && (!standing || why_not.is_none()) {
+            f.attack_time = now + f64::from(f.settings.attack_delay);
+            notes.push(format!("its attack was under way: next attack due at {:.2} (rule 22.7)", f.attack_time));
+        }
         match why_not {
             None => {
                 let m = special.unwrap_or_else(|| "React".to_string());

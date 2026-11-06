@@ -22,6 +22,8 @@ Saves retain Connor's combat death sequence and prevent later hits or unfinished
 
 Directional-choice scenes retain their decision and motion through saves and notify scripts when an animation ends.
 
+Standing enemies keep an unfinished attack when a hit does not make them react.
+
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
 
 ## Build and run

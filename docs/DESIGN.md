@@ -127,6 +127,47 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Wait hit/attack-deadline correction (2026-11-06, implemented with open checks).** The separately
+authorized study answered Q190 in behaviour/henchman.md, correcting fighting
+rules 11 and 22.7: a surviving hit in Wait repairs the attack-in-progress
+deadline only when it actually selects React. Preserve health loss, hit
+kind, ouch/alarm handling and an uninterruptible attack's current movement,
+phase, cue and never deadline. Repair on actual reaction, ordinary attack
+end and Wait/Move entry remains; retain the previous Move rule because the
+follow-up did not re-trace it. Verify Wait's noninterruptible, low-roll,
+reaction-lock and actual-reaction cases plus the unchanged Move path in
+core. Use the installed Henchman in a protected isolated Windows scenario
+to confirm a hit during his real attack keeps the pending Do and completion
+deadline, and that a retreat then released backward key makes Do miss at
+the ordinary 2500-unit reach. The first native attempt retained backward
+through Do and correctly hit at distance 2837 inside its extended 3125 reach;
+the fixture's assumption that half a swing allowed that longer retreat was
+wrong. Keep the measured movement speed and source reach rules unchanged.
+This is a source-rule correction, not proof that the earlier campaign
+failures were caused by this timer or that a winning route is complete.
+Use the new guard/reach evidence for a later ordinary-controls route.
+No manual testing or executable inspection by this implementation session.
+
+The core baseline reproduced 10.5 instead of never for an uninterruptible
+Wait hit; all five core cases pass with the fix. Core/data/audio/viewer pass
+632/153/7/35 checks. Both native runs retain health 299, the running attack
+and its never deadline in a menu save. The second artifact set shows one
+resumed Do, one normal end repairing the deadline by 0.5 seconds, unchanged
+health and guard position. The combined retreat test does not pass: two
+hold schedules still leave backward held at Do, at distances 2837 and 2544
+inside extended reach 3125. Stop further timing variations; STATUS records
+both runs. No complete encounter or winning campaign route is claimed.
+
+**Next, repair only the scripted hold driver.** Source inspection explains
+the handoff: connor_keys samples --hold ranges in Update, while several
+FixedUpdate game ticks can run before the next sample after a load. A range
+can start late and its release can pass during those game ticks. Move only
+synthetic --hold sampling into the fixed chain before door_step reads the
+backward-key state. Leave physical keyboard sampling and game timing intact.
+Check the same stopped fixture without another tick adjustment, then regress
+Choice's held decision and nested swap cases. This is a new input-scheduling
+fix based on source evidence, not another hold-window guess.
+
 **Runtime monster creation.** Dead City's karma scripts call `KQMonster::add` after play has begun. Reuse the existing `MonsterLine` parser and `Monstats.mtl` type lookup rather than interpreting those lines as `loadKQ`. Prepare each referenced type's model and movements while the world loads, then instantiate a character with the command's name, placement, fight fields, inventory, wandering and script behavior at the script tick. Check the 20-field form against the owned GOG data and the documented two-word form with a focused fixture. Verify that its AI, collision, damage, deletion and save/restore all work after a fresh relaunch, including the scripts' field-12 patrol quirk. Unknown types must create nothing and log the original error. Do this as a separate change before claiming the Dead City encounters are complete.
 
 The loader now prepares the six type files named by Dead City's 16 add commands. The command creates a live actor with its type's movements, a fresh AI and fight, a collider mover and a model copy. Automated original-data and Windows runs cover the 20-field rat, the short form and all six type models. A save can rebuild live script-created enemies on a fresh launch. Copies now receive the character distance test, face material bindings and original shadow eligibility. A continuous karma encounter and the broader combat save state remain open.

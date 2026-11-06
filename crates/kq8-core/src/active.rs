@@ -8610,6 +8610,44 @@ endif
     }
 
     #[test]
+    fn a_standing_hit_repairs_the_attack_deadline_only_if_it_reacts() {
+        use crate::{character::State, fight::{HitKind, NEVER}};
+        // Q190: Wait's repair belongs to the actual reaction path. Move's
+        // older hit rule is separate and unchanged by the follow-up study.
+        for (state, cut_short, locked, threshold, reacts, repairs) in [
+            (State::Wait, false, false, 0.9, false, false),
+            (State::Wait, true, true, 0.9, false, false),
+            (State::Wait, true, false, 2.0, false, false),
+            (State::Wait, true, false, 0.9, true, true),
+            (State::Move, false, false, 0.9, false, true),
+        ] {
+            let mut a = hit_goblin();
+            a.world.updates = 150;
+            a.world.ai_off = true;
+            let now = a.world.now();
+            let o = &mut a.world.anims[0];
+            o.player.cut_short = cut_short;
+            o.player.phase = 0.25;
+            let c = o.character.as_deref_mut().unwrap();
+            c.state = state;
+            c.ai.as_mut().unwrap().alarmed = true;
+            let f = c.fight.as_mut().unwrap();
+            f.attack_time = NEVER;
+            f.settings.attack_delay = 0.5;
+            f.settings.normal_react_percent = Some(threshold);
+            f.flinch_end = if locked { now } else { f64::NEG_INFINITY };
+            a.world.hit_character(0, "Connor", 2, HitKind::Normal);
+            let o = &a.world.anims[0];
+            let f = o.character.as_ref().unwrap().fight.as_ref().unwrap();
+            assert!((497..500).contains(&f.stats.0[0]));
+            assert_eq!(f.last_kind, Some(HitKind::Normal));
+            assert_eq!(f.attack_time, if repairs { now + 0.5 } else { NEVER }, "{state:?}, cut {cut_short}, locked {locked}, threshold {threshold}");
+            assert_eq!(f.flinching.is_some(), reacts);
+            if !reacts { assert_eq!(o.player.phase, 0.25, "a nonreacting hit must not restart the movement"); }
+        }
+    }
+
+    #[test]
     fn a_hit_character_flinches_or_says_ouch_and_runs_after_connor() {
         // fighting.md rules 22-24, 26 (M5 5c-6).
         let mut a = hit_goblin();
