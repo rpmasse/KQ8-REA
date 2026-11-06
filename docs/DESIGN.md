@@ -173,6 +173,48 @@ The windmill checkpoint also covers movable props. Push the bale, collect the ax
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
 
+#### Runtime-copy identity and ordinary animation continuation (2026-11-06, implemented)
+
+M6 still loses template-created ordinary objects on a disk load or world
+return: only dormant activations enter the older filename-only list. Retain
+each live ordinary copy's original `.kq` basename, actual name and current
+placement, in creation order. Rebuild these after start-up loads with their
+saved names, without allocating another NoName. Match start-up objects by
+name and source; a saved replacement takes precedence over the old source.
+Keep the older filename list for legacy slots and dormant activations.
+Remove a live replacement's name from retained removals. Deleted copies
+must not come back, and two copies of one file must remain distinct.
+
+Use the existing animation checkpoint representation for ordinary persistent
+animations too: current/waiting movement, clock, pause/playing state,
+transition, placement and mutable delete-when-done flag. Restore before Init
+(world-change.md rules 12, 15; anim-scripts.md rules 1–3). Add optional fields
+so older slots keep their loaded defaults; validate identity and placement.
+Both one-shot completion paths must use the last health-losing hit kind,
+falling back to Normal, like the already-kept ordinary stats-event path
+(anim-scripts.md rules 11, 20; Q189 still excludes blocked-hit claims).
+
+Check identity/multiplicity/reuse/filtering and playback in core, plus
+save validation/legacy records in viewer. Run an unattended disk continuation
+with the original boardpx/boardpx.cs effect: save a named live effect before
+completion, reload for exactly one Die of the retained kind, then reload
+its script-created wreck. Injected test health is fixture state, not an
+authored gameplay claim. Re-run existing bell-copy and death checkpoints
+after the changed save reconstruction, then the normal suites. No manual
+testing, no original-file writes, and no claim that these isolated cases
+complete M4–M6 or the continuous campaign.
+
+The optional identity and playback fields are implemented. Core checks cover
+both one-shot dispatch paths, all four damaging hit kinds and the Normal
+fallback, paused clocks, retained deletion and listener state, and exactly
+one completion. The GOG loader check preserves two aliases of boardpx.kq,
+creation order, a changed startup source and legacy filename-only activation.
+The three-process Windows scenario reloads a running and a paused original
+boards effect, completes their scripts with Fire/Ice and retains their two
+automatically named wrecks. These are isolated checkpoint checks; a complete
+boards quest, named-copy portal round trip and continuous campaign remain
+unverified.
+
 ### M7 · Verify original behavior and deliver the Windows build
 
 Compare the Rust results against original game data, documented original behavior and automated reference captures where needed. Cover controls, movement and animation cadence, combat and camera timing, dialogue, music, 4:3 framing, lighting, fog, shadows, HUD placement and movie playback. Use state and event comparisons, plus machine comparisons of rendered frames or audio cues where appropriate. Record a justified tolerance before each comparison. Missing reference evidence is an open research task.

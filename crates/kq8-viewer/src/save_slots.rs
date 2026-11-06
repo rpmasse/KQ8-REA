@@ -196,6 +196,9 @@ impl Snapshot {
             if !kept.interactions.valid_object_stats() {
                 return Err("save has invalid ordinary-object combat state".into());
             }
+            if !kept.interactions.valid_animations() || !kq8_core::object_checkpoint::valid_copies(&kept.object_copies) {
+                return Err("save has invalid ordinary-object identity or animation state".into());
+            }
             if kept.spawned_monsters.iter().any(|monster| !monster.valid()) {
                 return Err("save has an invalid script-created monster".into());
             }
@@ -597,6 +600,45 @@ mod tests {
     }
 
     #[test]
+    fn ordinary_copy_save_validates_identity_and_legacy_slots_default_to_no_copies() {
+        use kq8_core::{collide::Placement, object_checkpoint::ObjectCopy};
+        let mut save = fixture();
+        save.kept.get_mut("swamp").unwrap().object_copies.push(ObjectCopy {
+            file: "boardpx.kq".into(), name: "OnceProbe".into(), placement: Placement::at([1., 2., 3.]) });
+        save.validate().unwrap();
+        let bytes = serde_json::to_vec(&save).unwrap();
+        let mut loaded: Snapshot = serde_json::from_slice(&bytes).unwrap();
+        loaded.validate().unwrap();
+        assert_eq!(loaded.kept["swamp"].object_copies[0].name, "OnceProbe");
+        let copy = loaded.kept["swamp"].object_copies[0].clone();
+        loaded.kept.get_mut("swamp").unwrap().object_copies.push(copy);
+        assert!(loaded.validate().unwrap_err().contains("ordinary-object"));
+        let mut json = serde_json::to_value(&save).unwrap();
+        json["kept"]["swamp"].as_object_mut().unwrap().remove("object_copies");
+        let old: Snapshot = serde_json::from_value(json).unwrap();
+        old.validate().unwrap();
+        assert!(old.kept["swamp"].object_copies.is_empty());
+    }
+
+    #[test]
+    fn live_copy_replacement_clears_a_previous_world_removal_before_another_save() {
+        use kq8_core::{active::{Template, TemplateKind}, collide::Placement};
+        let mut sim = active();
+        sim.world.set_templates([("a.kq".into(), Template { name: "Copy".into(), script: None,
+            placement: Placement::at([1., 2., 3.]), kind: TemplateKind::Still { bounds: None, collision_type: 0 }, dithered: 0, class: "KQObject".into() })]);
+        let mut prior = KeptWorld::take(&sim, "Daventry", None);
+        prior.gone.insert("copy".into());
+        sim.console_command("loadKQ a.kq", "test");
+        let kept = KeptWorld::take_for_disk_save(&sim, "Daventry", Some(&prior));
+        assert!(!kept.gone.contains("copy"));
+        assert_eq!(kept.object_copies.len(), 1);
+        sim.console_command("deleteObject Copy", "test");
+        let later = KeptWorld::take(&sim, "Daventry", Some(&kept));
+        assert!(later.gone.contains("copy"));
+        assert!(later.object_copies.is_empty(), "a removed copy must not be carried forward from an older snapshot");
+    }
+
+    #[test]
     fn only_the_completed_conversation_away_accepts_a_pending_weapon_list_change() {
         let mut sim = active();
         sim.world.conversation = Some(kq8_core::conversation::Conversation { partner: "Partner".into(), partner_at: [0.0; 3], info: None,
@@ -714,6 +756,7 @@ mod tests {
                 interactions: Default::default(),
                 gone: ["usedkey".to_string()].into_iter().collect(),
                 came_in: vec!["waterfall.kq".into()],
+                object_copies: Vec::new(),
                 vars: vec![("Swamp::Gate".into(), "opened".into())],
                 states: vec![kq8_core::active::KeptState {
                     name: "Gate".into(),

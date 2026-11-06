@@ -745,6 +745,8 @@ pub struct WorldState {
     /// The prepared files a script's `loadKQ` brought in, in order: file
     /// and object name (`world-change.md` rule 12: kept with the world).
     came_in: Vec<(String, String)>,
+    /// Template-created ordinary instances, with their original source and alias.
+    pub object_copies: Vec<crate::object_checkpoint::ObjectCopy>,
     /// Each animated (not a character) and scripted object as added, by
     /// lower-case name: movement name, place, collision type (K-1).
     start_states: BTreeMap<String, (String, Placement, Option<u32>)>,
@@ -1144,6 +1146,24 @@ impl WorldState {
     pub fn came_in_files(&self) -> Vec<String> {
         let gone: BTreeSet<String> = self.gone_names().into_iter().collect();
         self.came_in.iter().filter(|(_, name)| !gone.contains(&name.to_ascii_lowercase())).map(|(file, _)| file.clone()).collect()
+    }
+
+    pub fn saved_object_copies(&self) -> Vec<crate::object_checkpoint::ObjectCopy> {
+        self.object_copies.iter().filter_map(|copy| {
+            let key = copy.name.to_ascii_lowercase();
+            if !self.known.contains(&key) || self.is_gone(&copy.name) || !self.persistent_stat_objects.contains(&key) { return None; }
+            let mut saved = copy.clone();
+            saved.placement = self.prop_placements.get(&key).copied().flatten()
+                .or_else(|| self.objects.iter().rev().find(|o| !o.gone && o.name().eq_ignore_ascii_case(&copy.name)).map(|o| o.player.base))
+                .or_else(|| self.anims.iter().rev().find(|o| !o.gone && o.player.name.eq_ignore_ascii_case(&copy.name)).map(|o| o.player.base))
+                .or_else(|| self.clickables.iter().rev().find(|o| !o.gone && o.name.eq_ignore_ascii_case(&copy.name)).map(|o| o.placement))
+                .unwrap_or(copy.placement);
+            Some(saved)
+        }).collect()
+    }
+
+    fn object_die_kind(&self, name: &str) -> &'static str {
+        self.object_hit_kinds.get(&name.to_ascii_lowercase()).map_or(DIE_KIND, |kind| kind.name())
     }
 
     pub fn now(&self) -> f64 {
@@ -2639,6 +2659,10 @@ impl WorldState {
             if t.script.is_some() { "; its script gets Init now" } else { "; no script" }
         ));
         self.requests.push(Request::Spawn { file: key.to_string(), name: name.clone(), placement, at: at.to_string() });
+        if kq8_data::characters::Class::of(&t.class).is_none() {
+            self.object_copies.retain(|copy| !copy.name.eq_ignore_ascii_case(&name));
+            self.object_copies.push(crate::object_checkpoint::ObjectCopy { file: key.into(), name: name.clone(), placement });
+        }
         if let Some(script) = t.script {
             self.calls_out.push((script, vec![name, "Init".into()]));
         }
@@ -4550,6 +4574,7 @@ impl Active {
                 plain_hidden: BTreeMap::new(),
                 dormant: BTreeMap::new(),
                 came_in: Vec::new(),
+                object_copies: Vec::new(),
                 start_states: BTreeMap::new(),
                 prop_placements: BTreeMap::new(),
                 deleted_this_event: BTreeSet::new(),
@@ -4918,7 +4943,7 @@ impl Active {
         let start = if known { "" } else { " (no stats= line: started from 0 0 0 0 0, Q86 d stand-in)" };
         self.world.note(format!("{head}: {:?} -> {:?}{start}", before.0, after.0));
         if after.dead() {
-            let kind = self.world.object_hit_kinds.get(&e.target.to_ascii_lowercase()).map_or(DIE_KIND, |k| k.name());
+            let kind = self.world.object_die_kind(&e.target);
             self.world.note(format!("{head}: health below 0: its script gets Die {kind} (rules 19-20)"));
             if !self.call_named(&e.target, &["Die", kind]) {
                 self.world.note(format!("{}: no script by that name; Die not called", e.target));
@@ -6101,8 +6126,9 @@ impl Active {
             if let Some(m) = a.finished {
                 // anim-scripts.md rule 11 (M5 5d-1): a KQAnimOnce's end.
                 if self.world.anims[i].player.once {
-                    self.world.note(format!("object {name} (KQAnimOnce): movement '{m}' finished: its script gets Die {DIE_KIND} (rules 11, 20)"));
-                    if !self.call_named(&name, &["Die", DIE_KIND]) {
+                    let kind = self.world.object_die_kind(&name);
+                    self.world.note(format!("object {name} (KQAnimOnce): movement '{m}' finished: its script gets Die {kind} (rules 11, 20)"));
+                    if !self.call_named(&name, &["Die", kind]) {
                         self.world.note(format!("object {name} (KQAnimOnce): no script; Die not called"));
                     }
                     self.world.report_end(&name, &m, false);
@@ -6310,8 +6336,9 @@ impl Active {
     /// movement.
     fn anim_once_ended(&mut self, i: usize, movement: &str) {
         let name = self.world.objects[i].name().to_string();
-        self.world.note(format!("object {name} (KQAnimOnce): movement '{movement}' finished: its script gets Die {DIE_KIND} (rules 11, 20)"));
-        self.call_object(i, &["Die", DIE_KIND]);
+        let kind = self.world.object_die_kind(&name);
+        self.world.note(format!("object {name} (KQAnimOnce): movement '{movement}' finished: its script gets Die {kind} (rules 11, 20)"));
+        self.call_object(i, &["Die", kind]);
         self.world.report_end(&name, movement, false);
         if self.world.objects[i].delete_when_done {
             let at = format!("{name}: KQAnimOnce done");
@@ -7723,6 +7750,66 @@ endif
         assert_eq!(a.scripts.vars.get("D::died"), Some("burst Normal"), "{log}");
         assert!(log.contains("(KQAnimOnce): deleted (setDeleteWhenDone"), "{log}");
         assert!(!log.contains("EndLoop open"), "no EndLoop for a KQAnimOnce: {log}");
+    }
+
+    #[test]
+    fn ordinary_once_checkpoint_resumes_clock_listener_and_last_damaging_kind_in_both_paths() {
+        use crate::fight::HitKind;
+        let script = "if test $2 == Die\n set D::died $1 $3\nendif\n";
+        for scripted in [false, true] {
+            for kind in [None, Some(HitKind::Normal), Some(HitKind::Projectile), Some(HitKind::Fire), Some(HitKind::Ice)] {
+                let make = || {
+                    let mut a = if scripted { with_object(script, "x") } else {
+                        let mut a = Active::new(Vars::default(), vec![], vec![], ["Connor".into()], [("o.cs".into(), script.as_bytes().to_vec())]);
+                        let mut player = crate::named_anim::tests::still_then_open("basket1");
+                        player.once = true;
+                        a.add_anims([AnimObject { player, script: Some("o.cs".into()), gone: false, character: None, translucency: None }]);
+                        a
+                    };
+                    if scripted { a.world.objects[0].player.once = true; }
+                    a.world.persistent_stat_objects.insert("basket1".into());
+                    a.set_stats("basket1", Stats([100, 0, 0, 0, 0]));
+                    a.console_command("setDeleteWhenDone basket1 1", "test");
+                    a.console_command("getEndLoop basket1 Connor 1", "test");
+                    a.console_command("sendEvent 0 basket1 KQAnimPlayEvent open", "test");
+                    a
+                };
+                let mut a = make();
+                if let Some(kind) = kind {
+                    let id = match kind { HitKind::Normal => "0", HitKind::Projectile => "1", HitKind::Fire => "2", HitKind::Ice => "3" };
+                    a.world.scripted_attack("basket1", &["test".into(), id.into(), "1".into(), "0".into()], "test");
+                }
+                for _ in 0..6 { a.update(); }
+                a.console_command("pauseAnim basket1", "test");
+                let kept = crate::kept_interactions::KeptInteractions::take(&a.world);
+                let kept: crate::kept_interactions::KeptInteractions = serde_json::from_slice(&serde_json::to_vec(&kept).unwrap()).unwrap();
+                assert!(kept.valid_animations());
+                let phase = if scripted { a.world.objects[0].player.phase } else { a.world.anims[0].player.phase };
+                assert!(phase > 0.0 && phase < 1.0);
+                let mut b = make();
+                b.console_command("setDeleteWhenDone basket1 0", "fresh default before restore");
+                b.world.restore_events(a.world.saved_events());
+                kept.restore_object_stats(&mut b.world);
+                kept.restore_animations(&mut b.world);
+                b.take_log();
+                for _ in 0..20 { b.update(); }
+                assert_eq!(b.scripts.vars.get("D::died"), None, "the saved pause must hold");
+                assert_eq!(if scripted { b.world.objects[0].player.phase } else { b.world.anims[0].player.phase }, phase);
+                b.console_command("pauseAnim basket1", "test");
+                let remaining = ((1.0 - phase) * crate::UPDATES_PER_SECOND as f32).ceil() as usize;
+                for _ in 0..remaining.saturating_sub(1) { b.update(); }
+                assert_eq!(b.scripts.vars.get("D::died"), None, "do not finish before the retained remainder");
+                for _ in 0..25 { b.update(); }
+                let log = b.take_log().join("\n");
+                let expected = format!("basket1 {}", kind.map_or("Normal", |kind| kind.name()));
+                assert_eq!(b.scripts.vars.get("D::died"), Some(expected.as_str()), "scripted={scripted}: {log}");
+                assert_eq!(log.matches("its script gets Die").count(), 1, "{log}");
+                assert_eq!(log.matches("tells Connor (getEndLoop: Cue 300 0 open)").count(), 1, "{log}");
+                assert!(!log.contains("EndLoop open"), "{log}");
+                assert!(b.world.is_deleted("basket1"));
+                assert!(serde_json::to_value(crate::kept_interactions::KeptInteractions::take(&b.world)).unwrap().get("animations").is_none());
+            }
+        }
     }
 
     #[test]
@@ -10562,5 +10649,33 @@ mod loaded_stats_tests {
         assert!(a.world.anims[0].gone && !a.world.anims[1].gone);
         assert!(!a.world.gone_names().iter().any(|name| name == "copy"));
         assert!(!a.world.gone_names_for_disk_save().iter().any(|name| name == "copy"));
+    }
+
+    #[test]
+    fn copy_identity_keeps_aliases_order_current_places_and_only_the_live_replacement() {
+        let mut a = world();
+        a.world.set_templates(["a.kq", "b.kq"].map(|file| (file.into(), Template { name: "original".into(), script: None,
+            placement: Placement::at([1.0, 2.0, 3.0]), kind: TemplateKind::Anim(Box::new(crate::named_anim::tests::still_then_open("original"))),
+            dithered: 0, class: "KQAnimObject".into() })));
+        a.console_command("loadKQ a.kq Zed 10 20 30", "test");
+        a.console_command("loadKQ a.kq Alpha 40 50 60", "test");
+        a.world.anims[0].player.base.position = [11.0, 22.0, 33.0];
+        let copies = a.world.saved_object_copies();
+        assert_eq!(copies.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(), ["Zed", "Alpha"]);
+        assert_eq!(copies[0].placement.position, [11.0, 22.0, 33.0]);
+        let copies: Vec<crate::object_checkpoint::ObjectCopy> = serde_json::from_slice(&serde_json::to_vec(&copies).unwrap()).unwrap();
+        assert!(crate::object_checkpoint::valid_copies(&copies));
+        a.console_command("deleteObject Zed", "test");
+        assert_eq!(a.world.saved_object_copies().len(), 1);
+        a.console_command("loadKQ b.kq Zed 70 80 90", "next event");
+        let copies = a.world.saved_object_copies();
+        assert_eq!(copies.iter().map(|c| (c.file.as_str(), c.name.as_str())).collect::<Vec<_>>(), [("a.kq", "Alpha"), ("b.kq", "Zed")]);
+        assert_eq!(copies[1].placement.position, [70.0, 80.0, 90.0]);
+        let mut bad = copies.clone(); bad.push(copies[0].clone());
+        assert!(!crate::object_checkpoint::valid_copies(&bad));
+        for file in ["../a.kq", "C:a.kq", "a\n.kq", "a.cs"] {
+            let mut bad = copies[0].clone(); bad.file = file.into(); assert!(!bad.valid());
+        }
+        let mut bad = copies[0].clone(); bad.placement.position[0] = f32::NAN; assert!(!bad.valid());
     }
 }

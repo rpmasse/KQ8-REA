@@ -1529,6 +1529,7 @@ pub struct Objects {
     /// Carried state read by destination Init scripts (e.g. Daventry's girl.cs).
     pub arriving_flags: Option<(BTreeMap<String, bool>, bool)>,
     pub kept_interactions: kq8_core::kept_interactions::KeptInteractions,
+    pub object_copies: Vec<kq8_core::object_checkpoint::ObjectCopy>,
     pub prop_placements: BTreeMap<String, Option<kq8_core::collide::Placement>>,
     /// The world's animations packed for the graphics card (step 4),
     /// made after reading (`world_build::pack_world`).
@@ -1898,6 +1899,7 @@ pub struct Arrival {
     /// lower case, in order: loaded again after the start script (rule
     /// 14.5), as objects in the world from the start.
     pub came_in: Vec<String>,
+    pub object_copies: Vec<kq8_core::object_checkpoint::ObjectCopy>,
     /// Kept animated and scripted objects' state by lower-case name (DESIGN
     /// K-2, rules 12, 15): put into their `.kq` values when they load.
     pub states: BTreeMap<String, kq8_core::active::KeptState>,
@@ -2013,6 +2015,8 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         gone: arrival.as_ref().map(|a| a.gone.clone()).unwrap_or_default(),
         gone_skipped: Vec::new(),
         kept_states: arrival.as_ref().map(|a| a.states.clone()).unwrap_or_default(),
+        saved_copies: arrival.as_ref().map(|a| a.object_copies.iter().map(|copy| (copy.name.to_ascii_lowercase(), copy.clone())).collect()).unwrap_or_default(),
+        restored_copies: Default::default(),
         saved_props: arrival.as_ref().map(|a| a.prop_placements.clone()).unwrap_or_default(),
         prop_placements: BTreeMap::new(),
         persist_props: true,
@@ -2137,6 +2141,18 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
             inside_if: false,
         };
         placer.log.summary(format!("world change: kept world: loadKQ {file} again (loaded while playing on an earlier visit; rules 12, 14.5)"));
+        placer.place(&load, None, false, &script.vars);
+        script.loads.push(load);
+    }
+    // Named runtime instances are distinct even when they share a source file.
+    for copy in arrival.as_ref().map(|a| a.object_copies.as_slice()).unwrap_or_default() {
+        if placer.restored_copies.contains(&copy.name.to_ascii_lowercase()) { continue; }
+        let load = LoadKq {
+            file: copy.file.clone(), name: LoadName::Rename(copy.name.clone()),
+            position: Some(copy.placement.position), angles: Some(kq8_data::objects::angles_of(copy.placement.rotation)),
+            ignored_numbers: 0, from: "kept ordinary copy".into(), line: 0, inside_if: false,
+        };
+        placer.log.summary(format!("world change: kept copy: loadKQ {} as {} at {:?}", copy.file, copy.name, copy.placement.position));
         placer.place(&load, None, false, &script.vars);
         script.loads.push(load);
     }
@@ -2272,6 +2288,9 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
     ));
     placer.log.detail(format!("archive entries unpacked more than once (most first): {:?}", crate::timeline::most_repeated(crate::timeline::Counter::Unpack, 25)));
     let mut objects = placer.finish();
+    if let Some(arrival) = &arrival {
+        objects.object_copies.sort_by_key(|copy| arrival.object_copies.iter().position(|saved| saved.name.eq_ignore_ascii_case(&copy.name)).unwrap_or(usize::MAX));
+    }
     objects.scripts = scripts;
     objects.vars = script.vars;
     // M6 6e-8 (world-change.md rules 13, 14): a kept world's variables over
@@ -2349,6 +2368,8 @@ struct Placer<'a> {
     gone_skipped: Vec<String>,
     /// A kept world's object states (K-2), and the names they were put on.
     kept_states: BTreeMap<String, kq8_core::active::KeptState>,
+    saved_copies: BTreeMap<String, kq8_core::object_checkpoint::ObjectCopy>,
+    restored_copies: std::collections::BTreeSet<String>,
     saved_props: BTreeMap<String, kq8_core::collide::Placement>,
     prop_placements: BTreeMap<String, Option<kq8_core::collide::Placement>>,
     persist_props: bool,
@@ -3296,6 +3317,22 @@ impl Placer<'_> {
             p.angles[2] = l.line.heading;
             p.z_on_ground = (l.line.position[2] == -1.0).then_some(kq8_data::terrain::Level::Floor);
             p.missing_loc = [false; 3];
+        }
+        if !unused {
+            if let Some(copy) = self.saved_copies.get(&p.name.to_ascii_lowercase()) {
+                if !base.eq_ignore_ascii_case(&copy.file) || self.restored_copies.contains(&p.name.to_ascii_lowercase()) {
+                    // The saved instance replaced this name, or was already rebuilt.
+                    return;
+                }
+                p.position = copy.placement.position;
+                p.angles = kq8_data::objects::angles_of(copy.placement.rotation);
+                p.keep_on_ground = kq8_data::objects::KeepOnGround::Off;
+                p.z_on_ground = None;
+                p.missing_loc = [false; 3];
+                self.gone.remove(&p.name.to_ascii_lowercase());
+                self.restored_copies.insert(p.name.to_ascii_lowercase());
+                self.persistent_stat_objects.insert(p.name.to_ascii_lowercase());
+            }
         }
         // M6 6e-8 (world-change.md rule 12): it left this world on an
         // earlier visit (deleted, taken, dead): not loaded again.
@@ -5040,6 +5077,7 @@ impl Placer<'_> {
                 .collect(),
             arriving_flags: None,
             kept_interactions: Default::default(),
+            object_copies: self.saved_copies.into_iter().filter(|(name, _)| self.restored_copies.contains(name)).map(|(_, copy)| copy).collect(),
             prop_placements: self.prop_placements,
             map: self.map,
             shadow_world_mask,
@@ -6473,5 +6511,40 @@ mod runtime_stat_default_checks {
         assert!(objects.dormant.iter().any(|(file, name, _)| file == "bell.kq" && name.eq_ignore_ascii_case("bell")));
         assert!(objects.templates.iter().any(|t| t.file == "bell.kq"));
         assert!(!objects.object_stats.iter().any(|(name, _)| name.eq_ignore_ascii_case("bell")), "the unused bell must not start as a live object");
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn original_named_effect_copies_and_a_replaced_startup_name_rebuild_separately() {
+        use kq8_core::{collide::Placement, object_checkpoint::ObjectCopy};
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let world = World::open(&game, "Daventry").unwrap();
+        let mut log = Log::create("ordinary-copy-original-data").unwrap();
+        let (_, bytes) = world.load("boardpx.kq").unwrap().unwrap();
+        let file = kq8_data::kq_text::parse(&bytes);
+        assert_eq!(file[0].get("classType"), Some("KQAnimOnce"));
+        let (_, script) = world.load("boardpx.cs").unwrap().unwrap();
+        log.detail(String::from_utf8_lossy(&script));
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let copies = vec![
+            ObjectCopy { file: "boardpx.kq".into(), name: "ZedProbe".into(), placement: Placement::at([100., 200., 300.]) },
+            ObjectCopy { file: "boardpx.kq".into(), name: "AlphaProbe".into(), placement: Placement::at([400., 500., 600.]) },
+            ObjectCopy { file: "drborded.kq".into(), name: "belstnd1".into(), placement: Placement::at([700., 800., 900.]) },
+        ];
+        let arrival = Arrival { no_name_from: 12, exit_movement: None, kept_vars: vec![],
+            gone: ["zedprobe".into(), "belstnd1".into()].into_iter().collect(),
+            came_in: vec!["boardpx.kq".into()], object_copies: copies.clone(), states: Default::default(),
+            prop_placements: Default::default(), kept_maps: Default::default() };
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, Some(arrival), None);
+        assert_eq!(objects.object_copies, copies, "creation order and aliases must survive");
+        for copy in &copies {
+            let placed: Vec<_> = objects.placed.iter().filter(|(p, _, unused)| !unused && p.name.eq_ignore_ascii_case(&copy.name)).collect();
+            assert_eq!(placed.len(), 1, "copy {} must be present once", copy.name);
+            assert_eq!(placed[0].0.position, copy.placement.position);
+            assert!(objects.persistent_stat_objects.contains(&copy.name.to_ascii_lowercase()));
+            assert_eq!(objects.known.iter().filter(|name| name.eq_ignore_ascii_case(&copy.name)).count(), 1);
+        }
+        assert!(objects.placed.iter().any(|(p, _, unused)| !unused && p.name.eq_ignore_ascii_case("boxsmx")), "legacy filename-only activation still loads its original name");
+        assert!(objects.templates.iter().any(|t| t.file == "boardpx.kq"));
     }
 }
