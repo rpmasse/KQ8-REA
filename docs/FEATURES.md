@@ -7,6 +7,23 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Trap state when returning to a region (2026-11-06)
+
+When Connor accepts a portal, the recreation releases his place in the
+departure trap before storing the old region. Returning restores eligible
+traps before their Init scripts, including masks, occupants, sticky boxes,
+spent one-shot traps and spirit fields. The returned portal trap's saved
+occupant list is empty. Earlier Rust slots use a region's installed defaults
+when they have no trap record.
+
+An unattended route changes Daventry's portal trigger mask from 4 to 5,
+travels to CastleD and saves. A fresh process loads CastleD, takes its
+return portal and writes another save in Daventry. The returned trigger
+retains mask 5. The Dead City data check also restores an occupied
+spirit box with its saved active state and checks Connor's health after
+initialization. Original runtime comparison and the full Dead City
+spirits and altar route are **not tested**.
+
 ## Live indexed brightness (2026-11-06)
 
 Graphics applies brightness to indexed world images and already-open menu

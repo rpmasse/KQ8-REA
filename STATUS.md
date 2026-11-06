@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-06 Persistent traps return with their region
+
+The Daventry–CastleD round trip now carries the departed region's trap
+records through a save made in the other region. The native check passed
+in 150.67 s across three processes. It observed one departure entry, the
+silent removal of Connor before capture, mask 5 in both the Castle and
+returned Daventry slots, and the original door, chest and mushroom state.
+The first run exposed a second entry in the same handover. Moving removal
+to region capture and gating subsequent simulation ticks fixed it using
+the original route. MODLOG retains both runs and exact commands.
+
+649 core and 40 viewer regular tests passed. The four original Dead City
+spirit boxes passed regional save/restore, eligibility, old-format and
+validation checks. The authored plate Lookup check passed. Script coverage
+is unchanged. Original runtime, a dynamically created visitor on a full
+return route and the Dead City altar campaign are **not tested**.
+M4–M6 and the uninterrupted campaign remain open.
+
 ## 2026-11-06 Live indexed palette component verified
 
 Live Graphics brightness now rebuilds indexed world images, menu art/backdrops, pointers and HUD/map/caption palettes from retained source inputs. Terrain, buildings, faces, late weapon images and ghost/dither variants share the active values; dimensions and true-colour/light-map paths are preserved. Graphics setup and film return reapply preferences. Q186's promoted-f32 gain, hardware channel-store differences, Glide exceptions, software clipping and source/adjusted haze/background rules are implemented. The separately authorized study supplied brightness.md rules 5a/7a; B used prose/readable data only.

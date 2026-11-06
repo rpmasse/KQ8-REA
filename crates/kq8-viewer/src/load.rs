@@ -1663,7 +1663,7 @@ pub struct Objects {
     /// The particle catchers (M3 step 3b-2): name and settings.
     pub catchers: Vec<(String, kq8_data::effects::CatcherSettings)>,
     /// The traps (M3 step 3d-2), where the start-up scripts left them.
-    pub traps: Vec<kq8_core::trap::TrapSettings>,
+    pub traps: Vec<kq8_core::trap::Trap>,
     /// The conversation info objects (`KQConvInfo`, M4 4e-3).
     pub conv_infos: Vec<kq8_data::conv_info::ConvInfo>,
     /// `KQAudibleObject`s the start-up scripts load (M3 step 3h-3,
@@ -1672,9 +1672,6 @@ pub struct Objects {
     /// Objects prepared for a script's `loadKQ` while playing (M3 3k-4):
     /// lower-case file name, object name.
     pub dormant: Vec<(String, String, Option<String>)>,
-    /// The traps among them (lower-case names): built, switched off until
-    /// their `loadKQ`.
-    pub dormant_traps: Vec<String>,
     /// The files a script may load while playing as new copies (M5 5d-3):
     /// read and built at the start like an unused object, hidden.
     pub templates: Vec<TemplateAssets>,
@@ -5119,6 +5116,10 @@ impl Placer<'_> {
                 t.position = l.position;
             }
         }
+        let traps = traps.into_iter().map(|settings| {
+            let dormant = self.dormant_traps.contains(&settings.name.to_ascii_lowercase());
+            kq8_core::trap::Trap { gone: dormant, ..kq8_core::trap::Trap::new(settings) }
+        }).collect();
         // Monsters where the start-up scripts' `move` left them.
         let mut monsters = self.monsters;
         for m in &mut monsters {
@@ -5187,7 +5188,6 @@ impl Placer<'_> {
             conv_infos: self.conv_infos,
             audibles: self.audibles,
             dormant: self.dormant,
-            dormant_traps: self.dormant_traps,
             templates,
             music: self.music,
             footsounds,
@@ -5934,7 +5934,7 @@ mod campaign_tests {
         let mut log = Log::create("deadcity-bridge-test").unwrap();
         let ground = load_ground(&game, &world, &mut log).unwrap();
         let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
-        let trap = objects.traps.into_iter().find(|t| t.name == "bbdgtrap").unwrap();
+        let trap = objects.traps.into_iter().map(|t| t.settings).find(|t| t.name == "bbdgtrap").unwrap();
         let [x, y, z] = trap.position;
         let mut active = Active::new(objects.vars, vec![], vec![], objects.known, objects.scripts);
         active.add_traps([Trap::new(trap)]);
@@ -6025,7 +6025,7 @@ mod campaign_tests {
         let mut log = Log::create("temple4-vortex-test").unwrap();
         let ground = load_ground(&game, &world, &mut log).unwrap();
         let mut objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
-        let trap = objects.traps.iter().find(|t| t.script.as_deref().is_some_and(|s| s.eq_ignore_ascii_case("vortrap.cs"))).unwrap();
+        let trap = objects.traps.iter().map(|t| &t.settings).find(|t| t.script.as_deref().is_some_and(|s| s.eq_ignore_ascii_case("vortrap.cs"))).unwrap();
         let bounds = crate::draw_distance::ShapeBalls::new(objects.game_bounds.clone(), std::iter::empty());
         assert_eq!(trap.mask, 6);
         let who = "LucEnd";
@@ -6111,7 +6111,7 @@ mod campaign_tests {
         let mut log = Log::create("temple4-cutscenes-test").unwrap();
         let ground = load_ground(&game, &world, &mut log).unwrap();
         let assets = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
-        let trap = assets.traps.iter().find(|t| t.script.as_deref() == Some("vortrap.cs")).unwrap();
+        let trap = assets.traps.iter().map(|t| &t.settings).find(|t| t.script.as_deref() == Some("vortrap.cs")).unwrap();
         let vortex = &assets.placed.iter().find(|(o, _, _)| o.name.eq_ignore_ascii_case("vortex")).unwrap().0;
         for (visitor, mode, sequences) in [
             ("LucEnd", WeaponMode::Hand, vec!["lu_suck1.kqs", "lu_suck2.kqs", "vrtexbye.kqs", "c_imdone.kqs"]),
@@ -6580,12 +6580,12 @@ mod trap_lookup_checks {
         assert!(sylph.character.is_some());
         assert_eq!(sylph.movements.len(), 17);
         assert!(!objects.placed[sylph.placed].2);
-        let mut flagged: Vec<_> = objects.traps.iter().filter(|t| t.lookup_call).map(|t| t.name.to_ascii_lowercase()).collect();
+        let mut flagged: Vec<_> = objects.traps.iter().map(|t| &t.settings).filter(|t| t.lookup_call).map(|t| t.name.to_ascii_lowercase()).collect();
         flagged.sort();
         assert_eq!(flagged, ["trptrp12", "trptrp13", "trptrp14", "trptrp15"]);
-        assert!(objects.traps.iter().any(|t| !t.lookup_call));
+        assert!(objects.traps.iter().any(|t| !t.settings.lookup_call));
         let mut a = kq8_core::active::Active::new(objects.vars.clone(), vec![], vec![], objects.known.clone(), objects.scripts.clone());
-        a.add_traps(objects.traps.iter().filter(|t| t.lookup_call).cloned().map(kq8_core::trap::Trap::new));
+        a.add_traps(objects.traps.iter().filter(|t| t.settings.lookup_call).cloned());
         a.start();
         assert_eq!(a.world.queue.len(), 4);
         assert!(a.world.requests.is_empty(), "Lookup ran synchronously during Init");
@@ -6674,7 +6674,7 @@ mod spirit_trap_checks {
         let mut log=Log::create("spirit-trap-data").unwrap();
         let ground=load_ground(&game,&world,&mut log).unwrap();
         let objects=load_objects(&game,&world,&ground.terrain,&mut log,None,None);
-        let traps:Vec<_>=objects.traps.iter().filter(|t| t.spirit.is_some()).collect();
+        let traps:Vec<_>=objects.traps.iter().map(|t| &t.settings).filter(|t| t.spirit.is_some()).collect();
         assert_eq!(traps.len(),4);
         for n in 1..=4 {
             let name=format!("spirtp{n}");

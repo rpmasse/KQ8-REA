@@ -1,5 +1,59 @@
 # MODLOG
 
+## 2026-11-06 Trap state across region travel
+
+The Rust recreation now records eligible traps when it saves a departing
+region. It uses the original persist-manager selection and the existing
+disk trap format. Returning regions restore masks, ordered occupants,
+sticky boxes, gone flags and spirit fields before Init and Lookup. The
+game resolves occupant references after restoring the region's actors.
+The current disk snapshot continues to record the entire current trap
+list. Old slots can omit the new regional field.
+
+The first extended cottage test failed after 117.37 s. Portal acceptance
+removed Connor on update 67. The old region's movement sweep re-entered
+the same trap on update 68, so the Castle save still contained Connor in
+Daventry's portal. The log and slot are under
+`kq8-artifacts/cottage-tests/1793967550114759300`. Handover now carries
+the departure trap name until region capture. After the current event
+finishes, the engine detaches Connor and saves the region in one step.
+Subsequent simulation updates wait for the requested portal change.
+The test uses the same inputs and counts On events as well as checking
+the actual stored occupant list and mask.
+
+649 core and 40 viewer regular tests pass. The original Dead City data
+check passes in 7.99 s with four persistent spirit boxes, including
+an occupied trap whose damage/status and occupants restore without
+another drain. It also checks transient exclusion, old slots and rejection
+of a duplicate record. The four authored Lookup traps still activate their
+twelve objects (6.29 s). Script coverage was regenerated. A compiler
+check caught a moved resource borrow in the new schedule condition.
+Checking the pending request first resolved it. A concurrent build could
+not replace an executable in use by another Windows run. The retry built
+after the previous process exited.
+
+The corrected route passed across three fresh Windows processes in 150.67 s.
+The Castle slot contains mask 5 and an empty list for Daventry's departure
+trap. Reloading CastleD and taking its portal restores mask 5 before Init
+in Daventry. A third slot records the mask again. Both portal prompts,
+the cottage door, chest contents, four mushrooms and original Options.cs
+byte equality pass. The passing root is
+`kq8-artifacts/cottage-tests/1793968001525242900`. The final transcript
+is `kq8-artifacts/kept-trap-castle-retry.log`.
+
+Run these checks in PowerShell from the repository root.
+
+```powershell
+$env:KQ8_GAME_DIR=(Resolve-Path "..\King's Quest 8 GOG").Path
+cargo test --locked -p kq8-viewer --bin kq8-viewer departed_dead_city_keeps_spirit -- --ignored
+cargo test --locked -p kq8-viewer --test cottage_journey -- --ignored --test-threads=1
+```
+
+The native check expects one Daventry portal entry, an empty departure
+trap with its changed mask in the Castle save, and that mask again after
+returning to Daventry in a fresh process. The original runtime, original
+save files and a full Dead City altar round trip are **not tested**.
+
 ## 2026-11-06 Live indexed palette brightness
 
 Changed: retain shared original palette/index inputs alongside decoded textures and extend ObjectLight's existing image cache with source recipes and source-palette identity. Ground, buildings, models, animated faces, late weapon images and ghost/dither variants rebuild the same image assets from those inputs. New runtime images use the current values. The Graphics slider updates already-open menu artwork/backdrops, pointer, HUD/map/caption palettes, indexed world images and fog; Graphics setup and film return reapply the preference. Repeated changes start from the original inputs, without compounding displayed colours. Texture dimensions, original assets, true-colour images, RGB materials and light maps retain their separate paths. No display-gamma ramp is introduced.

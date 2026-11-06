@@ -28,6 +28,8 @@ Third-person scripted camera shake and its sample state survive saving and conti
 
 Spirit traps preserve their original damage, reactions and occupied state through saves.
 
+Travelling away and returning restores a region's persistent traps, including after saving in another region.
+
 Indexed palette brightness updates live in Graphics and is reapplied after films.
 
 First-person presentation and remaining original-camera details still need implementation.

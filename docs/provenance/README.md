@@ -31,6 +31,18 @@ The footstep command uses [sound rules 36–39a](../behaviour/sound.md), includi
 
 ## Spirit traps and Connor's forced reactions
 
+Region handovers preserve eligible traps in the departed world's record.
+The original persist-manager switch sets eligibility. An accepted portal
+removes Connor from its own trap's ordered occupants before the old world
+is captured. On a return, traps regain their fields before Init and Lookup.
+Surviving visitor names are resolved after actor reconstruction and before
+the region's Begin script. Older Rust slots may omit the regional field.
+The current disk snapshot retains its full trap list. The GOG data check
+uses all four Dead City spirit boxes and the existing slot encoder to
+exercise the region record. The native route uses the installed Daventry
+and CastleD portal scripts. [World-change rules 5.3, 9, 11–15](../behaviour/world-change.md)
+and [trap occupancy and spirit fields](../behaviour/traps.md).
+
 The spirit subclass uses [traps Q188/Q194](../behaviour/traps.md): actual Connor identity, ordered occupancy, mutable damage/state/status, whole-point double/single drains and low 1% floor, repeated Cue 1 and Cue 2 no-op. Its health difference and separate strength-1 Normal/force-1 attack are queued FIFO, with each handler computing from its own current snapshot. [Collision rules 16–17](../behaviour/connor-collision.md) identify the fourth attack argument as force; [fighting rule 29](../behaviour/fighting.md) supplies the known ordinary dying-entry zeroing. Other death-request eligibility remains open in Q192.
 
 The animation selector and retained owning states use Q194; [conversation rule 18a, Q195](../behaviour/conversation.md) distinguishes the retained state name, actual reaction playback/end, queued request origin, animation input lock, ordinary lip requests and the separate Wait/Move/Talk completion actions. [Animation rules 4–5 and 21–23](../behaviour/anim-scripts.md) supply transitions, common replay and the separate scripted/animation locks and held-key replay. These descriptions were produced by the user-authorized separate study; B used prose, existing Rust and readable installed data, never the executable, disassembly or raw study files. Optional Rust checkpoint fields are our own representation, with legacy defaults.

@@ -26,6 +26,11 @@ fn world_var<'a>(slot: &'a Value, name: &str) -> Option<&'a str> {
         .as_str()
 }
 
+fn trap<'a>(record: &'a Value, name: &str) -> &'a Value {
+    record["states"].as_array().expect("trap records").iter()
+        .find(|state| state["name"] == name).unwrap_or_else(|| panic!("missing {name}"))
+}
+
 /// Sum all mushroom stacks for each read-only inventory query.
 fn observed_mushrooms(log: &str) -> Vec<i64> {
     let mut counts = Vec::new();
@@ -64,6 +69,7 @@ fn cottage_door_mushrooms_and_castle_round_trip() {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_nanos();
+    let original_options = fs::read(game.join("Options.cs")).unwrap();
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join(format!("../../kq8-artifacts/cottage-tests/{nonce}"));
     let slots = root.join("saves");
@@ -159,36 +165,53 @@ fn cottage_door_mushrooms_and_castle_round_trip() {
         "--console", "inv,17",
         "--console", "move Connor 0 201770 263155 11249 0 0 1.57,22",
         "--click", "smlchst3,31",
+        "--console", "KQObject::collision portaltp +1,44",
         "--console", "move Connor 0 158400 308505 9720 0 0 3.14,65",
         "--key", "popup:yes,65",
-        "--console", "move Connor 0 6005 111600 195 0 0 0,100",
-        "--key", "popup:yes,100",
-        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Home:enter:release:escape,135",
-        "--key", "menu:up:enter:release:left:enter:release,142",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Castle:enter:release:escape,100",
+        "--key", "menu:up:enter:release:left:enter:release,110",
     ]);
     assert!(after.contains("save restored in Daventry without replaying Begin"));
-    for portal in ["portal1", "portal2"] {
-        assert!(after.contains(&format!("popup: Yes (test --key popup:yes): {portal} gets Accept")));
-    }
+    assert!(after.contains("popup: Yes (test --key popup:yes): portal1 gets Accept"));
+    assert!(after.contains("removed Connor from departure trap: true"), "inspect {}", root.display());
+    assert_eq!(after.matches(": trap portaltp: On Connor at").count(), 1, "a queued handover must not trigger a second On");
+    let away = checkpoint(2);
+    assert_eq!(away["world"], "CastleD");
+    let departure = trap(&away["kept"]["daventry"]["traps"], "portaltp");
+    assert_eq!(departure["mask"], 5);
+    assert_eq!(departure["inside"], serde_json::json!([]));
+    // Reload the castle slot in a fresh process while Daventry is absent.
+    let returned = run("home", &[
+        "--menu-input", "down,enter,release,down,enter,release", "--frames", "2400",
+        "--console", "move Connor 0 6005 111600 195 0 0 0,22",
+        "--key", "popup:yes,22",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Home:enter:release:escape,60",
+        "--key", "menu:up:enter:release:left:enter:release,70",
+    ]);
+    assert!(returned.contains("save restored in CastleD without replaying Begin"));
+    assert!(returned.contains("popup: Yes (test --key popup:yes): portal2 gets Accept"));
+    assert!(returned.contains("restored persistent traps in Daventry before Init"));
     let inventory = fs::read_to_string(root.join("castle/kq8-artifacts/logs/console.log")).unwrap();
     assert_eq!(observed_mushrooms(&inventory), [4, 4]);
-    let built: Vec<_> = after
-        .lines()
+    let built: Vec<_> = after.lines().chain(returned.lines())
         .filter_map(|l| l.strip_prefix("world built: ")?.split(':').next())
         .map(str::to_ascii_lowercase)
         .collect();
     assert_eq!(
         built,
-        ["daventry", "castled", "daventry"],
+        ["daventry", "castled", "castled", "daventry"],
         "inspect {}",
         root.display()
     );
-    assert!(after.contains("Save screen -> Save(2, \"Home\")") && after.contains("Quit, cue="));
-    let home = checkpoint(2);
+    assert!(returned.contains("Save screen -> Save(3, \"Home\")") && returned.contains("Quit, cue="));
+    let home = checkpoint(3);
+    assert_eq!(trap(&home["traps"], "portaltp")["mask"], 5);
+    assert_eq!(trap(&home["kept"]["castled"]["traps"], "portalt2")["inside"], serde_json::json!([]));
     verify_cottage(&home);
     assert!(home["kept"]["castled"].is_object());
     assert_eq!(world_var(&home, "Daventry::Castle::foundPortal"), Some("1"));
     let chest = &home["kept"]["daventry"]["interactions"]["chests"]["smlchst3"];
     assert_eq!(chest["state"], "Open");
     assert_eq!(chest["loot"]["quantity"], 3);
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), original_options);
 }
