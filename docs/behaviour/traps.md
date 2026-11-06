@@ -180,27 +180,132 @@ never blocks anything.
     entries need the bit. (`clifTrap.cs` has no `Off` branch, so for it
     this changes nothing.)
 
-### Spirit traps (`KQSpiriTrap`, traced 2026-10-28, batch 2)
+### Spirit traps (`KQSpiriTrap`, Q188 follow-up 2026-11-06)
 
-A `KQTrap` with a box (Dead City `spirtp1.kq` … four of them) that drains
-Connor when a spirit is passing. Extra key: `damage` (a fraction; data
-`.2`), plus save-only `spiritState` and `trapStatus`.
+The following replaces the shorter 2026-10-28 description. Static
+`Mask.exe` study, checked against the original Dead City data; original
+runtime and manual play **not tested**. These traps use the ordinary
+trigger-box occupancy machinery with their own entry/exit/Cue handlers.
+All four original `spirtp1.kq`–`spirtp4.kq` have mask 4 and `damage=.2`.
 
-- Cue 1 (sent by the spirits' movements, `spiritst.KQ`, `spirits2.kq`)
-  = a spirit is in the area; Cue 0 = it has left. Cue 2 (also sent by
-  the spirits) is ignored.
-- When Connor **enters** (as the first object inside) while a spirit is
-  there, or Cue 1 arrives while he is inside, he loses `damage` × his
-  **maximum** health (20%), never below 1% of maximum (if it would go
-  lower, it is set to 1%), and takes a 1-point hit that makes him flinch.
-  Leaving clears "Connor inside".
-- **Possible original bug** (traced): since Cue 2 is ignored and only
-  Cue 0 clears the spirit, once a spirit has passed every later entry
-  may drain him. Not checked in play; the user should decide whether to
-  keep it. Log it in our build.
-- `ALTAR_A1.CS` deletes all four traps (data).
-- How to check: log health on each entry and Cue: −20% of maximum,
-  floor 1%.
+**Startup and saved values**
+
+- Default `damage` is **0.2** even if absent. It is a fraction stored as
+  a single-precision number, not a whole percentage.
+- Default **`spiritState=2`**, **`trapStatus=0`**. This is a material
+  correction: an untouched trap does not start as a cleared state 0.
+- `spiritState`, `trapStatus` and `damage` are ordinary persisted fields.
+  Loading supplied values replaces the defaults; no new drain is issued
+  merely by reading them. Entry recognizes spirit states **1 and 2**;
+  other values do not select either entry drain. Cue 1 replaces the
+  state with 1 regardless of its previous value.
+
+**Occupancy and Cue behavior**
+
+- On entry the visitor first joins the ordinary occupancy list. Only
+  when the resulting list contains **one visitor**, and that visitor is
+  **Connor** (the actual Connor object identity), does this handler set
+  `trapStatus=1`. It then drains according to `spiritState`: state 1
+  uses **one** damage fraction; state 2 uses **two** damage fractions.
+  State 0 causes no entry drain.
+- **Cue 1** sets `spiritState=1`. If `trapStatus` is **nonzero**, it
+  applies one damage fraction and the later hit, every time it arrives.
+  It does not check whether the state was already 1 and has no cooldown.
+  Standing motionless therefore does not prevent repeated authored
+  Cue 1 drains.
+- **Cue 0** sets `spiritState=0`, with no health change. **Cue 2 does
+  nothing**, including no assignment of state 2 and no clear.
+- On a normal visitor removal, `trapStatus` clears only when the entire
+  occupancy list becomes **empty**. It does not specifically test
+  whether the departing visitor is Connor. World shutdown suppresses
+  that normal clearing step.
+- Consequently the flag is not a continuously recomputed "Connor is
+  inside" predicate: if another permitted visitor entered first,
+  Connor entering second does not set it; if Connor entered first and
+  leaves while another visitor remains, it stays set and Cue 1 can
+  still drain Connor elsewhere. The shipped mask 4 admits only Connor,
+  so the multi-visitor cases require a changed mask or supplied state.
+- `spiritst.kq` and `spirits2.kq` send Cue 1/2, with **no Cue 0** in
+  those movement lists. Preserve the resulting retained state 1 and
+  repeated drains, rather than interpreting their Cue 2 as a clear.
+  `ALTAR_A1.CS` deletes all four traps.
+
+**The two health stages, and their order**
+
+1. **Direct health change, independent of armour.** Take maximum health
+   as **10 times Connor's level**. The drain is the damage fraction
+   times this maximum, **cut toward zero to a whole point**. For a
+   state-2 entry it is twice the fraction before this conversion. Work
+   out the remaining health after that whole-point drain. If it is
+   below the nominal 1% threshold, replace it with the whole-point
+   1% floor, also cut toward zero. Send that health difference through
+   the ordinary stats-change event.
+2. **Then an ordinary attack event.** Queue a **Normal** (kind 0),
+   **strength 1** hit from the trap with its **forced-reaction flag 1**.
+   It is a separate event after the stats change. The floor is not
+   applied again after this hit.
+
+The comparison threshold uses approximately **0.00999999977648** of
+maximum health. Its floor is computed as approximately
+**0.0999999977648 times level**, cut toward zero. In particular the
+floor is **0 at maximum health 10 or 30**. It is not a minimum of one
+point and not a preserved fractional health balance. The slightly low
+stored constants can also matter at higher integer boundaries; for
+example at level 10 the floor expression is just below 1 and cuts to 0.
+
+For the later hit, ordinary armour/protection, current-state hurt
+dispatch and Connor's dying/rope hit guards all apply. With protection
+below 100 the strength-1 hit loses one point; protection exactly 100
+prevents that point of loss. The forced-reaction flag requests a
+reaction through the receiving state, bypassing Wait's ordinary roll
+threshold and two-second reaction-selection gate; it does not turn the
+event into a special spirit hit. A reaction request can still wait for
+an uninterruptible movement, and states need not handle it as Wait
+does. A configured special reaction remains eligible through that
+state's usual selection rule. It is therefore too strong to say that
+every drain immediately makes Connor flinch.
+
+The direct stats-change stage does **not** use those attack-immunity
+guards. In the rope state the direct drain still applies but its later
+hit is ignored; a dying Connor also ignores that later hit. A normal
+living Connor can be reduced to **0** by the first stage and then to
+**−1 by the hit**, which enters his ordinary dying state and clamps
+health back to 0. Thus the nominal floor does not guarantee survival.
+
+**Numbers and observable checks**
+
+These are derived integer checks from the traced rules, not original
+runtime measurements. Log the direct-stage health separately from the
+later attack's result, including protection and controller state.
+
+| Maximum / starting health | Trigger with damage .2 | Direct-stage health | After hit, living ordinary state and protection <100 |
+| --- | --- | --- | --- |
+| 10 / 10 | Cue 1, or state-1 entry | 8 | 7 |
+| 30 / 30 | Cue 1, or state-1 entry | 24 | 23 |
+| 10 / 10 | untouched state-2 entry | 6 | 5 |
+| 30 / 30 | untouched state-2 entry | 18 | 17 |
+| 10 / 1 | Cue 1 | 0 | lethal hit; dying health 0 |
+| 30 / 1 | Cue 1 | 0 | lethal hit; dying health 0 |
+
+- From full health, repeated Cue 1 without leaving gives **10 → 7 →
+  4 → 1 → dying**, or **30 → 23 → 16 → 9 → 2 → dying**, with no
+  intervening healing/protection changes. Each Cue 1 must be counted,
+  even when the saved state was already 1.
+- With protection 100 the first table row ends at **8**, not 7:
+  the direct drain still applies and the later hit's health loss is
+  blocked. The hit's reaction handling is a separate check.
+- Save state 0/1/2 with `trapStatus` 0/1, reload without an entry or Cue
+  and check no new drain; then send Cue 1 and check the retained flag's
+  effect. Log each real entry/exit and the full occupancy count so the
+  multi-visitor cases above are distinguishable.
+
+**Quirks to preserve / remaining limits**
+
+The ignored Cue 2, startup state 2, integer zero floor and separate
+possibly lethal hit are traced original behavior. The 1:1 target
+requires preserving them. No change to authored values or protective
+one-point clamp is recommended. The full Dead City spirit/altar route
+and native original-game save/reload were not run during this study.
 
 ## Numbers and units
 

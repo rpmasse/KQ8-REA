@@ -541,8 +541,10 @@ starts a swing (not checked in the game).
 
 ### Shake and cutscene cameras
 
-- `KQCamera::shake <seconds> <xMax> <xPeriod> <zMax> <zPeriod>` wobbles the
-  camera with two sine waves for the given time (usage text in the game).
+- `KQCamera::shake <seconds> <xMax> <xPeriod> <zMax> <zPeriod>`:
+  **Q187 follow-up, 2026-11-06**, see `camera-shake.md` for the traced
+  15-Hz angular waveform, 0.293 phase constant, amplitude ramp,
+  fixed-cut accumulation, follow/flight interactions and save state.
 - Camera flights and cuts (`addCamLoc`, `flyToCamLoc`, `cutToCamLoc`):
   see "Camera flights and cuts" below.
 - **`move KQCamera <flags> x y z rx ry rz`** (traced 2026-10-17, Q89 c):

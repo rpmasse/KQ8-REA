@@ -13,6 +13,34 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**Original-engine study handoff (2026-11-06).** The user authorized an
+isolated study session A to inspect the owned GOG executable. Its prose
+notes answer Q190 (Henchman), Q188 (spirit traps) and Q187 (camera shake),
+and partly answer Q186 (brightness). Session B stays on those notes and
+original readable data; raw study material remains ignored and unpublished.
+The Wait attack-deadline correction and fixed-tick input checks below have
+been implemented. The following settled rules still need implementation:
+
+- Spirit traps: default state 2 and double entry drain, repeated state-1
+  Cue drains, integral zero floor, separate possibly lethal Normal hit,
+  forced-reaction semantics and original occupancy/save fields. Preserve
+  the authored Cue 2 no-op. Verify each health stage and continuation.
+- Camera shake: independent 15-Hz angular samples, original 0.293 phase
+  rate and amplitude ramp, fixed-cut accumulation, follow/flight ordering
+  and exact saved sample/amplitude continuation. Verify original beer and
+  gong script calls with stationary Connor and after a fresh-process load.
+- Brightness: original slider-driven live palette rebuild, source-space
+  matching, renderer-specific conversion and haze/background choices.
+  Do not add a brightness-driven display-gamma curve: the corrected study
+  finds no such slider effect. Final driver quantization and complete
+  true-colour/menu/movie output remain open in Q186. Treat older gamma and
+  uniform haze/background claims as superseded by brightness.md.
+
+These are additional concrete M4–M6 gaps, not a replacement for the complete
+interface, combat, twelve-region and uninterrupted-campaign gates below.
+Static study is not an original-runtime comparison or completed Rust feature.
+Continue using automated checks; no manual testing before feature completion.
+
 **M5/M6 runtime object's initial stats plan (2026-11-06).** Objects rule 6 says runtime loadKQ follows the same file-loading steps, and anim-scripts rule 19 gives stats defaults (zero except doors' 10,000). Keep immutable stats prototypes by original source filename when parsing object files, separate from each live object's injured stats and saved records. Both dormant activation and newly named template copies initialize their live map and clear inherited hit history after the name-use guard, before Init. A kept world's existing objects still receive their saved stats after original defaults; that must not alter the prototypes used by later fresh copies. Check original stats/defaults, Init-time changes, same-name refusal without damage reset, and legal name reuse after a completed deletion event in core. In Windows, use the installed bell-stand script and LadyBell item to create bell.kq (one health), save after a one-point hit reaches zero without Die, reload, then delete/recreate the bell and require one fresh health and no old hit kind before another hit. This is a bell creation/save/reuse check, not the complete Lady-of-the-Lake quest or campaign.
 
 The original-data check exposed a prerequisite: fixed-position dormant ordinary objects such as bell.kq had no reusable recipe after their first activation. Retain a template for those supported ordinary objects too; the first no-argument load still uses the dormant handoff. Exclude character, door, chest and boulder controllers from this extension. This lets a later legal load create a fresh ordinary object rather than fail because its dormant entry was consumed.
