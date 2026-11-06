@@ -43,6 +43,7 @@ pub mod magic_map;
 pub mod meters;
 pub mod music;
 pub mod named_anim;
+pub mod object_checkpoint;
 pub mod panels;
 pub mod portal;
 pub mod potions;

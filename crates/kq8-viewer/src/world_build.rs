@@ -160,6 +160,8 @@ pub struct KeptWorld {
     /// Files a script's `loadKQ` brought in while playing, still there
     /// (rules 12, 14.5), lower case, in order.
     pub came_in: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub object_copies: Vec<kq8_core::object_checkpoint::ObjectCopy>,
     /// Animated and scripted objects whose state changed (DESIGN K-2).
     pub states: Vec<kq8_core::active::KeptState>,
     /// Live monsters created by world scripts after the original file load.
@@ -196,6 +198,8 @@ impl KeptWorld {
         // repeated visits. The loader excludes gone objects in these files.
         let mut gone = previous.map(|p| p.gone.clone()).unwrap_or_default();
         gone.extend(if disk_save { active.world.gone_names_for_disk_save() } else { active.world.gone_names() });
+        let object_copies = active.world.saved_object_copies();
+        for copy in &object_copies { gone.remove(&copy.name.to_ascii_lowercase()); }
         let mut came_in = previous.map(|p| p.came_in.clone()).unwrap_or_default();
         for file in active.world.came_in_files() {
             if !came_in.contains(&file) { came_in.push(file); }
@@ -207,7 +211,7 @@ impl KeptWorld {
             .collect();
         Self {
             vars: active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, from)).map(|(n, v)| (n.to_owned(), v.to_owned())).collect(),
-            gone, came_in, states: active.world.kept_states_including(&prior_states),
+            gone, came_in, object_copies, states: active.world.kept_states_including(&prior_states),
             spawned_monsters: if disk_save { active.world.saved_spawned_monsters_for_disk_save() } else { active.world.saved_spawned_monsters() },
             characters: if disk_save { active.world.saved_placed_characters_for_disk_save() } else { active.world.saved_placed_characters() },
             active_list: Some(active.world.active_list.clone()),
@@ -794,6 +798,7 @@ pub fn world_change_step(world: &mut World) {
                 kept_vars: kept.vars.clone(),
                 gone: kept.gone.clone(),
                 came_in: kept.came_in.clone(),
+                object_copies: kept.object_copies.clone(),
                 states: kept.states.iter().map(|s| (s.name.to_ascii_lowercase(), s.clone())).collect(),
                 prop_placements: kept.prop_placements.clone(),
                 kept_maps: j.other_maps.clone(),

@@ -22,6 +22,14 @@ pub struct KeptInteractions {
     special_actors: BTreeMap<String, SpecialActor>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     object_stats: BTreeMap<String, ObjectCombat>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    animations: BTreeMap<String, OrdinaryAnimation>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct OrdinaryAnimation {
+    animation: Playback,
+    delete_when_done: bool,
 }
 
 #[cfg(test)]
@@ -67,6 +75,25 @@ mod object_stats_tests {
         let mut invalid = KeptInteractions::default();
         invalid.object_stats.insert("Door\n".into(), ObjectCombat { stats: Stats::default(), last_hit: None });
         assert!(!invalid.valid_object_stats());
+    }
+
+    #[test]
+    fn ordinary_playback_filters_permanent_and_deleted_actors_and_validates_clock() {
+        let mut a = world();
+        for name in ["door", "scenery", "removed"] {
+            a.add_anims([crate::active::AnimObject { player: crate::named_anim::tests::still_then_open(name),
+                script: None, gone: name == "removed", character: None, translucency: None }]);
+        }
+        let mut saved = KeptInteractions::take(&a.world);
+        assert_eq!(saved.animations.keys().map(String::as_str).collect::<Vec<_>>(), ["door"]);
+        assert!(saved.valid_animations());
+        saved.animations.get_mut("door").unwrap().animation.phase = 2.0;
+        assert!(!saved.valid_animations());
+        let old: KeptInteractions = serde_json::from_str("{\"doors\":{},\"chests\":{}}").unwrap();
+        assert!(old.animations.is_empty() && old.valid_animations());
+        a.world.anims[0].player.phase = 0.25;
+        old.restore_animations(&mut a.world);
+        assert_eq!(a.world.anims[0].player.phase, 0.25, "absent legacy state must keep the loaded defaults");
     }
 }
 
@@ -161,6 +188,33 @@ impl Playback {
 }
 
 impl KeptInteractions {
+    pub fn valid_animations(&self) -> bool {
+        self.animations.len() <= 16384 && self.animations.iter().all(|(name, saved)| {
+            !name.is_empty() && name.len() <= 1024 && name == &name.to_ascii_lowercase()
+                && !name.chars().any(char::is_control) && saved.animation.valid()
+        })
+    }
+
+    /// Fresh models have been loaded; retained ordinary playback precedes Init.
+    pub fn restore_animations(&self, w: &mut WorldState) {
+        for object in &mut w.objects {
+            let key = object.name().to_ascii_lowercase();
+            if object.gone || !w.persistent_stat_objects.contains(&key) { continue; }
+            if let Some(saved) = self.animations.get(&key) {
+                saved.animation.restore(&mut object.player);
+                object.delete_when_done = saved.delete_when_done;
+            }
+        }
+        for object in &mut w.anims {
+            let key = object.player.name.to_ascii_lowercase();
+            if object.gone || object.character.is_some() || !w.persistent_stat_objects.contains(&key) { continue; }
+            if let Some(saved) = self.animations.get(&key) {
+                saved.animation.restore(&mut object.player);
+                object.player.delete_when_done = saved.delete_when_done;
+            }
+        }
+    }
+
     pub fn valid_object_stats(&self) -> bool {
         self.object_stats.len() <= 16384 && self.object_stats.keys().all(|name| {
             !name.is_empty() && name.len() <= 1024 && name == &name.to_ascii_lowercase() && !name.chars().any(char::is_control)
@@ -247,7 +301,16 @@ impl KeptInteractions {
             w.persistent_stat_objects.contains(*name) && w.known.contains(*name) && !w.is_gone(name)
                 && w.character_index(name).is_none() && !w.monsters.iter().any(|m| m.name.eq_ignore_ascii_case(name))
         }).map(|(name, stats)| (name.clone(), ObjectCombat { stats: *stats, last_hit: w.object_hit_kinds.get(name).copied() })).collect();
-        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats }
+        let eligible = |name: &str| {
+            let key = name.to_ascii_lowercase();
+            w.persistent_stat_objects.contains(&key) && w.known.contains(&key) && !w.is_gone(name)
+        };
+        let animations = w.objects.iter().filter(|o| !o.gone && eligible(o.name()))
+            .map(|o| (o.name().to_ascii_lowercase(), OrdinaryAnimation { animation: Playback::take(&o.player), delete_when_done: o.delete_when_done }))
+            .chain(w.anims.iter().filter(|o| !o.gone && o.character.is_none() && eligible(&o.player.name))
+                .map(|o| (o.player.name.to_ascii_lowercase(), OrdinaryAnimation { animation: Playback::take(&o.player), delete_when_done: o.player.delete_when_done })))
+            .collect();
+        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats, animations }
     }
 
     pub fn restore_special_actors(&self, w: &mut WorldState) {

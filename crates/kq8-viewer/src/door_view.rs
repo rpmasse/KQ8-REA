@@ -839,7 +839,9 @@ pub fn spawn_doors(
         active.set_stats(name, s);
     }
     active.world.persistent_stat_objects = std::mem::take(&mut objects.persistent_stat_objects);
+    active.world.object_copies = std::mem::take(&mut objects.object_copies);
     objects.kept_interactions.restore_object_stats(&mut active.world);
+    objects.kept_interactions.restore_animations(&mut active.world);
     // fighting.md (M5 5c-4): what Connor.kq gives the fight.
     if let Some(f) = &objects.connor_fight {
         main_log.summary(format!(
