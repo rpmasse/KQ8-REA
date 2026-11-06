@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-07 Earned Castle Daventry entry and Ashes
+
+The waterfall save now continues into CastleD through the cave and
+the original region prompt. The three-process entry check passed in
+203.98 seconds. The CastleD replay operated the outer light, waited
+for the fireplace passage to open, collected one Ashes and reloaded
+it in a fresh process. It passed in 118.38 seconds. The final
+`AshesReload` save has 60 health and 207 experience. The Wizard
+is still waiting for delivery. All 876 standard workspace tests passed.
+
+The first approach reached the fireplace while its door was opening
+and stayed pressed against it. Loading after it opened allowed passage.
+A stone corner stopped the next route, which passed with greater
+clearance. Neither issue required changing collision or disabling
+enemies. Earlier Normal campaign saves supply the starting state.
+A single default invocation from New Game through the Ashes remains
+untested. [Campaign commands and original scripts](docs/daventry-progression.md#enter-castle-daventry-and-collect-the-ashes)
+
 ## 2026-11-07 The village fountain and the waterfall puzzle
 
 Continuing the Wizard's two-ingredient save, Connor healed from 5 to

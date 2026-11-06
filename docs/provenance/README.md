@@ -3,6 +3,13 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**The cave portal and CastleD.** Daventry’s `portaltp.cs` and
+`portal1.kq` supply the discovery event and the CastleD destination.
+The castle archive supplies its interior, the wall light's `cdlight.cs`,
+the moving fireplace door and its original Ashes in `worldinv.cs`.
+The replay uses the installed geometry to walk, jump, operate the light
+and pick up the Ashes. [Castle campaign evidence](../daventry-progression.md#enter-castle-daventry-and-collect-the-ashes)
+
 **The road to the waterfall.** The installed Daventry archive supplies
 `fountain.cs` for two-point healing, `ropetrp3.cs` and `ropetrp4.cs`
 for the lower and upper anchors, and `bricks.cs` for the push, award

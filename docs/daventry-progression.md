@@ -161,6 +161,38 @@ checkpoint variables unset to earn the earlier saves from New Game.
 The full run log is `kq8-artifacts/fresh-normal-to-church-candle.log`.
 Its final slot is under `kq8-artifacts/church-candle-campaign/1794001160345836400/slots/`.
 
+### Enter Castle Daventry and collect the Ashes
+
+After solving the waterfall puzzle, Connor descends his rope and
+jumps onto the cave threshold. He walks through the tunnel and
+enters the `portaltp` trigger. Its original script awards 25
+experience on discovery. Accepting the region-change prompt starts
+CastleD. The three-process return down the rope, cave jump and portal
+check passed in 203.98 seconds. The arrival save recorded 60 health and 182 experience.
+CastleD’s `worldinv.cs` places exactly one Ashes item at
+(26213, 94506, 117).
+
+The outer wall light, `cdlght1`, operates the fireplace passage.
+One early route walked into the door during its opening movement.
+The successful route lets the door finish opening and saves at the
+light. In a new process Connor walks through the raised door, rounds
+the stone corridor and picks up the Ashes through the gameplay camera.
+He then carries one Ashes at 207 experience. A second early route
+hit the stone corner beyond the door. Allowing more room at that
+corner let Connor pass with the ordinary collision rules.
+The three-process fireplace, pickup and reload check passed in
+118.38 seconds. The final load retained one Ashes, the open passage,
+Connor's stats and the Wizard's outstanding request.
+
+| Test in `daventry_cottage_shield` | Optional input | Output |
+| --- | --- | --- |
+| `castle::cleared_waterfall_to_castle_portal` | `KQ8_WATERFALL_RELOAD_SLOT` (`WaterfallReload`) | `EnteredCastle` |
+| `castle_interior::fireplace_passage_to_ashes_and_fresh_reload` | `KQ8_ENTERED_CASTLE_SLOT` (`EnteredCastle`) | `AshesReload` |
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield castle_interior::fireplace_passage_to_ashes_and_fresh_reload -- --ignored --exact --test-threads=1
+```
+
 ### The waterfall road to Castle Daventry
 
 From the Wizard’s two-ingredient save, Connor can reach the village
@@ -182,9 +214,9 @@ three-process climb, puzzle and reload test passed in 148.73 seconds.
 It recovered both the removed original waterfall and the active
 replacement, with Connor at 157 experience.
 
-The cave portal into CastleD and the return with the Ashes still
-need campaign verification. The separate portal scenarios begin
-at the entrances to each region.
+This checkpoint leads to the cave portal and the castle interior
+covered above. The separate portal scenarios begin at the entrances
+to each region.
 
 | Test in `daventry_cottage_shield` | Optional input | Output |
 | --- | --- | --- |
