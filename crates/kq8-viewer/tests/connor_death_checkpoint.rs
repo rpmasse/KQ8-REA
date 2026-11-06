@@ -8,7 +8,7 @@ fn combat_deaths_resume_once_and_ignore_further_hits_after_loading() {
         ("fire-final", 2, 25, "firedie", None), ("fire-drop", 2, 13, "dropweapon", None),
         ("ice-final", 3, 25, "icedie", None), ("ice-drop", 3, 13, "dropweapon", None),
         ("normal", 0, 13, "die", None), ("projectile", 1, 13, "die", None),
-    ]);
+    ], false);
 }
 
 #[test]
@@ -18,7 +18,13 @@ fn death_waits_for_equipped_attacks_across_a_disk_save() {
         ("axe-attack", 0, 43, "die", Some(("INVITEM_SmallAx", "--swing", "skeleton1,38", "melee"))),
         ("crossbow-turn", 0, 43, "die", Some(("INVITEM_SmCrossbow", "--aim", "skeleton1,38", "ranged"))),
         ("crossbow-attack", 0, 43, "die", Some(("INVITEM_SmCrossbow", "--aim", "skeleton1,38", "ranged"))),
-    ]);
+    ], false);
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; isolated fatal-hit setup"]
+fn first_person_death_selects_the_third_person_pose_and_resumes_once() {
+    check_deaths(&[("first-person", 0, 13, "die", None)], true);
 }
 
 type DeathCase = (&'static str, u8, u64, &'static str, Option<(&'static str, &'static str, &'static str, &'static str)>);
@@ -73,7 +79,7 @@ fn weapon_swap_retains_pending_die_and_reincarnation_is_sampled_at_final_end() {
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }
 
-fn check_deaths(cases: &[DeathCase]) {
+fn check_deaths(cases: &[DeathCase], first_person: bool) {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let original_options = fs::read(game.join("Options.cs")).unwrap();
     let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
@@ -96,6 +102,7 @@ fn check_deaths(cases: &[DeathCase]) {
         let hit = format!("sendEvent 0 Connor KQAttackEvent trap {kind} 100000 1,{hit_at}");
         let key = format!("menu:down:down:enter:release:enter:release:escape:type=Dying:enter:release:down:down:down:enter:release:left:enter:release,{save_at}");
         let mut args = vec!["--world", "DeadCity", "--frames", "600", "--command", &hit, "--key", &key];
+        if first_person { args.extend(["--key", "physical:f2,3"]); }
         if let Some((item, flag, action, kind)) = attack {
             let ready = if kind == "melee" { "KQConner::setDoMode 0,5" } else { "KQConner::setDoMode 1,5" };
             // The original side target leaves the ranged shot turning at
@@ -107,6 +114,15 @@ fn check_deaths(cases: &[DeathCase]) {
         let before = run("save", &args);
         assert!(slots.join("slot-1.json").exists(), "death could not be saved; inspect {}", case_root.display());
         let saved: serde_json::Value = serde_json::from_slice(&fs::read(slots.join("slot-1.json")).unwrap()).unwrap();
+        if first_person {
+            assert!(before.0.contains("CameraFirstPerson: first person true"));
+            let entered = before.2.find("first person true: bank").unwrap();
+            let returned = before.2.find("first person false: bank").unwrap();
+            let selected = before.2.find("dies (Normal): plays").unwrap();
+            assert!(entered < returned && returned < selected);
+            assert_eq!(saved["view_flags"]["active"], false);
+            assert_eq!(saved["weapon_state"]["actor_first_person"], false);
+        }
         let pending = matches!(case, "axe-attack" | "crossbow-attack");
         if case == "crossbow-turn" { assert!(before.1.contains("Die entered while the ranged aim was still turning")); }
         assert_eq!(before.1.matches("dies (").count(), usize::from(!pending), "inspect {}", case_root.display());

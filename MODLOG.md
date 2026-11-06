@@ -1,5 +1,12 @@
 # MODLOG
 
+## 2026-11-07 Verify the third-person switch at combat death
+
+A focused Dead City test selects first person with F2, delivers an
+ordinary fatal hit and checks the order of the view and death movement
+changes. A fresh launch loads the saved death animation and completes
+the hold once. The two Windows launches passed in 72.88 seconds.
+
 ## 2026-11-07 Verified Normal New Game through the church Candle
 
 With all optional checkpoint inputs unset, the campaign test passed

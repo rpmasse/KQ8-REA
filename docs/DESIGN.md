@@ -13,6 +13,12 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5 ordinary death from first person.** Exercise the original F2
+binding, deliver a controlled fatal hit through the combat event path
+and verify that third person is selected before the death movement.
+Save during that movement and restart. Check that a later hit is
+ignored and that the three-second game-over hold starts once.
+
 **M6 church roof to Candle.** From the earned roof slot, follow the
 walkable ledge to the second upper rope trigger and stop before the
 opening. Select the carried rope, descend under normal controls and

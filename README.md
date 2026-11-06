@@ -82,6 +82,7 @@ cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_mill_rop
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield church_rope_is_usable_after_a_fresh_launch_inside_its_trap -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield church_climb_resumes_from_its_saved_frame_on_the_wall -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield first_person:: -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test connor_death_checkpoint first_person_death_selects_the_third_person_pose_and_resumes_once -- --ignored --exact
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield church::earned_roof_to_candle_and_fresh_reload -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --bin kq8-viewer fallen_tree_and_dock_use_the_same_surfaces_on_script_load_and_revisit -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
