@@ -53,6 +53,13 @@ scripted Die Now command. Ordinary combat death switches to third
 person. Further specialised controller coverage and comparison with a
 native Sierra save remain open.
 
+An unattended Dead City fixture presses F2 and supplies a fatal hit.
+On update 11 Connor switches to third person before selecting `die`.
+A save made during the animation retains the third-person actor and
+camera. A fresh launch resumes the pose, ignores a later hit and
+finishes the three-second hold once. The two-launch check passed in
+72.88 seconds.
+
 ## Inventory pickup tutorials (2026-11-07)
 
 Taking the first health or quest item schedules its original message three
