@@ -3,6 +3,8 @@
 mod church;
 #[path = "support/shadow.rs"]
 mod shadow;
+#[path = "support/castle.rs"]
+mod castle;
 #[path = "support/pickup_help.rs"]
 mod pickup_help;
 #[path = "support/first_person.rs"]

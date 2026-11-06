@@ -3,6 +3,12 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**The road to the waterfall.** The installed Daventry archive supplies
+`fountain.cs` for two-point healing, `ropetrp3.cs` and `ropetrp4.cs`
+for the lower and upper anchors, and `bricks.cs` for the push, award
+and replacement waterfall. Tests read the original bridge, cave,
+ground and objects during ordinary travel. [Route and evidence](../daventry-progression.md#the-waterfall-road-to-castle-daventry)
+
 **From the church urn to the Wizard.** The Windows replay follows the
 GOG Daventry scripts `sdwtrap1.cs`, `shadow.cs` and `wizard.cs`,
 using the original church and tomb geometry, earned equipment and

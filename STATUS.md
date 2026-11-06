@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-07 The village fountain and the waterfall puzzle
+
+Continuing the Wizard's two-ingredient save, Connor healed from 5 to
+60 at the fountain. A second process restored his full health. The
+road from there crossed the large bridge and entered the waterfall
+rope trap. He climbed the rock face, pushed the bricks, gained 50
+experience and regained control. A fresh load preserved 157 experience
+and the change of waterfall. The three unattended checks passed in
+135.27, 114.65 and 148.73 seconds. The route beyond the falls into
+Castle Daventry and the return with the Ashes remain open in campaign
+play. [Reproduction commands and inputs](docs/daventry-progression.md#the-waterfall-road-to-castle-daventry)
+
 ## 2026-11-07 Earned Shadow encounter and Wizard deliveries
 
 The ordinary route from the urn now reaches the Shadow. In five

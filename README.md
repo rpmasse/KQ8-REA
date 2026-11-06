@@ -14,7 +14,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M6 · Campaign and saves | In Daventry, Connor earns the Magic Map, Small Axe, dead hero’s ring, Rope and Hook, and church Candle. Focused checks cover CastleD travel, Dead City scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete the regional quests, optional branches and boss sequences. Verify one continuous New Game through the ending and credits. |
 | M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
 
-**Current campaign boundary.** Continuing the fresh campaign through its saved games, Connor opened the tomb, defeated the archer, met the Shadow and took the archer’s crossbow. The Wizard accepted the dead hero’s ring and the church Candle. A fresh launch preserved both deliveries. The next required ingredient is the Ashes in Castle Daventry. [Daventry campaign evidence](docs/daventry-progression.md#the-shadow-and-the-wizards-ingredients)
+**Current campaign boundary.** After the Shadow encounter, the Wizard accepted the dead hero’s ring and the church Candle. Connor healed at the village fountain, crossed the bridge, climbed the waterfall with his earned rope and pushed the bricks. A fresh launch preserved the changed waterfall and its award. The next objective is to enter Castle Daventry and collect the Ashes. [Daventry campaign evidence](docs/daventry-progression.md#the-waterfall-road-to-castle-daventry)
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
@@ -86,6 +86,7 @@ cargo test --locked -p kq8-viewer --test connor_death_checkpoint first_person_de
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield church::earned_roof_to_candle_and_fresh_reload -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield church::earned_candle_to_urn_and_open_tomb_door -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield shadow::wizard_accepts_the_earned_ring_and_candle -- --ignored --exact --test-threads=1
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield castle::waterfall_rope_and_brick_puzzle -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --bin kq8-viewer fallen_tree_and_dock_use_the_same_surfaces_on_script_load_and_revisit -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored

@@ -161,6 +161,41 @@ checkpoint variables unset to earn the earlier saves from New Game.
 The full run log is `kq8-artifacts/fresh-normal-to-church-candle.log`.
 Its final slot is under `kq8-artifacts/church-candle-campaign/1794001160345836400/slots/`.
 
+### The waterfall road to Castle Daventry
+
+From the Wizard’s two-ingredient save, Connor can reach the village
+fountain by the north road. The original `fountain.cs` awards two
+health per drink. Its one-second timer governs the sound. In the
+Windows replay 28 ordinary clicks hit the fountain, raising Connor
+from 5 to his level-six limit of 60. A fresh process restored all
+60 health, the two accepted ingredients and his equipment. The
+two-launch test passed in 135.27 seconds.
+
+Connor then ran west across the large bridge and followed the road
+to the waterfall. Entering `ropetrp3` activated the lower anchor at
+(155460, 303959, 9850). The regression from the reloaded fountain
+save passed in 114.65 seconds, with AI, damage and collision active.
+He used the earned hook to climb the rock face. Pushing the bricks
+on the upper ledge ran `bricks.cs`, which awards 50 experience and
+replaces the waterfall when Connor's push animation ends. The
+three-process climb, puzzle and reload test passed in 148.73 seconds.
+It recovered both the removed original waterfall and the active
+replacement, with Connor at 157 experience.
+
+The cave portal into CastleD and the return with the Ashes still
+need campaign verification. The separate portal scenarios begin
+at the entrances to each region.
+
+| Test in `daventry_cottage_shield` | Optional input | Output |
+| --- | --- | --- |
+| `castle::wizard_to_village_fountain` | `KQ8_TWO_INGREDIENTS_SLOT` (`TwoIngredients`) | `FountainReload` |
+| `castle::village_fountain_to_waterfall_rope` | `KQ8_FOUNTAIN_SLOT` (`FountainReload`) | `WaterfallFoot` |
+| `castle::waterfall_rope_and_brick_puzzle` | `KQ8_WATERFALL_FOOT_SLOT` (`WaterfallFoot`) | `WaterfallReload` |
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield castle::waterfall_rope_and_brick_puzzle -- --ignored --exact --test-threads=1
+```
+
 ### The Shadow and the Wizard's ingredients
 
 The earned `ChurchUrnReload` save lets Connor climb the inner rope,
