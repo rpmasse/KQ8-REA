@@ -173,6 +173,51 @@ The windmill checkpoint also covers movable props. Push the bale, collect the ax
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
 
+#### Connor's combat-death continuation (2026-11-06, implemented)
+
+Fighting rule 29 ignores hits while Connor is dying. The existing Special
+checkpoint already retains the hit-death list, phase and pending KillConnor,
+but disk restore creates a fresh world's connor_dying=false. A later hit can
+damage him and restart death. Retain this flag in an optional snapshot
+field, restoring it before normal world updates; older death snapshots can
+derive it only from the existing explicit death-list marker and final Kill
+step. Do not infer dying from health zero (which is alive), change damage,
+animation timing or menu/death policy. Validate explicit flag/list
+consistency and keep old living saves readable.
+
+First reproduce a real GOG Fire death saved during dropweapon or firedie,
+then deliver a hit after a fresh-process load. Check unchanged health,
+first resumed animation phase, no second death request or replayed sound,
+one final KillConnor and one death menu. Extend to Normal/Projectile and
+Ice and both elemental movement boundaries using the installed movement
+durations. Cover legacy/malformed records in unit checks and retain the
+nonfatal hit, living weapon-swap and stats-death regressions. These are
+isolated protected-from-enemies setup tests, not an ordinary-input encounter
+or original Sierra save-format implementation. Fall death, scripted Die Now
+holds and unrelated controllers remain separate work. No manual testing or
+executable study. Update status, provenance and checks, then publish.
+
+Also check entry from a waiting Small Axe swing and Small Crossbow shot.
+Death replaces the current character action (fighting rule 29), but a
+waiting swing currently starts again after die_from_hit clears its turn.
+Discard the two obsolete attack records when entering hit death. Keep
+already emitted world projectiles and their existing update order intact.
+Require a log proving the old action existed, a savable death list, no
+resumed attack, and the same final death/menu assertions in fresh processes.
+
+Implemented: an optional dying flag is checked against the terminal death
+list and restored before updates. Older death-list snapshots derive the
+flag; health zero alone remains alive. Hit death also discards obsolete
+melee/ranged action records, so a queued turn cannot restart an attack.
+Six bare-hand death checkpoints passed across 12 processes in 362.43 seconds,
+covering all four kinds, both elemental stages and an older Fire slot.
+The waiting Small Axe and Small Crossbow cases passed across four processes
+in 122.28 seconds. An independent numeric log audit of all eight first
+resumed phases matched their installed movement speed/duration at 15 Hz
+within the log's rounding. The original game-over timing, controls and save
+eligibility need Q192 study; these checks continue our existing death/menu
+sequence and do not establish that separate original behavior.
+
 #### Live character collision flags from scripts (2026-11-06, implemented)
 
 The original Gnome fusebox.cs adds/removes bit 64 on Dragon. Character

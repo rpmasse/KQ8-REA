@@ -44,6 +44,8 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     special: Option<connor_view::SavedSpecial>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    connor_dying: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     weapon_state: Option<connor_view::SavedWeaponState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     combat_cues: Option<connor_view::SavedCombatCues>,
@@ -123,6 +125,9 @@ impl Snapshot {
         if self.special.as_ref().is_some_and(|s| !s.valid())
             || (self.special.is_some() && (self.shot.is_some() || self.swing.is_some())) {
             return Err("save has an invalid Special movement".into());
+        }
+        if self.connor_dying.is_some_and(|dying| dying != self.special.as_ref().is_some_and(|s| s.combat_death())) {
+            return Err("save has inconsistent Connor combat-death state".into());
         }
         if self.weapon_state.as_ref().is_some_and(|w| !w.valid(self.special.as_ref()))
             || (self.weapon_state.as_ref().is_some_and(|w| !w.matches_ready(self.journey.weapon_ready.as_deref(), self.journey.weapon_mode))
@@ -262,6 +267,9 @@ impl Snapshot {
         }
         active.world.connor_at = Some(self.position);
         active.world.connor_heading = self.heading;
+        // Older slots already retain the explicit hit-death list marker.
+        // Health zero alone is alive and must never imply this state.
+        active.world.connor_dying = self.connor_dying.unwrap_or_else(|| self.special.as_ref().is_some_and(|s| s.combat_death()));
         if let Some(on) = self.shadows_allowed { active.world.shadows_allowed = on; }
         if let Some(types) = &self.footstep_types { active.world.footstep_types.clone_from(types); }
         if self.version >= 2 {
@@ -522,6 +530,7 @@ pub fn save_slot_with_thumbnail(
         shot_timing: Some(shot_timing),
         hit_timing: Some(hit_timing),
         special,
+        connor_dying: Some(sim.active.world.connor_dying),
         weapon_state: Some(weapon_state),
         combat_cues: Some(combat_cues),
         fight_rng: Some(sim.active.world.fight_rng.clone()),
@@ -597,6 +606,59 @@ mod tests {
 
     fn active() -> Active {
         Active::new(Default::default(), vec![], vec![], [], [])
+    }
+
+    fn combat_death_fixture() -> Snapshot {
+        let mut json = serde_json::to_value(fixture()).unwrap();
+        json["special"] = serde_json::json!({
+            "movement":"firedie", "phase":0.4, "bank":0., "fresh":false,
+            "steps":[{"Play":["dropweapon","dropweapon"]},{"Play":["firedie","firedie"]},"Kill"],
+            "at":1, "auto":null, "wanted":null, "transition_waiting":null, "transition_playing":null, "death":"firedie"
+        });
+        json["connor_dying"] = true.into();
+        let mut saved: Snapshot = serde_json::from_value(json).unwrap();
+        saved.journey.stats = Some(kq8_core::stats::ConnorStats { stats: kq8_core::stats::Stats([-5,10,0,0,0]), level: 1 });
+        saved
+    }
+
+    #[test]
+    fn saved_combat_death_restores_hit_immunity_and_legacy_death_lists() {
+        for legacy in [false,true] {
+            let mut json = serde_json::to_value(combat_death_fixture()).unwrap();
+            if legacy { json.as_object_mut().unwrap().remove("connor_dying"); }
+            let mut saved: Snapshot = serde_json::from_value(json).unwrap();
+            saved.validate().unwrap();
+            let mut restored = active(); restored.set_connor_stats(saved.journey.stats.unwrap());
+            restored.world.known.insert("connor".into());
+            saved.restore_objects_and_vars(&mut restored);
+            assert!(restored.world.connor_dying);
+            restored.console_command("sendEvent 0 Connor KQAttackEvent later 0 1000 1", "test");
+            restored.update();
+            assert_eq!(restored.world.connor_stats.unwrap().stats.0[0], -5);
+            assert!(restored.world.requests.iter().all(|r| !matches!(r, kq8_core::active::Request::ConnorDies { .. })));
+            assert!(restored.world.fight_log.iter().any(|line| line.contains("hit by later: ignored, he is dying")));
+        }
+        let mut living = fixture();
+        living.journey.stats = Some(kq8_core::stats::ConnorStats { stats: kq8_core::stats::Stats([0,10,0,0,0]), level: 1 });
+        living.validate().unwrap();
+        let mut restored = active(); restored.set_connor_stats(living.journey.stats.unwrap());
+        living.restore_objects_and_vars(&mut restored);
+        assert!(!restored.world.connor_dying, "zero health by itself remains alive");
+    }
+
+    #[test]
+    fn a_combat_death_flag_requires_a_matching_terminal_death_list() {
+        for change in 0..4 {
+            let mut json = serde_json::to_value(combat_death_fixture()).unwrap();
+            match change {
+                0 => json["connor_dying"] = false.into(),
+                1 => json["special"] = serde_json::Value::Null,
+                2 => json["special"]["steps"].as_array_mut().unwrap().truncate(2),
+                _ => json["special"]["death"] = "another_movement".into(),
+            }
+            let invalid: Snapshot = serde_json::from_value(json).unwrap();
+            assert!(invalid.validate().unwrap_err().contains("combat-death"));
+        }
     }
 
     #[test]
@@ -787,6 +849,7 @@ mod tests {
             shot_timing: None,
             hit_timing: None,
             special: None,
+            connor_dying: None,
             weapon_state: None,
             combat_cues: None,
             fight_rng: None,

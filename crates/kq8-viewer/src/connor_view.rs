@@ -575,6 +575,15 @@ impl SavedShot {
 }
 
 impl SavedSpecial {
+    /// Hit deaths already carry their final movement and a terminal Kill.
+    /// This also identifies old slots that predate the explicit world flag.
+    pub fn combat_death(&self) -> bool {
+        matches!(self.steps.last(), Some(SavedSpecialStep::Kill))
+            && self.steps.iter().rev().find_map(|step| match step {
+                SavedSpecialStep::Play(name, _) => Some(name), _ => None,
+            }).zip(self.death.as_ref()).is_some_and(|(last, death)| last.eq_ignore_ascii_case(death))
+    }
+
     pub fn valid(&self) -> bool {
         valid_swing_name(&self.movement)
             && self.phase.is_finite() && (0.0..=1.0).contains(&self.phase) && self.bank.is_finite()
@@ -2387,6 +2396,11 @@ impl ConnorSim {
     pub fn die_from_hit(&mut self, kind: kq8_core::fight::HitKind) -> String {
         use kq8_core::connor::SpecialStep;
         use kq8_core::fight::HitKind;
+        // The dying action replaces these controllers as well as their pose.
+        // In particular, a waiting swing must not restart after its turn is cleared.
+        for (pending, label) in [(self.swing.take().is_some(), "melee"), (self.shot.take().is_some(), "ranged")] {
+            if pending { self.log.detail(format!("connor update {}: dying: cancels unfinished {label} attack", self.updates)); }
+        }
         let names: &[&str] = match kind {
             HitKind::Normal | HitKind::Projectile => &["die"],
             HitKind::Fire => &["dropweapon", "firedie"],

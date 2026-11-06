@@ -18,6 +18,8 @@ The next Daventry campaign replay currently stops at Henchman combat; the hero-r
 
 Scripted character collision flags update live targeting and movement and survive save/load.
 
+Saves retain Connor's combat death sequence and prevent later hits or unfinished attacks from restarting it.
+
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
 
 ## Build and run
@@ -72,6 +74,7 @@ cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored
 cargo test --locked -p kq8-viewer --test placed_characters -- --ignored
 cargo test --locked -p kq8-viewer --test death_checkpoint -- --ignored
+cargo test --locked -p kq8-viewer --test connor_death_checkpoint -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test ordinary_once_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test alternate_interior -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test connor_swing_checkpoint -- --ignored --test-threads=1
