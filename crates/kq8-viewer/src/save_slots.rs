@@ -332,6 +332,9 @@ impl Snapshot {
         if let Some(saved) = &self.panels {
             world.get_resource_mut::<crate::gui_view::Gui>().ok_or("HUD unavailable on restore")?.restore_panels(saved)?;
         }
+        if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
+            sim.active.world.queue_trap_lookups("disk restore");
+        }
         Ok(())
     }
 }

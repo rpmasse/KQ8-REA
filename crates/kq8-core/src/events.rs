@@ -113,6 +113,10 @@ impl EventQueue {
         self.waiting.len()
     }
 
+    pub(crate) fn has_target_kind(&self, target: &str, kind: &str) -> bool {
+        self.waiting.iter().any(|e| e.target.eq_ignore_ascii_case(target) && e.kind == kind)
+    }
+
     pub fn is_empty(&self) -> bool {
         self.waiting.is_empty()
     }
