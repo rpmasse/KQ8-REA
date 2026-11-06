@@ -594,6 +594,9 @@ fn earned_crystal_to_hero_ring_and_fresh_reload() {
         .lines()
         .any(|l| l.contains("click NoName3 (") && l.contains("INVITEM_RingOfDeadHero 0 -> 1")));
     let logs = hero.root.join("tomb/kq8-artifacts/logs");
+    let motion = fs::read_to_string(logs.join("connor.log")).unwrap();
+    assert!(motion.lines().any(|line| line.contains("push touch coffnlid (scripted)")
+        && line.contains("-> Push")));
     let events = fs::read_to_string(logs.join("doors.log")).unwrap();
     assert!(events.contains("script coffnlid.cs coffnlid Push"));
     let check_ring = |s: &Value| {

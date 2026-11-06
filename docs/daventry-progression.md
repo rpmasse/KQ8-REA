@@ -42,6 +42,15 @@ gone and both tomb flags intact.
 The checked-in two-process coffin and ring-reload regression also
 passed from that earned HeroDoor checkpoint in 96.54 seconds.
 
+A separate 905.43-second run, starting at Normal New Game with all
+checkpoint inputs unset, earned a different HeroDoor save. Its first
+straight approach hit the click blocker head-on and failed to open
+the coffin. The route now approaches from the southwest. A glancing
+contact can slide along the blocker while Connor remains within the
+original scripted push's 60-degree facing limit. The physical push,
+visible pickup and fresh reload passed from both HeroDoor saves in
+111.38 and 111.68 seconds.
+
 Two earlier routes are recorded under the road-to-the-tomb section.
 One opened the coffin but kept trying to stand inside it. A second
 hit the overlapping click blocker before touching the lid. The
