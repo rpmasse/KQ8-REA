@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-07 Align the project status with the verified build
+
+Condensed the README milestone table and identified the exact Daventry
+campaign boundary. The feature reference previously described saving,
+world travel, camera shake and game over as absent in its current
+limitations list. Updated it to distinguish the verified implementations
+from the remaining campaign, renderer and controller cases. The developer
+commands and build instructions remain available below the status table.
+The original-data workflow and the separate compiled-engine study now
+have an explicit link near the top of the README.
+
+Documentation check: verify the README and feature-reference links,
+check the `docs/FEATURES.md` section anchor, and compare these statements
+with the tests listed in the combat and cottage entries.
+
 ## 2026-11-07 Earn and use Sarah's cottage shield
 
 The first village-supply replay walked into Sarah's closed door. The
