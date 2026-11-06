@@ -7,6 +7,24 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Connor's ordinary combat death (2026-11-07)
+
+A hit that takes health below zero requests the Die state. An unfinished
+equipped attack or weapon swap can delay entry. While the request is
+waiting, another hit can reduce health further or change the last hit
+kind. At entry Connor's health becomes zero. His equipped animation set
+and the last hit determine the death movement, including weapon drop and
+the fire or ice finish. Movement end determines when the game checks
+reincarnation. Otherwise the game waits three simulation seconds, then
+opens the death menu. Escape and Save use the ordinary scripted input
+gate before the final hold begins.
+
+Rust saves preserve the pending request and the accepted animation as
+separate states. Older slots with a death stored as a Special movement
+are supported. The Temple 4 vortex shares the final hold through its
+scripted Die Now command. Exit from first person, specialised controller
+coverage and comparison with a native Sierra save remain open.
+
 ## Inventory pickup tutorials (2026-11-07)
 
 Taking the first health or quest item schedules its original message three

@@ -956,6 +956,11 @@ pub struct WorldState {
     /// Connor is in his dying state: hits are ignored (`fighting.md` rule
     /// 29).
     pub connor_dying: bool,
+    /// A state request waiting for its current owner's exit gate (Q192).
+    pub pending_combat_death: Option<crate::fight::HitKind>,
+    /// Wait retains Stop at rest. The viewer supplies its live selection
+    /// before the world processes damage and end-of-movement events.
+    pub connor_wait_retains_stop: bool,
     /// Logical dying entry occurred once, independent of presentation/state mirroring.
     pub connor_death_entered: bool,
     /// Last accepted weapon hit; stats-event deaths retain its kind
@@ -3334,6 +3339,11 @@ impl WorldState {
     /// and other characters are later milestones (logged only, `0` as the
     /// stubs).
     fn set_state(&mut self, words: &[String], at: &str) -> String {
+        if words.get(1).is_some_and(|who| who.eq_ignore_ascii_case("Connor"))
+            && self.connor_death_entered {
+            self.note(format!("{at}: Connor Die refuses a state change"));
+            return "1".into();
+        }
         match words {
             [_, who, state] if who.eq_ignore_ascii_case("Connor") && state.eq_ignore_ascii_case("ThrowRock") => {
                 self.requests.push(Request::ConnorThrowRock { aim: None });
@@ -4694,6 +4704,8 @@ impl Active {
                 connor_back_key: false,
                 connor_fight: None,
                 connor_dying: false,
+                pending_combat_death: None,
+                connor_wait_retains_stop: true,
                 connor_death_entered: false,
                 connor_last_hit: None,
                 scripted_death: Default::default(),
@@ -4909,17 +4921,30 @@ impl Active {
 
     /// Enter a script's accepted Die Now request. The vortex placed Connor
     /// offstage while a separate animated object played his last movement.
-    pub fn enter_scripted_death(&mut self, walker: &mut crate::connor::Walker, mover: &mut crate::connor_mover::Mover) {
+    pub fn enter_scripted_death<'a>(&mut self, walker: &mut crate::connor::Walker, mover: &mut crate::connor_mover::Mover,
+        loops: &dyn Fn(&str) -> Option<&'a crate::connor::MovementLoop>) {
         use crate::connor::Mode;
         if walker.mode == Mode::ScriptedDie { return; }
-        let reincarnate = self.scripts.vars.get("KQConner::reincarnate").is_some_and(|v| v.eq_ignore_ascii_case("true") || number_value(v) != 0.);
         walker.set_mode(Mode::ScriptedDie);
-        if let Some(stats) = &mut self.world.connor_stats {
-            stats.stats.0[0] = if reincarnate { stats.max_health() } else { 0 };
-            self.world.connor_stats_events += 1;
-        }
+        self.world.enter_connor_death();
+        self.complete_connor_death(walker, mover, loops);
+    }
+
+    /// Q192: the ordinary final movement end and Die Now share this action.
+    pub fn complete_connor_death<'a>(&mut self, walker: &mut crate::connor::Walker, mover: &mut crate::connor_mover::Mover,
+        loops: &dyn Fn(&str) -> Option<&'a crate::connor::MovementLoop>) {
+        use crate::connor::{Mode, ScriptedDeath};
+        if self.world.scripted_death != ScriptedDeath::None { return; }
+        let reincarnate = self.scripts.vars.get("KQConner::reincarnate").is_some_and(|v| v.eq_ignore_ascii_case("true") || number_value(v) != 0.);
         if reincarnate {
-            walker.set_mode(Mode::Free);
+            if let Some(stats) = &mut self.world.connor_stats {
+                stats.stats.0[0] = stats.max_health();
+                self.world.connor_stats_events += 1;
+            }
+            walker.mode = Mode::Free;
+            walker.death = None;
+            walker.enter_wait(loops);
+            self.world.connor_state = Some(crate::character::state_number::WAIT);
             self.world.connor_dying = false;
             self.world.connor_death_entered = false;
             self.world.scripted_death = crate::connor::ScriptedDeath::None;
@@ -4933,19 +4958,17 @@ impl Active {
         self.world.scripted_death = crate::connor::ScriptedDeath::HoldUntil(self.world.updates + 45);
     }
 
-    /// Check the current state at the deadline. Damage deaths keep their
-    /// existing movement and menu path.
+    /// Check the owning state at the actual deadline.
     pub fn finish_scripted_death(&mut self, walker: &mut crate::connor::Walker) -> bool {
         use crate::connor::Mode;
         use crate::connor::ScriptedDeath;
         let ScriptedDeath::HoldUntil(due) = self.world.scripted_death else { return false };
         if self.world.updates < due { return false; }
-        if walker.mode != Mode::ScriptedDie {
+        if !matches!(walker.mode, Mode::ScriptedDie | Mode::CombatDie) {
             self.world.scripted_death = ScriptedDeath::None;
             return false;
         }
         self.world.scripted_death = ScriptedDeath::GameOver;
-        walker.set_mode(Mode::Dead);
         self.world.connor_portal = None;
         true
     }
@@ -4993,7 +5016,7 @@ impl Active {
             ));
             if dies && !self.world.connor_dying {
                 let kind = self.world.connor_last_hit.unwrap_or(crate::fight::HitKind::Normal);
-                self.world.note(format!("{head}: Connor's health fell below 0 before caps/level processing: dying state, last hit {} (rules 19–20)", kind.name()));
+                self.world.note(format!("{head}: Connor's health fell below 0 before caps/level processing: requests Die, last hit {} (rules 19–20)", kind.name()));
                 self.world.request_connor_death(kind,head);
             }
             return;
@@ -8574,8 +8597,8 @@ endif
         assert!(log.contains("Do (Attack at phase 0.5333): hits Connor: distance") && log.contains("hand damage 15, Normal"), "{log}");
         assert!(log.contains("Connor: hit by gob, Normal: D 15, R "), "{log}");
         assert!(log.contains("first hit by a character: a one-off tip"), "{log}");
-        assert!(log.contains("is below 0: his dying state, kind Normal"), "{log}");
-        assert!(a.world.connor_stats.unwrap().stats.0[0] < 0);
+        assert!(log.contains("is below 0: requests Die, hit kind Normal"), "{log}");
+        assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 0, "accepted Wait death clamps health on entry (Q192)");
         assert!(a.world.connor_dying);
         // While dying, hits are ignored (the requests are taken by the
         // viewer, so here they pile up: one ConnorDies only).
@@ -9255,9 +9278,42 @@ getGuiStatus
         assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 0);
         assert!(!a.world.connor_dying && a.world.requests.is_empty());
         a.stats_change(&event(&["-1", "0", "0", "0", "11"]), "");
-        assert_eq!((a.world.connor_stats.unwrap().level, a.world.connor_stats.unwrap().stats.0[0]), (2, 20));
+        assert_eq!((a.world.connor_stats.unwrap().level, a.world.connor_stats.unwrap().stats.0[0]), (2, 0),
+            "Die entry follows the stats action, including its level processing");
         assert!(a.world.connor_dying, "level-up healing must not undo the earlier death check");
         assert!(matches!(a.world.requests.last(), Some(Request::ConnorDies { kind: HitKind::Projectile, .. })));
+    }
+
+    #[test]
+    fn combat_death_waits_for_stop_and_uses_the_last_hit_at_entry() {
+        use crate::character::state_number::{DIE, MOVE, SWAP_WEAPONS, WAIT};
+        use crate::fight::HitKind;
+        for state in [WAIT, SWAP_WEAPONS] {
+            let mut a = active("x\n", &[]);
+            a.set_connor_stats(ConnorStats { level: 3, stats: Stats([1, 10, 0, 0, 0]) });
+            a.world.connor_state = Some(state);
+            a.world.connor_wait_retains_stop = false;
+            a.world.hit_connor("attacker", 1000, HitKind::Fire);
+            let hp = a.world.connor_stats.unwrap().stats.0[0];
+            assert!(hp < 0 && !a.world.connor_dying && !a.world.connor_death_entered);
+            assert_eq!(a.world.pending_combat_death, Some(HitKind::Fire));
+            a.world.hit_connor("attacker", 1000, HitKind::Ice);
+            assert!(a.world.connor_stats.unwrap().stats.0[0] < hp);
+            assert_eq!(a.world.pending_combat_death, Some(HitKind::Ice));
+            a.world.enter_connor_death();
+            assert_eq!(a.world.connor_state, Some(DIE));
+            assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 0);
+            assert!(a.world.pending_combat_death.is_none());
+            a.world.hit_connor("late", 1000, HitKind::Normal);
+            assert_eq!(a.world.connor_last_hit, Some(HitKind::Ice));
+        }
+        let mut moving = active("x\n", &[]);
+        moving.set_connor_stats(ConnorStats { level: 3, stats: Stats([1, 10, 0, 0, 0]) });
+        moving.world.connor_state = Some(MOVE);
+        moving.world.connor_wait_retains_stop = false;
+        moving.world.hit_connor("attacker", 1000, HitKind::Normal);
+        assert!(moving.world.connor_death_entered && moving.world.connor_dying);
+        assert_eq!(moving.world.connor_stats.unwrap().stats.0[0], 0);
     }
 
     #[test]
@@ -9267,13 +9323,13 @@ getGuiStatus
         a.set_connor_stats(ConnorStats { level: 3, stats: Stats([1, 10, 0, 0, 0]) });
         let mut walker = Walker::new(0.);
         let mut mover = Mover::new([0.; 3], true);
-        a.enter_scripted_death(&mut walker, &mut mover);
+        a.enter_scripted_death(&mut walker, &mut mover, &|_| None);
         assert_eq!((walker.mode, a.world.connor_dying, a.world.scripted_death), (Mode::Free, false, crate::connor::ScriptedDeath::None));
         assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 30);
         assert!(mover.use_gravity && mover.keep_on_ground);
 
         a.scripts.vars.set("KQConner::reincarnate", "0".into());
-        a.enter_scripted_death(&mut walker, &mut mover);
+        a.enter_scripted_death(&mut walker, &mut mover, &|_| None);
         walker.set_mode(Mode::Free);
         a.world.updates += 45;
         assert!(!a.finish_scripted_death(&mut walker));

@@ -204,8 +204,7 @@ impl WorldState {
             let hp = stats.stats.0[0];
             self.connor_stats_events += 1;
             if hp < 0 {
-                self.connor_dying = true;
-                self.requests.push(Request::ConnorDies { kind: HitKind::Projectile, at: "Weeper drain".into() });
+                self.request_connor_death(HitKind::Projectile, "Weeper drain".into());
             }
             Some(hp)
         } else {

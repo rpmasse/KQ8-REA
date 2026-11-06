@@ -13,6 +13,23 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5 ordinary combat death.** Implement the three stages described by
+[the original death study](behaviour/connor-combat-death.md). A lethal
+hit asks Connor's current controller for Die. Wait with an unfinished
+equipped attack and the weapon-swap controller can defer it until their
+movement ends. Accepted entry clips health to zero and selects the
+equipped death animation from the last hit. A normal final movement
+end samples the reincarnation setting. Otherwise it freezes Connor,
+takes gameplay input away and schedules the death menu three seconds
+later. The vortex's scripted Die Now enters the same completion path.
+
+Save the pending request separately from the accepted animation and
+restore older Rust slots. Check ordinary, elemental, equipped-attack
+and weapon-swap deaths, including save, exit and fresh reload. Regress
+the Temple 4 vortex and the Dead City spirit trap's simultaneous hits.
+Keep first-person exit, other specialised controllers and original
+pending-event restoration open where the evidence is incomplete.
+
 **M4 pickup tutorials.** Follow the receipt and scheduling rules in
 [`pickup-tutorials.md`](behaviour/pickup-tutorials.md). At a successful
 inventory addition, consume the matching flag and schedule the first health

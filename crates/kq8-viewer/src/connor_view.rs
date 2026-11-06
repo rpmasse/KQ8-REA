@@ -629,7 +629,37 @@ impl SavedSpecial {
     }
 }
 
+/// A real Die controller can own a previous uninterruptible animation
+/// while the new death movement waits. Save both through the shared pose.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedCombatDeath {
+    final_movement: String,
+    pose: SavedControllerPose,
+}
+
+impl SavedCombatDeath {
+    pub fn valid(&self) -> bool {
+        self.pose.valid() && self.pose.animation_input_lock()
+            && ["die", "projdie", "firedie", "icedie"].iter().any(|name|
+                kq8_core::connor::plain_movement_name(&self.final_movement).eq_ignore_ascii_case(name))
+            && valid_swing_name(&self.final_movement)
+    }
+}
+
 impl ConnorSim {
+    pub fn saved_combat_death(&self) -> Option<SavedCombatDeath> {
+        if self.walker.mode != Mode::CombatDie { return None; }
+        Some(SavedCombatDeath { final_movement: self.walker.death?.into(), pose: self.capture_controller_pose() })
+    }
+
+    pub fn restore_combat_death(&mut self, saved: &SavedCombatDeath) -> Result<(), String> {
+        if !saved.valid() { return Err("invalid saved Die pose".into()); }
+        let final_movement = self.drawn(&saved.final_movement)
+            .ok_or_else(|| format!("missing saved death movement {}", saved.final_movement))?.name;
+        self.restore_controller_pose(&saved.pose, Mode::CombatDie, "combat Die")?;
+        self.walker.death = Some(final_movement);
+        Ok(())
+    }
     pub fn saved_combat_cues(&self) -> Option<SavedCombatCues> {
         let saved = SavedCombatCues {
             melee: self.do_cues.clone(),
@@ -777,8 +807,9 @@ impl ConnorSim {
         };
         let waiting = saved.transition_waiting.as_ref().map(&transition).transpose()?;
         let playing = saved.transition_playing.as_ref().map(&transition).transpose()?;
-        self.walker.mode = Mode::Special;
-        self.walker.special = steps;
+        let legacy_death = saved.combat_death();
+        self.walker.mode = if legacy_death { Mode::CombatDie } else { Mode::Special };
+        self.walker.special = if legacy_death { Vec::new() } else { steps };
         self.walker.special_at = saved.at;
         self.walker.movement = movement;
         self.walker.phase = saved.phase;
@@ -789,6 +820,7 @@ impl ConnorSim {
         self.walker.waiting = waiting;
         self.walker.playing = playing;
         self.walker.death = death;
+        if legacy_death { self.walker.animation_input_lock = true; }
         self.redraw_from_walker();
         Ok(())
     }
@@ -1737,9 +1769,10 @@ impl ConnorSim {
         }
         match self.walker.mode {
             Mode::Free if self.walker.moving() => MOVE,
+            Mode::Special if self.swing.is_some() || self.shot.is_some() => WAIT,
             Mode::Free | Mode::Crash => WAIT,
             Mode::Fall | Mode::Land | Mode::Jump => JUMP,
-            Mode::Dying | Mode::ScriptedDie | Mode::Dead => DIE,
+            Mode::Dying | Mode::CombatDie | Mode::ScriptedDie | Mode::Dead => DIE,
             Mode::Special => SPECIAL,
             Mode::Push => PUSH,
             Mode::Talk => TALK,
@@ -2445,38 +2478,95 @@ impl ConnorSim {
         None
     }
 
-    /// `fighting.md` rule 29 (M5 5c-4): his health fell below 0: his dying
-    /// state by the hit's kind (`die`; fire and ice: `dropweapon`, then
-    /// `firedie` / `icedie`), played as a Special list ending in his Die
-    /// state, which holds the last frame and opens the main menu
-    /// (main-menu.md rule 25). Returns the line for `fight.log`.
-    pub fn die_from_hit(&mut self, kind: kq8_core::fight::HitKind) -> String {
-        use kq8_core::connor::SpecialStep;
-        use kq8_core::fight::HitKind;
-        // The dying action replaces these controllers as well as their pose.
-        // In particular, a waiting swing must not restart after its turn is cleared.
-        for (pending, label) in [(self.swing.take().is_some(), "melee"), (self.shot.take().is_some(), "ranged")] {
-            if pending { self.log.detail(format!("connor update {}: dying: cancels unfinished {label} attack", self.updates)); }
+    pub fn wait_retains_stop(&self) -> bool {
+        !self.readying && self.swing.as_ref().is_none_or(|s| s.waiting)
+            && self.shot.as_ref().is_none_or(|s| !s.started)
+            && self.walker.reaction.is_none()
+            && self.walker.state_wanted.is_none_or(|m| m.eq_ignore_ascii_case("stop"))
+    }
+
+    /// Admit the waiting state during the real end handler, before a new
+    /// update spends a tick standing in the replay's temporary Special.
+    pub fn release_pending_die_after_end(&mut self, ended: &str) -> bool {
+        let w = &self.walker;
+        if w.mode != Mode::Special || w.special_at + 1 != w.special.len()
+            || !(self.readying || self.swing.is_some() || self.shot.is_some())
+            || w.phase < 1.0 || !kq8_core::connor::plain_movement_name(w.movement).eq_ignore_ascii_case(ended) {
+            return false;
         }
-        let names: &[&str] = match kind {
-            HitKind::Normal | HitKind::Projectile => &["die"],
-            HitKind::Fire => &["dropweapon", "firedie"],
-            HitKind::Ice => &["dropweapon", "icedie"],
+        let bank = self.weapon_set.as_deref();
+        let movements = &self.movements;
+        let loops = |n: &str| find(movements, bank, n).map(|m| &m.movement_loop);
+        self.walker.enter_wait(&loops);
+        self.weapon_step();
+        self.swing_step();
+        self.shot_step();
+        true
+    }
+
+    fn request_death_movement(&mut self, name: &'static str) -> String {
+        let bank = self.weapon_set.as_deref();
+        let movements = &self.movements;
+        let loops = |n: &str| find(movements, bank, n).map(|m| &m.movement_loop);
+        let notes = self.walker.request_die_movement(name, &loops);
+        self.turn_keys.turn = 0;
+        self.intent.turn = 0;
+        self.redraw_from_walker();
+        notes.join("; ")
+    }
+
+    pub fn complete_death(&mut self, active: &mut kq8_core::active::Active, die_now: bool) {
+        let bank = self.weapon_set.as_deref();
+        let movements = &self.movements;
+        let loops = |n: &str| find(movements, bank, n).map(|m| &m.movement_loop);
+        if die_now {
+            active.enter_scripted_death(&mut self.walker, &mut self.mover, &loops);
+        } else {
+            active.complete_connor_death(&mut self.walker, &mut self.mover, &loops);
+        }
+    }
+
+    /// Select the original list's movement on accepted Die entry (Q192).
+    pub fn die_from_hit(&mut self, kind: kq8_core::fight::HitKind) -> String {
+        use kq8_core::fight::HitKind;
+        // An attack still waiting for an automatic turn has not selected an
+        // attack movement. A genuine Wait attack must finish before entry.
+        if self.shot.as_ref().is_some_and(|s| s.waiting && !s.started) {
+            self.log.detail(format!("connor update {}: Die entered while the ranged aim was still turning", self.updates));
+        }
+        self.swing = None;
+        self.shot = None;
+        let final_name = match kind {
+            HitKind::Normal => "die",
+            HitKind::Projectile if self.drawn("projdie").is_some() => "projdie",
+            HitKind::Projectile => "die",
+            HitKind::Fire => "firedie",
+            HitKind::Ice => "icedie",
         };
-        let mut steps: Vec<SpecialStep> = names
-            .iter()
-            .map(|n| match self.drawn(n) {
-                Some(m) => SpecialStep::Play(m.name, n.to_string()),
-                None => SpecialStep::Note(format!("{n} not in his list: skipped")),
-            })
-            .collect();
-        self.walker.death = steps.iter().rev().find_map(|s| if let SpecialStep::Play(n, _) = s { Some(*n) } else { None });
-        steps.push(SpecialStep::Kill);
-        self.walker.auto = None;
-        let notes = self.walker.start_special(steps);
-        let line = format!("dies ({}): plays {names:?}, then his Die state opens the main menu ({})", kind.name(), notes.join("; "));
+        let first = if matches!(kind, HitKind::Fire | HitKind::Ice) { "dropweapon" } else { final_name };
+        let names: Vec<_> = if first == final_name { vec![first] } else { vec![first, final_name] };
+        self.walker.death = self.drawn(final_name).map(|m| m.name);
+        self.walker.mode = Mode::CombatDie;
+        let note = match self.drawn(first).map(|m| m.name) {
+            Some(name) => self.request_death_movement(name),
+            None => format!("missing {first} in the active list"),
+        };
+        let line = format!("dies ({}): plays {names:?}, Die owns the animation ({note})", kind.name());
         self.log.detail(format!("connor update {}: {line}", self.updates));
         line
+    }
+
+    /// Receives the actual ended name, after common pending-animation work.
+    /// Only the recognized final end enters the shared completion action.
+    pub fn death_movement_ended(&mut self, ended: &str) -> bool {
+        if self.walker.mode != Mode::CombatDie { return false; }
+        if ended.eq_ignore_ascii_case("dropweapon") {
+            if let Some(name) = self.walker.death {
+                self.request_death_movement(name);
+            }
+            return false;
+        }
+        ["die", "projdie", "firedie", "icedie"].iter().any(|name| ended.eq_ignore_ascii_case(name))
     }
 
     /// `KQMonster::setState Connor special <items>` (`anim-scripts.md`

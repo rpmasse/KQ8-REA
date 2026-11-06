@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-07 Ordinary combat death and delayed game over
+
+Connor's pending death and his accepted death animation now survive
+separate Windows processes. Equipped attacks and weapon swaps keep
+their normal movement-end gate. The integrated two-process crossbow
+and reincarnation check passed in 53.87 seconds. Temple 4's vortex
+defeat regression passed in 48.69 seconds. Two Dead City cue schedules
+verified whether a second hit arrives before or after Die has entered.
+That final check passed in 48.21 seconds. The earlier failing
+assertion is recorded in MODLOG.
+
+657 core, 155 data, 7 audio and 41 viewer regular tests passed. The
+ordinary and elemental death checkpoint tests also passed in the
+implementation worktree. First-person exit, the remaining specialised
+controllers and original Sierra save comparison are open.
+
 ## 2026-11-07 Pickup tutorial implementation
 
 The integrated candle and watermill test passed in 66.11 seconds.

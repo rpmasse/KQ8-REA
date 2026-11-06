@@ -1091,6 +1091,7 @@ pub fn trap_step(
     // characters.md rule 16 (Q156): his state for StateChange messages.
     let portal = sim.active.world.connor_portal.is_some();
     sim.active.world.connor_state = Some(if portal { kq8_core::character::state_number::PORTAL } else { connor.state_number() });
+    sim.active.world.connor_wait_retains_stop = connor.wait_retains_stop();
     sim.active.world.connor_at = Some(connor.mover.position);
     sim.active.world.connor_heading = connor.walker.heading;
     // potions.md rule 26 (M5 5g-9, Q146): a cutscene hides him from
@@ -1124,6 +1125,22 @@ pub fn trap_step(
     // His play-once movements that ended (3i-7): getEndLoop listeners.
     for m in std::mem::take(&mut connor.ended) {
         sim.active.connor_movement_ended(&m);
+        if sim.active.world.pending_combat_death.is_some() && connor.release_pending_die_after_end(&m) {
+            let tick = sim.active.world.updates;
+            connor.log.detail(format!("update {tick}: {m} end admitted pending Die"));
+        }
+        if connor.death_movement_ended(&m) {
+            connor.complete_death(&mut sim.active, false);
+            let tick = sim.active.world.updates;
+            let line = if let kq8_core::connor::ScriptedDeath::HoldUntil(due) = sim.active.world.scripted_death {
+                sim.active.world.requests.push(Request::HandsOff { on: true, at: "death completion".into() });
+                format!("update {tick}: {m} finished: Die state holds until update {due}; gravity off, collision zero")
+            } else {
+                format!("update {tick}: {m} finished: reincarnated into Wait")
+            };
+            connor.log.detail(&line);
+            shared.log.lock().unwrap().summary(line);
+        }
     }
     // His scripted turns and walks that ended (3l-2): their cues.
     for end in std::mem::take(&mut connor.auto_ends) {
@@ -1236,6 +1253,16 @@ pub fn trap_step(
             }
         }
     }
+    if let Some(kind) = sim.active.world.pending_combat_death {
+        // The earlier losing hit can be saved in an unfinished swap/attack.
+        // Retry when that owner reaches Wait/Stop, even on a fresh process.
+        let state = connor.state_number();
+        use kq8_core::character::state_number::{WAIT, MOVE};
+        if (state == MOVE || state == WAIT && connor.wait_retains_stop())
+            && !sim.active.world.requests.iter().any(|r| matches!(r, Request::ConnorDies { .. })) {
+            sim.active.world.requests.push(Request::ConnorDies { kind, at: "pending Die".into() });
+        }
+    }
     let requests: std::collections::VecDeque<(usize, Request)> =
         std::mem::take(&mut connor.refused).into_iter().chain(std::mem::take(&mut sim.active.world.requests)).enumerate().collect();
     let mut requests = requests;
@@ -1244,6 +1271,19 @@ pub fn trap_step(
     let mut asked = false;
     while let Some((i, r)) = requests.pop_front() {
         let again = if i < retried { " (tried again)" } else { "" };
+        if matches!(r, Request::ConnorDies { .. } | Request::ConnorDieNow { .. }) && !sim.active.world.connor_death_entered {
+            let state = connor.state_number();
+            use kq8_core::character::state_number::{WAIT, SWAP_WEAPONS};
+            if state == SWAP_WEAPONS || state == WAIT && !connor.wait_retains_stop() {
+                let line = format!("connor update {}: Die pending behind state {state}, movement {}", connor.updates, connor.walker.movement);
+                connor.log.detail(line);
+                if matches!(r, Request::ConnorDieNow { .. }) {
+                    connor.refused.clear();
+                    connor.refused.push(r);
+                }
+                continue;
+            }
+        }
         // characters.md rules 3, 11 (Q155): before the choice, the Choice
         // state refuses every other state (kept as his waiting request,
         // thrown away at DoChoice: so dropped).
@@ -1254,6 +1294,7 @@ pub fn trap_step(
                 _ => false,
             };
         if refused_by_choice {
+            if matches!(r, Request::ConnorDies { .. }) { sim.active.world.pending_combat_death = None; }
             let line = format!("update {}: {r:?}: refused, Connor is in the Choice state before the choice; dropped (characters.md rules 3, 11)", sim.active.world.updates);
             connor.log.detail(line.clone());
             if let Some(log) = &mut sim.trap_log {
@@ -1276,6 +1317,7 @@ pub fn trap_step(
             // tile-puzzle.md rule 20 (D-4): refused and dropped while the
             // exit switch is off.
             if connor.tile_holds() || connor.scales.is_some() {
+                if matches!(r, Request::ConnorDies { .. }) { sim.active.world.pending_combat_death = None; }
                 connor.state_request(what, &at);
                 if let Some(log) = &mut sim.trap_log {
                     log.detail(format!("update {}: {at}: {what}{again}: refused while Connor is in a puzzle state", sim.active.world.updates));
@@ -1284,6 +1326,7 @@ pub fn trap_step(
             }
             // ropeandhook.md rule 28 (M6 6a-6): refused and dropped.
             if connor.roping() {
+                if matches!(r, Request::ConnorDies { .. }) { sim.active.world.pending_combat_death = None; }
                 connor.state_request(what, &at);
                 let line = format!("{at}: {what}{again}: refused, Connor is in the rope state; dropped (ropeandhook.md rule 28)");
                 sim.active.world.rope_note(line.clone());
@@ -1330,8 +1373,7 @@ pub fn trap_step(
                 format!("{at}: applied: Connor {line}")
             }
             Request::ConnorDieNow { at } => {
-                let ConnorSim { walker, mover, .. } = &mut *connor;
-                sim.active.enter_scripted_death(walker, mover);
+                connor.complete_death(&mut sim.active, true);
                 if let kq8_core::connor::ScriptedDeath::HoldUntil(due) = sim.active.world.scripted_death {
                     if !connor.hands_off {
                         requests.push_front((usize::MAX, Request::HandsOff { on: true, at: at.clone() }));
@@ -1346,6 +1388,7 @@ pub fn trap_step(
                 format!("{at}: Connor gravity {on}")
             }
             Request::ConnorDies { kind, at } => {
+                let kind = sim.active.world.connor_last_hit.unwrap_or(kind);
                 sim.active.world.enter_connor_death();
                 let line = connor.die_from_hit(kind);
                 sim.active.world.fight_note("Connor", format!("{at}: {line}"));
@@ -2257,6 +2300,11 @@ pub fn door_step(
             }
             None => sim.log.detail(format!("update {updates}: click on {name} ({how}): no Connor in this world; nothing")),
         }
+    }
+    if let Some(c) = connor.as_deref() {
+        let owner = if sim.active.world.connor_portal.is_some() { kq8_core::character::state_number::PORTAL } else { c.state_number() };
+        sim.active.world.connor_state = Some(owner);
+        sim.active.world.connor_wait_retains_stop = c.wait_retains_stop();
     }
     sim.active.update();
     if let Some(mut colliders) = colliders {

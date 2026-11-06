@@ -331,7 +331,7 @@ fn original_spirit_cycle_delivers_repeated_cues_to_the_live_trap() {
         run.fight.contains("hit by spirtp1, Normal:")
             && run.fight.contains("forced true, ordinary owner")
     );
-    assert!(!run.fight.contains("his dying state, kind"));
+    assert!(!run.fight.contains("requests Die, hit kind"));
     f.options_unchanged();
 }
 
@@ -339,8 +339,32 @@ fn original_spirit_cycle_delivers_repeated_cues_to_the_live_trap() {
 #[ignore = "requires KQ8_GAME_DIR and a graphics device"]
 fn simultaneous_spirit_cues_preserve_later_negative_stats_after_one_dying_entry() {
     let f = Fixture::new("spirit-trap-simultaneous");
+    // At 20 the original entry hit still has React selected. At 35 its
+    // movement has ended and standing Wait has selected Stop. Keep the
+    // incoming cues identical on both sides of that controller boundary.
+    let while_reacting = simultaneous_cues(&f, "during-reaction", 20);
+    assert!(while_reacting.events.lines().any(|line| {
+        line.contains("KQStatsChangeRequestEvent -1 to Connor")
+            && line.contains("Connor [-1,") && line.contains("-> [-2,")
+    }), "the pending request must retain negative health; inspect {}", f.root.display());
+    assert!(while_reacting.fight.contains("health -2 -> -3"));
+    assert_eq!(while_reacting.fight.matches("pending Die: dies (Normal)").count(), 1);
+    let reaction_end = while_reacting.connor.find("react ended in Wait: asks for stop").unwrap();
+    assert!(while_reacting.connor[reaction_end..].contains("dies (Normal)"));
+
+    let run = simultaneous_cues(&f, "after-reaction", 35);
+    assert!(run.fight.contains("ignored, he is dying"));
+    assert!(run.events.lines().any(|line| {
+        line.contains("KQStatsChangeRequestEvent -1 to Connor")
+            && line.contains("Connor [0,") && line.contains("-> [-1,")
+    }), "later 0 -> -1 direct stage is missing; inspect {}", f.root.display());
+    f.options_unchanged();
+}
+
+fn simultaneous_cues(f: &Fixture, name: &str, tick: u64) -> Run {
+    let cue = format!("sendEvent 0 spirtp1 KQCueEvent 1 0,{tick}");
     let run = f.run(
-        "death",
+        name,
         &[
             "--world",
             "DeadCity",
@@ -363,9 +387,9 @@ fn simultaneous_spirit_cues_preserve_later_negative_stats_after_one_dying_entry(
             "--command",
             "sendEvent 0 Connor KQStatsChangeRequestEvent -4 0 0 0 0,15",
             "--command",
-            "sendEvent 0 spirtp1 KQCueEvent 1 0,20",
+            &cue,
             "--command",
-            "sendEvent 0 spirtp1 KQCueEvent 1 0,20",
+            &cue,
         ],
     );
     assert_eq!(
@@ -376,25 +400,15 @@ fn simultaneous_spirit_cues_preserve_later_negative_stats_after_one_dying_entry(
     );
     assert_eq!(
         run.fight
-            .matches("health -1 is below 0: his dying state")
+            .matches("health -1 is below 0: requests Die")
             .count(),
         1
-    );
-    assert!(run.fight.contains("ignored, he is dying"));
-    assert!(
-        run.events.lines().any(
-            |line| line.contains("KQStatsChangeRequestEvent -1 to Connor")
-                && line.contains("Connor [0,")
-                && line.contains("-> [-1,")
-        ),
-        "later 0 -> -1 direct stage is missing from the event log; inspect {}",
-        f.root.display()
     );
     assert_eq!(
         run.viewer.matches("applied: Connor dies (Normal):").count(),
         1
     );
-    f.options_unchanged();
+    run
 }
 
 fn controller_reaction_case(talk: bool) {
