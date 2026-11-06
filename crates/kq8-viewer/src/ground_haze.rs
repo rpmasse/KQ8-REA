@@ -17,7 +17,7 @@ use bevy::render::render_resource::{AsBindGroup, ShaderType};
 use bevy::shader::ShaderRef;
 
 use crate::load::Look;
-use crate::object_light::{texture_image, ObjectLight};
+use crate::object_light::ObjectLight;
 use crate::{Shared, UNITS_PER_METRE};
 
 const SHADER: &str = "embedded://kq8_viewer/ground_haze.wesl";
@@ -101,7 +101,7 @@ pub fn ground_material(
     let light_map = ground.image(images);
     let (light_inv_spacing, light_side) = ground.lookup();
     let (base, texture) = match look {
-        Look::Texture { width, height, rgba, .. } => (Vec4::ONE, Some(images.add(texture_image(width, height, rgba, address)))),
+        Look::Texture { width, height, rgba, indexed, .. } => (Vec4::ONE, Some(light.palette.add(images,width,height,rgba,indexed,address))),
         Look::Color([r, g, b]) => (LinearRgba::from(Color::srgb_u8(r, g, b)).to_vec4(), None),
         Look::Missing(_) => (LinearRgba::from(Color::srgb(1.0, 0.0, 1.0)).to_vec4(), None),
     };

@@ -3,6 +3,100 @@ use std::{fs, path::Path, process::Command};
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn live_brightness_rebuilds_world_and_open_menu_then_persists() {
+    live_palette_case("D3D-display","Direct3D");
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
+fn glide_palette_rules_rebuild_live_and_persist() {
+    live_palette_case("Glide","Glide");
+}
+
+fn live_palette_case(mode:&str,output_name:&str) {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let original = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/live-palette/{nonce}"));
+    let run = |name:&str,args:&[&str]| {
+        let dir = root.join(name); fs::create_dir_all(dir.join("kq8-artifacts")).unwrap();
+        if name == "sweep" { fs::write(dir.join("kq8-artifacts/Options.cs"),format!("assignGModeName {mode}\nsetBrightness 50\n")).unwrap(); }
+        let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer")).current_dir(&dir).env("KQ8_SAVE_DIR",root.join("slots")).arg("--game").arg(&game)
+            .args(["--sound","off","--no-ai","--god"]).args(args).output().unwrap();
+        fs::write(dir.join("stderr.log"),output.stderr).unwrap();
+        let log = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
+        assert!(output.status.success() && log.contains("RESULT: PASS"),"inspect {}",dir.display());
+        log
+    };
+    let first = run("sweep",&["--world","DeadCity","--updates","60","--frames","1300",
+        "--key","menu:down:down:down:enter:release:enter:release:click=335x388:release:release:release:click=525x388:release:release:release:click=335x388:release:release:release:click=310x450:release:click=315x451:release:escape,12",
+        "--key","menu:down:down:enter:release:enter:release:escape:type=Palette:enter:release:escape,30"]);
+    assert!(root.join("slots/slot-1.json").is_file(),"the post-brightness game state must be saved");
+    let changes:Vec<_> = first.lines().filter(|line| line.contains("palette: live brightness ") && line.contains("(Graphics slider)")).collect();
+    assert_eq!(changes.len(),3,"inspect {}",root.display());
+    let mut stable = Vec::new();
+    for (i,(line,value)) in changes.iter().zip([0,100,0]).enumerate() {
+        assert!(line.contains(&format!("live brightness {value} ")) && line.contains("menu open true") && line.contains(&format!("output {output_name}")));
+        assert!(line.contains(&format!("serial: {}",i+1)));
+        let n = |key:&str| line.split_once(key).unwrap().1.split(|c:char| !c.is_ascii_digit()).next().unwrap().parse::<u64>().unwrap();
+        assert!(n("images: ") > 20 && n("changed: ") > 20);
+        let pairs:Vec<_> = line.split_once("stable cache Some(((").unwrap().1.split_once(")));").unwrap().0
+            .split(|c:char| !c.is_ascii_digit()).filter(|s| !s.is_empty()).map(|s| s.parse::<u64>().unwrap()).collect();
+        assert_eq!(pairs.len(),4); assert!(pairs[0]>20 && pairs[0]==pairs[2]); assert_ne!(pairs[1],pairs[3]);
+        stable.push((pairs[2],pairs[3]));
+    }
+    assert_eq!(stable[0],stable[2],"the same cached world images must return to identical 0-brightness bytes");
+    let menus:Vec<_> = first.lines().filter(|line| line.contains("palette: menu live brightness ") && line.contains("(Graphics slider)")).collect();
+    assert_eq!(menus.len(),3);
+    let after = |line:&str| line.split_once(", after Some(").unwrap().1.split(')').next().unwrap().parse::<u64>().unwrap();
+    assert_ne!(after(menus[0]),after(menus[1])); assert_eq!(after(menus[0]),after(menus[2]),"static menu art must be reversible while Graphics stays open");
+    let saved = fs::read(root.join("sweep/kq8-artifacts/Options.cs")).unwrap();
+    assert_eq!(kq8_core::options_menu::Settings::from_script(&saved).graphics.brightness,0);
+    fs::create_dir_all(root.join("restore/kq8-artifacts")).unwrap();
+    fs::write(root.join("restore/kq8-artifacts/Options.cs"),saved).unwrap();
+    let restored = run("restore",&["--menu-input","down,enter,release,enter,release","--updates","20","--frames","1300",
+        "--key","menu:down:down:down:down:enter:release:enter:release:click=310x450:release:click=315x451:release:escape,5"]);
+    assert!(restored.contains("brightness 0 palette factor 0.300") && restored.contains("gui: fresh palette brightness 0"));
+    assert!(restored.contains("save restored in DeadCity without replaying Begin") && restored.contains("graphics: opened original Graphics.gui"));
+    let setup = restored.lines().find(|line| line.contains("palette: menu live brightness 0,") && line.contains("(Graphics setup)")).unwrap();
+    assert_eq!(after(setup),after(menus[0]),"reopening Graphics after disk load must use the retained brightness and source menu palette");
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(),original);
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR, KQ8_FFMPEG and a graphics device"]
+fn brightness_is_reapplied_after_original_film_returns_to_menu_and_world() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let decoder = fs::canonicalize(std::env::var_os("KQ8_FFMPEG").expect("set KQ8_FFMPEG")).unwrap();
+    let original = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/live-palette-film/{nonce}"));
+    for world in [false,true] {
+        let dir = root.join(if world {"world"} else {"menu"}); fs::create_dir_all(dir.join("kq8-artifacts")).unwrap();
+        let mode = if world {"D3D-display"} else {"Glide"};
+        fs::write(dir.join("kq8-artifacts/Options.cs"),format!("setBrightness 100\nassignGModeName {mode}\n")).unwrap();
+        let mut command = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"));
+        command.current_dir(&dir).env("KQ8_FFMPEG",&decoder).arg("--game").arg(&game).args(["--sound","off","--no-ai","--god"]);
+        if world {
+            command.args(["--world","DeadCity","--updates","20","--frames","5000","--command","playAvi w32mdl_1.dll,5"]);
+        } else {
+            command.args(["--menu-input","click=314x304,escape,click=314x365,left,enter,release","--frames","1300"]);
+        }
+        let output = command.output().unwrap(); fs::write(dir.join("stderr.log"),output.stderr).unwrap();
+        let log = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
+        assert!(output.status.success() && log.contains("RESULT: PASS"),"inspect {}",dir.display());
+        assert!(log.contains(if world {"w32mdl_1.dll first picture"} else {"W32opn_1.dll first picture"}),"an actual decoded picture must precede restoration");
+        assert!(!log.contains("unavailable:") && !log.contains("decoding failed"));
+        let after = log.split_once(if world {"returning to Gameplay"} else {"returning to Menu"}).unwrap().1;
+        assert!(after.contains("palette: live brightness 100 ") && after.contains("(return from film)"));
+        assert!(after.contains(if world {"output Direct3D"} else {"output Glide"}));
+        if world { assert!(log.contains("finished after 255 intervals, 237 decoded pictures")); }
+    }
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(),original);
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
 fn fresh_brightness_preferences_reach_world_and_interface_palettes() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let original = fs::read(game.join("Options.cs")).unwrap();

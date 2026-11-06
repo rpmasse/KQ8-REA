@@ -49,7 +49,7 @@ use kq8_data::lightmap::Channels;
 
 use crate::light_view::LightMode;
 use crate::load::Look;
-use crate::object_light::{texture_image, ObjectLight};
+use crate::object_light::ObjectLight;
 use crate::{Shared, UNITS_PER_METRE};
 
 const SHADER: &str = "embedded://kq8_viewer/building_light.wesl";
@@ -321,7 +321,7 @@ pub fn building_material(
     images: &mut Assets<Image>,
 ) -> BuildingMaterial {
     let (base, texture) = match look {
-        Look::Texture { width, height, rgba, .. } => (Vec4::ONE, Some(images.add(texture_image(width, height, rgba, ImageAddressMode::Repeat)))),
+        Look::Texture { width, height, rgba, indexed, .. } => (Vec4::ONE, Some(light.palette.add(images,width,height,rgba,indexed,ImageAddressMode::Repeat))),
         Look::Color([r, g, b]) => (LinearRgba::from(Color::srgb_u8(r, g, b)).to_vec4(), None),
         Look::Missing(_) => (LinearRgba::from(Color::srgb(1.0, 0.0, 1.0)).to_vec4(), None),
     };

@@ -49,6 +49,19 @@ the result, even when the same palette and slider value are used.
    original. Use 50 as the identity-gain example, without asserting that
    every installation is configured to it.
 
+5a. **Mode names, bounded Q186 clarification.** The exact enumeration
+    names are **`Glide`** and **`Software`**. Direct3D names are
+    **`D3D-` followed by the enumerated driver name**; the installed
+    preference's **`D3D-display`** is also a literal used by the engine.
+    It additionally contains the device-specific name `D3D-dd3dfx`.
+    Thus the concrete preference commands are `assignGModeName Glide`,
+    `assignGModeName D3D-display` and `assignGModeName Software`, without
+    claiming those are all possible Direct3D device names or that every
+    mode is available on this machine. The assignment preserves its
+    supplied name; its software/hardware distinction tests the exact,
+    case-sensitive name `Software`. This check does not establish any
+    alternate spelling or alias.
+
 ### Glide and Direct3D palette colours
 
 6. **Both hardware palette paths scale all 256 entries.** For ordinary
@@ -67,6 +80,33 @@ the result, even when the same palette and slider value are used.
    is therefore insufficient to promise identical bytes for every RGB
    triple. Exhaustive byte tables under each renderer's actual floating
    point environment remain open; no such table was captured here.
+7a. **Explicit float storage, bounded Q186 clarification.** Both
+    hardware paths receive a stored **32-bit float gain**. Their first
+    scaled-RGB probe, used to find the largest channel and decide
+    whether to reduce the gain, keeps its products in **x87 registers**;
+    it does not explicitly store those products as 32-bit floats.
+    The selected per-entry gain, including a reduced **255 / largest
+    source channel**, is stored as a 32-bit float before final RGB
+    conversion. Source-byte copies in that format are exact integers.
+
+    | Final product before integer conversion | Glide | Direct3D |
+    | --- | --- | --- |
+    | Red | retained x87 register value | stored/reloaded as 32-bit float |
+    | Green | stored/reloaded as 32-bit float | retained x87 register value |
+    | Blue | retained x87 register value | stored/reloaded as 32-bit float |
+
+    Each final **above-255 comparison precedes** the explicit product
+    store in this table. Neither palette loop establishes its own x87
+    precision/rounding control state. A stored 32-bit float is an
+    explicit format boundary, not evidence that its rounding mode is
+    always round-to-nearest. Conversely, a retained register product
+    is not necessarily full extended precision: the incoming x87
+    precision setting can make its arithmetic round sooner. Do not
+    force every channel product to 32 bits merely because the gain is
+    32 bits. The incoming control state and later driver/texture-format
+    quantization remain unresolved here; no further floating-point or
+    driver audit was attempted in this bounded check. Original runtime
+    byte tables are **not tested**.
 8. **Glide has a further converted-black exception.** After brightness
    conversion, a packed RGB value of zero becomes **(255, 0, 255)** for
    entries **1–9 and 246–254** only. This is 18 entries. Entries **0 and

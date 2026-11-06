@@ -605,9 +605,7 @@ pub fn spawn_animated(
             .lip_looks
             .iter()
             .map(|l| match l {
-                Some(crate::load::Look::Texture { width, height, rgba, .. }) => {
-                    Some(images.add(crate::object_light::texture_image(*width, *height, rgba.clone(), bevy::image::ImageAddressMode::Repeat)))
-                }
+                Some(look) => light.palette.look(look.clone(),images,bevy::image::ImageAddressMode::Repeat),
                 _ => None,
             })
             .collect();
@@ -780,7 +778,7 @@ pub fn spawn_animated(
     let swap_images = swap_looks
         .iter()
         .filter_map(|(n, l)| match l {
-            crate::load::Look::Texture { width, height, rgba, .. } => Some((n.to_ascii_lowercase(), images.add(crate::object_light::texture_image(*width, *height, rgba.clone(), bevy::image::ImageAddressMode::Repeat)))),
+            crate::load::Look::Texture { .. } => light.palette.look(l.clone(),images,bevy::image::ImageAddressMode::Repeat).map(|h| (n.to_ascii_lowercase(),h)),
             _ => None,
         })
         .collect();

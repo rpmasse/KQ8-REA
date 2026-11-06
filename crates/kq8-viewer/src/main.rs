@@ -79,6 +79,7 @@ mod smooth_view;
 mod startup_menu;
 mod movie_player;
 mod option_settings;
+mod live_palette;
 mod keyboard_input;
 mod sound_view;
 mod talk_view;
@@ -596,8 +597,8 @@ fn main() -> ExitCode {
                 // terrain in the model view: the note's defaults).
                 let lights = load::load_object_lights(&game, &world, &mut log);
                 let model = load::load_model(&game, &world, name, args.palette.as_deref(), None, &mut log)?;
-                let haze = load::load_haze(&game, &world, None, &mut log);
-                Ok(Scene::Model(model, Some(object_light::ObjectLight::new(lights, args.light, haze, args.haze))))
+                let (haze,haze_source) = load::load_haze_with_source(&game, &world, None, &mut log);
+                Ok(Scene::Model(model, Some(object_light::ObjectLight::new(lights, args.light, haze, args.haze).with_palette(world.palette_values(),haze_source))))
             }
         });
     let mut scene = match loaded {

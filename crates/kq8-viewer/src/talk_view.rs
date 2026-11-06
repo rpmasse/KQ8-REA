@@ -231,9 +231,21 @@ pub struct CaptionStyle {
     /// The strip picture: width, height, palette indices.
     strip: Option<(u32, u32, Vec<u8>)>,
     palette: [kq8_data::palette::Rgb; 256],
+    source_palette: [kq8_data::palette::Rgb; 256],
+    palette_values: crate::live_palette::Values,
+    palette_revision: u64,
     caption_box: kq8_core::caption::Box,
     /// The game's screen (800 × 600 with `set800mode 1`; 4c-1).
     screen: [u32; 2],
+}
+
+impl CaptionStyle {
+    pub fn apply_palette(&mut self, values: crate::live_palette::Values) {
+        if self.palette_values == values { return; }
+        self.palette = kq8_data::palette::for_output(self.source_palette,values.brightness,values.output);
+        self.palette_values = values;
+        self.palette_revision += 1;
+    }
 }
 
 /// Whether `MASK/Options.cs` has the line `set800mode 1` (4c-1: the game's
@@ -295,10 +307,11 @@ pub fn load_caption(game: &GameDir, region: &crate::load::World, log: &mut Log) 
     // interface.md rules 1c-1g (Q118): the world's objectPalette, as the bars.
     let (pal_names, pal_note) = crate::load::screen_palette_paths(game, world);
     let Some((pal_path, pal_bytes)) = first_found(game, &pal_names) else { return fail(log, format!("no palette found ({pal_note}; tried {pal_names:?})")) };
-    let palette = match kq8_data::Palette::parse(&pal_bytes) {
-        Ok(p) => crate::option_settings::screen_palette(game, p.shown_colors()),
+    let source_palette = match kq8_data::Palette::parse(&pal_bytes) {
+        Ok(p) => p.shown_colors(),
         Err(e) => return fail(log, format!("{pal_path}: {e}")),
     };
+    let palette = crate::option_settings::screen_palette(game,source_palette);
     let [l, t, r, b] = c.rect;
     // 4c-1: the box's width scaled with the screen (rule 47, STAND-IN
     // Q108), one row per font height (rule 48).
@@ -324,7 +337,7 @@ pub fn load_caption(game: &GameDir, region: &crate::load::World, log: &mut Log) 
         caption_box.row_height,
         kq8_core::caption::STRIP_PAD
     ));
-    Some(CaptionStyle { font, strip: strip.map(|(_, s)| s), palette, caption_box, screen })
+    Some(CaptionStyle { font, strip: strip.map(|(_, s)| s), palette, source_palette, palette_values:region.palette_values(),palette_revision:0, caption_box, screen })
 }
 
 /// The caption picture's node (4b-3).
@@ -357,6 +370,7 @@ pub fn setup_caption_picture(mut commands: Commands, style: Option<Res<CaptionSt
 pub struct CaptionMade {
     out: f32,
     size: [u32; 2],
+    palette_revision: u64,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -404,7 +418,8 @@ pub fn caption_picture_draw(
     // text, or a new window size, makes a new picture.
     // A player can disable subtitles while a spoken line is paused.
     let shown = speech.caption.as_ref().filter(|_|options.settings.subtitles).map(|(_, t)| t.clone());
-    if *last != shown || (made.out - out).abs() > 1e-3 {
+    if *last != shown || (made.out - out).abs() > 1e-3 || made.palette_revision != style.palette_revision {
+        made.palette_revision = style.palette_revision;
         made.out = out;
         *last = shown;
         *last_place = None;

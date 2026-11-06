@@ -258,14 +258,28 @@ pub struct ObjectLight {
     pub scene_lights: Handle<ShaderBuffer>,
     /// The animation buffers (step 4), set by `add`.
     pub anim: Option<crate::anim_gpu::AnimBuffers>,
+    pub palette: crate::live_palette::WorldPalette,
     /// One image per texture (name and size) for this world's object
     /// materials (Daventry: 264 textures, not 3,020 images; 2026-10-23).
-    images: std::sync::Mutex<std::collections::HashMap<(String, u32, u32), Handle<Image>>>,
+    images: std::sync::Mutex<std::collections::HashMap<(String, u32, u32, u64), Handle<Image>>>,
 }
 
 impl ObjectLight {
     pub fn new(lights: Lights, mode: LightMode, haze: Haze, haze_on: bool) -> Self {
-        ObjectLight { lights, mode, haze, haze_on, scene_lights: Handle::default(), anim: None, images: Default::default() }
+        ObjectLight { lights, mode, haze, haze_on, scene_lights: Handle::default(), anim: None, images: Default::default(),
+            palette: crate::live_palette::WorldPalette::new(crate::live_palette::Values { brightness:50,output:kq8_data::palette::Output::Direct3D },[0;3]) }
+    }
+
+    pub fn with_palette(mut self, values: crate::live_palette::Values, haze_source: [u8;3]) -> Self {
+        self.palette = crate::live_palette::WorldPalette::new(values,haze_source);
+        self
+    }
+
+    /// Images retained by the ordinary object cache, independent of
+    /// temporary face/effect images being removed by asset maintenance.
+    pub fn palette_fingerprint(&self, images: &Assets<Image>) -> (usize,u64) {
+        self.images.lock().unwrap().values().filter_map(|handle| images.get(handle)?.data.as_deref())
+            .fold((0,0_u64), |(count,sum),bytes| (count+1,sum.wrapping_add(crate::live_palette::fingerprint(bytes))))
     }
 
     fn settings(&self, base_colour: Vec4, shading: Shading, textured: bool) -> Settings {
@@ -352,13 +366,14 @@ pub fn texture_image(width: u32, height: u32, rgba: Vec<u8>, address: ImageAddre
 /// never lit, so it stays visible).
 pub fn object_material(look: Look, shading: Shading, light: &ObjectLight, images: &mut Assets<Image>) -> ObjectMaterial {
     let (base, texture, shading) = match look {
-        Look::Texture { name, width, height, rgba } => {
+        Look::Texture { name, width, height, rgba, indexed } => {
+            let palette_key = crate::live_palette::WorldPalette::source_key(&indexed);
             let image = light
                 .images
                 .lock()
                 .unwrap()
-                .entry((name.to_ascii_lowercase(), width, height))
-                .or_insert_with(|| images.add(texture_image(width, height, rgba, ImageAddressMode::Repeat)))
+                .entry((name.to_ascii_lowercase(), width, height, palette_key))
+                .or_insert_with(|| light.palette.add(images,width,height,rgba,indexed,ImageAddressMode::Repeat))
                 .clone();
             (Vec4::ONE, Some(image), shading)
         }

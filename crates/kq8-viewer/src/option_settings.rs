@@ -72,9 +72,15 @@ pub fn brightness(game: &GameDir) -> u8 {
     Settings::from_script(&effective_script(game)).graphics.brightness
 }
 
-/// Fresh-screen palette adjustment; the display-gamma stage is still separate.
+pub fn palette_output(game: &GameDir) -> kq8_data::palette::Output {
+    let mode = Settings::from_script(&effective_script(game)).graphics.mode;
+    kq8_data::palette::Output::from_mode(&mode).unwrap_or(kq8_data::palette::Output::Direct3D)
+}
+
+/// Fresh-screen palette adjustment. The original brightness control does
+/// not select a display-gamma ramp (brightness.md Q186).
 pub fn screen_palette(game: &GameDir, colors: [[u8; 3]; 256]) -> [[u8; 3]; 256] {
-    kq8_data::palette::with_brightness(colors, brightness(game))
+    kq8_data::palette::for_output(colors, brightness(game), palette_output(game))
 }
 
 fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>> {
