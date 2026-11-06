@@ -17,6 +17,11 @@ and dispatches once; normal UI capture of that private buffer is not verified.
 All six roof/basilisk/orc lists pass an original-data check. Full quests,
 rock/hammer overlaps and pre-choice waiting-request behavior remain open.
 
+One-shot movements also send the original StartChoice callback on completion
+while keeping the measured directions and decision. A three-process check
+saves during an original gesture, resumes it once, saves its completed state
+and loads again to choose the roof exit. The animation event is fixture setup.
+
 ## Combat death saves (2026-11-06)
 
 Hit deaths retain their animation list, phase and dying hit guard after

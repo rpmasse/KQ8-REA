@@ -14,7 +14,7 @@ impl SavedChoice {
         self.state.valid() && self.pose.as_ref().is_none_or(SavedControllerPose::valid)
             && self.calls.len() <= 64
             && self.calls.iter().all(|args| match args.as_slice() {
-                [who, kind] => who.eq_ignore_ascii_case("Connor") && kind == "StartChoice" && !self.state.made,
+                [who, kind] => who.eq_ignore_ascii_case("Connor") && kind == "StartChoice",
                 [who, kind, number] => who.eq_ignore_ascii_case("Connor") && kind == "DoChoice" && self.state.made
                     && self.state.list.points.iter().any(|(n, _)| n == number),
                 _ => false,
@@ -35,6 +35,15 @@ impl SavedChoice {
 }
 
 impl ConnorSim {
+    /// Characters' Choice rule 9: an ended movement repeats the script's
+    /// entry callback without re-entering or measuring the directions again.
+    pub(super) fn choice_movement_ended(&mut self, movement: &str) {
+        let Some(choice) = &self.choice else { return; };
+        let script = choice.list.script.clone();
+        self.choice_calls.push(vec!["Connor".into(), "StartChoice".into()]);
+        self.log.detail(format!("connor update {}: Choice movement {movement} ended: {script} gets StartChoice; measured directions and decision kept (characters.md rule 9)", self.updates));
+    }
+
     pub fn saved_choice(&self) -> Option<SavedChoice> {
         let state = self.choice.clone()?;
         let saved = SavedChoice { state, pose: (self.walker.mode == Mode::Free).then(|| self.capture_controller_pose()), calls: self.choice_calls.clone() };
@@ -64,6 +73,9 @@ mod tests {
         assert!(saved.valid() && saved.compatible(true, true, false));
         assert!(!saved.compatible(true, false, false) && !saved.compatible(false, false, false));
         saved.state.made = true;
+        // An ended movement may notify even after a decision, while the
+        // script has left Connor in Choice (characters' rules 9 and 12).
+        assert!(saved.valid());
         saved.calls = vec![vec!["Connor".into(),"DoChoice".into(),"2".into()]];
         let restored: SavedChoice = serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();
         assert!(restored.valid() && restored.compatible(true, false, false) && restored.compatible(false, false, true));

@@ -173,6 +173,37 @@ The windmill checkpoint also covers movable props. Push the bale, collect the ax
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
 
+#### Choice movement-end callback (2026-11-06, implemented)
+
+Characters' Choice rule 9 calls StartChoice again when a non-repeating
+movement ends while the Choice controller owns Connor. Keep the existing
+measured directions and made flag; only actual re-entry (including a
+completed weapon swap) creates a fresh Choice. Capture ownership before
+the movement update so the end of a nested swap cannot create a second
+entry callback. Deliver through the existing same-update script pass.
+Keep ordinary animation-end listeners and other controller ends intact.
+
+Use the original roof trigger and a normal KQAnimPlayEvent requesting an
+installed one-shot gesture to reproduce the absent callback. Save during
+the gesture, load in a new process, let it finish, then save again. Require
+one resumed StartChoice, no repeated circle measurement, the same saved
+directions/made flag and no repeated callback while the last frame holds.
+Load that second slot in a third process and choose the ordinary roof exit
+once. Repeat the existing nested-swap check to rule out duplicate entry.
+The supplied animation event is an isolated controller check, not a normal
+campaign route or new original-engine tracing. No manual testing. Record
+results and failures in status, provenance and MODLOG before publishing.
+
+The baseline reproduced zero StartChoice callbacks after the resumed gesture
+ended (60.56 seconds). The fix passed the three-process check in 105.17
+seconds: one callback, identical Choice cache/made records in both slots,
+no repeated circle measurement and one exit decision after loading again.
+Regular core/data/audio/viewer checks pass 631/153/7/35 tests; viewer/test
+compilation passes without warnings. Both nested-swap stages also passed
+across four processes in 130.20 seconds, with one fresh entry each and no
+duplicate movement-end callback. Full Choice quests and waiting requests remain
+open; this check does not establish original executable runtime parity.
+
 #### Choice-state disk continuation (2026-11-06, implemented with open checks)
 
 Characters' Choice rules 1–13 require the original list, directions measured
