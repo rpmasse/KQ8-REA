@@ -16,6 +16,8 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 The next Daventry campaign replay currently stops at Henchman combat; the hero-ring route has not passed.
 
+Scripted character collision flags update live targeting and movement and survive save/load.
+
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
 
 ## Build and run

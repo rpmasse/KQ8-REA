@@ -7,6 +7,15 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Scripted character collision flags (2026-11-06)
+
+Scripts change the live character's collision type/mask, updating targeting,
+physical cylinders and building/terrain/Fall switches. Existing character
+checkpoints restore those switches too. Three core checks and the original
+Gnome fuse script's three-process save/reload check passed; the latter
+supplies equipment/position and disables AI, so the full dragon quest is
+not tested. Exact commands and limitations are in MODLOG.
+
 ## Reading the game's files
 
 Archives, images, palettes, 3D models, buildings, the ground of every

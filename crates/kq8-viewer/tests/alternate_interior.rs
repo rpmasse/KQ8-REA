@@ -1,4 +1,4 @@
-//! The original fuse-box script switches authored building lighting and restores it at Init.
+//! The original fuse-box script switches authored lighting and Dragon's live collision type at Init.
 use std::{fs, path::Path, process::Command};
 
 #[test]
@@ -37,6 +37,12 @@ fn original_gnome_fuse_switch_and_reload_use_authored_alternate_maps() {
             entry[0].as_str().is_some_and(|name| name.eq_ignore_ascii_case("Gnome::Dragon::lights")) && entry[1] == "on"
         }));
     };
+    let dragon_type = |save: &serde_json::Value, expected: u32| {
+        let dragon = save["kept"]["gnome"]["characters"].as_array().unwrap().iter()
+            .find(|actor| actor["name"].as_str().is_some_and(|name| name.eq_ignore_ascii_case("Dragon"))).unwrap();
+        assert_eq!(dragon["character"]["collision_type"], expected, "inspect {}", root.display());
+        assert_eq!(dragon["character"]["collision_mask"], 0x281f);
+    };
     let (first, first_script) = run("install-fuse", &["--world", "Gnome",
         "--command", "move Connor 0 99200 127000 15525 0 0 1.57,10",
         "--item", "INVITEM_ShardFuse", "--click", "fusebox,15", "--frames", "1700",
@@ -45,9 +51,12 @@ fn original_gnome_fuse_switch_and_reload_use_authored_alternate_maps() {
     assert!(first_script.contains("script fusebox.cs fusebox ConnorAction"));
     assert_eq!(first_script.matches("sendEvent 0 Connor KQStatsChangeRequestEvent 0 0 0 0 50000").count(), 1);
     quest_on(&read(1));
+    dragon_type(&read(1), 0x4042);
+    assert!(first_script.contains("collisionType Dragon +64: 0x4002 -> 0x4042"));
     assert!(!read(1)["journey"]["items"].as_array().unwrap().iter().any(|item| item["kind"] == "INVITEM_ShardFuse" && item["quantity"].as_i64().unwrap() > 0));
     let (second, second_script) = run("reload-and-override-permanent", &["--menu-input", "down,enter,release,enter,release", "--frames", "1900",
         "--console", "useAlternateLightmap gnome13 0,10", "--console", "useAlternateLightmap gnome13 0,12",
+        "--console", "KQObject::collisionType Dragon -64,10", "--console", "KQObject::collisionType Dragon -64,12",
         "--console", "useAlternateLightmap gnome14 1,15",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=PermanentOverride:enter:release:down:down:down:enter:release:left:enter:release,35"]);
     check_on(&second);
@@ -55,12 +64,15 @@ fn original_gnome_fuse_switch_and_reload_use_authored_alternate_maps() {
     assert!(!second.contains("interior lighting gnome14: alternate 0"));
     assert!(!second_script.contains("KQStatsChangeRequestEvent 0 0 0 0 50000"));
     quest_on(&read(2));
+    dragon_type(&read(2), 0x4002);
     // Permanent scenery reloads fresh; the real quest Init chooses the map,
     // not the previous process's temporary console override.
     let (third, third_script) = run("quest-init-restores-lighting", &["--menu-input", "down,enter,release,down,enter,release", "--frames", "1900",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=RestoredFuseLights:enter:release:down:down:down:enter:release:left:enter:release,25"]);
     check_on(&third); assert!(!third_script.contains("KQStatsChangeRequestEvent 0 0 0 0 50000"));
     quest_on(&read(3));
+    dragon_type(&read(3), 0x4042);
+    assert!(third_script.contains("collisionType Dragon +64: 0x4002 -> 0x4042"));
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), original_options);
 }
 

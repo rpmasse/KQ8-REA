@@ -317,6 +317,7 @@ impl KeptInteractions {
         for (name, actor) in &self.special_actors {
             actor.apply(w, name);
         }
+        w.update_character_colliders();
     }
 
     /// Apply before making the renderer and collision objects, so they

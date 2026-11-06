@@ -173,6 +173,42 @@ The windmill checkpoint also covers movable props. Push the bale, collect the ax
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
 
+#### Live character collision flags from scripts (2026-11-06, implemented)
+
+The original Gnome fusebox.cs adds/removes bit 64 on Dragon. Character
+fields already exist and feed aiming, projectiles and physical cylinders,
+but collisionType/collision dispatch only reaches other object kinds (or
+changes a character's duplicate click box alone). Follow doors' collisionType
+bit-add/remove rule, traps' collision-mask rule, characters rule 8 and the
+ranged weapon masks: resolve the live character first, change its real type
+or mask, refresh its click proxy and current collision cylinders, and derive
+building/terrain/Fall switches from the new fields. Do not alter monster
+health, AI, reach or timing. Keep death/hidden/range eligibility intact.
+
+Use one character setter for collision fields and derived mover switches;
+apply it when restoring existing character checkpoints too. Those records
+already carry type/mask, so no new save format is needed. Check scripted
+changes with and without click proxies, bit addition/removal/zero refusal,
+aim picking before/after bit 64, physical type/mask refresh and saved mover
+flags. Extend the original Gnome fuse item/save/reload scenario to assert
+Dragon's actual recorded type (0x4002 off, 0x4042 on), plus a deliberate
+temporary change and another restore. The known lighting effects must still
+pass. Treat this as an isolated quest-gating/checkpoint check, not the full
+dragon fight, fuse quest or campaign. No manual testing or executable study;
+the Henchman/Q190 stop remains in effect. Update provenance/status/README,
+run appropriate core/viewer checks and publish to the fork.
+
+Implemented: live characters take precedence over duplicate click boxes,
+and both commands update their fields, derived mover switches, live click
+type and current collision cylinders. Placed, spawned and Special character
+restoration uses the same setter. Three core checks cover aiming, masks,
+zero refusal, both checkpoint paths, retired proxies and collider eligibility.
+The original Gnome three-process check passed in 68.09 seconds: its fuse
+script saves Dragon as 0x4042, a temporary override saves 0x4002, and the
+next quest Init restores 0x4042, with mask 0x281f throughout. Both authored
+light-map choices and reward/consumption assertions still pass. This does
+not establish the full dragon encounter or resolve Q190/Q191.
+
 #### Authored alternate interior light maps (2026-11-06, implemented)
 
 `object-lighting.md` rule 12 specifies a missing campaign effect:
