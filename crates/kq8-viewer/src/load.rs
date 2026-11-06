@@ -3536,7 +3536,9 @@ impl Placer<'_> {
         // Dead City's scale.kq has both shapeName and an animation list.
         // Its displayed model comes from the selected movement (sclf.kqs).
         let anim_object = p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQAnimObject"));
-        if p.shape.is_none() || anim_object {
+        // characters.md rules 2, 6: animFile supplies the character's
+        // movements even when its .kq also names a static shape (Sylph).
+        if p.shape.is_none() || anim_object || character.is_some() {
             match kq8_data::objects::current_loop(&file, s) {
                 Ok(Some(c)) => {
                     p.shape = Some(c.shape.clone());
@@ -4177,13 +4179,14 @@ impl Placer<'_> {
             min: [num("BBMinX").unwrap_or(0.0), num("BBMinY").unwrap_or(0.0), num("BBMinZ").unwrap_or(0.0)],
             max: [num("BBMaxX").unwrap_or(0.0), num("BBMaxY").unwrap_or(0.0), num("BBMaxZ").unwrap_or(0.0)],
             script: s.get("script").map(|v| v.trim().to_string()).filter(|v| !v.is_empty()),
+            lookup_call: num("lookupCall").is_some_and(|n| n != 0.0),
             mask,
             trap_type,
             inner_percent: num("innerPercent"),
         };
         self.log.detail(format!(
-            "trap {label}[{}] at ({:.0}, {:.0}, {:.0}): box {:?}..{:?}, mask {mask:#x}, trapType {trap_type}, innerPercent {:?}, script {:?}",
-            p.name, p.position[0], p.position[1], p.position[2], settings.min, settings.max, settings.inner_percent, settings.script
+            "trap {label}[{}] at ({:.0}, {:.0}, {:.0}): box {:?}..{:?}, mask {mask:#x}, trapType {trap_type}, innerPercent {:?}, script {:?}, lookupCall {}",
+            p.name, p.position[0], p.position[1], p.position[2], settings.min, settings.max, settings.inner_percent, settings.script, settings.lookup_call
         ));
         self.traps.push(settings);
         self.located.insert(p.name.to_ascii_lowercase(), Located { position: p.position, angles: p.angles, drawn: Drawn::Nothing });
@@ -6365,5 +6368,50 @@ mod scripted_footstep_checks {
             assert_eq!(a.world.footstep_types.get("temple_e"), Some(&expected));
             assert_eq!(kq8_core::sound::footstep_set(kq8_core::sound::building_floor_flags(Some(expected))), Some(set));
         }
+    }
+}
+
+#[cfg(test)]
+mod trap_lookup_checks {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn original_deadcity_plate_lookup_flags_activate_their_twelve_objects() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let world = World::open(&game, "DeadCity").unwrap();
+        let mut log = Log::create("trap-lookup-data").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let sylph = objects.animated.iter().find(|a| objects.placed[a.placed].0.name.eq_ignore_ascii_case("Sylph"))
+            .expect("the shapeName key must not exclude Sylph's animFile character");
+        assert_eq!(sylph.source_file, "sylf22.kq");
+        assert!(sylph.character.is_some());
+        assert_eq!(sylph.movements.len(), 17);
+        assert!(!objects.placed[sylph.placed].2);
+        let mut flagged: Vec<_> = objects.traps.iter().filter(|t| t.lookup_call).map(|t| t.name.to_ascii_lowercase()).collect();
+        flagged.sort();
+        assert_eq!(flagged, ["trptrp12", "trptrp13", "trptrp14", "trptrp15"]);
+        assert!(objects.traps.iter().any(|t| !t.lookup_call));
+        let mut a = kq8_core::active::Active::new(objects.vars.clone(), vec![], vec![], objects.known.clone(), objects.scripts.clone());
+        a.add_traps(objects.traps.iter().filter(|t| t.lookup_call).cloned().map(kq8_core::trap::Trap::new));
+        a.start();
+        assert_eq!(a.world.queue.len(), 4);
+        assert!(a.world.requests.is_empty(), "Lookup ran synchronously during Init");
+        a.update();
+        let mut activated: Vec<_> = a.world.requests.iter().filter_map(|r| match r {
+            kq8_core::active::Request::MakeActive { name, on: true, .. } => Some(name.to_ascii_lowercase()), _ => None }).collect();
+        activated.sort();
+        let mut expected: Vec<_> = (12..=15).flat_map(|i| [format!("trptrp{i}"), format!("block{i}"), format!("trip{i}")]).collect();
+        expected.sort();
+        assert_eq!(activated, expected);
+        let events = serde_json::to_value(a.world.saved_events()).unwrap();
+        let waiting = events["waiting"].as_array().unwrap();
+        assert_eq!(waiting.len(), 1);
+        assert_eq!(waiting[0]["target"], "trptrp12");
+        assert_eq!(waiting[0]["kind"], "KQCueEvent");
+        // The first callback ran at time zero; update() has now advanced the
+        // world clock by one tick, so the saved remaining interval is shorter.
+        assert!((waiting[0]["seconds_remaining"].as_f64().unwrap() + a.world.now() - 0.1).abs() < 1e-6);
     }
 }

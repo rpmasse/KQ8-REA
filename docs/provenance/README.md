@@ -3954,3 +3954,9 @@ Replaces the "smaller pictures tiled" stand-in (4c-1, 4c-8).
 | Fact | Source | Checked by |
 | --- | --- | --- |
 | A movement started at once starts at its phase 0 (its `loop=` start) | `anim-scripts.md` rules 4–5; **ours**: the drawing takes that phase in the same update | `connor.log` "drawn from phase 0.0000" at 2819, 2864 |
+
+## 2026-11-06 Generic trap Lookup and character shape fallback
+
+`kq8-core` trap metadata, queued notices, runtime post-Init delivery and disk-restore reconciliation follow [traps rule 15a](../behaviour/traps.md). The private notice name is ours; it does not claim an original event class. The note leaves the precise queue-service moment uncertain and says restore delivery came from earlier study, not its latest recheck. Pending notices use the existing event checkpoint and are not duplicated on restore. The installed GOG Dead City `trptrp12`–`15` metadata and scripts supply the flags, twelve activation requests and delayed Sylph placement rule. Core checks cover ordering, live/script/flag guards and pending-event restoration; the original-data check and four-process Windows check cover all-up/all-down saved flags. These are isolated scripted reconciliation checks with AI disabled, not full-puzzle or campaign parity.
+
+The original `sylf22.kq` supplies both `shapeName=sylfstop.kqs` and `animFile=sylph.anm`. [Characters rules 2, 6 and 12](../behaviour/characters.md) require the character's animation list; its static shape key must not prevent live character registration. The loader now selects the list for a successfully loaded character, and the GOG check requires Sylph's 17 movements and active placement. The fresh-process checks retain and change her actual character placement through the original plate scripts. No executable, disassembly or decompiled output was read by this implementation session.

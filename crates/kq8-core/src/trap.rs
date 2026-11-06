@@ -58,6 +58,8 @@ pub struct TrapSettings {
     pub min: [f32; 3],
     pub max: [f32; 3],
     pub script: Option<String>,
+    /// Post-load script callback, after Init (traps.md rule 15a).
+    pub lookup_call: bool,
     pub mask: u32,
     pub trap_type: u32,
     /// `innerPercent` (a share, e.g. 0.9), `None` if not given.
@@ -269,6 +271,7 @@ mod tests {
             min: [-300.0, -300.0, 0.0],
             max: [300.0, 300.0, 1000.0],
             script: Some("walk_la.cs".into()),
+            lookup_call: false,
             mask: 4,
             trap_type,
             inner_percent: inner,

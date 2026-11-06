@@ -62,6 +62,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+// Our private queue notice, not a script-visible original event class name.
+const TRAP_LOOKUP_EVENT: &str = "__kq8_trap_lookup";
+
 use kq8_data::world_script::Vars;
 
 use crate::chest::{Chest, ChestState};
@@ -2273,7 +2276,7 @@ impl WorldState {
         }
         self.requests.push(Request::Load { file: key, name: name.clone(), at: at.to_string() });
         if let Some(script) = script {
-            self.calls_out.push((script, vec![name, "Init".into()]));
+            self.calls_out.push((script, vec![name.clone(), "Init".into()]));
         }
         "0".into()
     }
@@ -3824,6 +3827,20 @@ pub(crate) fn tuple_of(words: &[String]) -> Option<Tuple> {
 }
 
 impl WorldState {
+    fn queue_trap_lookup(&mut self, i: usize, reason: &str) {
+        let t = &self.traps[i];
+        if t.gone || !t.settings.lookup_call || t.settings.script.is_none() || self.is_gone(&t.settings.name)
+            || self.queue.has_target_kind(&t.settings.name, TRAP_LOOKUP_EVENT) { return; }
+        let name = t.settings.name.clone();
+        self.queue.send(self.now(), 0.0, &name, TRAP_LOOKUP_EVENT, &[], reason);
+        self.note(format!("trap {name}: Lookup notice queued after {reason} (traps.md rule 15a)"));
+    }
+
+    /// Post-load notices are idempotent while one is already waiting.
+    pub fn queue_trap_lookups(&mut self, reason: &str) {
+        for i in 0..self.traps.len() { self.queue_trap_lookup(i, reason); }
+    }
+
     /// The `KQMonster` (or Connor) called `name`, as the world writes it
     /// (`talking.md` rule 6).
     pub(crate) fn monster_name(&self, name: &str) -> Option<String> {
@@ -4390,6 +4407,16 @@ impl ScriptHost for WorldState {
 
     fn take_calls(&mut self) -> Vec<(String, Vec<String>)> {
         std::mem::take(&mut self.calls_out)
+    }
+
+    fn call_returned(&mut self, script: &str, args: &[String]) {
+        if args.get(1).is_some_and(|a| a == "Init") {
+            if let Some(i) = args.first().and_then(|name| self.trap_index(name)) {
+                if self.traps[i].settings.script.as_deref().is_some_and(|s| s.eq_ignore_ascii_case(script)) {
+                    self.queue_trap_lookup(i, "runtime trap Init");
+                }
+            }
+        }
     }
 
     fn event_done(&mut self) {
@@ -5223,6 +5250,7 @@ impl Active {
                 continue;
             }
             self.call_trap(i, &["Init"]);
+            self.world.queue_trap_lookup(i, "trap Init");
         }
     }
 
@@ -6242,6 +6270,19 @@ impl Active {
 
     fn handle(&mut self, e: Pending) {
         let from = if e.from.is_empty() { String::new() } else { format!(" (sent by {})", e.from) };
+        if e.kind == TRAP_LOOKUP_EVENT {
+            let trap = self.world.trap_index(&e.target).filter(|&i| {
+                let t = &self.world.traps[i];
+                !t.gone && t.settings.lookup_call && t.settings.script.is_some() && !self.world.is_gone(&e.target)
+            });
+            if let Some(i) = trap {
+                self.world.note(format!("trap {}: Lookup notice delivered{from}", e.target));
+                self.call_trap(i, &["Lookup"]);
+            } else {
+                self.world.note(format!("trap {}: Lookup notice dropped (no live flagged scripted trap){from}", e.target));
+            }
+            return;
+        }
         // sound.md rule 57f: a script's push or pop, now due.
         if e.target == MUSIC_TARGET {
             let name = e.data.first().cloned().unwrap_or_default();
@@ -6822,6 +6863,7 @@ KQObject::setScript nobody new.cs
             min: [-500.0, -500.0, 0.0],
             max: [500.0, 500.0, 1000.0],
             script: Some("trap.cs".into()),
+            lookup_call: false,
             mask: 4,
             trap_type: 0,
             inner_percent: None,
@@ -6931,7 +6973,7 @@ endif
         // `henchtp.kq` when Connor takes the axe; its box counts from then.
         use crate::trap::TrapSettings;
         let mut a = Active::new(Vars::default(), vec![], vec![], ["Connor".to_string()], [("trap.cs".to_string(), TRAP.as_bytes().to_vec())]);
-        let settings = TrapSettings { name: "Henchtp".into(), position: [0.0; 3], min: [-500.0, -500.0, 0.0], max: [500.0, 500.0, 500.0], script: Some("trap.cs".into()), mask: 4, trap_type: 0, inner_percent: None };
+        let settings = TrapSettings { name: "Henchtp".into(), position: [0.0; 3], min: [-500.0, -500.0, 0.0], max: [500.0, 500.0, 500.0], script: Some("trap.cs".into()), lookup_call: false, mask: 4, trap_type: 0, inner_percent: None };
         a.add_traps([Trap { gone: true, ..Trap::new(settings) }]);
         a.set_dormant([("henchtp.kq".to_string(), "Henchtp".to_string(), Some("trap.cs".to_string()))]);
         a.start();
@@ -10195,5 +10237,73 @@ mod scripted_footstep_tests {
             assert_eq!(a.world.world_command(&words(command), "test"), Some("1".into()));
             assert_eq!(a.world.footstep_types, before);
         }
+    }
+}
+
+#[cfg(test)]
+mod trap_lookup_tests {
+    use super::*;
+
+    const SCRIPT: &str = "if test $2 == Init\n inc T::Init\n sendEvent 0 $1 KQCueEvent 99 0\nelse if test $2 == Lookup\n inc T::Lookup\n set T::Args $1 $2\n set T::InitCueSeen $T::InitCue\n exist Late\n set T::LateKnown $Console::Return\nelse if test $2 == Cue\n set T::InitCue done\nendif\nendif\nendif\n";
+
+    fn fixture(flag: bool, script: bool, gone: bool) -> Active {
+        let mut a = Active::new(Default::default(), vec![], vec![], ["Connor".into()], [("gate.cs".into(), SCRIPT.as_bytes().to_vec())]);
+        let mut t = Trap::new(crate::trap::TrapSettings { name: "Gate".into(), position: [0.0; 3], min: [0.0; 3], max: [1.0; 3],
+            script: script.then(|| "gate.cs".into()), lookup_call: flag, mask: 4, trap_type: 0, inner_percent: None });
+        t.gone = gone;
+        a.add_traps([t]);
+        a
+    }
+
+    #[test]
+    fn lookup_waits_for_queue_service_and_pending_restore_does_not_duplicate_it() {
+        let mut a = fixture(true, true, false);
+        a.start();
+        assert_eq!(a.scripts.vars.get("T::Init"), Some("1"));
+        assert_eq!(a.scripts.vars.get("T::Lookup"), None);
+        let pending = a.world.saved_events();
+        let mut loaded = fixture(true, true, false);
+        loaded.start();
+        loaded.world.restore_events(pending);
+        loaded.world.queue_trap_lookups("restore");
+        loaded.world.queue_trap_lookups("same pending restore");
+        assert_eq!(loaded.world.queue.len(), 2);
+        loaded.world.known.insert("late".into());
+        loaded.update();
+        assert_eq!(loaded.scripts.vars.get("T::Lookup"), Some("1"));
+        assert_eq!(loaded.scripts.vars.get("T::Args"), Some("Gate Lookup"));
+        assert_eq!(loaded.scripts.vars.get("T::InitCueSeen"), Some("done"));
+        assert_eq!(loaded.scripts.vars.get("T::LateKnown"), Some("0"));
+        assert_eq!(loaded.scripts.vars.get("T::Init"), Some("1"));
+        let completed = loaded.world.saved_events();
+        loaded.world.restore_events(completed);
+        loaded.world.queue_trap_lookups("another restore after completion");
+        loaded.update();
+        assert_eq!(loaded.scripts.vars.get("T::Lookup"), Some("2"));
+        assert_eq!(loaded.scripts.vars.get("T::Init"), Some("1"));
+    }
+
+    #[test]
+    fn lookup_requires_a_live_flagged_script_and_runs_after_runtime_load_init() {
+        for (flag, script, gone) in [(false, true, false), (true, false, false), (true, true, true)] {
+            let mut a = fixture(flag, script, gone);
+            a.start(); a.update();
+            assert_eq!(a.scripts.vars.get("T::Lookup"), None);
+        }
+        let mut removed = fixture(true, true, false);
+        removed.start(); removed.world.traps[0].gone = true; removed.update();
+        assert_eq!(removed.scripts.vars.get("T::Lookup"), None);
+        let mut late = fixture(true, true, true);
+        late.set_dormant([("gate.kq".into(), "Gate".into(), Some("gate.cs".into()))]);
+        late.start();
+        assert_eq!(late.scripts.vars.get("T::Init"), None);
+        late.console_command("loadKQ gate.kq", "test runtime load");
+        assert_eq!(late.scripts.vars.get("T::Init"), Some("1"));
+        assert_eq!(late.scripts.vars.get("T::Lookup"), None);
+        late.world.known.insert("late".into());
+        late.update();
+        assert_eq!(late.scripts.vars.get("T::Lookup"), Some("1"));
+        assert_eq!(late.scripts.vars.get("T::InitCueSeen"), Some("done"));
+        assert_eq!(late.scripts.vars.get("T::LateKnown"), Some("0"));
     }
 }

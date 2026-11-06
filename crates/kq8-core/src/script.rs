@@ -98,6 +98,9 @@ pub trait ScriptHost {
     fn take_calls(&mut self) -> Vec<(String, Vec<String>)> {
         Vec::new()
     }
+    /// A synchronous host-requested script has returned, before the
+    /// command following it runs (e.g. a loaded trap's Init).
+    fn call_returned(&mut self, _script: &str, _args: &[String]) {}
     /// The script run of one event (a [`Scripts::call`] and what it ran)
     /// has finished (`clicking.md` rule 22: deleted names are freed then).
     fn event_done(&mut self) {}
@@ -343,6 +346,7 @@ impl Scripts {
         for (script, args) in host.take_calls() {
             host.log(format!("{at}: runs {script} {} at once", args.join(" ")));
             self.run(&script, &args, host, depth + 1);
+            host.call_returned(&script, &args);
         }
         result
     }
