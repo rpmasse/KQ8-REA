@@ -509,6 +509,22 @@ Inventory the original weapons, ammunition, enemy attacks, damage rules and diff
 
 ### M6 · Complete saves and the campaign
 
+**Windmill exit handoff.** Both earlier runs fired Henchtp at tick 49, but
+the replay kept seeking its obsolete coordinate after the cutscene. In the
+second run it accepted the doorway while running east and hit the windmill
+wall. The earlier retreat produced a real spear miss and an axe hit. The
+later timing experiment did not reach combat. Those duel attempts are closed.
+
+**Next replay check.** Track Henchtp's original activation and the end of
+the scene when `ax.cs` returns control and removes its scene object. Walk
+outward through the actual doorway, recording an outside position and
+westward progress before proceeding. Replay from the same genuinely earned
+Small Axe save in two independent processes and verify arrival at the first
+live guard attack. Preserve the measured retreat tactic, ordinary player
+controls, AI and damage. Record the continuation's actual stopping point.
+
+**Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
+
 The windmill checkpoint also covers movable props. Push the bale, collect the axe, save while standing on the bale and relaunch. Check that the bale still supports Connor, the axe remains at its scripted location, and a second save preserves both positions. Permanent scenery reloads from the original world files.
 
 1. **Persist the world.** Restore Connor, inventory, quest flags, doors, containers, items, bodies, timers, terrain and map progress across travel and disk saves according to the original's rules. Automate opening the cottage door, collecting five mushrooms, consuming one, saving, quitting, launching a new process and loading. Verify four mushrooms, the expected door state and a working next interaction. Repeat across a Daventry–CastleD round trip.

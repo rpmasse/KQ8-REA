@@ -23,12 +23,28 @@ struct Landmark {
     break_object: Option<String>,
     /// Omit to preserve the earlier replay's Shift+click; false is a plain click.
     big_swing: Option<bool>,
+    /// Bait a stationary opponent's attack, step outside reach and return.
+    #[serde(default)]
+    retreat: bool,
+    /// Walk toward a one-shot trigger until its script takes over; wait for
+    /// the original scene to delete its controller and return player control.
+    scene: Option<Scene>,
+    /// Accept a doorway landmark only when moving in its outward direction.
+    direction: Option<[f32; 2]>,
+}
+
+#[derive(Deserialize)]
+struct Scene {
+    trigger: String,
+    controller: String,
 }
 
 #[derive(Resource, Deserialize, Default)]
 pub struct Replay {
     start: u64,
     landmarks: VecDeque<Landmark>,
+    /// Diagnostic boundary. The full campaign continues by default.
+    stop_on_attack: Option<String>,
     #[serde(skip)]
     held: Vec<KeyCode>,
     #[serde(skip)]
@@ -39,6 +55,21 @@ pub struct Replay {
     jumped: Option<u64>,
     #[serde(skip)]
     fight_start: Option<u64>,
+    #[serde(skip)]
+    exchange: Exchange,
+    #[serde(skip)]
+    live_trigger_at: Option<u64>,
+    #[serde(skip)]
+    previous_xy: Option<[f32; 2]>,
+}
+
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
+enum Exchange {
+    #[default]
+    Bait,
+    Withdraw,
+    Return,
+    Swing,
 }
 
 impl Replay {
@@ -50,6 +81,9 @@ impl Replay {
             || replay.landmarks.iter().any(|l| {
                 l.name.is_empty()
                     || (l.fight.is_some() && l.break_object.is_some())
+                    || (l.retreat && l.fight.is_none())
+                    || l.scene.as_ref().is_some_and(|s| s.trigger.is_empty() || s.controller.is_empty())
+                    || l.direction.is_some_and(|d| !d.iter().all(|v| v.is_finite()) || d == [0., 0.])
                     || !l.xy.iter().all(|v| v.is_finite())
                     || l.jump_toward
                         .is_some_and(|point| !point.iter().all(|v| v.is_finite()))
@@ -95,16 +129,24 @@ pub fn steer(
     replay.last_tick = Some(sim.updates);
     let Some(doors) = doors else { return };
     let world = &doors.active.world;
-    let health = world.connor_stats.map(|c| c.stats.0[0]);
-    if health.is_some_and(|hp| hp < 0) {
-        shared
-            .log
-            .lock()
-            .unwrap()
-            .summary(format!("walk-route: Connor died on update {}", sim.updates));
+    let pos = sim.mover.position;
+    let previous = replay.previous_xy.replace([pos[0], pos[1]]);
+    if world.connor_death_entered || sim.walker.mode == kq8_core::connor::Mode::Dead {
+        shared.log.lock().unwrap().summary(format!("walk-route: Connor entered Die on update {}", sim.updates));
         replay.keys(&mut keys, &[]);
         exit.write(AppExit::error());
         return;
+    }
+    if let Some(name) = replay.stop_on_attack.as_deref() {
+        if world.character_index(name).is_some_and(|i| world.anims[i].player.movement_name().eq_ignore_ascii_case("Attack")) {
+            shared.log.lock().unwrap().summary(format!(
+                "walk-route observed {name} attacking on update {} at ({:.0}, {:.0}, {:.0})",
+                sim.updates, pos[0], pos[1], pos[2]
+            ));
+            replay.keys(&mut keys, &[]);
+            exit.write(AppExit::Success);
+            return;
+        }
     }
     if let Some(tick) = replay.jumped {
         replay.keys(&mut keys, &[]);
@@ -123,15 +165,45 @@ pub fn steer(
     if replay.landmarks.is_empty() {
         return;
     }
+    if let Some(scene) = replay.landmarks.front().and_then(|l| l.scene.as_ref()) {
+        let live = world.trap_index(&scene.trigger).is_some_and(|i| !world.traps[i].gone);
+        if replay.live_trigger_at.is_none() {
+            if !live || world.is_deleted(&scene.controller) {
+                shared.log.lock().unwrap().summary(format!("walk-route: expected live {} and {}", scene.trigger, scene.controller));
+                exit.write(AppExit::error());
+                return;
+            }
+            replay.live_trigger_at = Some(sim.updates);
+        } else if sim.updates - replay.live_trigger_at.unwrap() > 1200 {
+            shared.log.lock().unwrap().summary(format!("walk-route: timed out waiting for {}", scene.controller));
+            exit.write(AppExit::error());
+            return;
+        } else if world.is_deleted(&scene.trigger) {
+            let finished = world.is_deleted(&scene.controller) && !sim.hands_off;
+            replay.keys(&mut keys, &[]);
+            if finished {
+                let point = replay.landmarks.pop_front().unwrap();
+                replay.live_trigger_at = None;
+                replay.progress = None;
+                shared.log.lock().unwrap().summary(format!(
+                    "walk-route scene complete at {} on update {}: ({:.0}, {:.0}, {:.0}), control returned",
+                    point.name, sim.updates, pos[0], pos[1], pos[2]
+                ));
+            }
+            return;
+        }
+    }
     if sim.hands_off {
         replay.progress = None;
         replay.keys(&mut keys, &[]);
         return;
     }
     let landmark = replay.landmarks.front().unwrap();
-    let pos = sim.mover.position;
     let distance = (landmark.xy[0] - pos[0]).hypot(landmark.xy[1] - pos[1]);
-    if distance <= landmark.radius {
+    let moving_out = landmark.direction.is_none_or(|d| previous.is_some_and(|p|
+        (pos[0] - p[0]) * d[0] + (pos[1] - p[1]) * d[1] > 0.));
+    if (landmark.scene.is_none() && distance <= landmark.radius && moving_out) || (landmark.retreat && replay.fight_start.is_some()) {
+        let retreat = landmark.retreat;
         if let Some(name) = landmark.fight.clone().or_else(|| landmark.break_object.clone()) {
             let big_swing = landmark.big_swing.unwrap_or(true);
             let alive = if landmark.break_object.is_some() {
@@ -161,6 +233,25 @@ pub fn steer(
                 return;
             }
             if alive {
+                if retreat {
+                    let guard = world.character_index(&name).and_then(|i| {
+                        let target = &world.anims[i];
+                        Some((&target.player, target.character.as_ref()?.ai.as_ref()?.settings.attack_dist))
+                    });
+                    let Some((player, enemy_reach)) = guard else {
+                        shared.log.lock().unwrap().summary(format!("walk-route: no active guard settings for {name}"));
+                        exit.write(AppExit::error());
+                        return;
+                    };
+                    let GuardInput { movement, swing } = replay.guard_input(
+                        &sim, player, enemy_reach, world.weapon_ready.is_some(),
+                    );
+                    if swing {
+                        swings.0.push((name, tick, false));
+                    }
+                    replay.keys(&mut keys, &movement);
+                    return;
+                }
                 let mut wanted = Vec::new();
                 if tick % 8 == 0
                     && world
@@ -207,6 +298,7 @@ pub fn steer(
         }
         let point = replay.landmarks.pop_front().unwrap();
         replay.fight_start = None;
+        replay.exchange = Exchange::Bait;
         replay.progress = None;
         replay.keys(&mut keys, &[]);
         shared.log.lock().unwrap().summary(format!(
@@ -253,6 +345,63 @@ pub fn steer(
         replay.progress = Some((distance, sim.updates));
     }
     replay.keys(&mut keys, &wanted);
+}
+
+struct GuardInput {
+    movement: Vec<KeyCode>,
+    swing: bool,
+}
+
+impl Replay {
+    /// Read the guard's visible spear animation, then use the same movement
+    /// keys and normal swing that a player can use. The guard stands still.
+    fn guard_input(&mut self, sim: &ConnorSim, enemy: &kq8_core::named_anim::NamedAnimPlayer,
+        reach: f32, armed: bool) -> GuardInput {
+        let mut input = GuardInput { movement: Vec::new(), swing: false };
+        let pos = sim.mover.position;
+        let target = enemy.base.position;
+        let distance = ((pos[0] - target[0]).powi(2) + (pos[1] - target[1]).powi(2) + (pos[2] - target[2]).powi(2)).sqrt();
+        let error = wrap(heading_towards(pos, [target[0], target[1]]) - sim.walker.heading);
+        let attack = enemy.movement_name().eq_ignore_ascii_case("Attack");
+        let windup = attack && enemy.phase < 0.5;
+        if !armed {
+            if sim.updates % 20 == 0 { input.movement.extend(sim.controls.draw); }
+            return input;
+        }
+        if self.exchange == Exchange::Swing && sim.swing.is_none() {
+            self.exchange = Exchange::Bait;
+        }
+        if windup && self.exchange != Exchange::Swing {
+            self.exchange = Exchange::Withdraw;
+        } else if self.exchange == Exchange::Withdraw && !windup {
+            self.exchange = Exchange::Return;
+        }
+        if self.exchange == Exchange::Swing {
+            return input;
+        }
+        input.movement.extend(turn_key(sim, error));
+        if error.abs() > 0.5 {
+            return input;
+        }
+        match self.exchange {
+            Exchange::Bait => {
+                if distance > reach - 40. { input.movement.extend(sim.controls.forward); }
+            }
+            Exchange::Withdraw => {
+                // The spear reaches farther if Back is held at its hit.
+                // Release Back as soon as the ordinary reach is cleared.
+                if distance < reach + 60. { input.movement.extend(sim.controls.back); }
+            }
+            Exchange::Return => {
+                // Aim just inside Connor's original 2350-unit hand reach.
+                if distance > 2280. { input.movement.extend(sim.controls.forward); }
+                else if sim.swing.is_some() { self.exchange = Exchange::Swing; }
+                else { input.swing = true; }
+            }
+            Exchange::Swing => {}
+        }
+        input
+    }
 }
 
 fn turn_key(sim: &ConnorSim, error: f32) -> Option<KeyCode> {

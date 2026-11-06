@@ -35,14 +35,57 @@ from that earned state into the original Henchtp/ax/Henchman cutscene, with
 AI and damage enabled. Its standing charged-attack and normal-attack attempts
 both died at the Henchman, at updates 761/762. No ring was obtained; later
 path landmarks, the tomb guard, coffin and ring reload remain untested.
-The candidate route is deliberately retained as an ignored failing scenario,
-with the two-attempt handoff in STATUS.md and Q190 for missing encounter
-evidence. These failures do not by themselves prove an engine bug.
+Q190 subsequently established how this stationary guard starts and completes
+an attack, the reach check at its hit cue and the Wait attack deadline.
+
+Two later unattended attempts used the same earned windmill save with 30
+health, one Small Axe, zero mushrooms, normal damage and enemy AI enabled.
+The first attempted retreat made the spear miss at update 756 at a distance
+of 2,663 units with a reach of 2,500. Connor returned with a normal axe
+swing at update 771 and dealt 38 damage, bringing the Henchman from 300 to
+262 health. A spear hit during Connor's recovery dealt 20 damage at update
+779. The next hit at 802 dealt 12. Connor was still backing at 2,578 units,
+inside the extended 3,125 reach, and died.
+
+The second attempt changed the return and recovery timing. It ended at a
+different obstacle before the first spear swing. Both runs activated the
+original Henchtp at update 49, before the walking route recorded its trigger
+landmark at updates 641 and 646 respectively. In the first run Connor crossed
+the exit westward. In the second he counted the exit landmark while running
+east into the mill. His stopping animation reached the wall at 731, he hit
+it head-on at 753, and the replay stopped at 906 at (142576, 249434, 15338).
+The cause of the different arrival heading is undetermined. The timing
+revision has no observed combat result. Further duel attempts stopped at the
+two-attempt limit.
+
+The replay now follows the authored trigger instead of returning to its
+coordinates after the scene. It first observes the live trigger, steers
+toward it, then releases movement as its script consumes it. The final
+speech returns player control and removes the axe's scene object. From there
+the replay accepts the exit only when Connor is outside and moving west.
+Two independent Windows processes loaded copies of the same earned save.
+Both recorded Henchtp activating at update 49, the scene finishing at 603
+and an outward crossing at 614. The Henchman's first live attack began at
+updates 635 and 629 respectively. The navigation check ends at attack
+startup. The full campaign route retains the earlier measured retreat; the
+revised return timing from the second attempt remains unverified.
+
+With `KQ8_GAME_DIR` and the earned `KQ8_AXE_SLOT` set, reproduce just the
+navigation check with:
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_hero_ring earned_windmill_exit -- --ignored --nocapture
+```
+
+The tomb door and ring scripts do not test whether the Henchman died.
+Walking around the guard after the scene is a separate, untested approach.
+The duel, overland path, tomb guard, coffin, ring pickup and disk reload are
+still open.
 
 To reproduce the full candidate chain, run the following from the repository
-root with `KQ8_GAME_DIR` set. It currently fails at the encounter. An optional
+root with `KQ8_GAME_DIR` set. It is an ignored diagnostic. An optional
 `KQ8_AXE_SLOT` can point to an earned windmill slot-3.json to repeat only the
-new leg. Do not use that override as evidence of a new uninterrupted run.
+new leg. This repeats the continuation from a previously earned save.
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_hero_ring earned_small_axe -- --ignored --nocapture
