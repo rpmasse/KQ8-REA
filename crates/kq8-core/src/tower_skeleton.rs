@@ -91,6 +91,7 @@ impl WorldState {
     }
 
     pub(crate) fn tower_fall_start(&mut self, i: usize) {
+        self.first_person = false;
         let a = &mut self.anims[i];
         let name = a.player.name.clone();
         let tower = a.character.as_mut().unwrap().tower.as_mut().unwrap();

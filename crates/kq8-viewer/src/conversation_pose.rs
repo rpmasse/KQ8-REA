@@ -93,7 +93,7 @@ impl ConnorSim {
 
     pub(super) fn restore_controller_pose(&mut self, saved: &SavedControllerPose, mode: Mode, label: &str) -> Result<(), String> {
         if !saved.valid() { return Err(format!("invalid {label} pose")); }
-        let resolve = |name: &str| find(&self.movements,self.weapon_set.as_deref(),name).map(|m| m.name)
+        let resolve = |name: &str| self.saved_movement_name(name)
             .ok_or_else(|| format!("saved {label} movement '{name}' is absent"));
         let movement = resolve(&saved.movement)?;
         let talk_play = saved.talk_play.as_deref().map(&resolve).transpose()?;

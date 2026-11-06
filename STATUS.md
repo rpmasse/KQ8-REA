@@ -1,5 +1,31 @@
 # STATUS
 
+## 2026-11-07 First-person camera and combat
+
+F2 selects the original actor-relative camera and movement lists.
+Daventry's earned Small Axe struck the coffin lid with its first-person
+animation. A separate Dead City weapon fixture fired one Small Crossbow
+bolt with the first-person attack cue. Changing views while a script
+owns a movement can leave its outgoing model active until the movement
+ends. A menu save now retains both pieces of state. A church climb
+started in first person forced third person and restored the original
+view after a fresh-process dismount.
+
+An integrated weapon-draw replay initially opened the menu three
+updates later than requested while the renderer was busy. The outgoing
+movement had already ended by then. Timed menu replays now allow at
+most one simulation update per rendered frame, so the scheduled save
+can inspect the intended animation. Near clipping, other weapons
+and specialised controller branches remain open.
+
+The five first-person Windows regressions passed in 367.63 seconds.
+The standard workspace suite passed 875 tests. Three additional
+original-file checks passed, and the release executable opened
+New Game on Normal, entered Daventry and rendered 80 frames.
+The earned Daventry scenarios use campaign saves. The crossbow
+scenarios are focused fixtures with supplied equipment.
+The commands are in the [README](README.md#automated-checks).
+
 ## 2026-11-07 Resumed a saved church climb and reached the roof
 
 The original throw keeps the menu closed until Connor can accept input.

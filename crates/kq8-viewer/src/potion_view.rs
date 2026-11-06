@@ -18,8 +18,7 @@
 //! list's set for his bits (helmet 1, temple armour 2, Clarity 4,
 //! Strength 8: an item of that type applied); a missing combination
 //! takes the entry with most of the wanted bits ("Do not reproduce" 3).
-//! Not built: the first-person arms (`armconfx.bmp`, no first person
-//! yet).
+//! First person uses the same skin entry index in Connor's arm-skin list.
 //!
 //! H-1, the armour he wears: his body skin is the skin list's entry for
 //! the bits of the armour applied to him (`ConnerSkinList`: item N is
@@ -56,6 +55,10 @@ pub struct ConnorLooks {
     iron: Option<(String, Handle<Image>)>,
     /// H-1: the skin list and its armour pictures (lower case).
     skins: kq8_data::characters::SkinList,
+    arm_skins: kq8_data::characters::SkinList,
+    arm_materials: BTreeMap<String, Handle<Image>>,
+    first_person: bool,
+    arm_skin: Option<String>,
     armour: BTreeMap<String, Handle<Image>>,
     /// The skin list entry drawn for his body skin now (`None`: the body
     /// skin itself).
@@ -86,6 +89,7 @@ impl ConnorLooks {
         let mut image = |look: crate::load::Look| light.palette.look(look,images,bevy::image::ImageAddressMode::Repeat);
         let iron = l.iron.and_then(|(n, look)| Some((n.to_ascii_lowercase(), image(look)?)));
         let armour = l.armour.into_iter().filter_map(|(n, look)| Some((n, image(look)?))).collect();
+        let arm_materials = l.arm_materials.into_iter().filter_map(|(n, look)| Some((n, image(look)?))).collect();
         let face_sets = l.face_sets.into_iter().map(|(n, set)| (n, set.into_iter().map(|s| s.and_then(&mut image)).collect())).collect();
         let ghosts = l.ghosts.into_iter().filter_map(|(n, look)| Some((n, image(look)?))).collect();
         ConnorLooks {
@@ -93,6 +97,10 @@ impl ConnorLooks {
             body_skin: l.body_skin.map(|s| s.to_ascii_lowercase()),
             iron,
             skins: l.skins,
+            arm_skins: l.arm_skins,
+            arm_materials,
+            first_person: false,
+            arm_skin: None,
             armour,
             skin: None,
             faces: l.faces,
@@ -250,9 +258,17 @@ pub fn look_step(sim: Option<ResMut<DoorSim>>, connor: Option<ResMut<ConnorSim>>
         c.looks.skins.best(skin_bits).map(str::to_ascii_lowercase)
     }
     .filter(|s| c.looks.body_skin.as_ref() != Some(s));
-    if strength == c.looks.iron_on && wanted == c.looks.face && invisible == c.looks.invisible && skin == c.looks.skin && !c.looks.redo {
+    let arm_skin = if w.first_person {
+        let bits = if strength { strength_bit } else { skin_bits };
+        c.looks.skins.best_index(bits).and_then(|index| c.looks.arm_skins.entries.get(index))
+            .map(|(name, _)| name.to_ascii_lowercase())
+    } else { None };
+    if strength == c.looks.iron_on && wanted == c.looks.face && invisible == c.looks.invisible
+        && skin == c.looks.skin && w.first_person == c.looks.first_person && arm_skin == c.looks.arm_skin && !c.looks.redo {
         return;
     }
+    c.looks.first_person = w.first_person;
+    c.looks.arm_skin.clone_from(&arm_skin);
     c.looks.redo = false;
     let mut lines = Vec::new();
     if strength != c.looks.iron_on {
@@ -281,9 +297,12 @@ pub fn look_step(sim: Option<ResMut<DoorSim>>, connor: Option<ResMut<ConnorSim>>
         if c.face.contains(h) {
             continue;
         }
-        let body = c.looks.body_skin.as_ref() == Some(texture);
+        let body = !w.first_person && c.looks.body_skin.as_ref() == Some(texture);
+        let arm = w.first_person && c.looks.arm_skins.entries.first().is_some_and(|(base, _)| base.eq_ignore_ascii_case(texture));
         let (name, base) = match (&c.looks.iron, &skin) {
-            (Some((iron, img)), _) if strength && (body || c.looks.armour.contains_key(texture)) => (iron.clone(), Some(img.clone())),
+            _ if arm => arm_skin.as_ref().and_then(|name| c.looks.arm_materials.get(name).map(|image| (name.clone(), Some(image.clone()))))
+                .unwrap_or_else(|| (texture.clone(),own.clone())),
+            (Some((iron, img)), _) if !w.first_person && strength && (body || c.looks.armour.contains_key(texture)) => (iron.clone(), Some(img.clone())),
             (_, Some(s)) if body && c.looks.armour.contains_key(s) => (s.clone(), c.looks.armour.get(s).cloned()),
             _ => (texture.clone(), own.clone()),
         };

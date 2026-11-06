@@ -292,6 +292,11 @@ pub fn rope_step(
                 }
                 let (rope, mode, weapon) = (host.w.rope.clone(), host.w.weapon_mode, host.w.weapon_ready.clone());
                 climb = Climb::start(&rope, mode, weapon, &mut host);
+                if let Some(climb) = &mut climb {
+                    climb.first_to_third = host.w.view_flags().resume_after_rope;
+                } else {
+                    kq8_core::connor_inventory::rope_lock(host.w, false, "no rope place");
+                }
             }
         }
         if let Some(cl) = climb.as_mut() {

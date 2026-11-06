@@ -1267,7 +1267,15 @@ impl SkinList {
     /// reproduce" 3; on a tie the higher value: helmet + Strength → the
     /// Strength entry, as the note's example).
     pub fn best(&self, bits: u32) -> Option<&str> {
-        self.exact(bits).or_else(|| self.entries.iter().filter(|(_, b)| b & !bits == 0).max_by_key(|(_, b)| (b.count_ones(), *b)).map(|(f, _)| f.as_str()))
+        self.best_index(bits).map(|index| self.entries[index].0.as_str())
+    }
+
+    /// F2 uses the same skin entry index in the other view's list (Q193).
+    pub fn best_index(&self, bits: u32) -> Option<usize> {
+        self.entries.iter().position(|(_, mask)| *mask == bits).or_else(|| {
+            self.entries.iter().enumerate().filter(|(_, (_, mask))| mask & !bits == 0)
+                .max_by_key(|(_, (_, mask))| (mask.count_ones(), *mask)).map(|(index, _)| index)
+        })
     }
 }
 
@@ -1367,6 +1375,8 @@ mod tests {
         let skin_section = actor.get("skinList_firstperson").unwrap();
         let skins =
             SkinList::from_section(file.iter().find(|s| s.name.eq_ignore_ascii_case(skin_section)).unwrap()).unwrap();
+        let body_section = actor.get("skinList").unwrap();
+        let body_skins = SkinList::from_section(file.iter().find(|s| s.name.eq_ignore_ascii_case(body_section)).unwrap()).unwrap();
         assert_eq!(skins.entries.len(), 76);
         for (bits, material) in [
             (0, "armcon0.bmp"),
@@ -1376,6 +1386,8 @@ mod tests {
             (2048, "armconfx.bmp"),
         ] {
             assert!(skins.exact(bits).is_some_and(|s| s.eq_ignore_ascii_case(material)));
+            let index = body_skins.best_index(bits).unwrap();
+            assert!(skins.entries[index].0.eq_ignore_ascii_case(material));
         }
         let sword_bank = ConnorAnimLists::equipped(&first.hand, "BroadSword").unwrap();
         let sword = AnimList::parse(&read(sword_bank))

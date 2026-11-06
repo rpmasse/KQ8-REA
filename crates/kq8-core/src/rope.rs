@@ -578,7 +578,7 @@ impl Climb {
         host.hands_off(true);
         let weapon = c.weapon_before.as_deref().map_or(String::new(), |w| format!(" ({w})"));
         host.note(format!(
-            "rope state: starts from the {} (rule 13): the camera stops following and stays at {}; he turns to face the rope's place {}; the setRopeCam spots 1 {}, 2 {}, limits top {}, bottom {} copied; third person already (no first person: nothing to switch or restore); handsOff on (as handsOff 1, Q147 b); hand mode before: {}{weapon}; {ROPE_LIST} ready",
+            "rope state: starts from the {} (rule 13): the camera stops following and stays at {}; he turns to face the rope's place {}; the setRopeCam spots 1 {}, 2 {}, limits top {}, bottom {} copied; third person held during the climb; handsOff on (as handsOff 1, Q147 b); hand mode before: {}{weapon}; {ROPE_LIST} ready",
             if from == End::Bottom { "foot" } else { "top" },
             fmt3(host.camera_at()),
             fmt3(r.place),
@@ -598,7 +598,7 @@ impl Climb {
         host.leave();
         self.done = true;
         host.note(format!(
-            "rope state: over (rule 26): handsOff off, the first-person key allowed again, {ROPE_LIST} let go, standing (Wait); first person not restored (never left: we have none); Connor at {}",
+            "rope state: over (rule 26): handsOff off, the first-person key allowed again, {ROPE_LIST} let go, standing (Wait); Connor at {}",
             fmt3(host.connor_at())
         ));
     }

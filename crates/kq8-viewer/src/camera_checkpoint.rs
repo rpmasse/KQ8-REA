@@ -27,12 +27,15 @@ pub struct SavedCamera {
     follow_due: Option<bool>,
     #[serde(default)]
     shake: kq8_core::camera_shake::Shake,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    first_person: Option<FirstPersonView>,
 }
 
 impl SavedCamera {
     pub fn valid(&self) -> bool {
         let pose = |p: Pose| p.0.into_iter().chain([p.1, p.2]).all(f32::is_finite);
-        self.cam.valid_checkpoint() && self.shake.valid() && pose(self.previous) && pose(self.current) && self.glide_from.is_none_or(pose)
+        self.cam.valid_checkpoint() && self.shake.valid() && self.first_person.as_ref().is_none_or(FirstPersonView::valid)
+            && pose(self.previous) && pose(self.current) && self.glide_from.is_none_or(pose)
             && [self.roll_before, self.view.tilt, self.view.heading, self.view.roll].into_iter().all(f32::is_finite)
             && self.last_connor.is_none_or(|p| p.0.into_iter().chain([p.1]).all(f32::is_finite))
             && self.around.is_none_or(|p| p.into_iter().all(f32::is_finite))
@@ -44,7 +47,8 @@ impl SavedCamera {
 
 impl GameCam {
     pub fn saved(&self) -> SavedCamera {
-        SavedCamera { cam: self.cam.clone(), previous: self.previous, current: self.current, glide_from: self.glide_from,
+        SavedCamera { cam: self.cam.clone(), first_person: self.first_person.clone(),
+            previous: self.previous, current: self.current, glide_from: self.glide_from,
             roll_before: self.roll_before, mouse_was_held: self.mouse_was_held, following: self.following, flight: self.flight.clone(), flight_fresh: self.flight_fresh,
             spots: Some(self.spots.0.clone()),
             view: self.view, places: self.places, aims: self.aims, last_connor: self.last_connor,
@@ -56,6 +60,8 @@ impl GameCam {
     pub fn restore(&mut self, saved: &SavedCamera) -> Result<(), String> {
         if !saved.valid() { return Err("invalid camera checkpoint".into()); }
         self.cam = saved.cam.clone(); self.previous = saved.previous; self.current = saved.current;
+        self.first_person.clone_from(&saved.first_person);
+        self.actor = None;
         self.glide_from = saved.glide_from; self.roll_before = saved.roll_before; self.following = saved.following;
         self.flight = saved.flight.clone(); self.flight_fresh = saved.flight_fresh; self.view = saved.view;
         if let Some(spots) = &saved.spots { self.spots = Spots(spots.clone()); }
@@ -82,9 +88,10 @@ mod tests {
     use super::*;
 
     fn camera() -> GameCam {
-        GameCam { cam: Camera::new([0.0; 3]), previous: ([0.0; 3], 0.0, 0.0), current: ([0.0; 3], 0.0, 0.0),
+        GameCam { cam: Camera::new([0.0; 3]), first_person: None, actor: None,
+            previous: ([0.0; 3], 0.0, 0.0), current: ([0.0; 3], 0.0, 0.0),
             glide_from: None, roll_before: 0.0,
-            keys: Keys { change_mode: None, tilt_up: None, tilt_down: None, reset: None, shift: None, mouse: None },
+            keys: Keys { first_person: None, change_mode: None, tilt_up: None, tilt_down: None, reset: None, shift: None, mouse: None },
             mouse: Vec2::ZERO, mouse_was_held: false, pressed_mode: false, pressed_reset: false, updates: 0,
             log: Log::create("camera-checkpoint-unit").unwrap(), following: false, spots: Spots::default(),
             flight: None, flight_fresh: false, view: View { tilt: 0.0, heading: 0.0, roll: 0.0, locked: false },

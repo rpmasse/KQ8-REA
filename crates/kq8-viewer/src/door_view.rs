@@ -800,6 +800,7 @@ pub fn spawn_doors(
         std::mem::take(&mut objects.known).into_iter().chain(["Connor".to_string()]),
         sources,
     );
+    active.world.camera_world = objects.realm.clone();
     active.world.prop_placements = std::mem::take(&mut objects.prop_placements);
     active.world.shadows_allowed = objects.shadows_allowed;
     // Traps (3d-2): loaded where the start-up scripts left them.
@@ -903,8 +904,8 @@ pub fn spawn_doors(
             f.ouch_sound,
             f.min_damage_factor,
             f.max_damage_factor,
-            f.short_lists.len(),
-            f.short_lists.iter().map(|(w, a)| format!("{w} {a}")).collect::<Vec<_>>().join(", ")
+            f.third_person.hand.len(),
+            f.third_person.hand.iter().map(|(w, a)| format!("{w} {a}")).collect::<Vec<_>>().join(", ")
         ));
     }
     // potions.md rule 31 (M5 5g-7): the objects Clarity reveals.
@@ -1450,6 +1451,10 @@ pub fn trap_step(
             }
             Request::ConnorDies { kind, at } => {
                 let kind = sim.active.world.connor_last_hit.unwrap_or(kind);
+                sim.active.world.first_person = false;
+                if let Some(line) = connor.refresh_perspective(&sim.active.world) {
+                    sim.active.world.fight_note("Connor", line);
+                }
                 sim.active.world.enter_connor_death();
                 let line = connor.die_from_hit(kind);
                 sim.active.world.fight_note("Connor", format!("{at}: {line}"));
@@ -2117,14 +2122,8 @@ pub fn door_click_input(
 /// `confists.anm` for `INVITEM_Fists`); a ranged one's from
 /// `LongAnimList` (M5 5f-4); none: his own (`None`).
 pub(crate) fn weapon_list(w: &kq8_core::active::WorldState) -> Option<String> {
-    let ready = w.weapon_ready.as_deref()?;
     let f = w.connor_fight.as_ref()?;
-    let lists = match w.weapon_mode {
-        kq8_core::weapons::WeaponMode::Hand => &f.short_lists,
-        kq8_core::weapons::WeaponMode::Ranged => &f.long_lists,
-        kq8_core::weapons::WeaponMode::None => return None,
-    };
-    kq8_data::characters::ConnorAnimLists::equipped(lists, ready).map(str::to_owned)
+    f.bank(w.first_person, w.weapon_mode, w.weapon_ready.as_deref()).map(str::to_owned)
 }
 
 /// One update of the doors (15 per second), before Connor's: clicks,
@@ -2213,6 +2212,9 @@ pub fn door_step(
     // waited for his turn, and his `Do` cues.
     if let Some(c) = connor.as_mut() {
         // ranged-weapons.md rules 1-9 (M5 5f-3): Delete, Alt, slot clicks
+        if let Some(line) = c.refresh_perspective(&sim.active.world) {
+            sim.active.world.fight_note("Connor",line);
+        }
         // and setDoMode ask for a mode; taken only while he stands or
         // moves (rule 5), then the swap (rule 6).
         let w = &mut sim.active.world;
@@ -2270,14 +2272,14 @@ pub fn door_step(
         // 5d fix 11; a conversation's put-away, `conversation.md` rule 7;
         // the `--swing` test): the set follows.
         let list = weapon_list(w);
-        if list != c.weapon_target || w.weapon_ready.is_none() != c.weapon_target.is_none() {
+        if w.first_person == c.first_person && !c.target_matches(&list,w.weapon_ready.as_deref()) {
             let at_once = std::mem::take(&mut w.weapon_swapped);
             let line = c.ready_set(list, w.weapon_mode, w.weapon_ready.clone(), at_once, false, false);
             w.fight_note("Connor", format!("weapon {:?}: {line}", w.weapon_ready));
         }
         for s in std::mem::take(&mut sim.swing_clicks) {
             let w = &mut sim.active.world;
-            let list = weapon_list(w);
+            let list = weapon_list(w).filter(|_| w.weapon_mode != kq8_core::weapons::WeaponMode::None);
             let line = match list {
                 Some(list) => {
                     let coin = w.fight_rng.fraction();
@@ -2300,7 +2302,7 @@ pub fn door_step(
             // azriel-hammer.md rule 2 (M6 6b-3): with the hammer (a
             // `KQHammer` bolt file) the throw instead of the shot.
             let hammer = w.connor_projectile.as_ref().and_then(|f| w.projectiles.get(&f.to_ascii_lowercase())).is_some_and(|p| p.hammer);
-            let line = match weapon_list(w) {
+            let line = match weapon_list(w).filter(|_| w.weapon_mode != kq8_core::weapons::WeaponMode::None) {
                 Some(list) if hammer => {
                     let mut line = c.throw_click(&list, aim);
                     if c.throw.is_some() {
@@ -2380,8 +2382,9 @@ pub fn door_step(
             format!("world click with the rope ({how}): ignored (Connor is dying or dead; rule 10)")
         } else {
             let rope = w.hand.take().unwrap_or_default();
+            let released = kq8_core::connor_inventory::rope_lock(w, false, "the rope left the pointer");
             sim.rope_asked = Some(how.clone());
-            format!("world click with the rope ({how}): {rope} leaves the pointer; the camera aim test passes always (\"Do not reproduce\"); the rope state is asked for (rules 10-12)")
+            format!("world click with the rope ({how}): {rope} leaves the pointer{released}; the camera aim test passes always (\"Do not reproduce\"); the rope state is asked for (rules 10-12)")
         };
         sim.active.world.rope_note(line);
     }

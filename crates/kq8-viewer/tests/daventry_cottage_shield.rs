@@ -1,6 +1,8 @@
 //! Earn the village shield with ordinary controls, save, then use it after a fresh launch.
 #[path = "support/pickup_help.rs"]
 mod pickup_help;
+#[path = "support/first_person.rs"]
+mod first_person;
 #[path = "support/windmill.rs"]
 mod windmill;
 use serde_json::Value;
@@ -827,7 +829,11 @@ fn church_rope_is_usable_after_a_fresh_launch_inside_its_trap() {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_CHURCH_YARD_SLOT"]
 fn church_climb_resumes_from_its_saved_frame_on_the_wall() {
-    let play = Play::new("church-climb");
+    check_saved_church_climb(false);
+}
+
+fn check_saved_church_climb(first_person: bool) {
+    let play = Play::new(if first_person { "church-climb-first-person" } else { "church-climb" });
     fs::create_dir_all(&play.slots).unwrap();
     let yard = earned_slot("KQ8_CHURCH_YARD_SLOT").unwrap_or_else(|| {
         let yard = Play::new("church-climb-prefix");
@@ -838,18 +844,24 @@ fn church_climb_resumes_from_its_saved_frame_on_the_wall() {
     let start = play.slot(1);
     assert_eq!(start["label"], "ChurchYard");
     check_mill_rope_save(&start);
-    let (viewer, _) = play.run("original", &[
+    let mut inputs = vec![
         "--menu-input", "down,enter,release,enter,release", "--key", "left:IDCTL_INVBAR_ROPE,8",
         "--aim-point", "206337,186373,11000,12", "--hold", "1,0,0,180,202",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=HookInFlight:enter:release:escape,73",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=MidClimb:enter:release:escape,210",
         "--key", "menu:up:enter:release:left:enter:release,230", "--frames", "1900",
-    ]);
+    ];
+    if first_person { inputs.extend(["--key", "physical:f2,4"]); }
+    let (viewer, _) = play.run("original", &inputs);
     // The throw disables player controls. Its menu request must not create a slot.
     assert!(viewer.contains("gameplay menu request blocked by handsOff at Connor update 73"));
     let mid = play.slot(2);
     assert_eq!(mid["label"], "MidClimb");
     assert_eq!(mid["rope_climb"]["state"]["stage"], "Hanging");
+    assert_eq!(mid["view_flags"]["active"], false);
+    assert_eq!(mid["view_flags"]["rope_locked"], true);
+    assert_eq!(mid["view_flags"]["resume_after_rope"], first_person);
+    assert_eq!(mid["rope_climb"]["state"]["first_to_third"], first_person);
     let phase = mid["rope_climb"]["pose"]["phase"].as_f64().unwrap();
     assert!((0.20..0.40).contains(&phase));
     assert_eq!(mid["rope_climb"]["steps"], serde_json::json!([0.0,0.0]));
@@ -877,6 +889,9 @@ fn church_climb_resumes_from_its_saved_frame_on_the_wall() {
     assert_eq!(roof["label"], "ChurchRoof");
     assert!(roof["rope_climb"].is_null());
     assert_eq!(roof["rope_camera_locked"], false);
+    assert_eq!(roof["view_flags"]["active"], first_person);
+    assert_eq!(roof["view_flags"]["resume_after_rope"], false);
+    assert_eq!(roof["weapon_state"]["actor_first_person"], first_person);
     assert!(roof["position"][2].as_f64().unwrap() > start["position"][2].as_f64().unwrap());
     check_mill_rope_save(&roof);
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);

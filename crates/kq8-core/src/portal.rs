@@ -142,7 +142,8 @@ impl crate::active::Active {
             let accepted = self.call_named(&portal, &["Accept"]);
             lines.push(format!("Yes ({how}): {portal} gets Accept ({})", if accepted { "its script ran" } else { "no script" }));
             let r = self.test_command("handsOff 1", "portal Yes");
-            lines.push(format!("Yes: handsOff 1: {r:?}; first person off, the time step 2 frame periods (logged only: we have neither)"));
+            self.world.first_person = false;
+            lines.push(format!("Yes: handsOff 1: {r:?}; first person off; the two-frame time-step limit is logged only"));
             let next = match &state.keys.enter_anim {
                 Some(anim) => {
                     let own = state.keys.enter_anm_file.as_deref().is_none_or(|l| l.eq_ignore_ascii_case("conner.anm"));
@@ -218,6 +219,7 @@ mod tests {
     #[test]
     fn no_moves_connor_to_no_loc_and_ends_the_state() {
         let mut a = active(keys(None, [158510.0, 307740.0, 9925.0]));
+        a.world.first_person = true;
         assert_eq!(a.test_command("KQMonster::setState Connor Portal portal1 portaltp", "test").as_deref(), Some("0"));
         a.world.weapon_mode = crate::weapons::WeaponMode::Ranged;
         assert_eq!(a.world.world_click_action(false, false), crate::weapons::WorldClick::Blocked);
@@ -225,6 +227,7 @@ mod tests {
         assert_eq!(a.world.connor_portal.as_ref().and_then(|p| p.trap.clone()).as_deref(), Some("portaltp"));
         a.world.requests.clear();
         a.portal_answer(false, "test");
+        assert!(a.world.first_person);
         assert!(a.world.connor_portal.is_none());
         assert!(a.world.requests.iter().any(|r| matches!(r, crate::active::Request::Move { position, .. } if *position == [158510.0, 307740.0, 9925.0])), "{:?}", a.world.requests);
     }
@@ -232,8 +235,10 @@ mod tests {
     #[test]
     fn yes_with_and_without_an_enter_movement() {
         let mut a = active(keys(Some("teleportdown"), [-1.0; 3]));
+        a.world.first_person = true;
         a.test_command("KQMonster::setState Connor Portal portal1", "test");
         a.portal_answer(true, "test");
+        assert!(!a.world.first_person);
         assert_eq!(a.world.connor_portal.as_ref().map(|p| p.phase), Some(Phase::Entering));
         a.portal_entered();
         assert_eq!(a.world.connor_portal.as_ref().map(|p| p.phase), Some(Phase::Leaving));

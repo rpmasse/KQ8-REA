@@ -520,11 +520,15 @@ pub fn caption_draw(
 
 /// Applies the mouth changes (4a-6, rule 18) to Connor's face materials;
 /// each change in `connor.log`.
-pub fn mouth_draw(mut speech: ResMut<Speech>, connor: Option<ResMut<crate::connor_view::ConnorSim>>, mut materials: ResMut<Assets<crate::object_light::ObjectMaterial>>) {
+pub fn mouth_draw(mut speech: ResMut<Speech>, connor: Option<ResMut<crate::connor_view::ConnorSim>>,
+    doors: Option<Res<crate::door_view::DoorSim>>, mut materials: ResMut<Assets<crate::object_light::ObjectMaterial>>) {
     if speech.mouths.is_empty() {
         return;
     }
     let changes = std::mem::take(&mut speech.mouths);
+    if doors.is_some_and(|doors| doors.active.world.first_person) {
+        return;
+    }
     let Some(mut c) = connor else { return };
     for (speaker, shape) in changes {
         if !speaker.eq_ignore_ascii_case(CONNOR) || shape == c.mouth {

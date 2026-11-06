@@ -206,17 +206,50 @@ pub struct ConnorFight {
     /// The big swing's factor range (`minDamageFactor`, `maxDamageFactor`).
     pub min_damage_factor: f32,
     pub max_damage_factor: f32,
-    /// `ShortAnimList`: (weapon name without `INVITEM_`, `.anm` file).
-    pub short_lists: Vec<(String, String)>,
-    /// `LongAnimList`, the same for the ranged weapons
-    /// (`ranged-weapons.md` rule 10; M5 5f-4).
-    pub long_lists: Vec<(String, String)>,
+    /// Actor-authored stowed, melee and ranged movement lists for each view.
+    pub third_person: kq8_data::characters::ConnorAnimLists,
+    pub first_person: kq8_data::characters::ConnorAnimLists,
     /// `shootOffsets`: (item type, offset in his own space) (rule 17).
     pub shoot_offsets: Vec<(String, [f32; 3])>,
     /// `projectileFile` and `shootOffsetX/Y/Z`: start values the first
     /// ranged item replaces (rule 21).
     pub start_projectile: Option<String>,
     pub start_offset: [f32; 3],
+}
+
+impl ConnorFight {
+    pub fn view_lists(&self, first_person: bool) -> &kq8_data::characters::ConnorAnimLists {
+        if first_person { &self.first_person } else { &self.third_person }
+    }
+
+    /// Select by the original equipped type. The viewer uses bare names
+    /// for its third-person base table and qualified names for other banks.
+    pub fn bank(&self, first_person: bool, mode: crate::weapons::WeaponMode, item: Option<&str>) -> Option<&str> {
+        use crate::weapons::WeaponMode;
+        let view = self.view_lists(first_person);
+        let table = match mode {
+            WeaponMode::None => return if first_person { view.stowed.as_deref() } else { None },
+            WeaponMode::Hand => &view.hand,
+            WeaponMode::Ranged => &view.ranged,
+        };
+        kq8_data::characters::ConnorAnimLists::equipped(table, item?)
+    }
+
+    /// During a draw or sheath the current bank can differ from the
+    /// targeted item. Resolve the currently playing bank's own item.
+    pub fn opposite_bank(&self, current_first: bool, mode: crate::weapons::WeaponMode,
+        current_bank: Option<&str>) -> Option<&str> {
+        use crate::weapons::WeaponMode;
+        let current = self.view_lists(current_first);
+        let table = match mode {
+            WeaponMode::None => return self.bank(!current_first, mode, None),
+            WeaponMode::Hand => &current.hand,
+            WeaponMode::Ranged => &current.ranged,
+        };
+        let file = current_bank?;
+        let (item, _) = table.iter().find(|(_, name)| name.eq_ignore_ascii_case(file))?;
+        self.bank(!current_first, mode, Some(item))
+    }
 }
 
 /// A character's part in the fight (M5 5c).

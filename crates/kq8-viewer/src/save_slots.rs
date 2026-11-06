@@ -27,6 +27,8 @@ pub(super) struct Snapshot {
     pub(super) world_name_start: usize,
     position: [f32; 3],
     heading: f32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    actor_tilt: Option<[f32; 2]>,
     journey: Journey,
     kept: BTreeMap<String, KeptWorld>,
     items: Vec<ItemObject>,
@@ -88,6 +90,8 @@ pub(super) struct Snapshot {
     choice: Option<connor_view::SavedChoice>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     camera: Option<crate::game_camera::SavedCamera>,
+    #[serde(default)]
+    view_flags: kq8_core::camera_first_person::ModeFlags,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     panels: Option<kq8_core::panels::Panels>,
 }
@@ -98,6 +102,7 @@ impl Snapshot {
             objects: self.items.clone(),
             next_name: self.journey.next_no_name,
             order: self.inventory_order,
+            first_person_banks: self.weapon_state.as_ref().map(|state| state.first_person_banks().to_vec()).unwrap_or_default(),
         }
     }
     // A conversation finishes `away` in trap_step after weapon synchronization.
@@ -225,6 +230,7 @@ impl Snapshot {
         }
         if !self.position.iter().all(|p| p.is_finite())
             || !self.heading.is_finite()
+            || self.actor_tilt.is_some_and(|tilt| tilt.iter().any(|v| !v.is_finite()))
             || self.inventory_order >= u64::MAX / 2
             || self.items.iter().any(|o| o.added >= u64::MAX / 2)
             || self.journey.next_no_name >= usize::MAX / 2
@@ -353,10 +359,13 @@ impl Snapshot {
     }
 
     pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) -> Result<(), String> {
+        let actor_view = self.weapon_state.as_ref().map_or(self.view_flags.active,
+            |state| state.actor_first_person(self.view_flags.active));
         if let Some(sources) = &self.speech_sources {
             if let Some(mut speech) = world.get_resource_mut::<crate::talk_view::Speech>() { speech.sources.clone_from(sources); }
         }
         if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
+            sim.active.world.restore_view_flags(self.view_flags);
             if self.choice.as_ref().is_some_and(|choice| !sim.active.world.has_script(choice.script())) {
                 return Err("saved Choice script is missing from the installed world".into());
             }
@@ -366,9 +375,12 @@ impl Snapshot {
                 let captions = sim.active.scripts.vars.get("Options::Captions") == Some("true");
                 sim.active.world.talk.restore(speech, now, captions)?;
             }
-            if self.weapon_state.as_ref().is_some_and(|state| !state.matches_list(crate::door_view::weapon_list(&sim.active.world).as_deref()))
-                && !self.conversation_weapon_change_pending() {
-                return Err("saved weapon movement list does not match the restored world".into());
+            if let Some(state) = &self.weapon_state {
+                let w = &sim.active.world;
+                let bank = w.connor_fight.as_ref().and_then(|f| f.bank(actor_view, w.weapon_mode, w.weapon_ready.as_deref()));
+                if !state.matches_list(bank) && !self.conversation_weapon_change_pending() {
+                    return Err("saved weapon movement list does not match the restored world".into());
+                }
             }
             if let Some(rng) = &self.fight_rng { sim.active.world.fight_rng = rng.clone(); }
             if let Some(bolts) = &self.bolts {
@@ -391,7 +403,14 @@ impl Snapshot {
             if let Some(conversation) = &self.conversation { sim.active.world.restore_conversation(conversation)?; }
         }
         if let Some(mut connor) = world.get_resource_mut::<connor_view::ConnorSim>() {
+            connor.first_person = actor_view;
+            if let Some([pitch, roll]) = self.actor_tilt {
+                connor.placement.angles = [pitch, roll, self.heading];
+            }
             connor.put(self.position, self.heading);
+            if let Some(weapon) = &self.weapon_state {
+                connor.restore_weapon_state(weapon, self.special.as_ref())?;
+            }
             if let Some(swing) = &self.swing {
                 connor.restore_swing(swing)?;
             }
@@ -403,9 +422,6 @@ impl Snapshot {
             }
             if let Some(special) = &self.special {
                 connor.restore_special(special)?;
-            }
-            if let Some(weapon) = &self.weapon_state {
-                connor.restore_weapon_state(weapon, self.special.as_ref())?;
             }
             if let Some(timing) = &self.hit_timing {
                 connor.restore_hit_timing(timing)?;
@@ -609,6 +625,7 @@ pub fn save_slot_with_thumbnail(
         thumbnail,
         position: connor.mover.position,
         heading: connor.walker.heading,
+        actor_tilt: Some([connor.placement.angles[0], connor.placement.angles[1]]),
         world_name_start: change.name_start,
         journey: take_journey(&sim.active, &change.current),
         kept,
@@ -644,6 +661,7 @@ pub fn save_slot_with_thumbnail(
         talk_pose: connor.saved_talk_pose(),
         choice,
         camera: world.get_resource::<crate::game_camera::GameCam>().map(|c| c.saved()),
+        view_flags: sim.active.world.view_flags(),
         panels: world.get_resource::<crate::gui_view::Gui>().map(|g| g.panels.saved()),
     };
     write_slot(&directory(), slot, &snapshot)
@@ -952,7 +970,7 @@ mod tests {
         let mut sim = active();
         sim.world.conversation = Some(kq8_core::conversation::Conversation { partner: "Partner".into(), partner_at: [0.0; 3], info: None,
             lines: kq8_core::talk::Speak { issuer: "Partner".into(), first: kq8_data::msg::Tuple::new(1000, 1, 0, 0, 1), last: 1, nofade: false },
-            keep_weapon: false, case: Some(kq8_core::conversation::Case::There), stage: kq8_core::conversation::Stage::Out,
+            keep_weapon: false, resume_first_person: false, case: Some(kq8_core::conversation::Case::There), stage: kq8_core::conversation::Stage::Out,
             walk_from: [0.0; 3], approach_updates: 0, at: "test".into(), cuts_stopped: false });
         let mut json = serde_json::to_value(fixture()).unwrap();
         json["conversation"] = serde_json::to_value(sim.world.saved_conversation()).unwrap();
@@ -1090,6 +1108,7 @@ mod tests {
             label: "After the waterfall".into(),
             position: [43., 56., 8.],
             heading: 0.75,
+            actor_tilt: None,
             thumbnail: Some(vec![127; THUMB_BYTES]),
             items: sim.world.items.objects.clone(),
             inventory_order: 47,
@@ -1120,6 +1139,7 @@ mod tests {
             talk_pose: None,
             choice: None,
             camera: None,
+            view_flags: Default::default(),
             panels: None,
             journey: take_journey(&sim, "Daventry"),
             kept,

@@ -29,9 +29,8 @@
 //! cameras, no stay test without an info object); walking away on the last
 //! line → `TalkExit` sent once anyway. STAND-INS (Q125): the keys are
 //! ignored during the approach movements; no Jump or Push in the talk
-//! state (`connor.rs`). Weapons are not built: he never holds one drawn,
-//! so `away` / `out` (rule 7) never play (logged). First person is not
-//! built: he is always in third person (logged).
+//! state (`connor.rs`). His hand mode determines the `away` / `out`
+//! movements on entering a conversation (rule 7).
 
 use kq8_data::conv_info::ConvInfo;
 
@@ -93,6 +92,7 @@ pub struct Conversation {
     pub lines: Speak,
     /// `<enemy>` not 0: the weapon stays drawn (rule 7; not in the data).
     pub keep_weapon: bool,
+    pub resume_first_person: bool,
     pub case: Option<Case>,
     pub stage: Stage,
     /// Where he stood when he entered (case "walk", rule 10).
@@ -251,6 +251,7 @@ impl WorldState {
             info,
             lines,
             keep_weapon,
+            resume_first_person: false,
             case: None,
             stage: Stage::Asked,
             walk_from: [0.0; 3],
@@ -380,9 +381,10 @@ impl Active {
         // handsOff: the panels decide).
         self.world.gui_orders.push(GuiOrder::Conversation { start: true, at: "conversation starts".into() });
         notes.push("the bottom bar is put away (unless handsOff; remembered for the end)".into());
-        notes.push("first person is not built: he is in third person; switching views is blocked until the end (rule 6, nothing to block)".into());
         let w = &mut self.world;
         let c = w.conversation.as_mut().expect("asked");
+        c.resume_first_person = std::mem::replace(&mut w.first_person, false);
+        notes.push(format!("third person during Talk; restore first person on exit: {} (rule 6)", c.resume_first_person));
         let (case, line) = match &c.info {
             Some(info) => case_for(info, position),
             None => (Some(Case::There), "no info object: case \"there\" (Do not reproduce)".to_string()),
@@ -583,7 +585,10 @@ impl Active {
                 notes.push("no cam0: the camera follows Connor".into());
             }
         }
-        notes.push("first person not built: nothing to restore".into());
+        if c.resume_first_person {
+            self.world.first_person = self.world.connor_at.is_some();
+            notes.push("first person restored at Talk exit (rule 16)".into());
+        }
         self.world.connor_leave = Some(why.to_string());
         // The partner goes to Wait (rules 15, 16).
         if let Some(i) = self.world.character_index(&c.partner) {
@@ -667,6 +672,23 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         assert_eq!(fresh.world.conversation.as_ref().unwrap().stage, Stage::WalkStopRight);
         assert_eq!(walker.talk_play, Some(WALK_STOP_RIGHT));
         assert_eq!(fresh.world.requests.iter().filter(|r| matches!(r, Request::Move { who, .. } if who == CONNOR)).count(), 1);
+    }
+
+    #[test]
+    fn talk_restores_the_prior_view_even_if_the_approach_was_saved() {
+        let mut a = world();
+        a.world.connor_at = Some([3000., 1000., 100.]);
+        a.world.first_person = true;
+        a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
+        a.conversation_tick(&mut Walker::new(0.), [3000., 1000., 100.], Ok(()), false);
+        assert!(!a.world.first_person);
+        assert!(!a.world.first_person_key(false));
+        let saved = serde_json::to_vec(&a.world.saved_conversation()).unwrap();
+        let mut fresh = world();
+        fresh.world.connor_at = a.world.connor_at;
+        fresh.world.restore_conversation(&serde_json::from_slice(&saved).unwrap()).unwrap();
+        fresh.conversation_leave("interrupted", false);
+        assert!(fresh.world.first_person);
     }
 
     #[test]
