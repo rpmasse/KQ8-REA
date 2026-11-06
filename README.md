@@ -2,7 +2,7 @@
 
 KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The engine reads the original levels, models, scripts, audio and interface assets from your own GOG installation. The target is the original Windows game, including its controls, timing, 4:3 presentation, and the full campaign from New Game through the ending.
 
-**Development build.** All 12 regions load and render on Windows. In Daventry, linked menu saves now carry Connor from Normal New Game to the dead hero’s ring. The ring and both tomb flags survive a fresh launch. The full campaign through the ending remains open. This fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb).
+**Development build.** All 12 regions load and render on Windows. One unattended test starts a fresh Normal New Game in Daventry, earns the dead hero’s ring and reloads it in a new process. It passed in 15 minutes 51 seconds across nine launches using only saves created during the test. The rest of the campaign through the ending remains open. This fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb).
 
 ## Project status
 

@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-07 Fresh Normal New Game through the ring and disk reload
+
+The full Windows regression passed in 951.45 seconds. It started with
+an empty save directory and used nine viewer processes. The last one
+loaded the ring save, saved again and exited through the menu. Connor
+had one dead hero’s ring, 50 health at level 5, an open coffin, an
+unlocked tomb door and the archer recorded as defeated. The game read
+the supplied GOG installation throughout. Enemy AI and ordinary damage
+were active. The original Options.cs passed the byte comparison.
+[Route and reproduction command](docs/daventry-progression.md#verified-through-the-dead-heros-ring)
+
 ## 2026-11-07 Dead hero's ring earned and reloaded
 
 Linked menu saves now cover Normal New Game through the dead hero's
