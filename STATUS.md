@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-07 Eight mushrooms carried from the cottage to the Wizard
+
+A two-process Windows test loaded the VillageShield checkpoint from
+the verified Normal campaign. Connor opened Sarah's basket, picked
+three more mushrooms outside, acknowledged the Jumping tutorial and
+saved GardenMushrooms. A fresh process loaded it and walked to the
+Wizard. The new save holds eight mushrooms, one shield, Piece1,
+Mask1 and Magic Map. All three outdoor pickups stay gone. The test
+passed in 327.90 seconds with damage and enemy AI enabled. The
+[route notes](docs/daventry-progression.md#road-to-the-heros-tomb)
+give the command. Carrying these supplies to the hero's tomb is open.
+
 ## 2026-11-07 Road from the windmill to the hero's tomb
 
 Two automated runs loaded the WestYard slot earned from Normal New Game.
