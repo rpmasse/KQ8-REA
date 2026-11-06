@@ -11,7 +11,7 @@ pub const PROBE: f32 = 200.0;
 
 /// `KQMonster::setState Connor Choice <list>`'s list (rule 2): a script
 /// name, then triples `<number>,<x>,<y>`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ChoiceList {
     pub script: String,
     /// The triples as written: the number (`DoChoice`'s `$3`) and the point.
@@ -19,6 +19,13 @@ pub struct ChoiceList {
 }
 
 impl ChoiceList {
+    pub fn valid(&self) -> bool {
+        let label = |s: &str| !s.is_empty() && s.len() <= 1024 && !s.chars().any(char::is_control);
+        label(&self.script) && !self.script.contains(['/', '\\', ':']) && !self.script.contains("..")
+            && (1..=128).contains(&self.points.len())
+            && self.points.iter().all(|(n, p)| label(n) && p.iter().all(|v| v.is_finite()))
+    }
+
     /// Reads the list (rule 2). `Err`: why not.
     pub fn parse(list: &str) -> Result<Self, String> {
         let mut words = list.split(',').map(str::trim);
@@ -38,7 +45,7 @@ impl ChoiceList {
 }
 
 /// The state while it lasts.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Choice {
     pub list: ChoiceList,
     /// The points on the circle (rule 6), measured at the first update
@@ -50,6 +57,12 @@ pub struct Choice {
 }
 
 impl Choice {
+    pub fn valid(&self) -> bool {
+        self.list.valid() && (!self.made || self.circle.is_some())
+            && self.circle.as_ref().is_none_or(|circle| circle.len() == self.list.points.len()
+                && circle.iter().zip(&self.list.points).all(|((n, p), (original, _))| n == original && p.iter().all(|v| v.is_finite())))
+    }
+
     pub fn new(list: ChoiceList) -> Self {
         Choice { list, circle: None, made: false }
     }
@@ -92,6 +105,53 @@ mod tests {
     use super::*;
 
     const ROOF: &str = "rooftrap.cs,0,220000,183200,1,230000,183200";
+
+    #[test]
+    fn a_checkpoint_keeps_measured_points_and_rejects_malformed_cache_state() {
+        let mut c = Choice::new(ChoiceList::parse(ROOF).unwrap());
+        c.circle = Some(on_circle([228239.,183179.], &c.list.points));
+        c.made = true;
+        let saved: Choice = serde_json::from_slice(&serde_json::to_vec(&c).unwrap()).unwrap();
+        assert_eq!(saved, c);
+        assert!(saved.valid());
+        for bad in 0..5 {
+            let mut invalid = saved.clone();
+            match bad {
+                0 => invalid.circle = None,
+                1 => invalid.circle.as_mut().unwrap().swap(0, 1),
+                2 => invalid.circle.as_mut().unwrap().pop().map(|_| ()).unwrap(),
+                3 => invalid.list.points[0].1[0] = f32::NAN,
+                _ => invalid.list.script = "../outside.cs".into(),
+            }
+            assert!(!invalid.valid());
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_roof_basilisk_and_orc_choice_lists_keep_their_authored_labels() {
+        let game = kq8_data::GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let mut counts = Vec::new();
+        for (region, files) in [("Daventry", vec!["rooftrap.cs"]), ("Barren", vec!["bastrap.cs", "bastrap1.cs"]), ("IceWorld", vec!["killorc.cs"])] {
+            let volume = kq8_data::VolArchive::open(&game.volume_path(region, "kq").unwrap()).unwrap();
+            for file in files {
+                let bytes = volume.unpack(volume.find(file).unwrap()).unwrap().data;
+                let text = String::from_utf8_lossy(&bytes);
+                for line in text.lines().map(str::trim).filter(|line| line.starts_with("KQMonster::setState Connor Choice ")) {
+                    let list = ChoiceList::parse(line.split_whitespace().nth(3).unwrap()).unwrap();
+                    assert!(list.valid(), "{region}/{file}");
+                    let at = list.points[0].1;
+                    let mut state = Choice::new(list);
+                    state.circle = Some(on_circle([at[0] + 100.,at[1] + 100.], &state.list.points));
+                    assert!(state.valid());
+                    let saved: Choice = serde_json::from_slice(&serde_json::to_vec(&state).unwrap()).unwrap();
+                    assert_eq!(saved, state);
+                    counts.push(state.list.points.iter().map(|(n,_)| n.clone()).collect::<Vec<_>>());
+                }
+            }
+        }
+        assert_eq!(counts, vec![vec!["0","1"],vec!["0","1"],vec!["0","1"],vec!["0","1","2"],vec!["0","2"],vec!["1","2"]]);
+    }
 
     #[test]
     fn the_list_is_a_script_then_triples() {

@@ -7,6 +7,16 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Directional-choice saves (2026-11-06)
+
+Choice scenes retain their original point list, measured circle, decision,
+turning pose and pending calls. The roof's two directions, a scripted pivot,
+both Small Axe swap stages and a chosen state with a deferred NPC cue pass
+fresh-process checks. A supplied internal pending-call record also loads
+and dispatches once; normal UI capture of that private buffer is not verified.
+All six roof/basilisk/orc lists pass an original-data check. Full quests,
+rock/hammer overlaps and pre-choice waiting-request behavior remain open.
+
 ## Combat death saves (2026-11-06)
 
 Hit deaths retain their animation list, phase and dying hit guard after

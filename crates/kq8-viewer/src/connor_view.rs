@@ -75,7 +75,11 @@ pub struct Controls {
 
 #[path = "conversation_pose.rs"]
 mod conversation_pose;
-pub use conversation_pose::SavedTalkPose;
+pub use conversation_pose::{SavedTalkPose, SavedControllerPose};
+
+#[path = "choice_checkpoint.rs"]
+mod choice_checkpoint;
+pub use choice_checkpoint::SavedChoice;
 
 impl Controls {
     /// The value of the pair (`plus` gives +1, `minus` −1) from the keys
@@ -451,6 +455,7 @@ impl SavedCombatCues {
 }
 
 impl SavedWeaponState {
+    pub fn swapping(&self) -> bool { self.readying }
     pub fn retains_drawn_list(&self) -> bool {
         self.weapon_set.is_some() && self.weapon_set == self.weapon_target
             && self.set_mode != WeaponMode::None && self.set_mode == self.target_mode && self.ready_item.is_some()
@@ -707,7 +712,7 @@ impl ConnorSim {
         let walker = &self.walker;
         if walker.mode != Mode::Special || self.swing.is_some() || self.shot.is_some()
             || self.throw.is_some() || self.rock.is_some() || self.rope.is_some()
-            || self.tile.is_some() || self.scales.is_some() || self.choice.is_some() {
+            || self.tile.is_some() || self.scales.is_some() {
             return None;
         }
         let steps = walker.special.iter().map(|step| match step {
@@ -2652,6 +2657,11 @@ impl ConnorSim {
             return lines;
         }
         if !self.choosing() {
+            return lines;
+        }
+        // A completed swap queues its fresh entry for the next script pass.
+        // Its StartChoice must move Connor before we measure the circle.
+        if self.choice_calls.iter().any(|args| args.get(1).is_some_and(|kind| kind == "StartChoice")) {
             return lines;
         }
         let at = [self.mover.position[0], self.mover.position[1]];
