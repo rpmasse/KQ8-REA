@@ -23,6 +23,16 @@ world click at the ring. Check the original push and fall, the ring
 pickup, both story flags and a fresh-process menu reload. Keep the
 earlier retreat-route test separate.
 
+The first full repetition reached HeroDoor from Normal New Game,
+but its different stopping position sent a short stride into the
+click blocker without touching the lid. Test an approach from the
+southwest. The original physical controller distinguishes glancing
+from head-on contact, and a scripted push accepts a facing within
+60 degrees of the lid's surface normal. Approach diagonally so that
+a first contact with the blocker can slide along it without a
+head-on recoil. Verify both earned HeroDoor saves before repeating
+the complete path. Keep the gameplay collision rules intact.
+
 **M6 cottage Crystal and the hero's tomb.** Begin with the earned
 cottage shield. The installed Daventry WorldInv.cs also places a
 50-health Crystal in the cottage. An initial camera orbit from the

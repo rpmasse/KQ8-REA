@@ -1,5 +1,27 @@
 # MODLOG
 
+## 2026-11-07 Approach the coffin lid from the southwest
+
+A full, unseeded repetition reached HeroDoor but stopped at the last
+push after 905.43 seconds. At its first contact, Connor faced almost
+directly into the click blocker. The earlier measured 146.3-unit
+forward step had likewise ended short of the lid. A straight
+run could work from one saved position and recoil from the other.
+The revised route approaches from the southwest and allows the
+ordinary mover to slide against the blocker while still facing the
+scripted push target. The test now checks the physical Push trace
+as well as the original script, item, save and reload.
+
+The previously failing HeroDoor save passed in 111.38 seconds. The
+accepted push on update 52 had facing cosine 0.761 and a glancing
+contact of 40.6 degrees. The prior HeroDoor save passed in 111.68
+seconds; its push was accepted at 60 with cosine 0.813. Both loaded
+the ring from disk, retained the door and coffin flags, and reached
+the final menu save alive. Local runs are under `kq8-artifacts/hero-coffin-reload`
+in `1793990055228492800` and `1793990167682062300`. The [campaign
+notes](docs/daventry-progression.md#verified-through-the-dead-heros-ring)
+give the reproduction command and optional checkpoint inputs.
+
 ## 2026-11-07 Take the dead hero's ring and retain it after a fresh launch
 
 Checked witnesses now cover the ordinary route through the tomb
