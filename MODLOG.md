@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-07 Enter Castle Daventry and earn the Ashes
+
+Connor can descend the cleared waterfall, jump into the cave, accept
+the CastleD portal and acquire the Ashes beyond the fireplace. The
+Windows campaign checks use the wall light, wait for the door to
+open and pick up the item through a normal gameplay click. A fresh
+load preserved one Ashes, the open door and 207 experience. Six
+Windows launches across the two tests verified these steps.
+The shared save helper now checks which region actually loaded.
+[Reproduction commands](docs/daventry-progression.md#enter-castle-daventry-and-collect-the-ashes)
+
 ## 2026-11-07 Reach and solve the waterfall puzzle
 
 The campaign replay now follows the village road to the fountain and

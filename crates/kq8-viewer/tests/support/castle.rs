@@ -152,6 +152,10 @@ fn reach_waterfall() -> PathBuf {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_WATERFALL_FOOT_SLOT"]
 fn waterfall_rope_and_brick_puzzle() {
+    clear_waterfall();
+}
+
+fn clear_waterfall() -> PathBuf {
     let play = Play::new("waterfall-bricks-campaign");
     let source = earned_slot("KQ8_WATERFALL_FOOT_SLOT").unwrap_or_else(reach_waterfall);
     let foot = prepare(&play, &source);
@@ -227,4 +231,95 @@ fn waterfall_rope_and_brick_puzzle() {
         fs::read(play.game.join("Options.cs")).unwrap(),
         play.options
     );
+    play.slots.join("slot-4.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_WATERFALL_RELOAD_SLOT"]
+fn cleared_waterfall_to_castle_portal() {
+    enter_castle();
+}
+
+pub(super) fn enter_castle() -> PathBuf {
+    let play = Play::new("daventry-castle-portal-campaign");
+    let source = earned_slot("KQ8_WATERFALL_RELOAD_SLOT").unwrap_or_else(clear_waterfall);
+    let first = prepare(&play, &source);
+    assert_eq!(first["label"], "WaterfallReload");
+    assert!(hero_flag(&first, "Daventry::bricks", "down"));
+    check_ingredients(&first);
+    let (base, _) = leg(
+        &play,
+        1,
+        "BelowBlockedFalls",
+        540,
+        &[
+            "--key",
+            "left:IDCTL_INVBAR_ROPE,8",
+            "--aim-point",
+            "155460,304013,13700,14",
+            "--hold",
+            "-1,0,0,160,260",
+        ],
+    );
+    assert_eq!(
+        log(&play, "BelowBlockedFalls", "rope.log")
+            .matches("climb: reached the bottom end")
+            .count(),
+        1
+    );
+    assert!(base["position"][2].as_f64().unwrap() < 12000.0);
+    let path = play.root.join("cave-mouth.json");
+    let route = json!({"start":3,"landmarks":[
+        {"name":"Leave the rope wall","xy":[152980,302700],"radius":135},
+        {"name":"Round the rock","xy":[152810,302460],"radius":115},
+        {"name":"Reach the clearing","xy":[153080,302080],"radius":145},
+        {"name":"Cross toward the falls","xy":[155500,300040],"radius":145},
+        {"name":"Stand before the cave mouth","xy":[158440,300040],"radius":155},
+        {"name":"Jump onto the cave threshold","xy":[158440,300040],"radius":250,"jump_toward":[158440,303000]},
+        {"name":"Enter the cave tunnel","xy":[158350,302170],"radius":155},
+        {"name":"Follow the tunnel to the portal","xy":[158350,307650],"radius":160}
+    ]});
+    fs::write(&path, serde_json::to_vec(&route).unwrap()).unwrap();
+    let (cave, viewer) = leg(
+        &play,
+        2,
+        "CastleCave",
+        770,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    assert!(viewer.contains("walk-route at Follow the tunnel to the portal"));
+    assert!(cave["position"][1].as_f64().unwrap() > 307000.0);
+    assert!(hero_flag(&cave, "Daventry::Castle::foundPortal", "0"));
+    let (castle, viewer) = leg(
+        &play,
+        3,
+        "EnteredCastle",
+        320,
+        &["--hold", "1,0,0,4,22", "--key", "popup:yes,3"],
+    );
+    assert!(viewer.contains("portal1 gets Accept"));
+    assert_eq!(viewer.matches("trap portaltp: On Connor at").count(), 1);
+    assert_eq!(castle["world"], "CastleD");
+    assert!(hero_flag(&castle, "Daventry::Castle::foundPortal", "1"));
+    assert!(hero_flag(&castle, "Daventry::bricks", "down"));
+    check_ingredients(&castle);
+    let xp = |s: &Value| s["journey"]["stats"]["stats"][4].as_i64().unwrap();
+    assert_eq!(xp(&castle), xp(&cave) + 25);
+    let ashes: Vec<_> = castle["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|i| i["kind"] == "INVITEM_Ashes")
+        .collect();
+    assert_eq!(ashes.len(), 1);
+    assert_eq!(ashes[0]["quantity"], 1);
+    assert_eq!(
+        ashes[0]["place"]["World"]["position"],
+        json!([26213.0, 94506.0, 117.0])
+    );
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+    play.slots.join("slot-4.json")
 }

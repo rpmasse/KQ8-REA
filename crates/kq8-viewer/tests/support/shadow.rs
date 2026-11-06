@@ -48,7 +48,9 @@ pub(super) fn leg(
     args.extend_from_slice(inputs);
     args.extend(["--key", &save, "--key", &quit, "--frames", &limit]);
     let (viewer, _) = play.run(label, &args);
-    assert!(viewer.contains("save restored in Daventry without replaying Begin"));
+    let previous = play.slot(slot);
+    let world = previous["world"].as_str().unwrap();
+    assert!(viewer.contains(&format!("save restored in {world} without replaying Begin")));
     let saved = play.slot(slot + 1);
     assert_eq!(saved["label"], label);
     assert!(saved["journey"]["stats"]["stats"][0].as_i64().unwrap() > 0);

@@ -13,6 +13,15 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 enter Castle Daventry from the cleared waterfall.** Descend with
+the earned rope, jump onto the cave threshold and walk to the original
+portal. Accept its prompt through the game interface. Verify the
+CastleD world, its Ashes placement, the discovery award, and preserved
+Daventry puzzle state before attempting the castle interior.
+Inside the castle, operate the wall light through its normal click
+handler, wait for the fireplace door to finish opening, then save
+and traverse it. Confirm a single Ashes pickup and its persistence.
+
 **M6 route from the Wizard toward Castle Daventry.** Start at the
 earned two-ingredient save. Walk or run to the village fountain and
 drink through normal world clicks. Check the original two-point health
@@ -643,7 +652,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
 | M4 · Interface and dialogue | Partial. The title and pause menus, named saves, Options, Keyboard, opening replay, HUD, captions, pickup help, the Wizard conversation and the F2 view have Windows checks. Credits displays the original cards. | Finish graphics modes and resolution switching, software palette output, remaining help, inventory and dialogue branches. Establish the original credits timing and score. |
 | M5 · Combat | Partial. Tests cover the first-person axe and Small Crossbow, weapon draws and saves during combat and death. The Weeper, Tower Skeleton, Henchman, Lucreto and several script-created enemies have focused coverage. | Finish the other weapon and damage paths, enemy decisions, bosses and specialised deaths. Exercise each full encounter in campaign play. |
-| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. Continued saves cover the Shadow, two Wizard deliveries and the waterfall puzzle on the road to Castle Daventry. The Dead City scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Cross the cave portal, collect the Ashes, earn the Ring of Light and enter Dead City in this campaign. Complete the remaining quests, regional transitions and saved controllers. Verify one Normal New Game through the ending and credits. |
+| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. Continued saves cover the Shadow, two Wizard deliveries, the waterfall, entry into Castle Daventry and acquisition of the Ashes. The Dead City scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Return the Ashes to the Wizard, earn the Ring of Light and enter Dead City in this campaign. Complete the remaining quests, regional transitions and saved controllers. Verify one Normal New Game through the ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
 
 **Starting revision.** This fork incorporates the [October 31 upstream changes](https://github.com/Eric-lz/KQ8R/compare/b6658de39c87b51c41a62f765f08dbf1ee54980c...5ea5a46f791a637b2d2e231e56195726050e57cb), including world persistence and Dead City puzzle work. The remaining implementation starts from those systems and the verified Windows scenarios below.
