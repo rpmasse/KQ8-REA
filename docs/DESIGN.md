@@ -158,15 +158,29 @@ hold schedules still leave backward held at Do, at distances 2837 and 2544
 inside extended reach 3125. Stop further timing variations; STATUS records
 both runs. No complete encounter or winning campaign route is claimed.
 
-**Next, repair only the scripted hold driver.** Source inspection explains
+**Scripted hold driver (2026-11-06, implemented).** Source inspection explains
 the handoff: connor_keys samples --hold ranges in Update, while several
 FixedUpdate game ticks can run before the next sample after a load. A range
-can start late and its release can pass during those game ticks. Move only
-synthetic --hold sampling into the fixed chain before door_step reads the
-backward-key state. Leave physical keyboard sampling and game timing intact.
+can start late and its release can pass during those game ticks. Sample
+synthetic --hold in the fixed chain before door_step reads the backward-key
+state, sharing the sampler with frame input so clicks/aiming see the same
+intent. Leave physical keyboard sampling and game timing intact.
 Check the same stopped fixture without another tick adjustment, then regress
 Choice's held decision and nested swap cases. This is a new input-scheduling
-fix based on source evidence, not another hold-window guess.
+fix based on source evidence, not another hold-window guess. The unchanged
+three-process Henchman fixture now passes in 95.56 seconds: Do misses at
+distance 2691 with backward released and reach 2500, one attack finishes,
+and health/guard position persist. Viewer unit checks and test compilation
+pass. Both roof branches pass in 116.23 seconds and nested swaps in 130.62.
+The first moving-shot regression captured 0.3/0.8 seconds instead of its
+hard-coded 0.366667/0.866667; the frame-sampled menu captured a later tick.
+Check the original pending 0.5-second deadline and 0.5-second gap to the run
+deadline, then both sides of the retained cooldown and a 15-tick run return
+measured from the actual second shot. Do not alter game timers to reproduce
+an assumed save tick. That corrected regression passes in 58.12 seconds,
+including one early refusal, one later bolt and run return 15–16 ticks after
+the actual second shot. Its first hard-coded-tick failure is retained in
+MODLOG. All four native checks now pass; full campaign work remains open.
 
 **Runtime monster creation.** Dead City's karma scripts call `KQMonster::add` after play has begun. Reuse the existing `MonsterLine` parser and `Monstats.mtl` type lookup rather than interpreting those lines as `loadKQ`. Prepare each referenced type's model and movements while the world loads, then instantiate a character with the command's name, placement, fight fields, inventory, wandering and script behavior at the script tick. Check the 20-field form against the owned GOG data and the documented two-word form with a focused fixture. Verify that its AI, collision, damage, deletion and save/restore all work after a fresh relaunch, including the scripts' field-12 patrol quirk. Unknown types must create nothing and log the original error. Do this as a separate change before claiming the Dead City encounters are complete.
 

@@ -12,9 +12,10 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 Wait repairs its attack deadline only when a hit actually selects a reaction;
 uninterruptible, locked or low-roll hits retain the pending attack. Five core
 cases pass. Native artifacts retain Henchman's damaged health and attack
-through loading, with one Do and ordinary completion. The combined retreat
-fixture failed twice because backward was still held at impact; it remains
-stopped in STATUS and does not prove an encounter or campaign pass.
+through loading, with one Do and ordinary completion. Two failed retreat
+attempts exposed frame-sampled synthetic holds; a fixed-tick sampler then
+passed the same three-process fixture, including a miss after retreat and
+release. This does not prove a complete encounter or campaign pass.
 
 ## Directional-choice saves (2026-11-06)
 

@@ -2,7 +2,7 @@
 use std::{fs, path::Path, process::Command};
 
 #[test]
-#[ignore = "unfinished retreat input fixture: two attempts stopped (STATUS); requires KQ8_GAME_DIR/graphics; not campaign acceptance"]
+#[ignore = "requires KQ8_GAME_DIR and graphics; isolated protected placement, not campaign acceptance"]
 fn henchman_keeps_an_uninterruptible_attack_and_misses_a_retreat_after_reload() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let options = fs::read(game.join("Options.cs")).unwrap();

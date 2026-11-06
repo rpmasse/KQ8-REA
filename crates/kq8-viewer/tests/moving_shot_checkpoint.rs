@@ -33,8 +33,13 @@ fn moving_crossbow_cooldown_resumes_after_disk_reload() {
     let first = read(1);
     let timing = &first["shot_timing"];
     assert_eq!(timing["run"], false);
-    assert!(timing["next_shot_in"].as_f64().is_some_and(|n| (n - 0.366667).abs() < 0.001));
-    assert!(timing["run_back_in"].as_f64().is_some_and(|n| (n - 0.866667).abs() < 0.001));
+    // Menu input is sampled per frame, so the save may capture a different
+    // fixed tick. Check the original 0.5 s / 1 s deadlines and their gap,
+    // then test both sides of the retained cooldown after loading.
+    let next_shot = timing["next_shot_in"].as_f64().unwrap();
+    let run_back = timing["run_back_in"].as_f64().unwrap();
+    assert!(next_shot > 0. && next_shot <= 0.5);
+    assert!((run_back - next_shot - 0.5).abs() < 1e-6);
     assert_eq!(first["bolts"]["bolts_shot"], 1);
 
     let after = run("restore", &[
@@ -51,8 +56,11 @@ fn moving_crossbow_cooldown_resumes_after_disk_reload() {
         "the shot during the saved cooldown was accepted; inspect {}", root.display());
     assert_eq!(fight.matches("shoots bolt2 (Prscbolt.kq").count(), 1,
         "the later moving shot did not fire once; inspect {}", root.display());
-    assert!(fight.contains("update 23: Connor: 1 s after the last moving shot: the run is switched on again"),
-        "the run did not return after the second shot; inspect {}", root.display());
+    let update = |line: &str| -> u64 { line.strip_prefix("update ").unwrap().split(':').next().unwrap().parse().unwrap() };
+    let shot_tick = update(fight.lines().find(|line| line.contains("shoots bolt2 (Prscbolt.kq")).unwrap());
+    let return_tick = update(fight.lines().find(|line| line.contains("Connor: 1 s after the last moving shot: the run is switched on again")).unwrap());
+    assert!((15..=16).contains(&(return_tick - shot_tick)),
+        "the run must return one second (15 game ticks) after the actual second shot; inspect {}", root.display());
     let second = read(2);
     assert_eq!(second["bolts"]["bolts_shot"], 2);
     assert_eq!(second["shot_timing"]["run"], true);

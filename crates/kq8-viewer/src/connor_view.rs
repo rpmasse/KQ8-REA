@@ -917,6 +917,32 @@ pub struct StartLift(pub Option<f32>);
 #[derive(Resource)]
 pub struct HoldIntent(pub Vec<([i8; 3], u64, Option<u64>)>);
 
+/// Scripted holds use game ticks, including catch-up ticks after loading.
+/// Run before door_step copies Connor's backward key for enemy hit tests.
+pub fn test_hold_step(sim: Option<ResMut<ConnorSim>>, hold: Res<HoldIntent>, shared: Res<Shared>) {
+    let Some(mut sim) = sim else { return; };
+    apply_test_hold(&mut sim, &hold, &shared);
+}
+
+fn apply_test_hold(sim: &mut ConnorSim, hold: &HoldIntent, shared: &Shared) {
+    let Some(&([_, _, run], _, _)) = hold.0.first() else { return; };
+    let now = hold.0.iter().find(|(_, from, until)| sim.updates >= *from && until.is_none_or(|end| sim.updates < end))
+        .map(|(keys, _, _)| *keys).unwrap_or([0; 3]);
+    let [forward, turn, _] = now;
+    sim.intent.forward = forward;
+    if turn != sim.hold_turn_down {
+        let was = std::mem::replace(&mut sim.hold_turn_down, turn);
+        if was != 0 { turn_key_event(sim, was, false, "test --hold", shared); }
+        if turn != 0 { turn_key_event(sim, turn, true, "test --hold", shared); }
+    }
+    sim.intent.turn = sim.turn_keys.turn;
+    // Set the run switch only once, so later scripts can change it.
+    if !sim.hold_run_set {
+        sim.hold_run_set = true;
+        sim.intent.run = run != 0;
+    }
+}
+
 /// `--jump N` (repeatable): a test that presses Jump once, before update
 /// N + 1, for each N given.
 #[derive(Resource)]
@@ -1574,29 +1600,9 @@ pub fn connor_keys(
         sim.log.detail(line);
     }
     sim.intent.forward = forward;
-    if let Some(&([_, _, r], _, _)) = hold.0.first() {
-        // The hold whose updates these are (M6 6a-4: several, each from
-        // its own start), if any.
-        let now = hold.0.iter().find(|(_, from, until)| sim.updates >= *from && until.is_none_or(|n| sim.updates < n)).map(|(k, _, _)| *k);
-        let [f, t, _] = now.unwrap_or([0; 3]);
-        sim.intent.forward = f;
-        // The held turn: pressed at the start, let go at the end (events).
-        if t != sim.hold_turn_down {
-            let was = std::mem::replace(&mut sim.hold_turn_down, t);
-            if was != 0 {
-                turn_key_event(&mut sim, was, false, "test --hold", &shared);
-            }
-            if t != 0 {
-                turn_key_event(&mut sim, t, true, "test --hold", &shared);
-            }
-        }
-        // The run switch only at the start, so scripts can change it
-        // (`KQConner::setRun`, M3 step 3d-3).
-        if !sim.hold_run_set {
-            sim.hold_run_set = true;
-            sim.intent.run = r != 0;
-        }
-    }
+    // Keep frame-based click/aim handling on the same synthetic intent;
+    // the fixed sampler also applies it before every individual game tick.
+    apply_test_hold(&mut sim, &hold, &shared);
     if let Some((_, t)) = turn_at.0.filter(|&(n, _)| sim.updates >= n) {
         turn_at.0 = None;
         turn_key_event(&mut sim, t, true, "test --turn (pressed and held)", &shared);
