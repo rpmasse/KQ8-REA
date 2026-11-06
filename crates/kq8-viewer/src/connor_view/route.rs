@@ -1,8 +1,8 @@
 //! Unattended walking through landmarks. Only press/release Connor's bound
 //! movement keys. Ground, buildings, falls, actors and scripts stay in play.
-//! The optional named interaction uses the existing --click dispatcher.
+//! Named interactions can use the existing --click dispatcher or --aim ray.
 use super::{ConnorSim, Shared};
-use crate::door_view::{ClickAt, DoorSim, SwingAt};
+use crate::door_view::{AimAt, ClickAt, DoorSim, SwingAt};
 use bevy::prelude::*;
 use kq8_core::connor_auto::{heading_towards, wrap};
 use serde::Deserialize;
@@ -15,6 +15,8 @@ struct Landmark {
     xy: [f32; 2],
     radius: f32,
     click: Option<String>,
+    /// Aim the normal world-click ray at the target. Any nearer object wins.
+    aim: Option<String>,
     /// At this landmark, turn in place and press the bound Jump key.
     jump_toward: Option<[f32; 2]>,
     /// Stop here and use ordinary hand-weapon attacks against this character.
@@ -80,6 +82,7 @@ impl Replay {
         if replay.landmarks.is_empty()
             || replay.landmarks.iter().any(|l| {
                 l.name.is_empty()
+                    || (l.aim.is_some() && l.click.is_some())
                     || (l.fight.is_some() && l.break_object.is_some())
                     || (l.retreat && l.fight.is_none())
                     || l.scene.as_ref().is_some_and(|s| s.trigger.is_empty() || s.controller.is_empty())
@@ -114,6 +117,7 @@ pub fn steer(
     sim: Option<Res<ConnorSim>>,
     mut keys: ResMut<ButtonInput<KeyCode>>,
     mut clicks: ResMut<ClickAt>,
+    mut aims: ResMut<AimAt>,
     doors: Option<Res<DoorSim>>,
     gui: Option<Res<crate::gui_view::Gui>>,
     mut swings: ResMut<SwingAt>,
@@ -320,6 +324,9 @@ pub fn steer(
         ));
         if let Some(name) = point.click {
             clicks.0.push((name, 0));
+        }
+        if let Some(name) = point.aim {
+            aims.0.push((name, sim.updates));
         }
         if point.jump_toward.is_some() {
             if let Some(key) = sim.controls.jump {
