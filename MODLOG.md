@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-07 The Shadow and two deliveries to the Wizard
+
+The campaign replay now follows the earned urn save up the church's
+inside rope and down its outer rope. It fights the archer with the
+earned axe, opens the Shadow encounter in the tomb, and verifies
+all twelve movement callbacks, the experience award and return of
+player control. The next process picks up the archer’s crossbow.
+On the road back, the replay can press the bound Run key for a
+specified landmark. An earlier walking attempt died to two graveyard
+zombies. Normal combat and damage remain active throughout the route.
+The Wizard accepts the original ring and Candle from the inventory
+strip. A fresh load preserves the two deliveries and the outstanding
+Ashes requirement. [Automated checks and source scripts](docs/daventry-progression.md#the-shadow-and-the-wizards-ingredients)
+
 ## 2026-11-07 Animate the original menu selection masks
 
 The main menu previously always drew frame zero of the installed mask.

@@ -1,6 +1,8 @@
 //! Earn the village shield with ordinary controls, save, then use it after a fresh launch.
 #[path = "support/church.rs"]
 mod church;
+#[path = "support/shadow.rs"]
+mod shadow;
 #[path = "support/pickup_help.rs"]
 mod pickup_help;
 #[path = "support/first_person.rs"]

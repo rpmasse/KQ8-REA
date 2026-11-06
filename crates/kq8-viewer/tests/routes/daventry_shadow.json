@@ -1,0 +1,46 @@
+{
+  "approach": {
+    "start": 3,
+    "landmarks": [
+      {"name":"Return to the inner rope","xy":[202760,183300],"radius":150}
+    ]
+  },
+  "roof": {
+    "start": 3,
+    "landmarks": [
+      {"name":"Stay west of the opening","xy":[201055,184250],"radius":145},
+      {"name":"Return along the west aisle","xy":[201550,184880],"radius":125},
+      {"name":"Middle roof","xy":[203780,185040],"radius":135},
+      {"name":"East roof","xy":[204620,184340],"radius":145},
+      {"name":"Stop above the churchyard","xy":[205600,185410],"radius":155}
+    ]
+  },
+  "tomb": {
+    "start": 3,
+    "landmarks": [
+      {"name":"Take the exterior path","xy":[206020,187700],"radius":110},
+      {"name":"Walk along the north wall","xy":[202380,187700],"radius":135},
+      {"name":"Around the church corner","xy":[201260,186580],"radius":150},
+      {"name":"West side of the churchyard","xy":[199860,186440],"radius":150},
+      {"name":"Clear the long fence","xy":[200000,177060],"radius":150},
+      {"name":"Start the east path","xy":[200560,176500],"radius":150},
+      {"name":"East end of the grounds","xy":[221560,177060],"radius":160},
+      {"name":"Fight the archer outside the tomb","xy":[226380,181750],"radius":165,"fight":"sprgnbow","big_swing":true},
+      {"name":"Approach the open tomb door","xy":[227020,182520],"radius":140},
+      {"name":"Pass through the doorway","xy":[227300,182660],"radius":125},
+      {"name":"Meet the Shadow","xy":[235180,183080],"radius":110,"until_var":{"value":"1","name":"Daventry::ShadowMonster::metConnor"}}
+    ]
+  },
+  "wizard": {
+    "start": 3,
+    "landmarks": [
+      {"name":"Leave the mausoleum","xy":[227020,182520],"radius":145},
+      {"name":"East graveyard path","xy":[221560,177060],"radius":290,"run":true},
+      {"name":"Round the fence","xy":[200560,176500],"radius":280,"run":true},
+      {"name":"Start the north road","xy":[200000,177060],"radius":160,"run":false},
+      {"name":"West of the church","xy":[199860,186440],"radius":280,"run":true},
+      {"name":"Approach the Wizard","xy":[192200,198000],"radius":220,"run":false},
+      {"name":"Ask the Wizard about the Shadow","xy":[191980,198274],"radius":200,"aim":"Wizard"}
+    ]
+  }
+}

@@ -14,6 +14,8 @@ struct Landmark {
     name: String,
     xy: [f32; 2],
     radius: f32,
+    /// Optional walking or running pace, selected with the bound Run key.
+    run: Option<bool>,
     click: Option<String>,
     /// Aim the normal world-click ray at the target. Any nearer object wins.
     aim: Option<String>,
@@ -400,7 +402,18 @@ pub fn steer(
     }
     let turn = turn_key(&sim, error);
     let forward = sim.controls.forward.filter(|_| error.abs() < 0.55);
-    let wanted: Vec<_> = [turn, forward].into_iter().flatten().collect();
+    let mut wanted: Vec<_> = [turn, forward].into_iter().flatten().collect();
+    if landmark.run.is_some_and(|run| run != sim.intent.run) && !sim.hands_off {
+        if let Some(key) = sim.controls.run {
+            if !replay.held.contains(&key) {
+                wanted.push(key);
+            }
+        } else {
+            shared.log.lock().unwrap().summary("walk-route: Run has no key binding");
+            exit.write(AppExit::error());
+            return;
+        }
+    }
     if replay
         .progress
         .is_none_or(|(best, _)| distance < best - 100.)

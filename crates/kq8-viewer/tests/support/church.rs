@@ -94,6 +94,10 @@ fn check_candle(save: &Value) {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_CHURCH_CANDLE_SLOT"]
 fn earned_candle_to_urn_and_open_tomb_door() {
+    earn_open_tomb();
+}
+
+pub(super) fn earn_open_tomb() -> PathBuf {
     let play = Play::new("church-urn-campaign");
     let source = earned_slot("KQ8_CHURCH_CANDLE_SLOT").unwrap_or_else(earn_candle);
     fs::create_dir_all(&play.slots).unwrap();
@@ -128,9 +132,10 @@ fn earned_candle_to_urn_and_open_tomb_door() {
     check_open_tomb(&restored);
     assert_eq!(restored["journey"]["stats"], saved["journey"]["stats"]);
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+    play.slots.join("slot-3.json")
 }
 
-fn check_open_tomb(save: &Value) {
+pub(super) fn check_open_tomb(save: &Value) {
     check_candle(save);
     assert!(hero_flag(save, "Daventry::Church::urn", "1"));
     let region = &save["kept"]["daventry"];
