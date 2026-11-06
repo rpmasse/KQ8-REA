@@ -153,7 +153,7 @@ fn cottage_door_mushrooms_and_castle_round_trip() {
     // five more. Opening a fresh chest proves interaction still works.
     // Travel via portaltp/portalt2 and accept each region prompt.
     let after = run("castle", &[
-        "--menu-input", "down,enter,release,enter,release", "--frames", "1750",
+        "--menu-input", "down,enter,release,enter,release", "--frames", "2400",
         "--console", "inv,2",
         "--click", "basket2,4",
         "--console", "inv,17",

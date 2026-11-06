@@ -835,6 +835,7 @@ impl crate::active::WorldState {
         let s = *self.stats.entry(key.clone()).or_default();
         let rng = &mut self.fight_rng;
         let dmg = Damage::roll(d, s.0[3].min(PROTECTION_CAP), ROLL_ON_CHARACTER, &mut || rng.fraction());
+        if dmg.loss > 0 { self.object_hit_kinds.insert(key.clone(), kind); }
         let mut after = s;
         after.0[0] -= dmg.loss;
         self.stats.insert(key, after);

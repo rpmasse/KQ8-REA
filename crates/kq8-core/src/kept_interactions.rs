@@ -20,6 +20,60 @@ pub struct KeptInteractions {
     chests: BTreeMap<String, KeptChest>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     special_actors: BTreeMap<String, SpecialActor>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    object_stats: BTreeMap<String, ObjectCombat>,
+}
+
+#[cfg(test)]
+mod object_stats_tests {
+    use super::*;
+    use crate::{active::Active, fight::HitKind, stats::Stats};
+    fn world() -> Active {
+        let mut a = Active::new(Default::default(), vec![], vec![], ["door".into(), "scenery".into(), "removed".into()], Vec::<(String, Vec<u8>)>::new());
+        a.world.persistent_stat_objects.extend(["door".into(), "removed".into()]);
+        a.set_stats("door", Stats([17, 2, 3, 4, 5]));
+        a.set_stats("scenery", Stats([999, 0, 0, 0, 0]));
+        a.set_stats("removed", Stats([-1, 0, 0, 0, 0]));
+        a.console_command("deleteObject removed", "test");
+        a
+    }
+    #[test]
+    fn object_stats_json_restores_only_live_persistent_targets_and_keeps_history() {
+        let mut a = world();
+        a.world.object_hit_kinds.insert("door".into(), HitKind::Fire);
+        let saved = KeptInteractions::take(&a.world);
+        assert_eq!(saved.object_stats.len(), 1);
+        assert!(saved.valid_object_stats());
+        let saved: KeptInteractions = serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();
+        let mut b = world();
+        b.set_stats("door", Stats([10000, 0, 0, 0, 0]));
+        b.set_stats("scenery", Stats([123, 0, 0, 0, 0]));
+        saved.restore_object_stats(&mut b.world);
+        assert_eq!(b.world.stats["door"], Stats([17, 2, 3, 4, 5]));
+        assert_eq!(b.world.stats["scenery"].0[0], 123);
+        assert_eq!(b.world.object_hit_kinds["door"], HitKind::Fire);
+        let again = KeptInteractions::take(&b.world);
+        assert_eq!(again.object_stats["door"].last_hit, Some(HitKind::Fire));
+        b.world.persistent_stat_objects.remove("door");
+        b.set_stats("door", Stats([888, 0, 0, 0, 0]));
+        saved.restore_object_stats(&mut b.world);
+        assert_eq!(b.world.stats["door"].0[0], 888, "permanent scenery must keep its fresh default");
+    }
+    #[test]
+    fn old_object_stats_records_leave_defaults_and_invalid_names_fail_validation() {
+        let old: KeptInteractions = serde_json::from_str("{\"doors\":{},\"chests\":{}}").unwrap();
+        let mut a = world(); old.restore_object_stats(&mut a.world);
+        assert_eq!(a.world.stats["door"].0[0], 17);
+        let mut invalid = KeptInteractions::default();
+        invalid.object_stats.insert("Door\n".into(), ObjectCombat { stats: Stats::default(), last_hit: None });
+        assert!(!invalid.valid_object_stats());
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ObjectCombat {
+    stats: crate::stats::Stats,
+    last_hit: Option<crate::fight::HitKind>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,6 +161,23 @@ impl Playback {
 }
 
 impl KeptInteractions {
+    pub fn valid_object_stats(&self) -> bool {
+        self.object_stats.len() <= 16384 && self.object_stats.keys().all(|name| {
+            !name.is_empty() && name.len() <= 1024 && name == &name.to_ascii_lowercase() && !name.chars().any(char::is_control)
+        })
+    }
+
+    /// Original defaults are installed first; Init sees the retained stats.
+    pub fn restore_object_stats(&self, w: &mut WorldState) {
+        for (name, saved) in &self.object_stats {
+            if !w.persistent_stat_objects.contains(name) || !w.known.contains(name) || w.is_gone(name) { continue; }
+            w.stats.insert(name.clone(), saved.stats);
+            match saved.last_hit {
+                Some(kind) => { w.object_hit_kinds.insert(name.clone(), kind); }
+                None => { w.object_hit_kinds.remove(name); }
+            }
+        }
+    }
     pub fn valid_special_actors(&self) -> bool {
         self.special_actors.iter().all(|(name, actor)| !name.is_empty() && actor.valid())
     }
@@ -172,7 +243,11 @@ impl KeptInteractions {
                 )
             })
             .collect();
-        Self { doors, chests, special_actors: SpecialActor::capture_world(w) }
+        let object_stats = w.stats.iter().filter(|(name, _)| {
+            w.persistent_stat_objects.contains(*name) && w.known.contains(*name) && !w.is_gone(name)
+                && w.character_index(name).is_none() && !w.monsters.iter().any(|m| m.name.eq_ignore_ascii_case(name))
+        }).map(|(name, stats)| (name.clone(), ObjectCombat { stats: *stats, last_hit: w.object_hit_kinds.get(name).copied() })).collect();
+        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats }
     }
 
     pub fn restore_special_actors(&self, w: &mut WorldState) {

@@ -193,6 +193,9 @@ impl Snapshot {
             if !kept.interactions.valid_special_actors() {
                 return Err("save has an invalid scripted character movement".into());
             }
+            if !kept.interactions.valid_object_stats() {
+                return Err("save has invalid ordinary-object combat state".into());
+            }
             if kept.spawned_monsters.iter().any(|monster| !monster.valid()) {
                 return Err("save has an invalid script-created monster".into());
             }
