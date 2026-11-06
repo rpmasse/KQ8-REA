@@ -37,6 +37,7 @@
 !/crates/*/src/**/*.rs
 !/crates/kq8-viewer/tests/*.rs
 !/crates/kq8-viewer/tests/support/daventry.rs
+!/crates/kq8-viewer/tests/support/windmill.rs
 !/crates/kq8-viewer/tests/support/pickup_help.rs
 !/crates/kq8-viewer/tests/routes/daventry_wizard.json
 !/crates/kq8-viewer/tests/routes/daventry_cottage_shield.json

@@ -56,7 +56,8 @@ pub struct Replay {
     #[serde(skip)]
     jumped: Option<u64>,
     #[serde(skip)]
-    fight_start: Option<u64>,
+    /// Start update and number of corpses already present at that point.
+    fight_start: Option<(u64, usize)>,
     #[serde(skip)]
     exchange: Exchange,
     #[serde(skip)]
@@ -232,6 +233,11 @@ pub fn steer(
             } else {
                 world.character_index(&name).and_then(|i| world.anims[i].character.as_ref()?.fight.as_ref())
                     .map(|fighter| fighter.dying.is_none() && !fighter.stats.dead())
+                    .or_else(|| {
+                        let (_, before) = replay.fight_start?;
+                        world.corpses.get(before..)?.iter()
+                            .any(|corpse| corpse.name.eq_ignore_ascii_case(&name)).then_some(false)
+                    })
             };
             let Some(alive) = alive else {
                 shared
@@ -243,7 +249,7 @@ pub fn steer(
                 return;
             };
             let tick = sim.updates;
-            let began = *replay.fight_start.get_or_insert(tick);
+            let (began, _) = *replay.fight_start.get_or_insert((tick, world.corpses.len()));
             if tick - began > 450 {
                 shared
                     .log

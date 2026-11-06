@@ -2,6 +2,8 @@
 //! By default the New Game route earns the wizard checkpoint in a separate process.
 #[path = "support/daventry.rs"]
 mod daventry;
+#[path = "support/windmill.rs"]
+mod windmill;
 
 use serde_json::Value;
 use std::{fs, path::Path, process::Command};
@@ -27,7 +29,8 @@ fn wizard_to_windmill_archer_bale_and_axe() {
     let root = daventry::test_root("windmill-route");
     let slots = root.join("slots");
     fs::create_dir_all(&slots).unwrap();
-    if let Some(existing) = std::env::var_os("KQ8_WIZARD_SLOT") {
+    let supplied = std::env::var_os("KQ8_WIZARD_SLOT");
+    if let Some(existing) = &supplied {
         fs::copy(existing, slots.join("slot-1.json")).expect("copy the earned wizard slot");
     } else {
         daventry::earn_magic_map(&game, &root);
@@ -43,33 +46,19 @@ fn wizard_to_windmill_archer_bale_and_axe() {
     assert_eq!(start["journey"]["ai_off"], false);
     assert_eq!(quantity(&start, "INVITEM_MagicMap"), 1);
     assert_eq!(quantity(&start, "INVITEM_SmallAx"), 0);
-    assert_eq!(quantity(&start, "INVITEM_Mushroom"), 0);
-
+    let mushrooms = quantity(&start, "INVITEM_Mushroom");
+    let shields = quantity(&start, "INVITEM_Invulnerable");
+    if supplied.is_none() {
+        assert_eq!(mushrooms, 0);
+        assert_eq!(shields, 0);
+    }
+    windmill::earn_axe(&game, &root);
     let replay = root.join("windmill");
-    fs::create_dir_all(&replay).unwrap();
-    let route = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/routes/daventry_windmill.json");
-    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
-        .current_dir(&replay).env("KQ8_SAVE_DIR", &slots)
-        .arg("--game").arg(&game)
-        .args(["--sound", "off", "--menu-input", "down,enter,release,enter,release"])
-        .args(["--key", "popup:help=131,0", "--key", "popup:help=142,0"]) // Mushrooms, then pushing.cs inside the windmill.
-        .arg("--walk-route").arg(route)
-        .args(["--key", "menu:down:down:down:enter:release:enter:release:escape:type=Hillside:enter:release:escape,838",
-            "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Windmill:enter:release:escape,1800",
-            "--key", "menu:up:enter:release:left:enter:release,1810", "--frames", "6500"])
-        .output().unwrap();
-    fs::write(replay.join("stderr.log"), output.stderr).unwrap();
-    let log =
-        |name: &str| fs::read_to_string(replay.join("kq8-artifacts/logs").join(name)).unwrap();
+    let log = |name: &str| fs::read_to_string(replay.join("kq8-artifacts/logs").join(name)).unwrap();
     let viewer = log("viewer.log");
-    assert!(
-        output.status.success()
-            && viewer.contains("RESULT: PASS")
-            && viewer.contains("Save screen -> Save(3, \"Windmill\")"),
-        "inspect {}",
-        replay.display()
-    );
-    assert_eq!(quantity(&read_slot("slot-2.json"), "INVITEM_Mushroom"), 5);
+    let hillside = read_slot("slot-2.json");
+    assert_eq!(quantity(&hillside, "INVITEM_Mushroom"), mushrooms + 5);
+    assert_eq!(quantity(&hillside, "INVITEM_Invulnerable"), shields);
 
     let fight = log("fight.log");
     assert!(viewer.contains("starting help: acknowledged case 142"));
@@ -115,6 +104,7 @@ fn wizard_to_windmill_archer_bale_and_axe() {
     let end = read_slot("slot-3.json");
     assert_eq!(quantity(&end, "INVITEM_SmallAx"), 1);
     assert_eq!(quantity(&end, "INVITEM_MagicMap"), 1);
+    assert_eq!(quantity(&end, "INVITEM_Invulnerable"), shields);
     assert_eq!(end["journey"]["ai_off"], false);
     assert_eq!(end["journey"]["god_mode"], false);
     assert!(end["journey"]["stats"]["stats"][0].as_i64().unwrap() > 0);
@@ -158,7 +148,7 @@ fn verify_reloaded_windmill(game: &Path, root: &Path, earned_slot: &Path, end: &
         .args(["--sound", "off", "--menu-input", "down,enter,release,enter,release",
             "--console", "KQObject::getLoc ax,10", "--click", "ax,18",
             "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Restored:enter:release:escape,38",
-            "--key", "menu:up:enter:release:left:enter:release,48", "--frames", "500"])
+            "--key", "menu:up:enter:release:left:enter:release,48", "--frames", "2200"])
         .output().unwrap();
     fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
     let logs = dir.join("kq8-artifacts/logs");

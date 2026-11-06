@@ -1194,7 +1194,7 @@ message that shows the usage.
 
 - **Campaign and saves.** The full New Game to credits route is open. Each region still needs its quests, optional interactions, bosses and transitions checked in sequence. A save during an unverified controller, puzzle or cutscene remains an open case.
 - **Graphics and camera.** First-person view and arm animations, full graphics-mode behavior, live resolution changes and parts of software palette presentation remain open. Third-person shake and camera flight have automated checks. Physical mouse drag and recentering still need comparison.
-- **Combat.** Complete the remaining weapon controls, projectile paths, enemy decisions and specialised death transitions. The Henchman’s opening attack has a reproducible ordinary route. Defeating him and reaching the hero’s ring in that run remain open.
+- **Combat.** Complete the remaining weapon controls, projectile paths, enemy decisions and specialised death transitions. A prepared Daventry route defeats the Henchman and survives a post-victory reload. Reaching the hero’s ring in that campaign remains open.
 - **Interface and dialogue.** The Wizard route covers approach, speech, help, rewards and return to player control. Other partners, conversations interrupted by gameplay, inventory interactions and credits timing still need coverage.
 - **Regional behavior.** Keep individual gaps attached to their regions, including the Gnome rolling-rock collision, hazardous-water damage, scenery sounds and remaining effects. Opening a region establishes that it can load and draw. Its quests need separate evidence.
 
