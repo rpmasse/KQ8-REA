@@ -1,5 +1,30 @@
 # MODLOG
 
+## 2026-11-06 Study handoff for original pickup tutorials (Q196)
+
+The separate study traced how acquiring an item schedules its tutorial.
+The first health and quest items schedule cases 131 and 132 three simulation
+seconds after receipt. Rope and Hook schedules case 128 after 4.5 seconds.
+Each consumes its own one-shot bit before the notice is queued. The later
+delivery checks Connor's availability, speech and the previous delivery
+time. Installing an existing inventory record is distinct from a pickup.
+
+The original stopHelp command sets all seven startHelp bits to 127.
+DeadCity's developer conStart.cs calls it before granting seed items,
+so it also affects later receipts. The original persists those bits,
+the previous delivery time and held case IDs. Reconstructing future events
+on load is still open under Q191. The source note and question-row patch
+passed applicability and whitespace checks. The installed DeadCity script
+can be checked with the local Rust CLI:
+
+```powershell
+.\target\debug\kq8.exe text vol:DeadCity/kq/constart.cs --game "..\King's Quest 8 GOG"
+```
+
+The first command in the script is stopHelp and the first inventory grant
+follows it. Original runtime and native pending-notice continuation are
+**not tested**. This change publishes the study for the Rust implementation.
+
 ## 2026-11-06 Region item tables and original item names
 
 World travel now separates the inventory that accompanies Connor from

@@ -1,5 +1,13 @@
 # STATUS
 
+## 2026-11-06 Pickup tutorial source rules settled
+
+Q196 establishes a three-second first-quest-item delay, the 4.5-second
+rope delay, independent receipt and delivery gates, and stopHelp's
+lasting effect on all seven flags. Development startup scripts actually
+invoke that command. The earlier pickup prototype's immediate case 132
+and seed-only suppression need correction before integration.
+
 ## 2026-11-06 Regional items survive travel and a Castle save
 
 The two-process Windows test passed in 134.30 s. It starts on Normal and
