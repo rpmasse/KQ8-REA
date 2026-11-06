@@ -7,8 +7,10 @@ ring save to the mill in 131.20 seconds. Connor followed the northern
 ridge and western descent, struck the tree with his Small Axe and
 finished its scripted falling sequence. The resulting save has 50
 health, the ring, the axe and the tree-down flag. The original script
-loaded both fallen-tree objects and the dock. Crossing them and taking
-the rope still require verification.
+loaded both fallen-tree objects and the dock. The viewer draws these
+objects during play, but their collision geometry is currently omitted
+on live loads. The next check is to cross immediately after felling the
+tree, repeat after reloading, and take the rope from the original mill trap.
 [Watermill route](docs/daventry-progression.md#watermill-tree)
 
 ## 2026-11-07 Fresh Normal New Game through the ring and disk reload

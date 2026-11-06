@@ -46,6 +46,17 @@ save repeats just the watermill leg. Local evidence is in
 stops before the mill platform. The rope’s script requires Connor to
 stand inside `miltrap2` and interact with `ropenhok` to receive it.
 
+The three new objects expose a difference between loading a world
+and running it. The original `milltree.cs` loads `milltre2.kq`,
+`milltre3.kq` and `dock3.kq` when the fall ends. The first two are
+ordinary objects. The third is an interior with collision geometry
+in `Dock3.dig`. The Rust loader builds collision boxes and interior
+geometry for objects present at world startup. Its live `loadKQ`
+handler currently reveals these models without adding their solids
+to Connor’s movement checks. The next acceptance check must walk the
+crossing immediately after the tree falls and compare it with a fresh
+process loading the same state.
+
 ### Earlier ring checks
 
 The source chain starts at Normal New Game. Each later process loads
