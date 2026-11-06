@@ -37,6 +37,20 @@ opens the dead-marked menu. The installed Small Axe death animation
 supplies a concrete duration for checking the end event. Rust acceptance
 of these stages is pending. [Ordinary combat death, Q192](../behaviour/connor-combat-death.md).
 
+## Regional item state
+
+WorldInv.cs supplies Daventry's original ring and six-coin pile. The Rust
+region table records each surviving item using the existing item object
+fields. On return, permanent startup items are generated while persisted
+items are loaded under their saved names before item models and click boxes
+are prepared. The current disk snapshot supplies the complete current table.
+Restoring an object allocates no new name. Items accompanying Connor use
+the journey record and retain their pickup order. The original-data check
+reads the ring's script, hides it, collects the initial pile and restores a
+new stack with its original position and angles. Global counter 1200
+remains available for the next actual allocation. [World-change rules
+12–18](../behaviour/world-change.md) and [item creation and ownership](../behaviour/items.md).
+
 ## Regional trap state
 
 Region handovers preserve eligible traps in the departed world's record.

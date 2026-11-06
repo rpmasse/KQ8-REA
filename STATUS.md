@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-06 Regional items survive travel and a Castle save
+
+The two-process Windows test passed in 134.30 s. It starts on Normal and
+finishes Daventry's original opening before leaving. A CastleD slot holds
+six carried coins and seven coins left in Daventry under their original
+name. A fresh process loads CastleD and returns to Daventry. Two clicks
+give the seven coins once, bringing Connor's purse to thirteen. The next
+item gets NoName24. The collected starting pile stays gone and the ring
+retains its name, script and visibility. The original Options.cs byte check
+passed. See MODLOG for the earlier fixture errors and reproduction commands.
+
+650 core and 41 viewer regular tests passed. The installed Daventry data
+check verified the restored model, click box and global name counter. The
+viewer and tests compile without warnings. Original runtime and mid-flight
+item continuation are **not tested**. M4–M6 and the campaign through the
+ending remain open.
+
 ## 2026-11-06 Ordinary combat death studied
 
 Q192 now has original static and installed-data evidence covering pending
