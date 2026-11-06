@@ -1,5 +1,30 @@
 # MODLOG
 
+## 2026-11-07 Use the shield after the Henchman's scene returns control
+
+The new garden route exposed a timing assumption in the test.
+Connor pressed 5 at update 615 while the final Henchman line was
+still playing. The inventory correctly refused it. Control returned
+on 616. Connor actually won and saved, but the test rightly failed
+its shield-use assertion. The replay now presses the ordinary item-bar
+number at the outward doorway. The GUI handles the key and applies
+its usual restrictions. A walking route releases the key after the
+landmark, including when it is the final point.
+
+Two regressions passed. With the nine-mushroom axe save, control
+returned at 605, the key was pressed at the doorway on 615 and the
+bar used the shield at 616. The west-yard reload had two mushrooms
+and 40 health (133.09 seconds). With the earlier four-mushroom axe
+save, the scene ended at 602, the key was pressed at 613 and the
+bar used the shield at 615. The west-yard reload had one mushroom
+and 40 health (132.91 seconds). The original garden-to-windmill axe
+and bale checks also passed in 215.34 seconds. The [Daventry
+route](docs/daventry-progression.md#current-continuation-boundary-after-the-small-axe)
+gives the duel reproduction command. The first failed shield check
+and both successes are in the local `kq8-artifacts/prepared-henchman`
+directories `1793985534075852100`, `1793985862532776700` and
+`1793985996490106700` respectively.
+
 ## 2026-11-07 Carry the garden mushrooms through the Wizard meeting
 
 The original Daventry `WorldInv.cs` places three individual mushrooms

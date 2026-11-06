@@ -369,6 +369,8 @@ fn earned_supplies_defeat_the_henchman_and_reopen_the_west_yard() {
         .position(|p| p["fight"] == "Henchman")
         .unwrap();
     landmarks.truncate(guard_index + 1);
+    let exit = landmarks.iter_mut().find(|p| p["name"] == "Windmill exit").unwrap();
+    exit["inventory_slot"] = 5.into();
     let guard = &mut landmarks[guard_index];
     // The guard stands here after the original scene. Start attacking
     // when he is in Connor's real hand reach on this level floor.
@@ -380,12 +382,13 @@ fn earned_supplies_defeat_the_henchman_and_reopen_the_west_yard() {
     fs::write(&input, serde_json::to_vec(&route).unwrap()).unwrap();
     let (viewer, items) = play.run("duel", &[
         "--menu-input","down,enter,release,enter,release", "--walk-route",input.to_str().unwrap(),
-        "--key","5,615",
         "--key","menu:down:down:down:enter:release:enter:release:escape:type=GuardDuel:enter:release:escape,1080",
         "--key","menu:up:enter:release:left:enter:release,1095", "--frames","4000",
     ]);
     assert!(viewer.contains("walk-route scene complete at Henchman's approach trigger"));
     assert!(viewer.contains("walk-route at Windmill exit on update"));
+    assert!(viewer.find("walk-route scene complete at Henchman's approach trigger").unwrap()
+        < viewer.find("walk-route pressed inventory key 5 at Windmill exit").unwrap());
     assert!(viewer.contains("walk-route at Henchman on update"));
     assert!(items.contains("the shield: protection"));
     let logs = play.root.join("duel/kq8-artifacts/logs");

@@ -110,6 +110,21 @@ save still had eight mushrooms and one shield. The three garden items
 remained gone. The two-process test took 327.90 seconds from the earned
 VillageShield checkpoint.
 
+From GardenWizard, a separate windmill run picked the original five
+hillside mushrooms, bringing eight to thirteen. Connor defeated the
+archer, earned the Small Axe and saved with nine mushrooms and
+30 health. That run, including the fresh-process axe and bale check,
+passed in 215.34 seconds. In the next run he consumed the shield at
+the windmill doorway after the Henchman's scene, defeated the guard
+and saved again. A fresh launch reached WestYard with 40 health and
+two mushrooms. This pair of processes took 133.09 seconds.
+
+The duel replay now presses the shield key when Connor reaches the
+outward doorway. In one earlier run the final spoken line held controls
+until update 616, so a key scheduled at 615 was correctly refused.
+Both the garden save and the earlier windmill save passed when the
+key followed the end of the scene.
+
 With `KQ8_GAME_DIR` set to the GOG installation, the following
 check starts from Normal New Game by default. Set `KQ8_SHIELD_SLOT`
 to an earned VillageShield menu save to repeat from the cottage.

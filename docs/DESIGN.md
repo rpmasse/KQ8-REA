@@ -23,6 +23,14 @@ Windows process, walk to the Wizard, receive the Magic Map and save.
 Check that both inventory and the garden pickups survive the trip.
 The garden check ends at the Wizard; the tomb has its own acceptance.
 
+**M6 inventory input after a scene.** In the garden-to-windmill
+continuation the last line of the Henchman scene restored player
+control at update 616. The old test pressed 5 at 615, when the
+original inventory correctly refused it. Press the normal item-bar
+key at the outward windmill doorway after the scene returns control.
+Check the logged order and item consumption with both earned axe
+saves. Keep the original restriction on using items during a scene.
+
 **M6 Henchman encounter after earning supplies.** Load the shield, mushrooms,
 map and Small Axe earned through normal Daventry play. Follow the original
 scene and leave the door westward. Use the shield after control returns,

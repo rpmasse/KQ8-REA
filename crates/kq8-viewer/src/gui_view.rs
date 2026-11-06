@@ -1583,6 +1583,18 @@ pub fn gui_step(
     }
 }
 
+/// Number keys and their keypad equivalents for the eight original inventory slots.
+pub(crate) const INVENTORY_DIGITS: [(KeyCode, KeyCode); 8] = [
+    (KeyCode::Digit1, KeyCode::Numpad1),
+    (KeyCode::Digit2, KeyCode::Numpad2),
+    (KeyCode::Digit3, KeyCode::Numpad3),
+    (KeyCode::Digit4, KeyCode::Numpad4),
+    (KeyCode::Digit5, KeyCode::Numpad5),
+    (KeyCode::Digit6, KeyCode::Numpad6),
+    (KeyCode::Digit7, KeyCode::Numpad7),
+    (KeyCode::Digit8, KeyCode::Numpad8),
+];
+
 /// Every frame: real time moves the panels; Space; each picture redrawn
 /// when what it shows changed, and placed; the panels' sounds; the
 /// caption's place; where clicks are not world clicks.
@@ -1623,17 +1635,7 @@ pub fn gui_draw(
         gui.note(line);
     }
     // interface.md rule 40: keys 1-8 and the keypad's.
-    const DIGITS: [(KeyCode, KeyCode); 8] = [
-        (KeyCode::Digit1, KeyCode::Numpad1),
-        (KeyCode::Digit2, KeyCode::Numpad2),
-        (KeyCode::Digit3, KeyCode::Numpad3),
-        (KeyCode::Digit4, KeyCode::Numpad4),
-        (KeyCode::Digit5, KeyCode::Numpad5),
-        (KeyCode::Digit6, KeyCode::Numpad6),
-        (KeyCode::Digit7, KeyCode::Numpad7),
-        (KeyCode::Digit8, KeyCode::Numpad8),
-    ];
-    for (k, (a, b)) in DIGITS.iter().enumerate() {
+    for (k, (a, b)) in INVENTORY_DIGITS.iter().enumerate() {
         if keys.just_pressed(*a) || keys.just_pressed(*b) {
             actions.0.push(BarAction::Key { slot: k, how: format!("key {}", k + 1) });
         }
