@@ -615,6 +615,7 @@ impl crate::active::WorldState {
             self.fight_note("Connor", format!("hit by {from}: his stats are unknown (no Connor.kq); nothing"));
             return;
         };
+        self.connor_last_hit = Some(kind);
         // potions.md rule 19: in the last temple the shield gives half.
         let shield = self.potions.iter().find(|r| r.effect == crate::potions::Effect::Shield).map(|r| r.added);
         let (protection, temple) = match shield {

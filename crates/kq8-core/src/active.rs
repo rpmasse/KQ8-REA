@@ -944,6 +944,9 @@ pub struct WorldState {
     /// Connor is in his dying state: hits are ignored (`fighting.md` rule
     /// 29).
     pub connor_dying: bool,
+    /// Last accepted weapon hit; stats-event deaths retain its kind
+    /// (anim-scripts.md rule 20), Normal before any hit.
+    pub connor_last_hit: Option<crate::fight::HitKind>,
     /// At 15 updates per second, the scripted game-over check is due 45 updates after entry.
     pub scripted_death: crate::connor::ScriptedDeath,
     /// The one-off tips of rule 29 were sent (logged only).
@@ -4555,6 +4558,7 @@ impl Active {
                 connor_back_key: false,
                 connor_fight: None,
                 connor_dying: false,
+                connor_last_hit: None,
                 scripted_death: Default::default(),
                 connor_tips: [false; 2],
                 fight_rng: crate::emitter::Rng::new(0x5EED_F1647),
@@ -4850,8 +4854,11 @@ impl Active {
                 after.level,
                 level.map_or(String::new(), |l| format!("; {l}"))
             ));
-            if dies {
-                self.world.note(format!("{head}: Connor's health is below 0: he would die (his Die state, M5; not done)"));
+            if dies && !self.world.connor_dying {
+                let kind = self.world.connor_last_hit.unwrap_or(crate::fight::HitKind::Normal);
+                self.world.connor_dying = true;
+                self.world.note(format!("{head}: Connor's health fell below 0 before caps/level processing: dying state, last hit {} (rules 19–20)", kind.name()));
+                self.world.requests.push(Request::ConnorDies { kind, at: head });
             }
             return;
         }
@@ -8910,6 +8917,59 @@ getGuiStatus
         a.stats_change(&e(&["0", "0", "0", "0", "0"]), "");
         a.stats_change(&e(&["-2", "0", "0", "0", "0"]), "");
         assert_eq!((a.world.connor_stats_events, a.world.connor_stats.map(|c| c.stats.0[0])), (2, Some(8)));
+    }
+
+    #[test]
+    fn connor_stats_death_remembers_weapon_kind_through_journey_json() {
+        use crate::fight::HitKind;
+        let event = |a: &mut Active| a.stats_change(&Pending { due: 0.0, seq: 0, target: "Connor".into(),
+            kind: "KQStatsChangeRequestEvent".into(), data: vec!["-1000".into()], from: "test".into() }, "");
+        for prior in [None, Some(HitKind::Normal), Some(HitKind::Projectile), Some(HitKind::Fire), Some(HitKind::Ice)] {
+            let mut a = fighter();
+            a.set_connor_stats(ConnorStats { stats: Stats([80, 10, 0, 100, 0]), level: 8 });
+            if let Some(kind) = prior { a.world.hit_connor("hazard", 1, kind); }
+            assert_eq!(a.world.connor_last_hit, prior);
+            let saved = crate::journey::Journey::take(&a.world, &a.scripts.vars, "Daventry");
+            let saved: crate::journey::Journey = serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();
+            let mut b = fighter();
+            saved.give(&mut b.world, &mut b.scripts.vars);
+            assert_eq!(b.world.connor_last_hit, prior);
+            event(&mut b); event(&mut b);
+            let deaths: Vec<_> = b.world.requests.iter().filter_map(|r| if let Request::ConnorDies { kind, .. } = r { Some(*kind) } else { None }).collect();
+            assert_eq!(deaths, [prior.unwrap_or(HitKind::Normal)]);
+            assert!(b.world.connor_dying);
+        }
+        let mut old = fighter();
+        old.set_connor_stats(ConnorStats { stats: Stats([1, 10, 0, 0, 0]), level: 1 });
+        old.world.connor_last_hit = Some(HitKind::Ice);
+        let mut value = serde_json::to_value(crate::journey::Journey::take(&old.world, &old.scripts.vars, "Daventry")).unwrap();
+        value.as_object_mut().unwrap().remove("last_hit_kind");
+        let legacy: crate::journey::Journey = serde_json::from_value(value).unwrap();
+        legacy.give(&mut old.world, &mut old.scripts.vars);
+        event(&mut old);
+        assert!(matches!(old.world.requests.last(), Some(Request::ConnorDies { kind: HitKind::Normal, .. })));
+    }
+
+    #[test]
+    fn connor_stats_death_precedes_level_healing_and_ignored_hits_keep_history() {
+        use crate::fight::HitKind;
+        let mut a = fighter();
+        a.set_connor_stats(ConnorStats { stats: Stats([1, 10, 0, 0, 0]), level: 1 });
+        a.world.connor_last_hit = Some(HitKind::Projectile);
+        a.world.god_mode = true; a.world.hit_connor("ignored", 1, HitKind::Fire);
+        a.world.god_mode = false; a.world.connor_roping = true; a.world.hit_connor("ignored", 1, HitKind::Ice);
+        a.world.connor_roping = false; a.world.connor_dying = true; a.world.hit_connor("ignored", 1, HitKind::Normal);
+        assert_eq!(a.world.connor_last_hit, Some(HitKind::Projectile));
+        a.world.connor_dying = false;
+        let event = |data: &[&str]| Pending { due: 0.0, seq: 0, target: "Connor".into(), kind: "KQStatsChangeRequestEvent".into(),
+            data: data.iter().map(|v| v.to_string()).collect(), from: "test".into() };
+        a.stats_change(&event(&["-1"]), "");
+        assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 0);
+        assert!(!a.world.connor_dying && a.world.requests.is_empty());
+        a.stats_change(&event(&["-1", "0", "0", "0", "11"]), "");
+        assert_eq!((a.world.connor_stats.unwrap().level, a.world.connor_stats.unwrap().stats.0[0]), (2, 20));
+        assert!(a.world.connor_dying, "level-up healing must not undo the earlier death check");
+        assert!(matches!(a.world.requests.last(), Some(Request::ConnorDies { kind: HitKind::Projectile, .. })));
     }
 
     #[test]
