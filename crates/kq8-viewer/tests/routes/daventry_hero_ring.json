@@ -2,9 +2,9 @@
   "start": 3,
   "landmarks": [
     {"name": "Return across the windmill floor", "xy": [144300, 249800], "radius": 220},
-    {"name": "Henchman's approach trigger", "xy": [143000, 249800], "radius": 220},
-    {"name": "Windmill exit", "xy": [141400, 249800], "radius": 220},
-    {"name": "Henchman", "xy": [138100, 250000], "radius": 240, "fight": "Henchman", "big_swing": false},
+    {"name": "Henchman's approach trigger", "xy": [143000, 249800], "radius": 220, "scene": {"trigger": "Henchtp", "controller": "ax"}},
+    {"name": "Windmill exit", "xy": [140700, 249800], "radius": 300, "direction": [-1, 0]},
+    {"name": "Henchman", "xy": [140450, 250000], "radius": 170, "fight": "Henchman", "retreat": true},
     {"name": "Back to the windmill path", "xy": [136000, 252500], "radius": 300},
     {"name": "Windmill hillside", "xy": [139500, 262500], "radius": 260},
     {"name": "Northward hills", "xy": [160000, 270000], "radius": 320},

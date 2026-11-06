@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-06 Daventry replay reaches the Henchman's attack
+
+The earned-slot diagnostic passed in two independent Windows processes.
+Both observed the original trigger and cutscene return, then crossed
+west out of the doorway and reached the guard's first attack. A complete
+integrated repeat passed in 138.50 s at updates 635 and 634. The full
+duel and the onward hero-ring route remain open. Earlier attempts and
+the original/source evidence for the separate branch around the guard
+are recorded in MODLOG and docs/daventry-progression.md. No manual tests.
+
 ## 2026-11-06 Pickup tutorial source rules settled
 
 Q196 establishes a three-second first-quest-item delay, the 4.5-second

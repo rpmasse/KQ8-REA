@@ -1,5 +1,49 @@
 # MODLOG
 
+## 2026-11-06 Earned windmill exit and Henchman approach
+
+The walking replay now follows the actual Henchtp and ax.cs handover.
+It observes the live trigger, its consumption, deletion of the scene
+controller and the return of control. The doorway landmark requires
+Connor to cross outward. Previously the replay could walk back into the
+windmill after the cutscene to satisfy a coordinate it had already passed.
+The diagnostic can stop at the start of a named enemy's actual attack.
+The full hero-ring route continues past that boundary. Its defeat report
+uses accepted Die entry or Dead rather than inferring death from a
+temporary negative health value.
+
+In the isolated two-process replay, both processes loaded independent
+copies of the same earned slot with the Magic Map and Small Axe, normal
+enemy AI and god mode off. Both saw Henchtp on update 49, the scene end on
+603 and an outward crossing on 614. The guard attacked on 635 and 629.
+That test passed in 144.39 s. In an earlier full encounter the guard's
+spear missed at distance 2663 and Connor's return swing dealt 38 damage.
+He later died. A second attempt stopped on the windmill wall before
+combat. The alternate northern-wall approach subsequently struck the
+separate lfence collider. Neither the full duel nor the ring is cleared
+by the doorway test.
+
+The integrated run on the regional-item build also passed, in 138.50 s.
+The original trigger, scene end, westward crossing and guard attack were
+49/603/613/635 in the first process and 48/602/612/634 in the second.
+Both restored the earned Normal save, with health 30, the axe and map,
+AI enabled and god mode disabled. The transcript is
+`kq8-artifacts/windmill-integrated-native.log`; the two process logs are
+in `kq8-artifacts/windmill-exit/1793975987143276500`.
+
+Run from the repository root in PowerShell:
+
+```powershell
+$env:KQ8_GAME_DIR=(Resolve-Path "..\King's Quest 8 GOG").Path
+$env:KQ8_AXE_SLOT=(Resolve-Path ".\kq8-artifacts\windmill-route\1793933457485922800\slots\slot-3.json").Path
+cargo test --locked -p kq8-viewer --test daventry_hero_ring earned_windmill_exit -- --ignored --nocapture --test-threads=1
+```
+
+With no KQ8_AXE_SLOT, the test runs the earlier Wizard and windmill legs to
+create its starting save. The expected result is two real guard attacks
+after both observed doorway crossings. The original runtime and the
+uninterrupted campaign are **not tested** here.
+
 ## 2026-11-06 Study handoff for original pickup tutorials (Q196)
 
 The separate study traced how acquiring an item schedules its tutorial.

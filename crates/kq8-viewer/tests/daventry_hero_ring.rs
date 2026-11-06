@@ -12,6 +12,71 @@ fn quantity(slot: &Value, kind: &str) -> i64 {
 
 fn read(path: impl AsRef<Path>) -> Value { serde_json::from_slice(&fs::read(path).unwrap()).unwrap() }
 
+fn windmill_exit_evidence(logs: &Path) -> (u64, u64, u64, u64) {
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    let connor = fs::read_to_string(logs.join("connor.log")).unwrap();
+    let at = |text: &str, needle: &str| -> u64 {
+        let line = text.lines().find(|l| l.contains(needle))
+            .unwrap_or_else(|| panic!("missing {needle}, inspect {}", logs.display()));
+        line.split_once("update ").unwrap().1.split(|c: char| !c.is_ascii_digit()).next().unwrap().parse().unwrap()
+    };
+    let triggered = at(&viewer, "trap Henchtp: On Connor");
+    let released = at(&viewer, "walk-route scene complete at Henchman's approach trigger");
+    let outward = at(&viewer, "walk-route at Windmill exit");
+    let attack = at(&fight, "Henchman: attack (rule 7, standing)");
+    assert!(triggered < released && released < outward && outward <= attack, "inspect {}", logs.display());
+    assert!(at(&viewer, "ax.cs line 82: applied: ax deleted:") <= released
+        && at(&viewer, "ax.cs line 81: applied: handsOff false:") <= released);
+    let x_at = |tick: u64| -> f32 {
+        let prefix = format!("{tick} ");
+        connor.lines().find(|l| l.starts_with(&prefix)).unwrap()
+            .split_whitespace().nth(2).unwrap().parse().unwrap()
+    };
+    assert!(x_at(outward) < 141100. && x_at(outward) < x_at(outward - 1),
+        "Connor must be outside and moving west, inspect {}", logs.display());
+    (triggered, released, outward, attack)
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device; KQ8_AXE_SLOT can repeat the earned continuation"]
+fn earned_windmill_exit_reaches_guard_in_two_processes() {
+    let game = daventry::game();
+    let root = daventry::test_root("windmill-exit");
+    fs::create_dir_all(&root).unwrap();
+    let earned = std::env::var_os("KQ8_AXE_SLOT").map(PathBuf::from).unwrap_or_else(|| earn_axe(&game, &root));
+    let slot = read(&earned);
+    assert_eq!(quantity(&slot, "INVITEM_SmallAx"), 1);
+    assert_eq!(quantity(&slot, "INVITEM_MagicMap"), 1);
+    assert_eq!(quantity(&slot, "INVITEM_RingOfDeadHero"), 0);
+    assert_eq!(slot["journey"]["ai_off"], false);
+    assert_eq!(slot["journey"]["god_mode"], false);
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/routes/daventry_hero_ring.json");
+    let mut replay = read(source);
+    // The campaign inputs are identical. End this diagnostic at the first
+    // live attack, before the separate duel checkpoint.
+    replay["stop_on_attack"] = "Henchman".into();
+    let route = root.join("input.json");
+    fs::write(&route, serde_json::to_vec(&replay).unwrap()).unwrap();
+    for run in 1..=2 {
+        let dir = root.join(format!("process-{run}"));
+        let slots = dir.join("slots");
+        fs::create_dir_all(&slots).unwrap();
+        fs::copy(&earned, slots.join("slot-1.json")).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+            .current_dir(&dir).env("KQ8_SAVE_DIR", slots).arg("--game").arg(&game)
+            .args(["--sound", "off", "--menu-input", "down,enter,release,enter,release", "--frames", "3200"])
+            .arg("--walk-route").arg(&route).output().unwrap();
+        fs::write(dir.join("stderr.log"), output.stderr).unwrap();
+        let logs = dir.join("kq8-artifacts/logs");
+        let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+        assert!(output.status.success() && viewer.contains("RESULT: PASS") &&
+            viewer.contains("walk-route observed Henchman attacking"), "inspect {}", dir.display());
+        let (trigger, scene, exit, attack) = windmill_exit_evidence(&logs);
+        println!("process {run}: authored trigger {trigger}, scene complete {scene}, outward crossing {exit}, guard attack {attack}; {}", dir.display());
+    }
+}
+
 fn earn_axe(game: &Path, root: &Path) -> PathBuf {
     let earned = root.join("earned");
     daventry::earn_magic_map(game, &earned);
@@ -52,6 +117,18 @@ fn earned_small_axe_to_hero_ring_and_disk_reload() {
         let output = cmd.output().unwrap(); fs::write(dir.join("stderr.log"), output.stderr).unwrap();
         let logs = dir.join("kq8-artifacts/logs");
         let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+        if route {
+            windmill_exit_evidence(&logs);
+            let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+            let mut events = fight.lines();
+            let miss = events.find(|line| line.contains("Henchman: Do (Attack") && line.contains("miss, out of reach"))
+                .unwrap_or_else(|| panic!("no ordinary missed spear thrust; inspect {}", dir.display()));
+            let reply = events.find(|line| line.contains("Connor: Do (conaxe.anm/attack") && line.contains("hits Henchman"))
+                .unwrap_or_else(|| panic!("no return axe hit after {miss}; inspect {}", dir.display()));
+            let loss = events.find(|line| line.contains("Henchman: hit by Connor") && line.contains("loss "))
+                .expect("return attack must apply combat damage");
+            println!("Henchman exchange:\n{miss}\n{reply}\n{loss}");
+        }
         assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
         (viewer, logs)
     };
