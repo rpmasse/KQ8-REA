@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-07 Garden supplies through the windmill and Henchman
+
+The GardenWizard save led to thirteen mushrooms at the hillside,
+nine at the axe and two beyond the guard. The garden windmill test
+and its fresh-process axe check passed in 215.34 seconds. The duel
+and west-yard reload passed in 133.09 seconds. An independent run
+from the earlier axe save passed in 132.91 seconds. Both loaded
+WestYard with 40 health. The shield is now used at the outward
+doorway after the last spoken line returns control.
+
 ## 2026-11-07 Eight mushrooms carried from the cottage to the Wizard
 
 A two-process Windows test loaded the VillageShield checkpoint from

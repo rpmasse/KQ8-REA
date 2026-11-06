@@ -17,6 +17,8 @@ struct Landmark {
     click: Option<String>,
     /// Aim the normal world-click ray at the target. Any nearer object wins.
     aim: Option<String>,
+    /// Press a normal inventory number key once when this point is reached.
+    inventory_slot: Option<usize>,
     /// At this landmark, turn in place and press the bound Jump key.
     jump_toward: Option<[f32; 2]>,
     /// Stop here and use ordinary hand-weapon attacks against this character.
@@ -86,6 +88,8 @@ impl Replay {
                     || (l.aim.is_some() && l.click.is_some())
                     || (l.fight.is_some() && l.break_object.is_some())
                     || (l.retreat && l.fight.is_none())
+                    || l.inventory_slot.is_some_and(|n| !(1..=crate::gui_view::INVENTORY_DIGITS.len()).contains(&n)
+                        || l.scene.is_some() || l.jump_toward.is_some())
                     || l.scene.as_ref().is_some_and(|s| s.trigger.is_empty() || s.controller.is_empty())
                     || l.direction.is_some_and(|d| !d.iter().all(|v| v.is_finite()) || d == [0., 0.])
                     || !l.xy.iter().all(|v| v.is_finite())
@@ -142,13 +146,17 @@ pub fn steer(
         replay.last_tick = None;
         return;
     }
-    if (replay.landmarks.is_empty() && replay.jumped.is_none())
+    if (replay.landmarks.is_empty() && replay.jumped.is_none() && replay.held.is_empty())
         || sim.updates < replay.start
         || replay.last_tick == Some(sim.updates)
     {
         return;
     }
     replay.last_tick = Some(sim.updates);
+    if replay.landmarks.is_empty() && replay.jumped.is_none() {
+        replay.keys(&mut keys, &[]);
+        return;
+    }
     let Some(doors) = doors else { return };
     let world = &doors.active.world;
     let pos = sim.mover.position;
@@ -337,6 +345,12 @@ pub fn steer(
         }
         if let Some(name) = point.aim {
             aims.landmark = Some((name, sim.updates));
+        }
+        if let Some(slot) = point.inventory_slot {
+            replay.keys(&mut keys, &[crate::gui_view::INVENTORY_DIGITS[slot - 1].0]);
+            shared.log.lock().unwrap().summary(format!(
+                "walk-route pressed inventory key {slot} at {} on update {}", point.name, sim.updates
+            ));
         }
         if point.jump_toward.is_some() {
             if let Some(key) = sim.controls.jump {
