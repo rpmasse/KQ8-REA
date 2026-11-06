@@ -885,6 +885,8 @@ pub struct WorldState {
     pub persistent_stat_objects: BTreeSet<String>,
     /// Last damaging weapon kind for an ordinary object's Die callback.
     pub object_hit_kinds: BTreeMap<String, crate::fight::HitKind>,
+    /// Immutable .kq stats defaults, independent of the live named copy.
+    pub object_stat_defaults: BTreeMap<String, Stats>,
     /// Objects whose collider is out of the collision world now (group
     /// bit 0x8 lost: far, off or hidden; `object-lighting.md` rule 41),
     /// lower case: clicks pass through them (M1 step 7b).
@@ -1080,9 +1082,14 @@ impl WorldState {
                 out.insert(o.name.to_ascii_lowercase());
             }
         }
+        // A name legally reused after deletion belongs to the new live
+        // actor; the retired animation is only a renderer tombstone.
+        let live_names: BTreeSet<_> = self.anims.iter().filter(|a| !a.gone && !(include_dying
+            && a.character.as_deref().and_then(|c| c.fight.as_ref()).is_some_and(|f| f.dying.is_some())))
+            .map(|a| a.player.name.to_ascii_lowercase()).collect();
         for (i, a) in self.anims.iter().enumerate() {
             let dead = a.character.as_deref().and_then(|c| c.fight.as_ref()).is_some_and(|f| f.dying.is_some());
-            if (a.gone || (include_dying && dead)) && !self.weeper_links.contains(&i) {
+            if (a.gone || (include_dying && dead)) && !self.weeper_links.contains(&i) && !live_names.contains(&a.player.name.to_ascii_lowercase()) {
                 out.insert(a.player.name.to_ascii_lowercase());
             }
         }
@@ -2254,6 +2261,7 @@ impl WorldState {
             self.note(format!("{at}: ERROR loadKQ {file}: {why} ({name}): the original stops with a fatal error; load refused"));
             return "1".into();
         }
+        self.initialize_loaded_object_stats(&name, &key);
         self.dormant.remove(&key);
         self.came_in.push((key.clone(), name.clone()));
         self.loading.insert(lower.clone());
@@ -2324,6 +2332,14 @@ impl WorldState {
     /// The template files (M5 5d-2), from the viewer at the start.
     pub fn set_templates(&mut self, t: impl IntoIterator<Item = (String, Template)>) {
         self.templates.extend(t.into_iter().map(|(f, t)| (f.to_ascii_lowercase(), t)));
+    }
+
+    fn initialize_loaded_object_stats(&mut self, name: &str, file: &str) {
+        let key = name.to_ascii_lowercase();
+        let stats = self.object_stat_defaults.get(file).copied().unwrap_or_default();
+        self.stats.insert(key.clone(), stats);
+        self.object_hit_kinds.remove(&key);
+        self.note(format!("loadKQ {file}: fresh stats for {name}: {:?}; no previous hit kind", stats.0));
     }
 
     pub fn set_monster_templates(&mut self, t: impl IntoIterator<Item = (String, MonsterTemplate)>) {
@@ -2583,6 +2599,7 @@ impl WorldState {
             }
             _ => t.placement,
         };
+        self.initialize_loaded_object_stats(&name, key);
         self.deleted.remove(&lower);
         // objects.md "Dithered objects" rule 8 (Q165): every class applies
         // its file's `dithered=` when it is added to the world.
@@ -4529,6 +4546,7 @@ impl Active {
                 stats: BTreeMap::new(),
                 persistent_stat_objects: BTreeSet::new(),
                 object_hit_kinds: BTreeMap::new(),
+                object_stat_defaults: BTreeMap::new(),
                 plain_hidden: BTreeMap::new(),
                 dormant: BTreeMap::new(),
                 came_in: Vec::new(),
@@ -10472,5 +10490,77 @@ mod trap_lookup_tests {
         assert_eq!(late.scripts.vars.get("T::Lookup"), Some("1"));
         assert_eq!(late.scripts.vars.get("T::InitCueSeen"), Some("done"));
         assert_eq!(late.scripts.vars.get("T::LateKnown"), Some("0"));
+    }
+}
+
+#[cfg(test)]
+mod loaded_stats_tests {
+    use super::*;
+    use crate::fight::HitKind;
+
+    fn world() -> Active {
+        Active::new(Default::default(), vec![], vec![], Vec::<String>::new(), [
+            ("init.cs".into(), b"if test $2 == Init\n sendEvent 0 $1 KQStatsChangeRequestEvent 2 0 0 0 0\nendif\n".to_vec()),
+            ("replace.cs".into(), b"deleteObject copy\n loadKQ a.kq copy\n set T::Refused $Console::Return\n".to_vec())])
+    }
+
+    #[test]
+    fn new_copy_uses_source_stats_before_init_and_name_refusal_cannot_reset_it() {
+        let mut a = world();
+        a.world.object_stat_defaults.insert("a.kq".into(), Stats([3, 4, 5, 6, 7]));
+        a.world.set_templates([("a.kq".into(), Template { name: "original".into(), script: Some("init.cs".into()),
+            placement: Placement::at([0.0; 3]), kind: TemplateKind::Still { bounds: None, collision_type: 0x41 }, dithered: 0, class: "KQObject".into() })]);
+        a.world.stats.insert("copy".into(), Stats([-99, 0, 0, 0, 0]));
+        a.world.object_hit_kinds.insert("copy".into(), HitKind::Ice);
+        assert_eq!(a.console_command("loadKQ path/A.KQ copy", "test").as_deref(), Some("0"));
+        assert_eq!(a.world.stats["copy"], Stats([3, 4, 5, 6, 7]));
+        assert!(!a.world.object_hit_kinds.contains_key("copy"));
+        for _ in 0..3 { a.update(); }
+        assert_eq!(a.world.stats["copy"].0[0], 5, "Init's event must add to the file's stats");
+        a.world.object_hit_kinds.insert("copy".into(), HitKind::Fire);
+        assert_eq!(a.console_command("loadKQ a.kq copy", "test").as_deref(), Some("1"));
+        assert_eq!(a.world.stats["copy"].0[0], 5);
+        assert_eq!(a.world.object_hit_kinds["copy"], HitKind::Fire);
+        a.run_script("replace.cs", &[]);
+        assert_eq!(a.scripts.vars.get("T::Refused"), Some("1"), "same-event deletion does not free the name");
+        assert_eq!(a.world.stats["copy"].0[0], 5);
+        assert_eq!(a.console_command("loadKQ a.kq copy", "next event").as_deref(), Some("0"));
+        assert_eq!(a.world.stats["copy"].0[0], 3);
+        assert!(!a.world.object_hit_kinds.contains_key("copy"));
+        assert_eq!(a.world.object_stat_defaults["a.kq"], Stats([3, 4, 5, 6, 7]));
+    }
+
+    #[test]
+    fn dormant_activation_uses_source_stats_and_unlisted_files_start_at_zero() {
+        let mut a = world();
+        a.set_dormant([("a.kq".into(), "prepared".into(), Some("init.cs".into())), ("b.kq".into(), "bare".into(), None)]);
+        a.world.object_stat_defaults.insert("a.kq".into(), Stats([10, 1, 2, 3, 4]));
+        for name in ["prepared", "bare"] {
+            a.world.stats.insert(name.into(), Stats([-99, 0, 0, 0, 0]));
+            a.world.object_hit_kinds.insert(name.into(), HitKind::Ice);
+        }
+        a.console_command("loadKQ a.kq", "test");
+        assert_eq!(a.world.stats["prepared"], Stats([10, 1, 2, 3, 4]));
+        a.loaded("prepared");
+        for _ in 0..3 { a.update(); }
+        assert_eq!(a.world.stats["prepared"].0[0], 12);
+        assert!(!a.world.object_hit_kinds.contains_key("prepared"));
+        a.console_command("loadKQ b.kq", "test");
+        assert_eq!(a.world.stats["bare"], Stats::default());
+        assert!(!a.world.object_hit_kinds.contains_key("bare"));
+    }
+
+    #[test]
+    fn a_live_reused_name_is_not_saved_gone_by_its_deleted_predecessor() {
+        let mut a = world();
+        a.world.set_templates([("a.kq".into(), Template { name: "copy".into(), script: None,
+            placement: Placement::at([0.0; 3]), kind: TemplateKind::Anim(Box::new(crate::named_anim::tests::still_then_open("copy"))),
+            dithered: 0, class: "KQAnimObject".into() })]);
+        a.console_command("loadKQ a.kq", "test");
+        a.console_command("deleteObject copy", "test");
+        a.console_command("loadKQ a.kq", "next event");
+        assert!(a.world.anims[0].gone && !a.world.anims[1].gone);
+        assert!(!a.world.gone_names().iter().any(|name| name == "copy"));
+        assert!(!a.world.gone_names_for_disk_save().iter().any(|name| name == "copy"));
     }
 }

@@ -798,6 +798,7 @@ pub fn spawn_doors(
     }
     active.world.script_shapes = std::mem::take(&mut objects.script_shapes).into_iter().map(|(file, (_, model))| (file, model)).collect();
     // Copies prepared for a script's loadKQ (3k-4).
+    active.world.object_stat_defaults = std::mem::take(&mut objects.object_stat_defaults);
     active.set_dormant(std::mem::take(&mut objects.dormant));
     // M5 5d-3, 5d-4: the templates for new copies: still ones, and
     // animated ones with their player as built (at the start).
