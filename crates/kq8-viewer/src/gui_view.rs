@@ -34,9 +34,36 @@ use crate::door_view::DoorSim;
 use crate::log::Log;
 use crate::Shared;
 
-/// STAND-IN (Q108 d): the panels' little animations play at this many
-/// frames per second.
-const ANIMATION_FPS: f64 = 15.0;
+/// Original GUI picture clock (interface.md Q171).
+const GUI_FRAME_MS: f64 = 100.0;
+
+fn picture_tick(elapsed_ms: f64) -> usize {
+    (elapsed_ms / GUI_FRAME_MS) as usize
+}
+
+/// A one-shot shows its first frame again for one interval after its last.
+fn one_shot_frame(elapsed_ms: f64, frames: usize) -> Option<usize> {
+    let tick = picture_tick(elapsed_ms);
+    if frames == 0 || tick > frames { None } else { Some(tick % frames) }
+}
+
+#[cfg(test)]
+mod animation_tests {
+    use super::{one_shot_frame, picture_tick};
+
+    #[test]
+    fn original_hud_frames_follow_elapsed_time_through_the_final_zero_frame() {
+        for (ms, frame) in [(0.0, 0), (99.9, 0), (100.0, 1), (754.0, 7),
+            (1599.9, 15), (1600.0, 16), (1699.9, 16), (1700.0, 0), (1799.9, 0)] {
+            assert_eq!(one_shot_frame(ms, 17), Some(frame), "{ms} ms");
+        }
+        assert_eq!(one_shot_frame(1800.0, 17), None);
+        assert_eq!(one_shot_frame(2301.0, 17), None);
+        assert_eq!(one_shot_frame(0.0, 0), None);
+        assert_eq!(picture_tick(1600.0) % 16, 0);
+        assert_eq!(picture_tick(2499.0) % 16, 8);
+    }
+}
 
 /// The play pointer (`Gplayscr.kq` `cursor=`, `interface.md` rule 1).
 const PLAY_POINTER: &str = "IDBMA_CURS04";
@@ -292,10 +319,6 @@ const SLOT_RED_NUMBERS: [&str; 3] = ["IDCTL_INVBAR_ARMOR_ALTTXT", "IDCTL_INVBAR_
 /// The level-up flame over the level number (`interface.md` rule 26).
 const LEVEL_FLAME: &str = "IDCTL_METERS_LEVELUP";
 
-/// The spinning mask's speed (`potions.md` rule 35: an icon with several
-/// frames and no duration plays at 10 frames a second).
-const MASK_FPS: f64 = 10.0;
-
 /// The status icons' picture (M5 5g-3): the layout's 336 wide, 57 tall
 /// (from 4c-8, when the mask was drawn at its own 57 rows; now every icon
 /// fits its 48-row place, Q143); every icon stands on its bottom.
@@ -377,8 +400,7 @@ pub struct Gui {
     pointer: String,
     /// Each slot number's flash: when it started (real ms; rule 33).
     flashes: [Option<f64>; 3],
-    /// The level-up flame: when it started (real ms; DESIGN L-2, stand-in
-    /// Q149 b).
+    /// Real time when the current level-up flame started.
     level_flame: Option<f64>,
     /// The bottom-bar key (`movekeys.kq` row 12, rule 10).
     space_key: Option<KeyCode>,
@@ -715,7 +737,6 @@ impl Gui {
         let dialog = self.control(d.layout_id())?;
         let [l, t, r, b] = dialog.rect;
         let now = self.panels.now_ms;
-        let frame_ms = 1000.0 / ANIMATION_FPS;
         let strip = self.strip();
         let mut out = Vec::new();
         // The popup's buttons' font (6e-6).
@@ -891,8 +912,9 @@ impl Gui {
                     // solid they were black boxes, see-through in the
                     // original (the user's check 2026-10-25; asked: Q171).
                     if let Some(k) = slot(&SLOT_FLASHES) {
-                        if let (Some(start), Some(at)) = (self.flashes[k], self.control(SLOT_PICTURES[k])) {
-                            out.push(Spec::Pic { rect: at.rect, file, frame: ((now - start) / frame_ms) as usize, stretch: p.modifier & STRETCHED != 0, see_through: None });
+                        let frame = self.flashes[k].and_then(|start| one_shot_frame(now - start, self.frame_count(&file)));
+                        if let (Some(frame), Some(at)) = (frame, self.control(SLOT_PICTURES[k])) {
+                            out.push(Spec::Pic { rect: at.rect, file, frame, stretch: p.modifier & STRETCHED != 0, see_through: None });
                         }
                     } else if MAP_BUTTONS.contains(&name.as_str()) {
                         // magic-map.md rule 5: the page arrows and the "Go"
@@ -906,11 +928,8 @@ impl Gui {
                         let file = on.filter(|_| lit).unwrap_or(file);
                         out.push(Spec::Pic { rect, file, frame: 0, stretch: p.modifier & STRETCHED != 0, see_through: Some(p.attribute & 7 == 1) });
                     } else if name == LEVEL_FLAME {
-                        // DESIGN L-2 (stand-in Q149 b): over the level
-                        // number, in its own layout place; see-through by
-                        // the file's own flag, as the flashes (Q171).
-                        if let Some(start) = self.level_flame {
-                            out.push(Spec::Pic { rect, file, frame: ((now - start) / frame_ms) as usize, stretch: p.modifier & STRETCHED != 0, see_through: None });
+                        if let Some(frame) = self.level_flame.and_then(|start| one_shot_frame(now - start, self.frame_count(&file))) {
+                            out.push(Spec::Pic { rect, file, frame, stretch: p.modifier & STRETCHED != 0, see_through: None });
                         }
                     }
                 }
@@ -1082,7 +1101,7 @@ impl Gui {
             match shown {
                 StatusShown::Mask => {
                     let Some(file) = self.mask_file() else { continue };
-                    let frame = (self.panels.now_ms / (1000.0 / MASK_FPS)) as usize;
+                    let frame = picture_tick(self.panels.now_ms);
                     out.push(Spec::Stretch { rect: [l, h - tall, r, h], file, frame });
                 }
                 StatusShown::Potion { file: Some(file), percent, .. } => {
@@ -1096,7 +1115,7 @@ impl Gui {
                 // frames animates at 10 a second like the mask (potions.md
                 // rule 35, last point: no duration).
                 StatusShown::Hook { file: Some(file), .. } => {
-                    let frame = (self.panels.now_ms / (1000.0 / MASK_FPS)) as usize;
+                    let frame = picture_tick(self.panels.now_ms);
                     out.push(Spec::Pic { rect: [l, h - tall, r, h], file: file.clone(), frame, stretch: true, see_through: None });
                 }
                 StatusShown::Hook { file: None, .. } => {}
@@ -1116,6 +1135,10 @@ impl Gui {
     /// How many frames a `.pba` has (0 if not loaded).
     fn frames(&mut self, file: &str) -> usize {
         self.load_file(file);
+        self.frame_count(file)
+    }
+
+    fn frame_count(&self, file: &str) -> usize {
         self.files.get(&file.to_ascii_lowercase()).and_then(|f| f.as_ref()).map_or(0, Vec::len)
     }
 
@@ -1572,7 +1595,7 @@ pub fn gui_step(
         sim.active.world.sounds.push(kq8_core::sound::Start::plain_one_shot(kq8_core::stats::LEVEL_UP_SOUND, format!("the meters' level {old_level} -> {}", sent.level)));
         let frames = gui.flame_file().map_or(0, |f| gui.frames(&f));
         let line = format!(
-            "update {updates}: level {old_level} -> {}: the level-up flame starts and LEVEL.AUD plays (rule 26; {frames} frames at {ANIMATION_FPS} per second, once: stand-in, not traced)",
+            "update {updates}: level {old_level} -> {}: the level-up flame starts and LEVEL.AUD plays ({frames} frames, {GUI_FRAME_MS} ms each)",
             sent.level
         );
         gui.note(&line);
@@ -1646,19 +1669,19 @@ pub fn gui_draw(
         Kind::Text { pictures: Some(p), .. } => gui.tags.string(p.bitmap).map(str::to_string),
         _ => None,
     });
-    let frames = fx.map_or(0, |f| gui.frames(&f)) as f64;
+    let frames = fx.map_or(0, |f| gui.frames(&f));
     // Blinks that have played out (rule 44).
     let now = gui.panels.now_ms;
     gui.blinks.retain(|_, start| now - *start < BLINK_MS * BLINKS as f64);
-    let flame_frames = gui.flame_file().map_or(0, |f| gui.frames(&f)) as f64;
-    if let Some(start) = gui.level_flame.filter(|start| (now - start) / (1000.0 / ANIMATION_FPS) >= flame_frames) {
+    let flame_frames = gui.flame_file().map_or(0, |f| gui.frames(&f));
+    if let Some(start) = gui.level_flame.filter(|start| one_shot_frame(now - start, flame_frames).is_none()) {
         gui.level_flame = None;
-        gui.note(format!("the level-up flame played out after {:.0} ms ({flame_frames} frames at {ANIMATION_FPS} per second, stand-in Q149 b)", now - start));
+        gui.note(format!("the level-up flame played out after {:.0} ms ({flame_frames} frames, {GUI_FRAME_MS} ms each)", now - start));
     }
     for k in 0..3 {
-        if gui.flashes[k].is_some_and(|start| (gui.panels.now_ms - start) / (1000.0 / ANIMATION_FPS) >= frames) {
+        if let Some(start) = gui.flashes[k].filter(|start| one_shot_frame(now - start, frames).is_none()) {
             gui.flashes[k] = None;
-            let line = format!("{} number's flash played out ({frames} frames at {ANIMATION_FPS} per second, stand-in Q108)", Slot::ALL[k].name());
+            let line = format!("{} number's flash played out after {:.0} ms ({frames} frames, {GUI_FRAME_MS} ms each)", Slot::ALL[k].name(), now - start);
             gui.note(line);
         }
     }

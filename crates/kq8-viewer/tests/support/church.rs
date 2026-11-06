@@ -57,6 +57,17 @@ fn earn_candle() -> PathBuf {
     let before = play.slot(4);
     assert_eq!(before["label"], "ChurchCandle");
     check_candle(&before);
+    if before["journey"]["stats"]["level"] != inside["journey"]["stats"]["level"] {
+        let gui = fs::read_to_string(play.root.join("candle/kq8-artifacts/logs/gui.log")).unwrap();
+        assert!(gui.contains("level-up flame starts and LEVEL.AUD plays (17 frames, 100 ms each)"));
+        for effect in ["the level-up flame", "armour number's flash", "hand weapon number's flash", "ranged weapon number's flash"] {
+            let prefix = format!("{effect} played out after ");
+            let time = gui.lines().find_map(|line| line.strip_prefix(&prefix)).unwrap();
+            let (elapsed, art) = time.split_once(" ms ").unwrap();
+            assert!(elapsed.parse::<u64>().unwrap() >= 1800, "{effect} finished at {elapsed} ms");
+            assert_eq!(art, "(17 frames, 100 ms each)");
+        }
+    }
 
     let (viewer, items) = play.run("reload", &[
         "--menu-input", "down,enter,release,down,down,down,enter,release",

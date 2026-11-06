@@ -13,6 +13,13 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M4 HUD animation timing.** Use the original real-time clock and
+100 ms frame period from interface study Q171 for the level-up flame,
+equipment flashes and looping timer icons. For the once-played
+effects, reproduce the observed extra interval of frame zero before
+hiding. Verify the frame boundaries, late draws, and the actual Candle
+level-up using the installed 17-frame artwork.
+
 **M6 church urn and tomb door.** From the earned Candle, walk through
 the church and push the urn. Follow its original animation callbacks
 through opening the tomb door and returning control to Connor. Save,

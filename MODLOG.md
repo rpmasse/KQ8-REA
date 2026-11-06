@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-07 Match the original HUD animation speed
+
+The level-up flame and equipment flashes now use the original 100 ms
+picture clock. Each repeats frame zero for the last 100 ms, as observed
+in the original. The previous Candle test logged 1164 ms for the
+flame. With the fix, the first draw after the 1800 ms deadline was at
+1846 ms for the flame and all three flashes. A unit test checks exact
+frame boundaries and a late draw that skips several frames.
+
 ## 2026-11-07 Verified the church urn and opened tomb door
 
 The new Daventry leg continues an earned Candle save through a normal

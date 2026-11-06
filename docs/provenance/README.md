@@ -3,6 +3,13 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**HUD picture timing.** Interface study Q171 traces the 100 ms
+real-time interval and the original last step through frame zero.
+The installed `flame14.pba` and `fx.pba` each have 17 frames. The
+earlier Rust behavior used the simulation rate of 15 frames per
+second. The Windows test checks the level-up caused by the church
+Candle and the three equipment flashes. [Interface study](../behaviour/interface.md)
+
 **Church rope and mid-climb saves.** The GOG Daventry archive supplies
 the four church trigger scripts and their boxes. The player's
 `GAME/Kq/Conrope.anm` supplies the climb and dismount movements.
