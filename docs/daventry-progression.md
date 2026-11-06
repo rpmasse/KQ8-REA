@@ -130,6 +130,25 @@ set `KQ8_CHURCH_YARD_SLOT` to that slot before running the church climb
 test in the README. Without it the test earns the churchyard save first.
 The remaining church route uses another rope to reach the interior.
 
+### Church Candle
+
+The four-launch Windows regression passed in 180.60 seconds starting
+at the earned `ChurchRoof`. Connor crossed the roof and stopped above
+the west aisle while the second upper rope trigger was active. He selected
+the rope and climbed down. He stepped onto the church floor at height
+8345 with 35 health. An earlier route continued past the safe stopping
+point and walked over the opening. The regression stops on the ledge.
+
+From the aisle, the normal camera ray hit the Candle first. The
+installed `candle.cs` cleared `Daventry::candle::full`, deleted the prop
+and granted one Candle. The delayed award added 25 experience. Connor
+reached level 6 with 60 health and 12 experience toward the next level.
+A fresh launch preserved the item, quest flag, removed prop and stats.
+
+Use the church Candle command in the README. `KQ8_CHURCH_ROOF_SLOT`
+accepts an earned `ChurchRoof` for just this leg. Leave the optional
+checkpoint variables unset to earn the earlier saves from New Game.
+
 ### Earlier ring checks
 
 The source chain starts at Normal New Game. Each later process loads

@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-07 Earn the Candle inside the Daventry church
+
+The Windows replay uses the earned roof save, walks to the inward rope
+trigger and stops on the ledge. Connor lowers the rope, descends,
+and picks the Candle through its original script. A fresh-process load
+retains one Candle, the cleared quest flag, the deleted prop and level
+6. The four-launch test passed in 180.60 seconds. An earlier route
+walked into the roof opening before the rope could be selected.
+
 ## 2026-11-07 First-person view and actor movements
 
 The configured F2 key selects Connor's original first-person camera,

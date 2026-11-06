@@ -1,0 +1,9 @@
+{
+  "start": 3,
+  "landmarks": [
+    { "name": "East church roof", "xy": [204620,184340], "radius": 145 },
+    { "name": "Narrow part of the roof", "xy": [204480,184340], "radius": 115 },
+    { "name": "Approach the aisle from the east", "xy": [203780,185040], "radius": 150 },
+    { "name": "Stop on the roof above the west aisle", "xy": [201820,185040], "radius": 120 }
+  ]
+}

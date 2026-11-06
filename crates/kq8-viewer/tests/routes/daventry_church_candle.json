@@ -1,0 +1,7 @@
+{
+  "start": 3,
+  "landmarks": [
+    { "name": "Lower church aisle", "xy": [202380,184480], "radius": 140 },
+    { "name": "Take the church Candle from the aisle", "xy": [202380,185180], "radius": 160, "aim": "candle" }
+  ]
+}

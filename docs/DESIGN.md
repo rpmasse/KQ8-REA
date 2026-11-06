@@ -13,6 +13,14 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 church roof to Candle.** From the earned roof slot, follow the
+walkable ledge to the second upper rope trigger and stop before the
+opening. Select the carried rope, descend under normal controls and
+check that Connor regains control alive at the bottom. Approach the
+Candle where its original world script placed it, use the camera to pick
+it, and verify the script's one-time grant and removal. Reload the
+resulting menu save to check that the Candle and quest flag persist.
+
 **M6 from the mill to the church rope.** Start from a slot earned on
 Normal, jump back to the millstone, leave by the open door and walk
 to the original churchyard trigger. Record its hook and tutorial. Use
