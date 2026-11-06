@@ -4,8 +4,9 @@ Study session A, 2026-10-14. Sources: `Mask.exe` (studied, described here in
 our own words), the light files in each world's `kq/Light/`, the scripts
 `swtohwlt.cs` / `hwtoswlt.cs`, `TERRAIN.KQ`, the objects' `.kq` files, the
 `.dil` / `.dig` files and `Options.cs`. Covers the **hardware renderers**
-(the Glide path was traced; Direct3D was not checked). Answers Q66 and the
-open part of Q65. The ground itself is in `terrain-lighting.md`.
+(lighting was traced on Glide; the later Q186 brightness study also
+checked Direct3D palette behavior). Answers Q66 and the open part of Q65.
+The ground itself is in `terrain-lighting.md`.
 
 Updated 2026-10-16 (study session A, Q68 and Q69): haze on the ground,
 building walls, particles and the background (rules 27–33), what the card
@@ -16,6 +17,12 @@ Updated 2026-10-16 (study session A, Q76–Q78): point lights on building
 surfaces in full (rule 16), which flag bit makes a model's light a point
 light (rule 26b), `KQPointLight` and the near / far / off test (rule 37),
 and the draw-distance ball of a building (rule 40).
+
+Corrected 2026-11-06 (study session A, Q186): palette brightness and its
+live update do not set Glide display gamma (rule 17). Glide and Direct3D
+fog differ, and indexed background RGB is not brightness-scaled (rule 32).
+See `brightness.md` for the traced renderer differences and open output
+questions. The earlier lighting sections remain chiefly Glide study.
 
 "Traced" = read in the exe. "Measured" = checked on the data with a
 throwaway script. "Not traced" = an assumption, marked as such.
@@ -368,14 +375,19 @@ B draws it (open question 1).
 
 ## Rules: screen brightness, gamma, world settings (Q66 b)
 
-17. **`setBrightness`** (`Options.cs`: `setBrightness 50`) becomes a factor
-    **0.3 + 1.4 × value ÷ 100**: 0 → 0.3, **50 → 1.0**, 100 → 1.7 (traced).
-    On Glide this factor (a) multiplies every palette colour (each channel
-    × factor; if one channel would pass 255, all three are scaled down
-    together so the colour keeps its hue) and (b) is handed to the card's
-    gamma setting once, when the screen opens. **At the shipped value 50 it
-    is 1.0: no change and gamma 1.0 (linear).** Nothing else brightens the
-    picture.
+17. **Brightness is a palette gain**, nominally
+    **0.3 + 1.4 × value ÷ 100**: 0 → 0.3, **50 → 1.0**, 100 → 1.7.
+    Glide and Direct3D scale all palette RGB entries with hue-preserving
+    clipping and conversion toward zero; software clips each channel
+    separately. The original slider rebuilds the active palette
+    immediately, while the `setBrightness` command itself only stores the
+    preference. **Correction (Q186): this gain is not passed to display
+    gamma.** Glide's sole display-gamma call occurs on a new surface at
+    **1.0**, before the preference is applied. Its wrapper has an
+    independent gamma configuration. The current installation's
+    `Options.cs` says 49; 50 is an identity example, not an established
+    universal default. See `brightness.md` for precise gain constants,
+    special palette entries, matching order and unverified final output.
 18. Nothing in `world.cs` or `envInfo.kq` changes lighting. `envInfo.kq`
     lists ground types (dirt, grass, water, ...) per texture. `world.cs`
     only loads the palette and sets the haze colour (`resetHazeColor`).
@@ -613,8 +625,14 @@ differs.
     stars and planet lines in `world.cs` are commented out. When in the
     frame the fill is drawn was not traced; drawing it first, behind
     everything, gives the same picture.
-32. The brightness factor (rule 17) scales every palette colour, so it also
-    scales the haze colour and the background colour.
+32. **Corrected Q186:** a scaled upload palette does not mean that every
+    use of a palette entry is scaled. Glide's haze colour and indexed
+    background clear use source RGB. Direct3D's palette update selects
+    haze RGB from adjusted entries, but its indexed background operation
+    uses restored source RGB. Thus haze responds differently between the
+    hardware paths, while that background operation is not gain-scaled.
+    See `brightness.md` rule 10; final card/wrapper output is not settled
+    by these source-colour rules.
 33. **Summary of the three haze ends** (Daventry / Dead City):
 
     | Thing | Haze starts | Full haze / gone |
