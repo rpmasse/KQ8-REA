@@ -208,6 +208,13 @@ the Wizard and saved with one Crystal, one shield, eight mushrooms
 and the original story items. This run used no supplied checkpoint
 and passed in 399.88 seconds.
 
+A later start stopped in Fall beside the east-room wall after getting
+the Crystal. The current approach aims from (291725, 197646) and then
+crosses open floor into the passage. Walking from each of two actual
+shield saves reached the basket and saved the Crystal, shield and
+five mushrooms. Original fall behavior at the earlier wall is
+tracked as Q197.
+
 With `KQ8_GAME_DIR` set to the GOG installation, the following
 check starts from Normal New Game by default. Set `KQ8_SHIELD_SLOT`
 to an earned VillageShield menu save to repeat from the cottage.

@@ -13,6 +13,17 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 keep the Crystal approach on open floor.** A fresh Normal run
+picked up the Crystal but stopped in Fall at the vertical surface
+near (292236, 196787). Sweeping Connor's original collision shape
+through HOUSE1.DIG from four real shield saves showed that the old
+heading continued into this wall beyond the aiming point. A more
+central sightline near (291725, 197646) left 780 units of clear floor
+beyond it on all four approaches. Walk there, test the real pick,
+then follow the east passage to the basket. Check the initial failing
+save as well as the previous successful one and retain the ordinary
+movement physics.
+
 **M6 finish the hero's coffin interaction.** A run from the Crystal
 WestYard save beat the archer, opened the tomb door, pushed the lid
 and observed `Daventry::HeroCoffin::Open = 1`. The route then kept
