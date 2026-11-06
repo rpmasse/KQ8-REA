@@ -26,7 +26,9 @@ Standing enemies keep an unfinished attack when a hit does not make them react.
 
 Third-person scripted camera shake and its sample state survive saving and continue through cuts, follow changes and flights.
 
-Spirit traps, live brightness, first-person presentation and remaining original-camera details still need implementation.
+Spirit traps preserve their original damage, reactions and occupied state through saves.
+
+Live brightness, first-person presentation and remaining original-camera details still need implementation.
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
 

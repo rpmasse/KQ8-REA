@@ -128,6 +128,10 @@ impl Snapshot {
         if self.hit_timing.as_ref().is_some_and(|timing| !timing.valid()) {
             return Err("save has invalid Connor hit timing".into());
         }
+        if self.hit_timing.as_ref().is_some_and(|timing| timing.has_reaction_pose())
+            && (self.special.is_some() || self.swing.is_some() || self.shot.is_some() || self.talk_pose.is_some() || self.choice.is_some()) {
+            return Err("save has competing reaction/controller poses".into());
+        }
         if self.special.as_ref().is_some_and(|s| !s.valid())
             || (self.special.is_some() && (self.shot.is_some() || self.swing.is_some())) {
             return Err("save has an invalid Special movement".into());
@@ -276,6 +280,7 @@ impl Snapshot {
         // Older slots already retain the explicit hit-death list marker.
         // Health zero alone is alive and must never imply this state.
         active.world.connor_dying = self.connor_dying.unwrap_or_else(|| self.special.as_ref().is_some_and(|s| s.combat_death()));
+        active.world.connor_death_entered = active.world.connor_dying;
         if let Some(on) = self.shadows_allowed { active.world.shadows_allowed = on; }
         if let Some(types) = &self.footstep_types { active.world.footstep_types.clone_from(types); }
         if self.version >= 2 {
@@ -333,21 +338,22 @@ impl Snapshot {
             if let Some(timing) = &self.shot_timing {
                 connor.restore_shot_timing(timing)?;
             }
-            if let Some(timing) = &self.hit_timing {
-                connor.restore_hit_timing(timing)?;
-            }
             if let Some(special) = &self.special {
                 connor.restore_special(special)?;
             }
             if let Some(weapon) = &self.weapon_state {
                 connor.restore_weapon_state(weapon, self.special.as_ref())?;
             }
+            if let Some(timing) = &self.hit_timing {
+                connor.restore_hit_timing(timing)?;
+            }
             if let Some(cues) = &self.combat_cues {
                 connor.restore_combat_cues(cues)?;
             }
             if let Some(pose) = &self.talk_pose { connor.restore_talk_pose(pose)?; }
             if let Some(choice) = &self.choice { connor.restore_choice(choice)?; }
-        } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() || self.choice.is_some() {
+        } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() || self.choice.is_some()
+            || self.hit_timing.as_ref().is_some_and(|timing| timing.has_reaction_pose()) {
             return Err("Connor is unavailable while restoring his attack".into());
         }
         if let Some(saved) = &self.camera {

@@ -596,8 +596,45 @@ impl crate::active::WorldState {
         self.hit_connor(&name, d, kind);
     }
 
+    /// Ordinary Wait/Move accept dying immediately. Mirror that logical
+    /// entry before the next queued health event; presentation is later.
+    /// Other controllers retain their existing state-change eligibility.
+    pub(crate) fn request_connor_death(&mut self, kind: crate::fight::HitKind, at: String) {
+        if self.connor_dying {
+            return;
+        }
+        self.connor_dying = true;
+        if matches!(
+            self.connor_state,
+            Some(crate::character::state_number::WAIT | crate::character::state_number::MOVE)
+        ) {
+            self.enter_connor_death();
+        }
+        self.requests
+            .push(crate::active::Request::ConnorDies { kind, at });
+    }
+
+    /// Zero once on actual entry, never on re-entry or a later direct
+    /// stats request. Q194's second same-time delta can leave health -1.
+    pub fn enter_connor_death(&mut self) {
+        if self.connor_death_entered {
+            return;
+        }
+        self.connor_death_entered = true;
+        if let Some(stats) = &mut self.connor_stats {
+            stats.stats.0[0] = 0;
+            self.connor_stats_events += 1;
+        }
+        self.connor_dying = true;
+        self.connor_state = Some(crate::character::state_number::DIE);
+    }
+
     /// Rules 16–18, 29: a hit of damage `d` on Connor from `from`.
     pub(crate) fn hit_connor(&mut self, from: &str, d: i64, kind: HitKind) {
+        self.hit_connor_with_flag(from,d,kind,false);
+    }
+
+    pub(crate) fn hit_connor_with_flag(&mut self, from: &str, d: i64, kind: HitKind, forced: bool) {
         if self.god_mode {
             self.fight_note("Connor", format!("hit by {from}, {}, damage {d}: nothing, god mode is on (test switch, ours)", kind.name()));
             return;
@@ -648,15 +685,14 @@ impl crate::active::WorldState {
         }
         let at = format!("hit by {from}");
         if after < 0 {
-            self.connor_dying = true;
             self.fight_note("Connor", format!("health {after} is below 0: his dying state, kind {} (rules 18, 29); game over is another study", kind.name()));
-            self.requests.push(crate::active::Request::ConnorDies { kind, at });
+            self.request_connor_death(kind,at);
         } else {
             // Rules 23, 29 (batch 2 D-7): his own percent, and a special
             // react a script set (Dead City's tower) tried first.
             let percent = self.connor_react.0.unwrap_or(CONNOR_REACT_PERCENT);
             let special = self.connor_react.1.clone().filter(|(_, p)| dmg.flinch_roll(*p)).map(|(m, _)| m);
-            self.requests.push(crate::active::Request::ConnorHurt { roll_over: dmg.flinch_roll(percent), special, at });
+            self.requests.push(crate::active::Request::ConnorHurt { roll_over: dmg.flinch_roll(percent), forced, special, at });
         }
     }
 }
@@ -789,9 +825,10 @@ impl crate::active::WorldState {
     }
 
     /// Scripted hazards and weapons use the same hit rules as contact attacks.
-    /// The final event word is unused by the damage calculation (Connor collision rule 16).
+    /// Q194: the fourth text word controls Connor's reaction selection,
+    /// independently of the normal damage/protection calculation.
     pub(crate) fn scripted_attack(&mut self, target: &str, data: &[String], source: &str) {
-        let [attacker, weapon, strength, _flag] = data else {
+        let [attacker, weapon, strength, flag] = data else {
             self.note(format!("{source}: incomplete KQAttackEvent to {target}"));
             return;
         };
@@ -810,7 +847,8 @@ impl crate::active::WorldState {
             return;
         };
         if target.eq_ignore_ascii_case(crate::talk::CONNOR) {
-            self.hit_connor(attacker, damage, kind);
+            let forced = crate::script::number_value(flag) as i64 != 0;
+            self.hit_connor_with_flag(attacker, damage, kind, forced);
         } else if let Some(i) = self.character_index(target) {
             self.hit_character(i, attacker, damage, kind);
         } else {

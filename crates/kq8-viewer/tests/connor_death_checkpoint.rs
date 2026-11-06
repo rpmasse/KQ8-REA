@@ -58,7 +58,7 @@ fn check_deaths(cases: &[DeathCase]) {
         let saved: serde_json::Value = serde_json::from_slice(&fs::read(slots.join("slot-1.json")).unwrap()).unwrap();
         let saved_movement = saved["special"]["movement"].as_str().unwrap();
         assert!(saved_movement.eq_ignore_ascii_case(movement) || saved_movement.to_ascii_lowercase().ends_with(&format!("/{movement}")), "inspect {}", case_root.display());
-        assert!(saved["journey"]["stats"]["stats"][0].as_i64().unwrap() < 0);
+        assert_eq!(saved["journey"]["stats"]["stats"][0], 0, "original dying entry zeros health once (Q194)");
         assert_eq!(saved["connor_dying"], true);
         assert!(saved["swing"].is_null() && saved["shot"].is_null(), "the old attack must not own the saved pose");
         let phase = saved["special"]["phase"].as_f64().unwrap();

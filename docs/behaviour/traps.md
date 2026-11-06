@@ -180,7 +180,7 @@ never blocks anything.
     entries need the bit. (`clifTrap.cs` has no `Off` branch, so for it
     this changes nothing.)
 
-### Spirit traps (`KQSpiriTrap`, Q188 follow-up 2026-11-06)
+### Spirit traps (`KQSpiriTrap`, Q188/Q194 follow-up 2026-11-06)
 
 The following replaces the shorter 2026-10-28 description. Static
 `Mask.exe` study, checked against the original Dead City data; original
@@ -232,18 +232,24 @@ All four original `spirtp1.kq`–`spirtp4.kq` have mask 4 and `damage=.2`.
 
 **The two health stages, and their order**
 
-1. **Direct health change, independent of armour.** Take maximum health
-   as **10 times Connor's level**. The drain is the damage fraction
+1. **Calculate a direct-stage change, independent of armour.** This
+   calculation happens in the entry/Cue handler, using Connor's health
+   and level **as they are then**. Take maximum health as **10 times
+   Connor's level**. The drain is the damage fraction
    times this maximum, **cut toward zero to a whole point**. For a
    state-2 entry it is twice the fraction before this conversion. Work
    out the remaining health after that whole-point drain. If it is
    below the nominal 1% threshold, replace it with the whole-point
-   1% floor, also cut toward zero. Send that health difference through
-   the ordinary stats-change event.
-2. **Then an ordinary attack event.** Queue a **Normal** (kind 0),
-   **strength 1** hit from the trap with its **forced-reaction flag 1**.
-   It is a separate event after the stats change. The floor is not
-   applied again after this hit.
+   1% floor, also cut toward zero. **Queue that health difference**
+   through the ordinary stats-change request event. This does not
+   change health synchronously in the trap handler (Q194).
+2. **Then queue an ordinary attack event.** It is a **Normal** (kind 0),
+   **strength 1** hit from the trap with **forced-reaction flag 1**.
+   It is a separate event posted after the stats-change request. The
+   floor is not applied again after this hit. That flag is the same
+   fourth integer accepted by the scripted `KQAttackEvent` text form;
+   it is not an internal-only extra value (`connor-collision.md`
+   rule 16, corrected Q194).
 
 The comparison threshold uses approximately **0.00999999977648** of
 maximum health. Its floor is computed as approximately
@@ -253,24 +259,127 @@ point and not a preserved fractional health balance. The slightly low
 stored constants can also matter at higher integer boundaries; for
 example at level 10 the floor expression is just below 1 and cuts to 0.
 
+**Queued delivery and multiple drains (Q194)**
+
+- Both stages are posted for the current game time and return to the
+  trap handler without applying either stage. Equal-deadline events
+  already in the queue run first; newly posted equal-deadline events
+  retain posting order. For one drain, its direct request therefore
+  arrives before its hit. It is not a synchronous health subtraction
+  followed by one queued hit.
+- The direct event carries the **already calculated difference**, not
+  a request to rerun the percentage/floor calculation. Its receiver
+  adds that stored difference to the health present **at delivery**.
+  It uses ordinary stats-change handling, including a request for the
+  dying state if the resulting health is below zero. It has no hit's
+  rope/dying immunity guard and does not reapply the spirit floor.
+- Consequently two entry/Cue handlers that run before either newly
+  posted direct request can both calculate against the same health.
+  Their deltas still apply separately later. Intervening healing,
+  damage, a state change or another trap is not retroactively included
+  in the stored difference. The intended floor may therefore be crossed
+  by a later direct request itself. If the first pair has already
+  entered dying, a later queued direct delta still applies; the paired
+  hit is then ignored by the dying hit guard.
+- **Derived same-time example:** maximum 10, starting health 1,
+  protection below 100, ordinary idle Connor with no pending reaction
+  or state lock, `damage=.2`. Put two Cue 1 events in the queue at the
+  same deadline before their descendants. Both handlers see health 1
+  and each posts a direct delta **−1**, followed by its hit. Their
+  deliveries are direct A, hit A, direct B, hit B: direct A gives 0;
+  hit A gives −1 and enters dying, whose entry sets health to 0;
+  direct B then gives **−1 while already dying**; hit B is ignored.
+  The stats receiver has no lower clamp, and the dying state refuses
+  re-entry, so these four deliveries end at health **−1**, still
+  dying. This is a derived static edge check, **not tested** in the
+  original runtime. Processing the second Cue only after the first
+  pair instead produces a different stored delta (zero at health 0).
+  Do not replace this ordering with two atomic drain-and-hit calls.
+
 For the later hit, ordinary armour/protection, current-state hurt
 dispatch and Connor's dying/rope hit guards all apply. With protection
 below 100 the strength-1 hit loses one point; protection exactly 100
-prevents that point of loss. The forced-reaction flag requests a
-reaction through the receiving state, bypassing Wait's ordinary roll
-threshold and two-second reaction-selection gate; it does not turn the
-event into a special spirit hit. A reaction request can still wait for
-an uninterruptible movement, and states need not handle it as Wait
-does. A configured special reaction remains eligible through that
-state's usual selection rule. It is therefore too strong to say that
-every drain immediately makes Connor flinch.
+prevents that point of loss. Forced reaction remains a separate
+receiving-state decision; the flag does not turn the event into a
+special spirit hit. See the state rules below: it is too strong to say
+that every drain immediately makes Connor flinch.
 
-The direct stats-change stage does **not** use those attack-immunity
+The queued direct stats-change stage does **not** use those attack-immunity
 guards. In the rope state the direct drain still applies but its later
 hit is ignored; a dying Connor also ignores that later hit. A normal
 living Connor can be reduced to **0** by the first stage and then to
-**−1 by the hit**, which enters his ordinary dying state and clamps
-health back to 0. Thus the nominal floor does not guarantee survival.
+**−1 by the hit**, which requests his ordinary dying state; when that
+state is entered, health is set back to 0. The receiving controller's
+normal state-change eligibility still applies. Thus the nominal floor
+does not guarantee survival.
+
+**The force flag and Connor's receiving state (Q194)**
+
+- The nonzero flag is passed with the hit's strength to the state
+  Connor has **when the hit arrives**. His ordinary controlled standing
+  and moving states (`KQStateConnerWait`, `KQStateConnerMove`),
+  **Choice**, and **Connor's Talk** state use the same reaction selector.
+  Do not make Choice or Talk generically immune to spirit hits.
+- That selector first applies normal hit damage/death handling. A
+  lethal result skips reaction selection. Otherwise, with flag zero,
+  normal reaction selection requires the rolled hit to be **strictly
+  above `normalReactPercent` times the incoming strength**, the current
+  movement to be interruptible, and the reaction deadline to be
+  **strictly earlier than now** (normally the two-second gap after
+  a reaction ends). Connor's default `normalReactPercent` is 0.5.
+- With the spirit's **flag 1**, reaction selection is reached even if
+  any of those three ordinary selection gates fails. This includes a
+  currently uninterruptible movement or an unexpired reaction pause.
+  Protection 100 blocking health loss does not block this flag branch.
+  A configured `specialReactAnim` still takes priority only when its
+  own strict `specialReactPercent` comparison succeeds; otherwise the
+  requested movement is `react`.
+- **Selection does not force playback.** The chosen movement goes
+  through the ordinary animation-request/transition rules. The
+  current uninterruptible movement can finish before the request
+  starts; a later request can replace a waiting movement. This is
+  neither an immediate forced animation cut nor a change of Connor's
+  owning state to Special. The ordinary reaction request applies its
+  normal animation input lock **at request time**, and a repeated
+  request for the already retained reaction name does not create
+  another concurrent reaction.
+  Choice/Talk remain the owning controller until their own normal
+  state rules change that; do not advance a Choice or complete a Talk
+  merely on receipt of the hit. Their later animation-end behavior
+  remains the existing state-specific behavior. **Q195 follow-up:** a
+  later eligible Connor lip gesture requests its movement with this
+  animation lock off, even if it must wait behind the still-playing
+  reaction. It replaces a merely waiting reaction, but does not force
+  an uninterruptible playing reaction to end, erase the state's last
+  requested movement name or fabricate a reaction-end deadline. See
+  `conversation.md` rule 18a for the exact waiting, lock and Talk
+  continuation rules. Natural reaction completion alone does not
+  unlock input: standing Wait's subsequent `Stop` request clears the
+  lock and, when it starts, retains `Stop`. Completed-approach standing
+  Talk makes no such request; without a later request it can hold the
+  ended reaction with its lock still on, or play the waiting lip
+  gesture with the lock already cleared by that lip request and the
+  retained state name still `React`. Wait's extra `Stop` can cut that
+  newly started interruptible gesture; Talk does not add it. Move
+  instead requests its currently selected movement with the
+  lock off when that selection is nonempty and differs from actual
+  playback, updating the retained name if it starts. Thus unchanged
+  forward/walk intent resumes walking and clears the lock at natural
+  reaction end; this must not be folded into Wait's Stop action or
+  Talk's absence of an extra request. A standing Special is eligible
+  for lip gestures too: the lip handler has no owning-state gate.
+- **Special** uses the base damage/death/sound route instead of this
+  reaction selector. The same flag reaches that route, but does not
+  add a `react` request, erase the scripted movement list or grant
+  immunity to health loss. Its ordinary state-change eligibility still
+  determines whether a requested death/change is immediate or pending.
+  The plain base/no-state route likewise has no Wait forced-flinch
+  selector. These findings do not establish identical handling for
+  every other specialised Connor state.
+- The whole hit is ignored if Connor is already in the dying state or
+  the rope state. Those guards occur before the receiving-state
+  selector; flag 1 does not bypass them. This leaves the previously
+  queued direct stats stage unaffected.
 
 **Numbers and observable checks**
 
@@ -287,13 +396,22 @@ later attack's result, including protection and controller state.
 | 10 / 1 | Cue 1 | 0 | lethal hit; dying health 0 |
 | 30 / 1 | Cue 1 | 0 | lethal hit; dying health 0 |
 
-- From full health, repeated Cue 1 without leaving gives **10 → 7 →
-  4 → 1 → dying**, or **30 → 23 → 16 → 9 → 2 → dying**, with no
-  intervening healing/protection changes. Each Cue 1 must be counted,
-  even when the saved state was already 1.
+- From full health, repeated Cue 1 without leaving, **letting each
+  queued pair deliver before the next Cue**, gives **10 → 7 → 4 → 1 →
+  dying**, or **30 → 23 → 16 → 9 → 2 → dying**, with no intervening
+  healing/protection changes. Each Cue 1 must be counted, even when
+  the saved state was already 1. Simultaneously pending Cue events
+  need the separate ordering check above.
 - With protection 100 the first table row ends at **8**, not 7:
   the direct drain still applies and the later hit's health loss is
   blocked. The hit's reaction handling is a separate check.
+- Compare flag 0/1 using the same scripted four-word attack, in native
+  standing/moving, Choice, Connor Talk and Special. Log state identity,
+  selected/waiting movement and actual playback separately. With an
+  uninterruptible movement and a recent reaction, flag 1 must select a
+  request in the Wait-derived states; Special must still take damage
+  without gaining that request. Check rope/dying hits separately from
+  their queued direct stats changes.
 - Save state 0/1/2 with `trapStatus` 0/1, reload without an entry or Cue
   and check no new drain; then send Cue 1 and check the retained flag's
   effect. Log each real entry/exit and the full occupancy count so the

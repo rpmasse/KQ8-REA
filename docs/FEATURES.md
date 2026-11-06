@@ -7,6 +7,32 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Spirit traps and ordinary hit reactions (2026-11-06)
+
+All four Dead City spirit boxes load with their original fields and defaults.
+Ordered occupants determine the active flag; repeated Cue 1 drains again and
+authored Cue 2 does nothing. Each drain queues its already-calculated health
+difference followed by a separate Normal strength-1 forced hit. The original
+whole-point floor and same-time stale-delta/death edge are preserved. Disk
+loading restores the fields and occupants without generating a fresh entry.
+
+Forced hits retain ordinary, Choice or Talk ownership and request their
+reaction through normal animation interruption/transition rules. Protection
+and rope/dying guards remain separate. Pending requests, actual playback,
+retained state name and the animation input lock survive saves. Connor's lip
+gestures use the ordinary request with lock off, including when waiting behind
+an uninterruptible reaction. Wait, Move and standing Talk retain their distinct
+natural-end behavior; repeating a cuttable lip gesture starts it afresh.
+
+Eight unattended Windows checks pass across 14 processes, covering original
+entry/cycle cues, simultaneous low-health events, protected/unprotected and
+pending/playing reactions, roof Choice, Wizard Talk and an equipped Small Axe
+attack. The data check covers all four original boxes and both spirit cue
+lists. These are isolated setups with enemy AI off, not a complete Dead City
+altar quest, uninterrupted campaign or original-runtime/native-save comparison.
+No manual testing was performed. The exact broader death-request eligibility
+and game-over timing remain open in Q192.
+
 ## Standing combat reactions (2026-11-06)
 
 Wait repairs its attack deadline only when a hit actually selects a reaction;

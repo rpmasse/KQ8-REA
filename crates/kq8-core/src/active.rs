@@ -173,12 +173,12 @@ pub enum Request {
     /// Connor straight to standing (M6 6e: after No to the Portal state's
     /// question).
     ConnorStandNow { at: String },
-    /// A hit took health from Connor and he lives (`fighting.md` rule 29;
-    /// M5 5c-4): he flinches if `roll_over` (*R* > 0.9 *D*), his movement
-    /// can be cut short and his last flinch ended over 2 s ago, else his
-    /// ouch sound plays (at most once a second). The caller decides: it
-    /// has his movement.
-    ConnorHurt { roll_over: bool, special: Option<String>, at: String },
+    /// A nonlethal hit reached Connor (`fighting.md` rule 29, Q194).
+    /// The receiving controller selects a reaction using its configured
+    /// percent, interruption and deadline gates; `forced` bypasses those
+    /// selection gates. Playback still uses ordinary animation requests.
+    /// The viewer supplies the current movement and owning controller.
+    ConnorHurt { roll_over: bool, forced: bool, special: Option<String>, at: String },
     /// Connor's health fell below 0 (rules 18, 29): his dying state, by
     /// the hit's kind.
     ConnorDies { kind: crate::fight::HitKind, at: String },
@@ -958,6 +958,8 @@ pub struct WorldState {
     /// Connor is in his dying state: hits are ignored (`fighting.md` rule
     /// 29).
     pub connor_dying: bool,
+    /// Logical dying entry occurred once, independent of presentation/state mirroring.
+    pub connor_death_entered: bool,
     /// Last accepted weapon hit; stats-event deaths retain its kind
     /// (anim-scripts.md rule 20), Normal before any hit.
     pub connor_last_hit: Option<crate::fight::HitKind>,
@@ -4694,6 +4696,7 @@ impl Active {
                 connor_back_key: false,
                 connor_fight: None,
                 connor_dying: false,
+                connor_death_entered: false,
                 connor_last_hit: None,
                 scripted_death: Default::default(),
                 connor_tips: [false; 2],
@@ -4922,6 +4925,7 @@ impl Active {
         if reincarnate {
             walker.set_mode(Mode::Free);
             self.world.connor_dying = false;
+            self.world.connor_death_entered = false;
             self.world.scripted_death = crate::connor::ScriptedDeath::None;
             return;
         }
@@ -4929,6 +4933,7 @@ impl Active {
         mover.keep_on_ground = false;
         mover.keep_on_surface = false;
         self.world.connor_dying = true;
+        self.world.connor_death_entered = true;
         self.world.scripted_death = crate::connor::ScriptedDeath::HoldUntil(self.world.updates + 45);
     }
 
@@ -4992,9 +4997,8 @@ impl Active {
             ));
             if dies && !self.world.connor_dying {
                 let kind = self.world.connor_last_hit.unwrap_or(crate::fight::HitKind::Normal);
-                self.world.connor_dying = true;
                 self.world.note(format!("{head}: Connor's health fell below 0 before caps/level processing: dying state, last hit {} (rules 19–20)", kind.name()));
-                self.world.requests.push(Request::ConnorDies { kind, at: head });
+                self.world.request_connor_death(kind,head);
             }
             return;
         }
@@ -5148,7 +5152,7 @@ impl Active {
     /// Sweep Connor against the traps and run their scripts for `On`, `Off`
     /// or `Cue` (traps.md rules 6–9). Returns `<trap> <args>` per call.
     pub fn connor_moved(&mut self, v: &Visitor) -> Vec<String> {
-        self.traps_check(v, false)
+        self.traps_check(v, false, true)
     }
 
     /// Move each character through the world, dispatching its trap touches before
@@ -5181,7 +5185,7 @@ impl Active {
         let Some(mover) = c.mover.as_ref() else { return };
         let (name, balls) = (name.clone(), mover.balls.clone());
         let visitor = Visitor { name: &name, collision_type: c.collision_type, from, position, min, max, balls: &balls };
-        self.traps_check(&visitor, placed);
+        self.traps_check(&visitor, placed, false);
     }
 
     fn character_placements(&mut self) {
@@ -5197,10 +5201,10 @@ impl Active {
     /// new spot, so the one he was taken out of gets `Off` (or `Cue 302`)
     /// now; no trap is entered (that waits for his next ordinary move).
     pub fn connor_placed(&mut self, v: &Visitor) -> Vec<String> {
-        self.traps_check(v, true)
+        self.traps_check(v, true, true)
     }
 
-    fn traps_check(&mut self, v: &Visitor, placed: bool) -> Vec<String> {
+    fn traps_check(&mut self, v: &Visitor, placed: bool, is_connor: bool) -> Vec<String> {
         let mut calls = Vec::new();
         for i in 0..self.world.traps.len() {
             let t = &self.world.traps[i];
@@ -5237,13 +5241,14 @@ impl Active {
             );
             let was = std::mem::replace(&mut self.world.in_trap, true);
             self.world.note(line);
+            self.world.spirit_touch(i, &args, is_connor);
             if gone {
                 self.world.note(format!("trap {name}: one-shot, deleted after its On (rule 11)"));
             }
             self.world.in_trap = was;
             calls.push(format!("{name} {}", args.join(" ")));
             let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-            self.call_trap(i, &refs);
+            if self.world.traps[i].settings.spirit.is_none() { self.call_trap(i, &refs); }
         }
         calls
     }
@@ -6488,6 +6493,13 @@ impl Active {
         }
         // clicking.md rule 21: reserved cue numbers.
         if e.kind == "KQCueEvent" && !self.world.is_gone(&e.target) {
+            if let Some(i) = self.world.trap_index(&e.target).filter(|&i| self.world.traps[i].settings.spirit.is_some()) {
+                let cue = e.data.first().map_or(0, |n| number_value(n) as i32);
+                let was = std::mem::replace(&mut self.world.in_trap,true);
+                self.world.spirit_cue(i,cue,&e.from);
+                self.world.in_trap = was;
+                return;
+            }
             if self.world.tower_cue(&e.target, e.data.first()) {
                 return;
             }
@@ -7034,6 +7046,7 @@ KQObject::setScript nobody new.cs
             mask: 4,
             trap_type: 0,
             inner_percent: None,
+            spirit: None,
         })]);
         a.start();
         a
@@ -7140,7 +7153,7 @@ endif
         // `henchtp.kq` when Connor takes the axe; its box counts from then.
         use crate::trap::TrapSettings;
         let mut a = Active::new(Vars::default(), vec![], vec![], ["Connor".to_string()], [("trap.cs".to_string(), TRAP.as_bytes().to_vec())]);
-        let settings = TrapSettings { name: "Henchtp".into(), position: [0.0; 3], min: [-500.0, -500.0, 0.0], max: [500.0, 500.0, 500.0], script: Some("trap.cs".into()), lookup_call: false, mask: 4, trap_type: 0, inner_percent: None };
+        let settings = TrapSettings { name: "Henchtp".into(), position: [0.0; 3], min: [-500.0, -500.0, 0.0], max: [500.0, 500.0, 500.0], script: Some("trap.cs".into()), lookup_call: false, mask: 4, trap_type: 0, inner_percent: None, spirit: None };
         a.add_traps([Trap { gone: true, ..Trap::new(settings) }]);
         a.set_dormant([("henchtp.kq".to_string(), "Henchtp".to_string(), Some("trap.cs".to_string()))]);
         a.start();
@@ -10696,7 +10709,7 @@ mod trap_lookup_tests {
     fn fixture(flag: bool, script: bool, gone: bool) -> Active {
         let mut a = Active::new(Default::default(), vec![], vec![], ["Connor".into()], [("gate.cs".into(), SCRIPT.as_bytes().to_vec())]);
         let mut t = Trap::new(crate::trap::TrapSettings { name: "Gate".into(), position: [0.0; 3], min: [0.0; 3], max: [1.0; 3],
-            script: script.then(|| "gate.cs".into()), lookup_call: flag, mask: 4, trap_type: 0, inner_percent: None });
+            script: script.then(|| "gate.cs".into()), lookup_call: flag, mask: 4, trap_type: 0, inner_percent: None, spirit: None });
         t.gone = gone;
         a.add_traps([t]);
         a

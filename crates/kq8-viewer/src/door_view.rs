@@ -1178,7 +1178,15 @@ pub fn trap_step(
             _ => "stop",
         };
         let name = connor.movements.iter().find(|m| m.name.eq_ignore_ascii_case(wanted)).map(|m| m.name);
-        let line = connor.walker.gesture(code, name);
+        let was_locked = connor.walker.animation_input_lock;
+        let line = {
+            let ConnorSim { walker, movements, .. } = &mut *connor;
+            let loops = |name: &str| movements.iter().find(|m| m.name == name).map(|m| &m.movement_loop);
+            walker.gesture(code, name, &loops)
+        };
+        let line = if was_locked && !connor.walker.animation_input_lock && !connor.hands_off {
+            format!("{line}; {}", connor.turn_sent_again().unwrap_or_else(|| "no turn key held".into()))
+        } else { line };
         let n = connor.updates;
         connor.log.detail(format!("connor update {n}: lip-sync {line}"));
         shared.log.lock().unwrap().detail(format!("connor update {n}: lip-sync {line}"));
@@ -1319,10 +1327,10 @@ pub fn trap_step(
                 w.fight_note("Connor", &line);
                 line
             }
-            Request::ConnorHurt { roll_over, special, at } => {
+            Request::ConnorHurt { roll_over, forced, special, at } => {
                 let ouch = sim.active.world.connor_fight.as_ref().map_or(kq8_core::fight::DEFAULT_OUCH.to_string(), |f| f.ouch_sound.clone());
                 let now = sim.active.world.now();
-                let line = connor.hurt(roll_over, special.as_deref(), &ouch, now);
+                let line = connor.hurt(roll_over, forced, special.as_deref(), &ouch, now);
                 sim.active.world.fight_note("Connor", format!("{at}: {line}"));
                 format!("{at}: applied: Connor {line}")
             }
@@ -1343,6 +1351,7 @@ pub fn trap_step(
                 format!("{at}: Connor gravity {on}")
             }
             Request::ConnorDies { kind, at } => {
+                sim.active.world.enter_connor_death();
                 let line = connor.die_from_hit(kind);
                 sim.active.world.fight_note("Connor", format!("{at}: {line}"));
                 format!("{at}: applied: Connor {line}")

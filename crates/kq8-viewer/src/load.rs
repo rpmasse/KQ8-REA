@@ -3451,7 +3451,7 @@ impl Placer<'_> {
         // A trap (M3 step 3d-2, traps.md rules 1 and 2): no model, its
         // position as written (keepOnGround ignored), a z of -1 on the
         // floor grid; it stays an invisible-object marker.
-        if !unused && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQTrap")) {
+        if !unused && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQTrap") || c.eq_ignore_ascii_case(kq8_core::spirit_trap::CLASS)) {
             self.place_trap(&label, s, p);
             return;
         }
@@ -3495,7 +3495,7 @@ impl Placer<'_> {
         // A trap a script loads while playing (`ax.cs`'s `henchtp.kq`): its
         // box built as at the start (`objects.md` rule 6), switched off
         // until the `loadKQ` (traps.md rules 1, 2).
-        if dormant && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQTrap")) {
+        if dormant && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQTrap") || c.eq_ignore_ascii_case(kq8_core::spirit_trap::CLASS)) {
             self.dormant_traps.push(p.name.to_ascii_lowercase());
             self.place_trap(&label, s, p);
             return;
@@ -4257,6 +4257,13 @@ impl Placer<'_> {
             self.log.detail(format!("trap [{}]: {problem}", p.name));
         }
         let trap_type = s.get("trapType").and_then(|v| v.trim().parse::<u32>().ok()).unwrap_or(0);
+        let spirit = p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case(kq8_core::spirit_trap::CLASS)).then(|| {
+            let mut value = kq8_core::spirit_trap::SpiritTrap::default();
+            if let Some(damage) = num("damage").filter(|d| d.is_finite()) { value.damage = damage; }
+            if let Some(state) = s.get("spiritState").and_then(|v| v.trim().parse().ok()) { value.spirit_state = state; }
+            if let Some(status) = s.get("trapStatus").and_then(|v| v.trim().parse().ok()) { value.trap_status = status; }
+            value
+        });
         let settings = kq8_core::trap::TrapSettings {
             name: p.name.clone(),
             position: p.position,
@@ -4267,18 +4274,22 @@ impl Placer<'_> {
             mask,
             trap_type,
             inner_percent: num("innerPercent"),
+            spirit,
         };
         self.log.detail(format!(
             "trap {label}[{}] at ({:.0}, {:.0}, {:.0}): box {:?}..{:?}, mask {mask:#x}, trapType {trap_type}, innerPercent {:?}, script {:?}, lookupCall {}",
             p.name, p.position[0], p.position[1], p.position[2], settings.min, settings.max, settings.inner_percent, settings.script, settings.lookup_call
         ));
+        if let Some(spirit) = spirit {
+            self.log.detail(format!("spirit trap {}: damage {}, spiritState {}, trapStatus {}; no drain during loading",p.name,spirit.damage,spirit.spirit_state,spirit.trap_status));
+        }
         self.traps.push(settings);
         self.located.insert(p.name.to_ascii_lowercase(), Located { position: p.position, angles: p.angles, drawn: Drawn::Nothing });
-        self.markers.push(Marker { name: p.name.clone(), class: "KQTrap".into(), position: p.position, anm: false });
+        self.markers.push(Marker { name: p.name.clone(), class: if spirit.is_some() { kq8_core::spirit_trap::CLASS.into() } else { "KQTrap".into() }, position: p.position, anm: false });
         if let Some(l) = self.located.get_mut(&p.name.to_ascii_lowercase()) {
             l.drawn = Drawn::Marker(self.markers.len() - 1);
         }
-        *self.by_class.entry("KQTrap (trap, M3)".into()).or_default() += 1;
+        *self.by_class.entry(if spirit.is_some() { "KQSpiriTrap (spirit trap, M6)".into() } else { "KQTrap (trap, M3)".into() }).or_default() += 1;
     }
 
     /// A `KQAudibleObject` (M3 step 3h-3, sound.md rules 43-44): its sound
@@ -6579,5 +6590,37 @@ mod runtime_stat_default_checks {
         }
         assert!(objects.placed.iter().any(|(p, _, unused)| !unused && p.name.eq_ignore_ascii_case("boxsmx")), "legacy filename-only activation still loads its original name");
         assert!(objects.templates.iter().any(|t| t.file == "boardpx.kq"));
+    }
+}
+
+#[cfg(test)]
+mod spirit_trap_checks {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn original_deadcity_spirit_boxes_and_both_cue_lists_are_loaded() {
+        let game=GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let world=World::open(&game,"DeadCity").unwrap();
+        let mut log=Log::create("spirit-trap-data").unwrap();
+        let ground=load_ground(&game,&world,&mut log).unwrap();
+        let objects=load_objects(&game,&world,&ground.terrain,&mut log,None,None);
+        let traps:Vec<_>=objects.traps.iter().filter(|t| t.spirit.is_some()).collect();
+        assert_eq!(traps.len(),4);
+        for n in 1..=4 {
+            let name=format!("spirtp{n}");
+            let trap=traps.iter().find(|t| t.name.eq_ignore_ascii_case(&name)).unwrap();
+            assert_eq!(trap.mask,4);
+            assert_eq!(trap.spirit,Some(kq8_core::spirit_trap::SpiritTrap::default()));
+            assert_eq!(trap.min,[-250.0,-400.0,0.0]); assert_eq!(trap.max,[250.0,400.0,3000.0]);
+            assert!(objects.markers.iter().any(|m| m.name.eq_ignore_ascii_case(&name) && m.class==kq8_core::spirit_trap::CLASS));
+        }
+        for file in ["spiritst.kq","spirits2.kq"] {
+            let (_,bytes)=world.load(file).unwrap().unwrap();
+            let text=String::from_utf8_lossy(&bytes);
+            let cues:Vec<_>=text.lines().filter_map(|line| line.split_once("KQCueEvent").map(|(_,tail)| tail.split_whitespace().next().unwrap())).collect();
+            assert!(!cues.is_empty() && cues.contains(&"1") && cues.contains(&"2"));
+            assert!(cues.iter().all(|cue| matches!(*cue,"1"|"2")),"{file}: no Cue 0 is authored");
+        }
     }
 }
