@@ -103,11 +103,44 @@ pub struct WallLights {
     pub collider: Option<usize>,
     /// Surfaces lit last frame (put back first).
     lit: Vec<usize>,
+    alternate: Option<Arc<crate::alternate_lighting::LightChoice>>,
+    normal: Option<(Arc<LightAtlas>, Arc<WallData>)>,
+    using_alternate: bool,
 }
 
 impl WallLights {
     pub fn new(name: String, data: Arc<WallData>, atlas: Arc<LightAtlas>, image: Handle<Image>, factors: Handle<ShaderBuffer>, collider: Option<usize>) -> Self {
-        WallLights { name, data, atlas, image, factors, collider, lit: Vec::new() }
+        WallLights { name, data, atlas, image, factors, collider, lit: Vec::new(), alternate: None, normal: None, using_alternate: false }
+    }
+
+    pub fn with_alternate(mut self, alternate: Option<Arc<crate::alternate_lighting::LightChoice>>) -> Self {
+        if alternate.is_some() { self.normal = Some((self.atlas.clone(), self.data.clone())); }
+        self.alternate = alternate;
+        self
+    }
+
+    /// Replace this copy's stored lighting before this frame's point lights.
+    fn change_lighting(&mut self, desired: bool, images: &mut Assets<Image>, buffers: &mut Assets<ShaderBuffer>) -> Option<String> {
+        if self.using_alternate == desired { return None; }
+        let alternate = self.alternate.as_ref()?;
+        let (atlas, data, file) = if desired {
+            (alternate.atlas.clone(), alternate.data.clone(), alternate.file.as_str())
+        } else {
+            let (atlas, data) = self.normal.as_ref()?;
+            (atlas.clone(), data.clone(), alternate.normal_file.as_str())
+        };
+        let mut image = images.get_mut(&self.image)?;
+        let changed = image.data.as_ref().map_or(0, |old| old.chunks_exact(4).zip(atlas.rgba.chunks_exact(4)).filter(|(a,b)| a != b).count());
+        *image = atlas.image();
+        let old_lit = self.lit.len();
+        self.lit.clear();
+        if let Some(mut factors) = buffers.get_mut(&self.factors) {
+            *factors = factor_buffer(&vec![1.0; data.light.surfaces.len()]);
+        }
+        self.atlas = atlas;
+        self.data = data;
+        self.using_alternate = desired;
+        Some(format!("interior lighting {}: alternate {} -> {file}; {changed} changed pixels; cleared {old_lit} dynamic surfaces; point-light baseline and haze factors replaced (object-lighting.md rule 12)", self.name, u8::from(desired)))
     }
 }
 
@@ -156,11 +189,16 @@ pub fn light_walls(
     mut buffers: ResMut<Assets<ShaderBuffer>>,
     mut last_log: Local<Option<Instant>>,
     shared: Res<Shared>,
+    sim: Option<Res<crate::door_view::DoorSim>>,
 ) {
     let dynamic = ground.as_ref().is_some_and(|g| g.dynamic);
     let mut counts = vec![Counts::default(); lights.0.len()];
     let (mut drawn_buildings, mut put_back) = (0, 0);
     for (mut w, visibility, off) in &mut walls {
+        let desired = sim.as_ref().and_then(|sim| sim.active.world.interior_lighting.get(&w.name.to_ascii_lowercase())).copied().unwrap_or(false);
+        if let Some(line) = w.change_lighting(desired, &mut images, &mut buffers) {
+            shared.log.lock().unwrap().summary(format!("{line}; dynamic lighting {dynamic}"));
+        }
         let drawn = !off && visibility != Some(&Visibility::Hidden);
         let collider = w.collider.and_then(|i| buildings.as_ref().and_then(|b| b.0.get(i)));
         // This frame's lit surfaces and their texels.
@@ -260,6 +298,51 @@ pub fn light_walls(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn alternate_baseline_is_per_copy_idempotent_and_clears_previous_dynamic_texels() {
+        let normal = crate::building_light::tests::dil(&[(1,1,0,0), (1,1,0,0)]);
+        let mut alternate = normal.clone();
+        let first = alternate.surfaces[0].offset;
+        alternate.surfaces[0].offset = alternate.surfaces[1].offset;
+        alternate.surfaces[1].offset = first;
+        assert!(crate::alternate_lighting::same_layout(&normal, &alternate));
+        let wall_data = |light| Arc::new(WallData { light, facing: vec![[0.; 3]; 2], min: [0.; 3], max: [1.; 3], lightable: vec![0,1] });
+        let atlas = Arc::new(LightAtlas::build(&normal));
+        let data = wall_data(normal);
+        let other = Arc::new(crate::alternate_lighting::LightChoice { file: "on.dil".into(), normal_file: "off.dil".into(),
+            atlas: Arc::new(LightAtlas::build(&alternate)), data: wall_data(alternate) });
+        assert_ne!(atlas.rgba, other.atlas.rgba);
+        let mut images = Assets::<Image>::default();
+        let mut buffers = Assets::<ShaderBuffer>::default();
+        let image_a = images.add(atlas.image()); let image_b = images.add(atlas.image());
+        let mut a = WallLights::new("RoomA".into(), data.clone(), atlas.clone(), image_a.clone(), buffers.add(factor_buffer(&[0.04,1.])), None).with_alternate(Some(other.clone()));
+        let b = WallLights::new("RoomB".into(), data.clone(), atlas.clone(), image_b.clone(), buffers.add(factor_buffer(&[1.,1.])), None).with_alternate(Some(other.clone()));
+        // Last frame's dynamic lighting must not become the new stored map.
+        images.get_mut(&image_a).unwrap().data.as_mut().unwrap().fill(0);
+        a.lit.push(0);
+        let line = a.change_lighting(true, &mut images, &mut buffers).unwrap();
+        assert!(line.contains("cleared 1 dynamic surfaces"));
+        assert!(a.lit.is_empty() && a.using_alternate && !b.using_alternate);
+        match &buffers.get(&a.factors).unwrap().data {
+            bevy::render::storage::ShaderBufferData::Initialized { data, .. } => {
+                assert_eq!(&data[..8], &[1.0f32.to_le_bytes(), 1.0f32.to_le_bytes()].concat());
+            }
+            _ => panic!("haze factors must be initialized"),
+        }
+        assert_eq!(images.get(&image_a).unwrap().data.as_ref().unwrap(), &other.atlas.rgba);
+        assert_eq!(images.get(&image_b).unwrap().data.as_ref().unwrap(), &atlas.rgba);
+        assert!(Arc::ptr_eq(&a.data, &other.data));
+        // Re-selecting this mode must preserve a later dynamic-light write.
+        images.get_mut(&image_a).unwrap().data.as_mut().unwrap()[0] = 13;
+        assert!(a.change_lighting(true, &mut images, &mut buffers).is_none());
+        assert_eq!(images.get(&image_a).unwrap().data.as_ref().unwrap()[0], 13);
+        assert!(a.change_lighting(false, &mut images, &mut buffers).unwrap().contains("off.dil"));
+        assert!(Arc::ptr_eq(&a.data, &data));
+        assert_eq!(images.get(&image_a).unwrap().data.as_ref().unwrap(), &atlas.rgba);
+        let mut incompatible = a.data.light.clone(); incompatible.scale_shift += 1;
+        assert!(!crate::alternate_lighting::same_layout(&a.data.light, &incompatible));
+    }
 
     #[test]
     fn box_distance_is_zero_inside() {

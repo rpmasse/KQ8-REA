@@ -691,6 +691,8 @@ pub struct WorldState {
     pub clickables: Vec<Clickable>,
     /// The buildings, in the caller's order (3g-2).
     pub buildings: Vec<ActiveBuilding>,
+    /// Interior lighting choices (object-lighting.md rule 12), by lower-case name.
+    pub interior_lighting: BTreeMap<String, bool>,
     /// Every loaded object's name, lower case (for "unknown object").
     pub known: BTreeSet<String>,
     /// The world's scripts by lower-case file name.
@@ -699,6 +701,8 @@ pub struct WorldState {
     /// update in each of the six directions (connor-collision.md rules 7–10).
     contact_scripts: BTreeMap<String, (String, [u64; 6])>,
     pub queue: EventQueue,
+    /// Immediate notices emitted during restored objects' Init, not later input.
+    init_notices: Vec<Pending>,
     /// Updates done; game time = updates / 15.
     pub updates: u64,
     pub terrain_changes: crate::ground_anim::GroundChanges,
@@ -1176,7 +1180,8 @@ impl WorldState {
 
     pub fn restore_events(&mut self, saved: crate::events::SavedEvents) {
         self.held_for_load.clear();
-        self.end_loop_listeners = self.queue.restore(self.now(), saved);
+        let notices = std::mem::take(&mut self.init_notices);
+        self.end_loop_listeners = self.queue.restore_with_init(self.now(), saved, notices);
     }
 
     /// `potions.md` rule 26 (M5 5g-6, 5g-9): where the characters are
@@ -4386,6 +4391,24 @@ impl ScriptHost for WorldState {
                 self.note(format!("{at}: KQObject::setFootStepSound {name} {value} (sound.md rule 39)"));
                 Some("0".into())
             }
+            "useAlternateLightmap" => {
+                let [_, name, value] = words else {
+                    self.note(format!("{at}: usage: useAlternateLightmap <interior> <0|1>"));
+                    return Some("1".into());
+                };
+                if !matches!(value.as_str(), "0" | "1") {
+                    self.note(format!("{at}: useAlternateLightmap: expected 0 or 1; nothing changed"));
+                    return Some("1".into());
+                }
+                let Some(mode) = self.interior_lighting.get_mut(&name.to_ascii_lowercase()) else {
+                    self.note(format!("{at}: useAlternateLightmap: no loaded interior named {name}"));
+                    return Some("1".into());
+                };
+                let changed = *mode != (value == "1");
+                *mode = value == "1";
+                self.note(format!("{at}: useAlternateLightmap {name} {value}: {} (object-lighting.md rule 12)", if changed { "choice changed" } else { "already selected" }));
+                Some("0".into())
+            }
             "allowShadows" => {
                 self.shadows_allowed = words.get(1).is_some_and(|v| number_value(v) != 0.0);
                 self.note(format!("{at}: allowShadows {}", u8::from(self.shadows_allowed)));
@@ -4509,10 +4532,12 @@ impl Active {
                 placed_in_trap: Vec::new(),
                 clickables,
                 buildings: Vec::new(),
+                interior_lighting: BTreeMap::new(),
                 known,
                 sources,
                 contact_scripts: BTreeMap::new(),
                 queue: EventQueue::default(),
+                init_notices: Vec::new(),
                 updates: 0,
                 terrain_changes: Default::default(),
                 log: Vec::new(),
@@ -5258,6 +5283,7 @@ impl Active {
     /// Every object's accept list is read first (`clicking.md` rule 21:
     /// before `Init`).
     pub fn start(&mut self) {
+        let init_from = self.world.queue.sequence();
         let w = &self.world;
         let names: Vec<String> = (w.doors.iter().map(|d| d.door.name.clone()))
             .chain(w.objects.iter().map(|o| o.name().to_string()))
@@ -5332,6 +5358,7 @@ impl Active {
             self.call_trap(i, &["Init"]);
             self.world.queue_trap_lookup(i, "trap Init");
         }
+        self.world.init_notices = self.world.queue.immediate_since(init_from, self.world.now());
     }
 
     /// The nearest clickable box the ray `origin + t × dir` meets (rule
@@ -5938,6 +5965,7 @@ impl Active {
     /// `EndLoop`, `Cue 300`, scripts' `sendEvent 0`), before the frame is
     /// drawn (`anim-scripts.md` rule 8, Q119; M4 4e-10).
     pub fn update(&mut self) {
+        self.world.init_notices.clear();
         let now = self.world.now();
         self.handle_due(now);
         self.world.characters_due(now);
@@ -7314,6 +7342,45 @@ endif
             _ => None,
         }).collect();
         assert_eq!(commands, [("Blood1", None), ("FullStream", Some(false))]);
+    }
+
+    #[test]
+    fn authored_alternate_lightmap_requests_select_only_registered_interiors() {
+        let mut a = Active::new(Vars::default(), vec![], vec![], ["rooma".into(), "roomb".into()], []);
+        a.world.interior_lighting.extend([("rooma".into(), false), ("roomb".into(), true)]);
+        assert_eq!(a.console_command("useAlternateLightmap RoomA 1", "test").as_deref(), Some("0"));
+        assert!(a.world.interior_lighting["rooma"] && a.world.interior_lighting["roomb"]);
+        a.console_command("useAlternateLightmap ROOMA 1", "test");
+        assert!(a.take_log().join("\n").contains("already selected"));
+        a.console_command("useAlternateLightmap rooma 0", "test");
+        assert!(!a.world.interior_lighting["rooma"] && a.world.interior_lighting["roomb"]);
+        assert_eq!(a.console_command("useAlternateLightmap unknown 1", "test").as_deref(), Some("1"));
+        assert_eq!(a.console_command("useAlternateLightmap rooma 2", "test").as_deref(), Some("1"));
+        assert_eq!(a.console_command("useAlternateLightmap rooma", "test").as_deref(), Some("1"));
+        assert!(!a.world.interior_lighting["rooma"]);
+    }
+
+    #[test]
+    fn restored_object_init_can_reconcile_lighting_after_its_old_queue_is_restored() {
+        let make = || {
+            let mut a = with_object("if test $2 == Init\n sendEvent 0 $1 KQCueEvent 10 0 on\n sendEvent 3 $1 KQCueEvent 20 0\nendif\nif test $2 == Cue\n if test $3 == 10\n  useAlternateLightmap room 1\n endif\n if test $3 == 20\n  set T::Timer fired\n endif\nendif\n", "unused");
+            a.world.interior_lighting.insert("room".into(), false);
+            a
+        };
+        let mut first = make(); first.update();
+        assert!(first.world.interior_lighting["room"]);
+        let saved = first.world.saved_events();
+        let mut restored = make();
+        restored.world.restore_events(saved);
+        assert!(!restored.world.interior_lighting["room"]);
+        restored.update();
+        assert!(restored.world.interior_lighting["room"], "the new Init cue must not be lost");
+        assert_eq!(restored.world.queue.len(), 1, "keep the saved timer, not a second future Init timer");
+        for _ in 0..43 { restored.update(); }
+        assert_eq!(restored.scripts.vars.get("T::Timer"), None);
+        restored.update();
+        assert_eq!(restored.scripts.vars.get("T::Timer"), Some("fired"));
+        assert!(restored.world.queue.is_empty());
     }
 
     #[test]

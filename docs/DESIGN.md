@@ -173,6 +173,85 @@ The windmill checkpoint also covers movable props. Push the bale, collect the ax
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
 
+#### Authored alternate interior light maps (2026-11-06, implemented)
+
+`object-lighting.md` rule 12 specifies a missing campaign effect:
+`useAlternateLightmap <interior> 0/1` selects the default `<shape>.dil`
+or the interior's `althwLightmapName`; `usingAltLighting` sets its load
+default. Gnome's original fusebox.cs switches gnome13/gnome14 and restores
+their choice from Gnome::Dragon::lights during Init. Temple 4's altar also
+requests the alternate temple map. Implement the existing reference effect.
+
+Register interior names/default choices in core before Init and add the
+script command. Prepare both original light-map files in the loader, keeping
+normal geometry/materials and validating build IDs/surfaces. Reuse each
+building copy's own WallLights image/data: switching replaces its stored
+texels and point-light baseline and clears old dynamic-light patches/factors.
+Validate the identical authored UV layouts and share meshes while each copy
+keeps its own image; reject incompatible layouts rather than drawing bad UVs.
+Apply before wall point lights, including when dynamic lights are disabled;
+repeated same-value requests must not rebuild or upload again. Permanent
+interiors reload fresh under world-change rule 14.4; check actual fusebox
+Init reconciliation from the retained quest variable rather than saving
+permanent scenery. If an eligible non-permanent interior needs a retained
+choice, use the existing kept-world pattern under rule 12.
+
+Check all authored alternate-map metadata in Gnome/Temple 4, startup default
+selection, ordinary script requests, changed baseline texels/UVs, independent
+copies, idempotence and stale-point-light removal. Run an unattended original
+Gnome fuse-box item interaction and disk reload; clearly distinguish injected
+setup from a full shard/fuse/dragon quest. Log selected source names and
+changed texel counts; no visual/manual test or original-file writes. Verify
+the viewer/core suites and publish source, status, provenance and README.
+The Henchman/Q190 handoff remains untouched; M4–M6 stay incomplete.
+
+Initial original-data check: gnome13/gnome14/temple have 998/1295/2367
+surfaces and zero different light-map layouts (has-map, width, height,
+offset), with 83,411/103,671/221,900 changed sequential texels. Thus validate
+this authored invariant and reuse existing meshes/UVs and per-copy image
+handles; mesh cloning/UV rewriting is unnecessary for these reference files.
+All three interiors load with the persist manager off. Keep their load
+defaults fresh and verify quest-script Init restoration; no new permanent
+scenery save field is appropriate. A variant with an incompatible layout is
+rejected explicitly rather than drawn with wrong UVs. The first probe compile
+used the wrong module for World; corrected to the existing viewer loader
+before the data check passed.
+
+The first Windows fixture clicked from terrain z=0 below the raised interior;
+using its full original placement fixed that setup. Live fuse installation
+then changed both maps, but a fresh process lost fusebox Init's due-now
+`Cue 10 0 on`: version-2 queue restore replaced all newly queued Init events.
+World-change rule 15 requires Init to take effect with saved values, and
+doors' sendEvent rule requires a zero delay at the next queue service.
+Capture the immediate notifications emitted during Active::start, separate
+from later inputs and future Init timers. After restoring the saved queue,
+append those notices after its already-waiting events. If the saved queue
+already contains the same target/event/data, keep its original deadline
+instead of creating a duplicate (sender-line spelling is diagnostic only).
+Preserve multiplicity of genuinely new Init notices and keep future Init
+timer replacement unchanged. Consume the capture on restore or the first
+normal update. Check saved future deadlines, duplicate notices, ordering,
+fresh Init effects, and existing timing/conversation checkpoint regressions.
+This changes neither simulation rate nor the existing saved format.
+
+The original-data/loader checks pass, including the all-region metadata scan
+and permanent-interior defaults. The three-process Gnome item/quest Init
+check passed in 70.68 seconds with dynamic lights off; both maps changed,
+an independent temporary gnome13 override changed once, and the next load
+reapplied the saved quest choice without awarding the fuse reward twice.
+Temple 4's isolated on/repeat/off commands passed in 14.96 seconds with
+dynamic lighting on. Core/data/audio passed 627/153/7 tests, and viewer
+passed 30 (39 ignored across these suites). The original-board one-shot
+checkpoint and the Wizard goodbye/pause/return regressions also passed, as
+did the timed scales drain/reload. All 12 regions loaded and rendered 30
+frames each in 183.52 seconds; this is not campaign completion.
+The first Gnome loader assertion incorrectly looked for the scripted fuse
+in the plain placement list; it now checks the existing scripted-object
+assets. The two Windows failures above separately exposed the bad height
+fixture and lost Init notice. Q191 retains the untraced native future-Init,
+duplicate-notification and listener boundary; these checks do not prove
+all save/cutscene behavior or the complete fuse/dragon/altar quests.
+
 #### Daventry campaign continuation after the Small Axe (2026-11-06, in progress)
 
 Advance the main-story route toward the dead hero's ring rather than treating

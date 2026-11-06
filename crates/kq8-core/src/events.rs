@@ -62,6 +62,26 @@ impl SavedEvents {
 }
 
 impl EventQueue {
+    pub(crate) fn sequence(&self) -> u64 { self.next_seq }
+
+    pub(crate) fn immediate_since(&self, seq: u64, now: f64) -> Vec<Pending> {
+        let mut notices: Vec<_> = self.waiting.iter().filter(|e| e.seq >= seq && (e.due - now).abs() <= 1e-9).cloned().collect();
+        notices.sort_by_key(|e| e.seq);
+        notices
+    }
+
+    pub(crate) fn restore_with_init(&mut self, now: f64, saved: SavedEvents, notices: Vec<Pending>) -> BTreeMap<String, String> {
+        let listeners = self.restore(now, saved);
+        let saved_end = self.next_seq;
+        for notice in notices {
+            // An equivalent retained notification keeps its existing deadline.
+            // Newly emitted Init duplicates still keep their own multiplicity.
+            let retained = self.waiting.iter().any(|e| e.seq < saved_end && e.target.eq_ignore_ascii_case(&notice.target) && e.kind == notice.kind && e.data == notice.data);
+            if !retained { self.send(now, 0.0, &notice.target, &notice.kind, &notice.data, &notice.from); }
+        }
+        listeners
+    }
+
     pub(crate) fn checkpoint(&self, now: f64, held_for_load: &[Pending], listeners: &BTreeMap<String, String>) -> SavedEvents {
         // A due event can be held briefly until the renderer hands over
         // a script-loaded object. On restore its object is built with the
@@ -125,6 +145,31 @@ impl EventQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn restore_keeps_immediate_init_notices_after_saved_events_without_resetting_timers() {
+        let mut old = EventQueue::default();
+        old.send(10., 0., "already-due", "KQCueEvent", &[], "saved");
+        old.send(10., 2., "clock", "KQCueEvent", &["7".into()], "timer loop");
+        let saved = old.checkpoint(10., &[], &BTreeMap::new());
+        let mut q = EventQueue::default();
+        q.send(0., 0., "not-from-init", "KQCueEvent", &[], "earlier input");
+        let mark = q.sequence();
+        q.send(0., 0., "Clock", "KQCueEvent", &["7".into()], "Init line");
+        q.send(0., 0., "fuse", "KQCueEvent", &["10".into(), "0".into(), "on".into()], "Init");
+        q.send(0., 0., "fuse", "KQCueEvent", &["10".into(), "0".into(), "on".into()], "another Init send");
+        q.send(0., 9., "future-init", "KQCueEvent", &[], "Init timer");
+        let notices = q.immediate_since(mark, 0.);
+        assert_eq!(notices.len(), 3);
+        q.restore_with_init(0., saved, notices);
+        assert_eq!(q.take_due(0.).unwrap().target, "already-due");
+        assert_eq!(q.take_due(0.).unwrap().target, "fuse");
+        assert_eq!(q.take_due(0.).unwrap().target, "fuse");
+        assert!(q.take_due(1.999).is_none());
+        let timer = q.take_due(2.).unwrap();
+        assert_eq!((timer.target.as_str(), timer.from.as_str()), ("clock", "timer loop"));
+        assert!(q.take_due(100.).is_none());
+    }
 
     #[test]
     fn time_order_then_send_order() {

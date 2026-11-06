@@ -159,6 +159,7 @@ pub struct Model {
     /// Buildings with a usable `.dil` only: what point lights on its
     /// surfaces need (M1 7d, rule 16).
     pub wall_light: Option<std::sync::Arc<crate::wall_lights::WallData>>,
+    pub alternate_light: Option<std::sync::Arc<crate::alternate_lighting::LightChoice>>,
     /// The ball stored in its `.kqs` file (radius, centre in its own
     /// space; `characters.md` rule 37 (2), Q135); `None` for buildings.
     pub ball: Option<(f32, [f32; 3])>,
@@ -316,7 +317,7 @@ pub fn load_model(
     if !lights.is_empty() {
         log.summary(format!("  carries {} light(s) in its shown frame (rule 26b)", lights.len()));
     }
-    Ok(Model { label, groups, min, max, frame_note, light_atlas: None, surfaces: Vec::new(), lights, wall_light: None, ball: Some((shape.radius, shape.center)) })
+    Ok(Model { label, groups, min, max, frame_note, light_atlas: None, surfaces: Vec::new(), lights, wall_light: None, alternate_light: None, ball: Some((shape.radius, shape.center)) })
 }
 
 /// The movements M2 uses: step 2b (connor-movement.md "Which movement
@@ -1597,6 +1598,7 @@ pub struct Objects {
     pub object_stats: Vec<(String, String)>,
     pub object_stat_defaults: BTreeMap<String, kq8_core::stats::Stats>,
     pub persistent_stat_objects: std::collections::BTreeSet<String>,
+    pub interior_lighting: BTreeMap<String, bool>,
     /// The placed `KQMonster`s (M4 4a-2, `talking.md` rule 6): name,
     /// place after `move`, script.
     pub monsters: Vec<kq8_core::active::Monster>,
@@ -2055,6 +2057,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         object_stats: Vec::new(),
         object_stat_defaults: BTreeMap::new(),
         persistent_stat_objects: Default::default(),
+        interior_lighting: BTreeMap::new(),
         monsters: Vec::new(),
         dormant_monsters: Vec::new(),
         doors: Vec::new(),
@@ -2408,6 +2411,7 @@ struct Placer<'a> {
     object_stats: Vec<(String, String)>,
     object_stat_defaults: BTreeMap<String, kq8_core::stats::Stats>,
     persistent_stat_objects: std::collections::BTreeSet<String>,
+    interior_lighting: BTreeMap<String, bool>,
     monsters: Vec<kq8_core::active::Monster>,
     /// Characters prepared for a script's loadKQ (2026-10-22).
     dormant_monsters: Vec<kq8_core::active::Monster>,
@@ -2873,7 +2877,7 @@ impl Placer<'_> {
         let slot = match self.index_of.get(&key) {
             Some(slot) => *slot,
             None => {
-                let slot = self.load_shape(shape, None, None);
+                let slot = self.load_shape(shape, None, None, None);
                 self.index_of.insert(key.clone(), slot);
                 slot
             }
@@ -3340,6 +3344,9 @@ impl Placer<'_> {
             self.gone_skipped.push(p.name.clone());
             return;
         }
+        if !unused && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQInterior")) {
+            self.interior_lighting.insert(p.name.to_ascii_lowercase(), file[0].number("usingAltLighting").and_then(Result::ok).is_some_and(|value| value != 0.0));
+        }
         if !unused && self.persist_props && !p.name.eq_ignore_ascii_case("Connor")
             && p.class.as_deref().and_then(kq8_data::characters::Class::of).is_none() {
             self.persistent_stat_objects.insert(p.name.to_ascii_lowercase());
@@ -3721,14 +3728,16 @@ impl Placer<'_> {
         };
         let start = animation.as_ref().map(|c| (c.sequence.as_str(), c.start, c.repeat));
         let material_list = s.get("material").map(str::to_string);
+        let alternate = s.get("althwLightmapName").map(str::trim).filter(|name| !name.is_empty());
         let model_key = match &material_list {
             Some(m) => format!("{model_key}|{}", m.to_ascii_lowercase()),
             None => model_key,
         };
+        let model_key = alternate.map_or_else(|| model_key.clone(), |name| format!("{model_key}|alt:{}", name.to_ascii_lowercase()));
         let slot = match self.index_of.get(&model_key) {
             Some(slot) => *slot,
             None => {
-                let slot = self.load_shape(&shape, material_list.as_deref(), start);
+                let slot = self.load_shape(&shape, material_list.as_deref(), start, alternate);
                 self.index_of.insert(model_key, slot);
                 slot
             }
@@ -4367,7 +4376,7 @@ impl Placer<'_> {
             match self.index_of.get(&key) {
                 Some(slot) => *slot,
                 None => {
-                    let slot = self.load_shape(&shape, None, None);
+                    let slot = self.load_shape(&shape, None, None, None);
                     self.index_of.insert(key, slot);
                     if slot.is_none() {
                         self.log.summary(format!("emitter {label}[{}]: particle model {shape} could not be loaded", p.name));
@@ -4665,7 +4674,7 @@ impl Placer<'_> {
     }
 
     /// Loads a model or building once; `None` if it fails.
-    fn load_shape(&mut self, shape: &str, material_list: Option<&str>, start: StartAt) -> Option<usize> {
+    fn load_shape(&mut self, shape: &str, material_list: Option<&str>, start: StartAt, alternate: Option<&str>) -> Option<usize> {
         // Per-model lines go to the file only.
         self.log.quiet = true;
         let r = if shape.to_ascii_lowercase().ends_with(".dig") {
@@ -4677,7 +4686,7 @@ impl Placer<'_> {
                 load_palette(world, Some(&name), game, log)
             });
             match palette {
-                Ok(pal) => load_building(game, world, shape, material_list.unwrap_or_default(), pal, log),
+                Ok(pal) => load_building(game, world, shape, material_list.unwrap_or_default(), pal, log, alternate),
                 Err(e) => Err(e.clone()),
             }
         } else {
@@ -4793,7 +4802,7 @@ impl Placer<'_> {
             let slot = match self.index_of.get(&key) {
                 Some(slot) => *slot,
                 None => {
-                    let slot = self.load_shape(&t.shape, None, None);
+                    let slot = self.load_shape(&t.shape, None, None, None);
                     self.index_of.insert(key, slot);
                     slot
                 }
@@ -5106,6 +5115,7 @@ impl Placer<'_> {
             object_stats: self.object_stats,
             object_stat_defaults: self.object_stat_defaults,
             persistent_stat_objects: self.persistent_stat_objects,
+            interior_lighting: self.interior_lighting,
             monsters,
             dormant_monsters: self.dormant_monsters,
             talk: None,
@@ -5416,8 +5426,8 @@ fn door_bounds(game: &GameDir, doors: &mut [DoorAssets], log: &mut Log) {
 }
 
 /// A building (`.dig`) as a `Model`, so it is placed and drawn like any
-/// object (rules: docs/behaviour/buildings.md). Not used: lighting
-/// (`.dil`), the visibility tables.
+/// object, with its authored `.dil` lighting (buildings.md; object-lighting.md
+/// rules 12–16). The original visibility tables are not used.
 pub fn load_building(
     game: &GameDir,
     world: &World,
@@ -5425,6 +5435,7 @@ pub fn load_building(
     material_list: &str,
     palette: &[Rgb; 256],
     log: &mut Log,
+    alternate: Option<&str>,
 ) -> Result<Model, String> {
     use kq8_data::building::Building;
     let (label, bytes) = world.load(dig).ok_or(format!("building '{dig}' not found in {}", world.name))??;
@@ -5441,6 +5452,16 @@ pub fn load_building(
     ));
     // Its light maps (M1 5c, object-lighting.md rules 12-16).
     let light = building_light_maps(world, dig, &b, log);
+    let alternate = match alternate {
+        Some(name) => {
+            let alt = read_building_light(world, name, &b, log).ok_or_else(|| format!("alternate lighting {name}: unavailable or invalid"))?;
+            if !light.as_ref().is_some_and(|base| crate::alternate_lighting::same_layout(base, &alt)) {
+                return Err(format!("alternate lighting {name}: incompatible surface layout; not drawn with incorrect UVs"));
+            }
+            Some((name.to_string(), alt))
+        }
+        None => None,
+    };
     let atlas = match &light {
         Some(l) => crate::building_light::LightAtlas::build(l),
         None => crate::building_light::LightAtlas::white(b.surfaces.len()),
@@ -5544,6 +5565,13 @@ pub fn load_building(
         ));
         std::sync::Arc::new(data)
     });
+    let alternate_light = alternate.map(|(file, light)| {
+        let atlas = std::sync::Arc::new(crate::building_light::LightAtlas::build(&light));
+        let (data, _) = crate::wall_lights::WallData::new(light, &b);
+        log.summary(format!("alternate interior lighting prepared: {dig} -> {file}, {} surfaces, atlas {}x{} (same authored UV layout)", b.surfaces.len(), atlas.width, atlas.height));
+        let normal_file = format!("{}.dil", dig.rsplit_once('.').map_or(dig, |(stem, _)| stem));
+        std::sync::Arc::new(crate::alternate_lighting::LightChoice { file, normal_file, atlas, data: std::sync::Arc::new(data) })
+    });
     Ok(Model {
         label,
         groups,
@@ -5554,6 +5582,7 @@ pub fn load_building(
         surfaces: (0..b.surfaces.len()).map(|i| b.surface_corners(i).map(|c| c.into_iter().map(|(p, _)| p).collect()).unwrap_or_default()).collect(),
         lights: Vec::new(),
         wall_light,
+        alternate_light,
         ball: None,
     })
 }
@@ -5569,10 +5598,14 @@ fn building_light_maps(
     b: &kq8_data::building::Building,
     log: &mut Log,
 ) -> Option<kq8_data::dil::BuildingLight> {
-    use kq8_data::lightmap::Channels;
     let base = dig.rsplit(['/', '\\']).next().unwrap_or(dig);
     let name = format!("{}.dil", base.rsplit_once('.').map_or(base, |(stem, _)| stem));
-    let (label, bytes) = match world.load(&name) {
+    read_building_light(world, &name, b, log)
+}
+
+fn read_building_light(world: &World, name: &str, b: &kq8_data::building::Building, log: &mut Log) -> Option<kq8_data::dil::BuildingLight> {
+    use kq8_data::lightmap::Channels;
+    let (label, bytes) = match world.load(name) {
         None => {
             log.summary(format!("  light: {name} not in {}; drawn full bright", world.name));
             return None;
