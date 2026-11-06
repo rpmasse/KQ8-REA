@@ -26,6 +26,28 @@ damage stayed enabled. The local result is in
 `kq8-artifacts/new-game-ring-open-floor.log` and its final saves are
 in `kq8-artifacts/hero-coffin-reload/1793990934437532100/slots`.
 
+### Watermill tree
+
+A separate Windows test loaded the final ring save above. Connor ran
+along the northern ridge and took the western descent. At the mill the
+replay targeted the tree by name using the normal melee controller.
+The axe hit on update 1029. The original `milltree.cs` ran its falling
+animation and restored player control on update 1139. It loaded
+`MillTre2`, `MillTre3` and `Dock3`. The menu save held one ring, the
+Small Axe, 50 health at level 5 and `Daventry::MillTree::down = 1`.
+The checked-in regression passed in 131.20 seconds. The first route
+tried the eastern slope, where Connor fell to his death. The western
+route gives his running turns room on both sides of the path.
+
+The command in the README earns its own ring save by default.
+Setting `KQ8_HERO_RING_SLOT` to an already earned `HeroRingReload`
+save repeats just the watermill leg. Local evidence is in
+`kq8-artifacts/hero-ring-watermill/1793992515113529500`. This run
+stops before the mill platform. The rope’s script requires Connor to
+stand inside `miltrap2` and interact with `ropenhok` to receive it.
+
+### Earlier ring checks
+
 The source chain starts at Normal New Game. Each later process loads
 the preceding process's unchanged menu save. Connor acquired the
 Crystal, shield and eight mushrooms before the Wizard meeting. The

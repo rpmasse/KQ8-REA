@@ -1,0 +1,22 @@
+{
+  "start": 3,
+  "landmarks": [
+    { "name": "Leave the coffin", "xy": [225610, 312250], "radius": 190 },
+    { "name": "Tomb passage", "xy": [225720, 310500], "radius": 220 },
+    { "name": "Return through the tomb door", "xy": [225805, 308250], "radius": 240 },
+    { "name": "Southern end of the steps", "xy": [225500, 306500], "radius": 260 },
+    { "name": "Foot of the hill", "xy": [220600, 306500], "radius": 260 },
+    { "name": "North side of ridge", "xy": [208600, 313300], "radius": 220 },
+    { "name": "Along the north ridge", "xy": [195000, 313300], "radius": 220 },
+    { "name": "Westward on the ridge", "xy": [181400, 313300], "radius": 200 },
+    { "name": "West end of ridge", "xy": [178600, 313300], "radius": 180 },
+    { "name": "Take the south path", "xy": [178200, 312900], "radius": 170 },
+    { "name": "Upper west path", "xy": [177800, 299300], "radius": 220 },
+    { "name": "Middle west path", "xy": [177800, 285700], "radius": 220 },
+    { "name": "Lower west path", "xy": [178600, 272100], "radius": 220 },
+    { "name": "Wide southern slope", "xy": [183800, 259300], "radius": 230 },
+    { "name": "Above the water mill", "xy": [192600, 248500], "radius": 220 },
+    { "name": "Mill approach", "xy": [194500, 235500], "radius": 210 },
+    { "name": "Water mill tree", "xy": [189985, 236715], "radius": 2300, "break_object": "MillTree", "big_swing": true }
+  ]
+}
