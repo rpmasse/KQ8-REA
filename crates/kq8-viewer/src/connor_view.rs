@@ -2908,6 +2908,9 @@ pub fn connor_step(
         sim.log.detail(l);
     }
     let z_before = sim.mover.position[2];
+    // Choice owns Free movements, but not the Special movement of a
+    // nested weapon swap whose completion restores a fresh Choice.
+    let choice_owned_movement = sim.choosing();
     let tick = {
         let ConnorSim { mover, walker, movements, weapon_set, .. } = &mut *sim;
         let loops = |name: &str| find(movements, weapon_set.as_deref(), name).map(|m| &m.movement_loop);
@@ -2941,6 +2944,9 @@ pub fn connor_step(
     // M3 3i-7: a play-once movement ended: for getEndLoop listeners.
     if let Some(e) = step.as_ref().and_then(|s| s.ended) {
         sim.ended.push(kq8_core::connor::plain_movement_name(e).to_string());
+        if choice_owned_movement && sim.choosing() {
+            sim.choice_movement_ended(e);
+        }
         // M6 6a-3: the rope state's next step (rope_view).
         if sim.walker.mode == Mode::Rope {
             sim.rope_ended.push(e);

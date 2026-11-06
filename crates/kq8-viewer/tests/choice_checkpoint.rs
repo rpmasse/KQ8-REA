@@ -70,6 +70,52 @@ fn choice_weapon_swaps_return_to_one_fresh_entry_after_loading() {
     check_actions(&[("away",41,Some("away")),("out",48,Some("conaxe.anm/out"))]);
 }
 
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device; scripted one-shot in Choice"]
+fn choice_movement_end_repeats_entry_without_remeasuring_after_reload() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../kq8-artifacts/choice-movement-end/{nonce}"));
+    let slots = root.join("slots");
+    let run = |part: &str, args: &[&str]| {
+        let dir = root.join(part); fs::create_dir_all(&dir).unwrap();
+        let result = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+            .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
+            .args(["--sound","off","--no-ai","--god"]).args(args).output().unwrap();
+        fs::write(dir.join("stderr.log"), result.stderr).unwrap();
+        let logs = dir.join("kq8-artifacts/logs");
+        let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+        assert!(result.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+        (fs::read_to_string(logs.join("doors.log")).unwrap(),fs::read_to_string(logs.join("connor.log")).unwrap())
+    };
+    let read = |slot| -> serde_json::Value {
+        serde_json::from_slice(&fs::read(slots.join(format!("slot-{slot}.json"))).unwrap()).unwrap()
+    };
+    let quit = "down:down:down:enter:release:left:enter:release";
+    let save = format!("menu:down:down:enter:release:enter:release:escape:type=Gesture:enter:release:{quit},40");
+    let before = run("save", &["--world","Daventry","--frames","1500",
+        "--command","move Connor 0 228700 183200 12350 0 0 -1.57,5",
+        "--command","sendEvent 0 Connor KQAnimPlayEvent gesturea,35","--key",&save]);
+    let first = read(1);
+    assert_eq!(before.0.matches("script rooftrap.cs Connor StartChoice").count(), 1);
+    assert_eq!(first["choice"]["pose"]["movement"], "gesturea");
+    let phase = first["choice"]["pose"]["phase"].as_f64().unwrap();
+    assert!(phase > 0. && phase < 1., "the slot must precede animation end; inspect {}", root.display());
+    let save = format!("menu:down:down:down:enter:release:enter:release:escape:type=FinishedGesture:enter:release:{quit},100");
+    let after = run("finish-and-save", &["--menu-input","down,enter,release,enter,release","--frames","1800","--key",&save]);
+    assert_eq!(after.0.matches("script rooftrap.cs Connor StartChoice").count(), 1, "one-shot end must notify Choice exactly once; inspect {}", root.display());
+    assert!(!after.1.contains("Choice points measured"), "movement end must keep the cache");
+    let second = read(2);
+    assert_eq!(second["choice"]["state"], first["choice"]["state"]);
+    assert!(second["choice"]["calls"].as_array().unwrap().is_empty());
+    let final_run = run("choose", &["--menu-input","down,enter,release,down,enter,release","--frames","800","--hold","-1,0,0,10,16"]);
+    assert_eq!(final_run.0.matches("script rooftrap.cs Connor StartChoice").count(), 0);
+    assert_eq!(final_run.0.matches("script rooftrap.cs Connor DoChoice 1").count(), 1);
+    assert!(!final_run.1.contains("Choice points measured"));
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
+}
+
 fn check_actions(cases: &[(&str,u64,Option<&str>)]) {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let options = fs::read(game.join("Options.cs")).unwrap();

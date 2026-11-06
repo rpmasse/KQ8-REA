@@ -20,7 +20,7 @@ Scripted character collision flags update live targeting and movement and surviv
 
 Saves retain Connor's combat death sequence and prevent later hits or unfinished attacks from restarting it.
 
-Directional-choice scenes retain their measured directions, decision and turning pose through saves, including weapon swaps.
+Directional-choice scenes retain their decision and motion through saves and notify scripts when an animation ends.
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
 
