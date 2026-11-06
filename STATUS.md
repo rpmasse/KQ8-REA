@@ -1,5 +1,12 @@
 # STATUS
 
+## 2026-11-07 Fresh Normal New Game through the church Candle
+
+The default church regression passed in 1493.97 seconds. All 18 actual
+Windows launches used only saves earned during this run. The final
+`CandleReload` slot contained the dead hero’s ring, Rope and Hook and
+Candle. Connor had 60 health at level 6. [Campaign evidence](docs/daventry-progression.md#church-candle)
+
 ## 2026-11-07 Earned the church Candle
 
 From the earned church roof, Connor used the second rope to descend,

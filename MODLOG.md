@@ -1,5 +1,11 @@
 # MODLOG
 
+## 2026-11-07 Verified Normal New Game through the church Candle
+
+With all optional checkpoint inputs unset, the campaign test passed
+in 1493.97 seconds. All 18 launches reported success. The final disk
+reload retained one dead hero’s ring, one Rope and Hook and one Candle.
+
 ## 2026-11-07 Update the remaining M4–M6 gates
 
 The completion plan now distinguishes the verified first-person,

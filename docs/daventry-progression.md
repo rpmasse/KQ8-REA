@@ -132,6 +132,16 @@ The remaining church route uses another rope to reach the interior.
 
 ### Church Candle
 
+The default regression also passed **from a fresh Normal New Game**
+with no supplied checkpoints. It took **1493.97 seconds** across 18
+Windows launches. Nine launches earned and reloaded the hero’s ring.
+Two more felled the mill tree, earned the Rope and Hook and restored
+it. One reached the churchyard, two climbed to the roof and four
+completed the inward descent, Candle pickup and final reload. All
+18 viewer logs reported success. The final slot held one each of the
+hero’s ring, Rope and Hook and Candle. Connor had 60 health at level
+6 and 12 experience toward his next level.
+
 The four-launch Windows regression passed in 180.60 seconds starting
 at the earned `ChurchRoof`. Connor crossed the roof and stopped above
 the west aisle while the second upper rope trigger was active. He selected
@@ -148,6 +158,8 @@ A fresh launch preserved the item, quest flag, removed prop and stats.
 Use the church Candle command in the README. `KQ8_CHURCH_ROOF_SLOT`
 accepts an earned `ChurchRoof` for just this leg. Leave the optional
 checkpoint variables unset to earn the earlier saves from New Game.
+The full run log is `kq8-artifacts/fresh-normal-to-church-candle.log`.
+Its final slot is under `kq8-artifacts/church-candle-campaign/1794001160345836400/slots/`.
 
 ### Earlier ring checks
 
