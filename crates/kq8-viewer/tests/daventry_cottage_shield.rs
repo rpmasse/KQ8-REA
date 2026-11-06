@@ -242,7 +242,11 @@ fn earn_prepared_wizard(play: &Play) {
 #[ignore = "requires KQ8_GAME_DIR and a graphics device; KQ8_SHIELD_SLOT can repeat from the cottage"]
 fn garden_mushrooms_survive_the_trip_to_the_wizard() {
     let play = Play::new("garden-wizard");
-    start_at_earned_shield(&play);
+    earn_garden_wizard(&play);
+}
+
+fn earn_garden_wizard(play: &Play) {
+    start_at_earned_shield(play);
     let mut landmarks: Vec<Value> =
         serde_json::from_str(include_str!("routes/daventry_cottage_exit.json")).unwrap();
     landmarks.insert(0, serde_json::json!({
@@ -335,7 +339,6 @@ fn garden_mushrooms_survive_the_trip_to_the_wizard() {
 #[ignore = "requires KQ8_GAME_DIR and a graphics device; KQ8_PREPARED_AXE_SLOT can repeat the duel"]
 fn earned_supplies_defeat_the_henchman_and_reopen_the_west_yard() {
     let play = Play::new("prepared-henchman");
-    fs::create_dir_all(&play.slots).unwrap();
     let earned = if let Some(existing) = std::env::var_os("KQ8_PREPARED_AXE_SLOT") {
         PathBuf::from(existing)
     } else {
@@ -350,6 +353,11 @@ fn earned_supplies_defeat_the_henchman_and_reopen_the_west_yard() {
         .unwrap();
         windmill::earn_axe(&play.game, &mill.root)
     };
+    defeat_henchman(&play, &earned);
+}
+
+fn defeat_henchman(play: &Play, earned: &Path) {
+    fs::create_dir_all(&play.slots).unwrap();
     fs::copy(earned, play.slots.join("slot-1.json")).unwrap();
     let start = play.slot(1);
     assert_eq!(start["label"], "Windmill");
@@ -492,5 +500,135 @@ fn earned_supplies_defeat_the_henchman_and_reopen_the_west_yard() {
     assert_eq!(
         fs::read(play.game.join("Options.cs")).unwrap(),
         play.options
+    );
+}
+
+fn carries_one(save: &Value, item: &str) -> bool {
+    save["journey"]["items"].as_array().unwrap().iter()
+        .any(|i| i["kind"] == item && i["quantity"] == 1 && i["place"]["Carried"] == "Connor")
+}
+
+fn hero_flag(save: &Value, name: &str, value: &str) -> bool {
+    save["kept"]["daventry"]["vars"].as_array().unwrap().iter()
+        .any(|entry| entry[0] == name && entry[1] == value)
+}
+
+fn earn_hero_door() -> PathBuf {
+    let hero = Play::new("crystal-hero-ring");
+    let yard = if let Some(path) = std::env::var_os("KQ8_CRYSTAL_YARD_SLOT") {
+        PathBuf::from(path)
+    } else {
+        let garden = Play::new("hero-garden");
+        earn_garden_wizard(&garden);
+        let mill = Play::new("hero-windmill");
+        fs::create_dir_all(&mill.slots).unwrap();
+        fs::copy(
+            garden.slots.join("slot-3.json"),
+            mill.slots.join("slot-1.json"),
+        )
+        .unwrap();
+        let axe = windmill::earn_axe(&mill.game, &mill.root);
+        let guard = Play::new("hero-guard");
+        defeat_henchman(&guard, &axe);
+        guard.slots.join("slot-3.json")
+    };
+    fs::create_dir_all(&hero.slots).unwrap();
+    fs::copy(yard, hero.slots.join("slot-1.json")).unwrap();
+    let start = hero.slot(1);
+    assert_eq!(start["label"], "WestYard");
+    assert_eq!(start["journey"]["ai_off"], false);
+    assert_eq!(start["journey"]["god_mode"], false);
+    assert!(carries_one(&start, "INVITEM_Crystal") && carries_one(&start, "INVITEM_SmallAx"));
+    assert!(!carries_one(&start, "INVITEM_RingOfDeadHero"));
+    let route =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/routes/daventry_crystal_tomb.json");
+    let (viewer, items) = hero.run("door", &[
+        "--menu-input","down,enter,release,enter,release","--walk-route",route.to_str().unwrap(),
+        "--key","popup:help=132,0",
+        "--key","menu:down:down:down:enter:release:enter:release:escape:type=HeroDoor:enter:release:escape,1840",
+        "--key","menu:up:enter:release:left:enter:release,1855","--frames","9500",
+    ]);
+    assert!(items
+        .lines()
+        .any(|l| l.contains("slot 2, INVITEM_Crystal") && l.contains("x1 -> x0")));
+    assert!(viewer.contains("walk-route at Inside the open tomb on update"));
+    let fight = fs::read_to_string(hero.root.join("door/kq8-artifacts/logs/fight.log")).unwrap();
+    assert_eq!(fight.matches("sprigan: its death ended (rule 32)").count(), 1);
+    assert_eq!(fs::read(hero.game.join("Options.cs")).unwrap(), hero.options);
+    hero.slots.join("slot-2.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; KQ8_HERO_DOOR_SLOT or KQ8_CRYSTAL_YARD_SLOT can repeat earned legs"]
+fn earned_crystal_to_hero_ring_and_fresh_reload() {
+    let hero = Play::new("hero-coffin-reload");
+    let source = std::env::var_os("KQ8_HERO_DOOR_SLOT").map(PathBuf::from).unwrap_or_else(earn_hero_door);
+    fs::create_dir_all(&hero.slots).unwrap();
+    fs::copy(source, hero.slots.join("slot-1.json")).unwrap();
+    let start = hero.slot(1);
+    assert_eq!(start["label"], "HeroDoor");
+    assert_eq!(start["journey"]["god_mode"], false);
+    assert_eq!(start["journey"]["ai_off"], false);
+    assert!(start["journey"]["stats"]["stats"][0].as_i64().unwrap() > 0);
+    assert!(start["kept"]["daventry"]["gone"].as_array().unwrap().iter().any(|n| n == "sprigan"));
+    assert!(hero_flag(&start, "Daventry::HeroDoor::Locked", "0"));
+    assert!(hero_flag(&start, "Daventry::HeroCoffin::Open", "0"));
+    assert!(!carries_one(&start, "INVITEM_Crystal") && !carries_one(&start, "INVITEM_RingOfDeadHero"));
+    let route = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/routes/daventry_hero_coffin.json");
+    let (viewer, items) = hero.run("tomb", &[
+        "--menu-input","down,enter,release,enter,release","--walk-route",route.to_str().unwrap(),
+        "--key","popup:help=132,0",
+        "--key","menu:down:down:down:enter:release:enter:release:escape:type=HeroRing:enter:release:escape,600",
+        "--key","menu:up:enter:release:left:enter:release,615","--frames","4300",
+    ]);
+    assert!(viewer.contains("save restored in Daventry without replaying Begin"));
+    let open = viewer
+        .find("walk-route observed Daventry::HeroCoffin::Open = 1")
+        .unwrap();
+    let ring = viewer
+        .lines()
+        .find(|l| l.contains("test --aim NoName3 (camera") && l.contains("hits NoName3 first"))
+        .unwrap();
+    assert!(open < viewer.find(ring).unwrap());
+    assert!(items
+        .lines()
+        .any(|l| l.contains("click NoName3 (") && l.contains("INVITEM_RingOfDeadHero 0 -> 1")));
+    let logs = hero.root.join("tomb/kq8-artifacts/logs");
+    let events = fs::read_to_string(logs.join("doors.log")).unwrap();
+    assert!(events.contains("script coffnlid.cs coffnlid Push"));
+    let check_ring = |s: &Value| {
+        assert_eq!(s["journey"]["ai_off"], false);
+        assert_eq!(s["journey"]["god_mode"], false);
+        assert!(s["journey"]["stats"]["stats"][0].as_i64().unwrap() > 0);
+        assert!(carries_one(s, "INVITEM_RingOfDeadHero") && !carries_one(s, "INVITEM_Crystal"));
+        let kept = &s["kept"]["daventry"];
+        for (flag, value) in [
+            ("Daventry::HeroDoor::Locked", "0"),
+            ("Daventry::HeroCoffin::Open", "1"),
+        ] {
+            assert!(hero_flag(s, flag, value));
+        }
+        assert!(kept["gone"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|name| name == "sprigan"));
+    };
+    let tomb = hero.slot(2);
+    assert_eq!(tomb["label"], "HeroRing");
+    check_ring(&tomb);
+    let (reload, items) = hero.run("ring-reload", &[
+        "--menu-input","down,enter,release,down,enter,release",
+        "--key","menu:down:down:down:enter:release:enter:release:escape:type=HeroRingReload:enter:release:escape,45",
+        "--key","menu:up:enter:release:left:enter:release,60","--frames","1300",
+    ]);
+    assert!(reload.contains("save restored in Daventry without replaying Begin"));
+    assert!(!items.contains("INVITEM_RingOfDeadHero 0 -> 1"));
+    let restored = hero.slot(3);
+    assert_eq!(restored["label"], "HeroRingReload");
+    check_ring(&restored);
+    assert_eq!(
+        fs::read(hero.game.join("Options.cs")).unwrap(),
+        hero.options
     );
 }

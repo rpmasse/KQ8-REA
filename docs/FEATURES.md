@@ -7,6 +7,16 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Daventry's hero tomb (2026-11-07)
+
+The original Crystal, archer combat, Knight encounter, tomb door
+and coffin push have an ordinary campaign route using the Small Axe.
+Connor can save inside the opened tomb, load the game, push the lid
+and take the ring through a visible click. Another fresh launch
+retains the ring, the two story flags and the archer's removal.
+The [campaign notes](daventry-progression.md#verified-through-the-dead-heros-ring)
+give the route and its remaining Daventry prerequisites.
+
 ## Connor's view-specific animation files (2026-11-07)
 
 The viewer reads the third-person base, hand and ranged animation

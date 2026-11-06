@@ -13,6 +13,16 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 finish the hero's coffin interaction.** A run from the Crystal
+WestYard save beat the archer, opened the tomb door, pushed the lid
+and observed `Daventry::HeroCoffin::Open = 1`. The route then kept
+walking into the coffin toward an unreachable point. For this push,
+complete the walking step when the original script records the lid
+open and returns control. From reachable ground, aim the normal
+world click at the ring. Check the original push and fall, the ring
+pickup, both story flags and a fresh-process menu reload. Keep the
+earlier retreat-route test separate.
+
 **M6 cottage Crystal and the hero's tomb.** Begin with the earned
 cottage shield. The installed Daventry WorldInv.cs also places a
 50-health Crystal in the cottage. An initial camera orbit from the

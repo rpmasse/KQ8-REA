@@ -1,0 +1,7 @@
+{
+  "start": 3,
+  "landmarks": [
+    {"name": "Push the coffin lid", "xy": [225715, 314200], "radius": 120, "until_var": {"name": "Daventry::HeroCoffin::Open", "value": "1"}},
+    {"name": "Look into the open coffin", "xy": [224500, 313050], "radius": 200, "aim": "NoName3"}
+  ]
+}

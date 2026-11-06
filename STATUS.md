@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-07 Dead hero's ring earned and reloaded
+
+Linked menu saves now cover Normal New Game through the dead hero's
+ring. The original archer died in combat and the axe opened the
+hero's tomb. From an earned HeroDoor save, Connor pushed the coffin,
+clicked the ring from reachable ground and saved again. A fresh
+process reloaded it at level 5 with 50 health. The ring, open coffin,
+unlocked door and defeated archer all persisted. The [route and
+command](docs/daventry-progression.md#verified-through-the-dead-heros-ring)
+distinguish this campaign chain from the separate retreat diagnostic.
+The Shadow, Candle, Ashes and Wizard exchanges still require their
+own complete progression from this boundary.
+
 ## 2026-11-07 Fresh Normal New Game through the cottage Crystal and Wizard
 
 The three-process garden regression passed in 399.88 seconds from a
