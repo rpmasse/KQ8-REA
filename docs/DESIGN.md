@@ -13,6 +13,16 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M4–M5 original first-person assets.** Use the separately studied
+camera and body rules in Q193. Read Connor.kq's three movement tables
+for each view. First, use that reader for the viewer's existing
+third-person locomotion and weapon selection, and verify both sets of
+tables against the installed game. Check original arm and sword models,
+their materials and skin entries independently of the camera math. The
+later F2 step must switch the active controller and shadow mask, apply
+the original eye and slope rules, and preserve animation and camera
+state through a save. Asset verification alone does not close F2.
+
 **M6 village supplies for the hero's tomb.** Follow the installed
 Daventry `worldinv.cs` placements after collecting the shield and
 opening Sarah's basket. Walk to the garden outside the cottage. For

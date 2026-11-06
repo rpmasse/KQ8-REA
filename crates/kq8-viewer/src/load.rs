@@ -3016,26 +3016,12 @@ impl Placer<'_> {
             // fighting.md rules 24, 39-41 (M5 5c-4): his ouch sound, the big
             // swing's factors, the hand weapons' movement lists.
             let num = |k: &str, d: f32| section.number(k).and_then(Result::ok).map_or(d, |v| v as f32);
-            let lists = |key: &str| -> Vec<(String, String)> {
-                section
-                    .get(key)
-                    .and_then(|n| file.iter().find(|s| s.name.eq_ignore_ascii_case(n.trim())))
-                    .map(|s| {
-                        s.entries
-                            .iter()
-                            .filter(|(k, _)| k.to_ascii_lowercase().starts_with("animlist") && k.len() > "animlist".len())
-                            .filter_map(|(_, v)| {
-                                let mut w = v.split_whitespace();
-                                Some((w.next()?.to_string(), w.next()?.to_string()))
-                            })
-                            .collect()
-                    })
-                    .unwrap_or_default()
-            };
-            let short_lists = lists("ShortAnimList");
+            let lists = kq8_data::characters::ConnorAnimLists::from_file(&file, section, false);
+            let base_list = lists.stowed.unwrap_or_else(|| "Conner.anm".into());
+            let short_lists = lists.hand;
             // ranged-weapons.md rules 10, 17, 21 (M5 5f-4): the ranged
             // weapons' lists, the shoot offsets by item, the start values.
-            let long_lists = lists("LongAnimList");
+            let long_lists = lists.ranged;
             let shoot_offsets = kq8_data::characters::shoot_offsets(section);
             let start_offset = [num("shootOffsetX", 0.0), num("shootOffsetY", 0.0), num("shootOffsetZ", 0.0)];
             let start_projectile = section.get("projectileFile").map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
@@ -3062,8 +3048,8 @@ impl Placer<'_> {
             for pr in &problems {
                 self.log.summary(format!("connor: Connor.sae: {pr}"));
             }
-            let anm = kq_text::parse(&read("GAME/Kq/Conner.anm")?);
-            let list = anm.first().map(|s| s.name.clone()).ok_or("Conner.anm has no section")?;
+            let anm = kq_text::parse(&read(&format!("GAME/Kq/{base_list}"))?);
+            let list = anm.first().map(|s| s.name.clone()).ok_or_else(|| format!("{base_list} has no section"))?;
             let palette_name = world_palette_name(self.world, "connorPalette").unwrap_or_else(|| format!("{}.ppl", self.world.name));
             self.log.quiet = true;
             let palette = load_palette(self.world, Some(&palette_name), self.game, self.log);

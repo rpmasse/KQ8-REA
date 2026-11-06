@@ -3,6 +3,14 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Connor's first- and third-person movement lists.** The Rust reader
+follows the named sections and numbered item-to-animation entries in
+the player's `GAME/Kq/Connor.kq`. The original-data test reads both
+views' movement files, the first-person skin list and two original
+models in `GAME/Common`. The separate study describes when to select
+each list and how the original draws the active model. [Camera study,
+Q193](../behaviour/camera.md#first-person-body-and-animations-q193-2026-11-06)
+
 Source types:
 
 - **Observed**: worked out by reading the player's own game data files.

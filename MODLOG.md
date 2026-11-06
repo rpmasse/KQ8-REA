@@ -1,5 +1,38 @@
 # MODLOG
 
+## 2026-11-07 Read Connor's original third- and first-person animation tables
+
+The viewer now gets Connor's normal unarmed animation filename from
+his actor definition and uses the same numbered-table reader for
+melee and ranged weapons. A file without a base mapping retains the
+existing default. The reader follows each view's named sections,
+ignores nonnumbered keys and leaves an unknown equipped item without
+a matching file. It resolves both views without guessing filenames.
+
+The installed-data regression read one unarmed entry, thirteen hand
+entries and ten ranged entries for each view and parsed every listed
+movement file. It checked the distinct Small Crossbow and Short Bow
+assignments, the original first-person idle and broadsword models,
+their arm material, the sword's independent material and the 76-entry
+arm skin list. The two targeted checks passed in 0.10 seconds. The
+ordinary suites passed 657 core, 156 data, 7 audio and 41 viewer
+tests. The separate Q193 study supplies the behavior rules. Live F2
+switching and first-person combat remain open.
+
+The optimized Windows executable also launched Normal New Game into
+Daventry, drew live frames and exited unattended after 15 updates.
+The installed Options.cs was byte-identical after the smoke test.
+The local executable is 97,585,664 bytes with SHA-256
+`31505bf886001159c61a6cdc1ea762ff0d312665622183a039829211e4df88e7`.
+The smoke log is under `kq8-artifacts/release-new-game/1793986739981`.
+
+To repeat the source check in PowerShell with `KQ8_GAME_DIR` set to
+the user's GOG installation:
+
+```powershell
+cargo test --locked -p kq8-data connor_view_ -- --include-ignored
+```
+
 ## 2026-11-07 Use the shield after the Henchman's scene returns control
 
 The new garden route exposed a timing assumption in the test.

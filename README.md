@@ -18,6 +18,11 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
+For example, the `connor_view_` check below reads both sets of weapon
+animation tables in your `GAME/Kq/Connor.kq` and opens the original
+first-person idle and broadsword models. Their files are verified;
+switching to first person during play is still in development.
+
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. The [feature reference](docs/FEATURES.md) gives subsystem details and the [status log](STATUS.md) records verified results and open cases. Manual playtesting begins after the Rust implementation is feature-complete.
 
 ## Build and run
@@ -57,6 +62,7 @@ cargo test --locked -p kq8-viewer --test shadow_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test speech_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test conversation_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test connor_weapon_checkpoint -- --ignored
+cargo test --locked -p kq8-data connor_view_ -- --include-ignored
 cargo test --locked -p kq8-viewer --test keyboard_menu -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test credits_menu -- --ignored
 cargo test --locked -p kq8-viewer --test starting_help -- --ignored

@@ -7,6 +7,17 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Connor's view-specific animation files (2026-11-07)
+
+The viewer reads the third-person base, hand and ranged animation
+tables named in the installed Connor.kq. The same reader resolves
+the original first-person tables. An automated GOG-data check reads
+all listed movement files, the unarmed idle and broadsword attack
+models and the 76-entry arm skin list. The sword model includes both
+body and sword parts, with separate materials. The F2 camera, movement
+transition, skin switch and rendered first-person combat still need
+an integrated gameplay check.
+
 ## Connor's ordinary combat death (2026-11-07)
 
 A hit that takes health below zero requests the Die state. An unfinished
