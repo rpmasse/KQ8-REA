@@ -161,6 +161,47 @@ checkpoint variables unset to earn the earlier saves from New Game.
 The full run log is `kq8-artifacts/fresh-normal-to-church-candle.log`.
 Its final slot is under `kq8-artifacts/church-candle-campaign/1794001160345836400/slots/`.
 
+### The Shadow and the Wizard's ingredients
+
+The earned `ChurchUrnReload` save lets Connor climb the inner rope,
+cross the roof and descend the outer rope. He approaches the open tomb
+on foot, kills the archer with his Small Axe and steps into the Shadow
+trap. Without the Lake Sword, Daventry's `shadow.cs` requests
+`Monst2.anm`. All twelve movements report their ends. The Shadow
+awards 20 experience and returns control to Connor in the tomb. The
+replay recorded 47 experience at the urn and 82 after the archer and
+the Shadow. A fresh process restored the encounter and let Connor pick
+up the Small Crossbow from the archer's actual drop. Walking along the
+fence exposed Connor to repeated attacks by two zombies. On the repeat,
+he used the bound Run key, reached the Wizard with 34 health and 107
+experience, and heard all five lines of the ingredient request. The
+two-process crossbow and return check passed in 265.47 s.
+
+Back in the village, the Wizard explains which three ingredients he
+needs. Two were already in Connor’s inventory. On separate launches
+the player selects the dead hero's ring, then the Candle, from the
+quest strip and clicks the Wizard in the game view. The Wizard consumes
+both. In a third process, the save still has `hasRing` and `hasCandle`
+set, `hasTorch` false, the Wizard at state 2, and Connor's equipment
+and stats intact. The three-process delivery check passed in 239.54 s
+from an earned `WizardIngredients` save. The Ashes, casting sequence
+and trip to Dead City still need a campaign check.
+
+Run any of the individual checks from the repository with
+`KQ8_GAME_DIR` set to the GOG folder. The inputs below are optional
+paths to saves created by the preceding stage. With them unset, the
+tests build their prerequisites from New Game.
+
+| Test in `daventry_cottage_shield` | Optional input | Output |
+| --- | --- | --- |
+| `shadow::urn_to_archer_and_shadow` | `KQ8_CHURCH_URN_SLOT` (`ChurchUrnReload`) | `ShadowMet` |
+| `shadow::shadow_crossbow_to_wizard_ingredients` | `KQ8_SHADOW_SLOT` (`ShadowMet`) | `WizardIngredients` |
+| `shadow::wizard_accepts_the_earned_ring_and_candle` | `KQ8_WIZARD_INGREDIENTS_SLOT` (`WizardIngredients`) | `TwoIngredients` |
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield shadow::wizard_accepts_the_earned_ring_and_candle -- --ignored --exact --test-threads=1
+```
+
 ### Church urn and tomb door
 
 From the `CandleReload` created during the fresh Normal campaign,

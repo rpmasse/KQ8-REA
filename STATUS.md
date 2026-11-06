@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-07 Earned Shadow encounter and Wizard deliveries
+
+The ordinary route from the urn now reaches the Shadow. In five
+Windows launches Connor climbed out of the church, defeated the
+archer and completed the twelve-movement encounter. The resulting
+save had 46 health and 82 experience. A crossbow pickup assertion
+initially counted two log lines for the same pickup. It now counts
+the inventory event, and checks the saved crossbow quantity.
+The first walking route out of the graveyard also exposed a real
+in-game death at the hands of two zombies. Using the bound Run key
+took Connor to the Wizard with 34 health and 107 experience in the
+265.47-second two-process regression. From an earned
+Wizard save the three-launch delivery and reload check passed in
+239.54 seconds. All 876 standard tests passed.
+
+The next required campaign segment goes through the waterfall cave to
+Castle Daventry for the Ashes. The roof ambush variant, the Lake Sword
+variant of the Shadow encounter, the Ring of Light and ordinary entry
+into Dead City remain unverified. The continued campaign uses real
+disk saves between processes. A single from-New invocation through
+both deliveries has not been run. [Campaign route and commands](docs/daventry-progression.md#the-shadow-and-the-wizards-ingredients)
+
 ## 2026-11-07 Original menu selection masks
 
 The installed main menu mask changes pixels only in the selected row,

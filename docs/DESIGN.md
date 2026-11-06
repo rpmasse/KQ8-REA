@@ -13,6 +13,20 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5–M6 from the church urn to the Shadow and the Wizard.** From the
+earned urn save, climb out of the church using its two original ropes.
+Take the outdoor path to the tomb, fight the archer and cross the open
+door. Verify the Shadow script's animation callbacks, its return of
+control, the experience award and the still-closed route to Dead City.
+Reload, take the crossbow dropped by the archer, and return to the
+Wizard for his ingredient list. Use the quest strip and normal world
+clicks for ingredient deliveries. Keep each milestone reproducible from
+the preceding earned slot or, by default, from a fresh Normal New Game.
+The east graveyard contains two pursuing zombies. The walking replay
+can die between the tomb and the Wizard. Let a landmark request the
+ordinary Run toggle for the long stretch outside the doorway and
+switch back to walking on approach. Keep AI and damage active.
+
 **M4 animated menu selections.** The title and pause menu currently
 draw the first mask picture on every redraw. Select the frame from
 the same 100 ms real-time clock as the other original GUI pictures.
@@ -622,7 +636,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
 | M4 · Interface and dialogue | Partial. The title and pause menus, named saves, Options, Keyboard, opening replay, HUD, captions, pickup help, the Wizard conversation and the F2 view have Windows checks. Credits displays the original cards. | Finish graphics modes and resolution switching, software palette output, remaining help, inventory and dialogue branches. Establish the original credits timing and score. |
 | M5 · Combat | Partial. Tests cover the first-person axe and Small Crossbow, weapon draws and saves during combat and death. The Weeper, Tower Skeleton, Henchman, Lucreto and several script-created enemies have focused coverage. | Finish the other weapon and damage paths, enemy decisions, bosses and specialised deaths. Exercise each full encounter in campaign play. |
-| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. The next verified leg pushes the urn and opens the tomb door. Castle travel, the Dead City scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Reach the Shadow encounter and return to the Wizard. Complete the remaining quests, regional transitions and saved controllers. Verify one Normal New Game through the ending and credits. |
+| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. Continued saves cover the tomb, the Shadow and the Wizard accepting the ring and Candle. Castle travel, the Dead City scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Reach Castle Daventry, collect the Ashes, earn the Ring of Light and enter Dead City in this campaign. Complete the remaining quests, regional transitions and saved controllers. Verify one Normal New Game through the ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
 
 **Starting revision.** This fork incorporates the [October 31 upstream changes](https://github.com/Eric-lz/KQ8R/compare/b6658de39c87b51c41a62f765f08dbf1ee54980c...5ea5a46f791a637b2d2e231e56195726050e57cb), including world persistence and Dead City puzzle work. The remaining implementation starts from those systems and the verified Windows scenarios below.

@@ -3,6 +3,13 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**From the church urn to the Wizard.** The Windows replay follows the
+GOG Daventry scripts `sdwtrap1.cs`, `shadow.cs` and `wizard.cs`,
+using the original church and tomb geometry, earned equipment and
+monster drops. Its optional Run input uses the active key binding
+and the movement study’s toggle rule. The locally produced saves
+contain the evidence for each handoff. [Movement controls](../behaviour/connor-movement.md)
+
 **HUD picture timing.** Interface study Q171 traces the 100 ms
 real-time interval and the original last step through frame zero.
 The installed `flame14.pba` and `fx.pba` each have 17 frames. The
