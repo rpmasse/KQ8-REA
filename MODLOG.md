@@ -3,6 +3,10 @@
 What changed and what was tested. Newest entries at the top.
 Format: date and title, then Changed / Why / Tested how / Result / Still broken / Next.
 
+## 2026-11-06 Record spirit-trap precision questions
+
+Changed: added Q188 for KQSpiriTrap's fractional health drain, 1% floor, following hit, startup/saved flags and occupant/cue behavior. Why: the implementation is absent, and the current summary does not establish rounding or low-health effects precisely enough to implement them without guessing. Checked: read traps.md and the owned GOG Dead City spirtp1.kq, spiritst.kq and spirits2.kq through the read-only CLI; the metadata supplies damage=.2 and the movement lists send Cue 1/2. Result: research questions are recorded; no spirit-trap runtime behavior was implemented or tested. Preserve the traced Cue 2 no-op under the 1:1 goal unless new executable study contradicts it. Next: a study session must establish the missing rules; implementation continues on other documented M4–M6 behavior. No manual testing or executable inspection was performed.
+
 ## 2026-11-06 Reconcile flagged traps after loading and register Sylph's character
 
 Changed: generic trap metadata reads lookupCall (absent means false). Startup Init and synchronous runtime Init queue a private post-load notice; delivery requires a live flagged trap with a script. Disk restoration queues after saved state is applied and keeps an existing pending notice instead of duplicating it. Init's own cues stay ahead of the runtime notice. The loader now selects a successfully loaded character's animation list even when its file names a static shape. Why: Dead City's original plate Lookup handlers activate their objects and reconcile Sylph's placement from saved flags; the automated check exposed that shapeName in sylf22.kq had prevented her 17-movement animFile from being registered as a live character.
