@@ -29,7 +29,15 @@ The current GOG `Daventry/kq.vol` supplies `newWorld.cs` and `permwrld.cs`. The 
 
 The footstep command uses [sound rules 36–39a](../behaviour/sound.md), including building type-to-flag conversion and the existing weighted plain sound choice. The local GOG Temple 1 files sloshtrp.cs, sloshtrp.kq, temple_e.kq and newWorld.cs provide the On/Off commands, trigger box, target building and placement. The generic trap checkpoint uses [the saved-inside/shrunk requirement and sticky/one-shot/mask rules](../behaviour/traps.md). Its schema is this project's own representation; original geometry/scripts load by name. The live check proves occupied water-trigger continuation and one exit; Lookup callbacks, subclass counters, world returns and hardware audio remain unverified or incomplete. No executable was studied in this implementation session.
 
-## Spirit traps and Connor's forced reactions
+## Ordinary combat death
+
+The separate study traced ordinary death entry, pending requests and
+the point where the original checks reincarnation, freezes Connor or
+opens the dead-marked menu. The installed Small Axe death animation
+supplies a concrete duration for checking the end event. Rust acceptance
+of these stages is pending. [Ordinary combat death, Q192](../behaviour/connor-combat-death.md).
+
+## Regional trap state
 
 Region handovers preserve eligible traps in the departed world's record.
 The original persist-manager switch sets eligibility. An accepted portal
@@ -43,7 +51,9 @@ exercise the region record. The native route uses the installed Daventry
 and CastleD portal scripts. [World-change rules 5.3, 9, 11–15](../behaviour/world-change.md)
 and [trap occupancy and spirit fields](../behaviour/traps.md).
 
-The spirit subclass uses [traps Q188/Q194](../behaviour/traps.md): actual Connor identity, ordered occupancy, mutable damage/state/status, whole-point double/single drains and low 1% floor, repeated Cue 1 and Cue 2 no-op. Its health difference and separate strength-1 Normal/force-1 attack are queued FIFO, with each handler computing from its own current snapshot. [Collision rules 16–17](../behaviour/connor-collision.md) identify the fourth attack argument as force; [fighting rule 29](../behaviour/fighting.md) supplies the known ordinary dying-entry zeroing. Other death-request eligibility remains open in Q192.
+## Spirit traps and Connor's forced reactions
+
+The spirit subclass uses [traps Q188/Q194](../behaviour/traps.md): actual Connor identity, ordered occupancy, mutable damage/state/status, whole-point double/single drains and low 1% floor, repeated Cue 1 and Cue 2 no-op. Its health difference and separate strength-1 Normal/force-1 attack are queued FIFO, with each handler computing from its own current snapshot. [Collision rules 16–17](../behaviour/connor-collision.md) identify the fourth attack argument as force. [Fighting rule 29](../behaviour/fighting.md) and the ordinary-death note above distinguish a pending request from accepted Die entry.
 
 The animation selector and retained owning states use Q194; [conversation rule 18a, Q195](../behaviour/conversation.md) distinguishes the retained state name, actual reaction playback/end, queued request origin, animation input lock, ordinary lip requests and the separate Wait/Move/Talk completion actions. [Animation rules 4–5 and 21–23](../behaviour/anim-scripts.md) supply transitions, common replay and the separate scripted/animation locks and held-key replay. These descriptions were produced by the user-authorized separate study; B used prose, existing Rust and readable installed data, never the executable, disassembly or raw study files. Optional Rust checkpoint fields are our own representation, with legacy defaults.
 

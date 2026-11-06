@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-06 Study handoff for ordinary combat death (Q192)
+
+The separate original-engine study traced ordinary lethal damage through
+the current controller's exit rules. A standing attack or unfinished
+weapon swap can defer Die. Accepted Die entry zeros health and its display.
+The final death animation's end checks reincarnation. With reincarnation
+off it disables collision and gravity, takes control and starts a
+three-second simulation deadline for the dead-marked menu. Before that
+hold, ordinary Escape/Save remains available when scripted hands-off is
+clear. Temple 4's Die Now uses the same completion at entry.
+
+The research handoff passed patch and whitespace checks. Original GOG
+data identified the Small Axe death model's roughly 2.9333-second stored
+duration. Reproduce its metadata inspection with the command in
+`docs/behaviour/connor-combat-death.md`. Original runtime and native
+save continuation are **not tested**. This entry records the study.
+The Rust controller, old-slot migration and automated acceptance are
+implementation work. Q191's exact event/Init ordering remains open.
+
 ## 2026-11-06 Trap state across region travel
 
 The Rust recreation now records eligible traps when it saves a departing

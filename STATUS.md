@@ -1,5 +1,13 @@
 # STATUS
 
+## 2026-11-06 Ordinary combat death studied
+
+Q192 now has original static and installed-data evidence covering pending
+Die requests, the accepted death animation, menu eligibility and the
+three-second hold. An implementation worktree is using the prose note to
+replace the temporary ordinary-death path and check old Rust saves.
+Original runtime/native save comparison is **not tested**.
+
 ## 2026-11-06 Persistent traps return with their region
 
 The Daventry–CastleD round trip now carries the departed region's trap
