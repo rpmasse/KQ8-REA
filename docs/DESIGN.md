@@ -173,6 +173,62 @@ The windmill checkpoint also covers movable props. Push the bale, collect the ax
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
 
+#### Choice-state disk continuation (2026-11-06, implemented with open checks)
+
+Characters' Choice rules 1–13 require the original list, directions measured
+after StartChoice, a once-only decision callback and a fresh entry after a
+weapon swap. Disk saves currently omit the controller, its pending calls
+and its Free-state pivot pose; saved_special also excludes its weapon swap.
+Retain Choice's script/list, cached circle and made flag plus queued
+StartChoice/DoChoice arguments in an optional snapshot record. Validate
+finite coordinates, bounded labels/lists and matching cached-point order.
+Do not recompute an existing circle or replay entry during load.
+
+Reuse the existing pose capture/restore fields through small shared helpers
+while preserving the conversation snapshot format. A Choice-owned Free
+pose includes animation/cue phase, turn, mover and handsOff state. A nested
+weapon swap uses the existing Special/weapon records instead. After a swap,
+defer circle measurement until its queued StartChoice has actually run.
+Restore pending calls before the next script service; reject unsupported
+overlapping controller records rather than silently losing them.
+
+Check cache/label/callback validation and JSON/legacy records, then move into
+the original roof trigger and let its On/timed Cue 1 enter Choice. Save unchosen and in a
+pivot, load in fresh processes and choose each original direction. Capture
+the pending DoChoice boundary and both sides of a weapon swap, proving the
+callback is delivered once, StartChoice is not replayed on load, pivot
+phase continues, and the source branch's walk/cutscene still runs. Verify
+both Barren lists and Ice World's three-point list and subsets from the
+installed data too. Preserve existing
+conversation and weapon-swap checks. These are isolated controller setups,
+not the full roof/basilisk/orc quests or campaign. Rock/hammer controller
+continuation and the existing pre-choice waiting-request approximation
+remain explicit separate work; do not claim all Choice overlaps complete.
+No manual testing or executable study. Update provenance, status and the
+automated command, then publish to the fork.
+
+Implemented: the optional Choice record preserves the list/cache/made
+state, callbacks and its Free-state pose. Nested swaps retain their existing
+Special/weapon records. Pose capture/restore helpers are shared with Talk
+without changing its serialized format. Callback ownership and cached label
+order are validated; old living slots remain readable. Six original lists
+pass the GOG data check. Both roof directions passed across four processes
+in 117.42 seconds, nested Small Axe stages across four in 115.70 seconds,
+and the chosen state with the original queued NPC cue across two in 59.38
+seconds. The scripted-turn case passed in 56.11 seconds and continues its pose. The original Wizard
+approach/speech/control-return regression passed in 140.09 seconds.
+
+Evidence changed the pending-call test: connor_step emits DoChoice and
+trap_step delivers it in the same chained FixedUpdate, before menu input.
+Two UI timing probes failed (one too late with handsOff on, one before a
+decision); stop those variations and keep the record in STATUS/MODLOG.
+Normal UI capture of a nonempty private call buffer remains NOT VERIFIED.
+An explicitly supplied internal checkpoint tests its loader path and passed
+in 56.04 seconds. The separate real-menu chosen/NPC-cue case checks a
+reachable post-decision boundary; no script was delayed and menu eligibility
+was not changed to expose an artificial window. Rock/hammer continuation,
+pre-choice waiting behavior and full roof/basilisk/orc quests remain open.
+
 #### Connor's combat-death continuation (2026-11-06, implemented)
 
 Fighting rule 29 ignores hits while Connor is dying. The existing Special

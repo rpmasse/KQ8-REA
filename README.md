@@ -20,6 +20,8 @@ Scripted character collision flags update live targeting and movement and surviv
 
 Saves retain Connor's combat death sequence and prevent later hits or unfinished attacks from restarting it.
 
+Directional-choice scenes retain their measured directions, decision and turning pose through saves, including weapon swaps.
+
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. Manual playtesting begins after the Rust implementation is feature-complete.
 
 ## Build and run
@@ -75,6 +77,7 @@ cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored
 cargo test --locked -p kq8-viewer --test placed_characters -- --ignored
 cargo test --locked -p kq8-viewer --test death_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test connor_death_checkpoint -- --ignored --test-threads=1
+cargo test --locked -p kq8-viewer --test choice_checkpoint -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test ordinary_once_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test alternate_interior -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test connor_swing_checkpoint -- --ignored --test-threads=1

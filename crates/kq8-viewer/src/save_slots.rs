@@ -71,6 +71,8 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     talk_pose: Option<connor_view::SavedTalkPose>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    choice: Option<connor_view::SavedChoice>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     camera: Option<crate::game_camera::SavedCamera>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     panels: Option<kq8_core::panels::Panels>,
@@ -88,6 +90,10 @@ impl Snapshot {
     }
 
     fn validate(&self) -> Result<(), String> {
+        if self.choice.as_ref().is_some_and(|choice| !choice.valid() || !choice.compatible(self.special.is_some(),
+            self.weapon_state.as_ref().is_some_and(|w| w.swapping()), self.swing.is_some() || self.shot.is_some() || self.talk_pose.is_some())) {
+            return Err("save has invalid or unsupported Choice continuation".into());
+        }
         if self.traps.as_ref().is_some_and(|s| !s.valid()) { return Err("save has invalid trap state".into()); }
         if self.footstep_types.as_ref().is_some_and(|m| m.len() > 4096 || m.keys().any(|n|
             n.is_empty() || n.len() > 1024 || n.chars().any(char::is_control) || n.to_ascii_lowercase() != *n)) {
@@ -284,6 +290,9 @@ impl Snapshot {
             if let Some(mut speech) = world.get_resource_mut::<crate::talk_view::Speech>() { speech.sources.clone_from(sources); }
         }
         if let Some(mut sim) = world.get_resource_mut::<crate::door_view::DoorSim>() {
+            if self.choice.as_ref().is_some_and(|choice| !sim.active.world.has_script(choice.script())) {
+                return Err("saved Choice script is missing from the installed world".into());
+            }
             self.restore_objects_and_vars(&mut sim.active);
             if let Some(speech) = &self.speech {
                 let now = sim.active.world.now();
@@ -337,7 +346,8 @@ impl Snapshot {
                 connor.restore_combat_cues(cues)?;
             }
             if let Some(pose) = &self.talk_pose { connor.restore_talk_pose(pose)?; }
-        } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() {
+            if let Some(choice) = &self.choice { connor.restore_choice(choice)?; }
+        } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() || self.choice.is_some() {
             return Err("Connor is unavailable while restoring his attack".into());
         }
         if let Some(saved) = &self.camera {
@@ -510,6 +520,8 @@ pub fn save_slot_with_thumbnail(
     let shot_timing = connor.saved_shot_timing().ok_or("Connor's moving-shot timing cannot be saved")?;
     let hit_timing = connor.saved_hit_timing().ok_or("Connor's hit timing cannot be saved")?;
     let special = connor.saved_special();
+    let choice = connor.saved_choice();
+    if connor.choice.is_some() && choice.is_none() { return Err("Connor's Choice state cannot be saved".into()); }
     let weapon_state = connor.saved_weapon_state(special.as_ref()).ok_or("Connor's weapon state cannot be saved")?;
     let combat_cues = connor.saved_combat_cues().ok_or("Connor's pending combat cues cannot be saved")?;
     let snapshot = Snapshot {
@@ -546,6 +558,7 @@ pub fn save_slot_with_thumbnail(
         speech_sources: world.get_resource::<crate::talk_view::Speech>().map(|s| s.sources.clone()),
         conversation: Some(sim.active.world.saved_conversation()),
         talk_pose: connor.saved_talk_pose(),
+        choice,
         camera: world.get_resource::<crate::game_camera::GameCam>().map(|c| c.saved()),
         panels: world.get_resource::<crate::gui_view::Gui>().map(|g| g.panels.saved()),
     };
@@ -606,6 +619,43 @@ mod tests {
 
     fn active() -> Active {
         Active::new(Default::default(), vec![], vec![], [], [])
+    }
+
+    fn choice_fixture() -> Snapshot {
+        let mut json = serde_json::to_value(fixture()).unwrap();
+        json["choice"] = serde_json::json!({"state":{"list":{"script":"rooftrap.cs","points":[["0",[220000.,183200.]],["1",[230000.,183200.]]]},
+            "circle":[["0",[220000.,183200.]],["1",[236478.,183277.]]],"made":false},"calls":[],
+            "pose":{"movement":"left","phase":0.4,"bank":0.,"fresh":false,"talk_play":null,"wanted":null,"auto":null,
+                "waiting":null,"playing":null,"hand_mode":4,"hands_off":false,"turn_by_script":false,"turn_press":false,
+                "blocked":[false,false],"moving":{"state":"Normal","on_ground":true,"use_gravity":true,"keep_on_ground":true,
+                    "fall_timer":0.,"air_updates":0,"pull":[0.,0.,-1.],"submerged":false}}});
+        serde_json::from_value(json).unwrap()
+    }
+
+    #[test]
+    fn choice_snapshot_keeps_a_free_pose_and_old_living_slots_remain_readable() {
+        let saved = choice_fixture(); saved.validate().unwrap();
+        let json = serde_json::to_value(&saved).unwrap();
+        let restored: Snapshot = serde_json::from_value(json.clone()).unwrap();
+        restored.validate().unwrap();
+        assert_eq!(serde_json::to_value(restored.choice.unwrap()).unwrap(), json["choice"]);
+        let mut legacy = json; legacy.as_object_mut().unwrap().remove("choice");
+        let legacy: Snapshot = serde_json::from_value(legacy).unwrap();
+        legacy.validate().unwrap(); assert!(legacy.choice.is_none());
+    }
+
+    #[test]
+    fn choice_snapshot_rejects_lost_pose_and_invalid_pending_callback() {
+        for bad in 0..3 {
+            let mut json = serde_json::to_value(choice_fixture()).unwrap();
+            match bad {
+                0 => json["choice"]["pose"] = serde_json::Value::Null,
+                1 => json["choice"]["calls"] = serde_json::json!([["Connor","DoChoice","1"]]),
+                _ => json["choice"]["state"]["circle"][0][0] = "99".into(),
+            }
+            let invalid: Snapshot = serde_json::from_value(json).unwrap();
+            assert!(invalid.validate().unwrap_err().contains("Choice"));
+        }
     }
 
     fn combat_death_fixture() -> Snapshot {
@@ -862,6 +912,7 @@ mod tests {
             speech_sources: None,
             conversation: None,
             talk_pose: None,
+            choice: None,
             camera: None,
             panels: None,
             journey: take_journey(&sim, "Daventry"),

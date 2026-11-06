@@ -31,6 +31,10 @@ pub struct SavedTalkPose {
     moving: Moving,
 }
 
+/// Keep the existing conversation format while sharing its pose fields
+/// with a Choice-owned pivot/stop movement.
+pub type SavedControllerPose = SavedTalkPose;
+
 impl SavedTalkPose {
     pub fn finished_weapon_away(&self) -> bool {
         self.movement.eq_ignore_ascii_case("away") && self.phase == 1.0
@@ -53,20 +57,28 @@ impl SavedTalkPose {
 impl ConnorSim {
     pub fn saved_talk_pose(&self) -> Option<SavedTalkPose> {
         if self.walker.mode != Mode::Talk { return None; }
+        Some(self.capture_controller_pose())
+    }
+
+    pub(super) fn capture_controller_pose(&self) -> SavedControllerPose {
         let w = &self.walker;
-        Some(SavedTalkPose { movement: w.movement.into(), phase: w.phase, bank: w.bank, fresh: w.fresh,
+        SavedTalkPose { movement: w.movement.into(), phase: w.phase, bank: w.bank, fresh: w.fresh,
             talk_play: w.talk_play.map(str::to_owned), wanted: w.wanted.map(str::to_owned), auto: w.auto.clone(),
             waiting: w.waiting.map(SavedSwingTransition::take), playing: w.playing.map(SavedSwingTransition::take),
             hand_mode: w.hand_mode, hands_off: self.hands_off, turn_by_script: w.turn_by_script, turn_press: w.turn_press,
             blocked: [w.blocked_forward, w.blocked_back], moving: Moving { state: self.mover.state, on_ground: self.mover.on_ground,
                 use_gravity: self.mover.use_gravity, keep_on_ground: self.mover.keep_on_ground, fall_timer: self.mover.fall_timer,
-                air_updates: self.mover.air_updates, pull: self.mover.pull, submerged: self.mover.submerged } })
+                air_updates: self.mover.air_updates, pull: self.mover.pull, submerged: self.mover.submerged } }
     }
 
     pub fn restore_talk_pose(&mut self, saved: &SavedTalkPose) -> Result<(), String> {
-        if !saved.valid() { return Err("invalid conversation pose".into()); }
+        self.restore_controller_pose(saved, Mode::Talk, "conversation")
+    }
+
+    pub(super) fn restore_controller_pose(&mut self, saved: &SavedControllerPose, mode: Mode, label: &str) -> Result<(), String> {
+        if !saved.valid() { return Err(format!("invalid {label} pose")); }
         let resolve = |name: &str| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(name)).map(|m| m.name)
-            .ok_or_else(|| format!("saved conversation movement '{name}' is absent"));
+            .ok_or_else(|| format!("saved {label} movement '{name}' is absent"));
         let movement = resolve(&saved.movement)?;
         let talk_play = saved.talk_play.as_deref().map(&resolve).transpose()?;
         let wanted = saved.wanted.as_deref().map(&resolve).transpose()?;
@@ -75,7 +87,7 @@ impl ConnorSim {
         };
         let waiting = saved.waiting.as_ref().map(&transition).transpose()?;
         let playing = saved.playing.as_ref().map(&transition).transpose()?;
-        self.walker.mode = Mode::Talk; self.walker.movement = movement; self.walker.phase = saved.phase;
+        self.walker.mode = mode; self.walker.movement = movement; self.walker.phase = saved.phase;
         self.walker.bank = saved.bank; self.walker.fresh = saved.fresh; self.walker.talk_play = talk_play;
         self.walker.wanted = wanted; self.walker.auto = saved.auto.clone(); self.walker.waiting = waiting; self.walker.playing = playing;
         self.walker.hand_mode = saved.hand_mode; self.hands_off = saved.hands_off;
@@ -87,7 +99,7 @@ impl ConnorSim {
         self.mover.fall_timer = saved.moving.fall_timer; self.mover.air_updates = saved.moving.air_updates;
         self.mover.pull = saved.moving.pull; self.mover.submerged = saved.moving.submerged;
         self.redraw_from_walker();
-        self.log.detail(format!("conversation pose restored: {movement} phase {:.6}, talk_play {:?}, auto {:?}", saved.phase, talk_play, saved.auto));
+        self.log.detail(format!("{label} pose restored: {movement} phase {:.6}, talk_play {:?}, auto {:?}", saved.phase, talk_play, saved.auto));
         Ok(())
     }
 }

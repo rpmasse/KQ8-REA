@@ -1539,6 +1539,10 @@ impl WorldState {
         self.doors.iter().position(|d| d.door.name.eq_ignore_ascii_case(name))
     }
 
+    pub fn has_script(&self, name: &str) -> bool {
+        self.sources.contains_key(&name.to_ascii_lowercase())
+    }
+
     fn sync_character_collision(&mut self, index: usize) {
         let actor = &self.anims[index];
         let Some(character) = actor.character.as_deref() else { return; };
