@@ -68,6 +68,15 @@ pub fn effective_script(game: &GameDir) -> Vec<u8> {
     merge_scripts(original.as_deref(), local.as_deref())
 }
 
+pub fn brightness(game: &GameDir) -> u8 {
+    Settings::from_script(&effective_script(game)).graphics.brightness
+}
+
+/// Fresh-screen palette adjustment; the display-gamma stage is still separate.
+pub fn screen_palette(game: &GameDir, colors: [[u8; 3]; 256]) -> [[u8; 3]; 256] {
+    kq8_data::palette::with_brightness(colors, brightness(game))
+}
+
 fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>> {
     let mut lines = Vec::new();
     let mut keys = std::collections::BTreeSet::new();

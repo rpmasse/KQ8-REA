@@ -296,7 +296,7 @@ pub fn load_caption(game: &GameDir, region: &crate::load::World, log: &mut Log) 
     let (pal_names, pal_note) = crate::load::screen_palette_paths(game, world);
     let Some((pal_path, pal_bytes)) = first_found(game, &pal_names) else { return fail(log, format!("no palette found ({pal_note}; tried {pal_names:?})")) };
     let palette = match kq8_data::Palette::parse(&pal_bytes) {
-        Ok(p) => p.shown_colors(),
+        Ok(p) => crate::option_settings::screen_palette(game, p.shown_colors()),
         Err(e) => return fail(log, format!("{pal_path}: {e}")),
     };
     let [l, t, r, b] = c.rect;

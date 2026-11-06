@@ -25,6 +25,10 @@ The same Dead City archive supplies 16 `KQMonster::add` lines in `RATKARMA.CS`, 
 
 The current GOG `Daventry/kq.vol` supplies `newWorld.cs` and `permwrld.cs`. The latter disables `activatePersistMgr` while loading permanent scenery and enables it before ordinary props. [World-change behavior, rule 12](../behaviour/world-change.md) describes how the original kept world stores the current state of objects loaded while that manager is active. The Rust save stores changed placements of these props in its own versioned format. The windmill replay checks the bale's restored collision surface and the axe's scripted location after a fresh-process load.
 
+## Palette brightness
+
+The fresh-load palette component uses [object-lighting rule 17](../behaviour/object-lighting.md): factor 0.3 + 1.4 × value / 100 and proportional channel reduction at overflow. GOG Daventry and Dead City supply the palettes and CON0.BMP textures used by the original-data check; Dead City's world.cs selects newdead.ppl. The check compares decoded pixels with the mathematical rule, verifies neutral identity and unchanged dimensions/true-colour bytes, and checks upload data. Palette bytes currently truncate; the separate display-gamma stage, live update timing, original rounding and matching/API details remain unresolved in [Q186](../behaviour/QUESTIONS.md). This is not evidence of full brightness fidelity. No executable was studied in this implementation session.
+
 ## Scripted camera continuation
 
 The Wizard interruption checks use the original `wizard.kq` goodbye/welcome-back keys (cases 7/8), the first two opening lines from `wizard.cs` (1000/4/14/27), the `wizinfo.kq` stay area and talking spot, and the original voice files' SOL durations. The message catalogue `data/Daventry/English/1000.MSG` supplies cameras 2 and 3 for those two lines. Expected queue and camera behavior follows [conversation rules 14 and 20–22](../behaviour/conversation.md). The tests exercise isolated conversations and retained camera mode; the existing conversation-button harness does not generate physical mouse movement.

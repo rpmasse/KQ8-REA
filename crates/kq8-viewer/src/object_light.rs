@@ -35,7 +35,8 @@
 //! - Point lights (rule 24, M1 7c): the scene's light list
 //!   (`scene_lights`) is a storage buffer every material shares; each
 //!   vertex carries its model part's ball (`ATTRIBUTE_PART_BALL`).
-//! - Not done: the brightness setting (rule 17; 1.0 at the shipped value).
+//! - The brightness palette stage runs at loading; display gamma and live
+//!   palette changes remain open (rule 17; 1.0 at the shipped value).
 
 use bevy::asset::embedded_asset;
 use bevy::image::{ImageAddressMode, ImageSampler, ImageSamplerDescriptor};

@@ -7,6 +7,23 @@ use crate::chunks::{read_chunks, tag_string, u16_at, u32_at};
 
 pub type Rgb = [u8; 3];
 
+/// Palette stage of setBrightness (object-lighting.md rule 17).
+/// Display gamma is a separate operation. Integer division truncates to bytes.
+pub fn brightness_color(rgb: Rgb, value: u8) -> Rgb {
+    let factor = 300 + 14 * u32::from(value.min(100));
+    let largest = u32::from(*rgb.iter().max().unwrap());
+    if largest * factor > 255_000 {
+        rgb.map(|v| (u32::from(v) * 255 / largest) as u8)
+    } else {
+        rgb.map(|v| (u32::from(v) * factor / 1000) as u8)
+    }
+}
+
+/// Adjust a copied palette; retain stored colours for matching and future loads.
+pub fn with_brightness(colors: [Rgb; 256], value: u8) -> [Rgb; 256] {
+    colors.map(|rgb| brightness_color(rgb, value))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaletteFormat {
     /// `PPAL` tag followed by `head`, `data` and lighting tables.
@@ -147,6 +164,18 @@ fn first4(bytes: &[u8]) -> [u8; 4] {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn brightness_preserves_neutral_colours_and_clipped_hue() {
+        use super::brightness_color as b;
+        assert_eq!(b([30, 100, 250], 50), [30, 100, 250]);
+        assert_eq!(b([100, 200, 50], 0), [30, 60, 15]);
+        assert_eq!(b([50, 100, 25], 100), [85, 170, 42]);
+        assert_eq!(b([100, 200, 50], 100), [127, 255, 63]);
+        assert_eq!(b([255, 128, 64], 100), [255, 128, 64]);
+        assert_eq!(b([0, 0, 0], 100), [0, 0, 0]);
+        assert_eq!(b([50, 100, 25], 255), b([50, 100, 25], 100));
+    }
+
     use super::*;
 
     fn chunk(tag: &[u8; 4], data: &[u8]) -> Vec<u8> {
