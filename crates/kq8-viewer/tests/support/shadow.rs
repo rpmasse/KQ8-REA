@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-fn prepare(play: &Play, source: &Path) -> Value {
+pub(super) fn prepare(play: &Play, source: &Path) -> Value {
     fs::create_dir_all(&play.slots).unwrap();
     fs::copy(source, play.slots.join("slot-1.json")).unwrap();
     play.slot(1)
@@ -30,7 +30,13 @@ fn route(play: &Play, part: &str) -> PathBuf {
 
 /// Load the previous slot from the title, perform ordinary inputs and write
 /// a new slot using the pause menu. Each call starts a fresh Windows process.
-fn leg(play: &Play, slot: u32, label: &str, tick: u32, inputs: &[&str]) -> (Value, String) {
+pub(super) fn leg(
+    play: &Play,
+    slot: u32,
+    label: &str,
+    tick: u32,
+    inputs: &[&str],
+) -> (Value, String) {
     let select = format!(
         "down,enter,release,{}enter,release",
         "down,".repeat((slot - 1) as usize)
@@ -51,7 +57,7 @@ fn leg(play: &Play, slot: u32, label: &str, tick: u32, inputs: &[&str]) -> (Valu
     (saved, viewer)
 }
 
-fn log(play: &Play, part: &str, file: &str) -> String {
+pub(super) fn log(play: &Play, part: &str, file: &str) -> String {
     fs::read_to_string(play.root.join(part).join("kq8-artifacts/logs").join(file)).unwrap()
 }
 
@@ -289,7 +295,7 @@ fn wizard_accepts_the_earned_ring_and_candle() {
     offer_ingredients();
 }
 
-fn offer_ingredients() -> PathBuf {
+pub(super) fn offer_ingredients() -> PathBuf {
     let play = Play::new("wizard-deliveries");
     let source = earned_slot("KQ8_WIZARD_INGREDIENTS_SLOT").unwrap_or_else(reach_wizard);
     let before = prepare(&play, &source);

@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-07 Reach and solve the waterfall puzzle
+
+The campaign replay now follows the village road to the fountain and
+uses 28 normal clicks to restore Connor's health. From the reloaded
+save it crosses the bridge, places the earned Rope and Hook on the
+cave wall, climbs and pushes the waterfall bricks. A fresh launch
+checks both waterfall records, the puzzle flag and Connor's experience.
+The scenarios use the original GOG level and scripts. [Test commands](docs/daventry-progression.md#the-waterfall-road-to-castle-daventry)
+
 ## 2026-11-07 The Shadow and two deliveries to the Wizard
 
 The campaign replay now follows the earned urn save up the church's
