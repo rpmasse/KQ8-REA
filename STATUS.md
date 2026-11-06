@@ -1,5 +1,36 @@
 # STATUS
 
+## 2026-11-07 Cottage basket and Wizard reward verified
+
+The camera obstruction from the audit below is resolved. The walking
+replay holds its click while the intended item is outside the viewport,
+under a panel or behind another object. It uses the ordinary camera-drag
+input until the normal pixel ray reaches the target first. In the
+previously obstructed case the ray selected the stone mother at update
+120, then the basket at 123. The original basket script gave five
+mushrooms. The prepared Wizard slot kept them, one shield and the
+original Wizard rewards. The two Windows tests passed in 391.26
+seconds, covering the seeded continuation and the independent Normal
+New Game shield pickup, fresh reload and timed expiration.
+
+## 2026-11-07 Cottage basket replay audit
+
+One uninterrupted supply route opened the basket, carried five mushrooms
+and the shield to the Wizard, completed the original conversation and
+saved the earned piece and map. The later windmill leg earned the Small
+Axe and kept four mushrooms and the shield. The prepared run has not
+passed on every fresh start.
+
+The first attempted integration put the camera inside the petrified
+mother's click box. The ray selected St_smom at distance zero, so the
+basket remained full. A second western approach stopped at a real
+cottage wall 355 units from its waypoint, before issuing the click.
+Stop varying landmarks. The saved actor and camera traces from the
+successful and failed runs, the original clickable boxes and cottage
+BSP are available to locate a shared, visible pickup position. Only
+count the branch after the normal on-screen ray and original basket
+script succeed in a fresh run.
+
 ## 2026-11-07 Earned shield from Sarah's cottage
 
 A Normal New Game route opened Sarah's door and collected the shield

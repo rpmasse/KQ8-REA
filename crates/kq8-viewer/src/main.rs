@@ -686,7 +686,7 @@ fn main() -> ExitCode {
                 .insert_resource(console::ConsoleAt(args.console))
                 .insert_resource(door_view::RightAt(args.right))
                 .init_resource::<object_light::SetHaze>()
-                .insert_resource(door_view::AimAt(args.aim))
+                .insert_resource(door_view::AimAt { probes: args.aim, landmark: None, orbit: false })
                 .insert_resource(door_view::SwingAt(args.swing))
                 .insert_resource(door_view::HeldItem(args.item, args.combat_level))
                 .insert_resource(door_view::AiOff(args.no_ai))

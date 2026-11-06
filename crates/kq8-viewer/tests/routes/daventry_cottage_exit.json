@@ -1,0 +1,10 @@
+[
+  {"name": "Leave the potion shelf", "xy": [291750, 196970], "radius": 150},
+  {"name": "Return through the east room", "xy": [290150, 196971], "radius": 170},
+  {"name": "Cottage interior passage", "xy": [289450, 196296], "radius": 190},
+  {"name": "Look at the cottage basket", "xy": [287000, 195396], "radius": 180, "aim": "basket2"},
+  {"name": "Return through the cottage entrance", "xy": [284300, 196296], "radius": 180},
+  {"name": "Leave through the open door", "xy": [280400, 196296], "radius": 190},
+  {"name": "North of the stone girl", "xy": [280350, 197350], "radius": 160},
+  {"name": "Return to the village path", "xy": [278850, 197550], "radius": 190}
+]

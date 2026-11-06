@@ -796,6 +796,7 @@ pub fn camera_step(
     keys: Res<crate::keyboard_input::GameKeys>,
     buttons: Res<ButtonInput<MouseButton>>,
     choice: Res<CameraChoice>,
+    route_aim: Res<crate::door_view::AimAt>,
     shared: Res<Shared>,
 ) {
     let (Some(mut game), Some(sim), Some(lookup)) = (game, sim, lookup) else { return };
@@ -829,9 +830,12 @@ pub fn camera_step(
     }
     let script_moves = std::mem::take(&mut g.script_moves);
     let held = |k: Option<KeyCode>| choice.game && k.is_some_and(|k| keys.pressed(k));
+    // A walking route can orbit from the player's current position until
+    // its intended click is visible. Use the normal bound drag input.
+    let orbit = route_aim.orbit && choice.game && !sim.hands_off && g.keys.mouse.is_some();
     let input = Input {
-        mouse_held: choice.game && !sim.hands_off && g.keys.mouse.is_some_and(|b| buttons.pressed(b)),
-        mouse_x: -g.mouse.x,
+        mouse_held: orbit || (choice.game && !sim.hands_off && g.keys.mouse.is_some_and(|b| buttons.pressed(b))),
+        mouse_x: -g.mouse.x + if orbit { 0.02 } else { 0.0 },
         mouse_forward: g.mouse.y,
         shift: held(g.keys.shift),
         tilt_keys: i8::from(held(g.keys.tilt_up)) - i8::from(held(g.keys.tilt_down)),
