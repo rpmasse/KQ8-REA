@@ -13,6 +13,17 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 cottage Crystal and the hero's tomb.** Begin with the earned
+cottage shield. The installed Daventry WorldInv.cs also places a
+50-health Crystal in the cottage. An initial camera orbit from the
+north room could not see it behind a low solid surface. The original
+building geometry and a second Windows run identified a clear angle
+from the east room. Pick the Crystal through that visible pixel,
+visit the basket and garden, reload, and verify the Crystal survives
+the Wizard meeting. Check each ordinary onward save before testing
+its use in the tomb fight. The prior garden-only attempts reached
+melee range but failed before Connor could obtain the ring.
+
 **M4–M5 original first-person assets.** Use the separately studied
 camera and body rules in Q193. Read Connor.kq's three movement tables
 for each view. First, use that reader for the viewer's existing

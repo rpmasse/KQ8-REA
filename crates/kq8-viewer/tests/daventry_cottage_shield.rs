@@ -245,6 +245,12 @@ fn garden_mushrooms_survive_the_trip_to_the_wizard() {
     start_at_earned_shield(&play);
     let mut landmarks: Vec<Value> =
         serde_json::from_str(include_str!("routes/daventry_cottage_exit.json")).unwrap();
+    landmarks.insert(0, serde_json::json!({
+        "name": "Look toward the Crystal from the east room",
+        "xy": [292175, 196971],
+        "radius": 130,
+        "aim": "NoName19",
+    }));
     let garden: Vec<Value> =
         serde_json::from_str(include_str!("routes/daventry_cottage_garden.json")).unwrap();
     landmarks.extend(garden);
@@ -257,10 +263,12 @@ fn garden_mushrooms_survive_the_trip_to_the_wizard() {
     let (walk, items) = play.run("garden", &[
         "--menu-input", "down,enter,release,enter,release", "--walk-route", route.to_str().unwrap(),
         "--key","popup:help=131,0", "--key","popup:help=132,0", "--key","popup:help=133,0",
-        "--key","menu:down:down:down:enter:release:enter:release:escape:type=GardenMushrooms:enter:release:escape,385",
-        "--key","menu:up:enter:release:left:enter:release,400", "--frames","2800",
+        "--key","menu:down:down:down:enter:release:enter:release:escape:type=GardenMushrooms:enter:release:escape,610",
+        "--key","menu:up:enter:release:left:enter:release,625", "--frames","3500",
     ]);
     let garden_names = ["NoName18", "NoName17", "NoName16"];
+    assert!(walk.lines().any(|l| l.contains("test --aim NoName19 (camera") && l.contains("hits NoName19 first")));
+    assert!(items.lines().any(|l| l.contains("click NoName19 (") && l.contains("INVITEM_Crystal 0 -> 1")));
     for (i, name) in garden_names.iter().enumerate() {
         assert!(walk
             .lines()
@@ -276,7 +284,7 @@ fn garden_mushrooms_survive_the_trip_to_the_wizard() {
         assert_eq!(save["journey"]["ai_off"], false);
         assert_eq!(save["journey"]["god_mode"], false);
         let carried = save["journey"]["items"].as_array().unwrap();
-        for (kind, count) in [("INVITEM_Mushroom", 8), ("INVITEM_Invulnerable", 1)] {
+        for (kind, count) in [("INVITEM_Mushroom", 8), ("INVITEM_Invulnerable", 1), ("INVITEM_Crystal", 1)] {
             assert!(carried.iter().any(|i| i["kind"] == kind
                 && i["quantity"] == count
                 && i["place"]["Carried"] == "Connor"));

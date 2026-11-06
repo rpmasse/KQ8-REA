@@ -1,5 +1,28 @@
 # MODLOG
 
+## 2026-11-07 Acquire the cottage Crystal before the Wizard meeting
+
+The original Daventry item script places a 50-health Crystal inside
+Sarah's cottage. A full camera turn in the north room failed to
+produce a clear click. The recorded camera samples facing the item
+intersected the cottage model. Testing reachable ground and camera
+lines in the original building identified visible angles from the
+east room. An independent native run hit NoName19 through pixel
+(9,465), picked it up from 3,326.9 units away and saved CottageCrystal.
+Those failed and successful logs are local under
+`kq8-artifacts/cottage-crystal/1793986264968` and `1793986612302`.
+
+The checked-in garden test now includes that visible pickup before
+the basket and garden. With all checkpoint inputs unset it passed
+from Normal New Game in 399.88 seconds. The Crystal was picked at
+update 46; the three outdoor mushrooms were reached on 332, 338
+and 359. The third Windows launch started from the resulting menu
+save, received the Wizard rewards and saved with eight mushrooms,
+one shield and one Crystal. Options.cs stayed byte-identical to its
+pre-run contents. The logs are in
+`kq8-artifacts/garden-wizard/1793986872220917600`. The [route notes](docs/daventry-progression.md#road-to-the-heros-tomb)
+give the command and record both garden-only tomb failures.
+
 ## 2026-11-07 Read Connor's original third- and first-person animation tables
 
 The viewer now gets Connor's normal unarmed animation filename from
