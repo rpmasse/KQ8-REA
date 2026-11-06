@@ -67,6 +67,8 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     traps: Option<kq8_core::trap::SavedTraps>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    rope_place: Option<kq8_core::rope::SavedRope>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     speech: Option<kq8_core::talk::SavedTalk>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     speech_sources: Option<std::collections::BTreeMap<u64, Option<[f32; 3]>>>,
@@ -101,6 +103,9 @@ impl Snapshot {
     }
 
     fn validate(&self) -> Result<(), String> {
+        if self.rope_place.as_ref().is_some_and(|r| !r.valid()) {
+            return Err("save has invalid rope place settings".into());
+        }
         if self.journey.help_history.as_ref().is_some_and(|history| !history.valid()) {
             return Err("save has invalid tutorial flags or duplicate held cases".into());
         }
@@ -302,6 +307,10 @@ impl Snapshot {
         }
         active.world.connor_at = Some(self.position);
         active.world.connor_heading = self.heading;
+        if let Some(saved) = &self.rope_place {
+            active.world.rope = saved.restore(active.world.now());
+            active.world.rope_note(format!("restored rope place: {}", active.world.rope.status.name()));
+        }
         // Older slots already retain the explicit hit-death list marker.
         // Health zero alone is alive and must never imply this state.
         active.world.connor_dying = self.connor_dying.unwrap_or_else(|| self.combat_death.is_some()
@@ -595,6 +604,7 @@ pub fn save_slot_with_thumbnail(
         shadows_allowed: Some(sim.active.world.shadows_allowed),
         footstep_types: Some(sim.active.world.footstep_types.clone()),
         traps: Some(kq8_core::trap::SavedTraps::capture(&sim.active.world.traps)),
+        rope_place: Some(kq8_core::rope::SavedRope::capture(&sim.active.world.rope, sim.active.world.now())),
         speech: Some(sim.active.world.talk.saved(sim.active.world.now())),
         speech_sources: world.get_resource::<crate::talk_view::Speech>().map(|s| s.sources.clone()),
         conversation: Some(sim.active.world.saved_conversation()),
@@ -1041,6 +1051,7 @@ mod tests {
             shadows_allowed: None,
             footstep_types: None,
             traps: None,
+            rope_place: None,
             speech: None,
             speech_sources: None,
             conversation: None,

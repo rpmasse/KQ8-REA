@@ -13,6 +13,15 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 from the mill to the church rope.** Start from a slot earned on
+Normal, jump back to the millstone, leave by the open door and walk
+to the original churchyard trigger. Record its hook and tutorial. Use
+a fresh process inside the same trap to check that the rope can still
+be selected. Preserve the rope settings and any active climb as required
+by rule 32 in the rope study. Compare saves made beside the wall and
+during the climb. Keep the original scripts, trap state and movement
+in charge throughout.
+
 **M6 collision when a script loads scenery.** Use the startup loader to
 prepare the original object boxes and interior collision trees for named
 scenery that can enter a running world. Keep them outside the live

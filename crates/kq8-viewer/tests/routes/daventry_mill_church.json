@@ -1,0 +1,14 @@
+{
+  "start": 3,
+  "landmarks": [
+    { "name": "Cross the upper mill platform", "xy": [189200, 227560], "radius": 125 },
+    { "name": "Jump down from the platform to the millstone", "xy": [189710, 227450], "radius": 85, "jump_toward": [190057, 229420] },
+    { "name": "Leave the stone on its east side", "xy": [191540, 229040], "radius": 160 },
+    { "name": "Inside of the mill door", "xy": [192150, 227520], "radius": 170 },
+    { "name": "Exit the open mill door", "xy": [193920, 227530], "radius": 160 },
+    { "name": "East end of mill yard", "xy": [194600, 227300], "radius": 195 },
+    { "name": "First south road", "xy": [201000, 214900], "radius": 220 },
+    { "name": "Below the south road", "xy": [201000, 201300], "radius": 210 },
+    { "name": "Reached the church rope trap", "xy": [206600, 189230], "radius": 180 }
+  ]
+}

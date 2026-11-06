@@ -86,6 +86,31 @@ earned on the same campaign. Local outputs are in
 `kq8-artifacts/mill-rope-reloaded/1793996162509460100` and
 `kq8-artifacts/mill-rope-live/1793996281955904300`.
 
+### Churchyard rope place
+
+Starting with the earned `MillRopeReload`, Connor jumped off the upper
+platform onto the millstone and went out through the open door. At the
+church the installed `churchr1.cs` selected the bottom of the rope and
+set its anchor to (206337, 186373, 8304). The HUD showed the upward hook.
+The original climbing tutorial (case 145) opened and was acknowledged.
+
+A first fresh-process load kept the rope item and Connor's location,
+but selecting it produced his “not near anything to climb” line. The slot
+tracked who was inside the trap but omitted the settings its script had
+already applied. New slots carry the anchor, direction, camera spots,
+angle and limits. Reloading the churchyard now restores the upward hook.
+Clicking the rope button puts the earned rope in Connor's hand without
+repeating the trigger or tutorial. Older slots still open. One already
+saved inside this trap with the earlier build needs a new entry into it
+to set the anchor again.
+
+The two-launch Windows test passed in 120.77 seconds using the mill
+slot from the 14-launch Normal New Game run above. Set
+`KQ8_MILL_ROPE_SLOT` to that earned `MillRopeReload` for this short
+repeat. Without the variable the command first earns its own starting
+slot. That combined invocation has not been timed. This check ends
+with the rope selected at the church wall, before the climb.
+
 ### Earlier ring checks
 
 The source chain starts at Normal New Game. Each later process loads

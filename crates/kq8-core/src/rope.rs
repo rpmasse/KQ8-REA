@@ -28,13 +28,12 @@
 //! - Rule 7: `HookUp` while the status is Bottom, `HookDown` while Top,
 //!   none for None or while Connor is on the rope.
 //!
-//! The record is one plain struct of Connor's, so a saved game can keep
-//! it later (rule 32; we have no saved games yet).
+//! Disk saves retain Connor's current rope place (rule 32).
 
 use crate::potions::StatusIcon;
 
 /// Connor's rope status (rule 2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum Status {
     #[default]
     None,
@@ -94,7 +93,7 @@ impl Hook {
 pub const ROPE_CATEGORY: &str = "Rope";
 
 /// Connor's rope settings (rules 1–6): set by the rope places' scripts.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Rope {
     pub status: Status,
     /// The rope's place and direction (radians, as an object's
@@ -112,7 +111,37 @@ pub struct Rope {
     pub top_limit: f32,
     pub bottom_limit: f32,
     /// Game time of the last accepted change (rule 5; only logged).
+    #[serde(skip)]
     pub changed_at: Option<f64>,
+}
+
+/// Game clocks restart on disk load. Carry the age of the last change
+/// alongside the original script settings.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedRope {
+    pub settings: Rope,
+    changed_ago: Option<f64>,
+}
+
+impl SavedRope {
+    pub fn capture(rope: &Rope, now: f64) -> Self {
+        Self { settings: rope.clone(), changed_ago: rope.changed_at.map(|t| now - t) }
+    }
+
+    pub fn valid(&self) -> bool {
+        let r = &self.settings;
+        r.place.iter().chain(&r.dir).chain(r.cam.iter().flatten().flatten())
+            .chain(r.top_cam.iter().flatten()).all(|n| n.is_finite())
+            && r.angle.is_none_or(|(angle, tolerance)| angle.is_finite() && tolerance.is_finite())
+            && r.top_limit.is_finite() && r.bottom_limit.is_finite()
+            && self.changed_ago.is_none_or(|age| age.is_finite() && age >= 0.0)
+    }
+
+    pub fn restore(&self, now: f64) -> Rope {
+        let mut restored = self.settings.clone();
+        restored.changed_at = self.changed_ago.map(|age| now - age);
+        restored
+    }
 }
 
 /// What a command did, for the caller.
@@ -785,6 +814,28 @@ mod tests {
 
     fn w(line: &str) -> Vec<String> {
         line.split_whitespace().map(str::to_string).collect()
+    }
+
+    #[test]
+    fn a_saved_rope_place_restores_settings_and_rebases_the_change_time() {
+        let mut rope = Rope::default();
+        for command in [
+            "KQConner::setRope Top 1 2 3 0 0 1.5",
+            "KQConner::setRopeCam 1 2 3 4 5 6",
+            "KQConner::setRopeCam2 7 8 9",
+            "KQConner::setRopeCamTopLimit 100",
+            "KQConner::setRopeCamBottomLimit 40",
+            "KQConner::setRopeCamAngle 3.14 1.9",
+        ] {
+            assert_eq!(rope.command(&w(command), true, 12.0).unwrap().result, "0");
+        }
+        let bytes = serde_json::to_vec(&SavedRope::capture(&rope, 20.0)).unwrap();
+        let mut saved: SavedRope = serde_json::from_slice(&bytes).unwrap();
+        assert!(saved.valid());
+        rope.changed_at = Some(-8.0);
+        assert_eq!(saved.restore(0.0), rope);
+        saved.settings.cam[1] = Some([2.0, f32::NAN, 3.0]);
+        assert!(!saved.valid());
     }
 
     #[test]
