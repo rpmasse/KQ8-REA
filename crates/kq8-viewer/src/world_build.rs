@@ -70,6 +70,8 @@ pub struct WorldRead {
     pub name: String,
     lights: kq8_data::lights::Lights,
     haze: kq8_data::haze::Haze,
+    haze_source: [u8;3],
+    palette_values: crate::live_palette::Values,
     ground: load::Ground,
     objects: load::Objects,
     animation: load::GroundAnimAssets,
@@ -289,7 +291,8 @@ pub fn read_world(game: &GameDir, name: &str, opts: &Options, arrival: Option<lo
     let mut since = Instant::now();
     let lights = load::load_object_lights(game, &world, log);
     let mut ground = load::load_ground(game, &world, log)?;
-    let haze = load::load_haze(game, &world, Some(&ground.terrain.settings), log);
+    let (haze,haze_source) = load::load_haze_with_source(game, &world, Some(&ground.terrain.settings), log);
+    let palette_values = world.palette_values();
     part("ground", &mut since);
     let mut objects = load::load_objects(game, &world, &ground.terrain, log, arrival, progress);
     part("objects", &mut since);
@@ -324,7 +327,7 @@ pub fn read_world(game: &GameDir, name: &str, opts: &Options, arrival: Option<lo
     log.summary(line);
     objects.pack = Some(pack);
     crate::timeline::mark(log, &format!("reading {name} done (its animations packed)"));
-    Ok(WorldRead { name: name.to_string(), lights, haze, ground, objects, animation, caption, gui, map, sound, took_ms: started.elapsed().as_millis() })
+    Ok(WorldRead { name: name.to_string(), lights, haze, haze_source, palette_values, ground, objects, animation, caption, gui, map, sound, took_ms: started.elapsed().as_millis() })
 }
 
 /// The parts count (2026-10-22): how the world's animations are made of
@@ -511,7 +514,7 @@ pub fn parent_world(game: &GameDir, world: &str) -> String {
 /// The model lights and haze for `ObjectLight`, which the app needs
 /// before its plugins are added (`object_light::add`).
 pub fn object_light(read: &WorldRead, opts: &Options) -> object_light::ObjectLight {
-    object_light::ObjectLight::new(read.lights.clone(), opts.light, read.haze, opts.haze)
+    object_light::ObjectLight::new(read.lights.clone(), opts.light, read.haze, opts.haze).with_palette(read.palette_values,read.haze_source)
 }
 
 /// Remembers the launch options for later worlds (main, at launch).

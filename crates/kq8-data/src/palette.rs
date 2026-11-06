@@ -7,21 +7,96 @@ use crate::chunks::{read_chunks, tag_string, u16_at, u32_at};
 
 pub type Rgb = [u8; 3];
 
-/// Palette stage of setBrightness (object-lighting.md rule 17).
-/// Display gamma is a separate operation. Integer division truncates to bytes.
+/// Palette conversion path; brightness.md Q186 describes their differences.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Output {
+    Direct3D,
+    Glide,
+    Software,
+}
+
+impl Output {
+    /// Original assignGModeName names (brightness.md rule 5a).
+    pub fn from_mode(name: &str) -> Option<Self> {
+        if name == "Glide" {
+            Some(Self::Glide)
+        } else if name == "Software" {
+            Some(Self::Software)
+        } else if name.starts_with("D3D-") && name.len() > 4
+        {
+            Some(Self::Direct3D)
+        } else {
+            None
+        }
+    }
+}
+
+/// The original promoted-f32 endpoints, interpolated then stored as f32.
+/// This is a palette multiplier, independent of the display gamma ramp.
+pub fn brightness_gain(value: u8) -> f32 {
+    let low = f64::from(0.3_f32);
+    let high = f64::from(1.7_f32);
+    (low + f64::from(value.min(100)) / (100.0 / (high - low))) as f32
+}
+
+/// Direct3D palette colour conversion under ordinary round-to-nearest
+/// f32 stores. Original driver/control-state boundary output remains open.
 pub fn brightness_color(rgb: Rgb, value: u8) -> Rgb {
-    let factor = 300 + 14 * u32::from(value.min(100));
-    let largest = u32::from(*rgb.iter().max().unwrap());
-    if largest * factor > 255_000 {
-        rgb.map(|v| (u32::from(v) * 255 / largest) as u8)
+    convert_color(rgb, brightness_gain(value), Output::Direct3D)
+}
+
+fn convert_color(rgb: Rgb, gain: f32, output: Output) -> Rgb {
+    let largest = f64::from(*rgb.iter().max().unwrap());
+    let gain = if output != Output::Software && largest * f64::from(gain) > 255.0 {
+        (255.0 / largest) as f32
     } else {
-        rgb.map(|v| (u32::from(v) * factor / 1000) as u8)
+        gain
+    };
+    std::array::from_fn(|axis| {
+        let product = f64::from(rgb[axis]) * f64::from(gain);
+        // Q186: cap comparison precedes the explicitly stored products.
+        if product > 255.0 {
+            return 255;
+        }
+        let stored = match output {
+            Output::Glide => axis == 1,
+            Output::Direct3D => axis != 1,
+            Output::Software => false,
+        };
+        if stored {
+            (product as f32) as u8
+        } else {
+            product as u8
+        }
+    })
+}
+
+pub fn for_output(colors: [Rgb; 256], value: u8, output: Output) -> [Rgb; 256] {
+    let gain = brightness_gain(value);
+    std::array::from_fn(|index| {
+        let rgb = convert_color(colors[index], gain, output);
+        if output == Output::Glide
+            && rgb == [0; 3]
+            && ((1..=9).contains(&index) || (246..=254).contains(&index))
+        {
+            [255, 0, 255]
+        } else {
+            rgb
+        }
+    })
+}
+
+/// The two hardware paths consult different stages for palette fog.
+pub fn hardware_fog(rgb: Rgb, value: u8, output: Output) -> Rgb {
+    match output {
+        Output::Glide => rgb,
+        _ => convert_color(rgb, brightness_gain(value), output),
     }
 }
 
 /// Adjust a copied palette; retain stored colours for matching and future loads.
 pub fn with_brightness(colors: [Rgb; 256], value: u8) -> [Rgb; 256] {
-    colors.map(|rgb| brightness_color(rgb, value))
+    for_output(colors, value, Output::Direct3D)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -115,7 +190,9 @@ impl Palette {
         let count = u16_at(data.data, 2) as usize;
         let available = (data.data.len() - 4) / 4;
         if count > available {
-            return Err(format!("RIFF palette claims {count} colours, has room for {available}"));
+            return Err(format!(
+                "RIFF palette claims {count} colours, has room for {available}"
+            ));
         }
         let mut colors = [[0; 3]; 256];
         for (i, slot) in colors.iter_mut().enumerate().take(count.min(256)) {
@@ -170,10 +247,70 @@ mod tests {
         assert_eq!(b([30, 100, 250], 50), [30, 100, 250]);
         assert_eq!(b([100, 200, 50], 0), [30, 60, 15]);
         assert_eq!(b([50, 100, 25], 100), [85, 170, 42]);
-        assert_eq!(b([100, 200, 50], 100), [127, 255, 63]);
+        assert_eq!(b([100, 200, 50], 100), [127, 254, 63], "D3D's green register product can fall just below 255 after the f32 reduced-gain store (Q186)");
         assert_eq!(b([255, 128, 64], 100), [255, 128, 64]);
         assert_eq!(b([0, 0, 0], 100), [0, 0, 0]);
         assert_eq!(b([50, 100, 25], 255), b([50, 100, 25], 100));
+    }
+
+    #[test]
+    fn the_original_gain_and_explicit_hardware_product_stores_differ() {
+        assert_eq!(
+            [
+                brightness_gain(0),
+                brightness_gain(50),
+                brightness_gain(100)
+            ],
+            [0.3_f32, 1.0, 1.7_f32]
+        );
+        let mut source = [[0; 3]; 256];
+        source[20] = [102, 153, 204];
+        source[21] = [120, 200, 250];
+        for output in [Output::Direct3D, Output::Glide] {
+            assert_eq!(for_output(source, 0, output)[20], [30, 45, 61]);
+            assert_eq!(for_output(source, 50, output)[20], [102, 153, 204]);
+            assert_eq!(for_output(source, 100, output)[20], [127, 191, 255]);
+        }
+        assert_eq!(
+            for_output(source, 100, Output::Direct3D)[21],
+            [122, 203, 255],
+            "D3D explicitly stores red/blue products as f32"
+        );
+        assert_eq!(
+            for_output(source, 100, Output::Glide)[21],
+            [122, 204, 254],
+            "Glide explicitly stores the green product as f32"
+        );
+        assert_eq!(
+            for_output(source, 100, Output::Software)[20],
+            [173, 255, 255],
+            "software clips channels independently"
+        );
+        assert_eq!(hardware_fog(source[20], 0, Output::Glide), source[20]);
+        assert_eq!(hardware_fog(source[20], 0, Output::Direct3D), [30, 45, 61]);
+        assert_eq!(source[21], [120, 200, 250]);
+    }
+
+    #[test]
+    fn glide_changes_only_the_eighteen_converted_black_entries() {
+        let source = [[1, 2, 3]; 256];
+        let shown = for_output(source, 0, Output::Glide);
+        assert_eq!(
+            shown.iter().filter(|&&rgb| rgb == [255, 0, 255]).count(),
+            18
+        );
+        for index in [1, 9, 246, 254] {
+            assert_eq!(shown[index], [255, 0, 255]);
+        }
+        for index in [0, 10, 245, 255] {
+            assert_eq!(shown[index], [0, 0, 0]);
+        }
+        assert_eq!(for_output(source, 0, Output::Direct3D), [[0; 3]; 256]);
+        assert_eq!(Output::from_mode("Glide"), Some(Output::Glide));
+        assert_eq!(Output::from_mode("D3D-display"), Some(Output::Direct3D));
+        assert_eq!(Output::from_mode("Software"), Some(Output::Software));
+        assert_eq!(Output::from_mode("software"), None, "the original software-name distinction is case-sensitive");
+        assert_eq!(Output::from_mode("other"), None);
     }
 
     use super::*;

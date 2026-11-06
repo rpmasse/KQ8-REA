@@ -7,6 +7,36 @@ checked from the numbers in `kq8-artifacts/logs/`). Newest details are in
 [MODLOG.md](../MODLOG.md); open questions in
 [behaviour/QUESTIONS.md](behaviour/QUESTIONS.md).
 
+## Live indexed brightness (2026-11-06)
+
+Graphics applies brightness to indexed world images and already-open menu
+artwork immediately. Shared original palette/index inputs rebuild each image
+in place; repeated changes are reversible. Terrain, buildings, models,
+animated faces, runtime weapon pictures and derived ghost/dither pictures
+use the same live values. HUD/map/caption drawing and pointers refresh from
+their retained source palettes. Texture dimensions, true-colour images,
+RGB materials and light maps keep their separate paths. Graphics setup and
+film return reapply the current preference.
+
+The conversion uses the original promoted-f32 gain and the documented
+Direct3D/Glide channel-store differences, including Glide's 18 special
+converted-black entries. Both hardware backgrounds retain source RGB;
+their fog colours use the appropriate source/adjusted stage. Source palette
+matching remains unchanged. No brightness-driven display-gamma stage is
+inferred from the slider.
+
+The 851 regular checks, two original-data checks and eight automated Windows
+Graphics checks pass; the latter launch 15 game processes. They cover 0/100/0
+changes, fixed artwork pixels, retained world-image checksums, preference
+restart, actual disk loading and reopening Graphics. Original introductory
+and portal films decode and return through the preference-application path.
+The first enhanced reload comparison included a selection cursor; the
+source-backed comparison now excludes authored dynamic-control/cursor areas.
+Failures, exact commands and final results are in MODLOG. Original runtime,
+incoming x87 control state, final driver/texture quantization, window-DIB
+system colours and complete film/true-colour output equivalence remain
+unverified or incomplete. M4–M6 remain open; no manual testing was performed.
+
 ## Spirit traps and ordinary hit reactions (2026-11-06)
 
 All four Dead City spirit boxes load with their original fields and defaults.

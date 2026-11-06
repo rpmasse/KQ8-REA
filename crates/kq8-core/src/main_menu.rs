@@ -235,6 +235,7 @@ impl Choice {
 
 pub struct Art {
     pub(crate) palette: [kq8_data::palette::Rgb; 256],
+    source_palette: [kq8_data::palette::Rgb; 256],
     layout: Control,
     pub rows: [[i32; 4]; 7],
     pictures: BTreeMap<&'static str, Vec<Bitmap>>,
@@ -301,23 +302,29 @@ impl Art {
                 texts.entry(line.tuple.case).or_insert(line.raw);
             }
         }
+        let source_palette = kq8_data::palette::as_shown(Palette::parse(&gui("menus.ppl")?)?.colors);
         Ok(Self {
             rows,
             layout,
             pictures,
             titles,
             texts,
-            palette: kq8_data::palette::as_shown(Palette::parse(&gui("menus.ppl")?)?.colors),
+            palette: source_palette,
+            source_palette,
             heading: Font::parse(&gui("45.pft")?)?,
             item: Font::parse(&gui("27.pft")?)?,
             small: Font::parse(&gui("consoleg.pft")?)?,
         })
     }
 
-    /// Apply the palette stage once to newly opened screen artwork.
+    /// Rebuild the palette stage from retained source colours.
     pub fn with_brightness(mut self, value: u8) -> Self {
-        self.palette = kq8_data::palette::with_brightness(self.palette, value);
+        self.set_palette(value,kq8_data::palette::Output::Direct3D);
         self
+    }
+
+    pub fn set_palette(&mut self, value: u8, output: kq8_data::palette::Output) {
+        self.palette = kq8_data::palette::for_output(self.source_palette,value,output);
     }
 
     pub(crate) fn label(&self, id: u8) -> &str {

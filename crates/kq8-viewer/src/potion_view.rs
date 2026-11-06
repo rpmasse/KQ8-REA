@@ -82,11 +82,8 @@ pub struct ConnorLooks {
 }
 
 impl ConnorLooks {
-    pub fn new(l: crate::load::PotionLooks, materials: Vec<(Handle<ObjectMaterial>, String, Option<Handle<Image>>)>, images: &mut Assets<Image>) -> Self {
-        let mut image = |look: crate::load::Look| match look {
-            crate::load::Look::Texture { width, height, rgba, .. } => Some(images.add(crate::object_light::texture_image(width, height, rgba, bevy::image::ImageAddressMode::Repeat))),
-            _ => None,
-        };
+    pub fn new(l: crate::load::PotionLooks, materials: Vec<(Handle<ObjectMaterial>, String, Option<Handle<Image>>)>, images: &mut Assets<Image>, light: &crate::object_light::ObjectLight) -> Self {
+        let mut image = |look: crate::load::Look| light.palette.look(look,images,bevy::image::ImageAddressMode::Repeat);
         let iron = l.iron.and_then(|(n, look)| Some((n.to_ascii_lowercase(), image(look)?)));
         let armour = l.armour.into_iter().filter_map(|(n, look)| Some((n, image(look)?))).collect();
         let face_sets = l.face_sets.into_iter().map(|(n, set)| (n, set.into_iter().map(|s| s.and_then(&mut image)).collect())).collect();
@@ -115,11 +112,11 @@ impl ConnorLooks {
     /// M6 6c-2: the materials of a weapon set loaded while playing, and the
     /// `I_` pictures of its textures; the next look step gives them the
     /// looks shown now (Strength, Invisible, the face set).
-    pub fn add(&mut self, materials: Vec<(Handle<ObjectMaterial>, String, Option<Handle<Image>>)>, ghosts: Vec<(String, crate::load::Look)>, images: &mut Assets<Image>) {
+    pub fn add(&mut self, materials: Vec<(Handle<ObjectMaterial>, String, Option<Handle<Image>>)>, ghosts: Vec<(String, crate::load::Look)>, images: &mut Assets<Image>, light: &crate::object_light::ObjectLight) {
         self.materials.extend(materials);
         for (n, look) in ghosts {
-            if let crate::load::Look::Texture { width, height, rgba, .. } = look {
-                self.ghosts.entry(n).or_insert_with(|| images.add(crate::object_light::texture_image(width, height, rgba, bevy::image::ImageAddressMode::Repeat)));
+            if let crate::load::Look::Texture { .. } = look {
+                self.ghosts.entry(n).or_insert_with(|| light.palette.look(look,images,bevy::image::ImageAddressMode::Repeat).unwrap());
             }
         }
         self.redo = true;
@@ -128,7 +125,7 @@ impl ConnorLooks {
     /// Rule 29: a copy of `pic` with 3 of every 4 pixels see-through, one
     /// kept every 4 along a row, shifted by 2 on each next row (the
     /// pattern of the game's own `I_` pictures); made once per picture.
-    fn mesh(&mut self, images: &mut Assets<Image>, pic: &Handle<Image>) -> Option<Handle<Image>> {
+    fn mesh(&mut self, images: &mut Assets<Image>, pic: &Handle<Image>, palette: &crate::live_palette::WorldPalette) -> Option<Handle<Image>> {
         if let Some(m) = self.meshes.get(&pic.id()) {
             return Some(m.clone());
         }
@@ -143,6 +140,7 @@ impl ConnorLooks {
             }
         }
         let m = images.add(crate::object_light::texture_image(w, h, rgba, bevy::image::ImageAddressMode::Repeat));
+        palette.derived(pic,&m,crate::live_palette::AlphaTransform::Mesh);
         self.meshes.insert(pic.id(), m.clone());
         Some(m)
     }
@@ -233,7 +231,7 @@ pub fn orbit_step(mut commands: Commands, sim: Option<ResMut<DoorSim>>, connor: 
 /// Invisible look follow the potions; worked out again whenever one of
 /// them changes (rule 29: the textures are converted again when his skin
 /// or face changes). Each change in `connor.log` and `items.log`.
-pub fn look_step(sim: Option<ResMut<DoorSim>>, connor: Option<ResMut<ConnorSim>>, mut materials: ResMut<Assets<ObjectMaterial>>, mut images: ResMut<Assets<Image>>) {
+pub fn look_step(sim: Option<ResMut<DoorSim>>, connor: Option<ResMut<ConnorSim>>, mut materials: ResMut<Assets<ObjectMaterial>>, mut images: ResMut<Assets<Image>>, light: Res<crate::object_light::ObjectLight>) {
     let (Some(mut sim), Some(mut c)) = (sim, connor) else { return };
     let c = &mut *c;
     let w = &mut sim.active.world;
@@ -297,7 +295,7 @@ pub fn look_step(sim: Option<ResMut<DoorSim>>, connor: Option<ResMut<ConnorSim>>
             Some(g.clone())
         } else {
             meshed += 1;
-            base.and_then(|b| c.looks.mesh(&mut images, &b))
+            base.and_then(|b| c.looks.mesh(&mut images, &b, &light.palette))
         };
         if let Some(mut m) = materials.get_mut(h) {
             m.texture = pic;
@@ -317,7 +315,7 @@ pub fn look_step(sim: Option<ResMut<DoorSim>>, connor: Option<ResMut<ConnorSim>>
     c.looks.face = wanted;
     let set = found.or_else(|| c.looks.face_shown.as_ref().and_then(|f| c.looks.face_sets.get(f).cloned()));
     if let Some(set) = set {
-        c.lip_images = if invisible { set.iter().map(|p| p.as_ref().and_then(|p| c.looks.mesh(&mut images, p))).collect() } else { set };
+        c.lip_images = if invisible { set.iter().map(|p| p.as_ref().and_then(|p| c.looks.mesh(&mut images, p, &light.palette))).collect() } else { set };
     }
     let mouth = if c.mouth > 7 { 0 } else { c.mouth as usize };
     let img = c.lip_images.get(mouth).cloned().flatten();
@@ -400,7 +398,7 @@ pub fn dither_rgba(rgba: &mut [u8], width: usize, mode: u8) {
 /// `own` drawn in dither `mode` (1 or 2): its texture rewritten (made once
 /// per texture and mode), the colour key on (texels with no alpha cut
 /// out) and full brightness.
-fn dithered_material(materials: &mut Assets<ObjectMaterial>, images: &mut Assets<Image>, made: &mut BTreeMap<(AssetId<Image>, u8), Handle<Image>>, own: &Handle<ObjectMaterial>, mode: u8) -> Handle<ObjectMaterial> {
+fn dithered_material(materials: &mut Assets<ObjectMaterial>, images: &mut Assets<Image>, made: &mut BTreeMap<(AssetId<Image>, u8), Handle<Image>>, own: &Handle<ObjectMaterial>, mode: u8, palette: &crate::live_palette::WorldPalette) -> Handle<ObjectMaterial> {
     let Some(mut m) = materials.get(own).cloned() else { return own.clone() };
     if let Some(tex) = m.texture.clone() {
         let key = (tex.id(), mode);
@@ -410,6 +408,7 @@ fn dithered_material(materials: &mut Assets<ObjectMaterial>, images: &mut Assets
                 let width = image.texture_descriptor.size.width as usize;
                 dither_rgba(image.data.as_mut()?, width, mode);
                 let h = images.add(image);
+                palette.derived(&tex,&h,crate::live_palette::AlphaTransform::Dither(mode));
                 made.insert(key, h.clone());
                 Some(h)
             }),
@@ -442,6 +441,7 @@ pub fn dither_step(
     mut materials: ResMut<Assets<ObjectMaterial>>,
     mut images: ResMut<Assets<Image>>,
     mut state: Local<Dithered>,
+    light: Res<crate::object_light::ObjectLight>,
     shared: Res<crate::Shared>,
     (change, mut seen): (Res<crate::world_build::WorldChange>, Local<u64>),
 ) {
@@ -489,7 +489,7 @@ pub fn dither_step(
         }
         if mode != 0 {
             let own = m.0.clone();
-            m.0 = made.entry((own.id(), mode)).or_insert_with(|| dithered_material(&mut materials, &mut images, textures, &own, mode)).clone();
+            m.0 = made.entry((own.id(), mode)).or_insert_with(|| dithered_material(&mut materials, &mut images, textures, &own, mode, &light.palette)).clone();
             done.insert(e, (own, mode, m.0.clone()));
             if redrawn {
                 again += 1;

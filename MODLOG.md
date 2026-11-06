@@ -1,5 +1,34 @@
 # MODLOG
 
+## 2026-11-06 Live indexed palette brightness
+
+Changed: retain shared original palette/index inputs alongside decoded textures and extend ObjectLight's existing image cache with source recipes and source-palette identity. Ground, buildings, models, animated faces, late weapon images and ghost/dither variants rebuild the same image assets from those inputs. New runtime images use the current values. The Graphics slider updates already-open menu artwork/backdrops, pointer, HUD/map/caption palettes, indexed world images and fog; Graphics setup and film return reapply the preference. Repeated changes start from the original inputs, without compounding displayed colours. Texture dimensions, original assets, true-colour images, RGB materials and light maps retain their separate paths. No display-gamma ramp is introduced.
+
+Sources: user-authorized study A's brightness.md Q186, including new rules 5a/7a for exact mode names and explicit per-channel stores, plus existing palette/model/interface notes and readable GOG palettes, bitmaps and GUI data. The gain uses promoted f32 endpoints. Hardware clipping retains hue; software clips channels independently. Glide stores the green final product as f32, D3D red/blue; the cap comparison precedes those stores. Glide's 18 converted-black entries and source/adjusted haze/background distinctions are retained. Rust uses ordinary nearest f32 stores; incoming original x87 control state and final driver quantization remain unmeasured. B read prose and data only, never the executable or raw study. The plan preceded implementation. No installed assets, extracted code or raw study are committed; no manual testing.
+
+Verification: 851 regular tests pass (649 core, 155 data, 7 audio, 40 viewer), including five palette and two live-image checks. These cover known output bytes, reversible 0/100/0 changes, original index/alpha/dimension retention, current values for new uploads and derived dither colour-key recalculation. The GOG palette/upload/haze check passes in 0.46 s and the authored Graphics controls/static-sample check in 0.12 s. Final viewer/test compilation passes without Rust warnings. Script coverage was regenerated in 58.08 s and has no content change.
+
+The final integrated Graphics run passes all eight tests in 426.76 s across 15 fresh Windows game processes. Both D3D-display and Glide sweep 0/100/0 with Graphics open, save after resuming, load that actual slot without replaying Begin, and reopen Graphics with the persisted value. The same stable cached world images and static uploaded artwork return to identical zero-brightness hashes. The two film cases decode original introductory/portal pictures and apply the current preference on return to Menu/Gameplay; the portal finishes naturally after 255 intervals/237 decoded pictures. Existing resolution, lighting, shadow and fresh-palette checks also pass. GOG Options.cs byte equality passes. These establish Rust component behavior, not original-framebuffer equivalence.
+
+Failures and corrections: the first type propagation exposed eight old array/Copy/test assumptions, corrected from the retained-input types. The first palette run passed 4/5: its old rational fixture expected [127,255,63], whereas Q186's f32 reduced gain leaves D3D green below 255, producing [127,254,63]; the corrected source-backed run passes 5/5. Intermediate unused/unwired warnings and the later obsolete haze wrapper were removed; final compilation is clean. Three atomic patch preflights rejected stale contexts and wrote no partial files.
+
+The first enhanced native batch passed 6/8 in 385.00 s. Both reload variants failed a menu-image comparison even though the disk slots, loaded brightness and reversible world bytes were correct (failed roots live-palette/1793964453811170200 and /1793964624431587500). Work stopped for a source audit: the assumed static top-180-row crop included the selection cursor when a reopened panel selected Low instead of Brightness. The corrected diagnostic samples actual uploaded pixels outside authored changing-value rectangles and both cursor columns. Engine arithmetic, rendering and the slider/save/load input schedule were unchanged. The same D3D and Glide reload cases then passed in 55.75/58.41 s, followed by the complete eight-test pass above. The original-controls test independently checks selection/animation independence. Hashes are FNV-based fingerprints, not CRCs.
+
+Automated reproduction from the repository root in PowerShell (no manual playthrough):
+
+```powershell
+$env:KQ8_GAME_DIR=(Resolve-Path "..\King's Quest 8 GOG").Path
+$env:KQ8_FFMPEG=(Resolve-Path ".\target\media-tools\ffmpeg.exe").Path
+cargo test --locked -p kq8-core -p kq8-data -p kq8-audio
+cargo test --locked -p kq8-viewer --bin kq8-viewer
+cargo test --locked -p kq8-viewer --bin kq8-viewer load::brightness_checks::gog_palette_brightness_reaches_texture_upload_and_keeps_haze_index -- --ignored --exact
+cargo test --locked -p kq8-core graphics_menu::tests::original_graphics_controls_change_only_their_own_settings -- --ignored --exact
+cargo test --locked -p kq8-viewer --test graphics_preferences -- --ignored --test-threads=1
+cargo check --locked -p kq8-viewer --tests
+```
+
+Expected: the eight Graphics checks pass, logs show three live slider rebuilds per hardware path with identical restored-zero image/artwork fingerprints, fresh slot restoration without Begin and film-return notifications, and the installed Options.cs remains unchanged. FFmpeg above is the existing local decoder; no new dependency was installed. Ignored evidence: kq8-artifacts/live-palette-{suites-final,viewer-final,check-final,original-data,layout-sample,native-final,reload-static,glide-reload-static,native-verified,coverage}.log and the live-palette/live-palette-film run directories. Original runtime/native-original-save comparison, original incoming x87 state, final display/driver output and full film/true-colour equivalence are **not tested**. Window-DIB system-palette substitution remains unimplemented. Graphics mode selection/live resolution and the other M4–M6 gates remain open.
+
 ## 2026-11-06 Spirit traps, forced reactions and queued dialogue gestures
 
 Changed: load KQSpiriTrap boxes and their mutable damage/spiritState/trapStatus fields; preserve ordered occupancy, double/single entry drains, repeatable Cue 1 and authored Cue 2 no-op. Queue the handler's stored whole-point health difference and then the separate Normal strength-1 forced hit in FIFO order. Preserve the original low 1% floor, protection/rope/dying distinctions and same-time stale-delta edge. Known ordinary dying entry zeros health once, without clamping a later already-queued direct delta again. Optional trap records restore without a new On/drain; legacy records keep loaded defaults and invalid class/state data is rejected before mutation.

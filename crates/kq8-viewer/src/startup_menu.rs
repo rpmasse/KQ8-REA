@@ -434,8 +434,11 @@ impl Menu {
         sound: bool,
         log: &mut crate::log::Log,
     ) -> Result<Self, String> {
+        let graphics = Preferences::load(path).settings.graphics;
+        let mut art = Art::open(path)?;
+        art.set_palette(graphics.brightness,kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D));
         Ok(Self {
-            art: Art::open(path)?.with_brightness(Preferences::load(path).settings.graphics.brightness),
+            art,
             state: Choice::default(),
             slot_page: None,
             options: None,
@@ -695,6 +698,37 @@ fn redraw(world: &mut World) {
     }
 }
 
+/// The slider applies to the active menu surface immediately (Q186).
+/// Refresh cached backdrop pixels while retaining each panel's selection.
+pub fn palette_changed(world: &mut World, values: crate::live_palette::Values, why: &str) {
+    if !world.contains_resource::<Menu>() { return; }
+    let (handle,cursor) = {
+        let mut menu = world.resource_mut::<Menu>();
+        let Menu { art,graphics,options,.. } = &mut *menu;
+        art.set_palette(values.brightness,values.output);
+        if let Some(page) = graphics { page.palette_changed(art); }
+        if let Some(page) = options { page.palette_changed(art); }
+        (menu.image.clone(),canvas_image(menu.art.cursor()))
+    };
+    let sample = |world:&World| {
+        let menu = world.resource::<Menu>();
+        let image = world.resource::<Assets<Image>>().get(&handle)?;
+        let rgba = image.data.as_deref()?;
+        match menu.graphics.as_ref() {
+            Some(page) => Some(crate::live_palette::fingerprint(&page.palette_sample(rgba,image.width(),image.height())?)),
+            None => Some(crate::live_palette::fingerprint(rgba)),
+        }
+    };
+    let before = sample(world);
+    redraw(world);
+    let after = sample(world);
+    let cursor = world.resource_mut::<Assets<Image>>().add(cursor);
+    if let Ok(window) = world.query_filtered::<Entity,With<PrimaryWindow>>().single(world) {
+        world.entity_mut(window).insert(CursorIcon::Custom(CustomCursor::Image(CustomCursorImage { handle:cursor,hotspot:(0,0),..default() })));
+    }
+    world.resource::<crate::Shared>().log.lock().unwrap().summary(format!("palette: menu live brightness {}, layout-masked static pixels before {before:?}, after {after:?}; Graphics and Options backdrops refreshed ({why})",values.brightness));
+}
+
 fn option_key(world: &mut World, key: Key) {
     let log = world.resource::<crate::Shared>().log.clone();
     let old = world.resource::<Preferences>().settings.clone();
@@ -751,6 +785,9 @@ fn option_key(world: &mut World, key: Key) {
             Ok(screen) => {
                 world.resource_mut::<Menu>().graphics = Some(screen);
                 log.lock().unwrap().summary("graphics: opened original Graphics.gui");
+                let graphics = world.resource::<Preferences>().settings.graphics.clone();
+                let output = kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D);
+                crate::live_palette::apply_to_surface(world,crate::live_palette::Values {brightness:graphics.brightness,output},"Graphics setup");
             }
             Err(e) => log.lock().unwrap().summary(format!("graphics: could not open: {e}")),
         }
@@ -805,6 +842,10 @@ fn graphics_key(world: &mut World, key: Key) {
         }
         if graphics.shadow_mask != old.shadow_mask {
             crate::shadow_view::apply_menu_mask(world, graphics.shadow_mask);
+        }
+        if graphics.brightness != old.brightness {
+            let output = kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D);
+            crate::live_palette::apply_to_surface(world,crate::live_palette::Values { brightness:graphics.brightness,output },"Graphics slider");
         }
         log.lock().unwrap().summary(format!("graphics: {key:?} -> {graphics:?}"));
     }
@@ -1417,6 +1458,9 @@ fn leave_movie(world: &mut World, reason: &str) {
             "movie: {} {reason}{counts}, returning to {:?}, elapsed ms {elapsed:?}",
             page.name, page.after
         ));
+    let graphics = world.resource::<Preferences>().settings.graphics.clone();
+    let output = kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D);
+    crate::live_palette::apply_to_surface(world,crate::live_palette::Values {brightness:graphics.brightness,output},"return from film");
     match page.after {
         MovieReturn::Gameplay => {
             close_menu(world, false);

@@ -103,6 +103,11 @@ impl Screen {
                 return Err(format!("Graphics.gui lacks {key}"));
             }
         }
+        let background = Self::backdrop(&layout,art);
+        Ok(Self { layout, background, row: Row::Low, dragging: false })
+    }
+
+    fn backdrop(layout: &Layout, art: &Art) -> Canvas {
         let mut background = Canvas::new(640, 480);
         for key in [
             "BACKGROUND",
@@ -132,12 +137,32 @@ impl Screen {
                 caption,
             );
         }
-        Ok(Self {
-            layout,
-            background,
-            row: Row::Low,
-            dragging: false,
-        })
+        background
+    }
+
+    pub fn palette_changed(&mut self, art: &Art) {
+        self.background = Self::backdrop(&self.layout,art);
+    }
+
+    /// Actual uploaded pixels outside dynamic values and the two cursor
+    /// columns. The authored rectangles make the sample independent of
+    /// selection/animation without assuming that a fixed crop is static.
+    pub fn palette_sample(&self, rgba: &[u8], width: u32, height: u32) -> Option<Vec<u8>> {
+        if (width,height) != (self.background.width,self.background.height) || rgba.len() != width as usize*height as usize*4 { return None; }
+        let mut dynamic: Vec<[i32;4]> = ROWS.iter().filter_map(|r|r.value()).map(|key|self.layout.controls[key].rect).collect();
+        for key in ["CURSOR1","CURSOR2"] {
+            let [l,_,r,_] = self.layout.controls[key].rect;
+            dynamic.push([l,0,r,height as i32]);
+        }
+        let mut sample = Vec::new();
+        for y in 0..height as i32 {
+            for x in 0..width as i32 {
+                if dynamic.iter().any(|&[l,t,r,b]| (l..r).contains(&x) && (t..b).contains(&y)) { continue; }
+                let offset = (y as usize*width as usize+x as usize)*4;
+                sample.extend_from_slice(&rgba[offset..offset+4]);
+            }
+        }
+        Some(sample)
     }
 
     fn hit(&self, key: &str, x: i32, y: i32) -> bool {
@@ -265,6 +290,8 @@ mod tests {
             shadow_mask: 17,
             dynamic_lighting: false,
         };
+        let before = screen.render(&graphics,&art,0);
+        let sample = screen.palette_sample(&before.rgba,before.width,before.height).unwrap();
         assert_eq!(
             screen.input(Key::Click(350, 190), &mut graphics),
             Action::Stay
@@ -279,6 +306,9 @@ mod tests {
         screen.input(Key::MouseUp, &mut graphics);
         assert_eq!(graphics.brightness, 100);
         assert_eq!(graphics.mode, "D3D-display");
+        let changed = screen.render(&graphics,&art,7);
+        assert_eq!(screen.palette_sample(&changed.rgba,changed.width,changed.height).unwrap(),sample,
+            "palette evidence must exclude authored changing controls and animated selection cursors");
         assert_eq!(
             screen.input(Key::Click(310, 450), &mut graphics),
             Action::Back

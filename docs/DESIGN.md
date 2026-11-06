@@ -13,6 +13,62 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M4 live palette changes (2026-11-06, implemented component; output gates open).** Follow brightness.md
+Q186's surface-palette rules. Retain the original palette and index pixels
+beside each decoded indexed texture, sharing immutable inputs through the
+existing texture cache. Extend ObjectLight's existing per-world image cache
+with the source recipe for uploaded indexed images; live changes rebuild
+those same image assets from the original inputs. Include terrain, buildings,
+models, animated faces and ghost/dither variants. Ordinary RGB materials,
+true-colour textures and light maps retain their separate paths. New runtime
+uploads use the current active gain. Dropping a world drops its recipes.
+
+Keep menu/HUD source palettes as well. A slider change rebuilds already-open
+Graphics artwork and pointer colours during the paused menu's Update, then
+updates the indexed world images before the next presentation. Invalidate
+derived GUI/map/dither drawing caches when their palette inputs change;
+unchanged settings cause no repeated palette rebuild. Reopening a screen,
+loading/restoring a world and returning from a film apply the current
+preference. A plain stored setBrightness preference remains distinct from
+the slider's apply notification. Preserve preference persistence in the
+recreation's own Options.cs.
+
+Use Q186's promoted-f32 endpoints/gain and renderer-specific palette tables,
+including Glide's 18 converted-black exceptions and software's independent
+channel clipping. Keep source palette matching unchanged. Background uses
+source RGB on both hardware paths; Glide fog uses source RGB and Direct3D
+fog adjusted RGB. Resolve the note's explicit per-path product-rounding and
+mode-name questions with the authorized study before replacing conversion
+arithmetic; retain unresolved final driver/film/true-colour output limits.
+There is no brightness-selected display-gamma ramp.
+
+Verify authored palettes and exact index/alpha/dimension retention, repeated
+0/100/0 source-based rebuilds, live-created images, unchanged true-colour
+images/light maps and stable haze/map matching. Automate an original Graphics
+slider sweep while the menu stays open, logging menu/world image byte hashes,
+palette values and rebuild counts. Then resume, save/reload and reopen the
+menu in a fresh process to check preference application and original GOG
+Options.cs equality. Check movie-return preference application without
+claiming unstudied codec colour equivalence. Record failures and remaining
+M4–M6 gates. No manual testing or original executable inspection by B.
+
+The enhanced palette reload probe exposed an invalid image comparison: the
+top-180-row crop includes a selection cursor when the reopened panel selects
+Low. Use the authored layout's value rectangles and both cursor x-ranges to
+exclude dynamic overlays from a sample of the actual uploaded menu image.
+Preserve the same slider/save/load schedule and compare those static samples
+across selection changes. No arbitrary crop/timing changes or rendering
+changes follow from this fixture failure.
+
+The component's final gates pass: 851 regular checks, the original palette
+and authored Graphics-control checks, and eight native Graphics cases across
+15 processes. Both hardware paths restore the actual saved slot and reopen
+the panel; both original films decode before preference application on
+return. The corrected layout-based diagnostic passes with the original input
+schedule. Final compiler checking is clean and generated script coverage is
+unchanged. MODLOG records commands, failed fixtures and remaining output
+limits; this does not complete Graphics or the M4–M6 milestones.
+
 **Spirit-trap component (2026-11-06, implemented; campaign gate open).** Recognize the
 original KQSpiriTrap class alongside generic trap boxes. Read damage,
 spiritState and trapStatus with defaults .2/2/0; keep their mutable values
@@ -210,9 +266,9 @@ Both checks now pass. A small host-return hook posts runtime Lookup after Init h
 
 Both parts now pass. The original Temple 1 trigger sets water steps on the live temple_e building, a slot stores type 3 and Connor inside sloshtrp, and a fresh process produces water cues without another On. Moving out sends one Off, restores type 0, produces dirt cues and saves an empty inside list. Core checks cover command validation/range fallback, sticky and masked occupied traps, one-shot state, invalid duplicate occupants and missing live targets. Older records omit the optional fields and keep the previous loading fallback. The existing Wizard approach/speech disk reloads also pass with the new generic trap record. This does not verify world-return persistence, monster footstep generation, airborne building memory, trap Lookup or subclass-specific state.
 
-**M4 palette brightness implementation plan (2026-11-06).** Implement the documented palette stage of `setBrightness` (object-lighting rule 17): factor 0.3 + 1.4 × value / 100, with a shared reduction of all RGB channels if the largest would exceed 255. Apply it when fresh world and interface palettes are decoded, before texture interpolation and lighting; leave true-colour texture bytes unchanged. Cache the original palette and choose haze's nearest palette entry using those original colours, then adjust the selected colour, so brightness cannot change the index chosen by `resetHazeColor`. Keep the neutral value 50 byte-identical. Check real GOG palettes and generated texture-image bytes at 0/50/100, interface/loading palette routing, original-file immutability and an unattended fresh Windows world. This is a component of brightness support: the separate Glide display-gamma transfer, live palette changes, and complete screen/API equivalence remain open research/implementation work and must not be reported as finished Graphics brightness.
+**M4 palette brightness (2026-11-06).** The first component applied palette colours at world/interface loading, before texture filtering and lighting, and retained source palettes for matching. The live-palette component above extends that representation with shared source index/colour recipes and explicit surface-apply notifications. Q186 corrects the original extra-display-gamma assumption and establishes per-renderer conversion, fog/background and matching rules. Current paths follow those rules under ordinary f32 store rounding; original incoming floating-point control state and final driver/texture output remain unverified.
 
-The palette stage now runs when world palettes, HUD/caption palettes, loading artwork and newly opened menu artwork are decoded. Stored palettes stay unchanged in the cache; haze and magic-map index matching remain in that stored colour space, and display adjustment happens after selection. Indexed texture bytes are converted using the adjusted palette before upload, while 24-bit texture bytes bypass it. The GOG checks cover both Connor textures at 0/50/100, generated image data and unchanged 256×256 dimensions, menu output and neutral-value identity, and the unchanged haze indices. Three unattended Dead City launches confirm preferences reach world and HUD loading: 254 palette entries change at 0, none at 50, and 246 at 100. The palette byte conversion currently truncates; exact original rounding, gamma transfer, update timing, matching order and API differences are recorded as Q186. Gamma and live brightness remain unimplemented, so this does not complete Graphics brightness or M4.
+World, HUD/caption, loading and menu palettes use the selected conversion path. Source palette matching stays unchanged, indexed images rebuild in place and true-colour bytes bypass the palette stage. Graphics notifications update an already-open panel, retained world images and derived caches; screen setup and film return apply the current preference. Current Windows/data evidence is recorded in FEATURES and MODLOG. Window-DIB system colours, complete true-colour/menu/film output, final display transfer and the remaining Graphics mode/resolution/controller requirements keep M4 open. A separate brightness-driven gamma ramp is not part of the original setting.
 
 **M4/M6 interrupted conversation plan (2026-11-06).** Read the installed Wizard goodbye/welcome-back keys, opening dialogue range and original voice durations. Exercise the first two opening lines in an isolated conversation: leave the original stay area, save during goodbye, reload until its queue pauses, save/reload that pause, return and save/reload during welcome back. Check remaining queue order, voice offset, one delayed TalkExit, no ordinary completion for goodbye/welcome back, the interrupted line restarting from its beginning on return, no duplicate lines, and restored HUD/camera/control. Use four fresh Windows processes and original assets without manual playtesting. Fix demonstrated runtime gaps only; this is a dialogue continuation check, not the full Wizard reward scene or campaign.
 

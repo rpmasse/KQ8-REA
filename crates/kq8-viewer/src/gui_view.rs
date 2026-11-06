@@ -345,6 +345,9 @@ pub struct Gui {
     screen: [u32; 2],
     scale: f32,
     pub(crate) palette: [Rgb; 256],
+    source_palette: [Rgb; 256],
+    palette_values: crate::live_palette::Values,
+    palette_revision: u64,
     /// Pictures by lower-case file name (a `.pbm` is one, a `.pba` many);
     /// `None`: not found or not readable (logged once).
     files: HashMap<String, Option<Vec<Bitmap>>>,
@@ -403,6 +406,14 @@ pub struct Gui {
 pub struct GuiCover(pub Vec<(&'static str, [f32; 4])>);
 
 impl Gui {
+    pub fn apply_palette(&mut self, values: crate::live_palette::Values) {
+        if values == self.palette_values { return; }
+        self.palette = kq8_data::palette::for_output(self.source_palette,values.brightness,values.output);
+        self.palette_values = values;
+        self.palette_revision += 1;
+        self.last.clear();
+    }
+
     pub fn restore_panels(&mut self, saved: &Panels) -> Result<(), String> {
         if !saved.valid_checkpoint() { return Err("invalid HUD panel checkpoint".into()); }
         self.panels = saved.clone();
@@ -483,10 +494,11 @@ pub fn load_gui(game: &GameDir, region: &crate::load::World, main: &mut Log) -> 
     // interface.md rules 1c-1f (Q118): the world's objectPalette.
     let (pal_names, pal_note) = crate::load::screen_palette_paths(game, world);
     let Some((pal_path, pal_bytes)) = first_found(game, &pal_names) else { return fail(main, format!("no palette found ({pal_note}; tried {pal_names:?})")) };
-    let palette = match kq8_data::Palette::parse(&pal_bytes) {
-        Ok(p) => crate::option_settings::screen_palette(game, p.shown_colors()),
+    let source_palette = match kq8_data::Palette::parse(&pal_bytes) {
+        Ok(p) => p.shown_colors(),
         Err(e) => return fail(main, format!("{pal_path}: {e}")),
     };
+    let palette = crate::option_settings::screen_palette(game,source_palette);
     let wide = crate::talk_view::set800mode(game);
     let screen = kq8_core::caption::screen(wide);
     let scale = kq8_core::caption::scale(screen);
@@ -534,6 +546,9 @@ pub fn load_gui(game: &GameDir, region: &crate::load::World, main: &mut Log) -> 
         screen,
         scale,
         palette,
+        source_palette,
+        palette_values: region.palette_values(),
+        palette_revision: 0,
         files: HashMap::new(),
         fonts: HashMap::new(),
         panels,
@@ -1927,14 +1942,14 @@ pub fn pointer_draw(
     window: Query<(Entity, &Window), With<bevy::window::PrimaryWindow>>,
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
-    mut shown: Local<Option<(String, u32)>>,
+    mut shown: Local<Option<(String, u32, u64)>>,
     frame: Res<ScreenFrame>,
 ) {
     use bevy::window::{CursorIcon, CustomCursor, CustomCursorImage};
     let Some(mut gui) = gui else { return };
     let Ok((entity, _)) = window.single() else { return };
     let step = ((frame.0[3] / gui.screen[1] as f32).round() as u32).max(1);
-    let wanted = (gui.pointer.clone(), step);
+    let wanted = (gui.pointer.clone(), step, gui.palette_revision);
     if shown.as_ref() == Some(&wanted) {
         return;
     }

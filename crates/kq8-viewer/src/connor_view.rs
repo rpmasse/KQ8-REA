@@ -1208,7 +1208,7 @@ pub fn late_set_step(
                     }
                 }
                 let (n_materials, n_ghosts) = (added.len(), ghosts.len());
-                c.looks.add(added, ghosts, &mut images);
+                c.looks.add(added, ghosts, &mut images, &light);
                 let line = format!(
                     "weapon set {file} ({kind}) loaded while playing: {new} movements, {} animations, {n_materials} materials ({n_ghosts} I_ pictures), {} ms so far (M6 6c-2)",
                     frames.len(),
@@ -1247,9 +1247,7 @@ pub fn spawn_connor(
             looks
                 .into_iter()
                 .map(|l| match l {
-                    Some(crate::load::Look::Texture { width, height, rgba, .. }) => {
-                        Some(images.add(crate::object_light::texture_image(width, height, rgba, bevy::image::ImageAddressMode::Repeat)))
-                    }
+                    Some(look) => light.palette.look(look,images,bevy::image::ImageAddressMode::Repeat),
                     _ => None,
                 })
                 .collect()
@@ -1383,7 +1381,7 @@ pub fn spawn_connor(
         cut_presses: Vec::new(),
         face,
         lip_images,
-        looks: crate::potion_view::ConnorLooks::new(potion_looks, all_materials, images),
+        looks: crate::potion_view::ConnorLooks::new(potion_looks, all_materials, images, light),
         mouth: 0,
         jump_start_z: None,
         turn_keys: Default::default(),

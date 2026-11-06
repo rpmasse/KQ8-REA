@@ -202,6 +202,10 @@ pub enum Destination {
 }
 
 impl Screen {
+    pub fn palette_changed(&mut self, art: &MenuArt) {
+        self.background = Self::backdrop(&self.layout,art);
+    }
+
     pub fn open(game: &Path, menu: &MenuArt) -> Result<Self, String> {
         let layout = Layout::read(game, "Options.gui", "IDCTL_OPT_")?;
         for name in ["BACKGROUND", "OPTIONS", "CURSOR1", "CURSOR2"]
