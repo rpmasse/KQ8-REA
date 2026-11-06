@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-07 Update the remaining M4–M6 gates
+
+The completion plan now distinguishes the verified first-person,
+combat and Daventry campaign work from each milestone's remaining
+requirements. Q199 records the missing original Graphics switching
+rules. The current GOG preference selects D3D-display and low
+resolution. The time when the original reallocates its surface and
+its behavior across backends still need a separate study.
+
 ## 2026-11-07 Earn the Candle inside the Daventry church
 
 The Windows replay uses the earned roof save, walks to the inward rope
