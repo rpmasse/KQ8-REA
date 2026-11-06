@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-07 Original menu selection masks
+
+The installed main menu mask changes pixels only in the selected row,
+wraps after 16 frames and uses a 100 ms real-time frame interval.
+Four Windows launches covered Main, Options, Graphics and Keyboard.
+The initial check missed the Graphics update because it logged only
+timer-driven redraws. Checking the actual redraw path also covers
+changes painted while an input event is being handled. The native test
+passed in 15.54 seconds. [Menu details](docs/FEATURES.md#menu-selection-masks)
+
 ## 2026-11-07 Original HUD frame timing
 
 The church Candle level-up now plays the installed flame and equipment

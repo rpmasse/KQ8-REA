@@ -13,6 +13,14 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M4 animated menu selections.** The title and pause menu currently
+draw the first mask picture on every redraw. Select the frame from
+the same 100 ms real-time clock as the other original GUI pictures.
+Give each menu page its own opening time, keep the parent's clock on
+return from a child, and draw the selected row's original pictures.
+Check pixels from the GOG menu artwork and the title, Options,
+Graphics and key-remap screens through their Windows entry points.
+
 **M4 HUD animation timing.** Use the original real-time clock and
 100 ms frame period from interface study Q171 for the level-up flame,
 equipment flashes and looping timer icons. For the once-played

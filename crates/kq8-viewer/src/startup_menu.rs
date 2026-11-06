@@ -381,8 +381,8 @@ pub fn parse_keys(input: &str) -> Result<Vec<Key>, String> {
     Ok(out)
 }
 
-fn image(art: &Art, choice: &Choice) -> Image {
-    canvas_image(art.render(choice))
+fn image(art: &Art, choice: &Choice, frame: usize) -> Image {
+    canvas_image(art.render_frame(choice, frame))
 }
 
 fn canvas_image(canvas: kq8_core::gui_draw::Canvas) -> Image {
@@ -420,8 +420,10 @@ pub struct Menu {
     keyboard: Option<keyboard_menu::Screen>,
     movie: Option<MoviePage>,
     credits: Option<credits::Screen>,
+    main_clock: std::time::Instant,
     option_clock: std::time::Instant,
-    option_frame: usize,
+    child_clock: std::time::Instant,
+    mask_frame: usize,
     typed: Vec<char>,
     capture: Option<(Entity, std::time::Instant)>,
     current_thumbnail: Option<Vec<u8>>,
@@ -435,6 +437,22 @@ pub struct Menu {
 }
 
 impl Menu {
+    fn active_mask_frame(&self) -> Option<(&'static str, usize)> {
+        if self.movie.is_some() || self.credits.is_some() || self.slot_page.is_some() {
+            return None;
+        }
+        let (page, clock) = if self.graphics.is_some() {
+            ("Graphics", self.child_clock)
+        } else if self.keyboard.is_some() {
+            ("Keyboard", self.child_clock)
+        } else if self.options.is_some() {
+            ("Options", self.option_clock)
+        } else {
+            ("Main", self.main_clock)
+        };
+        Some((page, crate::gui_view::picture_tick(clock.elapsed().as_secs_f64() * 1000.0)))
+    }
+
     pub fn open(
         path: &Path,
         keys: Vec<Key>,
@@ -453,8 +471,10 @@ impl Menu {
             keyboard: None,
             movie: None,
             credits: None,
+            main_clock: std::time::Instant::now(),
             option_clock: std::time::Instant::now(),
-            option_frame: 0,
+            child_clock: std::time::Instant::now(),
+            mask_frame: 0,
             typed: Vec::new(),
             capture: None,
             current_thumbnail: None,
@@ -582,7 +602,7 @@ pub fn show(
     } else if let Some(page) = &menu.credits {
         canvas_image(page.render(&menu.art))
     } else {
-        image(&menu.art, &menu.state)
+        image(&menu.art, &menu.state, 0)
     });
     menu.shown = Some(std::time::Instant::now());
     menu.paused_at_update = sim.map(|s| s.active.world.updates);
@@ -671,6 +691,11 @@ fn typed_name(
 }
 
 fn redraw(world: &mut World) {
+    let advanced = world.resource::<Menu>().active_mask_frame().and_then(|(page, frame)| {
+        let mut menu = world.resource_mut::<Menu>();
+        let previous = std::mem::replace(&mut menu.mask_frame, frame);
+        (previous == 0 && frame > 0).then_some((page, frame))
+    });
     let menu = world.resource::<Menu>();
     let image = if let Some(page) = &menu.movie {
         canvas_image(
@@ -680,28 +705,31 @@ fn redraw(world: &mut World) {
     } else if let Some(page) = &menu.credits {
         canvas_image(page.render(&menu.art))
     } else if let Some(page) = &menu.graphics {
-        canvas_image(page.render(&world.resource::<Preferences>().settings.graphics, &menu.art, menu.option_frame))
+        canvas_image(page.render(&world.resource::<Preferences>().settings.graphics, &menu.art, menu.mask_frame))
     } else if let Some(page) = &menu.keyboard {
         canvas_image(page.render(
             &world.resource::<Keyboard>().active,
             &menu.art,
-            menu.option_frame,
+            menu.mask_frame,
         ))
     } else if let Some(page) = &menu.options {
         canvas_image(page.render(
             &world.resource::<Preferences>().settings,
             &menu.art,
-            menu.option_frame,
+            menu.mask_frame,
         ))
     } else {
         match &menu.slot_page {
             Some((state, art)) => canvas_image(art.render(state, &menu.art)),
-            None => image(&menu.art, &menu.state),
+            None => image(&menu.art, &menu.state, menu.mask_frame),
         }
     };
     let handle = menu.image.clone();
     if let Some(mut target) = world.resource_mut::<Assets<Image>>().get_mut(&handle) {
         *target = image;
+    }
+    if let Some((page, frame)) = advanced {
+        world.resource::<crate::Shared>().log.lock().unwrap().detail(format!("menu: {page} mask advanced on its 100 ms clock to tick {frame}"));
     }
 }
 
@@ -790,7 +818,10 @@ fn option_key(world: &mut World, key: Key) {
         let source = &world.resource::<Source>().game;
         match graphics_menu::Screen::open(source, &world.resource::<Menu>().art) {
             Ok(screen) => {
-                world.resource_mut::<Menu>().graphics = Some(screen);
+                let mut menu = world.resource_mut::<Menu>();
+                menu.child_clock = std::time::Instant::now();
+                menu.mask_frame = 0;
+                menu.graphics = Some(screen);
                 log.lock().unwrap().summary("graphics: opened original Graphics.gui");
                 let graphics = world.resource::<Preferences>().settings.graphics.clone();
                 let output = kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D);
@@ -802,7 +833,10 @@ fn option_key(world: &mut World, key: Key) {
         let source = &world.resource::<Source>().game;
         match keyboard_menu::Screen::open(source, &world.resource::<Menu>().art) {
             Ok(screen) => {
-                world.resource_mut::<Menu>().keyboard = Some(screen);
+                let mut menu = world.resource_mut::<Menu>();
+                menu.child_clock = std::time::Instant::now();
+                menu.mask_frame = 0;
+                menu.keyboard = Some(screen);
                 log.lock()
                     .unwrap()
                     .summary("keyboard: opened original movekey.gui (13 actions)");
@@ -1064,11 +1098,8 @@ pub fn step(world: &mut World) {
             credit_status(world, "timer");
             redraw(world);
         }
-    } else if world.resource::<Menu>().options.is_some() || world.resource::<Menu>().graphics.is_some() {
-        let frame =
-            (world.resource::<Menu>().option_clock.elapsed().as_millis() / 100) as usize % 16;
-        if frame != world.resource::<Menu>().option_frame {
-            world.resource_mut::<Menu>().option_frame = frame;
+    } else if let Some((_, tick)) = world.resource::<Menu>().active_mask_frame() {
+        if tick != world.resource::<Menu>().mask_frame {
             redraw(world);
         }
     }
@@ -1205,7 +1236,7 @@ pub fn step(world: &mut World) {
                     None
                 };
             let image =
-                (menu.state != old).then(|| (menu.image.clone(), image(&menu.art, &menu.state)));
+                (menu.state != old).then(|| (menu.image.clone(), image(&menu.art, &menu.state, menu.mask_frame)));
             (action, image, cue, pointer)
         };
         if let Some(pointer) = pointer {
@@ -1285,7 +1316,7 @@ pub fn step(world: &mut World) {
                     let mut menu = world.resource_mut::<Menu>();
                     menu.options = Some(page);
                     menu.option_clock = std::time::Instant::now();
-                    menu.option_frame = 0;
+                    menu.mask_frame = 0;
                     redraw(world);
                 }
                 Err(e) => world

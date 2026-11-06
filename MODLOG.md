@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-07 Animate the original menu selection masks
+
+The main menu previously always drew frame zero of the installed mask.
+It now advances through its 16 images on the original 100 ms clock.
+Options, Graphics and Keyboard use the same timing, measured from
+each screen's opening. Returning to a parent uses that screen's own
+elapsed time. An original-art check verified changed pixels only in
+the selected row's mask and the return to frame zero after a loop.
+Four normal Windows menu launches passed in 15.54 seconds.
+
 ## 2026-11-07 Match the original HUD animation speed
 
 The level-up flame and equipment flashes now use the original 100 ms

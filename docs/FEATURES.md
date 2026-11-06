@@ -17,7 +17,17 @@ retains the ring, the two story flags and the archer's removal.
 The [campaign notes](daventry-progression.md#verified-through-the-dead-heros-ring)
 give the route and its remaining Daventry prerequisites.
 
+## Menu selection masks
+
+The title and pause menu draws the spinning mask from `Mskcur.pba` at
+the selected row. Main, Options, Graphics and Keyboard select a frame
+from the time since that screen opened, at 100 ms per frame. Returning
+to an already-open parent resumes its clock. The original-art check
+compares successive rendered mask images and the loop back to frame
+zero. The automated Windows menu test opens each screen normally.
+
 ## Connor's view-specific animation files (2026-11-07)
+
 
 The viewer reads the third-person base, hand and ranged animation
 tables named in the installed Connor.kq. The same reader resolves
