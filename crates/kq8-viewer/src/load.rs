@@ -1594,6 +1594,7 @@ pub struct Objects {
     pub connor_start: Vec<kq8_core::connor_start::StartLine>,
     /// Every placed object's `stats=` line (3i-6): name, the line.
     pub object_stats: Vec<(String, String)>,
+    pub object_stat_defaults: BTreeMap<String, kq8_core::stats::Stats>,
     pub persistent_stat_objects: std::collections::BTreeSet<String>,
     /// The placed `KQMonster`s (M4 4a-2, `talking.md` rule 6): name,
     /// place after `move`, script.
@@ -2027,6 +2028,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         dormant_traps: Vec::new(),
         template_files: Vec::new(),
         used_no_place: Vec::new(),
+        recipe_only: false,
         game,
         world,
         terrain,
@@ -2047,6 +2049,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         connor_inventory: (Vec::new(), Vec::new()),
         connor_start: Vec::new(),
         object_stats: Vec::new(),
+        object_stat_defaults: BTreeMap::new(),
         persistent_stat_objects: Default::default(),
         monsters: Vec::new(),
         dormant_monsters: Vec::new(),
@@ -2175,10 +2178,20 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         .collect();
     playing_templates(&mut placer, &script.loads);
     for (name, label, bytes) in world.entries_ending(".kq") {
-        if loaded_files.contains(&name.to_ascii_lowercase()) || placer.list_files.contains(&name.to_ascii_lowercase()) {
+        let loaded = loaded_files.contains(&name.to_ascii_lowercase());
+        if placer.list_files.contains(&name.to_ascii_lowercase()) {
             continue;
         }
         let Ok(bytes) = bytes else { continue };
+        let recipe_only = if loaded {
+            let parsed = kq8_data::kq_text::parse(&bytes);
+            let ordinary = parsed.first().and_then(|s| s.get("classType")).is_some_and(|class| {
+                ["KQObject", "KQAnimObject", "KQAnimOnce", "KQPaddleObject"].iter().any(|c| class.eq_ignore_ascii_case(c))
+            });
+            if !ordinary || !placer.load_targets.contains(&name.to_ascii_lowercase())
+                || placer.template_files.iter().any(|(file, _)| file.eq_ignore_ascii_case(&name)) { continue; }
+            true
+        } else { false };
         let load = LoadKq {
             file: name.clone(),
             name: LoadName::Keep,
@@ -2189,7 +2202,9 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
             line: 0,
             inside_if: false,
         };
+        placer.recipe_only = recipe_only;
         placer.place(&load, Some((label, bytes)), true, &script.vars);
+        placer.recipe_only = false;
     }
     // The world's scripts, for running them while the game plays (M3).
     phase("unused objects placed and loaded", &mut since);
@@ -2370,6 +2385,7 @@ struct Placer<'a> {
     connor_inventory: (Vec<ConnorItem>, Vec<String>),
     connor_start: Vec<kq8_core::connor_start::StartLine>,
     object_stats: Vec<(String, String)>,
+    object_stat_defaults: BTreeMap<String, kq8_core::stats::Stats>,
     persistent_stat_objects: std::collections::BTreeSet<String>,
     monsters: Vec<kq8_core::active::Monster>,
     /// Characters prepared for a script's loadKQ (2026-10-22).
@@ -2396,6 +2412,8 @@ struct Placer<'a> {
     /// (file, index into `placed`): the first start-up placement of each
     /// file with no place of its own (F-6, `playing_templates`).
     used_no_place: Vec<(String, usize)>,
+    /// Hidden recipe for a file already live; it must not become dormant.
+    recipe_only: bool,
     music: Option<kq8_core::music::Music>,
     point_lights: Vec<(String, kq8_data::lights::PointLight)>,
     animators: Vec<(String, kq8_data::effects::AnimatorSettings)>,
@@ -3258,6 +3276,16 @@ impl Placer<'_> {
             return;
         }
         let mut p = Placement::from_load(&file[0], load);
+        let defaults = match file[0].get("stats") {
+            Some(line) => {
+                let (stats, problems) = kq8_core::stats::Stats::parse(&line.split_whitespace().collect::<Vec<_>>());
+                for problem in problems { self.log.summary(format!("stats prototype {label}: {problem}")); }
+                stats
+            }
+            None if p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQDoor")) => kq8_core::stats::Stats([kq8_core::stats::DOOR_HEALTH, 0, 0, 0, 0]),
+            None => kq8_core::stats::Stats::default(),
+        };
+        self.object_stat_defaults.insert(base.to_ascii_lowercase(), defaults);
         // A monster-list line (rule 4): renamed, its position and heading
         // replace the file's; z −1 = on the ground (the floor grid, as a
         // `loadKQ` −1); any other z as written, then `keepOnGround`.
@@ -3414,7 +3442,7 @@ impl Placer<'_> {
         // (objects.md Q19 rules 2-3: Dead City's `paddle2`, lifted to 912,
         // is still a template).
         let no_place = p.position == [0.0; 3];
-        let dormant = unused && !no_place && self.load_targets.contains(&base.to_ascii_lowercase());
+        let dormant = unused && !self.recipe_only && !no_place && self.load_targets.contains(&base.to_ascii_lowercase());
         if dormant {
             let script = s.get("script").map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
             self.dormant.push((base.to_ascii_lowercase(), p.name.clone(), script));
@@ -3739,8 +3767,11 @@ impl Placer<'_> {
         // A scripted copy may override an object's authored position, as
         // when the feather is placed on either one of the scales.
         let source = base.to_ascii_lowercase();
+        let ordinary_dormant = dormant && !boulder
+            && !p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQDoor") || c.eq_ignore_ascii_case("KQChest"))
+            && p.class.as_deref().and_then(kq8_data::characters::Class::of).is_none();
         let can_copy = (no_place && self.load_targets.contains(&source))
-            || (anim_object && self.copy_targets.contains(&source));
+            || (anim_object && self.copy_targets.contains(&source)) || ordinary_dormant || self.recipe_only;
         if unused && can_copy && !self.template_files.iter().any(|(f, _)| f.eq_ignore_ascii_case(base)) {
             self.template_files.push((base.to_ascii_lowercase(), self.placed.len()));
             self.log.summary(format!("template {label}[{}]: kept for a script's loadKQ while playing (M5 5d-3)", p.name));
@@ -5035,6 +5066,7 @@ impl Placer<'_> {
             connor_inventory: self.connor_inventory,
             connor_start: self.connor_start,
             object_stats: self.object_stats,
+            object_stat_defaults: self.object_stat_defaults,
             persistent_stat_objects: self.persistent_stat_objects,
             monsters,
             dormant_monsters: self.dormant_monsters,
@@ -6421,5 +6453,25 @@ mod trap_lookup_checks {
         // The first callback ran at time zero; update() has now advanced the
         // world clock by one tick, so the saved remaining interval is shorter.
         assert!((waiting[0]["seconds_remaining"].as_f64().unwrap() + a.world.now() - 0.1).abs() < 1e-6);
+    }
+}
+
+#[cfg(test)]
+mod runtime_stat_default_checks {
+    use super::*;
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn original_bell_and_default_object_stats_are_retained_for_runtime_loading() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let world = World::open(&game, "Daventry").unwrap();
+        let mut log = Log::create("copy-stats-original-data").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        assert_eq!(objects.object_stat_defaults["bell.kq"], kq8_core::stats::Stats([1, 0, 0, 0, 0]));
+        assert_eq!(objects.object_stat_defaults["condoor.kq"].0[0], kq8_core::stats::DOOR_HEALTH);
+        assert_eq!(objects.object_stat_defaults["belstnd1.kq"], kq8_core::stats::Stats::default());
+        assert!(objects.dormant.iter().any(|(file, name, _)| file == "bell.kq" && name.eq_ignore_ascii_case("bell")));
+        assert!(objects.templates.iter().any(|t| t.file == "bell.kq"));
+        assert!(!objects.object_stats.iter().any(|(name, _)| name.eq_ignore_ascii_case("bell")), "the unused bell must not start as a live object");
     }
 }
