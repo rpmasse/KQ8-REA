@@ -67,6 +67,33 @@ that victory and walked west. The guard entered Die at 813 and
 awarded his experience at 903. Connor crossed the west opening at 41,
 with level 4 and 40 health in the final slot.
 
+#### Road to the hero's tomb
+
+Two attempts started from that WestYard save with enemy AI active,
+normal damage and no consumables. The first aimed directly from the
+eastern bend to the western hills. Connor stopped at (156061, 262320)
+on update 397 against the pine at (157296, 261811).
+
+For the second run, the route followed the open ground north of the
+pine, then turned east. Connor saved WestRoad at (175502, 310208)
+with 21 health. He reached (220560, 306502) below the hero's hill on
+update 932. On the way, two spriggans and a goblin had reduced his
+health from 40 to 21. The tomb archer hit on updates 891, 936, 961 and
+982. The last bolt reduced Connor's health from 6 to −2, before he
+reached the steps or fought the archer at melee range. The checkpoint
+proves the trail can be walked. Opening the tomb and obtaining the
+ring still require their own successful run.
+
+Two original Daventry scripts narrow the next test. The Small Crossbow
+reward is authored in `sprgnbow.cs` for the church roof encounter.
+The guard Connor killed inside the windmill was `sprigwnd1`; he came
+away from that fight with the Small Axe, without a crossbow.
+`worldinv.cs` also places a second shield potion at (251242, 259475)
+and groups of three single mushrooms near (266000, 221000) and
+(280000, 203000). Their placements are verified in the GOG archive.
+Picking them up along the campaign and carrying them to this fight
+remain to be checked.
+
 #### Earlier attempts at passing the guard
 
 Two subsequent tests examined walking around the guard. Both started

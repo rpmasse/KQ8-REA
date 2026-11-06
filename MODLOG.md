@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-07 Two attempts to reach the hero's tomb
+
+Both Windows processes loaded the unchanged WestYard save from the
+five-process Normal campaign. A direct hillside approach ran into a
+pine at update 397. A second route used the original terrain and object
+boundaries to choose a path north around it. The menu saved WestRoad
+with 21 health. Connor reached the foot of the hill on update 932 and
+died from an archer's bolt on update 982. It was the tenth enemy hit
+since loading WestYard. Neither opening the tomb nor collecting its
+ring passed. The route notes distinguish this failure from the
+successful Henchman test.
+
+Local evidence is in `kq8-artifacts/west-yard-hero-hill/1793983001724`
+and `1793983767295` under the same directory. The second run's
+`stdout.log`, `kq8-artifacts/logs/fight.log` and `slots/slot-2.json`
+contain the path, damage and WestRoad save respectively.
+
 ## 2026-11-07 Defeat the Henchman and leave the windmill after reload
 
 The prepared Daventry route retains the cottage shield and mushrooms
