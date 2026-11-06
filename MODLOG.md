@@ -1,5 +1,27 @@
 # MODLOG
 
+## 2026-11-07 Carry the garden mushrooms through the Wizard meeting
+
+The original Daventry `WorldInv.cs` places three individual mushrooms
+outside the cottage. The automated player uses the same exit and
+basket interaction as the prepared Wizard route, walks north outside
+the west wall and clicks each garden item through a visible pixel.
+The first diagnostic collected all three, then the original Jumping
+tutorial held input before the save. The checked-in route acknowledges
+case 133. The menu save holds eight mushrooms and one shield. After
+loading it in another process, the Wizard exchanges the fragment and
+gives the Magic Map. A second menu save retains all eight mushrooms
+and the shield. The individual pickups stay gone across the reload.
+
+The regression passed in 327.90 seconds from the VillageShield slot
+earned in the full Normal campaign. Contacts for the three garden
+pickups occurred on updates 333, 335 and 346 in that run. The original
+Options.cs bytes matched after both processes. Intermediate saves and
+logs are local under `kq8-artifacts/garden-wizard/1793984890378118000`.
+The [campaign notes](docs/daventry-progression.md#road-to-the-heros-tomb)
+give the reproduction command. The default path also earns VillageShield;
+this new check was run using the already-earned slot.
+
 ## 2026-11-07 Two attempts to reach the hero's tomb
 
 Both Windows processes loaded the unchanged WestYard save from the

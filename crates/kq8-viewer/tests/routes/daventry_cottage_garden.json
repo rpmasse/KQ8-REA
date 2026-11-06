@@ -1,0 +1,6 @@
+[
+  {"name": "West of the cottage garden", "xy": [278850, 203500], "radius": 210},
+  {"name": "Nearest garden mushroom", "xy": [278920, 203520], "radius": 240, "aim": "NoName18"},
+  {"name": "Middle garden mushroom", "xy": [279140, 203950], "radius": 260, "aim": "NoName17"},
+  {"name": "East garden mushroom", "xy": [279430, 204050], "radius": 230, "aim": "NoName16"}
+]

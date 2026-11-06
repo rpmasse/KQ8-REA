@@ -91,8 +91,32 @@ away from that fight with the Small Axe, without a crossbow.
 `worldinv.cs` also places a second shield potion at (251242, 259475)
 and groups of three single mushrooms near (266000, 221000) and
 (280000, 203000). Their placements are verified in the GOG archive.
-Picking them up along the campaign and carrying them to this fight
-remain to be checked.
+The cottage garden pickup is described below. The second shield,
+the other group of mushrooms and carrying extra supplies all the way
+to the tomb fight remain to be checked.
+
+**Garden supplies.** The three mushrooms near (280000, 203000) are
+immediately outside Sarah's cottage. Starting with the earned cottage
+shield, Connor opened the basket inside for five mushrooms, then walked
+north outside its west wall. Each of the three individual mushrooms was
+the first object hit through a visible gameplay pixel. Their original
+pickup scripts increased the stack to six, seven and eight. The game
+also opened the Jumping tutorial (case 133). The automated player
+acknowledged it and used the menu to save GardenMushrooms.
+
+A second Windows process loaded that save. Connor walked to the Wizard
+and received the original fragment exchange and map. The GardenWizard
+save still had eight mushrooms and one shield. The three garden items
+remained gone. The two-process test took 327.90 seconds from the earned
+VillageShield checkpoint.
+
+With `KQ8_GAME_DIR` set to the GOG installation, the following
+check starts from Normal New Game by default. Set `KQ8_SHIELD_SLOT`
+to an earned VillageShield menu save to repeat from the cottage.
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield garden_mushrooms_survive_the_trip_to_the_wizard -- --ignored --exact --test-threads=1
+```
 
 #### Earlier attempts at passing the guard
 

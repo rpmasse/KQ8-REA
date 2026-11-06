@@ -13,6 +13,16 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 village supplies for the hero's tomb.** Follow the installed
+Daventry `worldinv.cs` placements after collecting the shield and
+opening Sarah's basket. Walk to the garden outside the cottage. For
+each of its three mushrooms, verify a visible gameplay pixel hits
+that particular item first, then check its pickup and the original
+jumping tutorial. Save eight mushrooms. Load that save in a new
+Windows process, walk to the Wizard, receive the Magic Map and save.
+Check that both inventory and the garden pickups survive the trip.
+The garden check ends at the Wizard; the tomb has its own acceptance.
+
 **M6 Henchman encounter after earning supplies.** Load the shield, mushrooms,
 map and Small Axe earned through normal Daventry play. Follow the original
 scene and leave the door westward. Use the shield after control returns,

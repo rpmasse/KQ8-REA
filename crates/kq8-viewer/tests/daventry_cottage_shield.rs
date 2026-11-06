@@ -163,7 +163,7 @@ fn cottage_basket_and_wizard_keep_the_earned_supplies() {
     earn_prepared_wizard(&play);
 }
 
-fn earn_prepared_wizard(play: &Play) {
+fn start_at_earned_shield(play: &Play) {
     if let Some(slot) = std::env::var_os("KQ8_SHIELD_SLOT") {
         fs::create_dir_all(&play.slots).unwrap();
         fs::copy(slot, play.slots.join("slot-1.json")).unwrap();
@@ -171,6 +171,10 @@ fn earn_prepared_wizard(play: &Play) {
     } else {
         play.earn_shield();
     }
+}
+
+fn earn_prepared_wizard(play: &Play) {
+    start_at_earned_shield(play);
     let mut wizard: Value =
         serde_json::from_str(include_str!("routes/daventry_wizard.json")).unwrap();
     let mut landmarks: Vec<Value> =
@@ -227,6 +231,91 @@ fn earn_prepared_wizard(play: &Play) {
             ),
             "{key}"
         );
+    }
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a graphics device; KQ8_SHIELD_SLOT can repeat from the cottage"]
+fn garden_mushrooms_survive_the_trip_to_the_wizard() {
+    let play = Play::new("garden-wizard");
+    start_at_earned_shield(&play);
+    let mut landmarks: Vec<Value> =
+        serde_json::from_str(include_str!("routes/daventry_cottage_exit.json")).unwrap();
+    let garden: Vec<Value> =
+        serde_json::from_str(include_str!("routes/daventry_cottage_garden.json")).unwrap();
+    landmarks.extend(garden);
+    let route = play.root.join("garden.json");
+    fs::write(
+        &route,
+        serde_json::to_vec(&serde_json::json!({"start":3,"landmarks":landmarks})).unwrap(),
+    )
+    .unwrap();
+    let (walk, items) = play.run("garden", &[
+        "--menu-input", "down,enter,release,enter,release", "--walk-route", route.to_str().unwrap(),
+        "--key","popup:help=131,0", "--key","popup:help=132,0", "--key","popup:help=133,0",
+        "--key","menu:down:down:down:enter:release:enter:release:escape:type=GardenMushrooms:enter:release:escape,385",
+        "--key","menu:up:enter:release:left:enter:release,400", "--frames","2800",
+    ]);
+    let garden_names = ["NoName18", "NoName17", "NoName16"];
+    for (i, name) in garden_names.iter().enumerate() {
+        assert!(walk
+            .lines()
+            .any(|l| l.contains(&format!("test --aim {name} (camera"))
+                && l.contains(&format!("hits {name} first"))));
+        let gain = format!("INVITEM_Mushroom {} -> {}", 5 + i, 6 + i);
+        assert!(items
+            .lines()
+            .any(|l| l.contains(&format!("click {name} (")) && l.contains(&gain)));
+    }
+    assert!(walk.contains("starting help: acknowledged case 133"));
+    let check_supplies = |save: &Value| {
+        assert_eq!(save["journey"]["ai_off"], false);
+        assert_eq!(save["journey"]["god_mode"], false);
+        let carried = save["journey"]["items"].as_array().unwrap();
+        for (kind, count) in [("INVITEM_Mushroom", 8), ("INVITEM_Invulnerable", 1)] {
+            assert!(carried.iter().any(|i| i["kind"] == kind
+                && i["quantity"] == count
+                && i["place"]["Carried"] == "Connor"));
+        }
+        for name in garden_names {
+            assert!(save["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|i| i["name"] == name && i["place"] == "Gone"));
+        }
+    };
+    let garden = play.slot(2);
+    assert_eq!(garden["label"], "GardenMushrooms");
+    check_supplies(&garden);
+
+    let mut wizard: Value =
+        serde_json::from_str(include_str!("routes/daventry_wizard.json")).unwrap();
+    wizard["start"] = 3.into();
+    let route = play.root.join("wizard.json");
+    fs::write(&route, serde_json::to_vec(&wizard).unwrap()).unwrap();
+    let (walk, items) = play.run("wizard", &[
+        "--menu-input","down,enter,release,down,enter,release", "--walk-route",route.to_str().unwrap(),
+        "--key","popup:help=141,0", "--key","popup:help=127,0", "--key","popup:help=132,0", "--key","popup:help=153,0",
+        "--key","menu:down:down:down:enter:release:enter:release:escape:type=GardenWizard:enter:release:escape,3200",
+        "--key","menu:up:enter:release:left:enter:release,3215","--frames","12000",
+    ]);
+    assert!(walk.contains("save restored in Daventry without replaying Begin"));
+    assert!(walk.contains("walk-route at Wizard on update"));
+    assert!(items.contains("INVITEM_MagicMap 0 -> 1"));
+    let wizard = play.slot(3);
+    assert_eq!(wizard["label"], "GardenWizard");
+    check_supplies(&wizard);
+    for kind in ["INVITEM_MagicMap", "INVITEM_Piece1", "INVITEM_Mask1"] {
+        assert!(wizard["journey"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|i| i["kind"] == kind && i["quantity"] == 1));
     }
     assert_eq!(
         fs::read(play.game.join("Options.cs")).unwrap(),
