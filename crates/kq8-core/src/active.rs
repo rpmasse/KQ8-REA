@@ -881,6 +881,10 @@ pub struct WorldState {
     /// Other objects' stats by lower-case name (`stats=`, doors 10,000
     /// health without one; 3i-6).
     pub stats: BTreeMap<String, Stats>,
+    /// Non-character names loaded with the original persist manager on.
+    pub persistent_stat_objects: BTreeSet<String>,
+    /// Last damaging weapon kind for an ordinary object's Die callback.
+    pub object_hit_kinds: BTreeMap<String, crate::fight::HitKind>,
     /// Objects whose collider is out of the collision world now (group
     /// bit 0x8 lost: far, off or hidden; `object-lighting.md` rule 41),
     /// lower case: clicks pass through them (M1 step 7b).
@@ -2253,6 +2257,7 @@ impl WorldState {
         self.dormant.remove(&key);
         self.came_in.push((key.clone(), name.clone()));
         self.loading.insert(lower.clone());
+        self.persistent_stat_objects.insert(lower.clone());
         self.known.insert(lower);
         // A trap: its box is in place from now on (it was off since the start).
         let trap = match self.trap_index(&name) {
@@ -2587,6 +2592,9 @@ impl WorldState {
         } else {
             self.dithered.remove(&lower);
         }
+        if kq8_data::characters::Class::of(&t.class).is_none() {
+            self.persistent_stat_objects.insert(lower.clone());
+        }
         self.known.insert(lower);
         let what = match &t.kind {
             TemplateKind::Anim(p) => {
@@ -2656,6 +2664,7 @@ impl WorldState {
         let placement = Placement { position: [values[0], values[1], values[2]], rotation: kq8_data::objects::rotation(angles) };
         let mut player = NamedAnimPlayer::new(name, vec![movement], 0, placement);
         player.once = true;
+        self.persistent_stat_objects.insert(key.clone());
         self.known.insert(key.clone());
         self.deleted.remove(&key);
         self.end_loop_listeners.remove(&key);
@@ -4518,6 +4527,8 @@ impl Active {
                 gold_persists: false,
                 scroll_remark_at: None,
                 stats: BTreeMap::new(),
+                persistent_stat_objects: BTreeSet::new(),
+                object_hit_kinds: BTreeMap::new(),
                 plain_hidden: BTreeMap::new(),
                 dormant: BTreeMap::new(),
                 came_in: Vec::new(),
@@ -4889,8 +4900,9 @@ impl Active {
         let start = if known { "" } else { " (no stats= line: started from 0 0 0 0 0, Q86 d stand-in)" };
         self.world.note(format!("{head}: {:?} -> {:?}{start}", before.0, after.0));
         if after.dead() {
-            self.world.note(format!("{head}: health below 0: its script gets Die {DIE_KIND} (rules 19-20)"));
-            if !self.call_named(&e.target, &["Die", DIE_KIND]) {
+            let kind = self.world.object_hit_kinds.get(&e.target.to_ascii_lowercase()).map_or(DIE_KIND, |k| k.name());
+            self.world.note(format!("{head}: health below 0: its script gets Die {kind} (rules 19-20)"));
+            if !self.call_named(&e.target, &["Die", kind]) {
                 self.world.note(format!("{}: no script by that name; Die not called", e.target));
             }
         }
@@ -10021,6 +10033,29 @@ deleteObject waterfall2
         a.world.connor_do([0.0, -1500.0, 0.0], std::f32::consts::PI, 2350.0, Some("Condoor"), false, "attack");
         a.update();
         assert_eq!(a.scripts.vars.get("D::died"), Some("Condoor Normal"));
+    }
+
+    #[test]
+    fn object_stats_death_uses_a_saved_damaging_hit_kind_and_keeps_zero_alive() {
+        use crate::fight::HitKind;
+        for kind in [HitKind::Normal, HitKind::Projectile, HitKind::Fire, HitKind::Ice] {
+            let script = "if test $2 == Die\n set D::died $1 $3\nendif\n";
+            let mut a = active(script, &[]);
+            a.world.persistent_stat_objects.insert("condoor".into());
+            a.set_stats("Condoor", Stats([1, 0, 0, 0, 0]));
+            a.world.scripted_attack("Condoor", &["weapon".into(), match kind { HitKind::Normal => "0", HitKind::Projectile => "1", HitKind::Fire => "2", HitKind::Ice => "3" }.into(), "1".into(), "0".into()], "test");
+            assert_eq!(a.world.stats["condoor"].0[0], 0);
+            assert!(a.world.die_calls.is_empty());
+            let kept = crate::kept_interactions::KeptInteractions::take(&a.world);
+            let kept: crate::kept_interactions::KeptInteractions = serde_json::from_slice(&serde_json::to_vec(&kept).unwrap()).unwrap();
+            let mut b = active(script, &[]);
+            b.world.persistent_stat_objects.insert("condoor".into());
+            b.set_stats("Condoor", Stats([10000, 0, 0, 0, 0]));
+            kept.restore_object_stats(&mut b.world);
+            b.world.queue.send(0.0, 0.0, "Condoor", "KQStatsChangeRequestEvent", &["-1".into()], "test");
+            b.update();
+            assert_eq!(b.scripts.vars.get("D::died"), Some(format!("Condoor {}", kind.name()).as_str()));
+        }
     }
 
     #[test]

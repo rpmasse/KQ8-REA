@@ -1594,6 +1594,7 @@ pub struct Objects {
     pub connor_start: Vec<kq8_core::connor_start::StartLine>,
     /// Every placed object's `stats=` line (3i-6): name, the line.
     pub object_stats: Vec<(String, String)>,
+    pub persistent_stat_objects: std::collections::BTreeSet<String>,
     /// The placed `KQMonster`s (M4 4a-2, `talking.md` rule 6): name,
     /// place after `move`, script.
     pub monsters: Vec<kq8_core::active::Monster>,
@@ -2046,6 +2047,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         connor_inventory: (Vec::new(), Vec::new()),
         connor_start: Vec::new(),
         object_stats: Vec::new(),
+        persistent_stat_objects: Default::default(),
         monsters: Vec::new(),
         dormant_monsters: Vec::new(),
         doors: Vec::new(),
@@ -2368,6 +2370,7 @@ struct Placer<'a> {
     connor_inventory: (Vec<ConnorItem>, Vec<String>),
     connor_start: Vec<kq8_core::connor_start::StartLine>,
     object_stats: Vec<(String, String)>,
+    persistent_stat_objects: std::collections::BTreeSet<String>,
     monsters: Vec<kq8_core::active::Monster>,
     /// Characters prepared for a script's loadKQ (2026-10-22).
     dormant_monsters: Vec<kq8_core::active::Monster>,
@@ -3271,6 +3274,10 @@ impl Placer<'_> {
         if !unused && self.gone.contains(&p.name.to_ascii_lowercase()) {
             self.gone_skipped.push(p.name.clone());
             return;
+        }
+        if !unused && self.persist_props && !p.name.eq_ignore_ascii_case("Connor")
+            && p.class.as_deref().and_then(kq8_data::characters::Class::of).is_none() {
+            self.persistent_stat_objects.insert(p.name.to_ascii_lowercase());
         }
         // DESIGN K-2 (world-change.md rules 12, 15): a kept world's object
         // loads with the values it had when Connor left.
@@ -5028,6 +5035,7 @@ impl Placer<'_> {
             connor_inventory: self.connor_inventory,
             connor_start: self.connor_start,
             object_stats: self.object_stats,
+            persistent_stat_objects: self.persistent_stat_objects,
             monsters,
             dormant_monsters: self.dormant_monsters,
             talk: None,
