@@ -13,6 +13,12 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**Automated walking through a tutorial.** A modal help box takes input away
+from gameplay. Release keys held by the unattended walking route while the
+box is open. On dismissal the next movement should issue a fresh key press.
+Use the Wizard route to check that accepting help at the farm allows Connor
+to reach the Wizard and earn the map through the original conversation.
+
 **M6 items left in a region.** World-change rules 12–18 keep loose
 items and other owners' inventories with their region. Connor carries his
 inventory between regions. Capture the surviving objects' names, owners,

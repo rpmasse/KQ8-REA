@@ -115,11 +115,24 @@ pub fn steer(
     mut keys: ResMut<ButtonInput<KeyCode>>,
     mut clicks: ResMut<ClickAt>,
     doors: Option<Res<DoorSim>>,
+    gui: Option<Res<crate::gui_view::Gui>>,
     mut swings: ResMut<SwingAt>,
     shared: Res<Shared>,
     mut exit: MessageWriter<AppExit>,
 ) {
     let Some(sim) = sim else { return };
+    // Gameplay ignores key presses while a popup owns input. Release the
+    // diagnostic route's held keys so resuming creates a new press edge.
+    if gui.is_some_and(|g| g.popup.is_some()) {
+        if !replay.held.is_empty() {
+            shared.log.lock().unwrap().summary(format!(
+                "walk-route released {:?} for popup at update {}", replay.held, sim.updates
+            ));
+            replay.keys(&mut keys, &[]);
+        }
+        replay.last_tick = None;
+        return;
+    }
     if (replay.landmarks.is_empty() && replay.jumped.is_none())
         || sim.updates < replay.start
         || replay.last_tick == Some(sim.updates)

@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-06 Resume automated walking after a help popup
+
+The Wizard route held its simulated movement keys while tutorial 141 owned
+input. After dismissal Connor stalled at the farm corner at update 704.
+The route now releases its own keys when a popup opens and sends fresh
+presses when gameplay resumes. In the implementation worktree the same
+route released those keys at update 527, reached the corner at 601, met
+the Wizard at 889 and earned the map through his conversation.
+The integrated viewer and its tests compile with
+`cargo check --locked -p kq8-viewer --tests`.
+
+To reproduce, set `KQ8_GAME_DIR` to the original GOG install and run
+`cargo test --locked -p kq8-viewer --test daventry_wizard -- --ignored --test-threads=1`.
+The route should resume after the tutorial and reach the map award.
+The change applies to the unattended route driver. Manual testing is
+deferred until the recreation is feature-complete.
+
 ## 2026-11-06 Earned windmill exit and Henchman approach
 
 The walking replay now follows the actual Henchtp and ax.cs handover.
