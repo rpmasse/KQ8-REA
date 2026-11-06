@@ -1,5 +1,12 @@
 # MODLOG
 
+## 2026-11-07 Identify the remaining original credits rules
+
+The installed credits screen definition names its GUI, palette, cursor
+and sounds. It contains no card durations or final-score formula. Q198
+requests those specific engine rules so the Rust screen's five-second
+timing and experience-based score can be checked against the original.
+
 ## 2026-11-07 Earn the Rope and Hook in the running mill and after reload
 
 The new Windows regression starts at Normal New Game by default.
