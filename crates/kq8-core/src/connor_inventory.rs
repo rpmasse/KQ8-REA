@@ -126,6 +126,7 @@ fn connor_add(w: &mut WorldState, d: Stats, why: &str) -> String {
 pub fn receive(w: &mut WorldState, name: &str, lay_at: Option<[f32; 3]>, why: &str) {
     let Some(i) = w.items.index(name) else { return };
     let o = w.items.objects[i].clone();
+    if o.pending_delete || o.place == Place::Gone { return; }
     let Some(t) = w.items.kind(&o.kind).cloned() else { return };
     added_extras(w, &o.kind, &t.category);
     // What he had of this type, the new object left out (a give makes it
@@ -135,13 +136,14 @@ pub fn receive(w: &mut WorldState, name: &str, lay_at: Option<[f32; 3]>, why: &s
     if stacks(&t.category) && t.combine {
         if let Some(k) = w.items.objects.iter().position(|x| x.name != o.name && x.kind == o.kind && x.carried_by("Connor")) {
             w.items.objects[k].quantity += o.quantity;
-            w.items.objects[i].place = Place::Gone;
             let into = w.items.objects[k].name.clone();
-            w.item_note(format!("inventory ({why}): {} x{} joins {into}: {} {before} -> {}; {} deleted (inventory.md rule 8)", o.name, o.quantity, o.kind, before + o.quantity, o.name));
+            w.carry_item(&into);
+            w.request_item_deletion(name, why);
+            w.item_note(format!("inventory ({why}): {} x{} joins {into}: {} {before} -> {}; {} deletion requested (inventory.md rule 8; traps.md Q203)", o.name, o.quantity, o.kind, before + o.quantity, o.name));
             return;
         }
     }
-    w.items.objects[i].place = Place::Carried("Connor".into());
+    w.carry_item(name);
     w.items.mark_added(name);
     let mut line = format!("inventory ({why}): {} ({}, {}) x{} is a new entry: {} {before} -> {}", o.name, o.kind, t.category, o.quantity, o.kind, before + o.quantity);
     let mine = places(&t.category);
@@ -160,7 +162,7 @@ pub fn receive(w: &mut WorldState, name: &str, lay_at: Option<[f32; 3]>, why: &s
             let undone = unapply(w, &old, "taken off");
             let k = w.items.index(&old).expect("listed");
             if PLACEHOLDERS.iter().any(|p| p.eq_ignore_ascii_case(&kind)) {
-                w.items.objects[k].place = Place::Gone;
+                w.request_item_deletion(&old, "placeholder replaced");
                 line.push_str(&format!("; placeholder {old} ({kind}) deleted"));
             } else {
                 let (at, whence) = match (lay_at, w.connor_at) {
@@ -279,7 +281,7 @@ fn remove_if_empty(w: &mut WorldState, name: &str) -> String {
     let Some(i) = w.items.index(name) else { return String::new() };
     let o = &w.items.objects[i];
     if o.quantity <= 0 && stacks(&category(w, &o.kind)) && o.carried_by("Connor") {
-        w.items.objects[i].place = Place::Gone;
+        w.request_item_deletion(name, "empty inventory entry");
         return format!("; count 0: {name} leaves the inventory");
     }
     String::new()
@@ -656,7 +658,8 @@ mod tests {
         let first = carry(&mut a, "Mushroom", 2);
         let second = carry(&mut a, "Mushroom", 3);
         assert_eq!(a.world.items.get(&first).map(|o| o.quantity), Some(5));
-        assert_eq!(a.world.items.get(&second).map(|o| o.place.clone()), Some(Place::Gone), "the new object is deleted");
+        assert!(a.world.items.get(&second).unwrap().pending_delete, "receive requests deletion; the outer event completes it");
+        assert!(!a.world.items.get(&second).unwrap().carried_by("Connor"));
         a.world.connor_stats.as_mut().unwrap().stats.0[0] = 3;
         assert_eq!(slot_item(&a.world, 0).as_deref(), Some(first.as_str()));
         assert_eq!(bar_click(&mut a.world, &first, true, false, "key 1"), BarResult::Applied);
@@ -670,7 +673,8 @@ mod tests {
         for _ in 0..3 {
             bar_click(&mut a.world, &first, true, false, "key 1");
         }
-        assert_eq!(a.world.items.get(&first).map(|o| o.place.clone()), Some(Place::Gone), "count 0: leaves the inventory");
+        assert!(a.world.items.get(&first).unwrap().pending_delete, "count 0: leaves the inventory before event-end destruction");
+        assert!(!a.world.items.get(&first).unwrap().carried_by("Connor"));
         assert_eq!(slot_item(&a.world, 0), None);
     }
 
@@ -862,7 +866,8 @@ mod tests {
         let mut a = active();
         let fists = a.world.items.add_named("Fist1", "Fists", 1, -1, Place::Carried("Connor".into())).unwrap().name.clone();
         let dagger = carry(&mut a, "Dagger", 1);
-        assert_eq!(a.world.items.get(&fists).map(|o| o.place.clone()), Some(Place::Gone), "a placeholder is deleted");
+        assert!(a.world.items.get(&fists).unwrap().pending_delete, "a replaced placeholder is requested for deletion");
+        assert!(!a.world.items.get(&fists).unwrap().carried_by("Connor"));
         assert_eq!(stats(&a)[1], 15, "the dagger is put on: +5");
         let gloves = carry(&mut a, "LeatherGloves", 1);
         assert_eq!(stats(&a)[3], 1);

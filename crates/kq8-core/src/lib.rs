@@ -65,6 +65,8 @@ pub mod trap;
 mod prop_placement_tests;
 #[cfg(test)]
 mod item_registration_tests;
+#[cfg(test)]
+mod item_removal_tests;
 pub mod spirit_trap;
 pub mod tile_puzzle;
 pub mod turn_keys;

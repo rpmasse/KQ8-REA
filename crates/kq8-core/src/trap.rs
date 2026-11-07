@@ -211,17 +211,24 @@ impl Trap {
                 self.gone = true;
             }
         } else if was_inside && !centre_inside && !touching {
-            self.inside.retain(|n| !n.eq_ignore_ascii_case(v.name));
-            out.call = Some(if self.inside.is_empty() {
-                vec!["Off".into(), v.name.into()]
-            } else {
-                vec!["Cue".into(), CUE_LEAVE.into(), v.name.into()]
-            });
-            if sticky && self.inside.is_empty() {
-                self.shrunk = true;
-            }
+            out.call = self.remove_visitor(v.name);
         }
         out
+    }
+
+    /// Actual object destruction removes membership without a geometry or
+    /// mask test (traps.md Q203). Ordinary movement uses the same departure.
+    pub(crate) fn remove_visitor(&mut self, name: &str) -> Option<Vec<String>> {
+        if self.gone || !self.inside.iter().any(|n| n.eq_ignore_ascii_case(name)) { return None; }
+        self.inside.retain(|n| !n.eq_ignore_ascii_case(name));
+        if self.inside.is_empty() {
+            if self.settings.trap_type & STICKY != 0 && self.settings.inner_percent.is_some() {
+                self.shrunk = true;
+            }
+            Some(vec!["Off".into(), name.into()])
+        } else {
+            Some(vec!["Cue".into(), CUE_LEAVE.into(), name.into()])
+        }
     }
 }
 

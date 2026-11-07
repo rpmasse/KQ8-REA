@@ -702,6 +702,10 @@ pub struct WorldState {
     prop_colliders: BTreeMap<String, BoxCollider>,
     /// Names moved during the current outer script, checked at its end (Q102).
     placed_props_in_trap: Vec<String>,
+    pending_item_deletions: Vec<String>,
+    /// Clicks and departure callbacks finish their current work before the
+    /// next deletion/stay batch; nested script calls cannot drain it early.
+    item_event_depth: usize,
     item_registrations: BTreeMap<u64, ItemRegistration>,
     item_registration_requests: Vec<u64>,
     next_item_registration: u64,
@@ -3057,6 +3061,7 @@ impl WorldState {
     fn con_click_item(&mut self, words: &[String], at: &str) -> String {
         let [_, name] = words else { return "1".into() };
         let Some(i) = self.items.index(name) else { return "1".into() };
+        if !self.items.objects[i].in_world() { return "1".into(); }
         let Some(placement) = self.items.objects[i].placement() else { return "1".into() };
         if let Some(call) = self.collect_world_item(i, placement.position, at) {
             // The merchant clears ClickFromCode on the very next line.
@@ -3214,7 +3219,12 @@ impl WorldState {
         if let Some((_, p)) = self.projectile_caller.as_ref().filter(|(n, _)| n.eq_ignore_ascii_case(who)) {
             return Some(*p);
         }
-        if let Some(item) = self.items.get(who) { return item.placement(); }
+        if let Some(item) = self.items.get(who) {
+            return match &item.place {
+                Place::Carried(owner) if owner.eq_ignore_ascii_case("Connor") => Some(Placement::at([0.; 3])),
+                _ => item.placement(),
+            };
+        }
         if let Some(i) = self.object_index(who) {
             Some(self.objects[i].player.base)
         } else if let Some(i) = self.anim_index(who) {
@@ -3810,6 +3820,27 @@ impl WorldState {
         if any { "0" } else { "1" }.into()
     }
 
+    /// A carried entry keeps its identity but resets its complete transform.
+    /// Only existing trap memberships receive a later stay check (Q203).
+    pub(crate) fn carry_item(&mut self, name: &str) {
+        let Some(i) = self.items.index(name) else { return };
+        self.items.objects[i].place = Place::Carried("Connor".into());
+        if self.traps.iter().any(|t| t.inside.iter().any(|n| n.eq_ignore_ascii_case(name))) {
+            self.placed_props_in_trap.push(name.to_ascii_lowercase());
+        }
+    }
+
+    pub(crate) fn request_item_deletion(&mut self, name: &str, at: &str) -> bool {
+        let Some(i) = self.items.index(name) else { return false };
+        let item = &mut self.items.objects[i];
+        if item.place == Place::Gone || item.pending_delete { return false; }
+        item.pending_delete = true;
+        self.pending_item_deletions.push(item.name.clone());
+        self.deleted_this_event.insert(name.to_ascii_lowercase());
+        self.item_note(format!("{at}: {name}: item deletion requested; trap departure before destruction"));
+        true
+    }
+
     /// Deletes one object; `false` if there is no such object (or it was
     /// already deleted).
     fn delete_one(&mut self, name: &str, at: &str) -> bool {
@@ -3822,16 +3853,8 @@ impl WorldState {
         if let Some(i) = self.anim_index(name) {
             self.anims[i].gone = true;
         }
-        let what = if let Some(i) = self.items.index(name) {
-            if self.items.objects[i].place == Place::Gone {
-                return false;
-            }
-            self.items.objects[i].place = Place::Gone;
-            let line = format!("{at}: deleteObject {name}: item gone");
-            self.item_note(line);
-            self.deleted_this_event.insert(key.clone());
-            self.deleted.insert(key);
-            return true;
+        let what = if self.items.index(name).is_some() {
+            return self.request_item_deletion(name, at);
         } else if let Some(i) = self.object_index(name) {
             let o = &mut self.objects[i];
             (o.gone, o.hidden) = (true, true);
@@ -4461,7 +4484,7 @@ impl Active {
     pub fn console_command(&mut self, line: &str, at: &str) -> Option<String> {
         let words = self.command_words(line, at)?;
         let result = self.scripts.console_world_command(&words, &mut self.world, at);
-        self.prop_placements_after_script();
+        self.finish_item_events();
         result
     }
 
@@ -4753,7 +4776,9 @@ impl ScriptHost for WorldState {
     }
 
     fn event_done(&mut self) {
-        self.deleted_this_event.clear();
+        if self.item_event_depth == 0 && self.pending_item_deletions.is_empty() {
+            self.deleted_this_event.clear();
+        }
     }
 }
 
@@ -4789,6 +4814,8 @@ impl Active {
                 placed_in_trap: Vec::new(),
                 prop_colliders: BTreeMap::new(),
                 placed_props_in_trap: Vec::new(),
+                pending_item_deletions: Vec::new(),
+                item_event_depth: 0,
                 item_registrations: BTreeMap::new(),
                 item_registration_requests: Vec::new(),
                 next_item_registration: 0,
@@ -5413,22 +5440,59 @@ impl Active {
     /// placement is tested, not the path or intermediate `move` commands.
     fn call_script(&mut self, script: &str, args: &[String]) -> bool {
         let result = self.scripts.call(script, args, &mut self.world);
-        self.prop_placements_after_script();
+        self.finish_item_events();
         result
+    }
+
+    /// Complete live item lifecycle work; restoring saved fields or shutting
+    /// down a world does not dispatch this cleanup.
+    /// Each departure can request further work; do not recurse into the item
+    /// currently being destroyed or free its name before its last callback.
+    fn finish_item_events(&mut self) {
+        if self.world.item_event_depth != 0 { return; }
+        self.world.item_event_depth += 1;
+        while !self.world.placed_props_in_trap.is_empty() || !self.world.pending_item_deletions.is_empty() {
+            self.prop_placements_after_script();
+            for name in std::mem::take(&mut self.world.pending_item_deletions) {
+                for t in 0..self.world.traps.len() {
+                    let Some(args) = self.world.traps[t].remove_visitor(&name) else { continue };
+                    let trap = &self.world.traps[t];
+                    self.world.item_note(format!("item destruction {name}: trap {} {}; inside now [{}]",
+                        trap.settings.name, args.join(" "), trap.inside.join(", ")));
+                    self.world.spirit_touch(t, &args, false);
+                    if self.world.traps[t].settings.spirit.is_none() {
+                        self.call_trap(t, &args.iter().map(String::as_str).collect::<Vec<_>>());
+                    }
+                }
+                if let Some(i) = self.world.items.index(&name) {
+                    self.world.items.objects[i].place = Place::Gone;
+                    self.world.items.objects[i].pending_delete = false;
+                }
+                let key = name.to_ascii_lowercase();
+                self.world.deleted.insert(key.clone());
+                self.world.flights.retain(|f| !f.item.eq_ignore_ascii_case(&name));
+                self.world.placed_props_in_trap.retain(|n| n != &key);
+                self.world.item_note(format!("{name}: item destruction completed after trap departures"));
+            }
+        }
+        self.world.item_event_depth -= 1;
+        ScriptHost::event_done(&mut self.world);
     }
 
     fn prop_placements_after_script(&mut self) {
         let mut seen = BTreeSet::new();
         for name in std::mem::take(&mut self.world.placed_props_in_trap) {
-            if !seen.insert(name.clone()) || self.world.is_deleted(&name) { continue; }
+            if !seen.insert(name.clone()) || self.world.is_deleted(&name)
+                || self.world.items.get(&name).is_some_and(|item| item.pending_delete) { continue; }
             for i in 0..self.world.traps.len() {
                 // A preceding Off callback can move or delete this same prop.
                 // Each subsequent listener must see that current state.
-                if self.world.is_deleted(&name) { break; }
+                if self.world.is_deleted(&name)
+                    || self.world.items.get(&name).is_some_and(|item| item.pending_delete) { break; }
                 let shape = self.world.prop_colliders.get(&name).cloned()
                     .or_else(|| self.world.items.get(&name).and_then(|item| {
                         let (min, max) = self.world.items.click_box(item)?;
-                        Some(BoxCollider { name: item.name.clone(), min, max, placement: item.placement()?,
+                        Some(BoxCollider { name: item.name.clone(), min, max, placement: self.world.place_of(&name)?,
                             kind: ColliderKind { collision_type: crate::item::ITEM_TYPE,
                                 collision_mask: crate::item::ITEM_MASK, ball_stack: true, keep_on_ground: false } })
                     }))
@@ -5804,12 +5868,15 @@ impl Active {
     pub fn click(&mut self, name: &str, feet: [f32; 3], attack_dist: f32, item: Option<&Item>) -> ClickResult {
         let pending = self.world.requests.len();
         let position = self.world.place_of(name).map(|p| p.position);
+        self.world.item_event_depth += 1;
         let result = self.click_target(name, feet, attack_dist, item);
+        self.world.item_event_depth -= 1;
         for r in self.world.requests.iter_mut().skip(pending) {
             if let Request::ConnorThrowRock { aim } = r {
                 *aim = position;
             }
         }
+        self.finish_item_events();
         result
     }
 
@@ -6139,6 +6206,7 @@ impl Active {
     /// Connor clicks item object `i` (items.md rules 6-8).
     fn click_item(&mut self, i: usize, feet: [f32; 3], reach: f32, item: Option<&Item>) -> ClickResult {
         let o = self.world.items.objects[i].clone();
+        if !o.in_world() { return ClickResult::Nothing; }
         let (Some(placement), false) = (o.placement(), o.hidden) else {
             self.world.item_note(format!("click {}: not lying in the world (or hidden); nothing", o.name));
             return ClickResult::Nothing;
@@ -6274,7 +6342,6 @@ impl Active {
             // Finish the click's own remembered-item/state changes first,
             // then deliver movement notices and release deleted names.
             ScriptHost::event_done(&mut self.world);
-            self.prop_placements_after_script();
             self.character_placements();
         }
         ClickResult::Chest { before, after: self.world.chests[i].chest.state }
@@ -6290,9 +6357,11 @@ impl Active {
     /// rule 8, Q119).
     fn handle_due(&mut self, now: f64) -> usize {
         let mut handled = 0;
+        self.finish_item_events();
         self.character_placements();
         while let Some(e) = self.world.queue.take_due(now) {
             self.handle(e);
+            self.finish_item_events();
             self.character_placements();
             handled += 1;
             if handled > 1000 {
@@ -7848,6 +7917,11 @@ endif
     #[test]
     fn hidden_and_deleted_items_cant_be_clicked() {
         let mut a = with_items("KQMonster::inventory world Crystal 1 0 0 0\nKQObject::setHidden $NewInvItem 1\nKQMonster::inventory world Crystal 1 0 5000 0\ndeleteObject $NewInvItem\nKQObject::setDontLook NoName0 0\nKQObject::setHidden smlchst3 1\n");
+        // with_items calls the raw interpreter. The item is unavailable as
+        // soon as deletion is requested; Active completes its destruction.
+        assert!(a.world.items.get("NoName1").unwrap().pending_delete);
+        assert!(!a.world.items.get("NoName1").unwrap().in_world());
+        a.finish_item_events();
         let it = &a.world.items;
         assert!(it.get("NoName0").unwrap().hidden && !it.get("NoName0").unwrap().do_not_point_at);
         assert_eq!(it.get("NoName1").unwrap().place, Place::Gone);

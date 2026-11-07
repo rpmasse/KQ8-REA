@@ -3,14 +3,24 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Item pickup and destruction.** A's Q203 prose in `traps.md` supplies
+deferred destruction, Off/Cue 302 before name removal, and the distinct
+origin relocation/stay-check path for non-merged pickups. A's follow-up
+prose confirms carry-add resets rotation as well as position. `active.rs`,
+`connor_inventory.rs`, `item.rs` and `trap.rs` implement those rules; the
+spirit departure routing follows the existing `spirit_trap.rs` behavior.
+Seven synthetic cases and the earned Dead City pickup/reload check are
+recorded in [item-removal-traps.md](../item-removal-traps.md). B used prose
+and original data, without reading the executable or decompiled output.
+
 **Fresh world-item registration.** A's Q203 study in `traps.md` and
 `items.md` supplies stationary overlap, rotated ball centres, sequential
 callbacks and NewInvItem timing. `script.rs` adds command-owned resumable
 effects; `active.rs` supplies item registration and live position queries;
 `trap.rs` supplies oriented ball-stack contact. Synthetic checks and the
 existing earned Dead City route validate this partial implementation.
-Singleton/non-Rock removal, pickup/deletion and broader saved-contact
-reattachment remain separate. Implementation B did not read the original
+Singleton/non-Rock removal and broader saved-contact reattachment remain
+separate; pickup/deletion is implemented above. B did not read the original
 executable, decompilation or disassembly. [Evidence](../item-registration-traps.md)
 
 **Scripted prop placement and trigger departure.** `traps.md` rule 5(b),
