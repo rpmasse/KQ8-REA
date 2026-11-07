@@ -2528,3 +2528,97 @@ fn western_passage_guard_uses_earned_strength_and_reloads_after_expiry() {
         .contains("skeleton52: its death ended (rule 32)"));
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_WESTERN_PASSAGE_SLOT"]
+fn graveyard_entrance_preserves_earned_state_and_reloads() {
+    let play = Play::new("earned-graveyard-entrance");
+    let source = earned_slot("KQ8_WESTERN_PASSAGE_SLOT")
+        .expect("set KQ8_WESTERN_PASSAGE_SLOT to an earned WesternPassageReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "WesternPassageReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["stats"], json!([39,80,25,10,7512]));
+    let points: Vec<_> = [
+        [106250,114750],[106250,112000],[106250,109250],
+        [106250,106500],[106250,103750],[106250,101000],
+        [105920,98500],[105580,96000],[105250,93750],
+        [105250,93000],[106000,92750],[108500,93400],
+        [110750,94000],[111000,94750],[111000,97000],[111000,99000],
+    ].into_iter().enumerate().map(|(i,xy)| json!({
+        "name":format!("Graveyard entrance {}",i+1),
+        "xy":xy,"radius":140,"run":false
+    })).collect();
+    let path = play.root.join("graveyard-entrance.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":points})).unwrap()).unwrap();
+    let (entered, viewer) = leg(&play, 1, "GraveyardEntrance", 1400,
+        &["--walk-route",path.to_str().unwrap()]);
+    assert!(viewer.contains("walk-route at Graveyard entrance 16"));
+    let (restored, _) = leg(&play, 2, "GraveyardEntranceReload", 45, &[]);
+    for saved in [&entered,&restored] {
+        assert_eq!(saved["journey"]["stats"], start["journey"]["stats"]);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "3"));
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        assert!((saved["position"][0].as_f64().unwrap()-111000.).abs()<900.);
+        assert!((saved["position"][1].as_f64().unwrap()-99000.).abs()<900.);
+        assert!(!saved["kept"]["deadcity"]["gone"].as_array().unwrap()
+            .iter().any(|name| name=="zombie6"));
+    }
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+#[test]
+#[ignore = "known failing underground-target approach; requires GOG, graphics and KQ8_GRAVEYARD_ENTRANCE_SLOT"]
+fn graveyard_zombie_and_plate_approach_survive_reload() {
+    let play = Play::new("earned-graveyard-zombie");
+    let source = earned_slot("KQ8_GRAVEYARD_ENTRANCE_SLOT")
+        .expect("set KQ8_GRAVEYARD_ENTRANCE_SLOT to an earned GraveyardEntranceReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "GraveyardEntranceReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["stats"], json!([39,80,25,10,7512]));
+    assert!(carries_one(&start, "INVITEM_SmCrossbow"));
+    assert_eq!(start["view_flags"]["active"], false);
+    let path = play.root.join("graveyard-zombie.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":[
+        {"name":"Shoot the graveyard zombie from the entrance","xy":[111014,99472],
+            "radius":140,"run":false,"fight":"zombie6","ranged":true},
+        {"name":"Cleared southern graveyard floor","xy":[111000,102500],"radius":140,"run":false},
+        {"name":"Cleared western graveyard floor","xy":[111000,105500],"radius":140,"run":false},
+        {"name":"Western plate approach","xy":[111000,107500],"radius":140,"run":false},
+        {"name":"Face the western plate","xy":[112000,108500],"radius":140,"run":false},
+        {"name":"Outside the western plate","xy":[112800,108676],"radius":140,"run":false}
+    ]})).unwrap()).unwrap();
+    let (won, viewer) = leg(&play, 1, "GraveyardZombie", 800, &[
+        "--walk-route",path.to_str().unwrap(),"--key","physical:F2,3"
+    ]);
+    assert!(viewer.contains("walk-route at Outside the western plate"));
+    assert!(viewer.lines().any(|line| line
+        .contains("test --aim zombie6 (camera through gameplay pixel")
+        && line.contains("the aim pick meets character zombie6")));
+    let fight = log(&play, "GraveyardZombie", "fight.log");
+    assert!(fight.contains("zombie6: hit by Connor, Projectile"));
+    assert!(!fight.contains("test --swing zombie6"));
+    assert_eq!(fight.matches("zombie6: its death ended (rule 32)").count(), 1);
+    let mut expected = start["journey"]["stats"].clone();
+    expected["stats"][0] = won["journey"]["stats"]["stats"][0].clone();
+    expected["stats"][4] = json!(7914);
+    assert!(expected["stats"][0].as_i64().unwrap()<=39);
+    let (restored, _) = leg(&play, 2, "GraveyardZombieReload", 45, &[]);
+    for saved in [&won,&restored] {
+        assert_eq!(saved["journey"]["stats"], expected);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "3"));
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap()
+            .iter().any(|name| name=="zombie6"));
+        assert!((saved["position"][0].as_f64().unwrap()-112800.).abs()<900.);
+        assert!((saved["position"][1].as_f64().unwrap()-108676.).abs()<900.);
+    }
+    assert!(!log(&play, "GraveyardZombieReload", "fight.log")
+        .contains("zombie6: its death ended (rule 32)"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}

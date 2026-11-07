@@ -13,6 +13,62 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 graveyard approach audit (2026-11-07).** Continue from the
+genuine WesternPassageReload. Correct the local threat diagnostic:
+PowerShell selected Math.Clamp's integer overload from integer
+bounds, rounding segment projections and missing zombie6 between
+waypoints. Explicit floating-point arguments now place the old
+route within 690 units of that original 410-health zombie, inside
+its 3000 alarm radius. The earlier audit was not a complete threat
+assessment. Use the animation player's saved base placement, which
+the live AI also reads, and audit the current continuation rather
+than the old full approach.
+
+Connor currently has 39 health and no healing or Strength supplies.
+Inspect the original terrain/building corridor west of zombie6 to
+determine whether the normal route can reach the first portal plate
+without that optional fight. This is route planning, not suppression
+of enemy AI. If the geometry supports it, verify ordinary traversal,
+the actual live enemy state and a fresh reload near the plate. Also
+inspect the original plate's activation/click rules before attempting
+to offer either earned Rock. Do not grant health, move actors, change
+collision or claim the zombie encounter is covered by avoiding it.
+
+The western edge samples at x=110250/110500 have normal Z=0.721;
+x=110750 is flat at its center but fails the conservative walking
+band. These samples do not support a safe route outside the zombie's
+alarm radius. First verify the original winding entrance only, ending
+near (111000,99000) outside that radius, with unchanged health/items
+and a fresh reload. Treat the zombie and plate as subsequent checks.
+If the entrance succeeds, use the earned Mace and the existing
+retreat/counterattack input driver for the zombie, whose original
+20-frame attack applies its hit at half phase. No enemy or player
+rules change; a failed encounter remains a failure.
+After a completed death, approach the western portal plate without
+activating it, then verify the 402-point original reward once,
+remaining positive health, unchanged items and another fresh reload.
+
+The entrance passes in 109.36 seconds. The first close Mace attempt
+fails in 19.66 seconds: the retreat inputs do not clear the extended
+reach while Back is held. Before another close attempt, test the
+already-earned Small Crossbow from the entrance checkpoint, about
+4860 units from zombie6, within the original projectile range.
+The terrain/building sight diagnostic reports no blocker, which
+is only a planning result; the native check must see the target
+through an ordinary gameplay pixel and record actual projectile hits.
+Keep the failed Mace trace. Do not alter damage, AI or the saved state.
+
+The crossbow attempt fails in 22.72 seconds without firing: the
+zombie is still underground, not drawn and without a live collider.
+Rule 30 of character-movement.md confirms that it must see Connor
+within its alarm radius before rising. Stop combat retries after
+these two failures. The next independent step is to verify a return
+to the Sylph well, restore health through its ordinary interaction
+and reload, then plan the return and emerged-zombie encounter.
+The offline long-road return exists but is not native-tested.
+The saved entrance is the new verified boundary; neither the zombie
+nor the plate is complete, and the ignored crossbow test still fails.
+
 **M6 prepared central encounter (2026-11-07).** Resume only after the
 documented two failures and independent well-healing result. The
 unchanged enemy/team data and failed Mace log show 62 incoming damage
