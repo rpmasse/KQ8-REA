@@ -4571,6 +4571,8 @@ impl ScriptHost for WorldState {
             "KQConner::setRun" => Some(self.set_run(words, at)),
             "KQConner::setLevel" => Some(self.set_level(words, at)),
             "KQConner::reduceHealth" => Some(self.reduce_health(words, at)),
+            "KQConner::inTrap" => Some(self.saved_trap_command(words, at, false)),
+            "KQConner::removeFromTrap" => Some(self.saved_trap_command(words, at, true)),
             "KQMonster::preSpecial" => Some(self.pre_special(words, at)),
             "KQConner::setRelDamage" => {
                 let fraction = words.get(1).filter(|s| looks_like_number(s)).map(|s| number_value(s));

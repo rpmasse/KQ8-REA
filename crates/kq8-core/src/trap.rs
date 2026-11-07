@@ -40,6 +40,8 @@ use crate::collide::BallStack;
 #[path = "trap_checkpoint.rs"]
 mod checkpoint;
 pub use checkpoint::SavedTraps;
+#[path = "trap_restoration.rs"]
+mod restoration;
 
 /// A trap's own collision type (rule 4).
 pub const TRAP_TYPE: u32 = 0x10;
@@ -76,6 +78,8 @@ pub struct Trap {
     pub settings: TrapSettings,
     /// Who is inside now, in the order they came in.
     pub inside: Vec<String>,
+    /// Saved names awaiting an eligible contact; these are not live occupants.
+    pub pending_occupants: Vec<String>,
     /// The box is shrunk to `innerPercent` (sticky traps with nobody in).
     pub shrunk: bool,
     /// A one-shot trap that has fired: it no longer exists.
@@ -124,7 +128,7 @@ impl Trap {
     /// The trap as it enters the world: sticky ones start shrunk (rule 10).
     pub fn new(settings: TrapSettings) -> Self {
         let shrunk = settings.trap_type & STICKY != 0 && settings.inner_percent.is_some();
-        Trap { settings, inside: Vec::new(), shrunk, gone: false }
+        Trap { settings, inside: Vec::new(), pending_occupants: Vec::new(), shrunk, gone: false }
     }
 
     /// The box in use now, world space.
@@ -198,6 +202,14 @@ impl Trap {
         }
         let sticky = self.settings.trap_type & STICKY != 0 && self.settings.inner_percent.is_some();
         if may_enter && !was_inside && touching {
+            // Q201/Q203: restoration attaches only actual eligible contacts,
+            // silently. Other visitors cannot enter while names remain pending.
+            if !self.pending_occupants.is_empty() {
+                if self.cancel_saved_occupant(v.name) {
+                    self.inside.push(v.name.to_string());
+                }
+                return out;
+            }
             self.inside.push(v.name.to_string());
             out.call = Some(if self.inside.len() == 1 {
                 vec!["On".into(), v.name.into()]

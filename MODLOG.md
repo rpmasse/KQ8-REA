@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-07 Separate pending trap names from live contacts
+
+Add per-object pre-registration trap restore, silent eligible saved-name
+attachment, live-only inTrap and pending-only removeFromTrap. Preserve
+unresolved names without the original repeated-save duplicate defect.
+The grouped core matrix passes first attempt, 1/1; original elevator and
+production ordered-loader integration remain unfinished. Regenerate script
+coverage from the current compiled core and correct the stale README live
+display status. Evidence: docs/saved-trap-contacts.md. No manual or native
+replay. M4 about 88%, M5 about 64%, M6 about 28%.
+
 ## 2026-11-07 Share CPU actor construction for ordered loading
 
 Extract the existing door/chest/scripted-object and animated-character

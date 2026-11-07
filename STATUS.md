@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-07 Pending trap contacts verified; actor recipes shared
+
+The pending trap-name, silent contact attachment and elevator-command core
+matrix passes 1/1 first attempt. Current script coverage now recognizes
+both trap commands. The shared viewer build passes in 1m53s, and the three
+affected actor-constructor original-data checks pass 3/3 in 4.22s. These
+are component checks: the live ordered world loader, original elevator
+consumers and production disk/regional integration remain unfinished.
+Evidence: docs/saved-trap-contacts.md and docs/ordered-world-loading.md.
+No manual or new native check. M4 about 88%, M5 about 64%, M6 about 28%.
+
 ## 2026-11-07 Shared saved-world core verified; ordered loader still open
 
 Core clock, persistent event selection, saved/Init merge order, receiver
