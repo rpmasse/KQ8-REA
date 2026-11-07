@@ -265,14 +265,52 @@ on 317 and awards 300 experience once. The two-process regression
 passed in 72.82 seconds. BoathouseGuardReload retains level ten,
 stats [94,75,23,9,632], both weapons, third-person view and the
 defeated skeleton55, weeper15 and skeleton38. AI and damage remain
-enabled, and the GOG options are unchanged. The Ferryman topics are
-the next unverified step.
+enabled, and the GOG options are unchanged. The introductory Ferryman
+topics continue from this checkpoint below.
 
 Set `KQ8_RIVER_WEEPER_SLOT` to a genuine `RiverWeeperReload` save
 and use the configured GOG installation:
 
 ```powershell
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::earned_mace_clears_the_boathouse_guard_and_reloads -- --ignored --exact --test-threads=1
+```
+
+## The Ferryman's introductory topics
+
+From BoathouseGuardReload, Connor walks through the real boathouse
+doorway and clicks Ferryman through a visible gameplay ray. He stays
+at the talking spot while each topic finishes, saves, and starts the
+next topic after a fresh process loads that save. These are the
+original reaper.cs outcomes:
+
+| Topic | Conversation case / final sequence | Earned result |
+| --- | --- | --- |
+| 1 | 41 / 7 | metConnor 1; one 2000-point award, experience 632 to 2632 |
+| 2 | 42 / 7 | metConnor 2; no further award |
+| 3 | 43 / 5 | metConnor 3; KnowAboutFeather; Feather description metadata |
+| 4 | 44 / 5 | metConnor 4; one 3000-point award, level eleven, 110 health and 512 experience |
+
+The final five-process check passed in 319.03 seconds. The
+FerrymanKnowledgeReload retains [110,80,25,10,512], both weapons and
+the knowledge flag without another reward. No Feather item is
+granted. AI and damage remain enabled; GOG Options.cs is unchanged.
+The later item offers and bridge-dependent topics remain untested.
+
+The third topic exposed a rejected short item name in `invClick`.
+That command now uses the existing item-name prefix rule. Its script
+regression failed before the correction and passes afterward; all
+878 standard workspace tests pass. The final complete native rerun
+also verifies that the original `invClick Feather` is accepted on
+update 366. It retains the installed description numbers '76 0 0 1'.
+The first native attempt's log-wording assertion failure and the
+earlier baseline without this correction are recorded in STATUS.
+
+Set `KQ8_BOATHOUSE_GUARD_SLOT` to a genuine `BoathouseGuardReload`
+save and use the configured GOG installation:
+
+```powershell
+cargo test --locked -p kq8-core inventory_description_script_accepts_short_and_full_type_names
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::four_ferryman_topics_earn_knowledge_and_reload -- --ignored --exact --test-threads=1
 ```
 
 ## Repeat the automated route
@@ -308,6 +346,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::saved_western_patrol_victory_reloads_without_another_award` | Required genuine `KQ8_WESTERN_PATROL_SLOT` (`WesternPatrol`) | `WesternPatrolReload`; reload only |
 | `dead_city::earned_crossbow_defeats_the_river_weeper_and_restores_its_award` | Required genuine `KQ8_WESTERN_PATROL_RELOAD_SLOT` (`WesternPatrolReload`) | `RiverWeeperReload` |
 | `dead_city::earned_mace_clears_the_boathouse_guard_and_reloads` | Required genuine `KQ8_RIVER_WEEPER_SLOT` (`RiverWeeperReload`) | `BoathouseGuardReload` |
+| `dead_city::four_ferryman_topics_earn_knowledge_and_reload` | Required genuine `KQ8_BOATHOUSE_GUARD_SLOT` (`BoathouseGuardReload`) | `FerrymanKnowledgeReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

@@ -1,5 +1,36 @@
 # STATUS
 
+## 2026-11-07 Ferryman introduction, knowledge and description lookup
+
+The final earned five-process sequence passed in 319.03 seconds.
+Connor enters the boathouse, clicks Ferryman through visible
+gameplay rays and completes all four
+introductory topics. Each ends through its original final line.
+The first awards 2000 experience once; the third sets
+KnowAboutFeather; the fourth awards 3000 once and raises Connor to
+level eleven. FerrymanKnowledgeReload retains [110,80,25,10,512],
+both weapons and metConnor 4. No Feather item is granted. AI and
+damage remain enabled, and GOG Options.cs is unchanged. Evidence:
+`earned-ferryman-topics/1794024289590037100`.
+
+The earlier third-topic run rejected `invClick Feather` because Rust
+required the full type name. Items rule 2 already defines the short
+name, so this command now uses the existing prefix helper. The
+script-dispatch regression failed before the fix and passes after
+it; all 878 standard workspace tests pass. The final native check
+also verifies the accepted original command on update 366. Its
+message stays '76 0 0 1', the installed default. The earlier baseline
+`1794023765220707000` passed the quest sequence in 317.13 seconds
+before this command correction. Script coverage regenerated unchanged.
+
+The initial sequence `1794023646379767500` completed and saved topic
+one but failed a test assertion with the wrong log wording. Its
+86.70-second failure was in the harness, not the conversation.
+Later dialogue branches, item offers and the actual skull/feather
+route remain open. The portal/plate source audit is diagnostic only;
+it has not established the next playable route.
+[Exact commands](docs/dead-city-progression.md#the-ferrymans-introductory-topics)
+
 ## 2026-11-07 Earned boathouse guard victory and reload
 
 The two-process check passed in 72.82 seconds from RiverWeeperReload.

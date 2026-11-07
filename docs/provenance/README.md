@@ -3,6 +3,21 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Ferryman topics and inventory-description names.** The installed
+Dead City reaper.cs supplies the four conversation tuples, final
+sequence numbers, 2000/3000 experience awards and KnowAboutFeather.
+Feryinfo.kq supplies the start and stay areas; conversation.md
+describes normal clicks, line completion and exit. The third topic
+uses the literal `invClick Feather 76 0 0 1` in this installation,
+without the prefix shown in inventory.md's example. Inventory rule
+10 defines the metadata change; items rule 2 permits short names.
+Rust now uses the existing full-name helper in this command. It
+retains the note's by-name behavior and does not grant an item.
+The synthetic script check covers short, full and unknown names;
+the earned route checks the original command and quest continuity.
+[Inventory study](../behaviour/inventory.md),
+[item-name rule](../behaviour/items.md#item-types-data)
+
 **Boathouse guard campaign check.** The installed Dead City
 MONSTERS.KQ places skeleton38 at (57613,168526); the loaded original
 type gives 100 health, 20 damage, 20 protection and 300 experience.

@@ -1517,3 +1517,126 @@ fn earned_mace_clears_the_boathouse_guard_and_reloads() {
         play.options
     );
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_BOATHOUSE_GUARD_SLOT"]
+fn four_ferryman_topics_earn_knowledge_and_reload() {
+    let play = Play::new("earned-ferryman-topics");
+    let source = earned_slot("KQ8_BOATHOUSE_GUARD_SLOT")
+        .expect("set KQ8_BOATHOUSE_GUARD_SLOT to an earned BoathouseGuardReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "BoathouseGuardReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["level"], 10);
+    assert_eq!(start["journey"]["stats"]["stats"][4], 632);
+    assert!(region_flag(&start, "DeadCity::Reaper::metConnor", "0"));
+    assert!(!carries_one(&start, "INVITEM_Feather"));
+    let mut previous = start.clone();
+    for topic in 1..=4 {
+        let label = format!("FerrymanTopic{topic}");
+        let path = play.root.join(format!("ferryman-topic-{topic}.json"));
+        let mut points: Vec<Value> = Vec::new();
+        if topic == 1 {
+            for xy in [
+                [57000, 172000],
+                [57000, 179500],
+                [55750, 182250],
+                [55900, 185500],
+            ] {
+                points.push(
+                    json!({"name":format!("Enter the cleared boathouse {}",points.len()+1),
+                    "xy":xy,"radius":180,"run":true}),
+                );
+            }
+            points.push(json!({"name":"Meet the Ferryman","xy":[57000,192460],
+                "radius":180,"run":false,"aim":"Ferryman"}));
+        } else {
+            let at = &previous["position"];
+            points.push(json!({"name":format!("Ask Ferryman topic {topic}"),
+                "xy":[at[0],at[1]],"radius":250,"aim":"Ferryman"}));
+        }
+        fs::write(
+            &path,
+            serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+        )
+        .unwrap();
+        let (saved, viewer) = leg(
+            &play,
+            topic,
+            &label,
+            if topic == 1 { 1200 } else { 1000 },
+            &["--walk-route", path.to_str().unwrap()],
+        );
+        assert!(
+            viewer.lines().any(|line| line
+                .contains("test --aim Ferryman (camera through gameplay pixel")
+                && line.contains("hits Ferryman first")),
+            "{label}: no visible Ferryman click"
+        );
+        assert!(
+            region_flag(&saved, "DeadCity::Reaper::metConnor", &topic.to_string()),
+            "{label}: the original final TalkComplete did not advance the topic"
+        );
+        let conversation = log(&play, &label, "conversation.log");
+        assert!(conversation.contains("the conversation with Ferryman ends"));
+        assert!(!conversation.contains("walked out of the stay area"));
+        let doors = log(&play, &label, "doors.log");
+        let last = if topic < 3 { 7 } else { 5 };
+        assert_eq!(
+            doors
+                .matches(&format!(
+                    "Ferryman: TalkComplete 2000 29 14 {} {last} (line #",
+                    40 + topic
+                ))
+                .count(),
+            1
+        );
+        assert_eq!(
+            doors
+                .matches("KQStatsChangeRequestEvent 0 0 0 0 2000 to Connor")
+                .count(),
+            usize::from(topic == 1)
+        );
+        assert_eq!(
+            doors
+                .matches("KQStatsChangeRequestEvent 0 0 0 0 3000 to Connor")
+                .count(),
+            usize::from(topic == 4)
+        );
+        assert!(region_flag(&saved, "DeadCity::Reaper::Experience", "true"));
+        if topic < 4 {
+            let mut expected = start["journey"]["stats"].clone();
+            expected["stats"][4] = json!(2632);
+            assert_eq!(saved["journey"]["stats"], expected);
+        } else {
+            assert_eq!(saved["journey"]["stats"]["level"], 11);
+            assert_eq!(saved["journey"]["stats"]["stats"][0], 110);
+            assert_eq!(saved["journey"]["stats"]["stats"][4], 512);
+        }
+        assert_eq!(
+            saved["journey"]["flags"]["KnowAboutFeather"] == true,
+            topic >= 3
+        );
+        if topic == 3 {
+            assert!(
+                log(&play, &label, "items.log").contains("invClick Feather: right-click message")
+            );
+            assert!(!doors.contains("invClick: no item type"));
+        }
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        assert!(!carries_one(&saved, "INVITEM_Feather"));
+        previous = saved;
+    }
+    let (restored, _) = leg(&play, 5, "FerrymanKnowledgeReload", 45, &[]);
+    assert_eq!(restored["journey"]["stats"], previous["journey"]["stats"]);
+    assert_eq!(restored["journey"]["items"], previous["journey"]["items"]);
+    assert_eq!(restored["journey"]["flags"]["KnowAboutFeather"], true);
+    assert!(region_flag(&restored, "DeadCity::Reaper::metConnor", "4"));
+    let reload = log(&play, "FerrymanKnowledgeReload", "doors.log");
+    assert!(!reload.contains("KQStatsChangeRequestEvent 0 0 0 0 2000 to Connor"));
+    assert!(!reload.contains("KQStatsChangeRequestEvent 0 0 0 0 3000 to Connor"));
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+}

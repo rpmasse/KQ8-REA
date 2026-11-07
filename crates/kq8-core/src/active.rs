@@ -3286,7 +3286,7 @@ impl WorldState {
     /// `invClick <itemType> <N> <V> <C> <S>` (`inventory.md` rule 10, batch
     /// 2): the item's right-click message numbers, each kept 0-255. Do not
     /// reproduce: the original always changes `INVITEM_Feather`; ours looks
-    /// the item up by name.
+    /// the item up by name, including the short form (items.md rule 2).
     fn inv_click(&mut self, words: &[String], at: &str) -> String {
         let numbers: Vec<i64> = words.iter().skip(2).filter_map(|w| w.parse::<i64>().ok()).collect();
         let (Some(kind), &[n, v, c, s]) = (words.get(1), &numbers[..]) else {
@@ -3294,7 +3294,8 @@ impl WorldState {
             return "1".into();
         };
         let message = [n, v, c, s].iter().map(|x| (x & 0xFF).to_string()).collect::<Vec<_>>().join(" ");
-        match self.items.types.types.iter_mut().find(|t| t.name.eq_ignore_ascii_case(kind)) {
+        let full = kq8_data::items::full_name(kind);
+        match self.items.types.types.iter_mut().find(|t| t.name.eq_ignore_ascii_case(&full)) {
             Some(t) => {
                 let was = std::mem::replace(&mut t.message, message.clone());
                 self.item_note(format!("{at}: invClick {kind}: right-click message '{was}' -> '{message}' (inventory.md rule 10)"));
@@ -7361,6 +7362,17 @@ endif
             assert_eq!(a.scripts.vars.get(var), Some(result), "{var}");
         }
         assert!(a.world.items.find("Connor", "SilverCoins").is_none());
+    }
+
+    #[test]
+    fn inventory_description_script_accepts_short_and_full_type_names() {
+        let a = with_items("invClick cRyStAl 76 0 0 1\nset short $Console::Return\ninvClick INVITEM_SilverCoins 5 2 0 1\nset full $Console::Return\ninvClick missing 99 3 2 1\nset unknown $Console::Return");
+        assert_eq!(a.scripts.vars.get("short"), Some("0"));
+        assert_eq!(a.scripts.vars.get("full"), Some("0"));
+        assert_eq!(a.scripts.vars.get("unknown"), Some("1"));
+        assert_eq!(a.world.items.types.find("Crystal").unwrap().message, "76 0 0 1");
+        assert_eq!(a.world.items.types.find("SilverCoins").unwrap().message, "5 2 0 1");
+        assert!(a.world.items.objects.is_empty(), "description changes must not grant items");
     }
 
     #[test]
