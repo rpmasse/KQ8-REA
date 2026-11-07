@@ -50,6 +50,21 @@ rectangle. It is not a complete-world collision reconstruction. The
 eastern bone bridge needs its actual raised support geometry; a
 terrain-only planner is insufficient and its eastern detour is rejected.
 
+The subsequent `skull-arrival-controller.log` isolates the failed arrival
+decision using the original movement list and the Rust Walker/Mover.
+From the recorded higher-bank position, radius 25 reproduces circling
+for 360 updates, with closest approach 30.86. Radius 40 reaches the normal
+jump-ready state after 29 updates at (26991.1,201579.55,709.13), with
+maximum liquid depth 154.87. That launch lies within the ±40 position
+and ±0.13 heading ranges sampled by the earlier jump matrix. The probe
+does not reproduce native keyboard timing or execute live callbacks.
+
+The next integrated route changes only the diagnostic arrival radius
+to 40, preserving the higher-bank path and actual game movement rules.
+This is an evidence-based correction after the two failures, not another
+unexamined native variation. The corrected native route is **not tested**
+yet; its preceding successful jump/corridor matrices are not repeated.
+
 ## Original data and route
 
 The installed Dead City NEWWORLD.CS places river-wall death triggers on

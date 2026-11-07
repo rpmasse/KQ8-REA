@@ -36,6 +36,94 @@ required behavior and the uninterrupted New Game-to-ending path; this
 changes the verification strategy, not the fidelity or completion target.
 Manual testing remains deferred until the Rust recreation is complete.
 
+**M5–M6 Swamp and Barren tile families (2026-11-07).** Implement
+secondary-tile-puzzles.md as two distinct controllers sharing the
+established jump/mover and event mechanisms. Death Hall's teleport,
+state-lock and camera-hold behavior is not a substitute. Work in three
+coordinated steps:
+
+1. Register KQSwampTile and KQLavaTile class metadata and implement
+   their contact, attack, Reveal, click, cue and animation-completion
+   rules before generic dispatch. Swamp uses its own strict contact
+   clock, script-presence safety, ordered direct-stat/attack effects and
+   one-shot gas animation. Lava uses actual authored movement playback,
+   signed activation counts, hold/reversal, endpoint offsets and stale-
+   event suppression. Preserve original object geometry and textures.
+2. Implement Tile2/Tile3 state numbers and controllers, exact grid
+   boundaries and x-first tie order, four jump directions and normal
+   authored movement steps. Respect their different actual-motion
+   acceptance, highlights, weapon refusal and permitted Die state.
+   Tile2 owns its Rock throw without an unrelated Wait transition.
+   Tile3 owns the prime sequence and ordinary queued completion actions.
+   Restore normal physics through tileExit; do not impose a camera hold.
+3. Persist the Rust controller, pose and platform continuation, rebuilding
+   copied tile locations from installed objects. Keep Connor completion
+   in Journey and platform runtime state in kept interactions. Apply A's
+   established save/event rules; mark unestablished original-save
+   equivalence explicitly rather than claiming a JSON roundtrip proves it.
+
+Implementation owns new core secondary_tiles/tile_objects modules and
+narrow active/fight/character/lib/journey/kept_interactions seams; a
+named_anim change is limited to a required live speed/phase operation.
+Viewer ownership is new connor_secondary_tiles/secondary_tile_checkpoint
+modules and narrow Connor, tile highlight, door, load, animation and save
+adapters. It does not change the separate Q201 loading-phase design.
+
+Use four grouped matrices: shared grid/input/state rules; Swamp
+contact/stat/attack/Reveal/throw behavior; Lava cycling/reversal/prime
+sequence; installed-data registration and saved continuation. Cover
+42 Swamp tiles, 35 Barren platforms, twelve safe scripted Swamp tiles,
+the eight platform movements and installed entry/exit scripts as data
+families, not separate native tests. After those pass, use at most one
+representative native fixture per distinct controller to prove dispatch.
+Reuse successful checks unless a subsequent change affects their rule.
+The shared Cue500 projectile path, original save equivalence and any
+unresolved Rock/ontop-liquid behavior remain required completion work;
+they are not grounds to invent approximations or call this family done.
+
+**M6 Q201 loading and saved trap integration (2026-11-07, design audit).**
+Current source prepares scenery through newWorld.cs, runs only shadows
+from world Load, then calls object Init grouped by class. Disk trap
+occupants are copied directly to live membership after Init. These paths
+cannot establish scripted-controller-commands.md rules 5–10, even if
+inTrap/removeFromTrap command names are accepted.
+
+The required integration is one logical Init → full Load → first-drawn
+Begin lifecycle. Keep immutable asset preparation separate from gameplay
+effects. Prepared objects need an authored/generated load-order record
+so each logical loadKQ can restore fields, register eligible contacts,
+run that object's Init and return before the following script line.
+Do not replay newWorld side effects twice or defer its post-load commands
+to Begin. Reuse the interpreter's synchronous callback/continuation
+mechanism rather than special-casing the Barren or IceWorld elevator.
+
+Saved trap names must remain pending until matching eligible contacts
+silently attach live identities; unmatched contacts cannot become new
+entries while restoration is pending. inTrap queries only live identity;
+removeFromTrap cancels pending Connor names without Off or live removal.
+Both disk restore and region return must supply pending fields before
+registration and Init. The existing known-name filtering and direct
+inside-list assignment cannot serve as proof of restored contact.
+
+Before implementation, resolve how prepared asset operations retain
+their original per-command names, fields and order without rerunning
+gameplay effects, and where the common restore context enters setup.
+Then check one core lifecycle matrix plus original Barren object-Init
+and IceWorld post-newWorld consumers and a representative region-return/
+disk-reload sequence. Reuse unaffected save checks. This audit is not
+an implemented loading fix; no Q201 completion claim is made.
+
+**M6 return-route arrival correction (2026-11-07).** After recording
+two failed native approaches, isolate the route driver's arrival rule
+with the original movement list and Rust Walker/Mover. The probe
+reproduces the 25-unit radius orbit (closest 30.86) and reaches a normal
+jump-ready state with radius 40, inside the previously checked launch
+position/heading ranges. Change only this diagnostic radius, reuse the
+verified higher-bank corridor and jump matrix, then resume one integrated
+return/healing/portal route after the credits native lease is released.
+Do not change real movement, collision, damage or the earned checkpoint.
+Record the executable hash because the credits build may replace it.
+
 **M4 original credits completion (2026-11-07).** Replace the credits
 stand-ins from credits-completion.md: numeric cases 1–25, authored line
 breaks and mixed font order, real-time line-count deadlines with one
@@ -2029,7 +2117,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M1 · Render the world | All 12 regions opened and rendered in bounded Windows runs. | Check terrain, models and textures in reachable scenes and assign gaps to their regions in M6. |
 | M2 · Move Connor | Implemented in Daventry. Walking, running, jumping, slopes and collision exist. | Replay input at fixed ticks and check position, facing, jump timing and collision against the original rules. |
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
-| M4 · Interface and dialogue | Partial. Menus, HUD, captions, inventory and conversation have representative Windows checks; quest-item application has a grouped lifecycle matrix. Original resolution and credits rules are now studied. | Implement the studied interface sizing and credits rules; finish device switching, software palette output and the remaining dialogue/inventory behavior families. |
+| M4 · Interface and dialogue | Partial. Menus, HUD, captions, inventory and conversation have representative Windows checks; quest-item application and the shared 640/800 interface geometry/art have grouped matrices. | Finish credits integration, device switching, software palette output and the remaining dialogue/inventory behavior families. |
 | M5 · Combat | Partial. Axe/crossbow attacks, weapon draws, combat/death saves and representative enemy families have checks. Ordinary liquid damage now reaches armor, sounds and death through the shared attack path. | Finish other weapon/damage and enemy-decision families, distinct bosses, specialised deaths and exceptional terrain behavior; integrate them into campaign routes. |
 | M6 · The whole game | Partial. Earned saves cover Daventry, Castle Daventry and Dead City through the northwest archers, river crossing and GoodSkull. Scales, interrupted encounters and Temple 4 outcomes have focused checks. | Return with the skull, complete the statue/feather/scales and remaining regional quests in integrated routes; finish missing controller/persistence families and verify one Normal New Game through ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |

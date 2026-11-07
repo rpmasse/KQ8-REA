@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-07 Route-driver diagnosis and next shared controller batch
+
+A bounded original-list Walker/Mover probe reproduces the 25-unit
+waypoint orbit and reaches the normal jump-ready state with radius 40.
+The ignored native harness now changes that diagnostic radius only;
+native completion is not yet tested. DESIGN records this evidence-based
+retry, the full Tile2/Tile3 object/controller/save batch and the separate
+Q201 loading-order integration requirements. No production movement or
+damage rule changes for the route. The credits study's earlier 134-row/
+129-second count is corrected to 132/128 after checking terminal lines;
+the original-data matrix also now accepts the documented palette fallback.
+
 ## 2026-11-07 Earned skull return diagnostics
 
 Recorded both unsuccessful native approaches without changing the earned
@@ -45,8 +57,9 @@ replaces the shared layout stand-ins as one grouped batch.
 The credits note establishes numeric case order, line-based real-time
 durations, Escape-only exit, interleaved font rows, final photograph,
 active-game scoring from level/current experience and palette setup.
-Original-data/numeric checks find 25 cases, 134 lines and a nominal
-129-second sequence. This is study evidence, not completed Rust behavior
+The initial original-data count reported 25 cases, 134 lines and 129
+seconds; the later terminal-newline correction gives 132 lines and 128
+seconds. This is study evidence, not completed Rust behavior
 or an original-runtime/manual comparison. Q108/Q198/Q199/Q207 and the
 milestone table now distinguish established rules from pending work.
 [Display rules](docs/behaviour/graphics-modes.md) ·
