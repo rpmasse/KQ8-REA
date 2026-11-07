@@ -143,12 +143,16 @@ and successful compile/lifecycle result in
 was `target/release/deps/kq8_viewer-4aebd42ecd1f894a.exe`. No native game
 window, decoder or successful prior test was repeated.
 
-The New Game warning after `killGame` retains the existing menu predicate.
-Whether that warning separately tests the retained game-started condition
-or the unavailable-game condition is **not verified**; the lifecycle test
-enters the already-confirmed New path rather than asserting that popup.
-The study establishes continuation for a missing movie file. Its behavior
-when an existing movie fails decoder/setup is separately **not verified**;
-the current acknowledgement screen for that case remains unchanged. The
-controlled completed-player fixture tests the return bridge, not decoder
-error handling or synchronization.
+Study A's follow-up now confirms that the New Game warning requires both
+a started game and gameplay availability. The existing menu predicate
+therefore skips the warning correctly after killGame and death. This is
+static original evidence; the lifecycle matrix enters confirmed New and
+does not separately exercise that warning.
+
+Missing files return directly, but the original's Windows MCI setup enables
+media-error acknowledgements for existing files. Some original setup
+failures have no established clean return, so the recreation's bounded
+acknowledgement-and-return path remains a compatibility safeguard. Exact
+original error text, number of dialogs and continuation after every codec
+failure are **not tested**. The controlled completed-player fixture tests
+the return bridge, not decoder error handling or synchronization.

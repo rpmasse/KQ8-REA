@@ -36,6 +36,94 @@ required behavior and the uninterrupted New Game-to-ending path; this
 changes the verification strategy, not the fidelity or completion target.
 Manual testing remains deferred until the Rust recreation is complete.
 
+**M4 live original-size presentation (2026-11-07).** Implement the
+known live 640 × 480 ↔ 800 × 600 transition from graphics-modes.md
+rules 6, 9 and 11–18 within the existing rendering backend. The Graphics
+screen currently changes only its saved flag: the open menu canvas,
+loaded HUD/caption and native window stay at their previous dimensions.
+The static geometry/art batch already supplies the original rectangle,
+font, picture and Save/Load rules; reuse those functions and successful
+checks rather than reopening assets or recreating the game session.
+
+1. Add a dedicated viewer display owner with the two original sizes,
+   explicit supplied resolution-capability inputs, the last confirmed
+   output dimensions, and a pending request. Selecting the current size
+   is a no-op. Request the host window/output change immediately from
+   Graphics; commit the preference and interface dimensions from the
+   confirmed actual surface/window size, not by mutating a preference
+   alone. Keep requested and applied sizes distinct. Unexpected sizes
+   or a failed request retain a usable presentation and report failure;
+   this is the note's compatibility safeguard, not an invented original
+   rollback dialog or driver-failure guarantee. The existing renderer's
+   accepted 640/800 inputs remain explicit compatibility inputs. Do not
+   disable its currently supported 800 choice because no historical
+   device profile has been selected, or infer Glide capability from
+   modern GPU memory or WGPU's adapter identity.
+2. Refresh the active Graphics screen and its parent Main/Options art
+   in place. Add small resize methods to the existing Graphics, Options
+   and Keyboard models; reuse Main and Save/Load resize methods. Retain
+   selection, typed save name, list position, modal/capture state,
+   animation clocks and menu sound ownership. Draw the resolution's
+   original selection markers and use the resulting rectangles for
+   hit tests. An unavailable resolution supplied by a capability input
+   remains visible but disabled; this does not implement the unresolved
+   original device enumeration/default policy.
+3. Resize a loaded HUD from its immutable authored tree, keeping its
+   panels, inventory selection, map state, timers and original pictures.
+   Invalidate only presentation caches, including the cached status-icon
+   placement. Resize the caption box to 320/400 pixels and give its
+   raster cache a layout revision: unchanged text must be rewrapped even
+   when a proportional window and canvas resize leaves the pixels-per-
+   canvas-pixel ratio unchanged. Preserve font pixels, caption content,
+   palette and audio. Apply the current display dimensions to newly
+   loaded HUD/caption resources before the normal world build displays
+   them; do not create a second loader or reload the world to resize.
+4. Coordinate physical output dimensions, the existing logical-window
+   GUI/pointer mapping and the current camera viewport. Keep the current
+   projection/FOV and game/camera transforms unchanged. Both accepted
+   sizes are 4:3, so compare normalized pointer samples and existing
+   projection rays across the transition. This proves consistency of
+   our current backend, not the untraced original Windows-pointer/FOV
+   rules. An in-flight size request must not consume a pointer against
+   a stale canvas or viewport. Preserve the existing window presentation
+   mode; exclusive-fullscreen/device replacement is a separate group.
+5. Run one grouped headless transition matrix on a settled source build:
+   640→800→800→640, supplied-disabled 800, pending/confirmed/rejected
+   output, physical/logical mapping, original-data Graphics/Options/HUD
+   rebuild, unchanged caption text at equal output ratio, and retained
+   game/menu state. Use actual Bevy Window/Camera/resource state and a
+   controlled window-result seam; no native driver success is claimed
+   by an injected acknowledgement. Reuse static geometry/menu, credits,
+   movie and ending lifecycle evidence. No manual/CUA/original-runtime
+   inspection, per-screen native routes or unrelated campaign replay.
+
+Proposed ownership: new viewer display module and transition-test/evidence
+files; narrow main.rs module/registration, startup_menu.rs, world_build.rs,
+gui_view.rs and talk_view.rs seams; core Graphics/Options/Keyboard resize
+and resolution-row behavior. Existing Main, Save/Load and layout helpers
+should be reused unless a concrete transition gap requires a narrow
+change. Coordinate shared viewer compilation and source writes with the
+Tile batch. Root retains Connor/route and publication ownership.
+
+Remaining boundaries are explicit: original device-profile selection and
+default, complete software palette/light parity, driver switching and its
+Direct3D-to-DirectDraw restart modal, original projection/picking details,
+and real OS/GPU resize-failure behavior. None is established merely by
+making the known resolution transition internally consistent. This batch
+can complete the transition mechanism without claiming those groups are
+complete.
+
+**Automated chapter route waits (2026-11-07).** Timed puzzle sequences
+need ordinary idle time after an interaction and before a later camera
+click. Add an optional bounded wait_updates to a diagnostic landmark.
+On arrival, release movement keys and count normal simulation updates;
+after the requested interval, dispatch the landmark's usual interaction.
+Do not advance clocks, invoke callbacks, modify saves or skip authored
+animation/events. Keep the arrival latched while stopping drift settles.
+Use this in the integrated earned eastern-chamber/statue/feather route,
+not as another standalone test for each object. Existing routes without
+the option retain their current behavior. No game behavior changes.
+
 **M4 ending lifetime and credits score (2026-11-07).** Study A corrected
 credits-completion.md rule 16 and established rules 20–24: killGame
 disables gameplay and Back to Game but retains the separate game-started
@@ -117,6 +205,17 @@ Reuse successful checks unless a subsequent change affects their rule.
 The shared Cue500 projectile path, original save equivalence and any
 unresolved Rock/ontop-liquid behavior remain required completion work;
 they are not grounds to invent approximations or call this family done.
+
+**Authored decimal move flags (2026-11-07).** The installed Barren
+patch/tiletps.cs completed south-entry callback writes the move flag as
+0. rather than 0. The shared world_script::parse_move currently rejects
+that callback. Accept ordinary unsigned integer spellings plus decimal
+spellings with an integral value (such as 0. and 1.0), with explicit
+finite/u32 bounds and no fractional, negative or exponent expansion.
+This implements the installed caller without claiming an untraced
+general numeric coercion rule. Use one parser boundary matrix and the
+pending original Barren callback matrix; do not rerun passed material
+or unrelated interface tests. Scope: kq8-data/src/world_script.rs only.
 
 **M6 Q201 loading and saved trap integration (2026-11-07, design audit).**
 Current source prepares scenery through newWorld.cs, runs only shadows

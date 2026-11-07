@@ -40,9 +40,13 @@ back to the game. While it is open the game is paused.
    Places 7–9 are the three popup text lines (rule 14); they can never be
    chosen. The gap at 325–345 and 385–405 is in the layout.
 3. **Which items can be chosen** (worked out each time the menu is set
-   up) [traced]. "A game is running" means a New game was started or a
-   saved game was loaded since the program started, and Connor has not
-   died since (rule 25):
+   up) [traced]. "A game is running" here means a game has been started
+   or loaded and the separate gameplay-unavailable condition is clear.
+   Both Connor's completed death transition (rule 25) and `killGame`
+   set that unavailable condition. They retain the fact that a game has
+   started; that fact alone does not enable these menu actions. This
+   distinction was rechecked statically on 2026-11-07; see
+   `credits-completion.md` rules 16 and 20–24:
    - New, Options, Quit: always.
    - Load: only if there is at least one saved game in the save folder
      (rule 23) and no "corrupt saved game" question is waiting.
@@ -108,9 +112,17 @@ back to the game. While it is open the game is paused.
 ### Choosing an item
 
 10. **New** [traced]:
-    - If a game is running: first a Yes/No question, "You already have
+    - If a game has started **and gameplay is still available**: first
+      a Yes/No question, "You already have
       a game running. Are you sure you want to start a NEW one?"
       (`500.MSG` 0 0 158), **No** highlighted. No closes it; Yes goes on.
+      **Predicate clarification, 2026-11-07:** the warning uses the
+      same two conditions as Back to Game, not the started condition
+      alone. After `killGame`, or after the death transition sets the
+      unavailable condition, New skips this warning and proceeds to
+      the disk-space/difficulty flow below. The retained Connor used
+      by Credits does not cause a warning. Death and ending have the
+      same New-menu rule despite their different gameplay causes.
     - Then a **disk-space check** of the original's install (rule 30):
       if it fails, a message with an OK button; OK closes it and nothing
       starts.
@@ -256,7 +268,8 @@ back to the game. While it is open the game is paused.
 
 ## Edge cases
 
-- **No game running** (start-up, or after Connor's death): Escape and
+- **No playable game** (start-up, after Connor's death menu, or after
+  `killGame`): Escape and
   Back to Game do nothing; the menu cannot be left except by New, Load
   or Quit [traced].
 - **New while a game is running, Yes, then Escape in the difficulty
@@ -317,6 +330,14 @@ In the original (GOG 1.03):
 In our build: log each menu event (item chosen, popup opened, button
 picked, combat level set, pause on/off, theme start/fade) to a
 `menu.log` and compare with the above.
+
+The 2026-11-07 predicate clarification has **not been tested** by
+running the original. An automated state-family check should compare a
+fresh title session, a playable started session, a death-menu session,
+and an ended session retaining Connor. Only the playable started
+session shows the already-running warning; Save and Back to Game have
+the same eligibility. The latter two sessions still count as started
+for the independent Credits score rule.
 
 ## Open questions
 
