@@ -13,6 +13,64 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 graveyard preparation through the well (2026-11-07).** The two
+failed encounters remain stopped. From the genuine entrance save,
+follow the already-traversed roads back around the western passage,
+central guards and southern bend to the Sylph well. Use the recorded
+road coordinates rather than the shorter offline line near spiritW.
+Use 15 ordinary visible well clicks to heal 39 to the level-eleven
+maximum of 110, then save and reload in a fresh process. Require
+unchanged inventory, experience, quest flags and defeated guards.
+After that independent preparation succeeds, reverse the road and
+verify another unchanged save at the graveyard entrance. Only then
+resume the zombie encounter from that genuinely healed campaign state.
+No health grant, teleport, AI suppression or engine-rule change is
+part of this preparation. The original emergence rule remains in
+force; a ranged ray cannot target an underground zombie.
+
+For the later encounter, the existing fighting rules give Connor
+2350 hand reach and this zombie 900. Use ordinary Mace swings from
+the outer part of Connor's reach, after entering the zombie's alarm
+radius and allowing its original rise. The previous retreat driver
+deliberately approached close enough to bait attacks; that input
+strategy failed with 39 health. Require the native rise event, actual
+Mace hits, completed death, 402 experience once and a fresh reload
+near the western plate. The increased starting health must come
+only from the independently verified well return.
+
+Both independent preparation checks pass: the well return/healing
+and fresh reload in 242.61 seconds, followed by the healed return
+and fresh reload in 242.48 seconds. Fifteen original five-health
+events restore 39 to the clamped maximum of 110. Neither road causes
+damage, and the final HealedGraveyardReload preserves all items,
+quest flags, moved props and completed guards at
+(111066.125,100055.83,0), with [110,80,25,10,7512].
+
+The first prepared run wins the encounter without damage, but its
+position assertion fails: the ordinary stopping animation continues
+onto triptrp5. Original TRIPTRP5.KQ and TRIPTRP5.CS plus the native
+trace establish the intended pressure activation. Keep that failed
+assertion trace, correct the route description to reaching the plate,
+and require Connor's saved occupancy, both portal masks at 4, the
+original lowering/map-icon events and no repeated On after reload.
+This verifies the held plate; placing a Rock and leaving it enabled
+are separate steps. Do not change movement or extend collision bounds.
+
+The corrected encounter/held-plate check passes in 69.41 seconds.
+Connor retains 110 health and 7914 experience; the original On fires
+once and does not repeat after reload. Verify the matching release
+with ordinary walking away: TRIPTRP5.CS must remove bit 4 from both
+portal masks, play the plate up and remove its map icon. Save and
+reload outside, retaining inventory and quest state, with no repeated
+Off on reload. This does not yet verify a Rock holding the plate.
+
+The release and fresh reload pass in 30.77 seconds. Off runs once on
+update 51, clears both portal masks, raises trip5 and removes the
+restored map icon. WesternPlateReleasedReload remains at full health
+with both Rocks, experience 7914 and unchanged quest state. The next
+step is the original Rock placement that must keep the plate active
+after Connor leaves; portal traversal and later quests remain open.
+
 **M6 graveyard approach audit (2026-11-07).** Continue from the
 genuine WesternPassageReload. Correct the local threat diagnostic:
 PowerShell selected Math.Clamp's integer overload from integer

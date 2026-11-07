@@ -1,5 +1,54 @@
 # STATUS
 
+## 2026-11-07 Graveyard zombie and western plate On/Off verified
+
+The ordinary return around the cleared roads and fresh reload pass
+in 242.61 seconds. Fifteen visible well2 clicks on updates 2736-2750
+run the original five-health event, restoring 39 to 110. There is no
+incoming damage on the return. GraveyardWellReload ends at
+(66728.32,104706.875,1584), with [110,80,25,10,7512], both Rocks,
+unchanged items/quest flags/prop placements and all cleared guards
+still gone. Evidence: earned-graveyard-well/1794033520956824200/slots/slot-3.json
+and graveyard-well-native.log under kq8-artifacts.
+
+The ordinary return to the graveyard and fresh reload also pass, in
+242.48 seconds, without damage or other state changes.
+HealedGraveyardReload ends at (111066.125,100055.83,0), with
+[110,80,25,10,7512]. Evidence:
+earned-healed-graveyard-return/1794033787998345400/slots/slot-3.json
+and healed-graveyard-return-native.log. The earlier failed approaches
+remain below.
+
+The prepared encounter defeats zombie6 without damage: six normal
+Mace hits, death on update 164 and the original 402 experience on
+199. The first test fails in 69.79 seconds because its final
+position expectation assumed Connor would stop outside the plate.
+His unchanged stopping animation reaches (113745.9,108677.2,0),
+activating triptrp5 on update 314. The original script enables both
+portal masks, lowers the plate and adds the map icon. The failed
+position assertion is retained in
+earned-healed-graveyard-zombie/1794034064579530000 and
+healed-graveyard-zombie-native.log. No new engine change is needed.
+
+The corrected encounter and held-plate reload pass in 69.41 seconds.
+WesternPlateHeldReload retains [110,80,25,10,7914], both Rocks,
+Connor inside triptrp5 and both portal masks at 4. The reward and On
+event do not repeat on reload. Evidence:
+earned-healed-graveyard-zombie/1794034224062657900/slots/slot-3.json
+and healed-graveyard-plate-native.log.
+
+Walking off and reloading pass in 30.77 seconds. On update 51 the
+original script clears both portal masks, raises the plate and
+removes the restored map icon. The final WesternPlateReleasedReload
+is at (112108.76,108774.945,0), with unchanged full health, experience,
+inventory and quest flags; the plate is empty and both masks are 0.
+Off does not repeat on reload. Evidence:
+earned-western-plate-release/1794034374631528600/slots/slot-3.json
+and western-plate-release-native.log. Leaving a Rock on this plate,
+using its portal, the skull and later quests remain unverified.
+M4-M6 remain incomplete.
+[Commands and limits](docs/dead-city-progression.md#earned-graveyard-preparation-and-western-plate)
+
 ## 2026-11-07 Graveyard entrance passes; two zombie attempts stopped
 
 The ordinary winding entrance and fresh-process reload pass in
