@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-07 Share CPU actor construction for ordered loading
+
+Extract the existing door/chest/scripted-object and animated-character
+constructors into actor_recipes.rs and use them in the current rendering
+paths and affected original-data fixtures. Preserve animation indices,
+random-state consumption and rendering resources. The shared viewer
+test build passes in 1m53s; three representative affected data checks pass
+first attempt, 3/3 in 4.22s. Evidence: docs/ordered-world-loading.md.
+This prepares the live loader; original startup ordering is not fixed
+yet. M4 about 88%, M5 about 64%, M6 about 28%.
+
 ## 2026-11-07 Implement shared saved-world clock and queue phases
 
 Preserve the original persistent event families, f32/six-decimal clock
