@@ -2973,3 +2973,130 @@ fn picking_up_earned_rock_releases_western_plate_and_reloads() {
     assert!(!log(&play, "WesternPlateRockPickupReload", "items.log").contains(&format!("item destruction {name}:")));
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and earned KQ8_WESTERN_PLATE_ROCK_SLOT"]
+fn earned_rock_opens_the_western_portal_and_first_crossing_reloads() {
+    let play = Play::new("earned-western-portal");
+    let source = earned_slot("KQ8_WESTERN_PLATE_ROCK_SLOT")
+        .expect("set KQ8_WESTERN_PLATE_ROCK_SLOT to an earned WesternPlateRockReload save");
+    let start: Value = serde_json::from_slice(&fs::read(&source).unwrap()).unwrap();
+    assert_eq!(start["label"], "WesternPlateRockReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["stats"], json!([110,80,25,10,7914]));
+    assert_eq!(start["journey"]["stats"]["level"], 11);
+    assert!(region_flag(&start, "DeadCity::Portal::FirstFive", "false"));
+    assert!(region_flag(&start, "DeadCity::Portal::FiveOn", "true"));
+    let initial_plate = start["traps"]["states"].as_array().unwrap().iter()
+        .find(|trap| trap["name"] == "triptrp5").unwrap();
+    assert_eq!(initial_plate["inside"].as_array().unwrap().len(), 1);
+    let rock = initial_plate["inside"][0].as_str().unwrap();
+    assert!(start["items"].as_array().unwrap().iter().any(|item| item["name"] == rock
+        && item["kind"] == "INVITEM_Rock" && item["quantity"] == 1
+        && item["place"].get("World").is_some()));
+    let (approach, portal_slot) = if let Some(near) = earned_slot("KQ8_WESTERN_PORTAL_APPROACH_SLOT") {
+        let saved = prepare(&play, &near);
+        assert_eq!(saved["label"], "WesternPortalApproach");
+        (saved, 1)
+    } else {
+        prepare(&play, &source);
+        let mut points = Vec::new();
+        for (i, xy) in [[111000,107500],[111000,105500],[111000,103000],
+            [111000,101000],[111014,99472]].into_iter().enumerate() {
+            points.push(json!({"name":format!("Leave the cleared graveyard {}",i+1),
+                "xy":xy,"radius":140,"run":false}));
+        }
+        points.extend(graveyard_well_road([111014.,99472.], true));
+        let last = points.last().unwrap()["name"].as_str().unwrap().to_string();
+        let path = play.root.join("western-portal-road.json");
+        fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":points})).unwrap()).unwrap();
+        let (saved, viewer) = leg(&play, 1, "WesternPortalApproach", 3000,
+            &["--walk-route", path.to_str().unwrap()]);
+        assert!(viewer.contains(&format!("walk-route at {last}")));
+        (saved, 2)
+    };
+    assert_eq!(approach["journey"]["stats"], start["journey"]["stats"]);
+    assert_eq!(approach["journey"]["items"], start["journey"]["items"]);
+    assert_eq!(approach["journey"]["flags"], start["journey"]["flags"]);
+    assert!(region_flag(&approach, "DeadCity::Portal::FirstFive", "false"));
+    assert!(region_flag(&approach, "DeadCity::Portal::FiveOn", "true"));
+    let states = approach["traps"]["states"].as_array().unwrap();
+    assert_eq!(states.iter().find(|trap| trap["name"] == "triptrp5").unwrap()["inside"], initial_plate["inside"]);
+    for portal in ["portrap5", "portrp5b"] {
+        assert_eq!(states.iter().find(|trap| trap["name"] == portal).unwrap()["mask"], 4);
+    }
+    // Full static segment planning goes east of the obstruction at the well;
+    // isolated destination samples had missed the first approach's collision.
+    let mut points = Vec::new();
+    for (i, xy) in [[67250.,105750.],[66166.7,107166.7],[65083.3,108583.3],
+        [64000.,110000.],[62500.,110436.]].into_iter().enumerate() {
+        points.push(json!({"name":format!("Approach the enabled western portal {}",i+1),
+            "xy":xy,"radius":140,"run":false}));
+    }
+    points.push(json!({"name":"Cross the western portal using the earned Rock",
+        "xy":[61253,110436],"radius":100,"run":false,
+        "until_var":{"name":"DeadCity::Portal::FirstFive","value":"true"}}));
+    let path = play.root.join("western-portal.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":points})).unwrap()).unwrap();
+    let (crossed, viewer) = leg(&play, portal_slot, "WesternPortalCrossed", 600,
+        &["--walk-route", path.to_str().unwrap()]);
+    assert!(viewer.contains("walk-route at Cross the western portal using the earned Rock"));
+    let traps = log(&play, "WesternPortalCrossed", "traps.log");
+    assert!(traps.contains("trap portrap5: On Connor"));
+    assert!(traps.contains("set DeadCity::Portal::FirstFive = 'true'"));
+    let events = log(&play, "WesternPortalCrossed", "doors.log");
+    assert_eq!(events.matches("KQStatsChangeRequestEvent 0 0 0 0 4000 to Connor").count(), 1);
+    let (restored, _) = leg(&play, portal_slot + 1, "WesternPortalCrossedReload", 45, &[]);
+    for saved in [&crossed, &restored] {
+        check_western_portal_crossing(saved, &start);
+    }
+    assert!(!log(&play, "WesternPortalCrossedReload", "doors.log")
+        .contains("KQStatsChangeRequestEvent 0 0 0 0 4000 to Connor"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+fn check_western_portal_crossing(saved: &Value, before: &Value) {
+    assert_eq!(before["label"], "WesternPlateRockReload");
+    assert_eq!(saved["world"], "DeadCity");
+    assert!(region_flag(saved, "DeadCity::Portal::FirstFive", "true"));
+    assert!(region_flag(saved, "DeadCity::Portal::FiveOn", "false"));
+    assert!(region_flag(saved, "DeadCity::Portal::SixOn", "true"));
+    // The original 4,000-point first-use award crosses level 11's 10240 threshold.
+    assert_eq!(saved["journey"]["stats"]["stats"], json!([120,85,27,11,1674]));
+    assert_eq!(saved["journey"]["stats"]["level"], 12);
+    assert_eq!(saved["journey"]["items"], before["journey"]["items"]);
+    assert_eq!(saved["journey"]["flags"], before["journey"]["flags"]);
+    assert!((saved["position"][0].as_f64().unwrap()-29021.).abs()<1500.);
+    assert!((saved["position"][1].as_f64().unwrap()-192412.).abs()<1500.);
+    let states = saved["traps"]["states"].as_array().unwrap();
+    for portal in ["portrap5", "portrp5b", "portrap6"] {
+        assert_eq!(states.iter().find(|trap| trap["name"] == portal).unwrap()["mask"], 4);
+    }
+    let plate = before["traps"]["states"].as_array().unwrap().iter()
+        .find(|trap| trap["name"] == "triptrp5").unwrap();
+    assert_eq!(plate["inside"].as_array().unwrap().len(), 1);
+    assert_eq!(states.iter().find(|trap| trap["name"] == "triptrp5").unwrap()["inside"], plate["inside"]);
+    let rock = plate["inside"][0].as_str().unwrap();
+    assert!(saved["items"].as_array().unwrap().iter().any(|item| item["name"] == rock
+        && item["kind"] == "INVITEM_Rock" && item["quantity"] == 1
+        && item["place"].get("World").is_some()));
+}
+
+#[test]
+#[ignore = "requires GOG assets, graphics and genuine KQ8_WESTERN_PORTAL_CROSSED_SLOT and KQ8_WESTERN_PLATE_ROCK_SLOT"]
+fn saved_western_portal_crossing_reloads_without_another_award() {
+    let play = Play::new("earned-western-portal-reload");
+    let source = earned_slot("KQ8_WESTERN_PORTAL_CROSSED_SLOT")
+        .expect("set KQ8_WESTERN_PORTAL_CROSSED_SLOT to a genuine WesternPortalCrossed save");
+    let before_source = earned_slot("KQ8_WESTERN_PLATE_ROCK_SLOT")
+        .expect("set KQ8_WESTERN_PLATE_ROCK_SLOT to its genuine WesternPlateRockReload ancestor");
+    let before: Value = serde_json::from_slice(&fs::read(before_source).unwrap()).unwrap();
+    let crossed = prepare(&play, &source);
+    assert_eq!(crossed["label"], "WesternPortalCrossed");
+    check_western_portal_crossing(&crossed, &before);
+    let (restored, _) = leg(&play, 1, "WesternPortalCrossedReload", 45, &[]);
+    check_western_portal_crossing(&restored, &before);
+    assert!(!log(&play, "WesternPortalCrossedReload", "doors.log")
+        .contains("KQStatsChangeRequestEvent 0 0 0 0 4000 to Connor"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}

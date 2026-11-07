@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-07 Earned western portal crossing reaches the northwest chamber
+
+The automated campaign route now walks back with the earned Rock still
+holding triptrp5, saves at the well, enters portrap5 normally and completes
+the original portal/portalx sequence. One 4,000-experience award raises
+Connor to level 12; a fresh process restores the destination, inventory,
+flags and held plate without another award. The three-process route
+passes once in 264.89 seconds; original Options.cs remains unchanged.
+
+The first route failed at a head-on collision near the well after
+209.88 seconds. Full static segment planning supplies a new approach;
+the failure is preserved and no runtime collision or engine behavior was
+changed. Review corrected a log-format assertion before it was reached.
+The route keeps a genuine approach checkpoint for nearby continuation.
+No passing test was repeated and no manual testing was used. The added
+reload-only entry point is compiled, not separately run, because the
+full route includes that check. [Evidence](docs/western-portal.md)
+
 ## 2026-11-07 Item pickup and destruction release occupied traps
 
 Pending item deletion now finishes at the outer event boundary. Each

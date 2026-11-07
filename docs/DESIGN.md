@@ -13,6 +13,30 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 earned western portal traversal (2026-11-07).** Resume the preserved
+WesternPlateRockReload branch, with the earned Rock still holding triptrp5.
+Use the previously traversed graveyard/well roads, then ordinary movement
+into portrap5 at the Sylph-room portal. Follow the installed original
+portrap5.cs sequence: point/portal animation, state-change notice, delayed
+move to the northwest chamber, portalx, then returned control and the
+first-use 4,000 experience award. The route waits for FirstFive=true;
+it does not invoke callbacks, place Connor, grant items or set flags.
+
+Check the actual entry/cue/reward logs, destination, original level-up
+stats, preserved inventory and pressure-plate identity, portal masks and
+flags, then fresh-process reload without another reward. Keep original
+Options.cs unchanged. The nearby approach has static terrain/building
+samples; these are planning evidence, not proof of live traversal.
+If a route fails, preserve its logs and inspect the first obstruction
+before changing it. Later skull/feather/scales/Sylph quests remain open.
+
+The first run failed on a head-on collision near the well. Full segment
+planning supplies the corrected approach, with a genuine well checkpoint
+saved before the short portal leg. The revised three-process route passes
+once in 264.89 seconds, reaching (29021,192412,864), level 12, with the Rock
+still holding the plate and no repeated award on reload. The failure is
+retained. [Commands and limits](western-portal.md)
+
 **M6 item pickup and deletion release (Q203, 2026-11-07).** Separate an
 item's deletion request from its destruction at the outer event boundary.
 Pending items cannot be picked up, counted or registered again, but keep

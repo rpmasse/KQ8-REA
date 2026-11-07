@@ -842,6 +842,27 @@ The prior hold route was not repeated. This is a separate earned branch;
 WesternPlateRockReload remains available with the Rock holding the portal
 open for the next traversal. [Exact command and limits](item-removal-traps.md)
 
+## Earned western portal crossing and reload
+
+The western portal now has a verified continuation. With NoName98
+still holding triptrp5, Connor returns along the cleared roads to Sylph's
+area and enters portrap5 normally. Its original portal/portalx sequence
+returns control at (29021,192412,864) in the northwest chamber. The one-time
+4,000 experience award gives level 12 and [120,85,27,11,1674]. A fresh
+process restores this state, inventory and the still-held distant plate
+without another award. The three-process route passes once in 264.89
+seconds; original Options.cs preservation passes.
+
+The first approach failed at a head-on collision near the well. It is
+retained at `earned-western-portal/1794043032595147200`; the corrected
+route uses full static segment planning and saves at the well before
+the short portal leg. Passing evidence is `western-portal-planned-crossing.log`
+and `earned-western-portal/1794043427585987500/slots/slot-4.json`
+(WesternPortalCrossedReload). Slot-2 is WesternPortalApproach and slot-3
+is WesternPortalCrossed. No successful leg was repeated after this pass.
+The good skull, feather, scales and later quests are still open.
+[Exact command, failure and limits](western-portal.md)
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at

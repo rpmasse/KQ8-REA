@@ -3,6 +3,16 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Earned western portal route.** The installed Dead City triptrp5.cs,
+portrap5.cs/portrp5b.cs and portal `.kq` data provide the activation,
+destination, control sequence and one-time reward. The existing local
+planner reads original terrain and building BSPs to plan walking segments;
+the native route verifies those segments with live collision and scripts.
+Only campaign test code and documentation change. The first collision
+failure and passing three-process continuation are recorded in
+[western-portal.md](../western-portal.md). No original script contents or
+assets are published; implementation B did not inspect the executable.
+
 **Item pickup and destruction.** A's Q203 prose in `traps.md` supplies
 deferred destruction, Off/Cue 302 before name removal, and the distinct
 origin relocation/stay-check path for non-merged pickups. A's follow-up
