@@ -150,6 +150,8 @@ pub fn decide(ask: &Ask, ready: WeaponMode, real_ranged: bool, last_away_ranged:
 pub const TALK_PICK: u32 = 0x40 | 0x20 | 0x08;
 /// Rule 16: the aim pick's types (bits 0x40, 0x08).
 pub const AIM_PICK: u32 = 0x40 | 0x08;
+/// Held Rock ray, after drawn-terrain clipping (Q202).
+pub const ROCK_PICK: u32 = 0x29;
 /// Rule 32: the swing pick's types (bits 0x40, 0x20).
 pub const SWING_PICK: u32 = 0x40 | 0x20;
 /// Rule 15: a character whose type has this bit gets the plain click.
@@ -372,9 +374,13 @@ impl WorldState {
     /// so an object a script brought in (the bell, type 0x8021: its click
     /// box on, no solid box yet) is met too.
     pub fn mask_pick(&self, origin: [f32; 3], dir: [f32; 3], mask: u32, objects: &[crate::collide::BoxCollider], buildings: &[crate::collide::BuildingCollider]) -> Option<MaskHit> {
+        self.mask_pick_length(origin, dir, crate::active::CLICK_LINE_LENGTH, mask, objects, buildings)
+    }
+
+    fn mask_pick_length(&self, origin: [f32; 3], dir: [f32; 3], length: f32, mask: u32, objects: &[crate::collide::BoxCollider], buildings: &[crate::collide::BuildingCollider]) -> Option<MaskHit> {
         let mut best: Option<(f32, MaskHit)> = None;
         let mut keep = |t: f32, h: MaskHit| {
-            if best.as_ref().is_none_or(|(b, _)| t < *b) {
+            if t >= 0. && t <= length && best.as_ref().is_none_or(|(b, _)| t < *b) {
                 best = Some((t, h));
             }
         };
@@ -402,7 +408,7 @@ impl WorldState {
                 keep(t, MaskHit { name, character: None, building: false, collision_type, point: at(t) });
             }
         }
-        let far = at(crate::active::CLICK_LINE_LENGTH);
+        let far = at(length);
         for (b, info) in buildings.iter().zip(&self.buildings) {
             if info.collision_type & mask == 0 || self.is_switched_off(&info.name) {
                 continue;
@@ -413,6 +419,26 @@ impl WorldState {
             }
         }
         best.map(|(_, h)| h)
+    }
+
+    /// Q202: shorten at drawn ground before picking, keep the actual
+    /// intersection (including a character's x/y), and never bow-clamp.
+    pub fn rock_aim(&self, origin: [f32; 3], dir: [f32; 3], ground: Option<&dyn crate::connor_mover::GroundLookup>,
+        objects: &[crate::collide::BoxCollider], buildings: &[crate::collide::BuildingCollider]) -> ([f32; 3], Option<MaskHit>) {
+        let far = std::array::from_fn(|i| origin[i] + dir[i] * crate::active::CLICK_LINE_LENGTH);
+        let end = ground.and_then(|g| g.drawn_line_hit(origin, far)).unwrap_or(far);
+        let length = (0..3).map(|i| (end[i] - origin[i]).powi(2)).sum::<f32>().sqrt();
+        let hit = self.mask_pick_length(origin, dir, length, ROCK_PICK, objects, buildings);
+        (hit.as_ref().map_or(end, |h| h.point), hit)
+    }
+
+    /// Direct Rock input starts now; the normal turn restriction is
+    /// evaluated by ClickTurn, without the bow's pending-shot gate.
+    pub fn direct_rock_click(&mut self, point: [f32; 3]) {
+        if !self.first_person {
+            self.requests.push(crate::active::Request::ClickTurn { name: "Rock aim".into(), target: [point[0], point[1]], at: "direct Rock click (Q202)".into() });
+        }
+        self.requests.push(crate::active::Request::ConnorThrowRock { aim: Some(point) });
     }
 
     /// The click boxes the ray `origin + t × dir` meets among those whose
@@ -503,6 +529,21 @@ impl WorldState {
         let damage = self.connor_stats.map_or(0, |c| c.stats.0[2]);
         let why = format!("do ({movement}): start offset ({:.0}, {:.0}, {:.0}): {how} (rule 24); aim point ({:.0}, {:.0}, {:.0}), no lead (rule 25); ranged damage {damage} (rule 22)", offset[0], offset[1], offset[2], aim[0], aim[1], aim[2]);
         self.launch_bolt(crate::talk::CONNOR, file, &p, from, aim, damage, &why);
+    }
+
+    /// The delivered Rock do cue uses the current full named-part frame.
+    /// Only ordinary ThrowRock overrides damage kind; Tile2 retains the
+    /// file's ordinary kind. Quantity is left for the Die script.
+    pub fn shoot_rock(&mut self, file: &str, feet: [f32; 3], rotation: [[f32; 3]; 3],
+        part: Option<(kq8_data::shape::Transform, String)>, aim: [f32; 3], ordinary_throw: bool, movement: &str) {
+        let Some(p) = self.projectiles.get(&file.to_ascii_lowercase()).cloned() else { return };
+        let (offset, part_rotation, how) = part.map_or_else(
+            || (self.connor_shoot_offset, kq8_data::objects::rotation([0.; 3]), "missing part: stored translation and identity-rotation safeguard".into()),
+            |(part, how)| (part.p, part.m, how));
+        let from = std::array::from_fn(|k| feet[k] + (0..3).map(|i| offset[i] * rotation[i][k]).sum::<f32>());
+        let damage = self.connor_stats.map_or(0, |c| c.stats.0[2]);
+        let why = format!("Rock do ({movement}): {how}; local offset {offset:?}, world launch {from:?}, fixed aim {aim:?}; ordinary ThrowRock={ordinary_throw}; quantity retained until Die (Q202)");
+        self.launch_bolt_placed(crate::talk::CONNOR, file, &p, from, aim, damage, &why, offset[2], part_rotation, ordinary_throw);
     }
 
     /// A weapon readied or put away outside a request (the `--swing` test,

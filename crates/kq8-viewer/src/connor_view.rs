@@ -326,6 +326,7 @@ pub struct RockThrow {
     out: Option<&'static str>,
     saved_list: Option<String>,
     saved_mode: WeaponMode,
+    saved_projectile: Option<String>,
 }
 
 /// One of Connor's swings (M5 5c-5).
@@ -1890,6 +1891,7 @@ impl ConnorSim {
             Mode::Free => (true, "Wait"),
             // Rule 28: the talk state turns too (M4 4e-3).
             Mode::Talk => (true, "Talk"),
+            Mode::Throw if self.rock.is_some() => (true, "ThrowRock"),
             m => (false, m.name()),
         }
     }
@@ -2339,9 +2341,13 @@ impl ConnorSim {
 
     /// The named part `part` of `movement`'s frame at `phase` (rule 24).
     pub fn part_at(&self, movement: &str, phase: f32, part: &str) -> Option<([f32; 3], String)> {
+        self.part_transform_at(movement, phase, part).map(|(t, how)| (t.p, how))
+    }
+
+    pub fn part_transform_at(&self, movement: &str, phase: f32, part: &str) -> Option<(kq8_data::shape::Transform, String)> {
         let m = self.drawn(movement)?;
         let frame = m.movement_loop.frame_at(phase);
-        let place = m.parts.get(frame)?.iter().find(|(n, _)| n.eq_ignore_ascii_case(part))?.1.p;
+        let place = m.parts.get(frame)?.iter().find(|(n, _)| n.eq_ignore_ascii_case(part))?.1;
         Some((place, format!("its part '{part}' in frame {frame} of '{movement}'")))
     }
 
@@ -2417,33 +2423,32 @@ impl ConnorSim {
 
     /// ranged-weapons.md section 8: away in his current set, throw in his
     /// own set, and (if armed on entry) out in the remembered set.
-    pub fn start_rock_throw(&mut self, file: String, aim: [f32; 3]) -> bool {
+    pub fn start_rock_throw(&mut self, file: String, aim: [f32; 3], saved_projectile: Option<String>) -> bool {
         if self.may_ready().is_err() || self.hands_off {
             return false;
         }
         let Some(away) = self.drawn("away").map(|m| m.name) else { return false };
         let Some(throw) = find(&self.movements, None, "throw").map(|m| m.name) else { return false };
         let out = (self.set_mode != WeaponMode::None).then(|| self.drawn("out").map(|m| m.name)).flatten();
-        let turn = kq8_core::connor_auto::AutoMove::new(kq8_core::connor_auto::AutoKind::Point, [aim[0], aim[1]], None);
-        self.walker.start_auto(turn);
         self.swing = None;
         self.shot = None;
-        self.rock = Some(RockThrow { file, aim, throw, out, saved_list: self.weapon_set.clone(), saved_mode: self.set_mode });
+        self.rock = Some(RockThrow { file, aim, throw, out, saved_list: self.weapon_set.clone(), saved_mode: self.set_mode, saved_projectile });
         self.walker.throw_play(away);
         true
     }
 
-    pub fn rock_step(&mut self) {
-        let Some(r) = self.rock.take() else { return };
+    pub fn rock_step(&mut self) -> Option<Option<String>> {
+        let Some(r) = self.rock.take() else { return None };
         let ended = std::mem::take(&mut self.throw_ended);
         if !ended.contains(&self.walker.movement) {
             self.rock = Some(r);
-            return;
+            return None;
         }
         if Some(self.walker.movement) == r.out {
             self.walker.throw_leave();
         } else if self.walker.movement == r.throw {
-            if self.secondary_rock_finished() {self.redraw_from_walker();return;}
+            if self.secondary_rock_finished() {self.redraw_from_walker();return None;}
+            let projectile = r.saved_projectile.clone();
             self.switch_set(r.saved_list.clone(), r.saved_mode);
             if let Some(out) = r.out {
                 self.walker.throw_play(out);
@@ -2451,12 +2456,18 @@ impl ConnorSim {
             } else {
                 self.walker.throw_leave();
             }
+            self.redraw_from_walker();
+            return Some(projectile);
         } else {
+            let projectile = r.file.clone();
             self.switch_set(None, WeaponMode::None);
             self.walker.throw_play(r.throw);
             self.rock = Some(r);
+            self.redraw_from_walker();
+            return Some(Some(projectile));
         }
         self.redraw_from_walker();
+        None
     }
 
     /// Rule 9 (M6 6b-3): the hammer came back: `catch` at once, from

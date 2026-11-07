@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-07 Recreate authored Rock aim, flight and recovery
+
+Replace the approximate gravity arc with the original two-segment height
+rule, f32 progress, full delivered-frame part transform, Rock-specific
+ray/reach selection and contact/floor recovery. Keep direct-click turning
+and inventory consumption at their documented stages. Preserve authored
+arc continuation and reject older approximate in-flight arc snapshots.
+The grouped original-data/numeric/dispatch matrix passes in 0.13s after
+two documented fixture corrections; two affected existing checks pass.
+Viewer hooks compile in the shared 1m53s build. The viewer's full away/
+throw/out runtime is not yet tested. Undefined original falling behavior
+has an explicit safeguard. Evidence: docs/rock-projectile-recreation.md.
+Estimates: M4 about 88%, M5 about 65%, M6 about 28%.
+
 ## 2026-11-07 Preserve original carried-item drop identities and order
 
 Store carried poses, finish common removal and old-item registration before
