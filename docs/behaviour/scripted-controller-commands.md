@@ -7,6 +7,10 @@ missing `preSpecial` / `reduceHealth` command family. Original runtime,
 native save/reload and manual play **not tested**. No Rust source was
 read or written for this study.
 
+Bounded follow-up, 2026-11-07: rechecked ordinary trap addition, lookup
+delivery, contact restoration and the trap's save/read path to separate
+lookup notification from membership and settle partially restored saves.
+
 ## Purpose
 
 These commands let a script prepare an actor for a cutscene, adjust
@@ -172,7 +176,9 @@ ignoring capitals, attaches the live identity without `On` or `Cue 301`
 and reduces the count. Already retained identities are ignored. A
 contact whose name does not match does not take the ordinary new-entry
 path while restoration is outstanding. When all saved occupants have
-reattached, the saved-name restoration list is cleared.
+reattached, the saved-name restoration list is cleared. Before that
+point, the original retains even names that have already reattached;
+the outstanding count, not the list length, says how many remain.
 
 Starting an active collider checks eligible existing overlaps
 **synchronously**. Resulting trap contact handling finishes before that
@@ -189,9 +195,24 @@ loaded. Loading order matters: a later eligible actor registration can
 provide the contact for an earlier trap too. Unmatched names can remain
 pending after `newWorld.cs` returns.
 
-The deferred trap `Lookup` notification is separate from this immediate
-contact path. It is not a prerequisite for these commands and does not
-itself create live membership.
+Every successfully added ordinary trap posts itself a `KQLookupEvent`
+due at the current simulation time after its inline `Init` opportunity.
+This posting is unconditional with respect to saved names, `lookupCall`
+and script presence: a fresh trap, a restored trap with no saved names,
+and a trap with no script all still post it. `lookupCall` and script
+presence gate only the later script callback.
+
+On delivery, a trap with nonzero `lookupCall` and a script invokes
+`<trap> Lookup`; otherwise the notification has no trap-specific effect.
+The receiver itself does not look up saved names, check overlap, attach
+or remove live occupants, clear pending names, or adjust the outstanding
+restoration count. A script reached through that callback can of course
+issue its own commands. Thus lookup is separate from the synchronous
+contact path and is not a prerequisite for `inTrap` or `removeFromTrap`.
+Unmatched names can remain pending after lookup delivery as well as
+after `newWorld.cs`. Pending lookup events use the persistence and merge
+rules in [saved-world-events.md](saved-world-events.md); an additional
+saved lookup can produce an additional enabled script callback.
 
 ### 8. World `Load` and object `Init` preserve their authored order
 
@@ -241,19 +262,32 @@ Connor moves on the first playable frame.
 ### 10. Persistence scope
 
 These trap commands create no separate persistent flag. Ordinary trap
-saving records occupant names through `trappedObject`; after completed
-restoration, live occupants supply those names. A pending-only Connor
-removed by rule 6 is no longer in the saved-name restoration list, and
-is not added by the live-occupant save contribution unless he has
-subsequently become live. Removing a name cannot erase a live Connor
-from a later ordinary save.
+saving records names through `ntrappedObject` and numbered
+`trappedObject` entries. The writer retains the existing saved-name list,
+appends the current live occupants' names, and writes the resulting list.
+It does not first discard unresolved names or deduplicate the result.
+Therefore an unresolved saved occupant survives a later save even when
+there is no live occupant, and a partially restored save contains both
+the retained names and the live occupants' additional contributions.
 
-The full save lifecycle while multiple saved names are still unresolved
-has not been established here. In particular, do not infer that an
-unresolved restoration list is always discarded at save time or that
-repeated saves of that unusual state have been checked. Ordinary
-completed-restore persistence is covered by Q203; this remaining case
-needs its own bounded evidence before claiming complete parity.
+The writer leaves that name list in place and does not change the current
+outstanding restoration count. With no intervening contact, cancellation
+or deletion, repeated saves append the live names again. For example,
+after loading saved names `A, B` and silently attaching only A, the first
+save writes `A, B, A`; a second writes `A, B, A, A`. If neither has
+attached, repeated saves continue to write `A, B`. These are static
+consequences of the traced writer, not measured native save roundtrips.
+On a later load, the complete written name list supplies the initial
+restoration count; the original contact handler counts each matching
+name entry while retaining each live identity only once. See the unsafe
+bookkeeping caveat below.
+
+A pending-only Connor removed by rule 6 no longer contributes that
+retained name, and the live-occupant contribution does not add him unless
+he has subsequently become live. Removing a name cannot erase a live
+Connor from a later save. Disk and kept-region snapshots use this same
+ordinary trap writer, as established by the shared snapshot path in
+[saved-world-events.md](saved-world-events.md).
 
 ## Data used
 
@@ -297,6 +331,14 @@ each authored object.
    initial contacts, Init, remaining Load statements, queued events and
    Begin in order. Require one build/init per object and both branches
    of IceWorld recovery, including its UsedElevator flag consumption.
+5. Cross saved-name presence, script presence and `lookupCall` 0/1.
+   Each successfully added ordinary trap queues one due-now lookup after
+   Init; only the enabled scripted cases invoke `Lookup`. Deliver it with
+   an unmatched saved name and verify unchanged pending/live membership.
+   Merge a separately saved lookup and preserve both callbacks when
+   enabled. For a partial save, preserve unresolved B alongside live A;
+   the original writer's duplicate accumulation is the caveat below,
+   not a reason to discard B.
 
 ## Edge cases and do not reproduce
 
@@ -306,25 +348,31 @@ each authored object.
   health, an immediate assignment, or a minimum rounded upward.
 - Do not implement `inTrap` as a fresh bounds test, or
   `removeFromTrap` as an ordinary live exit.
-- The original saved-name removal assumes ordinary saved data. Duplicate
-  names and cancellation of an already reattached name while other
-  occupants remain pending can disturb restoration bookkeeping. Those
-  cases are not used by the observed guarded elevator calls. Do not
-  reproduce unsafe counter/iteration behavior for malformed records;
-  keep pending restoration consistent and report invalid data instead.
+- The original retains already matched names while other names remain
+  outstanding, and its save writer can itself introduce duplicate names.
+  Repeated saves therefore need not produce a unique occupant-name list.
+  Cancellation of an already reattached name, or later leave/re-entry
+  while other names remain pending, can disturb its separate restoration
+  count. The observed guarded elevator calls do not require these unsafe
+  effects. Do not reproduce duplicate accumulation or unsafe counter/
+  iteration behavior: keep live and unresolved names distinct, preserve
+  their unique union when saving, and keep pending restoration consistent.
 - Commands used without an existing Connor, invalid non-finite health
   fractions, allocation failure and integer overflow are not useful
   original game behavior to reproduce as crashes.
 
 ## Open questions
 
-- Save/reload during partially completed multi-occupant restoration,
-  including repeated saves, needs a separate persistence study.
+- Original runtime save/reload during partially completed multi-occupant
+  restoration, including repeated saves, remains **not tested**. The
+  name retention and append behavior above is established statically.
 - Persistence of `preSpecial`'s transient remembered-motion and
   interruptibility changes across an intervening save was not traced.
-- The exact ordering of every deferred Lookup/stay notification against
-  first-frame work is outside this study. The synchronous initial
-  contacts needed by the two elevator callers are established.
+- Ordering of every ordinary stay notification against first-frame work
+  remains outside this study. Lookup is due now after Init and follows
+  the shared startup queue service in `saved-world-events.md`; the
+  synchronous initial contacts needed by the elevator callers remain
+  separate.
 - No original-runtime or end-to-end elevator/cutscene comparison was
   performed. The automated expectations above still need implementation
   checks; manual play remains deferred under the project plan.

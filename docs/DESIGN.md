@@ -125,6 +125,40 @@ bytes/hash. Do not load a world, replay movies/credits or perform manual
 inspection. Record the production executable hash and reuse all earlier
 matrix evidence; only a failure or changed source justifies another run.
 
+**M5–M6 authored Rock aim, flight and recovery (2026-11-07, Q202).**
+Replace the documented generic-gravity approximation with the original
+rules in rock-projectiles.md. Treat aiming, launch, flight/contact and
+recovery as one shared behavior family, not a plate-specific trajectory.
+
+1. Use the terrain-clipped Rock ray and mask0x29. A picked accepting
+   object's strict feet-to-box reach must be below the file range before
+   its ConnorAction owns the throw; otherwise use the actual object,
+   drawn-ground or sky intersection. Keep the direct third-person turn
+   request and immediate ThrowRock entry, without bow gates or clamps.
+2. At the real authored do cue, use the current named part's translation
+   transformed by Connor, but retain the part's authored rotation for the
+   parabolic projectile. Supply local launch height independently of
+   world launch height. Ordinary ThrowRock uses current ranged damage and
+   kind4; do not extend that override to Tile2/script launches without
+   evidence. Consume carried quantity only in the ordinary Die script.
+3. Implement the two authored height segments, f32 horizontal progress,
+   nearer-aim range and strict range-overrun fall. Preserve contact
+   normals, stop horizontal motion on steep contact, and apply the floor
+   grid snap before recovery. Keep the recovered final position/angles.
+   The original fall branch's undefined temporary has no reproducible
+   trajectory: use the note's explicitly labelled initialized downward
+   safeguard rather than claiming gravity or deterministic original fall.
+   Reject or safely handle degenerate inputs without nonfinite positions.
+4. Retain enough arc/placement state for the existing Rust save path;
+   handle older approximate-arc slots explicitly rather than silently
+   reading their velocity/gravity as authored progress. Original exceptional
+   mid-flight save/world-change parity remains outside Q202's evidence.
+   Use one grouped numeric/data/dispatch matrix for ray acceptance and
+   strict reach, actual asset cue/part data, arc boundary/rate/range,
+   floor versus drawn surface, steep/ordinary/immune contacts, rotation
+   and Die-time inventory behavior. Reuse the item registration/drop
+   matrix. No repeated western-plate route or manual testing.
+
 **M5–M6 carried-item removal and drop continuation (2026-11-07).**
 Complete the shared items.md rule11/Q203 lifecycle before using the last
 earned Rock on another pressure plate. The current quantity-based split
@@ -362,6 +396,82 @@ Then check one core lifecycle matrix plus original Barren object-Init
 and IceWorld post-newWorld consumers and a representative region-return/
 disk-reload sequence. Reuse unaffected save checks. This audit is not
 an implemented loading fix; no Q201 completion claim is made.
+
+**Q201 implementation sequence (2026-11-07, source audit resolved).**
+The current authority is not a replayable logical journal: the data-only
+world_script pass executes both conditional branches and mutates items,
+variables and placements, while GPU-facing spawn functions later construct
+the actual actors. A record of its final load list would preserve those
+mistakes. Use a live startup host and reusable CPU actor recipes instead.
+
+**Pending trap-contact phase.** Before the ordered loader adopts it, add
+one explicit per-trap restoration API that applies saved fields and puts
+occupant names into a pending list, leaving live membership empty. Only
+an eligible normal shape contact may silently attach a matching name;
+unmatched contacts stay blocked until the pending list empties. Keep
+pending names unique and remove each after attachment, avoiding the
+original duplicate-record counter problem. Commands use exact trap-name
+lookup, live-only `inTrap`, and pending-only `removeFromTrap`. Neither
+command services the queue. Preserve unresolved pending names separately
+in Rust snapshots. The follow-up study establishes that the original
+appends live names to its retained saved list on every save, even producing
+duplicates; preserve the unique union and consistent pending count instead
+of that documented defect. Every successfully added ordinary trap posts
+a due-now Lookup after Init, regardless of lookupCall or script presence;
+delivery only invokes the optional flagged script and never creates
+membership. Existing late bulk restore
+stays explicitly a compatibility path until the shared ordered loader
+replaces it, and must not be counted as Q201 completion. A grouped core
+matrix covers contact/mask/order, command/cancellation and checkpoint
+validation, followed by the two original elevator consumers in the
+ordered-loader integration checks.
+
+1. Extract CPU-only door/chest/scripted-object and animated-character
+   recipes from door_view/anim_view into actor_recipes.rs. Inputs are one
+   resolved placement/section, immutable animation timing/steps/part data,
+   bounds and caller-owned random state. Keep materials, GPU buffers,
+   entity creation and collider-index bookkeeping in the presentation
+   code. Existing spawn paths first consume the same constructors, then
+   adopt the actual runtime-created actors without rebuilding players or
+   running initialization a second time. The extraction is preparatory;
+   it does not itself repair startup order.
+2. Add startup_world.rs with the existing core Scripts interpreter and a
+   live WorldState. Its asset provider may cache source bytes/models, but
+   asset scanning cannot supply final game variables, items, name counters
+   or active identities. Interpret world Init and full Load normally.
+   At each loadKQ, expand raw fields against the variables then current,
+   apply saved fields for that instance, construct and register its CPU
+   actor, and complete registration callbacks and its Init before the
+   script advances. Reuse command-owned continuations, including nested
+   loads and multi-object/list files. Delegate ordinary engine commands
+   to WorldState; keep resource/presentation/progress operations explicit.
+3. Supply one shared registration path for Connor, actors, props, traps
+   and items. Only registered identities participate in contacts and
+   saved-event target resolution. Restore trap names as pending fields
+   before registration; matching eligible contacts silently attach live
+   identities. Preserve live-only inTrap and pending-only removeFromTrap
+   semantics. The existing item activation seam is reusable, but its bulk
+   initializer is not a substitute for registration in load order.
+4. Record actual source/registration order and saved fields for newly
+   written disk and regional snapshots. active_list is an update order,
+   came_in deduplicates filenames, and known is a sorted set; none is the
+   original persistent object order. Old Rust snapshots lacking the full
+   sequence need an explicit limited migration path. Execute generated
+   restore operations at the original newWorld call site: prepare clock
+   and pending listener fields after world Init/Load-prefix work, restore
+   variables and objects in order, merge WorldState events, then resume
+   the authored Load suffix. Do not apply the clock before world Init or
+   merge after the suffix. Finish the documented startup queue service
+   before normal play and first-drawn Begin.
+5. Wire both disk and regional production paths to that host and GPU
+   adoption. Remove shadow-only Load evaluation, startup-command replay
+   and class-grouped Init from the authoritative path once the host owns
+   them. Verify a grouped core registration/order matrix, original Barren
+   Init and IceWorld post-newWorld consumers, then one representative
+   disk/regional Windows flow. Keep successful unaffected checks; no
+   manual testing or per-object native replay. Shared subsystem timers
+   outside the persistent queue still need their documented reconstruction
+   behavior; a queue-only service test does not prove every first update.
 
 **M6 return-route arrival correction (2026-11-07).** After recording
 two failed native approaches, isolate the route driver's arrival rule

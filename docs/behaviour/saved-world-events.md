@@ -55,6 +55,49 @@ pending messages or with new work performed by initialization.
    above must not be confused with the excluded low-level collision
    events. Do not use “can be converted to text” as the queue-save
    eligibility test.
+
+   **Semantic names and their persistent types (bounded follow-up,
+   2026-11-07):** the script callback name is not necessarily the
+   persistent event type. The following mappings were checked at their
+   producers and receivers, not inferred from similar names:
+
+   | Work being represented | Original persistent type and scope |
+   | --- | --- |
+   | `KQMusic::push` | `KQMusicPushEvent`, addressed to the music object, due at current simulation time + **0.2 seconds**. The command queues the operation; it is not an immediate stack change. |
+   | `KQMusic::pop` | `KQMusicPopEvent`, addressed to the music object, likewise due at current time + **0.2 seconds**. Its command argument is part of the operation's payload. |
+   | A subscribed character's `StateChange` notice | `KQStateChangeNotifyEvent`, posted due now to the character's state-change notification group, carrying the changed character and old/new state information. This differs from `KQStateChangeEvent`, which requests a state change. Both types pass the family filter, but they are not interchangeable. |
+   | Queued speech/conversation completion notice that produces `TalkComplete` | `KQTalkMessageCompleteEvent`. In particular, the character/Connor completion handlers queue this type to their state-change notification group, preserving the completed message identity. It is not a cue event or a state-change-notify event merely because the recipients use the same subscription group. |
+   | Ordinary trap's post-Init lookup notification | `KQLookupEvent`, posted due now to every successfully added ordinary trap after its inline Init opportunity, regardless of saved-name presence, `lookupCall` or script presence. It shares the animation-listener lookup event family, but its receiver only invokes `<trap> Lookup` when `lookupCall` is nonzero and a script exists. It does not resolve names or restore contacts. |
+
+   Each listed operation is selected for a disk or regional snapshot
+   **when its event is still pending in the simulation queue**. In
+   particular, a pending trap lookup is not excluded as an engine
+   initialization-only event. Its saved entry can coexist with the new
+   post-Init lookup after restoration, under the ordinary no-dedup rule.
+   Unlike the one-use saved animation-listener name, trap lookup does
+   not consume pending saved occupant names. Two delivered trap lookups
+   can therefore invoke the enabled script twice. Synchronous contact
+   restoration, unresolved-name retention and the original writer's
+   repeated-save duplicate quirk are established separately in
+   [scripted-controller-commands.md](scripted-controller-commands.md),
+   rules 7 and 10 (bounded trap follow-up, 2026-11-07).
+
+   **`TalkComplete` has more than one delivery context.** The speech
+   system also constructs `KQTalkMessageCompleteEvent` as an audio-end
+   callback held by the audio object rather than pending in the simulation
+   queue at that point. That held callback is not selected by the WorldState
+   queue walk merely because its type belongs to the family. The speech
+   queue can pass a completion directly to its owner; the owner's own
+   script callback is inline, while subscribed recipients receive the
+   separately queued notification described above (`talking.md`
+   rule 13). Conversation termination/control paths also use this
+   completion type, including an empty message identity in paths that
+   report `TalkComplete 0 0 0 0 0`; a callback label alone does not say
+   whether an event is pending, already executing, or delivered inline.
+   Preserve an actual pending completion notice; do not manufacture a
+   new saved queue entry for every active audio line or every inline
+   `TalkComplete` call. Reconstruction of unfinished audio playback is
+   a separate subsystem question, not settled by this family mapping.
 3. **Targets are not filtered by the object's save eligibility,
    traced.** The event-selection loop does not require its target to
    be in the persist manager, to be a creature, or to be other than
@@ -163,6 +206,42 @@ pending messages or with new work performed by initialization.
     work posted while delivering another due event. It is not a
     one-event or one-callback-only flush. Load progress drawing does
     not itself advance the paused simulation through elapsed wall time.
+
+    **Clock observed during service (bounded follow-up, traced):** the
+    service establishes a fixed end time from its starting current time
+    plus the requested interval. Before handing out each due event, it
+    advances current time to the greater of the preceding current time
+    and that event's deadline. Thus an on-time handler observes its own
+    deadline; an overdue handler observes the already-current time,
+    without rewinding. Handlers do **not** all observe the final service
+    end time. This advance also applies to a popped event whose receiver
+    is missing and therefore gets no callback. When no event at or
+    before the service end remains, current time becomes that end time.
+
+    A handler's `sendEvent 0.01 ...` is based on the current time it
+    observes at delivery. If the resulting absolute deadline is at or
+    before the fixed service end, the newly posted event can execute
+    within the **same** service call, including further such cascades.
+    Equal-deadline insertion keeps the ordinary FIFO rule. For example,
+    a service from 10 to approximately 10.0667 can deliver an event at
+    10.02, then its 0.01-delay follow-up at approximately 10.03. An
+    overdue event due at 9 observes 10 and bases its follow-up on 10.
+
+    There is a text precision detail for the script command:
+    `sendEvent` computes current time plus the supplied delay, formats
+    the absolute deadline with six decimal places, then reconstructs
+    the event's single-precision time from that text. For an exactly
+    zero delay, posting instead sets the deadline directly to current
+    time. This distinction does not make the service advance in integer
+    ticks or defer a positive sub-tick delay automatically.
+
+    **Scheduling scope:** single-precision seconds and this explicit
+    0.0667-second startup interval do not establish an exact universal
+    15 Hz ordinary scheduler. Clock representation, queue service
+    horizon and the update cadence of particular simulation systems
+    are separate contracts. An implementation's existing fixed-15-Hz
+    update model must not be treated as proof that original event
+    deadlines are integer multiples of 1/15 second.
 11. **Time away does not expire a region's pending work, traced.** A
     region saved at simulation time 103 with a message due at 107 still
     has a four-second simulation interval before that deadline when
