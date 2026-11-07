@@ -1,5 +1,48 @@
 # STATUS
 
+## 2026-11-07 Southern approach, passage Weeper and second Rock verified
+
+Three earned continuations and their fresh-process reloads pass:
+
+- SylphKnowledgeReload to SouthernPassageReload: 136.28 seconds,
+  arrival near (100150.47,70869.45,864), with unchanged stats and items.
+- SouthernPassageReload to PassageWeeperReload: 69.48 seconds. Ordinary
+  Small Crossbow shots defeat weeper16; its death finishes on update
+  291 and awards the original 500 experience once, with no health loss.
+- PassageWeeperReload to SecondRockReload: 62.28 seconds. A visible
+  click on the original NoName44 Rock succeeds on update 272. Connor
+  retains two Rocks after reload, with every other item unchanged.
+
+The latest verified save is SecondRockReload at
+(112862.055,70938.58,864), level eleven stats [61,80,25,10,6612].
+Sylph topic 3 and her presence persist; the Weeper stays defeated,
+its reward does not repeat on reload, and GOG Options.cs is unchanged.
+All routes retain ordinary damage/AI and use no grants or teleports.
+
+Evidence under kq8-artifacts: earned-southern-passage/1794029366147771600,
+earned-passage-weeper/1794029563826960700 and
+earned-second-rock/1794029819717808900. Logs are southern-passage-native,
+passage-weeper-native and second-rock-final-native (.log).
+The first Rock test completed pickup/reload but failed at 63.15 seconds
+because its assertion read count instead of the saved quantity field.
+That harness error is retained in second-rock-native.log and
+earned-second-rock/1794029717660383500; the corrected full rerun passes.
+
+The access investigation changed direction. Even with all obstacles
+omitted, the terrain search cannot walk onto the western high plateau.
+It can reach the graveyard floor through a winding ground-level route.
+A navigation lead in RESEARCH prompted that distinction. Replacing
+whole-building boxes with real collision sweeps for 25 matching original
+placements finds the approach; the old broad-box search gave a false
+unreachable result. Unmatched bounds, objects and closed doors remain
+obstacles. The helper still uses terrain heights, so it is not a full
+bridge-floor or live-mover proof. Only the sections above are verified
+in gameplay. No original engine rules changed.
+
+The graveyard, its four portal plates, skull, feather, scales and later
+branches remain incomplete. M4–M6 are still active.
+[Commands and limits](docs/dead-city-progression.md#southern-passage-and-second-rock)
+
 ## 2026-11-07 Earned Sylph conversations verified
 
 The three original introductory conversations and final fresh-process
@@ -24,7 +67,8 @@ No game-engine rules changed. Her item quest remains **not tested**:
 the original scale.cs spawns Mold only during the scales completion.
 [Automated command and result](docs/dead-city-progression.md#the-sylph-conversations)
 
-Next, investigate actual building floors on the graveyard approach.
+The follow-up at that point was to investigate actual building floors
+on the graveyard approach; the subsequent result is recorded above.
 An archive audit finds 856 distinct Dead City script/object names,
 all in kq.vol, with no duplicates in the other three volumes; an
 alternate archive copy does not explain the unresolved access route.

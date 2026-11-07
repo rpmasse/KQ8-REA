@@ -3,6 +3,21 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Southern passage, Weeper and second Rock.** Original Dead City
+terrain and placed building .dig collision surfaces guide the ordinary
+input route. The navigation lead in RESEARCH is used only to identify
+the approach, not to define engine behavior. An offline diagnostic
+matches 25 original .kq placements to recorded bounds before using
+the existing building sweep; unmatched obstacles remain conservative.
+MONSTERS.KQ defines weeper16, and its earned saved stats establish
+150 health/500 experience for this run. Existing ranged-weapons and
+fighting notes govern the ordinary Small Crossbow encounter.
+WORLDINV.CS line 12 places the Rock at (112595,70784,-1); native item
+logs identify NoName44 at Z864. The visible pickup and save quantity
+verify two carried Rocks. No original assets or extracted data are
+committed, and the remaining graveyard access is not claimed.
+[Evidence and commands](../dead-city-progression.md#southern-passage-and-second-rock)
+
 **Earned Sylph introductory conversations.** Original sylph.cs
 selects cases 10/11/12 in message group 2000/7/14; final sequences
 2/5/3 set metConnor to 1/2/3 and the second grants 3000 experience.

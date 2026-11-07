@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-07 Verify the southern approach and second Rock
+
+Added three ordinary-input continuations from the Sylph checkpoint:
+the southern passage, its Weeper encounter with the earned crossbow,
+and the original second Rock pickup. They pass with fresh-process
+reloads in 136.28, 69.48 and 62.28 seconds respectively. The final
+save carries two Rocks and level eleven stats [61,80,25,10,6612].
+The original Weeper award occurs once; health and other items stay
+unchanged. The first Rock assertion used the wrong save field and
+failed after successful gameplay; its corrected rerun and failed
+trace are both recorded in STATUS.
+
+The route investigation now distinguishes actual building collision
+surfaces from broad bounding boxes. A read-only diagnostic using 25
+matching original placements finds the winding ground-level approach
+that the earlier conservative planner excluded. The western bridge
+is not the immediate entry target. No game-engine rules changed;
+the remaining graveyard and portal route is unverified.
+[Sources, commands and evidence](docs/dead-city-progression.md#southern-passage-and-second-rock)
+
 ## 2026-11-07 Earn the three Sylph introductory topics
 
 Added an ordinary-input route from SylphSummonedReload through all

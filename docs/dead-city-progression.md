@@ -423,6 +423,49 @@ structures and was not run. A wider obstacle-margin search supplied
 the successful detour. Her item quest remains **not tested**: the
 original scale.cs creates Mold during the later scales completion.
 
+## Southern passage and second Rock
+
+The original building geometry resolves the approach that the earlier
+terrain planner marked unreachable. A terrain-only diagnostic cannot
+reach the western high plateau but does find the winding ground-level
+route. A second diagnostic replaces whole-building exclusions with
+collision sweeps for 25 original placements whose bounds match the
+loaded scene; other bounds, objects and closed doors remain blocked.
+These helpers guide input routes, not original engine behavior, and
+their paths still require live verification. The navigation lead is
+recorded in [RESEARCH](RESEARCH.md).
+
+Three consecutive sections now pass with fresh-process reloads:
+
+| Earned section | Result | Native duration |
+| --- | --- | --- |
+| SylphKnowledgeReload → SouthernPassageReload | Ordinary movement to the southern passage; inventory and stats unchanged | 136.28 s |
+| SouthernPassageReload → PassageWeeperReload | Earned Small Crossbow defeats weeper16; original 500 experience once, no health loss | 69.48 s |
+| PassageWeeperReload → SecondRockReload | Visible pickup of WORLDINV.CS's NoName44 at (112595,70784,864); two Rocks retained | 62.28 s |
+
+SecondRockReload ends at (112862.055,70938.58,864), level eleven with
+stats [61,80,25,10,6612]. Other items and Sylph knowledge remain intact;
+the defeated Weeper and its award persist correctly. GOG options are
+unchanged, and no damage, AI, item or location cheats are used.
+The first Rock assertion's wrong field name and successful corrected
+rerun are both retained in STATUS. No movement or combat rules changed.
+
+With `KQ8_GAME_DIR` configured, supply the genuine starting save via
+`KQ8_SYLPH_KNOWLEDGE_SLOT`, `KQ8_SOUTHERN_PASSAGE_SLOT` or
+`KQ8_PASSAGE_WEEPER_SLOT` for the corresponding command. Each should
+pass its route/encounter/pickup and final reload:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::sylph_to_southern_passage_preserves_campaign_and_reloads -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::passage_weeper_with_earned_crossbow_survives_reload -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::second_placed_rock_is_picked_up_and_reloaded -- --ignored --exact --test-threads=1
+```
+
+Evidence under kq8-artifacts: earned-southern-passage/1794029366147771600,
+earned-passage-weeper/1794029563826960700 and
+earned-second-rock/1794029819717808900. This has **not** yet reached
+the graveyard or enabled its four portals. Those sections remain open.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -461,6 +504,9 @@ invocation from New Game through this hall has not been run.
 | `dead_city::first_sylph_block_lights_its_tower_and_reloads` | Required genuine `KQ8_WESTERN_ROCK_SLOT` (`WesternRockReload`) | `FirstSylphBlockReload` |
 | `dead_city::all_four_sylph_plates_summon_her_once_and_reload` | Required genuine `KQ8_FIRST_SYLPH_BLOCK_SLOT` (`FirstSylphBlockReload`) | `SylphSummonedReload` |
 | `dead_city::three_sylph_topics_award_experience_once_and_reload` | Required genuine `KQ8_SYLPH_SUMMONED_SLOT` (`SylphSummonedReload`) | `SylphKnowledgeReload` |
+| `dead_city::sylph_to_southern_passage_preserves_campaign_and_reloads` | Required genuine `KQ8_SYLPH_KNOWLEDGE_SLOT` (`SylphKnowledgeReload`) | `SouthernPassageReload` |
+| `dead_city::passage_weeper_with_earned_crossbow_survives_reload` | Required genuine `KQ8_SOUTHERN_PASSAGE_SLOT` (`SouthernPassageReload`) | `PassageWeeperReload` |
+| `dead_city::second_placed_rock_is_picked_up_and_reloaded` | Required genuine `KQ8_PASSAGE_WEEPER_SLOT` (`PassageWeeperReload`) | `SecondRockReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

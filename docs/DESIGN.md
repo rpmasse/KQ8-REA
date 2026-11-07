@@ -13,6 +13,62 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 graveyard bridge access audit (2026-11-07).** Continue from the
+earned SylphKnowledgeReload. The original Dedtower has floor contacts
+along its western span, but the offline terrain planner excludes the
+whole building box and stops before the high plateau. Separate terrain
+connectivity from the conservative obstacle approximation, then inspect
+the actual building surfaces at any excluded passage. Use original
+terrain, .kq placements, .dig geometry and the existing collision rules;
+do not change game movement to make an input route pass. If an ordinary
+route is supported, replay it through bound controls, save on the tower
+and verify a fresh reload. Record unresolved access and failed attempts
+honestly; do not grant locations, flags, items or damage immunity.
+
+The terrain-only diagnostic, with every obstacle omitted, still
+cannot reach the western high plateau. It does reach the graveyard
+floor by a long winding route, confirming that the plateau is the
+wrong immediate target. A published navigation lead recorded in
+RESEARCH agrees with entering the tower area before climbing/crossing
+west. Next replace whole-building exclusion in the offline diagnostic
+with actual building sweeps where original placements match the
+recorded bounds. Keep unmatched bounds and object/door blockers.
+This helper is planning evidence only; live traversal remains required.
+
+The diagnostic matches 25 original .dig placements to the recorded
+building bounds and finds a ground-level route into the graveyard.
+A 400-unit object margin also finds the first section to (100000,71500).
+Verify this section first from SylphKnowledgeReload with shorter
+input marks near obstacles, then save/reload. Its route stays outside
+weeper16's original 5000-unit alarm radius; later continuation needs
+that encounter and the rest of the winding passage. Keep the full
+graveyard objective open until ordinary traversal actually reaches it.
+
+The southern section and fresh reload pass in 136.28 seconds, with
+unchanged stats, inventory and Sylph state. Continue from that earned
+save through the next bend and use the earned Small Crossbow against
+weeper16. Its saved original stats are 150 health and 500 experience;
+the authored alarm radius is 5000. Start ranged input from the planned
+clear approach near (105000,74000), beyond that radius, using visible
+click rays and ordinary combat. Switch view only while standing,
+before movement (Q200 remains open). Verify its defeat and reward
+once, the remaining inventory and quest state, and another reload.
+
+The passage Weeper and reload pass in 69.48 seconds, with no health
+loss and the original 500 experience awarded once. Extend through the
+cleared corridor to WORLDINV.CS's Rock at (112595,70784,-1), registered
+as NoName44 at Z864. Use a visible ordinary pickup, check that Connor
+now carries two Rocks while all other items and stats stay unchanged,
+then reload. This supplies another pressure-plate weight without
+granting inventory; the graveyard passage itself is still ahead.
+
+The second Rock and reload pass in 62.28 seconds. A first completed
+gameplay run failed its assertion because it used count rather than
+quantity in the save; retain that harness failure and the corrected
+rerun. SecondRockReload now has two Rocks and unchanged level eleven
+stats [61,80,25,10,6612]. Continue through the remaining winding route
+from this checkpoint; the graveyard itself has not been reached yet.
+
 **M6 earned Sylph conversations (2026-11-07).** Continue from
 SylphSummonedReload with all four plates up and metConnor 0. The
 original sylph.cs selects message cases 10, 11 and 12 for three
