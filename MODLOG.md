@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-07 Record the failed river approach
+
+An unattended run from the earned 27-health outer-guard save passed
+the western swordsman with 2 health, then died from weeper15's drain.
+It did not reach the boatman. STATUS.md records the damage, original
+boatman scripts, remaining earned supplies and the offline planner's
+limits. No combat rules changed. The current executable's outer-guard
+regression and 877 workspace tests already passed; this new route
+failure remains explicit. No manual testing was requested.
+
 ## 2026-11-07 Correct retreat replay movement and counterattack timing
 
 The retreat controller now presses the bound Run key when an earlier

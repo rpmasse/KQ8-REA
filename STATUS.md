@@ -1,5 +1,33 @@
 # STATUS
 
+## 2026-11-07 River approach stopped by low health
+
+The distinct running route toward the boathouse started from the
+latest verified `OuterGuardReload` (27 health). It passed skeleton55
+without attacking, but two hits on updates 403 and 420 left 2 health.
+At the western turn, weeper15's bolt began draining Connor on update
+607. Pulses on 611, 615 and 619 reduced health to 1, 0 and -1, then
+requested death. The route did not reach the boatman or create a new
+earned checkpoint. Evidence is local
+`kq8-artifacts/dead-road-boathouse/1794019064701`.
+
+The current save carries the Mace and Small Crossbow but no healing
+items or active potion. Four uncollected Mushroom drops remain in
+the already-cleared first hall, providing a possible ordinary supply
+route before another river attempt; recovering them and continuing
+is **not tested**. The northern side of the patrol is not an established
+detour: the conservative offline planner cannot reach (105000,155500)
+and stops at y 153250. Do not infer a route from its closest-point
+output. Further western melee variations remain stopped as recorded
+below. Enemy rules and health values were not changed.
+
+Original reaper.cs gives 2,000 experience once on first interaction
+and advances four conversation topics toward the Feather quest.
+Ferryman is at (57071,193699,1050) in reaper.kq. The planner's solid
+building bounds cannot establish the boathouse's real entrance.
+That entrance, the conversations and their fresh-process save/reload
+still need automated coverage. The campaign boundary is unchanged.
+
 ## 2026-11-07 Outer guard input audit and victory
 
 The failed retreat approaches inherited the road’s enabled Run
