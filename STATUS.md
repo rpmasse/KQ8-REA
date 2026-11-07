@@ -1,5 +1,34 @@
 # STATUS
 
+## 2026-11-07 Ending lifetime retained through movie and late credits score
+
+The ending now disables gameplay while retaining Connor and the world.
+Credits reads the live retained stats on its final card; exiting and
+reopening credits does not make the completed game playable. Confirmed
+New Game owns cleanup. A grouped headless original-data matrix passes
+1/1 in 0.17 seconds after the shared viewer test build passes in 72s.
+The initial unrelated renderer test compile error remains documented.
+Missing-movie continuation is covered; the existing-file decoder/setup
+failure and post-ending New Game warning predicate remain unverified.
+No prior successful native/movie checks were replayed. Shared compilation
+included pending tile work; this publication contains the isolated ending
+change and its test fixture. [Evidence](docs/credits-completion.md)
+Estimates: M4 about 86%, M5 60%, M6 about 25%. No manual testing.
+
+## 2026-11-07 Eastern bridge approach requires collision-aware planning
+
+Two offline controller routes from the eastern portal stop at original
+scenery: the direct westward path hits the arrival tower, and the north
+detour hits portsb9 at (218378,191925,864). Neither route reaches the
+bridge; no new native campaign run has been started. Stop waypoint
+variants and derive the approach from the recorded oriented colliders
+and original building geometry. The next numerical check must include
+the bridge's low lethal trap and both river-edge traps along the mover's
+actual swept path. The earned central-room save remains the continuation
+source; completed river/well gameplay is not repeated. Evidence is in
+skull-east-bridge-controller.log and skull-east-bridge-guarded-controller.log.
+Estimates remain M4 about 85%, M5 60%, M6 about 25%.
+
 ## 2026-11-07 Earned return and healing saved; ending lifetime corrected by study
 
 The eastern portal approach clears the pillar. The integrated native run

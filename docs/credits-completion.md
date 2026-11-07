@@ -19,9 +19,9 @@ documented ten-pixel top. Credits uses `saveload.ppl` when available,
 falling back to `Menus.ppl`; the shared GUI rasterizer now accepts this
 separate palette without changing ordinary menu labels or drawing.
 
-Only preparation of card 25 samples the active-game flag and Connor's
-level/current experience. An inactive session shows zero even if a
-Connor object remains. Checked arithmetic rejects invalid levels and
+Only preparation of card 25 samples whether a game has been started and
+Connor's live level/current experience. A never-started session shows
+zero even if a Connor object remains. Checked arithmetic rejects invalid levels and
 overflow; the displayed score is not capped to the authored possible
 total. The original English message spells that denominator `6631364`,
 and the substituted score also has no grouping commas. `doCredits`
@@ -29,7 +29,7 @@ accepts no arguments and queues only a screen request.
 
 Ordinary Enter, Space, arrows and clicks do not skip. Escape and final
 expiry start a one-second real-time theme fade, then restore Main with
-its active-game selection, save scan, menu palette, theme and input
+its permitted gameplay selection, save scan, menu palette, theme and input
 delay. Reentry starts at card 1 without old text or the photograph.
 
 ## Batched checks
@@ -95,13 +95,60 @@ reused, not repeated.
 
 No manual testing or original-runtime visual comparison is included.
 The full New Game-to-ending campaign remains an M6 integration gate.
-In particular, the existing viewer consumes the ending's `EndGame`
-request before the final movie and credits, removing its active-game
-state; late credits sampling consequently yields zero on that path.
-The original ending's game/Connor lifetime boundary is **not verified**
-by this credits batch. The established late sampling rule is preserved;
-an early score snapshot is not used to hide that separate uncertainty.
 Modified Escape, OS focus/IME behavior, audio synchronization with the
 ending movie and original palette-failure execution remain unverified
 as documented by study A. Native validation with sound disabled can
 verify scheduling and exit state, but not audible fade quality.
+
+## Ending lifetime correction
+
+The initial presentation batch correctly sampled late, but inherited an
+incorrect equivalence between score eligibility and Back to Game. Its
+ending bridge destroyed the world at `killGame`, so the final card would
+have shown zero. Study A corrected rule 16 and added rules 20–24 after
+tracing the original final callback and the retained-game lifetime.
+
+The viewer now keeps separate game-started and gameplay-available state.
+`killGame` opens Main and pauses play while retaining the world and real
+Connor through the movie, Credits, return to Main and Credits reentry.
+The movie-return bridge consumes the following Credits request without
+resuming a simulation frame. A missing movie file returns immediately
+to the next presentation request. The final card reads Connor's current
+level/experience at that point; no earlier score snapshot is stored.
+Confirmed New Game or another actual world replacement owns destruction
+of the retained world and resets both flags before the new world is built.
+
+The grouped headless regression is:
+
+```powershell
+$env:KQ8_GAME_DIR = (Resolve-Path -LiteralPath "../King's Quest 8 GOG").Path
+$env:KQ8_SAVE_DIR = Join-Path $PWD 'kq8-artifacts/ending-lifetime-saves'
+cargo test --locked --release -p kq8-viewer --bin kq8-viewer ending_lifetime -- --ignored --nocapture
+```
+
+It reads the original Temple4 final callback, uses a real Active/DoorSim
+and production pause condition, feeds the movie-return bridge a controlled
+completed-player fixture, advances the real Credits clock, and checks
+retention, late score changes, reentry, missing-file continuation,
+never-started zero and confirmed-New cleanup as one lifecycle matrix.
+It creates no window and does not run the movie decoder. The prior
+successful Credits native scheduler/exit flow and movie checks are reused.
+On 2026-11-07 this matrix **passed, 1/1**, in 0.17 seconds after the
+shared viewer test build completed in 72 seconds. The first combined
+compile stopped before tests on an unrelated new renderer test calling
+the wrong placement method; that test's owner corrected the method.
+Logs retain the compile failure in `kq8-artifacts/ending-lifetime.log`
+and successful compile/lifecycle result in
+`kq8-artifacts/ending-lifetime-corrected.log`. The shared test executable
+was `target/release/deps/kq8_viewer-4aebd42ecd1f894a.exe`. No native game
+window, decoder or successful prior test was repeated.
+
+The New Game warning after `killGame` retains the existing menu predicate.
+Whether that warning separately tests the retained game-started condition
+or the unavailable-game condition is **not verified**; the lifecycle test
+enters the already-confirmed New path rather than asserting that popup.
+The study establishes continuation for a missing movie file. Its behavior
+when an existing movie fails decoder/setup is separately **not verified**;
+the current acknowledgement screen for that case remains unchanged. The
+controlled completed-player fixture tests the return bridge, not decoder
+error handling or synchronization.

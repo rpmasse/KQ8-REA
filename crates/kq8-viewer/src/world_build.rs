@@ -140,6 +140,10 @@ pub struct WorldChange {
     /// How many worlds were built in this run: systems that keep values
     /// between frames reset them when it changes ([`new_world`]).
     pub generation: u64,
+    /// Credits can read the retained Connor after killGame. This is
+    /// independent of permission to resume the completed game (Q198).
+    pub game_started: bool,
+    pub gameplay_available: bool,
     /// The launch options, for building the next world.
     options: Option<Options>,
     /// Kept worlds, first stage (6e-8): by lower-case world name.
@@ -266,7 +270,7 @@ impl WorldChange {
 
 /// The run condition of the game's systems: a world is in (6e-2).
 pub fn playing(change: Res<WorldChange>, menu: Option<Res<crate::startup_menu::Menu>>) -> bool {
-    menu.is_none() && !change.current.is_empty() && matches!(change.step, Step::Playing)
+    menu.is_none() && change.gameplay_available && !change.current.is_empty() && matches!(change.step, Step::Playing)
 }
 
 /// The run condition of the game's updates and of the drawing that
@@ -625,6 +629,8 @@ pub fn build_pending(world: &mut World) {
         let mut change = world.resource_mut::<WorldChange>();
         change.current = name.clone();
         change.generation += 1;
+        change.game_started = true;
+        change.gameplay_available = true;
     }
     let counts = Counts::of(world);
     let log = world.resource::<Shared>().log.clone();
@@ -1049,6 +1055,13 @@ pub fn begin_step(mut commands: Commands, begin: Option<Res<BeginNow>>, sim: Opt
 /// per-world resources (their logs close with them). Returns how many of
 /// each.
 fn take_down(world: &mut World) -> (usize, usize) {
+    // A real new-game/load/world replacement owns destruction. killGame
+    // deliberately does not take this path (credits-completion rules20–24).
+    {
+        let mut change = world.resource_mut::<WorldChange>();
+        change.game_started = false;
+        change.gameplay_available = false;
+    }
     let marked: Vec<Entity> = world.query_filtered::<Entity, With<WorldEntity>>().iter(world).collect();
     let mut despawned = 0;
     for e in marked {
@@ -1058,20 +1071,12 @@ fn take_down(world: &mut World) -> (usize, usize) {
     (despawned, remove_world_resources(world))
 }
 
-/// End the current game without losing the final movie and credits that
-/// the UI has already taken from the last script callback.
-pub fn end_session(world: &mut World) {
-    let (entities, resources) = take_down(world);
-    let mut change = world.resource_mut::<WorldChange>();
-    change.current.clear();
-    change.asked = None;
-    change.restoring = None;
-    change.kept.clear();
-    change.name_start = 0;
-    change.step = Step::Playing;
-    world.resource_mut::<connor_view::StartAt>().0 = None;
+/// Original killGame ends permission to play, not the retained game's
+/// lifetime. The presentation bridge opens Main and pauses its sounds.
+pub fn end_gameplay(world: &mut World) {
+    world.resource_mut::<WorldChange>().gameplay_available = false;
     world.resource::<Shared>().log.lock().unwrap()
-        .summary(format!("ending: killGame removed {entities} world entities and {resources} per-world resources"));
+        .summary("ending: killGame disabled gameplay; world, Connor and game-started state retained");
 }
 
 /// The entities left that are not the world's, by their components, for

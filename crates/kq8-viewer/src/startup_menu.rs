@@ -17,6 +17,10 @@ use kq8_data::{aud, GameDir};
 use std::{collections::BTreeMap, sync::Arc};
 use std::{collections::VecDeque, path::Path};
 
+#[cfg(test)]
+#[path = "ending_lifetime.rs"]
+mod ending_lifetime;
+
 #[derive(Resource, Default)]
 pub struct MenuRequest(pub bool, pub Vec<Key>);
 
@@ -34,12 +38,14 @@ struct DisplayMenu;
 pub fn return_to_title(world: &mut World) -> Result<(), String> {
     let log = world.resource::<crate::Shared>().log.clone();
     let source = world.resource::<Source>();
-    let menu = Menu::open(
+    let mut menu = Menu::open(
         &source.game,
         Vec::new(),
         source.sound,
         &mut log.lock().unwrap(),
     )?;
+    menu.state = session_menu_choice(world);
+    if let Some(sound) = world.get_resource::<crate::sound_view::SoundSim>() { sound.menu_pause(true); }
     world.insert_resource(menu);
     world.run_schedule(DisplayMenu);
     Ok(())
@@ -94,14 +100,20 @@ fn present_next(world: &mut World) {
     while let Some(request) = world.resource_mut::<PresentationQueue>().0.pop_front() {
         let result = match request {
             Presentation::EndGame => {
-                crate::world_build::end_session(world);
+                crate::world_build::end_gameplay(world);
+                if let Err(error) = return_to_title(world) {
+                    world.resource::<crate::Shared>().log.lock().unwrap()
+                        .summary(format!("ending: could not open Main: {error}"));
+                }
                 if !world.resource::<PresentationQueue>().0.is_empty() {
                     continue;
                 }
-                return_to_title(world)
+                Ok(())
             }
             Presentation::Movie(name) => {
-                let after = if world.contains_resource::<crate::door_view::DoorSim>() {
+                let after = if world.contains_resource::<Menu>() {
+                    MovieReturn::Menu
+                } else if gameplay_available(world) {
                     MovieReturn::Gameplay
                 } else {
                     MovieReturn::Title
@@ -124,16 +136,16 @@ fn present_next(world: &mut World) {
 }
 
 /// The movie player can call this after the preceding final AVI has ended.
-/// It also works after the completed region has already been taken down.
+/// The completed region and Connor remain available for late score sampling.
 pub fn open_ending_credits(world: &mut World) -> Result<(), String> {
     let source = world.resource::<Source>();
     let log = world.resource::<crate::Shared>().log.clone();
     let page = credits_screen(world)?;
-    let active = world.contains_resource::<crate::door_view::DoorSim>();
+    let choice = session_menu_choice(world);
     if world.contains_resource::<Menu>() {
         let has_saves = !crate::world_build::list_slots()?.is_empty();
         let mut menu = world.resource_mut::<Menu>();
-        menu.state = if active { Choice::in_game() } else { Choice::default() };
+        menu.state = choice;
         menu.state.set_saves(has_saves);
         menu.options = None;
         menu.graphics = None;
@@ -150,7 +162,7 @@ pub fn open_ending_credits(world: &mut World) -> Result<(), String> {
         source.sound,
         &mut log.lock().unwrap(),
     )?;
-    menu.state = if active { Choice::in_game() } else { Choice::default() };
+    menu.state = choice;
     menu.credits = Some(page);
     if let Some(sound) = world.get_resource::<crate::sound_view::SoundSim>() {
         sound.menu_pause(true);
@@ -193,14 +205,14 @@ fn credit_status(world: &World, source: &str) {
 
 fn end_credits(world: &mut World) {
     let slots = crate::world_build::scan_slots();
+    let choice = session_menu_choice(world);
     let mut menu = world.resource_mut::<Menu>();
-    let active = menu.state.has_game();
     menu.credits = None;
     menu.options = None;
     menu.graphics = None;
     menu.keyboard = None;
     menu.slot_page = None;
-    menu.state = if active { Choice::in_game() } else { Choice::default() };
+    menu.state = choice;
     if let Ok((slots, corrupt)) = &slots {
         menu.state.set_saves(!slots.is_empty());
         if let Some(id) = corrupt { menu.state.ask_corrupt(*id); }
@@ -227,9 +239,8 @@ fn end_credits(world: &mut World) {
 fn update_credits(world: &mut World, key: Option<Key>) -> bool {
     let now = world.resource::<Time<Real>>().elapsed();
     let result = world.resource_scope(|world, mut menu: Mut<Menu>| {
-        let active = menu.state.has_game();
         menu.credits.as_mut().unwrap().update(now, key, || credits::ScoreState {
-            active,
+            game_started: world.resource::<crate::world_build::WorldChange>().game_started,
             connor: world.get_resource::<crate::door_view::DoorSim>()
                 .and_then(|sim| sim.active.world.connor_stats),
         })
@@ -256,6 +267,19 @@ fn update_credits(world: &mut World, key: Option<Key>) -> bool {
         output.send([Command::Gains { id: THEME_ID, gains: [gain; 2] }]);
     }
     false
+}
+
+fn gameplay_available(world: &World) -> bool {
+    let session = world.resource::<crate::world_build::WorldChange>();
+    session.game_started && session.gameplay_available
+        && world.get_resource::<crate::door_view::DoorSim>().is_some_and(|sim|
+            sim.active.world.scripted_death != kq8_core::connor::ScriptedDeath::GameOver)
+        && !world.get_resource::<crate::connor_view::ConnorSim>().is_some_and(|connor|
+            connor.walker.mode == kq8_core::connor::Mode::Dead)
+}
+
+fn session_menu_choice(world: &World) -> Choice {
+    if gameplay_available(world) { Choice::in_game() } else { Choice::default() }
 }
 
 fn open_if_requested(world: &mut World) {
@@ -305,9 +329,8 @@ fn open_if_requested(world: &mut World) {
                         gui.panels.set(kq8_core::panels::Group::Popup, false, "the death menu opens");
                     }
                 }
-            } else {
-                menu.state = Choice::in_game();
             }
+            menu.state = session_menu_choice(world);
             if let Some(sim) = world.get_resource::<crate::sound_view::SoundSim>() {
                 sim.menu_pause(true);
             }
@@ -666,8 +689,7 @@ pub fn show(
     menu.paused_at_update = sim.map(|s| s.active.world.updates);
     preferences.settings.apply_groups(&mut menu.audio.groups);
     // Credits.KQ specifies only selection and movement sounds. Options
-    // already has the menu theme. The ending first enters the title menu
-    // when its credits close, which is when to start the title theme.
+    // already has the menu theme; killGame opens Main before its movie.
     let cue = if menu.movie.is_some() {
         "movie"
     } else if menu.credits.is_none() {
@@ -1418,6 +1440,10 @@ fn close_menu(world: &mut World, fade: bool) {
 fn open_movie(world: &mut World, name: &str, after: MovieReturn) -> Result<(), String> {
     let source = world.resource::<Source>();
     let log = world.resource::<crate::Shared>().log.clone();
+    // A missing movie returns to the calling presentation sequence; it
+    // must not block the following doCredits behind an acknowledgement.
+    let game = GameDir::open(&source.game).map_err(|e| e.to_string())?;
+    let movie_path = game.find(name).ok_or_else(|| format!("missing movie {name}"))?;
     let new_menu = !world.contains_resource::<Menu>();
     let page = if new_menu {
         Some(Menu::open(
@@ -1436,11 +1462,7 @@ fn open_movie(world: &mut World, name: &str, after: MovieReturn) -> Result<(), S
         {
             return Err(format!("unknown KQ8 movie {name}"));
         }
-        let game = GameDir::open(&source.game).map_err(|e| e.to_string())?;
-        let path = game
-            .find(name)
-            .ok_or_else(|| format!("missing movie {name}"))?;
-        crate::movie_player::Playback::open(&path)
+        crate::movie_player::Playback::open(&movie_path)
     })();
     let message = match &playback {
         Ok(m) => format!(
@@ -1532,6 +1554,12 @@ fn leave_movie(world: &mut World, reason: &str) {
     let graphics = world.resource::<Preferences>().settings.graphics.clone();
     let output = kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D);
     crate::live_palette::apply_to_surface(world,crate::live_palette::Values {brightness:graphics.brightness,output},"return from film");
+    if !world.resource::<PresentationQueue>().0.is_empty() {
+        if let Some(sound) = world.get_resource::<crate::sound_view::SoundSim>() { sound.end_movie(true); }
+        if let Some(out) = &world.resource::<Menu>().audio.output { out.send([Command::Resume { id: THEME_ID }]); }
+        present_next(world);
+        return;
+    }
     match page.after {
         MovieReturn::Gameplay => {
             close_menu(world, false);
