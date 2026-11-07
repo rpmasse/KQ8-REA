@@ -3,6 +3,15 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Ending game lifetime.** Study A's corrected credits-completion.md rules
+16 and 20–24 establish separate game-started and gameplay availability,
+retained Connor, late score access, missing-movie continuation and later
+session cleanup. The Rust presentation/world lifetime implementation and
+headless original Temple4 callback matrix use those prose rules and the
+installed script/GUI assets. Existing-file decoder failure and the
+post-ending New Game warning are not established by this component.
+[Evidence](../credits-completion.md).
+
 **Tile, projectile and ending follow-up studies.** Study A's
 secondary-tile-puzzles.md describes the distinct Swamp/Barren controllers,
 object hazards and save/event lifecycle; object-projectile-cues.md supplies

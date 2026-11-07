@@ -33,7 +33,7 @@ mod tests {
     }
     fn active_score(level: i64, experience: i64) -> ScoreState {
         ScoreState {
-            active: true,
+            game_started: true,
             connor: Some(ConnorStats {
                 level,
                 stats: Stats([0, 0, 0, 0, experience]),
@@ -125,17 +125,17 @@ mod tests {
             33,
             "level-only changes affect the score"
         );
-        changed_level.active = false;
+        changed_level.game_started = false;
         assert_eq!(
             changed_level.value().unwrap(),
             0,
-            "inactive leftover Connor is ignored"
+            "a never-started session ignores leftover Connor"
         );
         assert!(active_score(0, 0).value().is_err());
         assert!(active_score(i64::MAX, 0).value().is_err());
         assert!(active_score(16, i64::MAX).value().is_err());
         assert!(ScoreState {
-            active: true,
+            game_started: true,
             connor: None
         }
         .value()
@@ -434,21 +434,21 @@ pub enum Update {
     Main,
 }
 
-/// The same active-game flag as Main's Back to Game, sampled on card 25.
+/// A started game retains score eligibility after gameplay becomes unavailable.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ScoreState {
-    pub active: bool,
+    pub game_started: bool,
     pub connor: Option<ConnorStats>,
 }
 
 impl ScoreState {
     pub fn value(self) -> Result<i64, String> {
-        if !self.active {
+        if !self.game_started {
             return Ok(0);
         }
         let connor = self
             .connor
-            .ok_or("active credits session has no Connor stats")?;
+            .ok_or("started credits session has no Connor stats")?;
         let level = connor.level;
         let completed = match level {
             1..=15 => Some(10 * ((1_i64 << (level - 1)) - 1)),

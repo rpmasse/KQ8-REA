@@ -113,6 +113,19 @@ pub struct DoorSim {
 }
 
 impl DoorSim {
+    /// Headless bridge tests retain the real Active/Connor owner without
+    /// loading a rendered world or introducing a parallel stats source.
+    #[cfg(test)]
+    pub(crate) fn for_test(active: Active, log: Log) -> Self {
+        Self { active, spawns: Vec::new(), drawn: Vec::new(), collider: Vec::new(),
+            chest_drawn: Vec::new(), chest_collider: Vec::new(), object_drawn: Vec::new(),
+            object_collider: Vec::new(), attack_dist: 0.0, pending: Vec::new(),
+            world_clicks: Vec::new(), swing_clicks: Vec::new(), shot_clicks: Vec::new(),
+            click_states: Default::default(), log, trap_log: None, connor_checked_at: None,
+            item_log: None, rope_log: None, rope_clicks: Vec::new(), rope_asked: None,
+            talk_log: None, conversation_log: None }
+    }
+
     /// Writes the item lines gathered since the last call; pickups and
     /// items made also to the main log. Returns the lines, so the door
     /// lines (which hold a copy of each) don't put them on the terminal

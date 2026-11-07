@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-07 Retain ended game lifetime for original late credits scoring
+
+WorldChange now distinguishes game-started from gameplay availability.
+killGame retains the world/Connor and pauses play; movie return and Main
+use gameplay availability, while the last credits card reads retained
+Connor stats. Confirmed New Game/load cleanup remains the destruction
+path. Missing movie requests return to the following presentation.
+The grouped original-data/headless lifecycle matrix passes 1/1 in 0.17s;
+shared viewer test compilation passes in 72s, including pending tile work.
+The first renderer test-only compiler failure remains in ending-lifetime.log;
+success is in ending-lifetime-corrected.log. No native/movie replay or
+manual testing. Existing-file decoder failure and the exact post-ending
+New Game warning remain unverified. M4 about 86%, M5 60%, M6 about 25%.
+
+## 2026-11-07 Eastern approach diagnostics stopped at two scenery blockers
+
+The offline original-data Walker/Mover probe fails two approaches before
+the bone bridge: the arrival tower blocks the direct route and portsb9
+blocks the north detour. Added hit identity logging and lethal-trap checks
+over actual mover path segments to the ignored probe. STATUS records the
+two failures; use collision-derived planning before another route attempt.
+No production behavior or earned save changed, and no successful native
+check was repeated. M4 about 85%, M5 60%, M6 about 25%.
+
 ## 2026-11-07 Earned healed return and remaining controller references
 
 The corrected return crosses the river, uses the northwest portal and
