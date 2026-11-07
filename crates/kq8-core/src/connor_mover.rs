@@ -249,6 +249,16 @@ impl<T: GroundLookup> MoverWorld for T {
     }
 }
 
+/// An accepted physical push, including its collision-clipped path.
+#[derive(Debug, Clone)]
+pub struct PropMove {
+    pub name: String,
+    pub delta: [f32; 3],
+    /// Actual collision-clipped path, relative to the prop's starting
+    /// position. The caller applies it beside the accepted displacement.
+    pub path: Vec<([f32; 3], [f32; 3])>,
+}
+
 /// The ground, the world's buildings and the objects that collide with
 /// Connor (already chosen by the type and mask rule).
 pub struct Scene<'a> {
@@ -257,9 +267,9 @@ pub struct Scene<'a> {
     pub objects: &'a [BoxCollider],
     /// Objects a ball started inside (no usable contact), noted by `sweep`.
     pub notes: RefCell<Vec<String>>,
-    /// Physical pushables moved this update (`push_object`): name and
-    /// movement, for the caller to apply.
-    pub moved: RefCell<Vec<(String, [f32; 3])>>,
+    /// Physical pushables moved this update (`push_object`): accepted
+    /// displacement and path, for the caller to apply and test against traps.
+    pub moved: RefCell<Vec<PropMove>>,
     /// Scripted pushables passed through this update (`pass_through`).
     pub passed: RefCell<Vec<String>>,
     /// Scripted pushables whose script didn't take control: touches are
@@ -479,7 +489,9 @@ impl MoverWorld for Scene<'_> {
         };
         let from = o.placement.position;
         let to = [from[0] + step[0], from[1] + step[1], from[2]];
+        let mut path = Vec::new();
         let (mut end, mut why) = if !o.kind.ball_stack {
+            path.push((from, to));
             (to, "box-shaped: never stopped (rule 4.1)".to_string())
         } else {
             let balls = BallStack::from_box(o.min, o.max);
@@ -487,7 +499,11 @@ impl MoverWorld for Scene<'_> {
             let mut why = "free".to_string();
             let mut retries = 0;
             loop {
-                let Some((c, what)) = self.object_hit(o, &balls, start, target) else { break (target, why) };
+                let Some((c, what)) = self.object_hit(o, &balls, start, target) else {
+                    if start != target { path.push((start, target)); }
+                    break (target, why);
+                };
+                if start != c.position { path.push((start, c.position)); }
                 if retries == OBJECT_RETRIES {
                     break (c.position, format!("{why}; stopped at {what} after {OBJECT_RETRIES} retries"));
                 }
@@ -521,7 +537,8 @@ impl MoverWorld for Scene<'_> {
         if moved.iter().all(|v| *v == 0.0) {
             why.push_str("; did not move");
         } else {
-            self.moved.borrow_mut().push((o.name.clone(), moved));
+            self.moved.borrow_mut().push(PropMove { name: o.name.clone(), delta: moved,
+                path: path.into_iter().map(|(a, b)| (sub(a, from), sub(b, from))).collect() });
         }
         (moved, why)
     }
@@ -2026,7 +2043,8 @@ pub(crate) mod tests {
             let scene = Scene::new(ground, &[], &objects);
             let r = m.update_with(&scene, |_, _| push_wish([0.0, -1.0], true, true));
             touches.extend(r.pushes);
-            for (name, d) in scene.moved.take() {
+            for movement in scene.moved.take() {
+                let (name, d) = (movement.name, movement.delta);
                 let o = objects.iter_mut().find(|o| o.name == name).unwrap();
                 o.placement.position = add(o.placement.position, d);
             }
@@ -2113,7 +2131,8 @@ pub(crate) mod tests {
                 pushes_at_the_wall += 1;
             }
             lowest = lowest.min(m.position[1]);
-            for (name, d) in scene.moved.take() {
+            for movement in scene.moved.take() {
+                let (name, d) = (movement.name, movement.delta);
                 let o = objects.iter_mut().find(|o| o.name == name).unwrap();
                 o.placement.position = add(o.placement.position, d);
             }
@@ -2163,7 +2182,8 @@ pub(crate) mod tests {
                 w
             });
             slid |= r.pushes.iter().any(|t| t.moved.as_ref().is_some_and(|mv| mv.2.contains("slid along post") && mv.1[0] > 0.0));
-            for (name, d) in scene.moved.take() {
+            for movement in scene.moved.take() {
+                let (name, d) = (movement.name, movement.delta);
                 let o = objects.iter_mut().find(|o| o.name == name).unwrap();
                 o.placement.position = add(o.placement.position, d);
             }

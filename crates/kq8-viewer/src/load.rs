@@ -5964,6 +5964,59 @@ mod campaign_tests {
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_temple2_pushed_book_enters_its_trigger_and_starts_the_hall_sequence() {
+        use kq8_core::{active::{Active, Request, Template, TemplateKind},
+            collide::Placement, connor_mover::{MoverWorld, Scene}};
+        let game = game_install();
+        let world = World::open(&game, "Temple2").unwrap();
+        let mut log = Log::create("temple2-book-trigger-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let mut objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let book = objects.objects.iter().find(|o| o.name.eq_ignore_ascii_case("pushbook")).unwrap().clone();
+        let trap = objects.traps.iter().find(|t| t.settings.name.eq_ignore_ascii_case("booktrap")).unwrap().clone();
+        assert!(book.kind.ball_stack && book.kind.collision_type & trap.settings.mask != 0);
+        let t = objects.templates.iter().find(|t| t.file.eq_ignore_ascii_case("pushbk2.kq")).unwrap();
+        let p = objects.placed[t.placed].0.clone();
+        let actor = objects.animated.iter_mut().find(|a| a.placed == t.placed).unwrap();
+        let placement = Placement { position: p.position, rotation: kq8_data::objects::rotation(p.angles) };
+        let player = world_player(actor, &objects.object_animations, &t.name, placement);
+        let template = Template { name: t.name.clone(), script: t.script.clone(), placement,
+            kind: TemplateKind::Anim(Box::new(player)), dithered: p.dithered,
+            class: p.class.clone().unwrap() };
+        let mut active = Active::new(objects.vars, vec![], vec![], objects.known, objects.scripts);
+        active.world.set_templates([("pushbk2.kq".into(), template)]);
+        active.world.clickables = objects.clickables;
+        active.world.prop_placements = objects.prop_placements;
+        active.world.script_shapes = objects.script_shapes.iter().map(|(n, (_, m))| (n.clone(), m.clone())).collect();
+        let target = trap.settings.position;
+        active.add_traps([trap]);
+        // Focused collision/script integration, not a campaign route: use
+        // the installed book/ground with other obstacles omitted and one
+        // physical push to the trigger. No original file is changed.
+        let delta = [target[0] - book.placement.position[0], target[1] - book.placement.position[1], 0.];
+        let colliders = [book.clone()];
+        let scene = Scene::new(&ground.terrain, &[], &colliders);
+        let (accepted, why) = scene.push_object(&book.name, delta);
+        assert_eq!(accepted, delta, "{why}");
+        let moved = scene.moved.take();
+        assert_eq!(moved.len(), 1);
+        let calls = active.prop_moved(&book, &moved[0]);
+        assert_eq!(calls, ["booktrap On pushbook"]);
+        assert_eq!(active.world.traps[0].settings.mask, 0);
+        assert!(active.world.is_deleted("pushbook"));
+        assert!(active.world.requests.iter().any(|r| matches!(r, Request::HandsOff { on: true, .. })));
+        assert!(active.world.requests.iter().any(|r| matches!(r, Request::CameraFollow { connor: false, .. })));
+        assert!(active.world.requests.iter().any(|r| matches!(r, Request::Spawn { name, file, .. }
+            if name.eq_ignore_ascii_case("pushbk2") && file.eq_ignore_ascii_case("pushbk2.kq"))));
+        assert!(active.world.requests.iter().any(|r| matches!(r, Request::ConnorSpecial { items, .. } if items == "one,stop")));
+        assert!(active.world.anims.iter().any(|a| a.player.name.eq_ignore_ascii_case("pushbk2") && !a.gone));
+        let trace = active.world.trap_log.join("\n");
+        assert!(!trace.contains("can't find 'booktrap'") && !trace.contains("no template"), "{trace}");
+        log.detail(trace);
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn dead_city_scripted_monster_models_are_prepared_before_play() {
         let game = game_install();
         let world = World::open(&game, "DeadCity").unwrap();
@@ -6145,7 +6198,7 @@ mod campaign_tests {
         let (min, max) = CONNOR_BOX;
         let balls = BallStack::from_box(min, max);
         let from = [x - 3000.0, y, z];
-        let mut visitor = Visitor { name: "Connor", collision_type: CONNOR_TYPE, from, position: from, min, max, balls: &balls };
+        let mut visitor = Visitor { name: "Connor", collision_type: CONNOR_TYPE, from, position: from, min, max, shape: kq8_core::trap::VisitorShape::Balls(&balls) };
         assert!(active.connor_moved(&visitor).is_empty());
         visitor.position = [x, y, z];
         assert_eq!(active.connor_moved(&visitor), ["bbdgtrap On Connor"]);

@@ -125,7 +125,7 @@ impl DoorSim {
     /// here). Returns the trap calls.
     pub fn connor_placed_by_rope(&mut self, name: &str, position: [f32; 3], balls: &kq8_core::collide::BallStack, shared: &Shared) -> Vec<String> {
         let (min, max) = kq8_core::connor_mover::CONNOR_BOX;
-        let v = Visitor { name, collision_type: self.active.world.connor_collision().0, from: position, position, min, max, balls };
+        let v = Visitor { name, collision_type: self.active.world.connor_collision().0, from: position, position, min, max, shape: kq8_core::trap::VisitorShape::Balls(balls) };
         let calls = self.active.connor_placed(&v);
         self.connor_checked_at = Some(position);
         self.flush_traps(shared);
@@ -1173,7 +1173,7 @@ pub fn trap_step(
             position,
             min,
             max,
-            balls: &connor.mover.balls,
+            shape: kq8_core::trap::VisitorShape::Balls(&connor.mover.balls),
         };
         sim.active.connor_moved(&v);
     }
@@ -1607,7 +1607,7 @@ pub fn trap_step(
                 let p = connor.mover.position;
                 sim.connor_checked_at = Some(p);
                 let (min, max) = kq8_core::connor_mover::CONNOR_BOX;
-                let v = Visitor { name: &connor.placement.name, collision_type: sim.active.world.connor_collision().0, from: p, position: p, min, max, balls: &connor.mover.balls };
+                let v = Visitor { name: &connor.placement.name, collision_type: sim.active.world.connor_collision().0, from: p, position: p, min, max, shape: kq8_core::trap::VisitorShape::Balls(&connor.mover.balls) };
                 let calls = sim.active.connor_placed(&v);
                 sim.flush_traps(&shared);
                 let left = if calls.is_empty() { "no trap left".to_string() } else { format!("stay test: {}", calls.join("; ")) };

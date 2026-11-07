@@ -1,5 +1,33 @@
 # STATUS
 
+## 2026-11-07 Physical pushes reach puzzle triggers; original book callback passes
+
+Physical pushes now retain their actual collision path and notify
+traps with their original box or ball-stack shape. Logical and saved
+positions update before the script callback. Traps can resolve their
+own position for checkDistance, which the original book, boulder and
+girl scripts require.
+
+Eight focused core checks now pass. Review removes an unsupported change
+to the old logical-centre rule; only that revised case is rerun and
+passes. The remaining core checks pass once (678 passed, 17 ignored).
+The installed Temple2 book callback and controller-init integration
+passes once in 1.74 seconds, disabling the trap, deleting the book,
+creating pushbk2 and requesting the opening Special animation.
+
+The final review adds a check for a callback changing the next prop's
+type before its collider refreshes. The dispatcher now reads the live
+type, and this eighth case passes once. The final viewer release check
+passes; the successful Temple2 asset check is not repeated.
+
+Earlier compile diagnostics (private field access, array-size inference)
+and the incorrect zero-test module filter are retained and not counted
+as passing evidence. The original-data check is an isolated push with
+other obstacles omitted, not a campaign route. Exact mid-pass callbacks,
+script-placement/removal occupancy and the asymmetric-box centre rule
+(Q204) remain incomplete. The Rock handoff remains Q203; M4-M6 are not done.
+[Commands and evidence](docs/pushed-object-traps.md)
+
 ## 2026-11-07 Tossed-item movement reaches the trap dispatcher
 
 Seven focused synthetic checks pass for shaped item entry/exit along

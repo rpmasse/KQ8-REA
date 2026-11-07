@@ -41,6 +41,8 @@ pub mod inventory;
 pub mod item;
 #[cfg(test)]
 mod item_traps;
+#[cfg(test)]
+mod prop_traps;
 pub mod journey;
 pub mod kept_interactions;
 pub mod magic_map;

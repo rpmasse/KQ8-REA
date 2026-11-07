@@ -13,6 +13,46 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 physical pushables and puzzle triggers (2026-11-07).** The live
+push application updates drawing, collisions and saved placements but
+does not tell traps. Original Dead City girltrap.cs waits for the box's
+leave cue; Temple2 booktrap.cs and Gnome bouldtrp.cs start sequences on
+entry. Route accepted physical pushes through the existing trap/script
+dispatcher, preserving the object's name, live type, bounds and shape.
+Ball stacks use their actual clipped path and slides. Boxes use their
+oriented bounds through translation, without replacing them with balls
+or a larger axis-aligned box. Failed uphill pushes do not enter.
+
+Expose a trap's resolved position to getLoc/checkDistance: those original
+callbacks explicitly name their trap, but place_of currently omits traps.
+Update the moved prop's logical position before its callback so distance
+tests see its current location. Keep the existing movement, drawing and
+save behavior; process each accepted push before applying the next one.
+Scripted Push handling and the Rock projectile handoff are separate.
+
+Check thin/rotated boxes, ball-stack slides, masks, uphill cancellation,
+multi-occupant exit and position-dependent callbacks with synthetic
+core tests. Use installed Temple2 data for an automated integration
+check of the original book callback. No manual playtesting or repeated
+successful cases. Full campaign traversal and exact callbacks inside
+Connor's interrupted collision pass remain separate fidelity gates.
+
+Keep the existing logical-centre stay check unchanged: the original
+notes do not settle its rotation for an asymmetric box (Q204). Collision
+geometry itself remains oriented. Do not silently replace this known
+approximation with a mathematical assumption about the original.
+
+The seven focused core cases pass; after review, only the revised
+centre case is rerun and passes. The remaining core checks pass once
+(678 passed, 17 ignored). The installed Temple2 integration passes
+once in 1.74 seconds: its real callback disables the trap, deletes the
+book, creates pushbk2 and requests Connor's first scripted animation.
+This uses an isolated physical push, not a completed campaign route.
+A final eighth case checks a callback's type change before the next
+queued collider refresh: the dispatcher reads the live type and the
+check passes once. The final viewer release check also passes.
+[Commands, failures and limits](pushed-object-traps.md)
+
 **M5 tossed-item trap movement (2026-11-07).** The item thrower already
 implements flight and collisions, but the live caller never reports
 those moves to traps. Apply traps.md rules 4-9 and thrown-items.md

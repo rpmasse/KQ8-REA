@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-07 Physical pushable trigger dispatch and trap position lookup
+
+Accepted pushes now carry their clipped movement path into the trap
+dispatcher. Boxes keep their orientation; ball stacks retain their
+slides. The logical prop position is current when scripts run, and
+getLoc/checkDistance can resolve a trap's loaded position. Seven
+focused core cases and 678 remaining core checks pass; the seven
+were excluded from the broader run. Review preserves the existing
+logical-centre approximation pending Q204, with only that revised
+case rerun. Original Temple2 data verifies the book callback and
+controller initialization once in 1.74 seconds.
+
+A final live-type check passes once: the next queued push respects a
+collision-type change made by the preceding callback. There are eight
+focused passing cases in the final change. The final viewer release
+check passes; the successful installed-data check is not repeated.
+
+Private-access and array-inference compilation errors were corrected;
+a zero-test run used the wrong module filter and is not counted.
+No manual or repeated successful asset test was used. Full puzzle
+traversal, mid-pass callback order, placement/removal occupancy and
+the Rock handoff remain incomplete.
+[Sources, commands and failure logs](docs/pushed-object-traps.md)
+
 ## 2026-11-07 Tossed loot notifies matching traps along its actual path
 
 The viewer now dispatches trigger callbacks after each tossed item's

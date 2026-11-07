@@ -177,7 +177,7 @@ pub struct ConnorSim {
     pub ended: Vec<String>,
     /// Physical pushables he moved this update (`pushing.md` rule 4):
     /// name and movement; applied by [`push_apply`] (M3 3j-2).
-    pub pushed: Vec<(String, [f32; 3])>,
+    pub pushed: Vec<kq8_core::connor_mover::PropMove>,
     /// Scripted pushables he pushed this update, whose scripts get `Push`
     /// (`door_view::trap_step`, M3 3j-3).
     pub push_calls: Vec<String>,
@@ -3014,11 +3014,14 @@ pub fn push_apply(
 ) {
     let Some(mut sim) = sim else { return };
     let (mut colliders, mut view) = (colliders, view);
-    for (name, d) in std::mem::take(&mut sim.pushed) {
+    for movement in std::mem::take(&mut sim.pushed) {
+        let (name, d) = (&movement.name, movement.delta);
+        if doors.as_ref().is_some_and(|s| s.active.world.is_deleted(name)) { continue; }
+        let before = colliders.as_ref().and_then(|c| c.0.iter().find(|b| b.name == *name)).cloned();
         let mut boxes = 0;
         let mut at = None;
         for list in [colliders.as_mut().map(|c| &mut c.0), view.as_mut().map(|v| &mut v.boxes)].into_iter().flatten() {
-            for b in list.iter_mut().filter(|b| b.name == name) {
+            for b in list.iter_mut().filter(|b| b.name == *name) {
                 for (p, v) in b.placement.position.iter_mut().zip(d) {
                     *p += v;
                 }
@@ -3026,23 +3029,17 @@ pub fn push_apply(
                 boxes += 1;
             }
         }
-        if let (Some(world), Some(place)) = (doors.as_mut(), at) {
-            world.active.world.record_prop_placement(&name, place);
-        }
-        // The world's own box of it moves too (its clicks, Connor's
-        // swings and `getLoc` go by it; the user's check after M5 5d: a
-        // pushed barrel was hit where it had been).
-        if let Some(c) = doors.as_mut().and_then(|s| s.active.world.clickables.iter_mut().find(|c| c.name.eq_ignore_ascii_case(&name))) {
-            for (p, v) in c.placement.position.iter_mut().zip(d) {
-                *p += v;
-            }
-            boxes += 1;
-        }
         let shift = Vec3::from(crate::to_bevy(d, [0.0; 3]));
         let mut entities = 0;
-        for (_, mut t) in drawn.iter_mut().filter(|(n, _)| n.0 == name) {
+        for (_, mut t) in drawn.iter_mut().filter(|(n, _)| n.0 == *name) {
             t.translation += shift;
             entities += 1;
+        }
+        // Logical placement precedes the callback (checkDistance/getLoc).
+        // The callback may delete or script-move this prop; do not overwrite
+        // its request by applying the physical displacement afterwards.
+        if let (Some(world), Some(before)) = (doors.as_mut(), before.as_ref()) {
+            world.active.prop_moved(before, &movement);
         }
         let line = format!(
             "connor update {}: pushed {name} by ({:.1}, {:.1}, {:.1}): {boxes} collider(s), {entities} drawn part(s) moved; now at {}",
