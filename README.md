@@ -18,6 +18,8 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
+The original [display rules](docs/behaviour/graphics-modes.md) and [credits rules](docs/behaviour/credits-completion.md) are now documented; their remaining presentation changes are planned and not yet implemented.
+
 Quest-item replacement now removes the previous item's effects, with grouped automated checks for timers, inventory state and serialized continuation. [Inventory application](docs/inventory-application.md)
 
 Ordinary poison, lava and swamp damage now use the original world-attack rules, with grouped checks for protection, sound timing and death; exceptional sinking behavior remains open. [Terrain hazards](docs/terrain-liquid-damage.md)

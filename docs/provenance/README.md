@@ -3,6 +3,15 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Interface resolution and credits studies.** Study A's
+graphics-modes.md and credits-completion.md describe the original
+device/menu rules, nested rectangle conversion, fixed font scaling,
+background/Save-Load exceptions, credits cadence/layout/input and
+level/current-experience score. Its original-data/numeric checks do
+not establish Rust implementation or native original-game equivalence.
+Implementation B uses these prose notes; raw executable evidence stays
+outside tracked source and documentation.
+
 **Ordinary terrain-liquid attacks.** Study A's terrain-hazards rules
 1–13 supply source priority, configured amount, world phase, depth,
 immunity, ordinary hit dispatch and world-hit sounds. Original WORLD.CS

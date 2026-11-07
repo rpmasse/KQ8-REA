@@ -36,6 +36,27 @@ required behavior and the uninterrupted New Game-to-ending path; this
 changes the verification strategy, not the fidelity or completion target.
 Manual testing remains deferred until the Rust recreation is complete.
 
+**M4 original interface resolutions (2026-11-07).** Replace the shared
+geometry stand-ins using graphics-modes.md rules 11–18 and its clarified
+parent/font rules. Retain immutable authored rectangles. Resolve each
+child against its parent's converted integer size using +0.1 then
+truncation, and compose converted parent origins for drawing and input.
+Use the same resolved rectangles for text alignment, clipping, meters
+and hit tests. Glyphs keep their original pixel size with 1x1 text scale;
+unstretched pictures keep their source dimensions and stretched pictures
+fill the resolved box. Render menus directly at 640x480 or 800x600;
+select original background alternatives without renaming game files.
+Save/Load keeps centered 640-sized controls, thumbnails and scroll/input
+alignment. Reuse the established 320/400 caption widths and fixed rows.
+Check geometry/raster families in one matrix and all affected menu types
+in one original-data matrix, including 640-to-800-to-640 restoration.
+Only repeat an existing test when this geometry change affects its rule.
+Native live-resolution/device switching, pointer conversion, cursor
+hotspots and world projection remain separate integration requirements.
+The implementation owns core gui_draw/menu_layout/menu modules, viewer
+gui_view/startup_menu/talk_view and docs/original-interface-resolutions.md.
+Coordinate any credits changes through the shared startup_menu owner.
+
 **M4 inventory-application lifecycle batch (2026-11-07).** Close the
 shared quest-item replacement rule in inventory.md rule 16: applying a
 quest item first unapplies another applied quest item. Keep this distinct
@@ -55,7 +76,7 @@ clock arithmetic, the 250-unit depth boundary, immunity and fire/ice
 kind selection. Add a reusable core calculation and dispatch from
 Connor's post-movement position through the ordinary world attack,
 retaining damage rolls, armor, owning-state and death handling. Add the
-documented live addImmune command and confirmed world-hit sound rules.
+documented live addImmunity command and confirmed world-hit sound rules.
 Generic objects remain initially terrain-immune. Do not guess ontop
 sinking/restoration, special-status lifecycle or original save-clock
 semantics. Check original-data amounts/boundaries, protection and one
@@ -1952,9 +1973,9 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M1 · Render the world | All 12 regions opened and rendered in bounded Windows runs. | Check terrain, models and textures in reachable scenes and assign gaps to their regions in M6. |
 | M2 · Move Connor | Implemented in Daventry. Walking, running, jumping, slopes and collision exist. | Replay input at fixed ticks and check position, facing, jump timing and collision against the original rules. |
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
-| M4 · Interface and dialogue | Partial. The title and pause menus, named saves, Options, Keyboard, opening replay, HUD, captions, pickup help, the Wizard conversation and the F2 view have Windows checks. Credits displays the original cards. | Finish graphics modes and resolution switching, software palette output, remaining help, inventory and dialogue branches. Establish the original credits timing and score. |
-| M5 · Combat | Partial. Tests cover the first-person axe and Small Crossbow, weapon draws and saves during combat and death. The Weeper, Tower Skeleton, Henchman, Lucreto and several script-created enemies have focused coverage. | Finish the other weapon and damage paths, enemy decisions, bosses and specialised deaths. Exercise each full encounter in campaign play. |
-| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. Continued saves cover Castle Daventry, the Ring of Light, Dead City's pedestals, the letter tiles and the opened spike gate. The scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Clear the maze guards, reach the skull and feather, then complete the scales and later regions. Verify one Normal New Game through the ending and credits. |
+| M4 · Interface and dialogue | Partial. Menus, HUD, captions, inventory and conversation have representative Windows checks; quest-item application has a grouped lifecycle matrix. Original resolution and credits rules are now studied. | Implement the studied interface sizing and credits rules; finish device switching, software palette output and the remaining dialogue/inventory behavior families. |
+| M5 · Combat | Partial. Axe/crossbow attacks, weapon draws, combat/death saves and representative enemy families have checks. Ordinary liquid damage now reaches armor, sounds and death through the shared attack path. | Finish other weapon/damage and enemy-decision families, distinct bosses, specialised deaths and exceptional terrain behavior; integrate them into campaign routes. |
+| M6 · The whole game | Partial. Earned saves cover Daventry, Castle Daventry and Dead City through the northwest archers, river crossing and GoodSkull. Scales, interrupted encounters and Temple 4 outcomes have focused checks. | Return with the skull, complete the statue/feather/scales and remaining regional quests in integrated routes; finish missing controller/persistence families and verify one Normal New Game through ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
 
 **Starting revision.** This fork incorporates the [October 31 upstream changes](https://github.com/Eric-lz/KQ8R/compare/b6658de39c87b51c41a62f765f08dbf1ee54980c...5ea5a46f791a637b2d2e231e56195726050e57cb), including world persistence and Dead City puzzle work. The remaining implementation starts from those systems and the verified Windows scenarios below.
