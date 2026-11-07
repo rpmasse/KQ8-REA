@@ -1640,3 +1640,117 @@ fn four_ferryman_topics_earn_knowledge_and_reload() {
         play.options
     );
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_FERRYMAN_KNOWLEDGE_SLOT"]
+fn western_archers_and_rock_survive_reload() {
+    let play = Play::new("earned-western-rock");
+    let source = earned_slot("KQ8_FERRYMAN_KNOWLEDGE_SLOT")
+        .expect("set KQ8_FERRYMAN_KNOWLEDGE_SLOT to an earned FerrymanKnowledgeReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "FerrymanKnowledgeReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["level"], 11);
+    assert_eq!(start["journey"]["stats"]["stats"][4], 512);
+    assert!(region_flag(&start, "DeadCity::Reaper::metConnor", "4"));
+    assert!(carries_one(&start, "INVITEM_Mace"));
+    assert!(!carries_one(&start, "INVITEM_Rock"));
+    let path = play.root.join("western-rock.json");
+    let mut points: Vec<Value> = [
+        [55900, 185500],
+        [55750, 182250],
+        [57000, 179500],
+        [57000, 172000],
+        [59623, 168567],
+        [59750, 157750],
+        [59250, 157250],
+        [54000, 155500],
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(i, xy)| {
+        json!({"name":format!("Leave the boathouse for the western road {}",i+1),
+            "xy":xy,"radius":180,"run":true})
+    })
+    .collect();
+    for (name, xy, radius) in [
+        ("BowGuys16", [50250, 150250], 300),
+        // These two marks are the actor centers. Stop outside their bodies
+        // before beginning the ordinary attack input.
+        ("BowGuys15", [47857, 150050], 900),
+        ("BowGuys17", [48498, 149000], 900),
+    ] {
+        points.push(json!({"name":format!("Clear western archer {name}"),
+            "xy":xy,"radius":radius,"run":true,"fight":name,"big_swing":true}));
+    }
+    for (i, xy) in [[50750, 147000], [50250, 146500], [50250, 133750]]
+        .into_iter()
+        .enumerate()
+    {
+        points.push(
+            json!({"name":format!("Follow the western road to the rock {}",i+1),
+            "xy":xy,"radius":220,"run":true}),
+        );
+    }
+    points.push(
+        json!({"name":"Pick up the western rock","xy":[56600,126200],
+        "radius":150,"run":true,"aim":"NoName45"}),
+    );
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":30,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (earned, viewer) = leg(
+        &play,
+        1,
+        "WesternRock",
+        2100,
+        &[
+            "--walk-route",
+            path.to_str().unwrap(),
+            "--key",
+            "left:IDCTL_INVBAR_SHORT,8",
+        ],
+    );
+    assert!(viewer.contains("walk-route at Pick up the western rock"));
+    assert!(viewer.lines().any(|line| line
+        .contains("test --aim NoName45 (camera through gameplay pixel")
+        && line.contains("hits NoName45 first")));
+    let fight = log(&play, "WesternRock", "fight.log").to_ascii_lowercase();
+    for name in ["bowguys15", "bowguys16", "bowguys17"] {
+        assert!(fight.contains(&format!("{name}: hit by Connor").to_ascii_lowercase()));
+        assert_eq!(
+            fight
+                .matches(&format!("{name}: its death ended (rule 32)"))
+                .count(),
+            1
+        );
+    }
+    assert!(log(&play, "WesternRock", "items.log").contains("INVITEM_Rock 0 -> 1"));
+    let (restored, _) = leg(&play, 2, "WesternRockReload", 45, &[]);
+    for saved in [&earned, &restored] {
+        assert!(carries_one(saved, "INVITEM_Rock"));
+        assert!(carries_one(saved, "INVITEM_Mace"));
+        assert!(carries_one(saved, "INVITEM_SmCrossbow"));
+        assert_eq!(saved["journey"]["stats"]["level"], 11);
+        assert_eq!(saved["journey"]["stats"]["stats"][4], 1112);
+        assert_eq!(saved["journey"]["flags"]["KnowAboutFeather"], true);
+        assert!(!carries_one(saved, "INVITEM_Feather"));
+        assert!(region_flag(saved, "DeadCity::Reaper::metConnor", "4"));
+        for name in ["BowGuys15", "BowGuys16", "BowGuys17"] {
+            assert!(saved["kept"]["deadcity"]["gone"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v.as_str().is_some_and(|n| n.eq_ignore_ascii_case(name))));
+        }
+    }
+    assert_eq!(earned["journey"]["stats"], restored["journey"]["stats"]);
+    assert_eq!(earned["journey"]["items"], restored["journey"]["items"]);
+    assert!(!log(&play, "WesternRockReload", "fight.log").contains("its death ended (rule 32)"));
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+}
