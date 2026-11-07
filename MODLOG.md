@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-07 Implement shared saved-world clock and queue phases
+
+Preserve the original persistent event families, f32/six-decimal clock
+and deadline boundary, Init-plus-saved merge order, receiver lifetimes,
+deferred listener precedence and chronological startup queue service.
+Every ordinary live trap now posts its post-Init lookup; only delivery's
+script callback depends on lookupCall. Three grouped core checks pass;
+the broader run records 705 passes and 13 fixture failures, all 13 corrected
+cases then pass without repeating the 705. The newly clarified trap rule
+passes its two affected checks once. Exact commands and failure evidence:
+docs/saved-world-core.md. Full ordered disk/regional loading remains
+unfinished. M4 about 88%, M5 about 64%, M6 about 28%.
+
 ## 2026-11-07 Resolve original Rock and saved-trap loading contracts
 
 Study A documents Rock aiming, authored flight progression, full part
@@ -10,7 +23,7 @@ corrects Lookup to unconditional post-Init posting with optional script-only
 delivery, and establishes retained unresolved names and the original
 duplicate-accumulation defect. DESIGN records the ordered-loader and
 safe pending-name implementation sequence. Static study only; no original
-runtime or manual comparison claimed. M4 about88%, M5 about64%, M6 about28%.
+runtime or manual comparison claimed. M4 about 88%, M5 about 64%, M6 about 28%.
 
 ## 2026-11-07 Apply original 640/800 presentation changes live
 

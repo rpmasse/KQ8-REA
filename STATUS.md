@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-07 Shared saved-world core verified; ordered loader still open
+
+Core clock, persistent event selection, saved/Init merge order, receiver
+lifetimes, deferred listeners and chronological startup service pass 3/3.
+The broader core run retained 705 successes; 13 failed fixtures were corrected
+and pass 13/13 on their targeted retry. A further original study establishes
+unconditional post-Init trap lookup posting with optional callback delivery;
+the corrected existing matrix passes 2/2. No broad or native rerun was used.
+Evidence: docs/saved-world-core.md. The production loader must still adopt
+these phases at their original world/object lifecycle boundaries. This is
+not full disk-save or regional-return parity. Current estimates remain
+M4 about 88%, M5 about 64%, M6 about 28%.
+
 ## 2026-11-07 Live original resolution changes verified on Windows
 
 The single unattended native resize flow passes first attempt, 1/1 in

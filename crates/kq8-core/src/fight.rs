@@ -1277,6 +1277,7 @@ impl crate::active::WorldState {
         let made = self.items.make(&kind, quantity, crate::item::Place::World { position: laid.position, angles: laid.angles }).map(|o| o.name.clone());
         let line = match made {
             Ok(item) => {
+                self.register_event_receiver(&item);
                 self.known.insert(item.to_ascii_lowercase());
                 self.new_inv_item = Some(item.clone());
                 self.laid_checks.push(LaidCheck { item: item.clone(), kind: kind.clone(), quantity, feet: place.position, owner: name.clone() });
@@ -1321,6 +1322,7 @@ impl crate::active::WorldState {
         let made = self.items.make(item, 1, crate::item::Place::World { position: laid.position, angles: laid.angles }).map(|o| o.name.clone());
         let line = match made {
             Ok(name) => {
+                self.register_event_receiver(&name);
                 self.known.insert(name.to_ascii_lowercase());
                 let (p, r) = (laid.position, laid.angles);
                 format!("Connor's Special list: Inv {item}: made {name} at ({:.0}, {:.0}, {:.0}) turned ({:.3}, {:.3}, {:.3}): {how}; no throw, no fall, no line test, NewInvItem not set (anim-scripts.md rule 16)", p[0], p[1], p[2], r[0], r[1], r[2])
@@ -1374,6 +1376,7 @@ impl crate::active::WorldState {
         let made = self.items.make(kind, quantity, crate::item::Place::World { position: at, angles: [0.0; 3] }).map(|o| o.name.clone());
         match made {
             Ok(item) => {
+                self.register_event_receiver(&item);
                 self.known.insert(item.to_ascii_lowercase());
                 self.throw_made(&item, kind, quantity, at)
             }

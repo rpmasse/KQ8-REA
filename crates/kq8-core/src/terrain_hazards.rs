@@ -238,6 +238,7 @@ mod tests {
         assert!(a.world.requests.iter().any(|r| matches!(r, Request::ConnorHurt { forced: false, world_hit: true, .. })));
         for (update, sounds) in [(15, 1), (37, 1), (38, 2), (75, 2), (76, 3), (114, 4)] {
             a.world.updates = update;
+            a.world.advance_clock_for_test(update as f32 / 15.);
             a.connor_terrain_damage(surface, 0.0);
             assert_eq!(a.world.sounds.len(), sounds, "update {update}");
         }
@@ -253,6 +254,7 @@ mod tests {
             assert!(fatal.world.requests.iter().any(|r| matches!(r, Request::ConnorDies { kind: HitKind::Normal, .. })));
             assert_eq!(fatal.world.sounds[0].name, "poison1.aud", "lethal hit still sounds");
             fatal.world.updates = 60;
+            fatal.world.advance_clock_for_test(4.);
             fatal.connor_terrain_damage(surface, 0.0);
             assert_eq!(fatal.world.sounds.len(), 1, "already dying ignores subsequent world sound");
         }
@@ -273,8 +275,10 @@ mod tests {
         let mut a = active(120, 100);
         a.world.terrain_hazards.add_immune(POISON as i64);
         a.world.updates = 150;
+        a.world.advance_clock_for_test(10.);
         a.connor_terrain_damage(Some((1000.0, FAST_POISON)), 0.0);
         a.world.updates = 165;
+        a.world.advance_clock_for_test(11.);
         let journey = crate::journey::Journey::take(&a.world, &a.scripts.vars, "DeadCity");
         assert_eq!(journey.terrain_hazards.rearm_in, Some(1.5));
         let json = serde_json::to_value(&journey).unwrap();
@@ -282,6 +286,7 @@ mod tests {
         assert!(decoded.terrain_hazards.valid());
         let mut b = active(1, 0);
         b.world.updates = 300;
+        b.world.advance_clock_for_test(20.);
         decoded.give(&mut b.world, &mut b.scripts.vars);
         assert_eq!(b.world.terrain_hazards.immunity, a.world.terrain_hazards.immunity);
         assert_eq!(b.world.terrain_hazards.world_hit_sound(21.49), None);

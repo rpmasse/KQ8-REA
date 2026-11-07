@@ -863,15 +863,18 @@ mod tests {
         carry(&mut a, "Candle", 1);
         assert_eq!(stats(&a)[4], 0);
         a.world.updates = 4;
+        a.world.advance_clock_for_test(4f32/15.);
         timers(&mut a.world);
         assert_eq!(stats(&a)[4], 0, "0.27 s: not yet");
         a.world.updates = 5;
+        a.world.advance_clock_for_test(5f32/15.);
         timers(&mut a.world);
         // +25 at level 1 (threshold 10): level 2, 15 left.
         let level = |a: &Active| a.world.connor_stats.unwrap().level;
         assert_eq!((level(&a), stats(&a)[4]), (2, 15));
         // Never taken back (rule 40): its Dur is not used.
         a.world.updates = 2000;
+        a.world.advance_clock_for_test(2000f32/15.);
         timers(&mut a.world);
         assert_eq!((level(&a), stats(&a)[4]), (2, 15));
     }

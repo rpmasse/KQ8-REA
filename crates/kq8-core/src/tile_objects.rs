@@ -345,7 +345,7 @@ mod tests {
         a.world.swamp_tiles.insert("tile00".into(),SwampTile::from_section(&kq8_data::kq_text::parse(b"[tile]\nclassType=KQSwampTile\nheightNum=2\n")[0]).unwrap());
         let mut gas=movement(GAS_SHAPE,0.,1.,false,false,vec![]);gas.play_time=0.2;
         a.world.script_shapes.insert(GAS_SHAPE.into(),gas);
-        a.scripts.vars.set("Swamp::Tile::PowerOn","True".into());a.scripts.vars.set("Swamp::Tile::SwitchOn","True".into());a.world.updates=45;a
+        a.scripts.vars.set("Swamp::Tile::PowerOn","True".into());a.scripts.vars.set("Swamp::Tile::SwitchOn","True".into());a.world.updates=45;a.world.advance_clock_for_test(3.);a
     }
 
     #[test]
