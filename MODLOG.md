@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-07 Earned ranged encounter and level-up reload
+
+Added a ranged-fight option to the unattended route. It selects the
+ordinary ranged HUD slot, faces the target with bound keys in first
+person, and uses on-screen shot rays. The visibility gate now uses
+the existing ranged aim mask for these clicks, so ordinary enemy
+type 0x42 is eligible and nearer geometry still blocks the shot.
+
+The earned river-Weeper check passed across two Windows processes
+in 76.51 seconds: ten projectile hits, one 575-point award, level ten,
+100 health and 332 experience retained after reload. Equipment and
+GOG options are unchanged. The preflight failures are recorded in
+STATUS; none fired a shot. F2 during stoprun exposed the separate
+movement-continuation question Q200, left unchanged pending study.
+All 877 standard workspace tests pass after the final changes.
+[Route and exact command](docs/dead-city-progression.md#the-river-weeper)
+
 ## 2026-11-07 Preserve the western patrol victory and failed replays
 
 Added an automated check that restores a genuine western-patrol

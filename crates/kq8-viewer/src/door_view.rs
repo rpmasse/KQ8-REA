@@ -2014,8 +2014,19 @@ pub fn door_click_input(
         Pick::Nothing => (format!("{from} meets nothing clickable"), None),
     };
     if let Some((target, _)) = aim.landmark.as_ref().filter(|_| landmark) {
-        if !picked.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(target)) {
-            let reason = format!("{line}; walk-route turns the camera for {target}");
+        // The route's visibility check must use the current click's mask.
+        // Ordinary enemies have type 0x42 and are aimable, but do not have
+        // the plain interaction pick's 0x20 bit (ranged-weapons rule 16).
+        let visible = if action == WorldClick::Shoot {
+            sim.active.world.mask_pick(origin, dir, kq8_core::weapons::AIM_PICK,
+                objects.as_deref().map_or(&[][..], |o| &o.0[..]),
+                buildings.as_deref().map_or(&[][..], |b| &b.0[..]))
+                .map(|hit| hit.name)
+        } else {
+            picked.clone()
+        };
+        if !visible.as_deref().is_some_and(|name| name.eq_ignore_ascii_case(target)) {
+            let reason = format!("{line}; current click sees {visible:?}; walk-route turns the camera for {target}");
             aim.turn_for_target(&shared, &mut sim, reason);
             return;
         }

@@ -13,6 +13,70 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5–M6 ranged encounter input (2026-11-07).** The verified western
+patrol save carries the Small Crossbow with 21 ranged damage and
+11 health. Original weeper15 has 175 health, 10 protection, a
+5000-unit alarm radius and 3000-unit attack distance. Its 575-point
+death award would advance this earned level-nine save. The ranged
+study describes the bottom-bar weapon slot, visible aiming, a normal
+standing shot and unlimited bolts. Extend the unattended route with
+an explicit ranged-fight modifier: select the ranged HUD slot, aim
+through the existing visible gameplay-pixel ray, and click periodically
+until normal combat reports the target dying. Retain occlusion, camera
+turning, damage, AI and the ordinary Away input when finished. A
+30-second encounter timeout remains in force. Reject contradictory
+route modifiers. First check the ordinary approach from the saved
+patrol to the western Weeper; record a failed encounter rather than
+granting health or making another melee variation. Verify any actual
+victory and its level award in a fresh process. The crossbow's
+18000-unit projectile lifetime is not proof of a clear sight line.
+
+The first approach reached the firing point without taking damage,
+but its visibility gate never accepted the target during a full
+camera orbit. The initial ray hit doorway2: the camera was at x 79220,
+Connor at x 74354, and that building's original bounds begin at
+x 75535. The blocker is behind Connor. Use the ordinary F2 view
+switch before this approach and check the first-person sight line
+from Connor's position, preserving the same route and enemy state.
+This is a supported player input, not a collision exception.
+The later pick-mask finding below means the failed full orbit does
+not establish that every third-person sight line was obstructed.
+
+The first-person run did not reach the encounter. F2 at update 8
+arrived during stoprun. The Rust view refresh re-requested stoprun;
+after the retained transition reached run, it replayed stoprun as
+a standalone one-shot and held its last frame while Forward stayed
+active. The Q193 prose does not distinguish the requested action
+from the transition clip sufficiently for a correction here. Record
+that precise question for study and keep the native failure. Select
+first person while standing, before the route begins, for the
+separate ranged-encounter check. Do not claim that this addresses
+the mid-transition F2 case.
+
+The standing F2 approach reaches the firing point, but exposes a
+visibility error in the new automated ranged path. Its preflight
+uses the plain interaction pick (bit 0x20), while ordinary enemies
+have type 0x42. They are valid ranged targets under the original
+aim mask 0x40 | 0x08. Use that existing mask for a ranged route's
+visibility gate, retaining the closest intervening object/building.
+Keep the subsequent real shot dispatcher unchanged. The failed
+preflight never fired; it is not a failed crossbow combat result.
+
+After that correction, the first-person target lay just outside the
+view in the canonical approach. Orbiting the third-person camera does
+not aim Connor's first-person view. Ranged rule 20 says first-person
+shots do not turn him toward the click. Have the ranged replay turn
+Connor toward the live target with his ordinary bound turn keys
+before asking for its on-screen shot. Keep the visible ray test;
+do not replace it with an offscreen named-target probe.
+
+The corrected two-process check passed in 76.51 seconds. Ten real
+projectile hits defeat weeper15; its one 575-point award raises
+Connor to level ten and restores 100 health. The fresh save retains
+stats [100,75,23,9,332], both weapons and the removed enemy. The
+standing view switch, ranged HUD input, visible rays and ordinary
+death award are covered; Q200's mid-transition switch remains open.
+
 **M6 supplied western patrol encounter (2026-11-07).** The latest
 earned `CorridorSuppliesReload` has 47 health, rather than the 16
 health in the stopped western-patrol duels. The second old duel
