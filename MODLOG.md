@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-07 The Dead City entrance and Paddle
+
+The campaign test now continues from the earned Dead City arrival.
+It follows the entrance script’s forced walk and dialogue, defeats the
+two skeleton archers using the earned axe, and takes the Paddle from
+its rack. A fresh launch restores the cleared encounter and the item.
+The first attempt doubled back after the cutscene and was killed.
+Waiting for the script to return control fixed the replay. [Automated test](docs/dead-city-progression.md)
+
 ## 2026-11-07 Return the Ashes and enter Dead City
 
 The campaign replay now carries the Ashes back through both castle

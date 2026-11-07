@@ -13,6 +13,16 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5–M6 beyond the Dead City arrival.** Load the earned arrival,
+follow the approach to the first hall and check its nearby paddle.
+Use the original level geometry and ordinary movement to establish
+which passages are accessible and which mechanisms open the way.
+Follow the route to the good skull, then its statue and the scales.
+Check the skull's delayed award and removal, the statue's delayed
+feather and the actual scales outcome from earned inventory. Save
+through the game interface, keep enemies and damage active, and
+retain evidence for each accessible section.
+
 **M6 return the castle ingredient.** From the earned Ashes save, walk
 back through the open fireplace, leave space for the projecting wall
 light, and accept the original return portal's prompt. Verify that
@@ -662,7 +672,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
 | M4 · Interface and dialogue | Partial. The title and pause menus, named saves, Options, Keyboard, opening replay, HUD, captions, pickup help, the Wizard conversation and the F2 view have Windows checks. Credits displays the original cards. | Finish graphics modes and resolution switching, software palette output, remaining help, inventory and dialogue branches. Establish the original credits timing and score. |
 | M5 · Combat | Partial. Tests cover the first-person axe and Small Crossbow, weapon draws and saves during combat and death. The Weeper, Tower Skeleton, Henchman, Lucreto and several script-created enemies have focused coverage. | Finish the other weapon and damage paths, enemy decisions, bosses and specialised deaths. Exercise each full encounter in campaign play. |
-| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. Continued saves cover the Shadow, Castle Daventry, the Wizard's Ring of Light and entry into Dead City. The scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Earn Dead City's skull and feather, solve the scales and advance through the remaining regional quests, transitions and saved controllers. Verify one Normal New Game through the ending and credits. |
+| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. Continued saves cover the Shadow, Castle Daventry, the Ring of Light and the Dead City entrance archers and Paddle. The scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Solve the first hall’s puzzles, earn Death's key, continue to the skull and feather, then complete the scales and later regions. Verify one Normal New Game through the ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
 
 **Starting revision.** This fork incorporates the [October 31 upstream changes](https://github.com/Eric-lz/KQ8R/compare/b6658de39c87b51c41a62f765f08dbf1ee54980c...5ea5a46f791a637b2d2e231e56195726050e57cb), including world persistence and Dead City puzzle work. The remaining implementation starts from those systems and the verified Windows scenarios below.
