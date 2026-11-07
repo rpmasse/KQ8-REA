@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-07 Earned boathouse guard victory and reload
+
+The two-process check passed in 72.82 seconds from RiverWeeperReload.
+Connor changes view while standing, readies the earned Mace through
+the melee HUD slot and follows the cleared road to skeleton38. One
+ordinary Shift-click hit defeats the guard on update 282. Death
+completes on 317 and awards 300 experience once. BoathouseGuardReload
+retains level ten, stats [94,75,23,9,632], both weapons, third-person
+view and the three defeated river-road enemies. AI and damage remain
+enabled, and GOG Options.cs is unchanged. Local evidence:
+`earned-boathouse-guard/1794023435988353000`.
+
+This adds an earned campaign regression, with no engine-rule changes.
+The Ferryman topics and the remaining Dead City quest are still open.
+[Exact command](docs/dead-city-progression.md#the-boathouse-guard)
+
 ## 2026-11-07 Earned crossbow clears the river Weeper
 
 The two-process campaign check passed in 76.51 seconds. From the

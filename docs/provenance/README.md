@@ -3,6 +3,15 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Boathouse guard campaign check.** The installed Dead City
+MONSTERS.KQ places skeleton38 at (57613,168526); the loaded original
+type gives 100 health, 20 damage, 20 protection and 300 experience.
+The test follows the existing fighting rules 39–41 for the normal
+Mace Shift-click, and rule 32 for the death award. Its input save
+is the earned river-Weeper victory. No enemy, inventory or quest
+state is inserted by this route.
+[Result](../dead-city-progression.md#the-boathouse-guard)
+
 **Earned ranged route.** Ranged-weapons rules 1, 13–16 and 20 describe
 the ordinary HUD selection, click masks, first-person facing and
 standing shots. The unattended player uses those existing input paths;

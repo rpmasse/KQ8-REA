@@ -13,6 +13,27 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 boathouse guard and Ferryman continuation (2026-11-07).**
+Start with the earned RiverWeeperReload: level ten, 100 health,
+332 experience, Mace and Small Crossbow, and both river-road enemies
+already defeated. Follow the cleared road to skeleton38 near his
+authored position (57613,168526). Switch to third person while
+standing and select the ordinary melee HUD slot before walking;
+the previous ranged encounter otherwise leaves Delete readying the
+crossbow. Fight with the existing Shift-click input. Verify the
+normal 300-point death award, equipment and defeat after a fresh
+process reload. Do not change enemy rules or grant campaign state.
+
+After that guard is cleared, enter the boathouse through its measured
+doorway and click Ferryman through a visible gameplay ray. Check the
+four original reaper.cs topics separately, allowing each to finish
+without walking away. The first topic awards 2000 once; the third
+sets KnowAboutFeather; the fourth awards 3000 once. Save and reload
+their earned state and distinguish learning about the feather from
+actually carrying it. The boat dialogue directs Connor to the Bridge
+of Life; it is not a transport shortcut. Any failure stays visible
+in STATUS, and uncertain engine behavior goes to the study questions.
+
 **M5–M6 ranged encounter input (2026-11-07).** The verified western
 patrol save carries the Small Crossbow with 21 ranged damage and
 11 health. Original weeper15 has 175 health, 10 protection, a

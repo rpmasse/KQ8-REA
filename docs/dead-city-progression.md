@@ -255,6 +255,26 @@ Set `KQ8_WESTERN_PATROL_RELOAD_SLOT` to a genuine
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::earned_crossbow_defeats_the_river_weeper_and_restores_its_award -- --ignored --exact --test-threads=1
 ```
 
+## The boathouse guard
+
+The earned RiverWeeperReload continues along the cleared road to
+skeleton38. Connor switches to third person while standing, chooses
+the melee HUD slot and attacks with his earned Mace. One normal
+Shift-click hit defeats the guard on update 282; its death completes
+on 317 and awards 300 experience once. The two-process regression
+passed in 72.82 seconds. BoathouseGuardReload retains level ten,
+stats [94,75,23,9,632], both weapons, third-person view and the
+defeated skeleton55, weeper15 and skeleton38. AI and damage remain
+enabled, and the GOG options are unchanged. The Ferryman topics are
+the next unverified step.
+
+Set `KQ8_RIVER_WEEPER_SLOT` to a genuine `RiverWeeperReload` save
+and use the configured GOG installation:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::earned_mace_clears_the_boathouse_guard_and_reloads -- --ignored --exact --test-threads=1
+```
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -287,6 +307,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::first_hall_supplies_heal_the_return_to_the_outer_corridor` | `KQ8_OUTER_GUARD_SLOT` (`OuterGuardReload`) | `CorridorSuppliesReload` |
 | `dead_city::saved_western_patrol_victory_reloads_without_another_award` | Required genuine `KQ8_WESTERN_PATROL_SLOT` (`WesternPatrol`) | `WesternPatrolReload`; reload only |
 | `dead_city::earned_crossbow_defeats_the_river_weeper_and_restores_its_award` | Required genuine `KQ8_WESTERN_PATROL_RELOAD_SLOT` (`WesternPatrolReload`) | `RiverWeeperReload` |
+| `dead_city::earned_mace_clears_the_boathouse_guard_and_reloads` | Required genuine `KQ8_RIVER_WEEPER_SLOT` (`RiverWeeperReload`) | `BoathouseGuardReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

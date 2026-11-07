@@ -1427,3 +1427,93 @@ fn earned_crossbow_defeats_the_river_weeper_and_restores_its_award() {
         play.options
     );
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_RIVER_WEEPER_SLOT"]
+fn earned_mace_clears_the_boathouse_guard_and_reloads() {
+    let play = Play::new("earned-boathouse-guard");
+    let source = earned_slot("KQ8_RIVER_WEEPER_SLOT")
+        .expect("set KQ8_RIVER_WEEPER_SLOT to an earned RiverWeeperReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "RiverWeeperReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["level"], 10);
+    assert_eq!(
+        start["journey"]["stats"]["stats"],
+        json!([100, 75, 23, 9, 332])
+    );
+    assert_eq!(start["view_flags"]["active"], true);
+    assert!(carries_one(&start, "INVITEM_Mace"));
+    assert!(carries_one(&start, "INVITEM_SmCrossbow"));
+    let path = play.root.join("boathouse-guard.json");
+    let mut points: Vec<Value> = [
+        [72250, 158750],
+        [68500, 155000],
+        [67750, 153250],
+        [63500, 153250],
+        [63250, 153500],
+        [61750, 167250],
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(i, xy)| {
+        json!({"name":format!("Follow the cleared road to the boathouse {}",i+1),
+            "xy":xy,"radius":230,"run":true})
+    })
+    .collect();
+    points.push(json!({"name":"Fight the boathouse guard on his road",
+        "xy":[59600,168500],"radius":300,"run":true,
+        "fight":"skeleton38","big_swing":true}));
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":35,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (won, viewer) = leg(
+        &play,
+        1,
+        "BoathouseGuard",
+        850,
+        &[
+            "--walk-route",
+            path.to_str().unwrap(),
+            "--key",
+            "physical:F2,3",
+            "--key",
+            "left:IDCTL_INVBAR_SHORT,8",
+        ],
+    );
+    assert!(viewer.contains("walk-route at Fight the boathouse guard on his road"));
+    let combat = log(&play, "BoathouseGuard", "fight.log");
+    assert!(combat.contains("skeleton38: hit by Connor"));
+    assert!(combat.contains("conmace.anm/attack2"));
+    assert_eq!(
+        combat
+            .matches("skeleton38: its death ended (rule 32)")
+            .count(),
+        1
+    );
+    let mut expected = start["journey"]["stats"].clone();
+    expected["stats"][0] = won["journey"]["stats"]["stats"][0].clone();
+    expected["stats"][4] = json!(632);
+    let (restored, _) = leg(&play, 2, "BoathouseGuardReload", 45, &[]);
+    for saved in [&won, &restored] {
+        assert_eq!(saved["journey"]["stats"], expected);
+        for name in ["skeleton55", "weeper15", "skeleton38"] {
+            assert!(saved["kept"]["deadcity"]["gone"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == name));
+        }
+        assert!(carries_one(saved, "INVITEM_Mace"));
+        assert!(carries_one(saved, "INVITEM_SmCrossbow"));
+        assert_eq!(saved["view_flags"]["active"], false);
+    }
+    assert!(!log(&play, "BoathouseGuardReload", "fight.log")
+        .contains("skeleton38: its death ended (rule 32)"));
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+}
