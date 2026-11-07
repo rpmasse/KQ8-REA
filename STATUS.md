@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-07 Scripted preparation and health batch completed
+
+preSpecial now makes current playback interruptible and remembers Stop
+without replacing the actual animation, phase or controller. reduceHealth
+queues a sampled whole-health delta through ordinary stats handling,
+including the original minimum rounding and strictly-negative death rule.
+Four grouped checks pass, including actual Henchman and altar callbacks;
+viewer release compilation passes. The initial private-field compile
+error is retained and fixed through the existing accessor. Successful
+checks are not repeated. Numeric object IDs and transient preparation
+save/reload remain open; no native or manual run is claimed for this batch.
+Estimates remain M4 about 83%, M5 60%, M6 about 25%.
+[Commands and evidence](docs/scripted-character-preparation.md)
+
 ## 2026-11-07 Shared original-resolution interface completed
 
 The six menu families and HUD now resolve authored parent-relative

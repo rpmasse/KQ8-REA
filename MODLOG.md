@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-07 Scripted character preparation and health
+
+Implemented preSpecial's live interruptibility and separate remembered
+motion without changing playback identity or EndLoop. Implemented
+reduceHealth's queued stats delta, precision and minimum rules. Four
+grouped core checks pass, including original Henchman and altar callbacks;
+viewer release compilation passes. The initial compile diagnostic and
+limits are recorded; numeric object IDs and transient flag persistence
+remain incomplete. No successful check is repeated.
+[Exact commands and evidence](docs/scripted-character-preparation.md)
+
 ## 2026-11-07 Original interface geometry and art
 
 Shared GUI resolution now derives integer child rectangles from immutable

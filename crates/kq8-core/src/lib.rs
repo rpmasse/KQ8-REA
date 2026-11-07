@@ -72,6 +72,7 @@ pub mod tile_puzzle;
 pub mod turn_keys;
 pub mod water;
 pub mod terrain_hazards;
+pub mod scripted_character;
 pub mod weapons;
 pub mod weeper;
 pub mod tower_skeleton;
