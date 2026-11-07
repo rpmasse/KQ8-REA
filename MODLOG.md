@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-07 Ferryman topics and short inventory-description names
+
+Added the earned route from BoathouseGuardReload through the four
+Ferryman introductory topics and a fresh reload. The original
+conversation callbacks preserve knowledge and award experience once.
+The final check passed in 319.03 seconds, ending at level eleven with
+110 health and 512 experience. The first attempt had a log-matching
+assertion error after successfully saving topic one; corrected and
+retained in STATUS.
+
+The native third topic exposed `invClick Feather` being rejected.
+The command now applies the existing item-name prefix rule before
+lookup. It changes description metadata without granting items.
+The script regression failed before the fix, and all 878 standard
+workspace tests now pass. The final native rerun verifies that the
+original third-topic command succeeds. Script coverage regenerated
+unchanged.
+The whole-workspace formatting check reports inherited differences;
+only the touched viewer test file was formatted.
+[Source and commands](docs/dead-city-progression.md#the-ferrymans-introductory-topics)
+
 ## 2026-11-07 Clear the boathouse guard with earned equipment
 
 Added the unattended continuation from RiverWeeperReload to the

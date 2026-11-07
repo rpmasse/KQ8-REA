@@ -34,6 +34,27 @@ actually carrying it. The boat dialogue directs Connor to the Bridge
 of Life; it is not a transport shortcut. Any failure stays visible
 in STATUS, and uncertain engine behavior goes to the study questions.
 
+The third topic exposes a small item-name mismatch: the installed
+reaper.cs says `invClick Feather 76 0 0 1`, but Rust only searches
+full `INVITEM_` names in this command. Inventory rule 10 defines the
+message update; items rule 2 already permits unprefixed type names.
+Normalize this lookup with the existing item-name helper, retaining
+the documented by-name behavior and byte-sized message fields. Check
+short names, full names and unknown names through script dispatch,
+then require the real Ferryman route to log the accepted update.
+This changes the Feather's description metadata; it does not grant
+or equip the item. Its installed default message already has these
+numbers, so the earlier rejection does not change the earned quest
+flags or dialogue rewards. Preserve that baseline separately.
+
+The earned guard/reload passed in 72.82 seconds, leaving 94 health
+and 632 experience at level ten. The final five-process Ferryman
+sequence passed in 319.03 seconds, including the accepted short-name
+command and a fresh reload with [110,80,25,10,512] at level eleven.
+It preserves knowledge without granting the Feather. All 878 standard
+tests pass. Later Ferryman branches and the actual skull/feather
+route remain open.
+
 **M5–M6 ranged encounter input (2026-11-07).** The verified western
 patrol save carries the Small Crossbow with 21 ranged damage and
 11 health. Original weeper15 has 175 health, 10 protection, a
