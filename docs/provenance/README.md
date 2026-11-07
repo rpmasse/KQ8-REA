@@ -3,6 +3,21 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Swamp/Barren tile controllers and effects.** The implementation uses
+Study A's secondary-tile-puzzles.md and object-projectile-cues.md, plus
+the installed tile definitions, scripts, movements and bitmap names.
+They supply controller ownership, grid/landing rules, Swamp hazards,
+Barren platform cues and generic object projectile launch ordering.
+The saved pending-output list preserves this Rust bridge's already-issued
+effects; it does not establish original WorldState queue equivalence.
+Static and animated bitmap substitutions use original asset names and
+per-object material state, without changing texture resolution. Grouped
+core/data/material checks, isolated native mid-jump continuations and the
+pending-output snapshot matrix are recorded in
+[controller evidence](../secondary-tile-controllers.md) and
+[renderer evidence](../tile-bitmap-rendering.md). Portal transition
+refusal and the shared saved-world clock/queue integration remain open.
+
 **Ending game lifetime.** Study A's corrected credits-completion.md rules
 16 and 20–24 establish separate game-started and gameplay availability,
 retained Connor, late score access, missing-movie continuation and later

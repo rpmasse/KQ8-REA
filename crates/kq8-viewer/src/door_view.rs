@@ -868,6 +868,9 @@ pub fn spawn_doors(
     // Copies prepared for a script's loadKQ (3k-4).
     active.world.object_stat_defaults = std::mem::take(&mut objects.object_stat_defaults);
     active.world.interior_lighting = std::mem::take(&mut objects.interior_lighting);
+    active.world.swamp_tiles = std::mem::take(&mut objects.swamp_tiles);
+    active.world.lava_tiles = std::mem::take(&mut objects.lava_tiles);
+    active.world.object_projectiles = std::mem::take(&mut objects.object_projectiles);
     active.set_dormant(std::mem::take(&mut objects.dormant));
     // M5 5d-3, 5d-4: the templates for new copies: still ones, and
     // animated ones with their player as built (at the start).
@@ -1301,6 +1304,7 @@ pub fn trap_step(
             sim.active.run_script(script, &args);
         }
     }
+    crate::connor_view::SecondaryTileCall::dispatch(&mut connor.secondary_calls,&mut sim.active);
     // tile-puzzle.md (D-4): what the Tile state asked this update.
     for call in std::mem::take(&mut connor.tile_calls) {
         match call {
@@ -1388,6 +1392,8 @@ pub fn trap_step(
         let state = match &r {
             Request::ConnorSpecial { at, .. } => Some(("setState special", at.clone())),
             Request::ConnorWait { at } => Some(("setState Wait", at.clone())),
+            Request::ConnorChoice {at,..}|Request::ConnorTile {at}|Request::ConnorSecondaryTile {at,..}|Request::ConnorScales {at}
+                if connor.secondary_tile.is_some()=>Some(("setState puzzle",at.clone())),
             // fighting.md rule 29 (M5 5c-4): his dying state is a state
             // change too (**ours**: during a jump the same rule 28 applies).
             Request::ConnorDies { at, .. } | Request::ConnorDieNow { at } => Some(("dying state", at.clone())),
@@ -1397,7 +1403,7 @@ pub fn trap_step(
         if let Some((what, at)) = state {
             // tile-puzzle.md rule 20 (D-4): refused and dropped while the
             // exit switch is off.
-            if connor.tile_holds() || connor.scales.is_some() {
+            if connor.tile_holds() || connor.scales.is_some() || (connor.secondary_holds() && !matches!(r,Request::ConnorDies {..}|Request::ConnorDieNow {..})) {
                 if matches!(r, Request::ConnorDies { .. }) { sim.active.world.pending_combat_death = None; }
                 connor.state_request(what, &at);
                 if let Some(log) = &mut sim.trap_log {
@@ -1439,7 +1445,12 @@ pub fn trap_step(
                 let p = connor.mover.position;
                 let h = connor.walker.heading;
                 let aim = aim.unwrap_or([p[0] + 2000. * h.sin(), p[1] - 2000. * h.cos(), p[2]]);
-                let started = w.rock_file().is_some_and(|file| connor.start_rock_throw(file, aim));
+                let started = w.rock_file().is_some_and(|file| {
+                    if connor.secondary_tile.is_some() {
+                        let started=connor.start_secondary_rock(file.clone(),aim,w.connor_projectile.clone());
+                        if started {w.connor_projectile=Some(file);} started
+                    } else {connor.start_rock_throw(file,aim)}
+                });
                 if started {
                     w.hand = None;
                 }
@@ -1570,6 +1581,12 @@ pub fn trap_step(
                     None => String::new(),
                 };
                 format!("{at}: applied: Connor {line}{said}")
+            }
+            Request::ConnorSecondaryTile {kind,at}=>{
+                let away=sim.active.world.put_weapon_away(&at);
+                let line=connor.enter_secondary_tile(kind,&sim.active.world,&at);
+                if away.is_some() {sim.active.test_command("KQMonster::speak Connor Connor 0 0 37 23 1 1","secondary tile entry");}
+                line
             }
             Request::TileExit { can_exit, at } => {
                 let line = connor.tile_exit(can_exit, &at);
@@ -2299,7 +2316,7 @@ pub fn door_step(
         // every weapon change is refused with his common line: keys,
         // bottom-bar slots and scripts' alike. Alt only acts with a weapon
         // drawn, so with empty hands it does nothing, silently.
-        if c.tile.is_some() || c.scales.is_some() {
+        if c.tile.is_some() || c.secondary_tile.is_some() || c.scales.is_some() {
             let state = if c.scales.is_some() { "Scales" } else { "Tile" };
             let empty = w.weapon_mode == kq8_core::weapons::WeaponMode::None;
             for r in std::mem::take(&mut w.weapon_requests) {

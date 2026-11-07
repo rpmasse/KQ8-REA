@@ -37,6 +37,9 @@ use crate::Shared;
 
 #[path = "connor_tile.rs"]
 mod tile;
+#[path = "connor_secondary_tiles.rs"]
+mod secondary_tiles;
+pub use secondary_tiles::{Call as SecondaryTileCall,SavedSecondaryTile};
 #[path = "connor_scales.rs"]
 mod scales;
 pub use tile::{unlit_step, SavedTile, TileCall};
@@ -205,6 +208,8 @@ pub struct ConnorSim {
     /// The death hall's `Tile` state (`tile-puzzle.md`; batch 2, D-4),
     /// while he is in it, and what it asks of the world this update.
     pub tile: Option<tile::TileRun>,
+    pub secondary_tile: Option<secondary_tiles::Run>,
+    pub secondary_calls: Vec<SecondaryTileCall>,
     pub scales: Option<scales::Scales>,
     pub tile_calls: Vec<TileCall>,
     /// The lit stone changed (rule 10): the new one, for the drawing.
@@ -1576,6 +1581,8 @@ pub fn spawn_connor(
         choice: None,
         choice_calls: Vec::new(),
         tile: None,
+        secondary_tile: None,
+        secondary_calls: Vec::new(),
         scales: None,
         tile_calls: Vec::new(),
         tile_lit_changed: None,
@@ -1903,6 +1910,7 @@ impl ConnorSim {
         if self.tile.is_some() {
             return TILE;
         }
+        if let Some(t)=&self.secondary_tile {return if t.kind==kq8_core::secondary_tiles::Kind::Swamp {TILE2} else {TILE3};}
         match self.walker.mode {
             Mode::Free if self.walker.moving() => MOVE,
             Mode::Special if self.swing.is_some() || self.shot.is_some() => WAIT,
@@ -1938,6 +1946,10 @@ impl ConnorSim {
     /// an unfinished jump, with `handsOff` on the jump is finished first;
     /// without it the request is refused (`false`). Logged either way.
     pub fn state_request(&mut self, what: &str, at: &str) -> bool {
+        if self.secondary_tile.is_some() {
+            if what=="dying state" || !self.secondary_holds() {self.leave_secondary_tile();}
+            else {self.log.detail(format!("{at}: {what} refused by secondary tile controller"));return false;}
+        }
         if self.scales.is_some() {
             self.log.detail(format!("connor update {}: {what}: refused in Scales ({at})", self.updates));
             return false;
@@ -1990,7 +2002,7 @@ impl ConnorSim {
         let mode=self.walker.mode;
         // Native Wait/Move/Choice share Free here. A melee action's
         // temporary Special representation is still ordinary combat.
-        let selector=matches!(mode,Mode::Free|Mode::Talk) || (mode==Mode::Special && (self.swing.is_some() || self.shot.is_some()));
+        let selector=self.secondary_tile.is_none() && (matches!(mode,Mode::Free|Mode::Talk) || (mode==Mode::Special && (self.swing.is_some() || self.shot.is_some())));
         let wanted=special.unwrap_or("react");
         let react=self.drawn(wanted).map(|m| (m.name,m.movement_loop.duration/m.movement_loop.speed.abs().max(1e-3)));
         let why_not=if !selector {
@@ -2431,6 +2443,7 @@ impl ConnorSim {
         if Some(self.walker.movement) == r.out {
             self.walker.throw_leave();
         } else if self.walker.movement == r.throw {
+            if self.secondary_rock_finished() {self.redraw_from_walker();return;}
             self.switch_set(r.saved_list.clone(), r.saved_mode);
             if let Some(out) = r.out {
                 self.walker.throw_play(out);
@@ -3204,8 +3217,10 @@ pub fn connor_step(
     }
     // tile-puzzle.md rules 8-15 (D-4): the death-hall stones.
     let tile_lines = sim.tile_step(&mut intent, jump);
+    if let Some(d)=doors.as_ref() {sim.secondary_rebuild(&d.active.world);}
+    sim.secondary_step(&mut intent,jump);
     sim.scales_step(&mut intent);
-    if sim.tile.is_some() || sim.scales.is_some() {
+    if sim.tile.is_some() || sim.secondary_tile.is_some() || sim.scales.is_some() {
         jump = false;
     }
     for l in choice_lines.into_iter().chain(tile_lines) {
@@ -3230,6 +3245,7 @@ pub fn connor_step(
         sim.jump_start_z = Some(z_before);
     }
     let kq8_core::connor_update::Tick { step, report, wall_stop, notes: jump_notes, auto_end, auto_turn_ended } = tick;
+    if sim.secondary_tile.is_some() && matches!(sim.walker.mode,Mode::Dying|Mode::Dead|Mode::CombatDie|Mode::ScriptedDie) {sim.leave_secondary_tile();}
     if animation_was_locked && !sim.walker.animation_input_lock && !sim.hands_off {
         let replay = sim.turn_sent_again().unwrap_or_else(|| "no turn key held".into());
         sim.log.detail(format!("connor update {}: animation input lock cleared; {replay} (anim-scripts.md rule 23)", sim.updates));
@@ -3260,6 +3276,7 @@ pub fn connor_step(
             sim.log.detail(format!("connor update {}: reaction {e} ended; next ordinary selection strictly after {:.6}",sim.updates,sim.flinch_end+kq8_core::fight::FLINCH_PAUSE));
         }
         sim.ended.push(kq8_core::connor::plain_movement_name(e).to_string());
+        sim.secondary_motion_ended(e);
         if choice_owned_movement && sim.choosing() {
             sim.choice_movement_ended(e);
         }

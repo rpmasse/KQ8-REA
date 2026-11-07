@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-07 Tile pending effects complete; live display matrix passes
+
+The tile batch now saves pending completion, reward, bridge, exit, music
+and projectile-restoration effects independently of the active controller.
+A grouped real Snapshot/production-dispatch matrix passes first attempt,
+1/1 in 0.02s, including once-only dispatch and older slots. It reuses the
+same viewer test executable as the live 640/800 presentation matrix,
+which passes first attempt, 1/1 in 0.23s after a shared 1m58s build.
+No prior core/data/material/native successes are repeated.
+
+The display matrix covers controlled window/camera acknowledgement and
+retained menus/HUD/captions/state; real Windows resize acceptance is not
+yet tested. One bounded unattended resize flow is being prepared. Shared
+clock/queue restoration, Portal refusal and last-carried-item activation
+remain separate unfinished groups. Estimates: M4 about 88%, M5 about 64%,
+M6 about 28%. These are rough engineering estimates, not code counts.
+
 ## 2026-11-07 Tile continuation checks and eastern portal prerequisite
 
 The grouped Swamp/Barren data and material checks pass. Their unattended

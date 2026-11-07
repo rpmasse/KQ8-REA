@@ -434,7 +434,17 @@ fn parse_load(args: &[String]) -> Result<Parsed, String> {
 pub fn parse_move(args: &[String]) -> Result<(String, u32, [f32; 3], [f32; 3]), String> {
     let who = args.first().ok_or("move without a name")?.to_string();
     let flags = args.get(1).ok_or("move without flags")?;
-    let flags = flags.parse::<u32>().map_err(|_| format!("flags '{flags}' is not a whole number"))?;
+    // Installed Barren/patch/tiletps.cs spells the absolute flags as `0.`.
+    // Admit only unsigned digits and an optional all-zero decimal tail;
+    // this does not infer exponent, signed or fractional flag coercion.
+    let digits=match flags.split_once('.') {
+        Some((whole,tail)) if tail.bytes().all(|b|b==b'0')=>whole,
+        Some(_)=>"",
+        None=>flags.as_str(),
+    };
+    let flags=(!digits.is_empty() && digits.bytes().all(|b|b.is_ascii_digit()))
+        .then(||digits.parse::<u32>().ok()).flatten()
+        .ok_or_else(||format!("flags '{flags}' is not a whole number"))?;
     let nums = args.get(2..).unwrap_or(&[]);
     if nums.len() > 6 {
         return Err(format!("{} numbers; expected at most 6", nums.len()));

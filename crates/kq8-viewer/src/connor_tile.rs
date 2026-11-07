@@ -114,6 +114,7 @@ impl ConnorSim {
     /// `tileExit 0|1` (rule 21): the exit switch; with 1 he goes to Wait
     /// at once. Nothing outside the state.
     pub fn tile_exit(&mut self, can_exit: bool, at: &str) -> String {
+        if self.secondary_tile.is_some() {return self.secondary_exit(can_exit);}
         let line = match self.tile.as_mut() {
             None => format!("tileExit {}: not in a tile state; nothing (rule 21)", u8::from(can_exit)),
             Some(t) => {
@@ -417,7 +418,8 @@ pub fn unlit_step(
     shared: bevy::prelude::Res<crate::Shared>,
 ) {
     use bevy::prelude::{ChildOf, DetectChanges};
-    let wanted = connor.as_ref().and_then(|c| c.tile.as_ref()).and_then(|t| t.lit).map(|c| c.name());
+    let wanted = connor.as_ref().and_then(|c| c.secondary_tile.as_ref().and_then(|t|t.lit_name())
+        .or_else(||c.tile.as_ref().and_then(|t|t.lit).map(|cell|cell.name())));
     if wanted.is_none() && state.parts.is_empty() {
         return;
     }

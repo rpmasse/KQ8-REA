@@ -399,6 +399,8 @@ pub fn setup_objects(
     commands.insert_resource(gpu);
     // One (mesh, material) list per model, shared by all its copies.
     let mut built: Vec<Vec<(Handle<Mesh>, Handle<ObjectMaterial>)>> = Vec::new();
+    // Original per-part names for static Swamp Reveal, aligned with built.
+    let mut texture_names: Vec<Vec<Option<String>>> = Vec::new();
     // Buildings (M1 5c): their walls use the building material instead.
     let mut built_walls: Vec<Vec<(Handle<Mesh>, Handle<crate::building_light::BuildingMaterial>)>> = Vec::new();
     let mut first_corner: Vec<Option<[f32; 3]>> = Vec::new();
@@ -428,6 +430,7 @@ pub fn setup_objects(
         shape_lights.push(std::sync::Arc::new(vec![model.lights.clone()]));
         smooth.push(model.groups.iter().flat_map(|g| crate::object_light::smooth_normals(&g.triangles, g.shading.lighting)).collect());
         let mut parts = Vec::new();
+        let mut textures = Vec::new();
         first_corner.push(model.groups.first().and_then(|g| g.triangles.first()).map(|t| t.positions[0]));
         let mut walls = Vec::new();
         match &model.light_atlas {
@@ -448,6 +451,7 @@ pub fn setup_objects(
             None => {
                 for group in model.groups {
                     let mesh = model_mesh(&group.triangles, group.shading.lighting, [0.0; 3]);
+                    textures.push(match &group.look { crate::load::Look::Texture { name, .. } => Some(name.clone()), _ => None });
                     let material = object_material(group.look, group.shading, &light, &mut images);
                     parts.push((meshes.add(mesh), object_materials.add(material)));
                 }
@@ -455,6 +459,7 @@ pub fn setup_objects(
         }
         wall_info.push(model.light_atlas.map(std::sync::Arc::new).zip(model.wall_light).map(|(atlas, data)| (atlas, data, model.alternate_light)));
         built.push(parts);
+        texture_names.push(textures);
         built_walls.push(walls);
         wall_surfaces.push(model.surfaces);
     }
@@ -501,11 +506,16 @@ pub fn setup_objects(
         }
         // The lights it carries (M1 7c), on its first part only.
         let mut carried = test.as_ref().and_then(|_| crate::scene_lights::CarriedLights::new(vec![shape_lights[*i].clone()], transform, p.turn_off_dyn_lighting));
-        for (mesh, material) in &built[*i] {
+        for (part, (mesh, material)) in built[*i].iter().enumerate() {
             // Every material of a see-through object (objects.md Q14); a
             // separate copy, because other copies of the model may be solid.
             let material = crate::object_light::for_object(&mut object_materials, material, opacity, p.haze_solid, p.haze_multiplier);
-            let mut e = commands.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(material), transform, ObjectName(p.name.clone())));
+            let mut e = commands.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(material.clone()), transform, ObjectName(p.name.clone())));
+            if p.class.as_deref().is_some_and(|class| class.eq_ignore_ascii_case(kq8_core::tile_objects::SWAMP_CLASS)) {
+                if let Some(original) = &texture_names[*i][part] {
+                    e.insert(crate::anim_view::StaticTileBitmap::new(original.clone(), material));
+                }
+            }
             // Unused objects, and hidden ones (objects.md Q18): only with H.
             if *unused || !p.drawn() {
                 e.insert((Visibility::Hidden, ShownWithH));
