@@ -363,20 +363,36 @@ This should pass after the push and fresh-process reload. Evidence:
 `earned-sylph-first-block/1794027010744231100` under kq8-artifacts.
 The first draft's log-text assertion error is retained in STATUS.
 
-**The continuation is known failing.** The first three-block route
+**The continuation now passes.** The first three-block route
 kept pushing block14 down the road until higher ground stopped it.
 The revised route cleared blocks14 and13 but collided with torch.dt4
 on the block12 approach. Both stopped without a continuation save.
-No complete summon, 2000-point reward or full-puzzle reload is
-verified. Native retries stopped after two failures pending a review
-of the route's actual steering and collider clearance.
+Native retries stopped after two failures for a steering/clearance
+audit. The driver accepts a 0.13-radian heading error; the long leg
+did not leave enough room beside the torch for the actual animation
+steps. The audited route crosses at Y82500 with closer marks. All
+791 offline corridor samples pass the terrain/static-bound check.
 
-The retained regression uses a genuine `KQ8_FIRST_SYLPH_BLOCK_SLOT`
-(FirstSylphBlockReload); its current command is expected to fail:
+The subsequent live continuation and fresh-process reload passed in
+125.28 seconds. Blocks14,13 and12 clear on updates240,670 and1054;
+the last callback summons Sylph and awards 2000 experience once.
+SylphSummonedReload retains all four flags up, empty plate triggers,
+moved blocks and Sylph's home at (70662,105677,1584), with level eleven
+stats [61,80,25,10,3112]. Inventory and GOG options stay unchanged;
+reload does not repeat the award. Evidence is
+earned-sylph-summoned/1794027970800884800 and
+sylph-summoned-audited-native.log under kq8-artifacts.
+
+Set `KQ8_FIRST_SYLPH_BLOCK_SLOT` to a genuine FirstSylphBlockReload.
+With `KQ8_GAME_DIR` configured, this command should pass after the
+remaining pushes, appearance award and fresh-process reload:
 
 ```powershell
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::all_four_sylph_plates_summon_her_once_and_reload -- --ignored --exact --test-threads=1
 ```
+
+This verifies the pressure-plate puzzle. The Sylph conversations and
+item quest are **not tested** on this earned campaign route.
 
 ## Repeat the automated route
 
@@ -414,6 +430,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::four_ferryman_topics_earn_knowledge_and_reload` | Required genuine `KQ8_BOATHOUSE_GUARD_SLOT` (`BoathouseGuardReload`) | `FerrymanKnowledgeReload` |
 | `dead_city::western_archers_and_rock_survive_reload` | Required genuine `KQ8_FERRYMAN_KNOWLEDGE_SLOT` (`FerrymanKnowledgeReload`) | `WesternRockReload` |
 | `dead_city::first_sylph_block_lights_its_tower_and_reloads` | Required genuine `KQ8_WESTERN_ROCK_SLOT` (`WesternRockReload`) | `FirstSylphBlockReload` |
+| `dead_city::all_four_sylph_plates_summon_her_once_and_reload` | Required genuine `KQ8_FIRST_SYLPH_BLOCK_SLOT` (`FirstSylphBlockReload`) | `SylphSummonedReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

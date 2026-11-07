@@ -1832,7 +1832,7 @@ fn first_sylph_block_lights_its_tower_and_reloads() {
 }
 
 #[test]
-#[ignore = "known failing final-block approach; requires GOG assets, graphics and a genuine KQ8_FIRST_SYLPH_BLOCK_SLOT"]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_FIRST_SYLPH_BLOCK_SLOT"]
 fn all_four_sylph_plates_summon_her_once_and_reload() {
     let play = Play::new("earned-sylph-summoned");
     let source = earned_slot("KQ8_FIRST_SYLPH_BLOCK_SLOT")
@@ -1871,8 +1871,15 @@ fn all_four_sylph_plates_summon_her_once_and_reload() {
         (
             12,
             vec![
-                [85500, 81000],
-                [71750, 81000],
+                // Keep the crossing clear of the Y80540 torches. The
+                // input driver accepts 0.13 rad of heading error, so a
+                // long segment grazing those colliders is not a safe
+                // route even when its ideal center line is walkable.
+                [85500, 82500],
+                [77500, 82500],
+                [73500, 82500],
+                [69500, 82500],
+                [65500, 82500],
                 [58250, 80500],
                 [55657, 79300],
             ],

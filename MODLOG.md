@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-07 Complete the earned Sylph pressure-plate route
+
+Audited the failed route against its recorded heading, original
+torch bounds and 791 terrain/static-bound samples. Moved its crossing
+farther from the torches and split the long approach into closer
+marks. Only automated input-route coordinates changed.
+
+The remaining blocks, Sylph appearance, one-time 2000-point reward
+and fresh-process reload passed in 125.28 seconds. The saved result
+retains all four raised plates, empty triggers, moved blocks and
+Sylph's home, with level eleven stats [61,80,25,10,3112]. No reward
+repeats on reload. The earlier failures remain in STATUS; Sylph's
+conversations and item quest are not yet verified on the campaign.
+[Source, automated command and evidence](docs/dead-city-progression.md#the-sylph-pressure-blocks)
+
 ## 2026-11-07 Verify the first Sylph pressure block
 
 The earned block15 push and fresh reload pass in 52.94 seconds.

@@ -9,10 +9,14 @@ pushable; pushing.md rules 1–7 define its movement and collision.
 trptrp15.cs supplies the first plate's Off callback, B15 flag and
 flame.port501 creation. sylftest.cs requires all four B flags up
 and supplies the one-time 2000-point appearance reward. The first
-push and reload are verified with bound movement keys. The full
-route is known failing before its last plate, so the appearance and
-reward are not claimed. The second failure identifies torch.dt4
-from native collision logs and its original placed bounds.
+push and the remaining three blocks now pass with bound movement
+keys, including the appearance award and fresh-process reload.
+The two failed continuations remain documented. Native heading and
+collision logs, the route driver's own 0.13-radian tolerance, and
+original terrain/placed bounds explain why the old crossing grazed
+torch.dt4. A wider sampled corridor and closer marks resolve it
+without altering original movement rules. Sylph's later conversations
+and item quest are not covered by this result.
 [Evidence and limits](../dead-city-progression.md#the-sylph-pressure-blocks)
 
 **Western Rock campaign route.** The original Dead City WORLDINV.CS

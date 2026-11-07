@@ -13,6 +13,32 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 Sylph route clearance audit (2026-11-07).** The retained failed
+trace identifies the first torch.dt4 collision at update864, position
+(69210.9,80755.5). From update848 onward the route holds heading
+11.1006 radians; its fixed 0.13-radian steering tolerance accepts
+that heading for the distant next mark. The planned line passes at
+about Y80896, only 296 units from the torch's upper bound, while the
+live animation steps drift into its expanded collider. This is an
+input-route clearance error; no original movement change is justified.
+Before another native attempt, check the terrain and static bounds
+along a wider corridor at Y82500 and subdivide the nearby crossing
+so the driver cannot coast toward a distant mark past the torch.
+Record the numeric corridor check, then change only the route marks.
+Verify all four plate flags, physical pushes, one appearance reward,
+and a fresh-process reload. Retain both earlier failures and stop if
+the corrected route exposes another unresolved obstruction.
+
+The numeric corridor check sampled 791 positions, in a band 1500
+units wide from (85500,82500) to (65500,82500), then (58250,80500).
+All samples pass the existing terrain and static-bound filter.
+This is an offline planning check, not a gameplay result. The
+route uses closer marks through the crossing. The subsequent native
+check passes in 125.28 seconds, including all remaining pushes, the
+original one-time 2000-point appearance award and a fresh-process
+reload. SylphSummonedReload is now the verified campaign boundary;
+her conversations and item quest still need an earned continuation.
+
 **M6 Sylph pressure blocks (2026-11-07).** Continue from the earned
 WesternRockReload at (56559,126163), with empty hands. The original
 newWorld.cs places block15 on trip15 at (55657,123708,950).
@@ -39,8 +65,9 @@ torch.dt4 on the block12 approach after 73.42 seconds. The live run
 drifted from the offline line into this collider and repeatedly
 crashed. Stop native retries after two failed continuations and
 audit the route's steering/clearance assumptions before trying again.
-The first block is the latest verified save; the full summon and
-its reward remain unverified. Keep the failing regression visible.
+At that point the first block was the latest verified save. The
+clearance audit and subsequent passing continuation are recorded
+above; keep both original failed traces visible.
 
 **M5–M6 western rock and archers (2026-11-07).** The installed
 world inventory places a Rock at (56446,125813), on the western
