@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-07 Preserve original carried-item drop identities and order
+
+Store carried poses, finish common removal and old-item registration before
+category-specific placement, and create a fresh Rock landing identity while
+retaining the original last carried identity. Share item activity rules
+between immediate registration and ordinary frame updates. Ten grouped
+registration checks and two affected drop checks pass; the narrow viewer
+hooks and snapshot validation compile in the shared viewer build. The quest
+fixture now completes the public command continuation. Full ordered startup
+contacts remain open. Evidence: docs/item-drop-continuation.md.
+M4 about 88%, M5 about 64%, M6 about 28%.
+
 ## 2026-11-07 Separate pending trap names from live contacts
 
 Add per-object pre-registration trap restore, silent eligible saved-name

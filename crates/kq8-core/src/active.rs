@@ -689,6 +689,16 @@ struct ItemRegistration {
     next_trap: usize,
     new_inv_item: bool,
     restore_trap_log: Option<bool>,
+    checked_activity: bool,
+    drop_after: Option<ItemDrop>,
+}
+
+struct ItemDrop {
+    selected: String,
+    kind: String,
+    destination: crate::item::StoredPose,
+    rock: bool,
+    at: String,
 }
 
 /// Everything a script can touch, apart from the variables.
@@ -713,6 +723,10 @@ pub struct WorldState {
     item_registrations: BTreeMap<u64, ItemRegistration>,
     item_registration_requests: Vec<u64>,
     next_item_registration: u64,
+    item_reference: [f32; 3],
+    item_visible_distance: f32,
+    item_always_near: BTreeSet<String>,
+    item_collider_states: BTreeMap<String, bool>,
     pub clickables: Vec<Clickable>,
     /// The buildings, in the caller's order (3g-2).
     pub buildings: Vec<ActiveBuilding>,
@@ -1611,13 +1625,42 @@ impl WorldState {
         let token = self.next_item_registration;
         self.next_item_registration += 1;
         self.item_registrations.insert(token, ItemRegistration { name: name.into(), next_trap: 0,
-            new_inv_item, restore_trap_log: None });
+            new_inv_item, restore_trap_log: None, checked_activity: false, drop_after: None });
         self.item_registration_requests.push(token);
+    }
+
+    /// The same item test feeds immediate registration and the viewer's frame
+    /// test. Item bounds are a fixed unturned sphere (lighting rules 35, 43).
+    pub fn item_activity(&self, name: &str) -> Option<(kq8_data::objects::Activity, f32)> {
+        use kq8_data::objects::Activity;
+        let item = self.items.get(name)?;
+        let pose = item.stored_pose();
+        let (centre, radius) = self.items.click_box(item)
+            .map(|(min, max)| kq8_data::objects::shape_ball(min, max))
+            .unwrap_or(([0.; 3], 100.));
+        let d = (0..3).map(|i| (pose.position[i] + centre[i] - self.item_reference[i]).powi(2)).sum::<f32>().sqrt() - radius;
+        let activity = if !item.in_world() || item.hidden {
+            Activity::Off
+        } else if self.item_always_near.contains(&item.name.to_ascii_lowercase()) {
+            Activity::Near
+        } else {
+            Activity::of(d, self.item_visible_distance, 0.83)
+        };
+        Some((activity, d))
     }
 
     fn resume_item_registration(&mut self, token: u64) -> Option<(String, Vec<String>)> {
         let mut work = self.item_registrations.remove(&token)?;
         if let Some(was) = work.restore_trap_log.take() { self.in_trap = was; }
+        loop {
+        if !work.checked_activity {
+            let key = work.name.to_ascii_lowercase();
+            let on = self.item_activity(&work.name).is_some_and(|(a, _)| a == kq8_data::objects::Activity::Near);
+            let was = self.item_collider_states.insert(key.clone(), on).unwrap_or(false);
+            if on { self.switched_off.remove(&key); } else { self.switched_off.insert(key); }
+            if !on || was { work.next_trap = self.traps.len(); }
+            work.checked_activity = true;
+        }
         while work.next_trap < self.traps.len() {
             let i = work.next_trap;
             work.next_trap += 1;
@@ -1641,8 +1684,33 @@ impl WorldState {
             self.item_registrations.insert(token, work);
             return Some((script, all));
         }
-        if work.new_inv_item { self.vars_out.push(("NewInvItem".into(), work.name)); }
-        None
+        if work.new_inv_item { self.vars_out.push(("NewInvItem".into(), work.name.clone())); }
+        let Some(drop) = work.drop_after.take() else { return None };
+        // Old last-item registration has returned. Its callbacks observed the
+        // preceding NewInvItem; only now does common removal publish this name.
+        self.vars_out.push(("NewInvItem".into(), drop.selected.clone()));
+        if drop.rock {
+            let fresh = self.items.make(&drop.kind, 1, drop.destination.world()).expect("validated item type").name.clone();
+            self.register_event_receiver(&fresh);
+            self.known.insert(fresh.to_ascii_lowercase());
+            self.item_note(format!("{}: dropItem: fresh landing {}; old identity {} retained", drop.at, self.items.describe(&fresh), drop.selected));
+            work.name = fresh;
+            work.next_trap = 0;
+            work.new_inv_item = true;
+            work.checked_activity = false;
+        } else {
+            if let Some(i) = self.items.index(&drop.selected) {
+                if matches!(self.items.objects[i].place, Place::Carried(_)) {
+                    self.items.objects[i].carried_pose = drop.destination;
+                } else if self.items.objects[i].in_world() {
+                    self.items.objects[i].place = drop.destination.world();
+                    self.placed_props_in_trap.push(drop.selected.to_ascii_lowercase());
+                }
+            }
+            self.item_note(format!("{}: dropItem: same selected identity {} placed without a new contact probe", drop.at, drop.selected));
+            return None;
+        }
+        }
     }
 
     pub fn door_index(&self, name: &str) -> Option<usize> {
@@ -1928,17 +1996,13 @@ impl WorldState {
             return "1".into();
         };
         let name = item.name.clone();
+        let quantity = item.quantity;
+        let stored = item.stored_pose();
+        let kind = item.kind.clone();
+        let rock = self.items.kind(&kind).is_some_and(|t| t.category == "Rock");
         let idx = self.items.index(&name).expect("found carried item");
-        let place = Place::World { position: [x, y, z], angles: [rx, ry, rz] };
-        self.vars_out.push(("NewInvItem".into(), name.clone()));
-        let dropped = if item.quantity > 1 && self.items.kind(kind).is_some_and(|t| crate::connor_inventory::stacks(&t.category)) {
-            // A thrown rock leaves one rock at its impact point, while the
-            // remaining stack keeps its inventory identity.
-            let one = self.items.make(kind, 1, place).expect("carried type exists").name.clone();
-            self.known.insert(one.to_ascii_lowercase());
+        if quantity > 1 {
             self.items.objects[idx].quantity -= 1;
-            self.queue_item_registration(&one, true);
-            one
         } else {
             if who.eq_ignore_ascii_case("Connor") {
                 let removed = crate::connor_inventory::unapply(self, &name, "dropItem");
@@ -1954,12 +2018,20 @@ impl WorldState {
                     self.weapon_swapped = true;
                 }
             }
-            self.items.objects[idx].place = place;
-            name
-        };
-        self.item_note(format!("{at}: dropItem {who}: {}", self.items.describe(&dropped)));
-        // Fresh-item completion sets NewInvItem after its registration scripts.
-        // Existing-item placement keeps the selected inventory identity.
+            self.items.objects[idx].place = stored.world();
+            self.item_collider_states.insert(name.to_ascii_lowercase(), false);
+        }
+        // One command-owned continuation completes removal/old registration
+        // before the category-specific destination action, including nesting.
+        let token = self.next_item_registration;
+        self.next_item_registration += 1;
+        self.item_registrations.insert(token, ItemRegistration {
+            name: name.clone(), next_trap: if quantity > 1 { usize::MAX } else { 0 },
+            new_inv_item: false, restore_trap_log: None, checked_activity: quantity > 1,
+            drop_after: Some(ItemDrop { selected: name, kind,
+                destination: crate::item::StoredPose { position: [x, y, z], angles: [rx, ry, rz] }, rock, at: at.into() }),
+        });
+        self.item_registration_requests.push(token);
         "0".into()
     }
 
@@ -3239,7 +3311,8 @@ impl WorldState {
         }
         if let Some(item) = self.items.get(who) {
             return match &item.place {
-                Place::Carried(owner) if owner.eq_ignore_ascii_case("Connor") => Some(Placement::at([0.; 3])),
+                Place::Carried(_) => Some(Placement { position: item.carried_pose.position,
+                    rotation: kq8_data::objects::rotation(item.carried_pose.angles) }),
                 _ => item.placement(),
             };
         }
@@ -3848,6 +3921,9 @@ impl WorldState {
     pub(crate) fn carry_item(&mut self, name: &str) {
         let Some(i) = self.items.index(name) else { return };
         self.items.objects[i].place = Place::Carried("Connor".into());
+        self.items.objects[i].carried_pose = crate::item::StoredPose::default();
+        self.item_collider_states.insert(name.to_ascii_lowercase(), false);
+        self.switched_off.insert(name.to_ascii_lowercase());
         if self.traps.iter().any(|t| t.inside.iter().any(|n| n.eq_ignore_ascii_case(name))) {
             self.placed_props_in_trap.push(name.to_ascii_lowercase());
         }
@@ -4873,6 +4949,10 @@ impl Active {
                 item_registrations: BTreeMap::new(),
                 item_registration_requests: Vec::new(),
                 next_item_registration: 0,
+                item_reference: [0.; 3],
+                item_visible_distance: 30_000.,
+                item_always_near: BTreeSet::new(),
+                item_collider_states: BTreeMap::new(),
                 clickables,
                 buildings: Vec::new(),
                 interior_lighting: BTreeMap::new(),
@@ -5068,6 +5148,47 @@ impl Active {
     pub fn switch_collider(&mut self, name: &str, on: bool) -> bool {
         let key = name.to_ascii_lowercase();
         if on { self.world.switched_off.remove(&key) } else { self.world.switched_off.insert(key) }
+    }
+
+    /// Seed the bulk loader's existing items without replaying their contacts.
+    /// Ordered initial object registration remains the shared loading contract;
+    /// items subsequently created by scripts register inside their command.
+    pub fn initialize_item_activity(&mut self, reference: [f32; 3], visible: f32) {
+        self.world.item_reference = reference;
+        self.world.item_visible_distance = visible;
+        let states: Vec<_> = self.world.items.objects.iter().map(|item| {
+            let on = self.world.item_activity(&item.name).is_some_and(|(a, _)| a == kq8_data::objects::Activity::Near);
+            (item.name.to_ascii_lowercase(), on)
+        }).collect();
+        for (name, on) in states {
+            self.world.item_collider_states.insert(name.clone(), on);
+            if on { self.world.switched_off.remove(&name); } else { self.world.switched_off.insert(name); }
+        }
+    }
+
+    /// Publish the effective frame's distance inputs, then register stationary
+    /// items whose collider changes from off to on. Script-requested reference
+    /// and forced-near changes arrive here only when the viewer applies them.
+    pub fn sync_item_activity(&mut self, reference: [f32; 3], visible: f32, always_near: impl IntoIterator<Item = String>) {
+        self.world.item_reference = reference;
+        self.world.item_visible_distance = visible;
+        self.world.item_always_near = always_near.into_iter().map(|s| s.to_ascii_lowercase()).collect();
+        let states: Vec<_> = self.world.items.objects.iter().map(|item| {
+            let on = self.world.item_activity(&item.name).is_some_and(|(a, _)| a == kq8_data::objects::Activity::Near);
+            (item.name.clone(), on)
+        }).collect();
+        for (name, on) in states {
+            let key = name.to_ascii_lowercase();
+            let was = self.world.item_collider_states.get(&key).copied().unwrap_or(false);
+            if on && !was {
+                self.world.queue_item_registration(&name, false);
+            } else {
+                self.world.item_collider_states.insert(key.clone(), on);
+                if on { self.world.switched_off.remove(&key); } else { self.world.switched_off.insert(key); }
+            }
+        }
+        self.scripts.finish_host_effects(&mut self.world, "item distance activation", 0);
+        self.finish_item_events();
     }
 
     fn building_index(&self, name: &str) -> Option<usize> {
@@ -7831,14 +7952,14 @@ endif
     }
 
     #[test]
-    fn scripted_drop_places_one_item_and_reports_its_name() {
+    fn scripted_non_rock_drop_preserves_the_selected_identity() {
         // The Gnome armorer looks up an ID, drops the item at a six-number
         // script variable, then assigns a pickup script to NewInvItem.
         let a = with_items("give Crystal 2\nKQMonster::checkInventory Connor 3020 carried\nset loc 10 20 30 0 0 1.5\nKQMonster::dropItem Connor Crystal $loc\nset first $NewInvItem\nKQObject::setScript $NewInvItem coin.cs\nKQMonster::dropItem Connor Crystal $loc\nset second $NewInvItem\nKQMonster::dropItem Connor Crystal $loc\nset failed $Console::Return\n");
         assert_eq!(a.scripts.vars.get("carried"), Some("NoName0"));
         let first = a.world.items.get(a.scripts.vars.get("first").unwrap()).unwrap();
         let second = a.world.items.get(a.scripts.vars.get("second").unwrap()).unwrap();
-        assert_ne!(first.name, second.name);
+        assert_eq!(first.name, second.name);
         assert_eq!((first.quantity, second.quantity), (1, 1));
         assert_eq!(first.script.as_deref(), Some("coin.cs"));
         assert_eq!(second.name, "NoName0");
@@ -7846,7 +7967,7 @@ endif
         assert_eq!(second.place, first.place);
         assert_eq!(a.world.items.count("Connor", "INVITEM_Crystal"), 0);
         assert_eq!(a.scripts.vars.get("failed"), Some("1"));
-        assert_eq!(a.world.items.objects.len(), 2);
+        assert_eq!(a.world.items.objects.len(), 1);
     }
 
     #[test]
@@ -7862,7 +7983,7 @@ endif
         assert_eq!(a.world.connor_stats.unwrap().stats.0[3], 14);
         assert_eq!(a.test_command("KQMonster::dropItem Connor ChainMailSuit 1 2 no 0 0 0", "t").as_deref(), Some("1"));
         assert_eq!(a.world.connor_stats.unwrap().stats.0[3], 14);
-        assert_eq!(a.test_command("KQMonster::dropItem connor ChainMailSuit 1 2 3 0 0 0", "t").as_deref(), Some("0"));
+        assert_eq!(a.console_command("KQMonster::dropItem connor ChainMailSuit 1 2 3 0 0 0", "t").as_deref(), Some("0"));
         assert_eq!(a.world.connor_stats.unwrap().stats.0[3], 2);
         let armor = a.world.items.find("world", "ChainMailSuit").unwrap();
         assert_eq!((armor.name.as_str(), armor.third), ("NoName0", -1));

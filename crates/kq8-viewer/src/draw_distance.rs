@@ -327,7 +327,7 @@ pub fn update_activity(
     mut log_state: ResMut<ActivityLog>,
     rules: Res<ActiveRules>,
     mut switches: ResMut<ColliderSwitches>,
-    sim: Option<Res<crate::door_view::DoorSim>>,
+    mut sim: Option<ResMut<crate::door_view::DoorSim>>,
     mut lights_group: ResMut<crate::scene_lights::LightsGroup>,
     shared: Res<Shared>,
     (mut characters, mut solid_characters, change, mut seen): (ResMut<CharactersInRange>, ResMut<CharactersSolid>, Res<crate::world_build::WorldChange>, Local<u64>),
@@ -343,6 +343,9 @@ pub fn update_activity(
     let from_connor = if rules.camera { None } else { connor.iter().next() };
     let Some(reference) = from_connor.or(camera.iter().next()).map(|t| t.translation) else { return };
     let limit = light.haze.visible;
+    if let Some(sim) = sim.as_mut() {
+        sim.active.sync_item_activity(game(reference), limit, rules.always_near.iter().cloned());
+    }
     point.at = light.haze_on.then(|| game(reference));
     point.limit = limit;
     let mut seen = HashSet::new();
@@ -356,7 +359,7 @@ pub fn update_activity(
     let mut farthest_on: Option<(f32, f32, String)> = None;
     for (entity, test, transform, has_layer, visibility, with_h) in &mut tests {
         let centre = transform.transform_point(test.centre);
-        let d = (reference - centre).length() * UNITS_PER_METRE - test.radius;
+        let mut d = (reference - centre).length() * UNITS_PER_METRE - test.radius;
         // Rule 36: hidden = off; makeActive = near; else by distance.
         let hidden = sim.as_ref().map_or(test.hidden, |s| s.active.world.hidden_now(&test.name, test.hidden));
         // Hidden by its file and shown by a script (objects.md "Hidden
@@ -372,7 +375,13 @@ pub fn update_activity(
                 changes.push(format!("draw distance: [{}] shown by a script (setHidden 0): drawn from now on (objects.md \"Hidden objects\" rule 3)", test.name));
             }
         }
-        let activity = test.activity(d, limit, hidden, &rules);
+        let mut activity = test.activity(d, limit, hidden, &rules);
+        // Items use their live core placement and the original unturned BOUNDS
+        // sphere for both collider activation and this frame's drawing test.
+        if let Some((item_activity, item_distance)) = sim.as_ref().and_then(|s| s.active.world.item_activity(&test.name)) {
+            activity = item_activity;
+            d = item_distance;
+        }
         if test.character && activity != Activity::Off {
             characters.0.insert(test.name.to_ascii_lowercase());
         }

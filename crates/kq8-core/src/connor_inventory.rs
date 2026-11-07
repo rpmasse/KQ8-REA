@@ -982,7 +982,7 @@ mod tests {
                 assert_eq!((restored.stats, &restored.items, &restored.hand, &restored.potions),
                     (before.stats, &before.items, &before.hand, &before.potions));
                 assert_eq!(loaded.world.status_icons, icons);
-                assert_eq!(loaded.test_command("KQMonster::dropItem Connor QuestNew 7 8 9 0 0 0", "remove applied quest item"), Some("0".into()));
+                assert_eq!(loaded.console_command("KQMonster::dropItem Connor QuestNew 7 8 9 0 0 0", "remove applied quest item"), Some("0".into()));
                 assert_eq!(stats(&loaded), baseline);
                 let dropped = loaded.world.items.get(&new).unwrap();
                 assert_eq!(dropped.third, -1);
