@@ -3,6 +3,19 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Central passage combat and Sylph well.** Original MONSTERS.KQ
+lines 14-16 define skeleton1/2/3 and their shared team. The earned
+SecondRockReload supplies the unchanged health, equipment and enemy
+state. Existing fighting, ranged-weapons, character-movement and
+animation notes govern the input-route checks; both failed combat
+attempts are retained rather than changing those rules. The well
+interaction comes directly from sylphwel.cs and sylphwel.kq:
+ordinary ConnorAction sends five health, while canDrink gates the
+sound/cue only. Existing stats rules clamp health to level times ten.
+Original terrain and placements guide the return route. No assets,
+extracted scripts or saved game data are committed.
+[Evidence and commands](../dead-city-progression.md#central-passage-combat-and-the-sylph-well)
+
 **Southern passage, Weeper and second Rock.** Original Dead City
 terrain and placed building .dig collision surfaces guide the ordinary
 input route. The navigation lead in RESEARCH is used only to identify

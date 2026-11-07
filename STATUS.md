@@ -1,5 +1,54 @@
 # STATUS
 
+## 2026-11-07 Earned return to the Sylph well and healing verified
+
+The independent ordinary-input return from SecondRockReload passed
+with a fresh-process reload in 169.75 seconds. Ten visible clicks on
+well2 ran the original sylphwel.cs health event on updates 1176-1184,
+restoring 61 health to the level-eleven maximum of 110. Both Rocks,
+other inventory, quest flags and moved blocks remain unchanged.
+The defeated Weeper stays gone; no healing event repeats on reload.
+GOG Options.cs is unchanged and AI/damage cheats remain disabled.
+
+Latest checkpoint: SylphWellReload at (66725.86,104720.02,1584),
+level eleven stats [110,80,25,10,6612], in
+earned-sylph-well/1794030725771876400/slots/slot-3.json under
+kq8-artifacts. Evidence: sylph-well-native.log. The offline approach
+uses (67000,105000); its first farther-east target was unreachable
+and was not replayed. This verifies healing, not the central guard
+encounter below. M4–M6 remain incomplete.
+[Command and limits](docs/dead-city-progression.md#central-passage-combat-and-the-sylph-well)
+
+## 2026-11-07 Central passage combat: two attempts failed; route stopped
+
+The ordinary walking approach reached the eastern bend, but the
+Small Crossbow attempt died on update 790 after defeating skeleton2.
+Connor began with 61 health, lost 32 before his first successful
+crossbow hits, and died to skeleton3. The same-team skeleton1 joined
+the encounter; its authored zero-damage hits still interrupted shots.
+Evidence: earned-central-archers/1794030315905121300 and
+central-archers-native.log (56.40 seconds). No continuation save is
+claimed. This was the first real failure of this section.
+
+The Mace attempt also failed in 62.19 seconds. It defeated skeleton1
+on update 796 (the heavy swing dealt 207 actual damage); its original
+200-point reward completed on 811. Connor then died to an archer on
+877 while still approaching skeleton2. Evidence:
+earned-central-guards/1794030484043099000 and central-guards-native.log.
+The route is stopped after these two real failures. The new ignored
+native test currently fails and is retained as a reproducible case;
+SecondRockReload remains the last verified checkpoint before these
+attempts; the later independent well continuation is recorded above.
+
+The numeric audit shows ordinary running after the first kill, with
+archer hits interrupting the approach; it does not establish an engine
+defect. MONSTERS.KQ lines 14-16 and the earned save identify all three
+team members. Connor entered with only 61 of 110 maximum health and
+no carried healing items. Original sylphwel.cs supplies five health
+per ordinary ConnorAction, which prompted the independent healing
+check above. The central encounter has not been retried with healing.
+No combat rule or saved state was changed to alter either outcome.
+
 ## 2026-11-07 Southern approach, passage Weeper and second Rock verified
 
 Three earned continuations and their fresh-process reloads pass:
