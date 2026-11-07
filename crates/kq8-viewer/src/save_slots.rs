@@ -1119,6 +1119,7 @@ mod tests {
             quantity: 2,
             third: -1,
             place: Place::Carried("Connor".into()),
+            pending_delete: false,
             hidden: false,
             script: None,
             do_not_point_at: true,

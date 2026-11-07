@@ -1,5 +1,27 @@
 # MODLOG
 
+## 2026-11-07 Item pickup and destruction release occupied traps
+
+Pending item deletion now finishes at the outer event boundary. Each
+occupied trap receives Off or Cue 302 before the item's name and placement
+become unavailable. Merged pickups, replaced placeholders and exhausted
+inventory entries share that lifecycle. Non-merged pickups retain identity
+at the origin and run stay checks; an origin trap can retain membership.
+Scriptless clicks and chest pickups finish pending work. Nested departure
+callbacks cannot destroy the same item twice, and spirit traps retain
+their own departure handler.
+
+Seven focused cases pass once each. The remaining core run passes 706
+cases with 17 ignored; one raw-interpreter fixture's old immediate-delete
+expectation is corrected and that case alone passes on rerun. The first
+focused build's three test-type errors are retained. The earned Rock
+pickup/reload route passes once in 28.75 seconds, preserving inventory,
+stats, flags and original Options.cs while releasing both portal masks.
+Final review preserves spirit callback routing and scopes the known
+carried-origin transform to Connor; the successful native run is not
+repeated. Release viewer test-target compilation passes in 19.71 seconds.
+No manual testing. [Evidence](docs/item-removal-traps.md)
+
 ## 2026-11-07 Fresh item registration fixes earned Rock pressure
 
 Command-owned continuations now run fresh-item overlap callbacks before

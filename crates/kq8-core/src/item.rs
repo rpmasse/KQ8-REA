@@ -103,6 +103,10 @@ pub struct ItemObject {
     /// Rule 3: default −1, meaning not traced (M4).
     pub third: i64,
     pub place: Place,
+    /// Requested for destruction at the event boundary. Keep the old place
+    /// available to trap departure callbacks until destruction completes.
+    #[serde(skip)]
+    pub pending_delete: bool,
     /// `KQObject::setHidden`: not drawn, can't be clicked (`objects.md`
     /// "Hidden objects").
     pub hidden: bool,
@@ -179,11 +183,11 @@ impl ItemObject {
     }
 
     pub fn in_world(&self) -> bool {
-        matches!(self.place, Place::World { .. })
+        !self.pending_delete && matches!(self.place, Place::World { .. })
     }
 
     pub fn carried_by(&self, who: &str) -> bool {
-        matches!(&self.place, Place::Carried(w) if w.eq_ignore_ascii_case(who))
+        !self.pending_delete && matches!(&self.place, Place::Carried(w) if w.eq_ignore_ascii_case(who))
     }
 }
 
@@ -365,7 +369,7 @@ impl Items {
         let name = format!("NoName{}", self.next_no_name);
         self.next_no_name += 1;
         let added = self.next_added(&place);
-        self.objects.push(ItemObject { name, kind, quantity, third: -1, place, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
+        self.objects.push(ItemObject { name, kind, quantity, third: -1, place, pending_delete: false, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
         Ok(self.objects.last_mut().expect("just pushed"))
     }
 
@@ -379,7 +383,7 @@ impl Items {
             return Err(format!("an item named '{name}' exists already"));
         }
         let added = self.next_added(&place);
-        self.objects.push(ItemObject { name: name.to_string(), kind, quantity, third, place, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
+        self.objects.push(ItemObject { name: name.to_string(), kind, quantity, third, place, pending_delete: false, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
         Ok(self.objects.last().expect("just pushed"))
     }
 

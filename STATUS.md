@@ -1,5 +1,30 @@
 # STATUS
 
+## 2026-11-07 Earned Rock pickup releases the plate through reload
+
+The normal visible pickup from WesternPlateRockReload passes once in
+28.75 seconds. NoName98 merges into the existing carried stack; triptrp5
+receives Off before the world identity is destroyed. Both portal masks
+become zero and carried Rocks return to two. A fresh Windows process
+preserves that state without another departure. Other inventory, stats,
+quest flags and original Options.cs are unchanged. New genuine checkpoint:
+earned-western-plate-rock-pickup/1794042294163512500/slots/slot-3.json,
+WesternPlateRockPickupReload. The earlier hold route was not repeated.
+
+Deletion requests retain names/transforms until occupied-trap callbacks
+finish. Non-merged pickup retains identity at the origin and uses stay
+checks; origin overlap can remain. Seven focused lifecycle cases pass
+once each, including the spirit-trap handler added during final review.
+The remaining core run has 706 passes and 17 ignored, plus one old raw
+interpreter fixture corrected to complete the event and passing separately.
+The first test build's type errors and that fixture failure are retained.
+Final release viewer test-target compilation passes in 19.71 seconds.
+
+Q203 remains partial: last-unit/non-Rock drops, saved-contact reattachment,
+other registration paths and overrides remain. Q202/Q205 are open. No
+manual testing. Estimates remain M4 about 80%, M5 60%, M6 about 25%, not
+measured checklist ratios. [Commands and limits](docs/item-removal-traps.md)
+
 ## 2026-11-07 Earned Rock holds the western plate through save and reload
 
 The previously failed earned-Rock route passes once in 46.00 seconds.

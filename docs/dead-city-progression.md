@@ -819,9 +819,28 @@ and `earned-western-plate-rock/1794039587261976800/slots/slot-3.json`.
 
 The command above is now a passing reproduction command, not a request
 to repeat a successful check. Portal traversal and later quest steps
-are still incomplete; pickup/deletion release, singleton/non-Rock item
-rules and Q202 trajectory fidelity remain separate work.
+are still incomplete; singleton/non-Rock item rules and Q202 trajectory
+fidelity remain separate work. Pickup/deletion release now passes below.
 [Implementation and focused checks](item-registration-traps.md)
+
+## Earned Rock pickup releases the plate and reloads
+
+The new route starts from the genuine WesternPlateRockReload checkpoint.
+Connor remains off triptrp5 and picks up its actual world item, NoName98,
+through the normal visible aim/click. The existing carried Rock stack
+increases from one to two. Destruction invokes triptrp5 Off before the
+world identity disappears, and both portrap5/portrp5b masks become zero.
+WesternPlateRockPickup and a fresh-process WesternPlateRockPickupReload
+both retain that state, with unchanged other inventory, stats and quest
+flags. Reload does not deliver another departure. Original Options.cs
+preservation also passes.
+
+The route passes once in **28.75 seconds**. Evidence:
+`kq8-artifacts/western-plate-rock-pickup.log` and
+`earned-western-plate-rock-pickup/1794042294163512500/slots/slot-3.json`.
+The prior hold route was not repeated. This is a separate earned branch;
+WesternPlateRockReload remains available with the Rock holding the portal
+open for the next traversal. [Exact command and limits](item-removal-traps.md)
 
 ## Repeat the automated route
 

@@ -13,6 +13,36 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 item pickup and deletion release (Q203, 2026-11-07).** Separate an
+item's deletion request from its destruction at the outer event boundary.
+Pending items cannot be picked up, counted or registered again, but keep
+their identity and transform until occupied traps have received Off or
+Cue 302. Process those callbacks sequentially, including any additional
+deletions they request, before retiring the item. World restoration and
+shutdown must not run this live-event cleanup.
+
+For pickup into an existing stack, merge the quantity and request that
+world identity's deletion. For a new inventory entry, retain its identity
+at the origin with identity rotation, and queue ordinary stay checks.
+An origin trap may retain this carried identity; do not unconditionally
+release it. Complete both scripted and scriptless clicks, chest pickups,
+and script commands through the same guarded event cleanup. Preserve
+callback access to the departing name/location and prevent recursive
+cleanup from delivering duplicate departures.
+
+Check both pickup branches, callback/event ordering, multiple occupants,
+callback-triggered deletion, origin overlap and chest/scriptless clicks.
+Then use the earned WesternPlateRockReload save for one normal pickup
+and fresh-process reload check. Do not repeat the successful Rock-hold
+route. Last-unit/non-Rock drop semantics, saved-name reattachment and
+Q202 trajectory remain separate source-driven tasks.
+
+Seven focused lifecycle cases now pass once each. The earned pickup and
+fresh-process reload pass in 28.75 seconds, with two carried Rocks, no
+plate occupant and portal masks zero. The remaining core checks pass
+706 cases plus one corrected raw-interpreter fixture; 17 remain ignored.
+No successful case was repeated. [Evidence and limits](item-removal-traps.md)
+
 **M6 fresh world-item registration (Q203, 2026-11-07).** The separate
 study corrects the blanket no-entry-on-creation assumption: a fresh active
 world item's stationary shape contacts accepting triggers synchronously.
