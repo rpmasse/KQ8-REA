@@ -90,7 +90,8 @@ relocating an item is not established by these focused checks.
 
 The Rock aim and trajectory still use the prior implementation; original
 trajectory fidelity remains Q202. Passing this puzzle does not prove the
-full original projectile simulation or complete Dead City. Portal traversal,
+full original projectile simulation or complete Dead City. The western
+portal crossing now passes separately in [western-portal.md](western-portal.md);
 the skull/feather/scales/Sylph quest and later campaign branches remain open.
 No manual or visual test was performed. Implementation B used A's prose
 notes and installed data, without reading the original executable.

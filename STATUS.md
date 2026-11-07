@@ -1,5 +1,46 @@
 # STATUS
 
+## 2026-11-07 Earned western portal crossing and reload pass
+
+The revised three-process route passes once in 264.89 seconds. Connor
+walks from the Rock-held plate to the well, saves WesternPortalApproach,
+then enters portrap5 through ordinary movement. The original portal
+sequence returns control at (29021,192412,864). Its one-time 4,000 XP
+award produces level 12 and stats [120,85,27,11,1674]. A fresh process
+restores that destination, inventory and flags without another award.
+NoName98 still occupies triptrp5; all three involved portal masks are 4.
+Original Options.cs preservation passes. Genuine continuation:
+earned-western-portal/1794043427585987500/slots/slot-4.json,
+WesternPortalCrossedReload. Slot-2 is the approach; slot-3 is the crossing.
+
+The first route failure below is retained. Full segment planning fixed
+the route without changing runtime collision, scripts or engine rules.
+No successful native test was repeated. Only campaign test/documentation
+code changed; no unrelated core suite was rerun. The separate reload-only
+entry point compiled but was not run, because the full route already
+includes a passing fresh-process reload. [Commands and limits](docs/western-portal.md)
+
+Next is the good-skull shelf, then the statue/feather/scales and remaining
+Sylph/campaign branches. M4 about 80%, M5 60%, M6 about 25% remain
+engineering estimates, not checklist ratios. No manual testing.
+
+## 2026-11-07 Western portal approach: first route stopped near the well
+
+The first earned route reached the well at update 2879 but its next
+waypoint collided head-on at (66735,105404,1584), update 2899. The replay
+reported no progress at update 3078 and exited; no portal callback ran
+and no new save was written. Evidence: western-portal-first-crossing.log
+and earned-western-portal/1794043032595147200. This is a real failed run,
+not a completed portal crossing. No engine behavior was changed.
+
+The first plan sampled only approach endpoints. Full original static
+terrain/building segment planning now identifies an approach via
+(67250,105750), then (64000,110000) and (62500,110436), avoiding the
+failed collision. The revised test saves at the well before attempting
+the short approach, and accepts that genuine checkpoint for future
+continuation. The revised route and portal/reload now pass as recorded
+above. M4 80%, M5 60%, M6 25% remain engineering estimates. No manual testing.
+
 ## 2026-11-07 Earned Rock pickup releases the plate through reload
 
 The normal visible pickup from WesternPlateRockReload passes once in
