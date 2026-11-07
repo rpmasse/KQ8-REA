@@ -107,6 +107,23 @@ the same experience. This two-process continuation passed in 47.97
 seconds. The next northern junction contains a separate mace
 skeleton and two archers.
 
+## The northern junction
+
+The next encounter contains skeleton29 with a Mace and archers
+skeleton28 and skeleton27. Connor draws the broadsword and uses
+the two Mushrooms collected from the gate guards. The first
+canonical replay circled an overly tight waypoint while an archer
+kept firing and died after defeating the group. The movement log
+showed repeated distances of 323–329 units against a 235-unit
+arrival radius.
+
+With combat arrival areas widened to 400 units, the two-process
+test passed in 66.44 seconds. Each death awards experience once,
+250 for the mace guard and 200 per archer. The fresh reload retains
+all three victories, 12 health and 1,367 experience at level nine.
+Their Mace and three Mushroom drops can support the next western
+stretch. The route continues from the earned corner save.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -133,10 +150,12 @@ invocation from New Game through this hall has not been run.
 | `dead_city::hall_combat_drops_replace_the_axe_and_reload` | `KQ8_DEATH_KEY_SLOT` (`MazeKeyReload`) | `HallEquipment`, `HallEquipmentReload` |
 | `dead_city::equipped_connor_defeats_the_three_maze_guards` | `KQ8_HALL_EQUIPMENT_SLOT` (`HallEquipment`) | `MazeGuardsReload` |
 | `dead_city::gate_drops_and_northwest_passage_reload` | `KQ8_MAZE_GUARDS_SLOT` (`MazeGuardsReload`) | `NorthCornerReload` |
+| `dead_city::northern_mace_guard_and_archers_reload` | `KQ8_NORTH_MAZE_CORNER_SLOT` (`NorthCornerReload`) | `NorthJunctionReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::hall_combat_drops_replace_the_axe_and_reload -- --ignored --exact --test-threads=1
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::equipped_connor_defeats_the_three_maze_guards -- --ignored --exact --test-threads=1
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::gate_drops_and_northwest_passage_reload -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::northern_mace_guard_and_archers_reload -- --ignored --exact --test-threads=1
 ```

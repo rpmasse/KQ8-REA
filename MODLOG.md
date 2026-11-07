@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-07 Clear and restore the northern junction
+
+The earned campaign continues from the northwest passage through a
+mace skeleton and two archers. The native check consumes the two
+carried Mushrooms and verifies all three death awards and their saved
+state. Its first attempt died while navigating an overly tight
+waypoint. The wider combat arrival areas passed in 66.44 seconds.
+[Command and evidence](docs/dead-city-progression.md#the-northern-junction)
+
 ## 2026-11-07 Recover the first hall’s equipment and clear the gate guards
 
 The campaign replay can keep Connor’s weapon drawn between fights and
