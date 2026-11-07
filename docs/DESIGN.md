@@ -13,6 +13,35 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 Sylph pressure blocks (2026-11-07).** Continue from the earned
+WesternRockReload at (56559,126163), with empty hands. The original
+newWorld.cs places block15 on trip15 at (55657,123708,950).
+mtbxbg.kq makes it a physical ball-stack pushable; pushing.md rules
+1–7 define ordinary forward movement and the object's collision
+response. trptrp15.cs changes B15 from down to up when the last
+occupant leaves, then creates flame.port501 and checks sylftest.cs.
+First push this nearby block clear with bound movement keys, leave
+the plate, and verify placement, trigger state, flame, inventory and
+unchanged stats through a fresh-process reload. No flags or object
+locations may be set by the test. If that passes, extend the earned
+route to the other three authored blocks and the Sylph at the well;
+only all four up earns the original 2000-point appearance award.
+
+The first block and fresh reload pass in 52.94 seconds. The first
+three-block continuation cleared block14's plate, but its departure
+line kept pushing that block down the road until higher ground
+stopped it. Correct the input route to leave sideways immediately
+after the plate rises and pass behind the next moved block. Retain
+the failed trace and keep all push/collision rules unchanged.
+
+The revised continuation cleared blocks14 and13, then failed at
+torch.dt4 on the block12 approach after 73.42 seconds. The live run
+drifted from the offline line into this collider and repeatedly
+crashed. Stop native retries after two failed continuations and
+audit the route's steering/clearance assumptions before trying again.
+The first block is the latest verified save; the full summon and
+its reward remain unverified. Keep the failing regression visible.
+
 **M5–M6 western rock and archers (2026-11-07).** The installed
 world inventory places a Rock at (56446,125813), on the western
 approach to the portal area. The earned Ferryman save has no Rock.

@@ -342,6 +342,42 @@ The test should pass after two unattended Windows launches, including
 the disk reload. Local evidence is
 `kq8-artifacts/earned-western-rock/1794026411163329300`.
 
+## The Sylph pressure blocks
+
+The first plate is verified from WesternRockReload. Ordinary forward
+movement with empty hands pushes block15 off trptrp15; its original
+Off callback raises trip15 and lights the nearby tower. The two-process
+check passed in 52.94 seconds. FirstSylphBlockReload retains the moved
+block, empty trigger, B15 up and flame.port501, with unchanged stats,
+inventory and GOG options. The other plates remain down, so no
+Sylph appearance or reward is expected yet.
+
+Set `KQ8_WESTERN_ROCK_SLOT` to a genuine WesternRockReload and use
+the configured GOG installation:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::first_sylph_block_lights_its_tower_and_reloads -- --ignored --exact --test-threads=1
+```
+
+This should pass after the push and fresh-process reload. Evidence:
+`earned-sylph-first-block/1794027010744231100` under kq8-artifacts.
+The first draft's log-text assertion error is retained in STATUS.
+
+**The continuation is known failing.** The first three-block route
+kept pushing block14 down the road until higher ground stopped it.
+The revised route cleared blocks14 and13 but collided with torch.dt4
+on the block12 approach. Both stopped without a continuation save.
+No complete summon, 2000-point reward or full-puzzle reload is
+verified. Native retries stopped after two failures pending a review
+of the route's actual steering and collider clearance.
+
+The retained regression uses a genuine `KQ8_FIRST_SYLPH_BLOCK_SLOT`
+(FirstSylphBlockReload); its current command is expected to fail:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::all_four_sylph_plates_summon_her_once_and_reload -- --ignored --exact --test-threads=1
+```
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -377,6 +413,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::earned_mace_clears_the_boathouse_guard_and_reloads` | Required genuine `KQ8_RIVER_WEEPER_SLOT` (`RiverWeeperReload`) | `BoathouseGuardReload` |
 | `dead_city::four_ferryman_topics_earn_knowledge_and_reload` | Required genuine `KQ8_BOATHOUSE_GUARD_SLOT` (`BoathouseGuardReload`) | `FerrymanKnowledgeReload` |
 | `dead_city::western_archers_and_rock_survive_reload` | Required genuine `KQ8_FERRYMAN_KNOWLEDGE_SLOT` (`FerrymanKnowledgeReload`) | `WesternRockReload` |
+| `dead_city::first_sylph_block_lights_its_tower_and_reloads` | Required genuine `KQ8_WESTERN_ROCK_SLOT` (`WesternRockReload`) | `FirstSylphBlockReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

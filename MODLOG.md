@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-07 Verify the first Sylph pressure block
+
+The earned block15 push and fresh reload pass in 52.94 seconds.
+Its original trigger raises the plate and creates the tower flame;
+the block placement, empty trigger, flag and flame persist while
+stats and inventory stay unchanged. The initial log assertion error
+is recorded in STATUS.
+
+The full continuation is retained as a known failing regression.
+Its first run pushed block14 into higher ground; the second cleared
+blocks14 and13 but hit torch.dt4 on the final approach. Retries
+stopped after two failures. No complete Sylph summon or reward is
+claimed, and no game-engine rules changed.
+[Source, commands and limits](docs/dead-city-progression.md#the-sylph-pressure-blocks)
+
 ## 2026-11-07 Earn the western Rock through the archer road
 
 Added an unattended route from the earned Ferryman checkpoint,
