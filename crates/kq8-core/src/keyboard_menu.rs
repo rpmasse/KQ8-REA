@@ -156,8 +156,9 @@ pub struct Screen {
 
 impl Screen {
     pub fn open(path: &Path, art: &Art) -> Result<Self, String> {
-        let layout = Layout::read(path, "movekey.gui", "IDCTL_MOVEKEYS_")?;
-        let mut background = Canvas::new(640, 480);
+        let mut layout = Layout::read(path, "movekey.gui", "IDCTL_MOVEKEYS_")?;
+        layout.resize(art.size(), false);
+        let mut background = Canvas::new(layout.size[0], layout.size[1]);
         for name in ["BACKGROUND", "TITLE", "TO_MAIN", "CURS1", "CURS2"]
             .into_iter()
             .map(str::to_owned)

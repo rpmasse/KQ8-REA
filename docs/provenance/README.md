@@ -12,6 +12,13 @@ not establish Rust implementation or native original-game equivalence.
 Implementation B uses these prose notes; raw executable evidence stays
 outside tracked source and documentation.
 
+**Original interface implementation.** The shared menu/HUD geometry,
+font, picture and Save/Load behavior follows graphics-modes.md rules
+11–18 and original GUI/PFT/PBM data read at runtime. Main warning
+buttons retain main-menu.md rule 14's runtime geometry. Grouped numeric
+and raster matrices cover both resolutions; no original-runtime visual
+comparison is claimed. [Evidence](../original-interface-resolutions.md).
+
 **Ordinary terrain-liquid attacks.** Study A's terrain-hazards rules
 1–13 supply source priority, configured amount, world phase, depth,
 immunity, ordinary hit dispatch and world-hit sounds. Original WORLD.CS

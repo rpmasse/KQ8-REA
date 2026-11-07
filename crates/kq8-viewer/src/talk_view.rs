@@ -292,7 +292,7 @@ pub fn load_caption(game: &GameDir, region: &crate::load::World, log: &mut Log) 
     let in_world = |name: &str| gui_files.read(game, name);
     let Some((font_path, font_bytes)) = in_world(font_name) else { return fail(log, format!("font {font_name} not found")) };
     let font = match kq8_data::font::Font::parse(&font_bytes) {
-        Ok(f) => f,
+        Ok(f) => kq8_core::gui_draw::gui_font(f),
         Err(e) => return fail(log, format!("{font_path}: {e}")),
     };
     let strip_name = picture.and_then(|p| tags.string(p.bitmap));
@@ -313,8 +313,8 @@ pub fn load_caption(game: &GameDir, region: &crate::load::World, log: &mut Log) 
     };
     let palette = crate::option_settings::screen_palette(game,source_palette);
     let [l, t, r, b] = c.rect;
-    // 4c-1: the box's width scaled with the screen (rule 47, STAND-IN
-    // Q108), one row per font height (rule 48).
+    // Q207: the half-screen caption is 320/400 pixels wide, with fixed
+    // glyph sizes and one row per font height (interface.md rule 48).
     let wide = set800mode(game);
     let screen = kq8_core::caption::screen(wide);
     let scale = kq8_core::caption::scale(screen);

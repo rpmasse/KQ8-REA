@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-07 Shared original-resolution interface completed
+
+The six menu families and HUD now resolve authored parent-relative
+rectangles at 640x480 and 800x600 with the original integer conversion,
+fixed glyph sizes and native/stretched picture rules. Save/Load keeps
+its centered controls and original thumbnail size. Review also fixes the
+separate Main-menu warning image and button drawing path.
+
+The geometry/raster checks pass 7/7; the six-menu resize matrix and
+modal matrix each pass 1/1. Viewer release compilation passes. Successful
+checks are not repeated; no native launch or manual inspection is claimed.
+Live window/device switching, pointer projection and credits remain open.
+Estimates: M4 about 83%, M5 60%, M6 about 25%.
+[Commands, results and limits](docs/original-interface-resolutions.md)
+
 ## 2026-11-07 Next shared interface batch has original reference rules
 
 Graphics and credits studies now replace earlier assumptions. Interface

@@ -234,6 +234,8 @@ impl Choice {
 }
 
 pub struct Art {
+    size: [u32; 2],
+    rects: BTreeMap<u32, [i32; 4]>,
     pub(crate) palette: [kq8_data::palette::Rgb; 256],
     source_palette: [kq8_data::palette::Rgb; 256],
     layout: Control,
@@ -262,7 +264,7 @@ impl Art {
                 .ok_or_else(|| format!("menu control {id} missing"))?
                 .rect;
         }
-        for id in [1114, 1115, 1118, 146] {
+        for id in [1114, 1115, 1118, 146, 1004, 1006, 1007] {
             if layout.find(id).is_none() {
                 return Err(format!("menu control {id} missing"));
             }
@@ -270,6 +272,7 @@ impl Art {
         let mut pictures = BTreeMap::new();
         for name in [
             "main18.pbm",
+            "main6x8.pbm",
             "45-line.pbm",
             "mskcur.pba",
             "gm_win2.pbm",
@@ -277,6 +280,12 @@ impl Art {
             "g_yhibtn.pba",
             "cursgui.pba",
         ] {
+            if matches!(name, "main18.pbm" | "main6x8.pbm") {
+                let size = if name == "main18.pbm" { [640, 480] } else { [800, 600] };
+                pictures.insert(name, vec![crate::gui_draw::resolution_picture(&game,
+                    &["main18.pbm", "main4x6.pbm", "main6x8.pbm"], size)?]);
+                continue;
+            }
             let bytes = gui(name)?;
             let frames = if name.ends_with(".pbm") {
                 vec![Bitmap::parse(&bytes)?]
@@ -304,6 +313,8 @@ impl Art {
         }
         let source_palette = kq8_data::palette::as_shown(Palette::parse(&gui("menus.ppl")?)?.colors);
         Ok(Self {
+            size: [640, 480],
+            rects: crate::gui_draw::absolute_rects(&crate::gui_draw::resolve_layout(&layout, [640, 480])),
             rows,
             layout,
             pictures,
@@ -311,10 +322,39 @@ impl Art {
             texts,
             palette: source_palette,
             source_palette,
-            heading: Font::parse(&gui("45.pft")?)?,
-            item: Font::parse(&gui("27.pft")?)?,
-            small: Font::parse(&gui("consoleg.pft")?)?,
+            heading: crate::gui_draw::gui_font(Font::parse(&gui("45.pft")?)?),
+            item: crate::gui_draw::gui_font(Font::parse(&gui("27.pft")?)?),
+            small: crate::gui_draw::gui_font(Font::parse(&gui("consoleg.pft")?)?),
         })
+    }
+
+    pub fn size(&self) -> [u32; 2] { self.size }
+
+    pub fn resize(&mut self, high: bool) {
+        self.size = crate::caption::screen(high);
+        self.rects = crate::gui_draw::absolute_rects(&crate::gui_draw::resolve_layout(&self.layout, self.size));
+        for (i, (id, _)) in ITEMS.iter().enumerate() { self.rows[i] = self.rects[id]; }
+    }
+
+    fn layout_rect(&self, rect: [i32; 4]) -> [i32; 4] {
+        crate::gui_draw::resolve_rect(rect, [640, 480], self.size.map(|n| n as i32))
+    }
+
+    /// The existing main-menu dialog controller uses authored coordinates;
+    /// resolve its button rectangles before dispatch, just as for its rows.
+    pub fn input_key(&self, state: &Choice, key: Key) -> Key {
+        let (Some(dialog), Key::Click(x, y)) = (state.dialog, key) else { return key };
+        for &(left, _) in dialog.buttons() {
+            let [l, t, r, b] = self.layout_rect([left, 250, left + 88, 286]);
+            if (l..r).contains(&x) && (t..b).contains(&y) { return Key::Click(left + 1, 251); }
+        }
+        Key::Click(-1, -1)
+    }
+
+    pub fn key_pointer(&self, state: &Choice) -> Option<[i32; 2]> {
+        let [x, y] = state.key_pointer()?;
+        let r = self.layout_rect([x, y, x, y]);
+        Some([r[0], r[1]])
     }
 
     /// Rebuild the palette stage from retained source colours.
@@ -375,23 +415,29 @@ impl Art {
 
     /// The menu's selection mask loops through its installed frames.
     pub fn render_frame(&self, state: &Choice, mask_frame: usize) -> Canvas {
-        let mut canvas = Canvas::new(640, 480);
-        let draw = |canvas: &mut Canvas, file: &str, rect: [i32; 4], frame: usize| {
+        let [width, height] = self.size;
+        let mut canvas = Canvas::new(width, height);
+        let draw = |canvas: &mut Canvas, file: &str, rect: [i32; 4], frame: usize, control: &Control| {
             let frames = &self.pictures[file];
             if let Some(pic) = Pic::of(&frames[frame.min(frames.len() - 1)]) {
-                canvas.picture(rect, pic, true, 1.0, &self.palette);
+                let stretch = match control.kind {
+                    Kind::Dialog { picture, .. } | Kind::Text { pictures: picture, .. } => picture,
+                    Kind::Bitmap(picture) => Some(picture),
+                    _ => None,
+                }.is_none_or(|picture| picture.modifier & 0x8000 != 0);
+                canvas.picture(rect, pic, stretch, 1.0, &self.palette);
             }
         };
-        draw(&mut canvas, "main18.pbm", [0, 0, 640, 480], 0);
+        draw(&mut canvas, if width == 800 { "main6x8.pbm" } else { "main18.pbm" }, [0, 0, width as i32, height as i32], 0, &self.layout);
         let control = |id| self.layout.find(id).unwrap();
         let align = |c: &Control| match &c.kind {
             Kind::Text { text, .. } => text.justification,
             _ => 12,
         };
-        draw(&mut canvas, "45-line.pbm", control(1118).rect, 0);
+        draw(&mut canvas, "45-line.pbm", self.rects[&1118], 0, control(1118));
         for (i, id) in [1114, 1115].into_iter().enumerate() {
             canvas.text(
-                control(id).rect,
+                self.rects[&id],
                 &self.heading,
                 align(control(id)),
                 &self.titles[i],
@@ -412,7 +458,7 @@ impl Art {
                 );
             } else {
                 // Dither the glyphs over the existing background, as in rule 3.
-                let mut glyphs = Canvas::new(640, 480);
+                let mut glyphs = Canvas::new(width, height);
                 glyphs.text(
                     rect,
                     &self.item,
@@ -421,9 +467,9 @@ impl Art {
                     1.0,
                     &self.palette,
                 );
-                for y in rect[1].clamp(0, 480)..rect[3].clamp(0, 480) {
-                    for x in rect[0].clamp(0, 640)..rect[2].clamp(0, 640) {
-                        let p = ((640 * y + x) * 4) as usize;
+                for y in rect[1].clamp(0, height as i32)..rect[3].clamp(0, height as i32) {
+                    for x in rect[0].clamp(0, width as i32)..rect[2].clamp(0, width as i32) {
+                        let p = ((width as i32 * y + x) * 4) as usize;
                         if (x + y) % 2 == 0 && glyphs.rgba[p + 3] != 0 {
                             canvas.rgba[p..p + 4].copy_from_slice(&glyphs.rgba[p..p + 4]);
                         }
@@ -432,15 +478,16 @@ impl Art {
             }
         }
         let row = self.rows[state.row];
-        let cursor = control(146).rect;
+        let cursor = self.rects[&146];
         draw(
             &mut canvas,
             "mskcur.pba",
             [cursor[0], row[1], cursor[2], row[3]],
             mask_frame % self.pictures["mskcur.pba"].len(),
+            control(146),
         );
         if let Some(dialog) = state.dialog {
-            draw(&mut canvas, "gm_win2.pbm", [140, 180, 500, 300], 0);
+            draw(&mut canvas, "gm_win2.pbm", self.rects[&1004], 0, control(1004));
             let text = self.label(match dialog {
                 Dialog::Quit => 159,
                 Dialog::Difficulty => 120,
@@ -455,7 +502,7 @@ impl Art {
                 .flatten();
             if let Some((at, _)) = split {
                 canvas.text(
-                    [170, 200, 470, 220],
+                    self.layout_rect([170, 200, 470, 220]),
                     &self.small,
                     12,
                     &text[..at],
@@ -463,7 +510,7 @@ impl Art {
                     &self.palette,
                 );
                 canvas.text(
-                    [170, 220, 470, 240],
+                    self.layout_rect([170, 220, 470, 240]),
                     &self.small,
                     12,
                     &text[at + 1..],
@@ -472,7 +519,7 @@ impl Art {
                 );
             } else {
                 canvas.text(
-                    [170, 215, 470, 235],
+                    self.layout_rect([170, 215, 470, 235]),
                     &self.small,
                     12,
                     text,
@@ -490,11 +537,12 @@ impl Art {
                     } else {
                         "g_ybtn.pba"
                     },
-                    [x, 250, x + 88, 286],
+                    self.layout_rect([x, 250, x + 88, 286]),
                     delta as usize,
+                    control(if selected { 1007 } else { 1006 }),
                 );
                 canvas.text(
-                    [x + delta, 250 + delta, x + 88 + delta, 286 + delta],
+                    self.layout_rect([x + delta, 250 + delta, x + 88 + delta, 286 + delta]),
                     &self.small,
                     12,
                     self.label(label),
@@ -510,6 +558,68 @@ impl Art {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR; headless original-data modal matrix"]
+    fn original_interface_modal_matrix() {
+        let game = std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR");
+        let mut art = Art::open(Path::new(&game)).unwrap();
+        let modifier = |id| match art.layout.find(id).unwrap().kind {
+            Kind::Bitmap(picture) => picture.modifier,
+            Kind::Text { pictures: Some(picture), .. } => picture.modifier,
+            _ => panic!("modal picture missing: {id}"),
+        };
+        assert_eq!(modifier(1004) & 0x8000, 0, "native warning background");
+        assert_ne!(modifier(1006) & 0x8000, 0, "stretched normal button");
+        assert_ne!(modifier(1007) & 0x8000, 0, "stretched highlighted button");
+        let background = &art.pictures["gm_win2.pbm"][0];
+        assert_eq!([background.width, background.height], [360, 120]);
+        for high in [false, true] {
+            art.resize(high);
+            let [width, _] = art.size();
+            let background_rect = art.rects[&1004];
+            assert_eq!(background_rect, if high { [175, 225, 625, 375] } else { [140, 180, 500, 300] });
+            for dialog in [Dialog::Quit, Dialog::Difficulty] {
+                for pressed in [false, true] {
+                    let state = Choice { dialog: Some(dialog), button: 1, pressed, ..Choice::default() };
+                    let actual = art.render(&state);
+                    let mut expected = art.render(&Choice::default());
+                    expected.picture(background_rect, Pic::of(&art.pictures["gm_win2.pbm"][0]).unwrap(), false, 1.0, &art.palette);
+                    let equal_row = |expected: &Canvas, y: i32, left: i32, right: i32| {
+                        let start = ((y * width as i32 + left) * 4) as usize;
+                        let end = ((y * width as i32 + right) * 4) as usize;
+                        assert_eq!(&actual.rgba[start..end], &expected.rgba[start..end],
+                            "high={high} dialog={dialog:?} pressed={pressed} row={y}");
+                    };
+                    // The strip precedes text/buttons and includes the area beyond
+                    // the native picture's right edge at 800. Stretching fails it.
+                    for y in background_rect[1]..background_rect[1] + 15 {
+                        equal_row(&expected, y, background_rect[0], background_rect[2]);
+                    }
+                    for (i, &(left, _)) in dialog.buttons().iter().enumerate() {
+                        let selected = i == state.button;
+                        let frames = &art.pictures[if selected { "g_yhibtn.pba" } else { "g_ybtn.pba" }];
+                        let frame = usize::from(selected && pressed);
+                        let rect = art.layout_rect([left, 250, left + 88, 286]);
+                        assert_eq!(rect[3] - rect[1], if high { 45 } else { 36 });
+                        expected.picture(rect, Pic::of(&frames[frame]).unwrap(), true, 1.0, &art.palette);
+                        for y in [rect[1], rect[1] + 1, rect[3] - 2, rect[3] - 1] {
+                            equal_row(&expected, y, rect[0], rect[2]);
+                        }
+                    }
+                }
+            }
+            let mut state = Choice::default();
+            assert_eq!(state.input(Key::Enter, &art.rows), Action::Stay);
+            let [l, t, r, b] = art.layout_rect([274, 250, 362, 286]);
+            let outside = art.input_key(&state, Key::Click(r, b - 1));
+            assert_eq!(state.input(outside, &art.rows), Action::Stay);
+            let inside = art.input_key(&state, Key::Click((l + r) / 2, (t + b) / 2));
+            assert_eq!(state.input(inside, &art.rows), Action::Start(2));
+        }
+        println!("modal matrix: native background, stretched normal/highlight/pressed buttons, two/three-button geometry and clicks at 640/800");
+    }
+
     #[test]
     fn corrupt_slot_blocks_load_until_the_default_no_or_explicit_delete() {
         let rows = [[0; 4]; 7];

@@ -207,7 +207,8 @@ impl Screen {
     }
 
     pub fn open(game: &Path, menu: &MenuArt) -> Result<Self, String> {
-        let layout = Layout::read(game, "Options.gui", "IDCTL_OPT_")?;
+        let mut layout = Layout::read(game, "Options.gui", "IDCTL_OPT_")?;
+        layout.resize(menu.size(), false);
         for name in ["BACKGROUND", "OPTIONS", "CURSOR1", "CURSOR2"]
             .into_iter()
             .chain(ROWS.iter().map(|r| r.label()))
@@ -299,7 +300,8 @@ impl Screen {
     }
 
     fn backdrop(layout: &Layout, menu: &MenuArt) -> Canvas {
-        let mut out = Canvas::new(640, 480);
+        let [width, height] = layout.size;
+        let mut out = Canvas::new(width, height);
         let rect = |key: &str| layout.controls[key].rect;
         let draw = |c: &mut Canvas, key: &str, r, frame, caption| {
             layout.draw(c, menu, key, key, r, frame, caption)
@@ -313,12 +315,12 @@ impl Screen {
                 draw(&mut out, key, rect(key), 0, None);
             } else {
                 // Disabled items use the original menu's alternating pixels.
-                let mut label = Canvas::new(640, 480);
+                let mut label = Canvas::new(width, height);
                 draw(&mut label, key, rect(key), 0, None);
                 let [l, t, r, b] = rect(key);
-                for y in t.clamp(0, 480)..b.clamp(0, 480) {
-                    for x in l.clamp(0, 640)..r.clamp(0, 640) {
-                        let p = ((y * 640 + x) * 4) as usize;
+                for y in t.clamp(0, height as i32)..b.clamp(0, height as i32) {
+                    for x in l.clamp(0, width as i32)..r.clamp(0, width as i32) {
+                        let p = ((y * width as i32 + x) * 4) as usize;
                         if (x + y) % 2 == 0 && label.rgba[p + 3] != 0 {
                             out.rgba[p..p + 4].copy_from_slice(&label.rgba[p..p + 4]);
                         }
