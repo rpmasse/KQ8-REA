@@ -1178,6 +1178,11 @@ pub fn trap_step(
         };
         sim.active.connor_moved(&v);
     }
+    // Q206: ordinary liquid damage uses the completed move's location,
+    // not the trap sweep, and does not require changed coordinates.
+    let surface = lookup.as_ref().and_then(|ground| ground.0.height_at(position[0], position[1])
+        .map(|height| (height.height, ground.0.flags_at(position[0], position[1]))));
+    sim.active.connor_terrain_damage(surface, position[2]);
     // anim-scripts.md rule 16 (Q167; C-3): `Inv <item>` in his Special
     // list: real items laid where his last frame holds them.
     for (item, on, owner, pose) in connor.take_inv_laid() {
@@ -1429,10 +1434,10 @@ pub fn trap_step(
                 w.fight_note("Connor", &line);
                 line
             }
-            Request::ConnorHurt { roll_over, forced, special, at } => {
+            Request::ConnorHurt { roll_over, forced, special, world_hit, at } => {
                 let ouch = sim.active.world.connor_fight.as_ref().map_or(kq8_core::fight::DEFAULT_OUCH.to_string(), |f| f.ouch_sound.clone());
                 let now = sim.active.world.now();
-                let line = connor.hurt(roll_over, forced, special.as_deref(), &ouch, now);
+                let line = connor.hurt(roll_over, forced, special.as_deref(), &ouch, world_hit, now);
                 sim.active.world.fight_note("Connor", format!("{at}: {line}"));
                 format!("{at}: applied: Connor {line}")
             }

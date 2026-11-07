@@ -724,7 +724,20 @@ impl crate::active::WorldState {
             // react a script set (Dead City's tower) tried first.
             let percent = self.connor_react.0.unwrap_or(CONNOR_REACT_PERCENT);
             let special = self.connor_react.1.clone().filter(|(_, p)| dmg.flinch_roll(*p)).map(|(m, _)| m);
-            self.requests.push(crate::active::Request::ConnorHurt { roll_over: dmg.flinch_roll(percent), forced, special, at });
+            self.requests.push(crate::active::Request::ConnorHurt { roll_over: dmg.flinch_roll(percent), forced, special, world_hit: from.eq_ignore_ascii_case("world"), at });
+        }
+        // Q206 rule 10: this follows the ordinary hit even when armor
+        // prevents all loss or this hit requests Die. Earlier dying/rope
+        // guards still suppress it. Repeated hits do not postpone rearm.
+        if from.eq_ignore_ascii_case("world") {
+            let now = self.now();
+            if let Some(sound) = self.terrain_hazards.world_hit_sound(now) {
+                if let Some(position) = self.connor_at {
+                    self.sounds.push(crate::sound::Start::placed_one_shot(sound, position,
+                        "Connor world-hit poison sound (terrain-hazards.md rule 10)".into()));
+                }
+                self.fight_note("Connor", format!("world-hit sound {sound}; rearm at {:.6} world seconds", now + 2.5));
+            }
         }
     }
 }

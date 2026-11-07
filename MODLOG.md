@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-07 Ordinary terrain-liquid attacks
+
+The ordinary poison/fast-poison/swamp path now follows the studied
+material priority, configured damage, shared-clock phase, 250-unit
+depth and full-mask immunity. It queues ordinary world attacks, keeping
+armor and death behavior, and supplies the separate poison-sound cycle.
+Rust saves retain immunity and the sound gate; original save equivalence
+is not claimed. Ontop and special-status behavior remain open.
+
+Three core matrix checks pass. All twelve original regional settings
+and one representative native protection/audio/death sequence pass
+2/2 on their first run in 49.15 seconds; original Options.cs remains
+unchanged. No successful scenario is repeated and no campaign save is
+modified. The script coverage generator succeeds and produces an
+unchanged report before the command-name correction. The subsequent
+regional audit identifies addImmunity as the registered spelling;
+addImmune in the first note came from the original usage-message typo.
+The affected handler/checks are corrected before publication, without
+repeating the independent native damage sequence.
+The corrected command and actual Wisp callback pass 2/2. Regeneration
+after the correction takes 44.58 seconds and marks addImmunity built,
+reducing Swamp's missing-command count from eight to seven.
+[Evidence and commands](docs/terrain-liquid-damage.md)
+
 ## 2026-11-07 Shared quest-item application lifecycle
 
 Quest-item application now uses the existing unapply path to remove

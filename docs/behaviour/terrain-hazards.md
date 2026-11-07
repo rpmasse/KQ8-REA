@@ -66,6 +66,11 @@ Connor enters a river.
    feet**. Equality qualifies. This is distinct from the **600-unit**
    threshold that selects wading animations. An object can take liquid
    damage before it appears as submerged to the movement controller.
+   The post-move query does not require a change in coordinates: a
+   movement request that resolves to the same position still reaches
+   the hazard test. Whether every idle update invokes this request is
+   **not yet established**; this note does not specify a separate
+   unconditional hazard tick or a displacement-only restriction.
 7. **Eligibility, traced.** Ordinary deep-liquid damage requires a
    nonzero amount and at least one current material flag not covered
    by that object's terrain immunity mask. The original compares the
@@ -75,10 +80,15 @@ Connor enters a river.
    `KQMonster` construction start with all terrain flags immune.
    Connor's construction enables the poison, fast-poison, swamp, fire
    and ice flags for damage; the other flags remain immune. The public
-   command `KQConner::addImmune` adds the supplied bits to his immunity
-   mask. It does not replace the mask. No use of this command was found
-   in the inspected regional or loose scripts. Native persistence of
-   changes made by this command is **not tested**.
+   command **`KQConner::addImmunity`** adds the supplied bits to his
+   immunity mask. It does not replace the mask. Swamp's `WHISP.CS`
+   Cue 10 calls this exact registered name with 256, granting swamp
+   immunity. Native persistence of changes made by this command is
+   **not tested**. **Naming correction, 2026-11-07:** the original
+   handler's usage message incorrectly says `KQConner::addImmune`;
+   that spelling in the earlier version of this note was a study error,
+   not evidence of a registered alias. Use `addImmunity`, matching the
+   registration and original script.
    The command accepts exactly one decimal integer argument, retains
    its low 16 bits and returns zero. Wrong argument counts print the
    command's usage message and also return zero.
@@ -110,6 +120,10 @@ Connor enters a river.
     and this sound branch. No additional god-mode or zero-loss check
     appears in the sound branch. Persistence of this sound gate and
     delayed event in an original save is **not tested**.
+    In the ordinary no-flinch path, suppressing the ouch sound also
+    skips advancing its one-second cooldown. A flinch/reaction path
+    can still advance that cooldown independently; preserve the
+    existing reaction rule.
 11. **The shield is not a zero-damage promise.** The Invulnerable potion
     raises protection as described in `potions.md`; it does not add
     terrain immunity. Protection 100 still makes ordinary damage zero,

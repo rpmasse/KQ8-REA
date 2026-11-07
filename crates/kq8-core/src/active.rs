@@ -178,7 +178,7 @@ pub enum Request {
     /// percent, interruption and deadline gates; `forced` bypasses those
     /// selection gates. Playback still uses ordinary animation requests.
     /// The viewer supplies the current movement and owning controller.
-    ConnorHurt { roll_over: bool, forced: bool, special: Option<String>, at: String },
+    ConnorHurt { roll_over: bool, forced: bool, special: Option<String>, world_hit: bool, at: String },
     /// Connor's health fell below 0 (rules 18, 29): his dying state, by
     /// the hit's kind.
     ConnorDies { kind: crate::fight::HitKind, at: String },
@@ -811,6 +811,8 @@ pub struct WorldState {
     pub connor_jump: Option<&'static str>,
     /// Connor's stats and level (`Connor.kq`; 3i-6).
     pub connor_stats: Option<ConnorStats>,
+    /// Ordinary terrain immunity and the separate world-hit sound gate.
+    pub terrain_hazards: crate::terrain_hazards::State,
     /// How many stats events Connor has had (M4 4c-2): the bottom bar
     /// sends its values after each (`interface.md` rule 24).
     pub connor_stats_events: u64,
@@ -4693,6 +4695,20 @@ impl ScriptHost for WorldState {
             "tileExit" | "deadHallTeleport" => Some(self.tile_command(words, at)),
             "KQMonster::setReactPercent" | "KQMonster::setSpecialReact" => Some(self.react_command(words, at)),
             "KQConner::setRequiredWeaponMode" => Some(self.required_weapon_mode_command(words, at)),
+            "KQConner::addImmunity" => {
+                if let [_, bits] = words {
+                    if let Ok(bits) = bits.parse::<i64>() {
+                        self.terrain_hazards.add_immune(bits);
+                        self.note(format!("{at}: addImmunity {bits}: terrain immunity {:#06x} (terrain-hazards.md rule 8)", self.terrain_hazards.immunity));
+                    } else {
+                        self.note(format!("{at}: usage: KQConner::addImmune <decimal integer>"));
+                    }
+                } else {
+                    // The original usage text misspells the registered name.
+                    self.note(format!("{at}: usage: KQConner::addImmune <decimal integer>"));
+                }
+                Some("0".into())
+            }
             "invClick" => Some(self.inv_click(words, at)),
             "KQObject::lightOnFire" => Some(self.light_on_fire(words, at)),
             "KQCamera::setCamRelConner" | "KQCamera::setCamRelObj" => Some(self.cam_rel(words, at)),
@@ -4846,6 +4862,7 @@ impl Active {
                 deleted: BTreeSet::new(),
                 switched_off: BTreeSet::new(),
                 connor_stats: None,
+                terrain_hazards: Default::default(),
                 connor_stats_events: 0,
                 gui_orders: Vec::new(),
                 potions: Vec::new(),
@@ -5396,6 +5413,23 @@ impl Active {
     /// or `Cue` (traps.md rules 6–9). Returns `<trap> <args>` per call.
     pub fn connor_moved(&mut self, v: &Visitor) -> Vec<String> {
         self.traps_check(v, false, true)
+    }
+
+    /// Q206 ordinary liquid path: after a movement request, use its final
+    /// position, even when collision left the coordinates unchanged.
+    pub fn connor_terrain_damage(&mut self, surface: Option<(f32, u32)>, feet: f32) {
+        let now = self.world.now();
+        let settings = crate::terrain_hazards::Settings::from_vars(&self.scripts.vars);
+        let level = self.world.connor_stats.map(|c| c.level);
+        let Some(hit) = crate::terrain_hazards::ordinary(surface, feet,
+            self.world.terrain_hazards.immunity, settings, level, now) else { return };
+        let (height, flags) = surface.unwrap();
+        let kind = match hit.kind { crate::fight::HitKind::Fire => "2", crate::fight::HitKind::Ice => "3", _ => "0" };
+        self.world.note(format!("terrain liquid flags {flags:#x}, depth {:.3}, {}: world attack {}, base {}, phase {:.6}",
+            height - feet, hit.source, hit.kind.name(), hit.base, now.fract()));
+        self.world.queue.send(now, 0.0, CONNOR, "KQAttackEvent",
+            &["world".into(), kind.into(), hit.base.to_string(), "0".into()], "ordinary terrain liquid");
+        self.handle_due(now);
     }
 
     /// Accepted physical push, with the same shape/path used by its mover.
@@ -6397,6 +6431,7 @@ impl Active {
     pub fn update(&mut self) {
         self.world.init_notices.clear();
         let now = self.world.now();
+        self.world.terrain_hazards.rearm(now);
         self.handle_due(now);
         self.world.characters_due(now);
         self.talk_step(now);

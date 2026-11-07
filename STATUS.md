@@ -1,5 +1,33 @@
 # STATUS
 
+## 2026-11-07 Ordinary liquid damage completed; display rules established
+
+Poison, fast poison and swamp now share the original amount, clock,
+depth and immunity rules and dispatch ordinary world attacks. Armor,
+reaction, sound and death remain in the existing combat path. Three
+grouped core checks pass. The twelve-region data matrix and one native
+Dead City fixture pass 2/2 on the first run in 49.15 seconds, checking
+zero-loss protection, poison-sound cycling and fatal damage through the
+normal death menu. Original Options.cs is unchanged. No successful
+native run is repeated; earned campaign saves remain untouched.
+The regional command audit catches a study-note naming error:
+addImmunity is registered; addImmune is only the original usage-message
+typo. The command handler and affected checks are corrected before
+publication; arithmetic and native integration evidence are reused.
+The corrected command matrix and original Wisp callback pass 2/2;
+that script grants swamp immunity while leaving poison eligibility.
+[Commands, evidence and limits](docs/terrain-liquid-damage.md)
+
+The original-data script report first regenerates unchanged, then the
+44.58-second rebuild after the naming correction marks addImmunity
+built and reduces Swamp's missing commands from eight to seven. Its
+acceptance/name-presence statuses are hints, not completed behavior.
+The new graphics study establishes shared 640/800 layout, font, picture,
+background and Save/Load rules; implementation and device switching
+remain incomplete. Original ontop/special-status hazards and native save
+semantics also remain open. Estimates: M4 about 80%, M5 60%, M6 about
+25%. No manual testing.
+
 ## 2026-11-07 Shared quest-item application lifecycle completed
 
 Applying a quest item now unapplies other applied quest items before

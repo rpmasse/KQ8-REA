@@ -132,6 +132,9 @@ impl Snapshot {
     }
 
     fn validate(&self) -> Result<(), String> {
+        if !self.journey.terrain_hazards.valid() {
+            return Err("save has invalid terrain sound continuation".into());
+        }
         if self.tile.as_ref().is_some_and(|tile| !tile.valid(self.special.is_some())
             || self.special.as_ref().is_some_and(|s| s.combat_death())
             || self.camera.is_none() || self.rope_climb.is_some() || self.choice.is_some()
