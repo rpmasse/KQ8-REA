@@ -3,7 +3,52 @@
 Both archers are now defeated in the earned campaign. The western
 encounter/reload passed once in 48.14 seconds; after an earned healing
 visit, the portal revisit, eastern encounter and reload passed once in
-87.51 seconds. The river crossing and good skull remain incomplete.
+87.51 seconds. The later original two-block crossing, good-skull pickup
+and shelf replacement also survive reload. Returning with that skull
+and completing the remaining Dead City quests are still unfinished.
+
+## Return-route diagnostics
+
+The preserved source is `earned-skull-chamber-potion/1794048357391220700/
+slots/slot-3.json`, label SkullChamberPotionReload, with level-12 stats
+[39,85,27,11,2474]. GoodSkull and the unconsumed Invulnerable potion are
+carried. All artifact paths below are relative to `kq8-artifacts/`.
+
+Two integrated native return attempts use the previously native-tested
+hazard viewer; they do not validate the new interface or scripted-character
+source. Both preserve the source save and original Options hashes.
+
+| Attempt | Evidence | Result |
+| --- | --- | --- |
+| Diagonal approach to the western launch | earned-skull-return-chapter/1794052215484 | At update 118, position (28315,202143,607), liquid depth 256.8 causes an ordinary protected hit for 357; health 39 becomes -318. No jump requested. |
+| Approach along the higher bank | earned-skull-return-chapter/1794052447255 | Reaches (27011,202994,864) at update 134. Then circles the launch target at distances 35–39, outside its 25-unit arrival radius. Stops at update 344 at (27024,201519,695); alive, no jump requested. |
+
+After two failures, native variations stop for an inspection of the
+diagnostic arrival rule and ordinary walking step. The real movement,
+collision and damage rules must not be changed to make a route pass.
+No new campaign checkpoint, return portal or eastern-room arrival is
+claimed from these runs.
+
+Numerical planning evidence is separate:
+
+- `skull-return-complete-scene.log`: launch (27000,202000) fails 18/27
+  perturbations because of deep landings; the candidate is rejected.
+- `skull-return-guarded-launch.log`: launch (27000,201550) passes 27/27
+  combinations of position offsets ±40 and heading offsets ±0.13, with
+  grounded south-bank landing, no dangerous liquid depth and no swept
+  contact with rivrtrap.01. This uses shared core movement/trap code.
+- `skull-return-bank-corridor.log`: 837 terrain samples along
+  (30059,203052) → (27000,203000) → (27000,201550), including offsets ±80,
+  have maximum liquid depth 192.4, leaving 57.6 below the damage threshold.
+- `skull-return-nominal-trap-clearance.json`: the nominal recorded arc
+  clears the river trap's top by at least 683.2 units where its expanded
+  XY bounds overlap. This is a nominal trace, not a native outcome.
+
+The local movement scene matches 25 of 35 recorded building bounds to
+original BSP data; none of those 35 bounds overlaps the western launch
+rectangle. It is not a complete-world collision reconstruction. The
+eastern bone bridge needs its actual raised support geometry; a
+terrain-only planner is insufficient and its eastern detour is rejected.
 
 ## Original data and route
 

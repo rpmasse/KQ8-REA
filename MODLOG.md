@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-07 Earned skull return diagnostics
+
+Recorded both unsuccessful native approaches without changing the earned
+checkpoint. The first hits deep poison before takeoff; the higher-bank
+route avoids it but the diagnostic driver orbits a too-small arrival
+radius and aborts before jumping. Native variants stop for controller-
+level arrival evidence. The guarded launch perturbation matrix passes
+27/27 and the sampled bank corridor remains below dangerous depth; these
+do not prove a live crossing. No campaign progress is claimed.
+[Recorded failures and planning limits](docs/skull-river-access.md#return-route-diagnostics)
+
 ## 2026-11-07 Scripted character preparation and health
 
 Implemented preSpecial's live interruptibility and separate remembered

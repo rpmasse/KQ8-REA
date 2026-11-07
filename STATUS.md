@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-07 Earned skull return: two failed approaches; native retries stopped
+
+The original SkullChamberPotionReload checkpoint remains unchanged.
+The first integrated return route crosses deep poison before takeoff:
+at update 118, depth 256.8 causes a normal protected hit and death.
+Numerical inspection then identifies a higher-bank corridor with 837
+sampled points, no dangerous depth and 57.6 units of depth margin.
+The second route reaches that bank but circles the 25-unit jump waypoint
+at roughly 35–39 units and stops at update 344 before requesting a jump.
+Connor remains alive; there is no new earned checkpoint.
+
+Stop native variants after these two failures. Inspect the diagnostic
+arrival rule against the ordinary walking step before retrying. The
+27-case launch perturbation matrix passes at (27000,201550), using the
+shared mover and trap check; that is numerical planning evidence, not a
+live crossing. The prior (27000,202000) candidate failed 18/27 and is
+retained as rejected. Both native attempts use the prior hazard viewer,
+not the new interface/scripted-character source. Original Options and
+the source checkpoint pass the harness's unchanged-hash checks.
+[Evidence and limits](docs/skull-river-access.md#return-route-diagnostics)
+
 ## 2026-11-07 Scripted preparation and health batch completed
 
 preSpecial now makes current playback interruptible and remembers Stop
