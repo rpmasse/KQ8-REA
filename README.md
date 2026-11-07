@@ -18,6 +18,8 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
+The loader now gives the installed regional patch files priority over archive copies, with an automated check of all 22 overrides and the patched portal callback. [File selection](docs/world-file-selection.md)
+
 Press **F2** during play to switch between first and third person. The
 viewer selects Connor’s arm and weapon animations from the tables in
 your installed `GAME/Kq/Connor.kq`. Drawing a weapon, using a rope and

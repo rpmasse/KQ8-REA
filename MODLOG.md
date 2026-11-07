@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-07 Read the original installed world patches
+
+World lookup and script/object enumeration now give regional patch
+files priority over archive copies. A shared GameDir folder index
+also lets the script coverage scanner account for these files and
+GAME/patch. Original files remain local and read-only.
+
+The new asset check failed on all 22 regional selections before the
+correction and now passes, including the patched Dead City portal
+callback. All 878 standard tests pass. The native 12-region loading
+check passed in 57.95 seconds, rendering 30 frames per region.
+Coverage was regenerated and reveals two previously omitted elevator
+commands, inTrap and removeFromTrap. They remain missing pending
+the original-engine study in Q201; loading is not a full elevator or
+campaign verification. The test draft's compile error is recorded in
+STATUS alongside the red/green evidence.
+[Details and exact commands](docs/world-file-selection.md)
+
 ## 2026-11-07 Ferryman topics and short inventory-description names
 
 Added the earned route from BoathouseGuardReload through the four

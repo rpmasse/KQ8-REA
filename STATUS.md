@@ -1,5 +1,40 @@
 # STATUS
 
+## 2026-11-07 Installed regional patches now take priority
+
+The original GOG installation's 22 regional patch files were being
+bypassed by archive-only lookups. Both named reads and script/object
+enumeration now select the installed correction first. The script
+coverage tool uses the same folder index and includes GAME/patch.
+The asset regression failed on all 22 selections before the fix and
+passes after it, including Dead City's return callback reactivating
+all four outward portals. The first draft of this test had a missing
+String conversion; it was corrected before running the red check.
+
+All 878 standard workspace tests pass. The native loading regression
+passed in 57.95 seconds across all 12 regions, each rendering 30
+frames. Logs: world-patches-before.log, world-patches-after.log,
+world-patches-workspace.log, world-patches-regions.log and
+world-patches-coverage.log in kq8-artifacts; native runs under
+region-tests/23456-*.
+
+Coverage now exposes KQConner::inTrap and removeFromTrap as missing
+in the patched Barren elevator and IceWorld world scripts. Barren's
+startup logs the former as unknown. Q201 asks the separate study
+session for exact membership, return-value and removal behavior.
+These elevator cases are **not verified**; the loading success does
+not establish campaign correctness. Separate study remains unavailable
+because its agents report the provider usage limit. No guessed engine
+semantics were added.
+
+The skull approach audit found a steep ridge rather than just an
+overly conservative path cutoff: relaxing the offline planner to the
+documented walkable normal still stops about 15,917 units short.
+No new native skull route was attempted, no collision rules changed,
+and no campaign state was granted. The last earned checkpoint remains
+FerrymanKnowledgeReload; the portal/plate access route remains open.
+[Source and exact automated commands](docs/world-file-selection.md)
+
 ## 2026-11-07 Ferryman introduction, knowledge and description lookup
 
 The final earned five-process sequence passed in 319.03 seconds.

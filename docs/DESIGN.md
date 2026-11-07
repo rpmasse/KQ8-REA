@@ -13,6 +13,57 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M4–M6 installed world patches (2026-11-07).** The access audit
+exposes a fidelity gap before the next route: `World::load` and
+`entries_ending` read only archives, so they miss the installed
+`<world>/patch` files. The models-and-textures note, "Which one
+wins", explicitly gives these files priority and says the remaining
+loose copies match the archives. Add a small case-insensitive index
+of that folder when opening a world. Both named lookup and the
+script/object enumeration must select its file once, including any
+patch-only name, and otherwise retain archive fallback. Propagate
+read errors rather than silently using the older version. Keep the
+GOG installation read-only. Verify every installed regional patch
+against its bytes and assert representative script behavior using
+the selected source, then run appropriate Windows loading checks.
+This is a file-selection correction, not an engine-rule guess or
+a change to the original patch contents.
+
+Use one `GameDir::patch_files` index for the viewer and the script
+coverage scanner, so the generated checklist also describes the
+installed overrides. The scanner must replace a case-insensitive
+name once and include patch-only files, including `GAME/patch` for
+its shared script inventory. It must fail on unreadable patch files.
+
+The 22-file check failed before the correction and passes after it,
+including the selected Dead City portal callback. All 878 standard
+tests pass, and all 12 regions loaded and rendered 30 frames in
+57.95 seconds. Regenerated coverage exposes `KQConner::inTrap` and
+`KQConner::removeFromTrap` in the installed elevator/world scripts.
+Their original semantics are Q201; elevator occupancy and return
+behavior remain open. The loading pass is not campaign acceptance.
+
+**M6 access to the skull area (2026-11-07).** Continue from the earned
+FerrymanKnowledgeReload. Before another live route, explain why the
+conservative offline path search stops short of the skull shelves.
+Sample the original surface and floor grids and identify any actual
+colliders at the boundary. Distinguish a broad planning exclusion
+from a gameplay obstacle. Trace the installed script prerequisites
+before assuming that retained portal or plate objects are the route.
+Use the existing Rust collision checks where bounding boxes alone
+cannot describe a doorway. Do not change movement/collision rules,
+teleport Connor through test commands, or grant puzzle inventory.
+Once the next approach is supported by data, verify it with ordinary
+inputs from the earned checkpoint and preserve any failed attempt.
+
+The numeric audit finds a real steep ridge west of the boathouse
+(surface/floor normals 0.73 and 0.586), but also an overly strict
+planning cutoff: the helper requires normal Z at least 0.90, while
+connor-physics.md specifies greater than 0.8. Add an opt-in offline
+search with that documented limit to test for an ordinary ramp or
+pass around the ridge. Keep the live engine and its collision rules
+unchanged; any candidate still needs an earned native route check.
+
 **M6 boathouse guard and Ferryman continuation (2026-11-07).**
 Start with the earned RiverWeeperReload: level ten, 100 health,
 332 experience, Mace and Small Crossbow, and both river-road enemies

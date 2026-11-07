@@ -4,6 +4,7 @@
 //! (`DAVENTRY`, `Daventry` and `daventry` are the same folder). The install
 //! mixes cases freely, so lookups here ignore case on every platform.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -53,6 +54,22 @@ impl GameDir {
     /// Path of `data/<world>/<volume>.vol`.
     pub fn volume_path(&self, world: &str, volume: &str) -> Option<PathBuf> {
         self.find(&format!("data/{world}/{volume}.vol"))
+    }
+
+    /// Loose corrections shipped in `<world>/patch` (or `GAME/patch`).
+    /// Keys ignore ASCII case, just as the original Windows lookup does.
+    /// A world without a patch folder has no overrides.
+    pub fn patch_files(&self, scope: &str) -> io::Result<BTreeMap<String, PathBuf>> {
+        let mut files = BTreeMap::new();
+        if let Some(folder) = self.find(&format!("{scope}/patch")) {
+            for entry in fs::read_dir(folder)? {
+                let entry = entry?;
+                if entry.file_type()?.is_file() {
+                    files.insert(entry.file_name().to_string_lossy().to_ascii_lowercase(), entry.path());
+                }
+            }
+        }
+        Ok(files)
     }
 }
 
