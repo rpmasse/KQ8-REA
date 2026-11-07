@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-07 Healed return completes the skull-chamber archer pair
+
+The earned route returns through portal5 without another first-use
+award, saves the chamber return, then defeats skeleton16 with normal
+Small Crossbow shots from the dry bank. Its single 400-XP death award,
+both defeated archers, carried inventory, quest flags and held Rock
+survive a fresh-process reload. Final health is 39 after an incoming
+arrow lands following the enemy's death. Original Options.cs is unchanged.
+
+The three-process test passes once in 87.51 seconds. Earlier completed
+western-archer and healing routes were not repeated. Static terrain/BSP
+segments and a full bolt sweep supplied planning evidence; the native
+run establishes the actual route and hits. Only tests and documentation
+change, so no unrelated core suite was rerun. River crossing and skull
+pickup remain incomplete. No manual testing.
+[Evidence](docs/skull-river-access.md#healed-return-and-eastern-archer)
+
 ## 2026-11-07 Northwest return portal and earned well healing
 
 The campaign continuation uses the installed portrap6 patch to return

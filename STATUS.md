@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-07 Both skull-chamber archers defeated; reload passes
+
+The healed portal revisit, eastern-archer encounter and fresh-process
+reload pass once in 87.51 seconds, following a 12.15-second compilation.
+Portal5 returns Connor to the chamber at update 239 without repeating
+its 4,000-XP award. Ordinary Small Crossbow shots defeat skeleton16;
+its death completes at update 218 of the encounter leg, awarding 400 XP.
+A final incoming arrow leaves 39 health. Both deaths, inventory, quest
+flags, the held Rock and stats [39,85,27,11,2474], level 12, survive reload.
+Original Options.cs preservation passes. Evidence:
+skull-eastern-archer-native.log.
+
+Genuine continuation:
+earned-skull-eastern-archer/1794046057966712000/slots/slot-4.json,
+SkullEasternArcherReload at (36280,193254,864), first person, weapon
+stowed. Slot-2 is HealedSkullChamber; slot-3 is the earned victory.
+The western fight and well healing were not repeated. Next establish
+the original block/jump route across the damaging river, then recover
+the good skull. Runtime rules are unchanged. No manual testing.
+Engineering estimates remain M4 about 80%, M5 60%, M6 about 25%.
+[Commands and limits](docs/skull-river-access.md#healed-return-and-eastern-archer)
+
 ## 2026-11-07 Earned return-portal healing and reload pass
 
 The continuation from the genuine SkullReturnPortal save passes once
