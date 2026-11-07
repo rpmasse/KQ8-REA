@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-07 Clear the boathouse guard with earned equipment
+
+Added the unattended continuation from RiverWeeperReload to the
+boathouse guard. It selects third-person view while standing and
+the ordinary melee HUD slot, then uses the existing Shift-click
+attack with the earned Mace. No engine rules changed. The encounter
+and fresh-process reload passed in 72.82 seconds: one 300-point
+award, level ten, 94 health, 632 experience, equipment and defeated
+enemies retained, and unchanged GOG options.
+[Route and command](docs/dead-city-progression.md#the-boathouse-guard)
+
 ## 2026-11-07 Earned ranged encounter and level-up reload
 
 Added a ranged-fight option to the unattended route. It selects the
