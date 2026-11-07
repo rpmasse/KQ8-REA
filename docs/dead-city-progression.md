@@ -771,6 +771,37 @@ cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_
 The standard workspace suite was not rerun for these ignored native
 route additions; no game-engine implementation changed.
 
+## Earned Rock placement failure
+
+The route diagnostic now accepts an aim_ground point, projects it to a
+gameplay pixel and uses the ordinary pointer ray. A nearer aimable
+object or a drawn-ground hit away from that point rejects the click.
+The first earned western-plate attempt fails in 41.93 seconds: the
+click and ThrowRock launch work, and rockHit.cs drops one Rock at
+(114047.86,108670.29,0), but triptrp5 stays empty and both portal masks
+stay zero through reload. This is not a completed puzzle. No engine
+rule, original pressure box, inventory grant or projectile position
+was changed. Original trap handoff is Q203; aim/arc fidelity is Q202.
+
+Evidence is kq8-artifacts/earned-western-plate-rock/1794035062532059200
+and kq8-artifacts/western-plate-rock-native.log. To reproduce this
+known failure, set KQ8_GAME_DIR and KQ8_WESTERN_PLATE_RELEASED_SLOT
+to the GOG installation and the genuine WesternPlateReleasedReload
+checkpoint, respectively:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::earned_rock_holds_western_portal_open_after_reload -- --ignored --exact --test-threads=1
+```
+
+Expected current result: failure at the portal-mask assertion (0,
+expected 4). Do not repeat this test until new source evidence supports
+a relevant implementation change. Original Options.cs preservation
+is asserted later in the test and was not reached in this failed run.
+
+The viewer headless command `cargo test --locked --release -p
+kq8-viewer --bin kq8-viewer` passes once (44 passed, 28 ignored).
+Its log is kq8-artifacts/visible-ground-viewer-tests.log.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at

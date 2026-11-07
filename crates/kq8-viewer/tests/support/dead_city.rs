@@ -2867,3 +2867,54 @@ fn western_plate_release_disables_portal_and_reloads() {
         .contains("trap triptrp5: Off Connor"));
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "known failure: landed Rock does not hold the plate (Q203); requires GOG assets, graphics and KQ8_WESTERN_PLATE_RELEASED_SLOT"]
+fn earned_rock_holds_western_portal_open_after_reload() {
+    let play = Play::new("earned-western-plate-rock");
+    let source = earned_slot("KQ8_WESTERN_PLATE_RELEASED_SLOT")
+        .expect("set KQ8_WESTERN_PLATE_RELEASED_SLOT to an earned WesternPlateReleasedReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "WesternPlateReleasedReload");
+    assert_eq!(start["world"], "DeadCity");
+    let rocks = |saved: &Value| saved["journey"]["items"].as_array().unwrap().iter()
+        .filter(|item| item["kind"]=="INVITEM_Rock")
+        .map(|item| item["quantity"].as_i64().unwrap()).sum::<i64>();
+    assert_eq!(rocks(&start), 2);
+    let path = play.root.join("western-plate-rock.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":[
+        {"name":"Throw an earned Rock onto the western plate","xy":[112109,108775],
+            "radius":140,"run":false,"aim_ground":[113992,108676,0]}
+    ]})).unwrap()).unwrap();
+    let (placed, viewer) = leg(&play, 1, "WesternPlateRock", 350, &[
+        "--walk-route",path.to_str().unwrap(),"--key","left:IDCTL_INVBAR_ROCKS,8"
+    ]);
+    assert!(viewer.lines().any(|line| line.contains("test --aim-ground (113992, 108676, 0)")
+        && line.contains("camera through gameplay pixel") && line.contains("the aim pick meets the drawn ground")
+        && !line.contains("walk-route turns the camera")));
+    let fight = log(&play, "WesternPlateRock", "fight.log");
+    assert!(fight.contains("ThrowRock: started=true") && fight.contains("shoots rock"));
+    assert!(log(&play, "WesternPlateRock", "items.log").to_ascii_lowercase().contains("rockhit.cs"));
+    let others = |saved: &Value| saved["journey"]["items"].as_array().unwrap().iter()
+        .filter(|item| item["kind"]!="INVITEM_Rock").cloned().collect::<Vec<_>>();
+    let (restored, _) = leg(&play, 2, "WesternPlateRockReload", 45, &[]);
+    for saved in [&placed,&restored] {
+        assert_eq!(rocks(saved), 1);
+        assert_eq!(others(saved), others(&start));
+        assert_eq!(saved["journey"]["stats"], start["journey"]["stats"]);
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        let states = saved["traps"]["states"].as_array().unwrap();
+        for name in ["portrap5","portrp5b"] {
+            assert_eq!(states.iter().find(|t| t["name"]==name).unwrap()["mask"], 4);
+        }
+        let plate = states.iter().find(|t| t["name"]=="triptrp5").unwrap();
+        let occupants = plate["inside"].as_array().unwrap();
+        assert!(!occupants.iter().any(|name| name=="Connor"));
+        assert!(occupants.iter().any(|name| saved["items"].as_array().unwrap().iter()
+            .any(|item| item["name"]==*name && item["kind"]=="INVITEM_Rock"
+                && item["quantity"]==1 && item["place"].get("World").is_some())));
+    }
+    assert_eq!(placed["journey"]["items"], restored["journey"]["items"]);
+    assert!(!log(&play, "WesternPlateRockReload", "fight.log").contains("shoots rock"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}

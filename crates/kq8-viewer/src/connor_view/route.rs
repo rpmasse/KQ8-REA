@@ -19,6 +19,8 @@ struct Landmark {
     click: Option<String>,
     /// Aim the normal world-click ray at the target. Any nearer object wins.
     aim: Option<String>,
+    /// Click visible ground through its gameplay pixel, with normal occlusion.
+    aim_ground: Option<[f32; 3]>,
     /// Press a normal inventory number key once when this point is reached.
     inventory_slot: Option<usize>,
     /// Continue walking toward the point until the original script records this value.
@@ -114,6 +116,9 @@ impl Replay {
             || replay.landmarks.iter().any(|l| {
                 l.name.is_empty()
                     || (l.aim.is_some() && l.click.is_some())
+                    || l.aim_ground.is_some_and(|p| !p.iter().all(|v| v.is_finite())
+                        || l.aim.is_some() || l.click.is_some() || l.fight.is_some()
+                        || l.break_object.is_some() || l.scene.is_some() || l.jump_toward.is_some())
                     || (l.fight.is_some() && l.break_object.is_some())
                     || (l.retreat && l.fight.is_none())
                     || (l.ranged && (l.fight.is_none() || l.retreat || l.big_swing.is_some()))
@@ -129,7 +134,7 @@ impl Replay {
                     || l.jump_toward
                         .is_some_and(|point| !point.iter().all(|v| v.is_finite()))
                     || (l.tile_jump && (l.jump_toward.is_some() || l.scene.is_some() || l.until_var.is_some()
-                        || l.fight.is_some() || l.break_object.is_some() || l.aim.is_some() || l.click.is_some()
+                        || l.fight.is_some() || l.break_object.is_some() || l.aim.is_some() || l.click.is_some() || l.aim_ground.is_some()
                         || l.inventory_slot.is_some() || l.run.is_some() || l.direction.is_some()
                         || !matches!(kq8_core::tile_puzzle::where_is(l.xy[0], l.xy[1]), kq8_core::tile_puzzle::Where::Spot(_))))
                     || !l.radius.is_finite()
@@ -432,6 +437,9 @@ pub fn steer(
         }
         if let Some(name) = point.aim {
             aims.landmark = Some((name, sim.updates));
+        }
+        if let Some(p) = point.aim_ground {
+            aims.landmark = Some((format!("@{}:{}:{}",p[0],p[1],p[2]),sim.updates));
         }
         if let Some(slot) = point.inventory_slot {
             replay.keys(&mut keys, &[crate::gui_view::INVENTORY_DIGITS[slot - 1].0]);

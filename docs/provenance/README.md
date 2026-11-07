@@ -3,6 +3,14 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Earned Rock placement diagnostic.** The route's visible ground aiming
+uses the viewer's existing gameplay viewport, pointer ray, aim mask and
+drawn-ground lookup. Original trip5/triptrp5 data supplies the plate
+location and mask; GAME/Kq/rockHit.cs supplies the recovery action.
+The native attempt records a landing and inventory decrement, but fails
+the portal assertion. No original trajectory or trap handoff is claimed:
+Q202/Q203 remain open. No binary or disassembly was read by B.
+
 **Earned graveyard preparation and western plate.** The genuine
 entrance checkpoint and previously traversed roads supply the well
 round trip. Original sylphwel.cs supplies five health per ordinary
