@@ -24,7 +24,14 @@ pub struct KeptInteractions {
     object_stats: BTreeMap<String, ObjectCombat>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     animations: BTreeMap<String, OrdinaryAnimation>,
+    #[serde(default)]
+    swamp_tiles: BTreeMap<String,crate::tile_objects::SwampTile>,
+    #[serde(default)]
+    lava_tiles: BTreeMap<String,KeptLava>,
 }
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+struct KeptLava {tile:crate::tile_objects::LavaTile,animation:Playback,hidden:bool}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct OrdinaryAnimation {
@@ -189,7 +196,9 @@ impl Playback {
 
 impl KeptInteractions {
     pub fn valid_animations(&self) -> bool {
-        self.animations.len() <= 16384 && self.animations.iter().all(|(name, saved)| {
+        self.swamp_tiles.len()<=16384 && self.swamp_tiles.iter().all(|(name,t)|!name.is_empty() && name.len()<1024 && t.damage_factor.is_finite())
+        && self.lava_tiles.len()<=16384 && self.lava_tiles.iter().all(|(name,t)|!name.is_empty() && name.len()<1024 && t.tile.valid() && t.animation.valid())
+        && self.animations.len() <= 16384 && self.animations.iter().all(|(name, saved)| {
             !name.is_empty() && name.len() <= 1024 && name == &name.to_ascii_lowercase()
                 && !name.chars().any(char::is_control) && saved.animation.valid()
         })
@@ -197,6 +206,11 @@ impl KeptInteractions {
 
     /// Fresh models have been loaded; retained ordinary playback precedes Init.
     pub fn restore_animations(&self, w: &mut WorldState) {
+        for (name,tile) in &self.swamp_tiles {
+            if let Some(live)=w.swamp_tiles.get_mut(name) {
+                let scripted=live.has_script;*live=tile.clone();live.has_script=scripted;live.last_contact=0.;
+            }
+        }
         for object in &mut w.objects {
             let key = object.name().to_ascii_lowercase();
             if object.gone || !w.persistent_stat_objects.contains(&key) { continue; }
@@ -212,6 +226,15 @@ impl KeptInteractions {
                 saved.animation.restore(&mut object.player);
                 object.player.delete_when_done = saved.delete_when_done;
             }
+        }
+        for (name,saved) in &self.lava_tiles {
+            let Some(i)=w.anim_index(name) else {continue;};
+            let Some(live)=w.lava_tiles.get_mut(name) else {continue;};*live=saved.tile.clone();
+            saved.animation.restore(&mut w.anims[i].player);
+            // Original rule49: the reversal marker survives, its live signed
+            // rate does not. Preserve that limitation, not a stronger save.
+            w.anims[i].player.random_speed=None;
+            w.plain_hidden.insert(name.clone(),saved.hidden);
         }
     }
 
@@ -310,7 +333,13 @@ impl KeptInteractions {
             .chain(w.anims.iter().filter(|o| !o.gone && o.character.is_none() && eligible(&o.player.name))
                 .map(|o| (o.player.name.to_ascii_lowercase(), OrdinaryAnimation { animation: Playback::take(&o.player), delete_when_done: o.player.delete_when_done })))
             .collect();
-        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats, animations }
+        let swamp_tiles=w.swamp_tiles.iter().filter(|(name,_)|!w.is_gone(name)).map(|(name,t)|(name.clone(),t.clone())).collect();
+        let lava_tiles=w.lava_tiles.iter().filter_map(|(name,t)|{
+            let i=w.anim_index(name)?;if w.is_gone(name) {return None;}
+            let mut animation=Playback::take(&w.anims[i].player);animation.random_speed=None;
+            Some((name.clone(),KeptLava {tile:t.clone(),animation,hidden:w.plain_hidden.get(name).copied().unwrap_or(true)}))
+        }).collect();
+        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats, animations,swamp_tiles,lava_tiles }
     }
 
     pub fn restore_special_actors(&self, w: &mut WorldState) {

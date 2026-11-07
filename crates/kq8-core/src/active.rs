@@ -154,6 +154,7 @@ pub enum Request {
     TileExit { can_exit: bool, at: String },
     /// `KQMonster::setState Connor Tile` (`tile-puzzle.md` rule 7).
     ConnorTile { at: String },
+    ConnorSecondaryTile { kind: crate::secondary_tiles::Kind, at: String },
     /// Enter the Dead City scales after the original portal sequence.
     ConnorScales { at: String },
     /// `deadHallTeleport <from> <to>` (`tile-puzzle.md` rule 22): Connor
@@ -840,6 +841,11 @@ pub struct WorldState {
     /// pair remembered per object, for the viewer (`characters.md` rule
     /// 4a; batch 2 D-6). `normal` removes it.
     pub bmp_swaps: BTreeMap<String, (String, String)>,
+    pub swamp_tiles: BTreeMap<String, crate::tile_objects::SwampTile>,
+    pub lava_tiles: BTreeMap<String, crate::tile_objects::LavaTile>,
+    pub swamp_power: crate::tile_objects::SwampPower,
+    pub solved_tile3: bool,
+    pub object_projectiles: BTreeMap<String, crate::tile_objects::ObjectProjectile>,
     /// Scripted footsoundType values; loaded building defaults remain in the caller.
     pub footstep_types: BTreeMap<String, i64>,
     /// Connor's handsOff is on (a cutscene), set by the caller before each
@@ -2032,6 +2038,10 @@ impl WorldState {
         let script = (!value.eq_ignore_ascii_case("none")).then(|| value.clone());
         let same = |n: &str| n.eq_ignore_ascii_case(name);
         let mut kinds = Vec::new();
+        if let Some(tile)=self.swamp_tiles.get_mut(&name.to_ascii_lowercase()) {
+            tile.has_script=script.is_some();
+            kinds.push("Swamp tile");
+        }
         if let Some(i) = self.items.index(name) {
             self.items.objects[i].script = script.clone();
             kinds.push("item");
@@ -3574,6 +3584,10 @@ impl WorldState {
                 self.note(format!("{at}: KQMonster::setState Connor Tile: handed to Connor (tile-puzzle.md rule 7)"));
                 self.requests.push(Request::ConnorTile { at: at.to_string() });
             }
+            [_, who, state, ..] if who.eq_ignore_ascii_case("Connor") && (state.eq_ignore_ascii_case("Tile2") || state.eq_ignore_ascii_case("Tile3")) => {
+                let kind=if state.eq_ignore_ascii_case("Tile2") {crate::secondary_tiles::Kind::Swamp} else {crate::secondary_tiles::Kind::Barren};
+                self.requests.push(Request::ConnorSecondaryTile {kind,at:at.into()});
+            }
             [_, who, state, rest @ ..] if who.eq_ignore_ascii_case("Connor") && state.eq_ignore_ascii_case("Portal") => {
                 // world-change.md rules 1-2, magic-map.md rule 40 (M6 6e-6).
                 return self.start_portal(rest, at);
@@ -4503,6 +4517,9 @@ impl Active {
 }
 
 impl ScriptHost for WorldState {
+    fn variables_changed(&mut self, vars: &Vars) {
+        self.swamp_power = crate::tile_objects::SwampPower::from_vars(vars);
+    }
     fn read(&self, name: &str) -> Option<Vec<u8>> {
         let base = name.rsplit(['/', '\\']).next().unwrap_or(name).to_ascii_lowercase();
         self.sources.get(&base).cloned()
@@ -4826,6 +4843,7 @@ impl Active {
         known.extend(doors.iter().map(|d| d.door.name.to_ascii_lowercase()));
         known.extend(clickables.iter().map(|c| c.name.to_ascii_lowercase()));
         let sources = sources.into_iter().map(|(n, b)| (n.to_ascii_lowercase(), b)).collect();
+        let swamp_power = crate::tile_objects::SwampPower::from_vars(&vars);
         Active {
             scripts: Scripts::new(vars),
             world: WorldState {
@@ -4900,6 +4918,11 @@ impl Active {
                 reveal_calls: Vec::new(),
                 dithered: BTreeMap::new(),
                 bmp_swaps: BTreeMap::new(),
+                swamp_tiles: BTreeMap::new(),
+                lava_tiles: BTreeMap::new(),
+                swamp_power,
+                solved_tile3: false,
+                object_projectiles: BTreeMap::new(),
                 footstep_types: BTreeMap::new(),
                 item_voices: Vec::new(),
                 hand: None,
@@ -5653,15 +5676,18 @@ impl Active {
     }
 
     pub fn has_contact_script(&self, name: &str) -> bool {
-        self.world.contact_scripts.contains_key(&name.to_ascii_lowercase())
+        let key = name.to_ascii_lowercase();
+        self.world.contact_scripts.contains_key(&key) || self.world.swamp_tiles.contains_key(&key)
     }
 
     /// A contact with Connor from either mover. Continuous contact
     /// refreshes the clock even when it does not call the script.
     pub fn connor_contact(&mut self, name: &str, normal: [f32; 3]) -> bool {
+        self.world.variables_changed(&self.scripts.vars);
+        let class_contact = self.world.swamp_contact(name);
         let now = self.world.updates;
         let Some((script, last)) = self.world.contact_scripts.get_mut(&name.to_ascii_lowercase()) else {
-            return false;
+            return class_contact;
         };
         let [x, y, z] = normal;
         let direction = if z > 0.0 { 1 } else if z < 0.0 { 6 }
@@ -5944,6 +5970,17 @@ impl Active {
             // object-lighting.md rule 41: no collider, nothing to click.
             self.world.note(format!("click {name}: its collider is out (far, off or hidden); nothing"));
             return ClickResult::Nothing;
+        }
+        let key = name.to_ascii_lowercase();
+        if self.world.lava_tiles.contains_key(&key) { return ClickResult::Swallowed; }
+        if self.world.swamp_tiles.contains_key(&key) {
+            if let Some(p) = self.world.place_of(name) {
+                self.world.requests.push(Request::ClickTurn {name:name.into(),target:[p.position[0],p.position[1]],at:"KQSwampTile ConnorAction".into()});
+                if item.is_some_and(|i| self.world.items.kind(&i.kind).map_or(i.kind.as_str(),|kind|kind.name.as_str()).eq_ignore_ascii_case("INVITEM_Rock")) {
+                    self.world.requests.push(Request::ConnorThrowRock {aim:Some(p.position)});
+                }
+            }
+            return ClickResult::Swallowed;
         }
         let feet_text = format!("({:.0}, {:.0}, {:.0})", feet[0], feet[1], feet[2]);
         if let Some(i) = self.world.items.index(name) {
@@ -6437,6 +6474,7 @@ impl Active {
     /// drawn (`anim-scripts.md` rule 8, Q119; M4 4e-10).
     pub fn update(&mut self) {
         self.world.init_notices.clear();
+        self.world.variables_changed(&self.scripts.vars);
         let now = self.world.now();
         self.world.terrain_hazards.rearm(now);
         self.handle_due(now);
@@ -6450,6 +6488,7 @@ impl Active {
         self.world.rope_icon_step();
         // M5 5g-7: Clarity's Reveal calls (potions.md rule 31).
         for (name, on) in std::mem::take(&mut self.world.reveal_calls) {
+            self.world.swamp_reveal(&name, on);
             let word = if on { "True" } else { "False" };
             let line = if self.call_named(&name, &["Reveal", word]) { format!("{name}: its script gets Reveal {word}") } else { format!("{name}: no script: Reveal {word} not called") };
             self.world.item_note(format!("clarity: {line} (potions.md rule 31)"));
@@ -6646,6 +6685,7 @@ impl Active {
                 let has_script = w.anims[i].script.is_some() || w.clickables.iter().any(|c| c.script.is_some() && c.name.eq_ignore_ascii_case(&name));
                 self.world.movement_ended(&name, &m, has_script);
                 // fighting.md rule 32 (M5 5c-7): its die movement ended.
+                self.world.lava_ended(i, &m);
                 let dying = self.world.anims[i].character.as_deref().and_then(|c| c.fight.as_ref()).and_then(|f| f.dying.clone());
                 if dying.flatten().is_some_and(|d| d.eq_ignore_ascii_case(&m)) {
                     if !self.world.tower_fall_end(i, &m) {
@@ -6905,6 +6945,7 @@ impl Active {
         }
         // clicking.md rule 21: reserved cue numbers.
         if e.kind == "KQCueEvent" && !self.world.is_gone(&e.target) {
+            if self.world.lava_cue(&e.target, &e.data) { return; }
             if let Some(i) = self.world.trap_index(&e.target).filter(|&i| self.world.traps[i].settings.spirit.is_some()) {
                 let cue = e.data.first().map_or(0, |n| number_value(n) as i32);
                 let was = std::mem::replace(&mut self.world.in_trap,true);
@@ -6925,7 +6966,9 @@ impl Active {
                     return;
                 }
                 Some(CUE_PROJECTILE) => {
-                    self.world.note(format!("KQCueEvent {CUE_PROJECTILE} to {}{from}: launches its projectile (combat, M5; not done)", e.target));
+                    self.world.object_projectile_cue(&e.target,&e.data);
+                    let args=cue_args(&e.data);
+                    self.call_named(&e.target,&args.iter().map(String::as_str).collect::<Vec<_>>());
                     return;
                 }
                 _ => {}
@@ -6993,6 +7036,10 @@ impl Active {
         }
         // anim-scripts.md rule 4 for the other animated objects (3i-4).
         if let Some(i) = self.world.anim_index(&e.target).filter(|_| e.kind == "KQAnimPlayEvent") {
+            if self.world.lava_tiles.get(&e.target.to_ascii_lowercase()).is_some_and(|t| !t.accepts_animation_event()) {
+                self.world.note(format!("{}: stale platform animation event {} suppressed", e.target, e.data.join(" ")));
+                return;
+            }
             self.world.start_up_character(i, &format!("KQAnimPlayEvent {}", e.data.join(" ")));
             let line = anim_request(&mut self.world.anims[i].player, &e.data, &format!("object {}", e.target), &from);
             self.world.note(line);

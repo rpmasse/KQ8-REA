@@ -84,7 +84,9 @@ pub mod state_number {
     pub const TILE: u32 = 2048;
     pub const ROPE: u32 = 4096;
     pub const HAMMER_THROW: u32 = 8192;
+    pub const TILE2: u32 = 16384;
     pub const PORTAL: u32 = 32768;
+    pub const TILE3: u32 = 65536;
     pub const CHOICE: u32 = 524_288;
 }
 

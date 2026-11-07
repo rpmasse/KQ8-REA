@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-07 Complete shared tile controller and pending-effect batch
+
+Implement the Swamp/Barren controllers, class hazards/platform events,
+generic object projectile cues, original bitmap substitutions and saved
+controller continuations. Final audit adds a bounded ordered pending
+effect list that survives even after controller exit and drains once.
+Its real Snapshot/dispatcher matrix passes first attempt, 1/1 in 0.02s,
+reusing the live-display matrix's shared build. Earlier successful core,
+original-data, material and native mid-jump checks are retained without
+repetition. Evidence and exact commands are in secondary-tile-controllers.md
+and tile-bitmap-rendering.md. Portal refusal and original shared saved
+clock/queue integration remain open. M4 about 88%, M5 about 64%, M6 about 28%.
+
 ## 2026-11-07 Shared continuation audit and portal prerequisite
 
 Record the passing Swamp/Barren native mid-jump continuations and their

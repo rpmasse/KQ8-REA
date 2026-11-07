@@ -79,6 +79,9 @@ pub const RETURN: &str = "Console::Return";
 
 /// What a running script needs from the game.
 pub trait ScriptHost {
+    /// Observe the authoritative variables before synchronous host effects.
+    /// This also covers whole-state initialization/replacement between calls.
+    fn variables_changed(&mut self, _vars: &Vars) {}
     /// A script's bytes by file name (any case), `None` if there is none.
     fn read(&self, name: &str) -> Option<Vec<u8>>;
     /// A command that acts on the world (`sendEvent`, ...), with its words
@@ -142,6 +145,7 @@ impl Scripts {
     /// Runs script `name` with `args` as `$1`, `$2`, ... Returns false if
     /// the script was not found (logged).
     pub fn call(&mut self, name: &str, args: &[String], host: &mut dyn ScriptHost) -> bool {
+        host.variables_changed(&self.vars);
         let found = self.run(name, args, host, 0);
         host.event_done();
         found
@@ -259,6 +263,7 @@ impl Scripts {
             return;
         }
         self.command(words, host, at, depth);
+        host.variables_changed(&self.vars);
     }
 
     /// Runs one command (words expanded) and leaves its result in
@@ -345,6 +350,7 @@ impl Scripts {
     /// A command may set variables and synchronously call scripts, e.g.
     /// loadKQ calls the new object's Init before the next command runs.
     fn host_command(&mut self, words: &[String], host: &mut dyn ScriptHost, at: &str, depth: usize) -> Option<String> {
+        host.variables_changed(&self.vars);
         let result = host.world_command(words, at);
         self.finish_host_effects(host, at, depth);
         result
@@ -355,6 +361,7 @@ impl Scripts {
         for (var, value) in host.take_vars() {
             self.vars.set(&var, value);
         }
+        host.variables_changed(&self.vars);
         for (script, args) in host.take_calls() {
             host.log(format!("{at}: runs {script} {} at once", args.join(" ")));
             self.run(&script, &args, host, depth + 1);
@@ -364,6 +371,7 @@ impl Scripts {
             loop {
                 let call = host.resume_continuation(token);
                 for (var, value) in host.take_vars() { self.vars.set(&var, value); }
+                host.variables_changed(&self.vars);
                 let Some((script, args)) = call else { break };
                 host.log(format!("{at}: resumes synchronous {script} {}", args.join(" ")));
                 self.run(&script, &args, host, depth + 1);

@@ -1703,6 +1703,9 @@ pub struct Objects {
     pub object_stat_defaults: BTreeMap<String, kq8_core::stats::Stats>,
     pub persistent_stat_objects: std::collections::BTreeSet<String>,
     pub interior_lighting: BTreeMap<String, bool>,
+    pub swamp_tiles: BTreeMap<String, kq8_core::tile_objects::SwampTile>,
+    pub lava_tiles: BTreeMap<String, kq8_core::tile_objects::LavaTile>,
+    pub object_projectiles: BTreeMap<String, kq8_core::tile_objects::ObjectProjectile>,
     /// The placed `KQMonster`s (M4 4a-2, `talking.md` rule 6): name,
     /// place after `move`, script.
     pub monsters: Vec<kq8_core::active::Monster>,
@@ -2171,6 +2174,9 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         object_stat_defaults: BTreeMap::new(),
         persistent_stat_objects: Default::default(),
         interior_lighting: BTreeMap::new(),
+        swamp_tiles: BTreeMap::new(),
+        lava_tiles: BTreeMap::new(),
+        object_projectiles: BTreeMap::new(),
         monsters: Vec::new(),
         dormant_monsters: Vec::new(),
         doors: Vec::new(),
@@ -2363,6 +2369,16 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         }
     }
     placer.log.summary(format!("scripts for play: {} from the world, {shared} game-wide (GAME/patch, GAME/Kq)", scripts.len() - shared));
+    // Object projectile impact effects use ordinary shared loadAnim scripts.
+    // Discover their recipes with the same world-before-shared precedence.
+    let projectile_scripts: Vec<_>=placer.projectiles.values().filter_map(|p|p.script.clone()).collect();
+    for name in projectile_scripts {
+        if !placer.all_scripts.iter().any(|(n,_)|n.eq_ignore_ascii_case(&name)) {
+            if let Some((name,bytes))=scripts.iter().find(|(n,_)|n.eq_ignore_ascii_case(&name)) {
+                placer.all_scripts.push((name.clone(),bytes.iter().map(|b|(*b as char).to_ascii_lowercase()).collect()));
+            }
+        }
+    }
     // anim-scripts.md rule 34 (Q157): the shapes `loadObject` makes while
     // playing, ready as the corpses' are (drawn by `item_view`).
     let mut object_shapes = std::collections::BTreeSet::new();
@@ -2535,6 +2551,9 @@ struct Placer<'a> {
     object_stat_defaults: BTreeMap<String, kq8_core::stats::Stats>,
     persistent_stat_objects: std::collections::BTreeSet<String>,
     interior_lighting: BTreeMap<String, bool>,
+    swamp_tiles: BTreeMap<String, kq8_core::tile_objects::SwampTile>,
+    lava_tiles: BTreeMap<String, kq8_core::tile_objects::LavaTile>,
+    object_projectiles: BTreeMap<String, kq8_core::tile_objects::ObjectProjectile>,
     monsters: Vec<kq8_core::active::Monster>,
     /// Characters prepared for a script's loadKQ (2026-10-22).
     dormant_monsters: Vec<kq8_core::active::Monster>,
@@ -2982,6 +3001,16 @@ impl Placer<'_> {
     fn set_character_script(&mut self, name: &str, value: &str, words: &[String], at: &str) -> Option<String> {
         let script = (!value.eq_ignore_ascii_case("none")).then(|| value.to_string());
         let mut found = false;
+        // Swamp's twelve safe tiles receive their script after loadKQ in
+        // newWorld.cs. This class decision must see the attachment before
+        // either startup Init or the first contact/Reveal event.
+        if let Some(tile)=self.swamp_tiles.get_mut(&name.to_ascii_lowercase()) {
+            tile.has_script=script.is_some();
+            for ((placed,_,unused),info) in self.placed.iter().zip(&mut self.collision) {
+                if !unused && placed.name.eq_ignore_ascii_case(name) {info.script=script.clone();}
+            }
+            found=true;
+        }
         for m in self.monsters.iter_mut().filter(|m| m.name.eq_ignore_ascii_case(name)) {
             m.script = script.clone();
             found = true;
@@ -3517,6 +3546,17 @@ impl Placer<'_> {
             self.prop_placements.insert(key, saved);
         }
         let s = &file[0];
+        if !unused {
+            let key=p.name.to_ascii_lowercase();
+            if let Some(tile)=kq8_core::tile_objects::SwampTile::from_section(s) {self.swamp_tiles.insert(key.clone(),tile);}
+            if p.class.as_deref().is_some_and(|c|c.eq_ignore_ascii_case(kq8_core::tile_objects::LAVA_CLASS)) {self.lava_tiles.insert(key,Default::default());}
+            if p.class.as_deref().is_some_and(|c|c.eq_ignore_ascii_case("KQObject")) {
+                if let Some(shooter)=kq8_core::tile_objects::ObjectProjectile::from_section(s) {
+                    if let Some(shape)=self.load_projectile(&shooter.file,&p.name) {self.load_corpse_shape(&shape,&p.name);}
+                    self.object_projectiles.insert(p.name.to_ascii_lowercase(),shooter);
+                }
+            }
+        }
         let mut character = character_keys.zip(character_list).map(|(keys, list)| {
             let lips = match kq8_data::characters::Lips::of(&file, &keys) {
                 Some(Ok(l)) => Some(l),
@@ -4598,7 +4638,7 @@ impl Placer<'_> {
     /// `KQObject::changeBmp <obj> <old> <new>` line in the world's scripts,
     /// read now so the swap can be drawn while playing.
     fn swap_looks(&mut self) -> Vec<(String, Look)> {
-        let names: std::collections::BTreeSet<String> = self
+        let mut names: std::collections::BTreeSet<String> = self
             .all_scripts
             .iter()
             .flat_map(|(_, t)| t.lines())
@@ -4607,6 +4647,8 @@ impl Placer<'_> {
                 (w.len() == 4 && w[0] == "kqobject::changebmp").then(|| w[3].to_string())
             })
             .collect();
+        if !self.swamp_tiles.is_empty() {names.extend(kq8_core::tile_objects::REVEAL_BITMAPS.map(|s|s.to_ascii_lowercase()));}
+        if !self.lava_tiles.is_empty() {names.extend(kq8_core::secondary_tiles::LAVA_BITMAPS.map(str::to_string));}
         let Ok(palette) = self.object_palette() else { return Vec::new() };
         self.log.quiet = true;
         let looks: Vec<(String, Look)> = names.iter().map(|n| (n.clone(), load_texture(self.world, self.game, n, &palette, self.log))).collect();
@@ -5013,12 +5055,13 @@ impl Placer<'_> {
     }
 
     fn finish(mut self) -> Objects {
-        let files: std::collections::BTreeSet<String> = self.all_scripts.iter().flat_map(|(_, text)| text.lines()).filter_map(|line| {
+        let mut files: std::collections::BTreeSet<String> = self.all_scripts.iter().flat_map(|(_, text)| text.lines()).filter_map(|line| {
             let mut words = line.split('#').next()?.split_whitespace();
             if words.next()? != "loadanim" { return None; }
             let file = words.nth(1)?;
             file.ends_with(".kqs").then(|| file.to_string())
         }).collect();
+        if !self.swamp_tiles.is_empty() {files.insert(kq8_core::tile_objects::GAS_SHAPE.into());}
         let mut script_shapes = BTreeMap::new();
         for file in files {
             let sequence = file.trim_end_matches(".kqs");
@@ -5290,6 +5333,9 @@ impl Placer<'_> {
             object_stat_defaults: self.object_stat_defaults,
             persistent_stat_objects: self.persistent_stat_objects,
             interior_lighting: self.interior_lighting,
+            swamp_tiles: self.swamp_tiles,
+            lava_tiles: self.lava_tiles,
+            object_projectiles: self.object_projectiles,
             monsters,
             dormant_monsters: self.dormant_monsters,
             talk: None,
@@ -7189,3 +7235,7 @@ mod spirit_trap_checks {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "secondary_tile_data_tests.rs"]
+mod secondary_tile_data_tests;

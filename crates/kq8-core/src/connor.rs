@@ -532,6 +532,9 @@ pub struct Walker {
     /// `animSetHandsOff`, independent of scripted handsOff and playback.
     /// A lip request clears it even when its movement must wait.
     pub animation_input_lock: bool,
+    /// A Tile2/Tile3 controller selects motions through the ordinary request
+    /// path; key motion selection must not overwrite its pending jump.
+    pub controller_owned_input: bool,
     /// preSpecial changes the retained controller name to Stop without
     /// changing either actual or waiting animation identity.
     pub pre_special_stop: bool,
@@ -653,6 +656,7 @@ impl Walker {
             reaction: None,
             reaction_playing: None,
             animation_input_lock: false,
+            controller_owned_input: false,
             pre_special_stop: false,
             interrupt_override: None,
             waiting: None,
@@ -1489,7 +1493,7 @@ impl Walker {
                 self.phase = 0.0;
                 self.fresh = true;
             }
-        } else if !self.animation_input_lock {
+        } else if !self.animation_input_lock && !self.controller_owned_input {
             // While a wall block is on he stands, whatever the keys ask.
             // Pushing: `push` instead of the keys' choice (rule 6).
             let mut choice = if self.mode == Mode::Push {
@@ -1542,7 +1546,7 @@ impl Walker {
         // leaned through a jump, turn key held or not. The note says the
         // switch is kept in jumps (rule 3); asked as Q59. Stand-in: off
         // while jumping, falling and landing, so he straightens up.
-        if matches!(self.mode, Mode::Jump | Mode::Fall | Mode::Land) {
+        if self.controller_owned_input || matches!(self.mode, Mode::Jump | Mode::Fall | Mode::Land) {
             self.lean_allowed = false;
         }
         self.update_bank(intent, dt);
@@ -2133,6 +2137,17 @@ mod tests {
         c.update(intent(0,0,false),&cue_loops);
         assert_eq!(c.interrupt_override,Some(false),"later live cue replaces preparation");
         assert!(!c.current_interruptible(&cues));
+    }
+
+    #[test]
+    fn secondary_tiles_grouped_owned_motion_waits_and_turns_without_lean() {
+        let mut list=stop_list();list.push(("old",once()));list.push(("tilejump1",once()));let loops=lookup(&list);
+        let mut w=Walker::new(0.);w.movement="old";w.phase=0.3;w.controller_owned_input=true;
+        w.script_request("tilejump1",&loops);assert_eq!(w.movement,"old");assert_eq!(w.wanted,Some("tilejump1"));
+        for _ in 0..30 {w.update(intent(0,0,false),&loops);if w.movement=="tilejump1" {break;}}
+        assert_eq!(w.movement,"tilejump1","zeroed input must not replace queued controller movement");
+        assert!(w.phase<1.);let before=w.heading;w.update(intent(0,1,true),&loops);assert_ne!(w.heading,before);assert!(!w.lean_allowed);
+        w.controller_owned_input=false;w.script_request("stop",&loops);assert!(!w.controller_owned_input);
     }
 
     #[test]

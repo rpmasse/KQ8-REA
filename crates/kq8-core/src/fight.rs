@@ -636,9 +636,9 @@ impl crate::active::WorldState {
         if self.connor_dying {
             return;
         }
-        use crate::character::state_number::{MOVE, WAIT};
+        use crate::character::state_number::{MOVE, WAIT, TILE2, TILE3};
         self.pending_combat_death = Some(kind);
-        if self.connor_state == Some(MOVE)
+        if matches!(self.connor_state,Some(MOVE|TILE2|TILE3))
             || (self.connor_state.unwrap_or(WAIT) == WAIT && self.connor_wait_retains_stop) {
             self.enter_connor_death();
         }
@@ -908,6 +908,7 @@ impl crate::active::WorldState {
     /// character (75-125 %, its protection the 4th stat); below 0 its
     /// script gets `Die <kind>`. Returns the log text.
     fn object_takes(&mut self, name: &str, d: i64, kind: HitKind) -> String {
+        if self.swamp_attack(name, d) { return "KQSwampTile class attack receiver".into(); }
         // A door distinguishes an incoming hit of zero from a damaging
         // hit stopped by its own protection (doors.md rules 19–21).
         if d == 0 && self.door_index(name).is_some() {
@@ -1677,6 +1678,17 @@ impl crate::active::WorldState {
         self.bolts.push(bolt);
     }
 
+    /// Ordinary object Cue500: offsets rotate; relative aim does not.
+    pub(crate) fn object_projectile_cue(&mut self,name:&str,data:&[String]) {
+        let Some(settings)=self.object_projectiles.get(&name.to_ascii_lowercase()).cloned() else {self.note(format!("Cue500 {name}: no configured projectile"));return;};
+        let Some(p)=self.projectiles.get(&settings.file.to_ascii_lowercase()).cloned() else {self.note(format!("Cue500 {name}: projectile {} unavailable",settings.file));return;};
+        let Some(placement)=self.place_of(name) else {self.note(format!("Cue500 {name}: placement unavailable"));return;};
+        let from=placement.to_world(settings.offset);let aim=std::array::from_fn(|i|from[i]+settings.aim[i]);
+        let value=data.get(1).map_or(0,|s|crate::script::number_value(s) as i64);
+        let damage=if (1..100_000).contains(&value) {value} else {settings.damage};
+        self.launch_bolt(name,&settings.file,&p,from,aim,damage,"object Cue500 before callback");
+    }
+
     /// `ranged-weapons.md` rules 28–30 (M5 5f-1): each update every bolt
     /// moves speed / 15 straight along its direction (no gravity). Its
     /// move is swept with its ball stack against what its mask covers:
@@ -1837,6 +1849,7 @@ impl crate::active::WorldState {
             }
             Touched::Object(n, t) => {
                 if t & IMMUNE_TO_PROJECTILES != 0 {
+                    self.swamp_attack(&n, 0);
                     self.fight_note(&shooter, at.replace("{}", &format!("object {n}")) + &format!(": its type 0x{t:X} has the immune bit 0x4000: a hit of 0, its script gets ProjImmune"));
                     self.immune_calls.push(n);
                     self.projectile_event(b, "ProjImmune");

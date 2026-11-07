@@ -69,6 +69,8 @@ mod item_registration_tests;
 mod item_removal_tests;
 pub mod spirit_trap;
 pub mod tile_puzzle;
+pub mod tile_objects;
+pub mod secondary_tiles;
 pub mod turn_keys;
 pub mod water;
 pub mod terrain_hazards;

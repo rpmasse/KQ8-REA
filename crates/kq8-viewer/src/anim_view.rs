@@ -106,8 +106,7 @@ struct Playing {
     /// original texture names, the pair drawn now, and the pictures the
     /// pair replaced (put back when it changes).
     texture_names: Vec<((usize, i32), String)>,
-    bmp_shown: Option<(String, String)>,
-    bmp_saved: Vec<(Handle<ObjectMaterial>, Option<Handle<Image>>)>,
+    bitmaps: BitmapOverrides,
     /// An unused object's player as built at load: what a script's
     /// `loadKQ` brings in, so its movement starts as at the start
     /// (`objects.md` rule 6; G-4). Its own player keeps playing for H.
@@ -165,6 +164,227 @@ pub struct AnimSim {
     characters: Option<Log>,
     /// `fight.log` (M5 5c), if it could be made.
     fight: Option<Log>,
+}
+
+/// Class-controlled replacements overlay normal object overrides by original
+/// texture name. Reveal changes its named targets, not unrelated materials.
+fn bitmap_pairs(world: &kq8_core::active::WorldState, name: &str) -> Vec<(String, String)> {
+    let mut pairs: Vec<_> = world.bmp_swaps.get(&name.to_ascii_lowercase()).cloned().into_iter().collect();
+    pairs.extend(world.tile_bitmap_pairs(name));
+    pairs
+}
+
+fn replacement(original: &str, pairs: &[(String, String)], images: &std::collections::BTreeMap<String, Handle<Image>>) -> Option<Handle<Image>> {
+    let (_, name) = pairs.iter().rev().find(|(old, _)| old.eq_ignore_ascii_case(original))?;
+    if name.eq_ignore_ascii_case(original) { return None; }
+    images.get(&name.to_ascii_lowercase()).cloned()
+}
+
+/// Each object's saved originals are separate from the image cache. Aliased
+/// animation slots save a material only once, so restoration cannot put a
+/// replacement back over its original after processing another slot.
+#[derive(Default)]
+struct BitmapOverrides {
+    shown: Vec<(String, String)>,
+    saved: Vec<(Handle<ObjectMaterial>, Option<Handle<Image>>)>,
+}
+
+impl BitmapOverrides {
+    /// A later per-object opacity copy inherits the same saved texture,
+    /// including when a replacement is already showing.
+    fn copied(&mut self, from: &Handle<ObjectMaterial>, to: Handle<ObjectMaterial>) {
+        if let Some((_, original)) = self.saved.iter().find(|(handle, _)| handle == from) {
+            self.saved.push((to, original.clone()));
+        }
+    }
+
+    fn apply<'a>(
+        &mut self,
+        pairs: Vec<(String, String)>,
+        bindings: impl IntoIterator<Item = (&'a str, Handle<ObjectMaterial>)>,
+        images: &std::collections::BTreeMap<String, Handle<Image>>,
+        materials: &mut Assets<ObjectMaterial>,
+    ) -> Option<usize> {
+        if self.shown == pairs { return None; }
+        for (handle, original) in self.saved.drain(..) {
+            if let Some(mut material) = materials.get_mut(&handle) { material.texture = original; }
+        }
+        let mut seen = std::collections::HashSet::new();
+        for (original, handle) in bindings {
+            let Some(image) = replacement(original, &pairs, images) else { continue };
+            if !seen.insert(handle.id()) { continue; }
+            let Some(mut material) = materials.get_mut(&handle) else { continue };
+            if material.texture.as_ref() == Some(&image) { continue; }
+            self.saved.push((handle, material.texture.clone()));
+            material.texture = Some(image);
+        }
+        let changed = self.saved.len();
+        self.shown = pairs;
+        Some(changed)
+    }
+}
+
+/// Only static Swamp tiles need this adapter. Their model geometry remains
+/// shared, while a material becomes private on its first texture substitution.
+#[derive(Component)]
+pub struct StaticTileBitmap {
+    original: String,
+    material: Handle<ObjectMaterial>,
+    owned: bool,
+    state: BitmapOverrides,
+}
+
+impl StaticTileBitmap {
+    pub fn new(original: String, material: Handle<ObjectMaterial>) -> Self {
+        // Look carries its source label (e.g. vol:Swamp/8bit/GASTRAP.BMP),
+        // while script/class rules name the file, as animated slots do.
+        let original = original.rsplit(['/', '\\']).next().unwrap_or(&original).to_string();
+        Self { original, material, owned: false, state: Default::default() }
+    }
+
+    fn apply(&mut self, handle: &mut Handle<ObjectMaterial>, pairs: Vec<(String, String)>, images: &std::collections::BTreeMap<String, Handle<Image>>, materials: &mut Assets<ObjectMaterial>) -> Option<usize> {
+        if self.state.shown == pairs { return None; }
+        let replaced = !self.state.saved.is_empty() || replacement(&self.original, &pairs, images).is_some();
+        if !self.owned && replaced {
+            let material = materials.get(&self.material)?.clone();
+            self.material = materials.add(material);
+            self.owned = true;
+        }
+        let changed = self.state.apply(pairs, [(self.original.as_str(), self.material.clone())], images, materials);
+        if replaced {
+            // unlit_step may be drawing a highlighted copy. Return its
+            // normal handle so it refreshes the bright copy from this
+            // texture, preserving the original lighting for highlight off.
+            *handle = self.material.clone();
+        }
+        changed
+    }
+}
+
+#[cfg(test)]
+mod bitmap_tests {
+    use super::*;
+
+    fn material(image: Handle<Image>, images: &mut Assets<Image>) -> ObjectMaterial {
+        let light = crate::object_light::ObjectLight::new(
+            kq8_data::lights::Lights::default(), crate::light_view::LightMode::X1,
+            kq8_data::haze::Haze::new(100.0, 1000.0, [0.0; 3]), true,
+        );
+        let mut material = crate::object_light::object_material(
+            crate::load::Look::Color([255; 3]), crate::load::Shading::PLAIN, &light, images,
+        );
+        material.texture = Some(image);
+        material.settings.textured = 1;
+        material.settings.lighting = 2;
+        material.settings.haze_multiplier = 0.75;
+        material.settings.base_colour.w = 0.5;
+        material.alpha_mode = AlphaMode::Blend;
+        material
+    }
+
+    #[test]
+    fn tile_bitmap_material_matrix() {
+        let mut materials = Assets::<ObjectMaterial>::default();
+        let mut images = Assets::<Image>::default();
+        let mut swaps = std::collections::BTreeMap::new();
+        for name in kq8_core::tile_objects::REVEAL_BITMAPS.into_iter()
+            .chain(kq8_core::secondary_tiles::LAVA_BITMAPS).chain(["normal.bmp", "other.bmp"]) {
+            swaps.insert(name.to_ascii_lowercase(), images.add(Image::default()));
+        }
+        let mut world = kq8_core::active::Active::new(Default::default(), vec![], vec![], vec![], vec![]).world;
+        for (height, names) in [(1, ["gastrap.bmp", "wtower5.bmp"]), (12, ["trapring.bmp", "trunk.bmp"])] {
+            let originals: Vec<_> = names.iter().map(|_| images.add(Image::default())).collect();
+            let base: Vec<_> = originals.iter().map(|image| materials.add(material(image.clone(), &mut images))).collect();
+            let mut drawn = base.clone();
+            let untouched_copy = base.clone();
+            let mut parts: Vec<_> = names.iter().zip(&base).enumerate().map(|(index, (name, handle))| {
+                let label = if index == 0 { format!("vol:Swamp/8bit/{name}") } else { format!("original\\Swamp\\{name}") };
+                StaticTileBitmap::new(label, handle.clone())
+            }).collect();
+            world.swamp_tiles.insert("tile".into(), kq8_core::tile_objects::SwampTile {
+                has_script: true, height_num: height, damage_factor: 0.48, last_contact: 0.0, revealed: false,
+            });
+            world.bmp_swaps.insert("tile".into(), (names[0].to_uppercase(), "NORMAL.BMP".into()));
+            // Highlight may already be drawing a clone before the first swap.
+            let mut bright = materials.get(&drawn[0]).unwrap().clone();
+            bright.settings.lighting = 0;
+            drawn[0] = materials.add(bright);
+            let ordinary = bitmap_pairs(&world, "TiLe");
+            assert_eq!(parts[0].apply(&mut drawn[0], ordinary.clone(), &swaps, &mut materials), Some(1));
+            assert_eq!(parts[1].apply(&mut drawn[1], ordinary, &swaps, &mut materials), Some(0));
+            assert_eq!(materials.get(&drawn[0]).unwrap().texture, Some(swaps["normal.bmp"].clone()));
+            assert_eq!(drawn[1], base[1], "unaffected material remains shared");
+            world.swamp_tiles.get_mut("tile").unwrap().revealed = true;
+            let reveal = bitmap_pairs(&world, "tile");
+            assert_eq!(reveal.len(), 3, "ordinary pair followed by both class pairs");
+            for index in 0..2 {
+                assert_eq!(parts[index].apply(&mut drawn[index], reveal.clone(), &swaps, &mut materials), Some(1));
+                assert_eq!(materials.get(&drawn[index]).unwrap().texture, Some(swaps[&reveal[index + 1].1.to_ascii_lowercase()].clone()));
+                assert_ne!(drawn[index], untouched_copy[index]);
+                assert_eq!(materials.get(&untouched_copy[index]).unwrap().texture, Some(originals[index].clone()));
+                let shown = materials.get(&drawn[index]).unwrap();
+                assert_eq!((shown.settings.lighting, shown.settings.haze_multiplier, shown.settings.base_colour.w), (2, 0.75, 0.5));
+                assert_eq!(shown.alpha_mode, AlphaMode::Blend);
+            }
+            let count = materials.len();
+            let own = drawn.clone();
+            for index in 0..2 {
+                assert_eq!(parts[index].apply(&mut drawn[index], reveal.clone(), &swaps, &mut materials), None);
+            }
+            assert_eq!(drawn, own);
+            assert_eq!(materials.len(), count, "repeat does not allocate material copies");
+            // A later highlight copy must not become the saved normal material.
+            let mut bright = materials.get(&drawn[0]).unwrap().clone();
+            bright.settings.lighting = 0;
+            drawn[0] = materials.add(bright);
+            world.swamp_tiles.get_mut("tile").unwrap().revealed = false;
+            for index in 0..2 {
+                parts[index].apply(&mut drawn[index], bitmap_pairs(&world, "tile"), &swaps, &mut materials);
+            }
+            assert_eq!(drawn, own, "restore hands highlight its normal canonical handles");
+            assert_eq!(materials.get(&drawn[0]).unwrap().texture, Some(swaps["normal.bmp"].clone()));
+            assert_eq!(materials.get(&drawn[1]).unwrap().texture, Some(originals[1].clone()));
+            world.bmp_swaps.remove("tile");
+            for index in 0..2 {
+                parts[index].apply(&mut drawn[index], bitmap_pairs(&world, "tile"), &swaps, &mut materials);
+                assert_eq!(materials.get(&drawn[index]).unwrap().texture, Some(originals[index].clone()));
+            }
+            // Animated objects share this replacement helper, with their own
+            // material handles. Multiple animation keys may alias one handle.
+            let mut animated = BitmapOverrides::default();
+            let bindings = || [(names[0], own[0].clone()), (names[0], own[0].clone()), (names[1], own[1].clone())];
+            assert_eq!(animated.apply(reveal, bindings(), &swaps, &mut materials), Some(2));
+            assert_eq!(animated.saved.len(), 2);
+            assert_eq!(animated.apply(vec![], bindings(), &swaps, &mut materials), Some(0));
+            for index in 0..2 { assert_eq!(materials.get(&own[index]).unwrap().texture, Some(originals[index].clone())); }
+        }
+        // Lava primes affect only the top, across aliased movement slots.
+        let original = images.add(Image::default());
+        let top = materials.add(material(original.clone(), &mut images));
+        let side = materials.add(material(original.clone(), &mut images));
+        let mut lava = BitmapOverrides::default();
+        let bindings = || [("lvtile01.bmp", top.clone()), ("lvtile01.bmp", top.clone()), ("side.bmp", side.clone())];
+        for (index, name) in kq8_core::secondary_tiles::LAVA_BITMAPS.into_iter().enumerate() {
+            world.lava_tiles.insert("lava".into(), kq8_core::tile_objects::LavaTile { bitmap: Some(name.into()), ..Default::default() });
+            assert_eq!(lava.apply(bitmap_pairs(&world, "LAVA"), bindings(), &swaps, &mut materials), Some(usize::from(index != 0)));
+            let expected = if index == 0 { &original } else { &swaps[&name.to_ascii_lowercase()] };
+            assert_eq!(materials.get(&top).unwrap().texture.as_ref(), Some(expected));
+            assert_eq!(materials.get(&side).unwrap().texture, Some(original.clone()));
+        }
+        let later_copy = materials.add(materials.get(&top).unwrap().clone());
+        lava.copied(&top, later_copy.clone());
+        // Unrelated ordinary pairs survive class overlays; a missing replacement
+        // or an identity pair restores the original rather than a stale image.
+        let pairs = vec![("side.bmp".into(), "other.bmp".into()), ("lvtile01.bmp".into(), "missing.bmp".into())];
+        assert_eq!(lava.apply(pairs, bindings(), &swaps, &mut materials), Some(1));
+        assert_eq!(materials.get(&top).unwrap().texture, Some(original.clone()));
+        assert_eq!(materials.get(&later_copy).unwrap().texture, Some(original.clone()), "later opacity copy also restores the original");
+        assert_eq!(materials.get(&side).unwrap().texture, Some(swaps["other.bmp"].clone()));
+        let identity = vec![("side.bmp".into(), "SIDE.BMP".into())];
+        assert_eq!(lava.apply(identity, bindings(), &swaps, &mut materials), Some(0));
+        assert_eq!(materials.get(&side).unwrap().texture, Some(original));
+        println!("tile bitmap matrix: both Swamp pairs, eight Lava tops, instance isolation, highlight handoff, alias restore, repeats and ordinary fallback passed");
+    }
 }
 
 /// A step that does nothing (no move, no turn), within rounding.
@@ -271,8 +491,7 @@ impl AnimSim {
             birth_shown: unborn.then_some(false),
             new_draw,
             texture_names: r.textures.clone(),
-            bmp_shown: None,
-            bmp_saved: Vec::new(),
+            bitmaps: Default::default(),
             at_load: None,
         });
         line
@@ -732,8 +951,7 @@ pub fn spawn_animated(
             birth_shown: unborn.then_some(false),
             new_draw,
             texture_names,
-            bmp_shown: None,
-            bmp_saved: Vec::new(),
+            bitmaps: Default::default(),
             at_load,
         });
     }
@@ -905,6 +1123,7 @@ pub fn anim_draw(
     mut carried: Query<&mut crate::scene_lights::CarriedLights>,
     mut materials: ResMut<Assets<ObjectMaterial>>,
     mut part_materials: Query<&mut MeshMaterial3d<ObjectMaterial>>,
+    mut static_bitmaps: Query<(Entity, &crate::terrain_view::ObjectName, &mut StaticTileBitmap)>,
     gpu: Option<Res<crate::anim_gpu::AnimGpu>>,
     fixed: Res<Time<Fixed>>,
 ) {
@@ -914,6 +1133,16 @@ pub fn anim_draw(
     let ahead = crate::smooth_view::ahead(&fixed);
     let smooth = crate::smooth_view::on();
     let (update, a) = (doors.map_or(sim.updates, |d| d.active.world.updates), fixed.overstep_fraction());
+    if let Some(doors) = doors {
+        for (entity, name, mut bitmap) in &mut static_bitmaps {
+            let pairs = bitmap_pairs(&doors.active.world, &name.0);
+            if bitmap.state.shown == pairs { continue; }
+            let Ok(mut material) = part_materials.get_mut(entity) else { continue };
+            if let Some(changed) = bitmap.apply(&mut material.0, pairs, &sim.swap_images, &mut materials) {
+                sim.log.detail(format!("update {}: {}: static tile bitmap replacements {:?}; {changed} material(s)", sim.updates, name.0, bitmap.state.shown));
+            }
+        }
+    }
     for p in &mut sim.playing {
         // makeTranslucent (characters.md rule 22, M4): every material of
         // every part at n / 255, at once (objects.md "See-through
@@ -972,6 +1201,7 @@ pub fn anim_draw(
                             continue;
                         }
                         let copy = materials.add(m);
+                        p.bitmaps.copied(h, copy.clone());
                         p.own.insert(copy.id(), (copy.clone(), full));
                         *h = copy;
                     }
@@ -1012,41 +1242,17 @@ pub fn anim_draw(
                 log.detail(format!("update {}: {}: mouth shape {shape}: {what} (rule 25)", sim.updates, p.name));
             }
         }
-        // Batch 2 D-6 (`characters.md` rule 4a): the object's changeBmp
-        // pair. When it changes, its own pictures go back, then every
-        // material whose original texture is `old` shows `new`.
-        let wanted = doors.and_then(|d| d.active.world.bmp_swaps.get(&p.name.to_ascii_lowercase()).cloned());
-        if wanted != p.bmp_shown {
-            for (h, image) in p.bmp_saved.drain(..) {
-                if let Some(mut m) = materials.get_mut(&h) {
-                    m.texture = image;
-                }
+        // Shared changeBmp/class adapter; originals are restored before a
+        // new replacement set, including Reveal off and marked Lava tops.
+        let wanted = doors.map_or_else(Vec::new, |d| bitmap_pairs(&d.active.world, &p.name));
+        if wanted != p.bitmaps.shown {
+            let bindings = p.texture_names.iter().filter_map(|(key, name)| {
+                p.new_draw.as_ref()?.materials.get(key).map(|handle| (name.as_str(), handle.clone()))
+            });
+            if let Some(changed) = p.bitmaps.apply(wanted, bindings, &sim.swap_images, &mut materials) {
+                if let Some(nd) = p.new_draw.as_mut() { nd.forget_shown(); }
+                sim.log.detail(format!("update {}: {}: bitmap replacements {:?}; {changed} material(s) (characters.md rule4a; secondary-tile-puzzles.md)", sim.updates, p.name, p.bitmaps.shown));
             }
-            let what = match (&wanted, &p.new_draw) {
-                (None, _) => "its own textures again".to_string(),
-                (Some(_), None) => "not drawn: its animations are not packed".to_string(),
-                (Some((old, new)), Some(nd)) => {
-                    let image = sim.swap_images.get(&new.to_ascii_lowercase()).cloned();
-                    let mut changed = 0;
-                    for (k, original) in p.texture_names.iter().filter(|(_, t)| t.eq_ignore_ascii_case(old)) {
-                        let Some(h) = nd.materials.get(k) else { continue };
-                        // The original name again: its own picture (put back above).
-                        if new.eq_ignore_ascii_case(original) {
-                            continue;
-                        }
-                        let Some(image) = image.clone() else { continue };
-                        if let Some(mut m) = materials.get_mut(h) {
-                            p.bmp_saved.push((h.clone(), m.texture.clone()));
-                            m.texture = Some(image);
-                            changed += 1;
-                        }
-                    }
-                    let note = if new.eq_ignore_ascii_case(old) { "; the same name: its own picture".to_string() } else if image.is_none() { format!("; {new} was not read at load: unchanged") } else { String::new() };
-                    format!("{old} -> {new} on {changed} material(s){note}")
-                }
-            };
-            sim.log.detail(format!("update {}: {}: changeBmp: {what} (characters.md rule 4a)", sim.updates, p.name));
-            p.bmp_shown = wanted;
         }
         // M5 5a-8: a zombie rises (shown) or goes back underground.
         if let (Some(shown), Source::Core(i), Some(d)) = (p.birth_shown, &p.source, doors) {

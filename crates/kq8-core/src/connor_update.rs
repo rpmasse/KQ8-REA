@@ -234,7 +234,7 @@ pub fn tick<'a>(
             // when he starts falling; Q82 b).
             // ropeandhook.md rule 28 (M6 6a-3): not in the rope state;
             // azriel-hammer.md rule 3 (M6 6b-3): nor in the throw state.
-            if fall == Some(FallEvent::Started) && !matches!(walker.mode, Mode::Rope | Mode::Throw | Mode::CombatDie) {
+            if fall == Some(FallEvent::Started) && !walker.controller_owned_input && !matches!(walker.mode, Mode::Rope | Mode::Throw | Mode::CombatDie) {
                 walker.kind = crate::connor::JumpKind::Stand;
                 walker.set_mode(Mode::Fall);
             }
@@ -431,6 +431,38 @@ mod tests {
     }
 
     const STAND: Intent = Intent { forward: 0, turn: 0, run: false };
+
+    #[test]
+    fn secondary_tile_entry_flags_and_withdrawn_support_matrix() {
+        // The completed South entry's installed `0.` flag must move
+        // Connor exactly as the ordinary integer spelling does.
+        for (text,expected) in [("0",0),("0.",0),("1.0",1),("003.000",3),("4294967295.0",u32::MAX)] {
+            let args=format!("Connor {text} 92640 149940 600 0 0 3.14").split_whitespace().map(str::to_owned).collect::<Vec<_>>();
+            let (_,flags,p,turn)=kq8_data::world_script::parse_move(&args).unwrap();
+            assert_eq!((flags,p,turn),(expected,[92640.,149940.,600.],[0.,0.,3.14]));
+        }
+        for text in ["", ".", ".0", "0.1", "1.01", "0..", "+0", "-0", "1e0", "NaN", "inf", "4294967296", "4294967296.0"] {
+            let args=vec!["Connor".into(),text.into(),"0".into(),"0".into(),"0".into()];
+            assert!(kq8_data::world_script::parse_move(&args).is_err(),"unsupported flags {text:?}");
+        }
+        let list=list();let loops=lookup(&list);
+        let mut mover=Mover::new([0.,0.,6000.],true);
+        let mut walker=Walker::new(0.);walker.controller_owned_input=true;
+        let mut started=false;let mut died=false;
+        for _ in 0..120 {
+            let report=tick(&mut mover,&mut walker,STAND,false,&loops,&Plane(0.));
+            if report.report.fall==Some(FallEvent::Started) {
+                started=true;
+                assert_eq!(walker.mode,Mode::Free,"a descending platform must not replace its tile owner with Fall");
+            }
+            if matches!(report.report.fall,Some(FallEvent::Died(_))) {
+                assert_eq!(walker.mode,Mode::Dying,"owning tile input must not suppress physical fall death");
+                died=true;break;
+            }
+        }
+        assert!(started && died,"a withdrawn 6000-unit support must fall and reach ordinary death");
+        assert!(mover.position[2]<6000. && mover.use_gravity);
+    }
 
     #[test]
     fn standing_jump_arc_then_fall_from_0_36_and_jumpend() {

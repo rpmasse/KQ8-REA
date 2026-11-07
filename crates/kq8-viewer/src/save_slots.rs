@@ -79,6 +79,11 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     tile: Option<connor_view::SavedTile>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    secondary_tile: Option<connor_view::SavedSecondaryTile>,
+    /// Recreation bridge effects may remain after their controller exits.
+    #[serde(default,skip_serializing_if="Vec::is_empty")]
+    pending_secondary_calls: Vec<connor_view::SecondaryTileCall>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     rope_camera_locked: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     speech: Option<kq8_core::talk::SavedTalk>,
@@ -132,6 +137,12 @@ impl Snapshot {
     }
 
     fn validate(&self) -> Result<(), String> {
+        if !connor_view::SecondaryTileCall::valid_queue(&self.pending_secondary_calls) {
+            return Err("invalid pending secondary tile effects".into());
+        }
+        if self.secondary_tile.as_ref().is_some_and(|t|!t.valid()) || self.secondary_tile.is_some() && (self.tile.is_some() || self.rope_climb.is_some() || self.choice.is_some() || self.swing.is_some() || self.shot.is_some() || self.talk_pose.is_some() || self.combat_death.is_some()) {
+            return Err("invalid secondary tile continuation or competing controller".into());
+        }
         if !self.journey.terrain_hazards.valid() {
             return Err("save has invalid terrain sound continuation".into());
         }
@@ -384,6 +395,10 @@ impl Snapshot {
         }
     }
 
+    fn restore_secondary_calls(&mut self, live:&mut Vec<connor_view::SecondaryTileCall>) {
+        *live=std::mem::take(&mut self.pending_secondary_calls);
+    }
+
     pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) -> Result<(), String> {
         let actor_view = self.weapon_state.as_ref().map_or(self.view_flags.active,
             |state| state.actor_first_person(self.view_flags.active));
@@ -472,6 +487,8 @@ impl Snapshot {
             }
             if let Some(pose) = &self.talk_pose { connor.restore_talk_pose(pose)?; }
             if let Some(choice) = &self.choice { connor.restore_choice(choice)?; }
+            if let Some(tile) = &self.secondary_tile {connor.restore_secondary_tile(tile)?;}
+            self.restore_secondary_calls(&mut connor.secondary_calls);
             if let Some(climb) = &self.rope_climb { connor.restore_climb(climb)?; }
             if let Some((stones, found)) = tile_stones {
                 if let Some(tile) = &self.tile {
@@ -486,7 +503,7 @@ impl Snapshot {
             return Err("Connor is unavailable while restoring his attack".into());
         } else if self.rope_climb.is_some() {
             return Err("Connor is unavailable while restoring his rope climb".into());
-        } else if self.tile.is_some() {
+        } else if self.tile.is_some() || self.secondary_tile.is_some() || !self.pending_secondary_calls.is_empty() {
             return Err("Connor is unavailable while restoring the Tile puzzle".into());
         }
         if let Some(saved) = &self.camera {
@@ -700,6 +717,8 @@ pub fn save_slot_with_thumbnail(
         rope_place: Some(kq8_core::rope::SavedRope::capture(&sim.active.world.rope, sim.active.world.now())),
         rope_climb: connor.saved_climb()?,
         tile: connor.saved_tile(),
+        secondary_tile: connor.saved_secondary_tile(),
+        pending_secondary_calls: connor.secondary_calls.clone(),
         rope_camera_locked: Some(sim.active.world.rope_first_person_lock),
         speech: Some(sim.active.world.talk.saved(sim.active.world.now())),
         speech_sources: world.get_resource::<crate::talk_view::Speech>().map(|s| s.sources.clone()),
@@ -1111,6 +1130,77 @@ mod tests {
         assert!(snapshot.validate().is_err());
     }
 
+    #[test]
+    fn secondary_tile_pending_effect_snapshot_dispatch_matrix() {
+        use connor_view::SecondaryTileCall as Call;
+        use kq8_core::{active::Clickable,collide::Placement,stats::{ConnorStats,Stats}};
+        let bind=|name:&str,file:&str| {
+            let mut object=Clickable::plain(name,"KQObject",[-1.;3],[1.;3],Placement::at([0.;3]),32);
+            object.script=Some(file.into());object
+        };
+        let active=|| {
+            let mut a=Active::new(Default::default(),vec![],vec![bind("Rtswdoor","door.cs")],
+                ["Connor".into(),"Rtswdoor".into(),"tile24".into(),"tile43".into(),"tile03".into(),"fiendoor".into()],
+                [("door.cs".into(),b"sendEvent 0 Connor KQStatsChangeRequestEvent 0 0 0 0 7\n".to_vec()),
+                 ("tiletps2.cs".into(),b"set ExitCallback $1\nsendEvent 0 Connor KQStatsChangeRequestEvent 0 0 0 0 11\n".to_vec())]);
+            a.set_connor_stats(ConnorStats {level:15,stats:Stats([150,0,0,0,0])});
+            a.world.connor_projectile=Some("original.kq".into());
+            let keys=kq8_data::magic_map::MapKeys::from_section(&kq8_data::kq_text::parse(b"[barren]\nclassType=KQMap\nnorth=100\nsouth=0\neast=100\nwest=0\nfullMap=full.pbm\nblankMap=blank.pbm\nmapName=#42\n")[0]).unwrap().unwrap();
+            a.world.map=Some(kq8_core::magic_map::MapState::new("barren.kq",keys,None,None,None,None));a
+        };
+        let pose=serde_json::to_value(choice_fixture()).unwrap()["choice"]["pose"].clone();
+        let owner=|kind:&str|serde_json::from_value(serde_json::json!({
+            "kind":kind,"can_exit":false,"stage":"Keys","remembered":null,"back":false,"highlighted":null,
+            "sequence":{"previous":null,"valid":false,"revealed":0,"lower_final":false},"solved":false,"saved_projectile":null,
+            "pose":pose.clone(),"mode":"Free","rock":null})).unwrap();
+        let cases=[
+            (Some("Barren"),vec![Call::Cue("tile24".into(),2400,Some("lvtile19.bmp".into())),Call::Sound("T19.aud".into()),Call::Complete,
+                Call::Cue("tile43".into(),2403,None),Call::Cue("tile03".into(),2400,Some("lvtile01.bmp".into()))],50000),
+            (Some("Barren"),vec![Call::Script("tiletps2.cs".into())],11),
+            // Exit has already removed the owner; cleanup still must survive.
+            (None,vec![Call::Line("KQMusic::pop mlava.aud".into()),Call::Cue("tile03".into(),2402,None)],0),
+            (Some("Swamp"),vec![Call::RestoreProjectile(Some("bow.kq".into())),Call::Click("Rtswdoor".into()),Call::Cue("fiendoor".into(),1,None)],7),
+            (None,vec![Call::RestoreProjectile(None)],0),
+        ];
+        for (kind,calls,xp) in cases {
+            let mut saved=fixture();saved.secondary_tile=kind.map(|k|owner(k));saved.pending_secondary_calls=calls.clone();saved.validate().unwrap();
+            let mut restored:Snapshot=serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();restored.validate().unwrap();
+            // Rebinding must replace fresh-entry outputs, not replay them.
+            let mut live=vec![Call::Line("KQMusic::push mlava.aud".into())];restored.restore_secondary_calls(&mut live);
+            assert!(restored.pending_secondary_calls.is_empty());assert_eq!(live,calls);
+            let mut a=active();Call::dispatch(&mut live,&mut a);assert!(live.is_empty());
+            let mut queue=a.world.queue.clone();let pending:Vec<_>=std::iter::from_fn(||queue.take_due(f64::INFINITY)).collect();
+            let cue_targets:Vec<_>=pending.iter().filter(|e|e.kind=="KQCueEvent").map(|e|e.target.as_str()).collect();
+            let expected:Vec<_>=calls.iter().filter_map(|c|if let Call::Cue(n,_,_)=c {Some(n.as_str())} else {None}).collect();
+            assert_eq!(cue_targets,expected,"bridge commands retain their order");
+            let complete=calls.contains(&Call::Complete);
+            if complete {
+                let reward=pending.iter().position(|e|e.target=="Connor" && e.kind=="KQStatsChangeRequestEvent").unwrap();
+                assert_eq!(reward,1,"first reveal precedes reward, then bridge cues");
+                assert!(a.world.solved_tile3);assert_eq!(a.scripts.vars.get("Barren::Tile::Complete"),Some("True"));
+                let icons=&a.world.map.as_ref().unwrap().icons;assert_eq!(icons.len(),1);assert_eq!((icons[0].x,icons[0].y),(155,177));
+                assert_eq!(a.world.sounds.iter().filter(|s|s.name=="T19.aud").count(),1);
+            }
+            if calls.iter().any(|c|matches!(c,Call::Script(_))) {assert_eq!(a.scripts.vars.get("ExitCallback"),Some("StartExit"));}
+            for call in &calls {if let Call::RestoreProjectile(file)=call {assert_eq!(&a.world.connor_projectile,file);}}
+            let before=(a.world.queue.len(),a.world.sounds.len(),a.world.map.as_ref().unwrap().icons.len());
+            Call::dispatch(&mut live,&mut a);assert_eq!((a.world.queue.len(),a.world.sounds.len(),a.world.map.as_ref().unwrap().icons.len()),before);
+            for _ in 0..5 {a.update();}
+            assert_eq!(a.world.connor_stats.unwrap().stats.0[4],xp,"reward and callbacks dispatch once");
+            assert_eq!(a.world.music.len(),usize::from(calls.iter().any(|c|matches!(c,Call::Line(_)))));
+            let mut after=fixture();after.pending_secondary_calls=live;
+            let json=serde_json::to_value(after).unwrap();assert!(json.get("pending_secondary_calls").is_none(),"consumed outputs are not saved again");
+            let old:Snapshot=serde_json::from_value(json).unwrap();assert!(old.pending_secondary_calls.is_empty());old.validate().unwrap();
+        }
+        let valid=[Call::Line("KQMusic::push mlava.aud".into()),Call::Script("tiletpn2.cs".into())];assert!(Call::valid_queue(&valid));
+        let invalid=[Call::Line("deleteObject Connor".into()),Call::Script("other.cs".into()),Call::Click("other".into()),Call::Sound("T4.aud".into()),
+            Call::Cue("tile50".into(),2400,Some("lvtile03.bmp".into())),Call::Cue("tile03".into(),2400,Some("unknown.bmp".into())),
+            Call::Cue("tile03".into(),2403,Some("lvtile01.bmp".into())),Call::Cue("fiendoor".into(),2400,None),Call::RestoreProjectile(Some("bad\nname".into()))];
+        for call in invalid {let mut s=fixture();s.pending_secondary_calls=vec![call];assert!(s.validate().unwrap_err().contains("pending secondary"));}
+        for calls in [vec![Call::Complete,Call::Complete],vec![Call::RestoreProjectile(None);257]] {let mut s=fixture();s.pending_secondary_calls=calls;assert!(s.validate().is_err());}
+        assert!(Call::valid_queue(&vec![Call::RestoreProjectile(None);256]));
+    }
+
     fn fixture() -> Snapshot {
         let mut sim = active();
         sim.scripts.vars.set("Daventry::Waterfall", "1".into());
@@ -1206,6 +1296,8 @@ mod tests {
             rope_place: None,
             rope_climb: None,
             tile: None,
+            secondary_tile: None,
+            pending_secondary_calls: Vec::new(),
             rope_camera_locked: None,
             speech: None,
             speech_sources: None,

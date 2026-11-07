@@ -50,6 +50,8 @@ pub struct Journey {
     /// Rust continuation only; native immunity/audio persistence is untested.
     #[serde(default)]
     pub terrain_hazards: crate::terrain_hazards::Saved,
+    #[serde(default)]
+    pub solved_tile3: bool,
     /// His item objects, as they were (place `Carried("Connor")`).
     pub items: Vec<ItemObject>,
     pub hand: Option<String>,
@@ -108,6 +110,7 @@ impl Journey {
             stats: w.connor_stats,
             last_hit_kind: w.connor_last_hit,
             terrain_hazards: w.terrain_hazards.checkpoint(w.now()),
+            solved_tile3: w.solved_tile3,
             items: w.items.objects.iter().filter(|o| o.carried_by(CONNOR)).cloned().collect(),
             hand: w.hand.clone(),
             weapon_ready: w.weapon_ready.clone(),
@@ -178,6 +181,7 @@ impl Journey {
         w.connor_stats = self.stats;
         w.connor_last_hit = self.last_hit_kind;
         w.terrain_hazards = self.terrain_hazards.restore(w.now());
+        w.solved_tile3 = self.solved_tile3;
         // The bottom bar takes the numbers after a stats event
         // (`interface.md` rule 24).
         w.connor_stats_events += 1;
