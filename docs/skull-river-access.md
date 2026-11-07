@@ -74,11 +74,60 @@ Its label is SkullWesternArcherReload. Slot-2 is the encounter save.
 Use this continuation for the next stage; do not repeat the passed
 encounter merely to recover the same state.
 
+## Return portal and earned healing
+
+The installed PORTRAP6.CS override returns Connor to (63691,110436,1584),
+sets TwoOn, ThreeOn, FourOn and FiveOn true and SixOn false, restores the
+three involved portal masks to 4, and returns control without awarding
+XP again. Its paired setThirdPerson calls restore the preceding view;
+first person after this sequence agrees with camera.md rule 7.
+
+The first portal viewer passed and wrote a genuine SkullReturnPortal
+save. Its test then failed after 36.86 seconds because the Cue 5
+assertion looked in doors.log; the event is in traps.log at update 161.
+The corrected assertion finds exactly one occurrence in that existing
+log. The successful traversal was not repeated.
+
+The first resumed well attempt reached (67035,105055,1584), but the
+automatic aim could not see well2 from first person. It failed after
+21.61 seconds without healing. The next attempt used the ordinary F2
+key while standing to select the third-person view used by earlier
+well routes. It passed once in **40.30 seconds** across the well leg and
+a fresh-process reload. Fourteen visible clicks each invoked the
+original five-health event, restoring 52 to the level-12 maximum 120.
+
+Inventory, XP, quest flags, the held Rock and defeated skeleton17 remain
+unchanged. Skeleton16 remains present. Portal flags and masks persist,
+and original Options.cs remains unchanged. Final stats are
+[120,85,27,11,2074], level 12. Genuine continuation:
+
+`kq8-artifacts/earned-skull-return-well/1794045759136946000/slots/slot-3.json`
+
+The label is SkullReturnWellReload, at (66544,104638,1584), in third
+person. Evidence logs: skull-return-well-native.log (wrong-log assertion),
+skull-return-well-resumed.log (first-person aim failure), and
+skull-return-well-third-person.log (pass).
+
+The command, from the repository root, is:
+
+```powershell
+$env:KQ8_GAME_DIR=(Resolve-Path -LiteralPath "../King's Quest 8 GOG").Path
+$env:KQ8_SKULL_WESTERN_ARCHER_SLOT=(Resolve-Path -LiteralPath 'kq8-artifacts/earned-skull-river-guards/1794045168852782700/slots/slot-3.json').Path
+# Use the genuine return checkpoint to avoid repeating its completed leg.
+$env:KQ8_SKULL_RETURN_PORTAL_SLOT=(Resolve-Path -LiteralPath 'kq8-artifacts/earned-skull-return-well/1794045576576558000/slots/slot-2.json').Path
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::skull_return_portal_and_sylph_healing_preserve_the_earned_victory -- --ignored --exact --nocapture
+```
+
+Expected: one passing test, fourteen original healing events, full health
+and matching saved/restored state. Omitting KQ8_SKULL_RETURN_PORTAL_SLOT
+also runs the portal leg. That corrected combined entry point compiled;
+the recorded native evidence uses the successful portal checkpoint and
+the passing continuation, rather than repeating the completed leg.
+
 ## Remaining work
 
-Connor has 52 health. Check an earned healing route through the return
-portal and Sylph's well before committing to the second archer. Complete
-that encounter, the original block/jump crossing, good-skull pickup and
+Return through portal5 with full health, then complete the second archer,
+the original block/jump crossing, good-skull pickup and
 replacement clicker, statue/feather/scales and the remaining campaign.
 The jumping route and skull pickup are **not tested successfully**.
 No runtime source changed in this step; unrelated core tests were not

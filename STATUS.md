@@ -1,5 +1,56 @@
 # STATUS
 
+## 2026-11-07 Earned return-portal healing and reload pass
+
+The continuation from the genuine SkullReturnPortal save passes once
+in 40.30 seconds. Normal F2 selects third person while standing, then
+the reached well route and 14 visible clicks heal 52 to 120. A fresh
+process restores level-12 stats [120,85,27,11,2074], unchanged inventory
+and quest flags, skeleton17's completed death, skeleton16 still present,
+the Rock-held plate and the patched return-portal flags/masks.
+Original Options.cs preservation passes. Evidence:
+skull-return-well-third-person.log.
+
+Genuine continuation:
+earned-skull-return-well/1794045759136946000/slots/slot-3.json,
+SkullReturnWellReload at (66544,104638,1584). The successful portal leg
+was not repeated; its corrected Cue 5 assertion was checked against the
+existing trap log (one occurrence). The log-selection failure and the
+first-person aim failure below are retained. Next return through portal5
+and defeat skeleton16 before the river crossing. No runtime changes or
+manual testing. Estimates remain M4 80%, M5 60%, M6 25%.
+[Commands and limits](docs/skull-river-access.md#return-portal-and-earned-healing)
+
+## 2026-11-07 Well reached; first-person target selection failed
+
+The resumed route reaches the original well approach at update 114,
+(67035,105055,1584), but its automated aim cannot see well2 after a full
+camera turn. It exits after 21.61 seconds without healing or a new save.
+Evidence: skull-return-well-resumed.log and
+earned-skull-return-well/1794045670622607100/SkullReturnWell.
+
+The original return portal's paired setThirdPerson calls correctly
+restore the preceding first-person preference (camera.md rule 7).
+Earlier successful well routes used third person. The next check uses
+the normal F2 key while standing after loading the genuine return save,
+then follows the same reached path and visible clicks. No camera or
+gameplay rule is changed; this is one failed well-view attempt. The
+already successful portal leg is not repeated. M4 80%, M5 60%, M6 25%.
+
+## 2026-11-07 Northwest return portal saved; assertion used the wrong log
+
+The original patched portrap6 sequence returns Connor at update 161 to
+(63691,110436,1584), with unchanged [52,85,27,11,2074] level-12 stats.
+The native viewer reports PASS and writes SkullReturnPortal in
+earned-skull-return-well/1794045576576558000/slots/slot-2.json. The test
+then fails after 36.86 seconds because its Cue 5 assertion inspected
+doors.log; the callback appears once in traps.log at update 161.
+
+The assertion now reads the trap log. Resume from this genuine return
+save for the well leg; do not repeat the successful portal traversal.
+Evidence: skull-return-well-native.log and the run's trap/viewer logs.
+No runtime rule changed. M4 80%, M5 60%, M6 25% remain estimates.
+
 ## 2026-11-07 Earned western skull archer and reload pass
 
 After the projectile-path audit below, the revised encounter passes
