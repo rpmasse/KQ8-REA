@@ -3,6 +3,17 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Supplied western patrol and restored victory.** The installed Dead
+City monster table and its loaded stats give skeleton55 250 health,
+20 damage, 20 protection and 500 experience. The initial resources
+come from the verified first-hall supply route. Fighting rules 39–41
+describe normal clicks and Shift-click Attack2; the latter's damage
+factor is the installed Connor.kq range, not a test adjustment.
+The two failed repeat encounters are retained separately from the
+real exploratory victory and its passing fresh-process reload.
+[Combat study](../behaviour/fighting.md#9-connor-hitting-back),
+[route and results](../dead-city-progression.md#the-western-patrol)
+
 **Route key presses after scripted turning.** Connor movement,
 Turning rule 2, states that a held turn key sends no new event when
 an automatic turn completes: the player must release and press it

@@ -1,5 +1,32 @@
 # STATUS
 
+## 2026-11-07 Western patrol victory, reload and repeat failures
+
+The supplied exploratory encounter defeated skeleton55 on update 556;
+its death completed on 591, awarding exactly 500 experience. The
+genuine `WesternPatrol` save has 11 health and 2317 experience at
+level nine. Its independent fresh-process reload passed in 10.14
+seconds and retains both weapons without another award. The GOG
+Options.cs remains unchanged. The verified saved checkpoint is now
+`WesternPatrolReload`, but a reliable replay of this fight is open.
+
+Two canonical encounter checks failed. Plain-swing retreat ended in
+death on update 592 with the enemy at 15 health. The documented
+Shift-click big swing was then checked through the existing input
+path: two hits left the enemy at 10 health, but Connor's health fell
+below zero on 586 and the route observed Die on 590. Stop further
+melee variations. These do not establish an engine defect. Audit
+ordinary ranged combat or a specific input issue before another
+encounter attempt. The ignored route regression is explicitly
+marked known failing; the reload test is a separate passing check.
+
+Local evidence: successful exploratory route
+`dead-road-suppliedpatrol/1794021424532`; failed canonical cases
+`earned-western-patrol/1794021520583052600` and
+`1794021685168491800`; passing reload
+`western-patrol-victory-reload/1794021785994312500`.
+[Checks and exact commands](docs/dead-city-progression.md#the-western-patrol)
+
 ## 2026-11-07 Boatman approach and input handoff
 
 The supplied river run reached its final waypoint at update 1044

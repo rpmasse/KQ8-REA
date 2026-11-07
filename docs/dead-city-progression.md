@@ -196,6 +196,36 @@ east. The corrected route walks at x 161885 through the gap, using
 a 90-unit arrival radius, then resumes running. It preserves both
 colliders and all enemy and quest state.
 
+## The western patrol
+
+Starting with the earned 47-health `CorridorSuppliesReload`, the
+exploratory ordinary-retreat fight defeated skeleton55. Its 500-point
+death award leaves 2317 experience at level nine, with 11 health.
+The separate fresh-process reload check passed in 10.14 seconds:
+it preserves those stats, both weapons and the removed guard, without
+repeating the award or changing the GOG Options.cs.
+
+This is not a reliable encounter replay yet. The canonical plain-swing
+repeat died with the enemy at 15 health. The original Shift-click big
+swing was then checked through the existing input dispatcher; two hits
+left 10 enemy health, but Connor died. Further melee variations are
+stopped. The encounter regression remains ignored with an explicit
+known-failing reason. The successful exploratory save and the two
+failed replays are all retained locally; no health, enemy rules or
+quest flags were changed. Weeper15 and the boatman route remain open.
+
+To check only the successful victory's restoration, set
+`KQ8_WESTERN_PATROL_SLOT` to a genuine `WesternPatrol` save, then run:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::saved_western_patrol_victory_reloads_without_another_award -- --ignored --exact --test-threads=1
+```
+
+The retained failing encounter check is
+`dead_city::supplied_western_patrol_victory_and_award_reload`, with
+optional earned input `KQ8_CORRIDOR_SUPPLIES_SLOT`. It currently
+reproduces death before saving; do not count it as a passing route.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -226,6 +256,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::northern_drops_equip_mace_and_heal_before_the_cell_gate` | `KQ8_NORTH_JUNCTION_SLOT` (`NorthJunctionReload`) | `NorthSuppliesReload` |
 | `dead_city::outer_mace_guard_retreats_after_running_and_reloads` | `KQ8_NORTH_SUPPLIES_SLOT` (`NorthSuppliesReload`) | `OuterGuardReload` |
 | `dead_city::first_hall_supplies_heal_the_return_to_the_outer_corridor` | `KQ8_OUTER_GUARD_SLOT` (`OuterGuardReload`) | `CorridorSuppliesReload` |
+| `dead_city::saved_western_patrol_victory_reloads_without_another_award` | Required genuine `KQ8_WESTERN_PATROL_SLOT` (`WesternPatrol`) | `WesternPatrolReload`; reload only |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

@@ -13,6 +13,49 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 supplied western patrol encounter (2026-11-07).** The latest
+earned `CorridorSuppliesReload` has 47 health, rather than the 16
+health in the stopped western-patrol duels. The second old duel
+left skeleton55 at 28 health after two hits killed Connor. Its
+original stats are 250 health, 20 damage, 20 protection and a
+500-point death award. Reuse the already-audited walking retreat
+inputs from this genuinely replenished checkpoint, keeping the
+Mace, original damage and normal AI. This is a resource change,
+not another running-route variation or a combat-rule adjustment.
+First checkpoint and reload only this victory. Do not extend the
+route toward weeper15 until that boundary is verified. The Weeper
+has 175 health, 25 damage, 10 protection and 575 experience in the
+loaded original data; its encounter is still untested. If both
+awards are eventually earned, 1817 + 500 + 575 exceeds the original
+level-nine threshold of 2560, but this calculation is not a claim
+that either fight has passed. Preserve each native attempt's logs.
+
+The supplied plain-swing exploratory run won with 11 health and
+2317 experience; its canonical repeat died with skeleton55 at 15
+health. Stop repeating that tactic. Fighting rules 39–41 document
+the player's Shift-click big swing: Attack2, with the installed
+Connor damage-factor range 0.75–4. The existing ordinary combat
+replay already supports this input and has used it in earlier earned
+encounters. Check the explicit big-swing input against this patrol
+instead of the bait/retreat controller's plain swings, keeping the
+same 47-health source and unchanged combat implementation. Record
+both plain-swing outcomes, and require the new tactic and a fresh
+save/load to pass before calling the route verified.
+
+The big-swing check also failed: two hits left the enemy at 10
+health, but Connor's health fell below zero on update 586 and the
+route observed Die on update 590. Stop further melee variations.
+The two failing native replays are retained as a known-failing,
+ignored regression, separate from the successful exploratory save.
+Check that genuine victory's fresh-process restoration independently;
+passing that check cannot establish reliable replay of the encounter.
+Any further approach needs a source/input audit, not more retries of
+these tactics. The carried Small Crossbow has not been tried here.
+The separate saved-victory reload passed in 10.14 seconds, preserving
+11 health, level nine, 2317 experience and both weapons without
+repeating the award. This verifies the genuine exploratory save;
+the repeated encounter remains open.
+
 **M4–M6 re-press a turn after a scripted turn ends (2026-11-07).**
 The second boatman run stayed at his talking spot. The log shows
 Right pressed on 1084, followed by a camera-line automatic turn that

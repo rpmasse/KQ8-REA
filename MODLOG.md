@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-07 Preserve the western patrol victory and failed replays
+
+Added an automated check that restores a genuine western-patrol
+victory and saves it in a fresh Windows process. It passed in 10.14
+seconds: 11 health, level nine, 2317 experience, the Mace and Small
+Crossbow retained, no repeated death award and unchanged GOG options.
+
+The supplied exploratory fight passed, but its canonical plain-swing
+repeat died with skeleton55 at 15 health. A source-backed check of
+the original Shift-click attack also died, leaving 10 enemy health.
+The complete encounter regression remains ignored and explicitly
+marked known failing. Stop further melee variations; the independent
+reload result does not establish a reliable fight replay. No engine
+combat rules changed. [Route and commands](docs/dead-city-progression.md#the-western-patrol)
+
 ## 2026-11-07 Re-press route turns after scripted turns
 
 The unattended walking driver releases a requested held turn key
