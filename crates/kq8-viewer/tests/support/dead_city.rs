@@ -1354,3 +1354,76 @@ fn saved_western_patrol_victory_reloads_without_another_award() {
         play.options
     );
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_WESTERN_PATROL_RELOAD_SLOT"]
+fn earned_crossbow_defeats_the_river_weeper_and_restores_its_award() {
+    let play = Play::new("earned-river-weeper");
+    let source = earned_slot("KQ8_WESTERN_PATROL_RELOAD_SLOT")
+        .expect("set KQ8_WESTERN_PATROL_RELOAD_SLOT to an earned WesternPatrolReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "WesternPatrolReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["level"], 9);
+    assert_eq!(start["journey"]["stats"]["stats"][4], 2317);
+    assert!(carries_one(&start, "INVITEM_Mace"));
+    assert!(carries_one(&start, "INVITEM_SmCrossbow"));
+    let path = play.root.join("river-weeper.json");
+    let route = json!({"start":25,"landmarks":[
+        {"name":"Follow the cleared river approach 1","xy":[92000,153250],"radius":230,"run":true},
+        {"name":"Follow the cleared river approach 2","xy":[88500,157000],"radius":230,"run":true},
+        {"name":"Follow the cleared river approach 3","xy":[88250,158000],"radius":230,"run":true},
+        {"name":"Follow the cleared river approach 4","xy":[82000,158750],"radius":230,"run":true},
+        {"name":"Use the earned Small Crossbow against the river Weeper","xy":[74250,158750],
+            "radius":180,"run":true,"fight":"weeper15","ranged":true}
+    ]});
+    fs::write(&path, serde_json::to_vec(&route).unwrap()).unwrap();
+    let (won, viewer) = leg(
+        &play,
+        1,
+        "RiverWeeper",
+        900,
+        &[
+            "--walk-route",
+            path.to_str().unwrap(),
+            "--key",
+            "physical:F2,3",
+        ],
+    );
+    assert!(viewer.contains("walk-route selects the ranged weapon slot for weeper15"));
+    assert!(viewer.lines().any(|line| line
+        .contains("test --aim weeper15 (camera through gameplay pixel")
+        && line.contains("the aim pick meets character weeper15")));
+    assert!(viewer.contains("walk-route at Use the earned Small Crossbow against the river Weeper"));
+    let combat = log(&play, "RiverWeeper", "fight.log");
+    assert!(combat.contains("weeper15: hit by Connor, Projectile"));
+    assert_eq!(
+        combat
+            .matches("weeper15: its death ended (rule 32)")
+            .count(),
+        1
+    );
+    assert!(!combat.contains("test --swing weeper15"));
+    let (restored, _) = leg(&play, 2, "RiverWeeperReload", 45, &[]);
+    for saved in [&won, &restored] {
+        assert_eq!(saved["journey"]["stats"]["level"], 10);
+        assert_eq!(
+            saved["journey"]["stats"]["stats"],
+            json!([100, 75, 23, 9, 332])
+        );
+        assert!(saved["kept"]["deadcity"]["gone"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|name| name == "weeper15"));
+        assert!(carries_one(saved, "INVITEM_Mace"));
+        assert!(carries_one(saved, "INVITEM_SmCrossbow"));
+        assert_eq!(saved["view_flags"]["active"], true);
+    }
+    assert!(!log(&play, "RiverWeeperReload", "fight.log")
+        .contains("weeper15: its death ended (rule 32)"));
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+}

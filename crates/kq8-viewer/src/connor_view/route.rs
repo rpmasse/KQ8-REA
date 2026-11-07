@@ -30,6 +30,9 @@ struct Landmark {
     tile_jump: bool,
     /// Stop here and use ordinary hand-weapon attacks against this character.
     fight: Option<String>,
+    /// Select the ranged HUD slot and use visible world clicks for this fight.
+    #[serde(default)]
+    ranged: bool,
     /// Continue to the next opponent without pressing the Away key.
     #[serde(default)]
     keep_weapon: bool,
@@ -113,6 +116,7 @@ impl Replay {
                     || (l.aim.is_some() && l.click.is_some())
                     || (l.fight.is_some() && l.break_object.is_some())
                     || (l.retreat && l.fight.is_none())
+                    || (l.ranged && (l.fight.is_none() || l.retreat || l.big_swing.is_some()))
                     || ((l.keep_weapon || l.heal.is_some()) && l.fight.is_none())
                     || l.heal.is_some_and(|h| !(1..=4).contains(&h.slot) || h.at_health <= 0)
                     || l.inventory_slot.is_some_and(|n| !(1..=crate::gui_view::INVENTORY_DIGITS.len()).contains(&n)
@@ -159,6 +163,7 @@ pub fn steer(
     doors: Option<Res<DoorSim>>,
     gui: Option<Res<crate::gui_view::Gui>>,
     mut swings: ResMut<SwingAt>,
+    mut gui_keys: ResMut<crate::gui_view::KeyAt>,
     shared: Res<Shared>,
     mut exit: MessageWriter<AppExit>,
 ) {
@@ -277,8 +282,10 @@ pub fn steer(
         Some(target) => doors.active.scripts.vars.get(&target.name) == Some(target.value.as_str()),
         None => distance <= landmark.radius && moving_out,
     };
-    if (landmark.scene.is_none() && arrived) || (landmark.retreat && replay.fight_start.is_some()) {
+    if (landmark.scene.is_none() && arrived)
+        || ((landmark.retreat || landmark.ranged) && replay.fight_start.is_some()) {
         let retreat = landmark.retreat;
+        let ranged = landmark.ranged;
         if let Some(name) = landmark.fight.clone().or_else(|| landmark.break_object.clone()) {
             let keep_weapon = landmark.keep_weapon;
             let heal = landmark.heal;
@@ -345,7 +352,32 @@ pub fn steer(
                     let slot = heal.map_or(1, |h| h.slot);
                     wanted.push(crate::gui_view::INVENTORY_DIGITS[slot - 1].0);
                 }
-                if world.weapon_ready.is_none() {
+                if ranged {
+                    // First-person shots do not turn Connor toward the click.
+                    // Face the live target using his ordinary turn keys first.
+                    if sim.first_person {
+                        if let Some(target) = world.character_index(&name).map(|i| world.anims[i].player.base.position) {
+                            let error = wrap(heading_towards(pos, [target[0], target[1]]) - sim.walker.heading);
+                            if let Some(key) = turn_key(&sim, error) {
+                                wanted.push(key);
+                                replay.keys(&mut keys, &wanted);
+                                return;
+                            }
+                        }
+                    }
+                    if world.weapon_mode != kq8_core::weapons::WeaponMode::Ranged {
+                        if (tick - began) % 20 == 0 {
+                            gui_keys.0.push(("left:IDCTL_INVBAR_LONG".into(), tick));
+                            shared.log.lock().unwrap().summary(format!(
+                                "walk-route selects the ranged weapon slot for {name} on update {tick}"
+                            ));
+                        }
+                    } else if tick % 12 == 0 {
+                        // Use the normal on-screen ray, including nearer geometry.
+                        // The shot controller decides whether this click is accepted.
+                        aims.landmark = Some((name, tick));
+                    }
+                } else if world.weapon_ready.is_none() {
                     if (tick - began) % 20 == 0 {
                         wanted.extend(sim.controls.draw);
                     }

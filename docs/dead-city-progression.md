@@ -226,6 +226,35 @@ The retained failing encounter check is
 optional earned input `KQ8_CORRIDOR_SUPPLIES_SLOT`. It currently
 reproduces death before saving; do not count it as a passing route.
 
+## The river Weeper
+
+The earned `WesternPatrolReload` save continues along the cleared
+road to a firing position near (74250,158750). Connor switches to
+first person while standing, selects his Small Crossbow through the
+ordinary HUD, faces weeper15 and fires through visible gameplay rays.
+Ten projectile hits defeat it. Its one 575-point award raises Connor
+from level nine to ten and restores health from 11 to 100, leaving
+332 experience. The two-process check passed in 76.51 seconds and
+restores the victory, both weapons and those stats as
+`RiverWeeperReload`. Normal AI and damage remain enabled; GOG options
+are unchanged.
+
+The route's new `ranged: true` fight modifier selects and uses the
+normal ranged weapon. First-person facing uses ordinary turn keys.
+The visibility gate uses the original ranged aim mask, rather than
+the interaction mask that excludes enemies. Geometry can still block
+shots. Earlier preflight attempts and the unrelated F2/stoprun stall
+are recorded in STATUS and Q200. The stall remains unresolved; this
+passing route changes view before it starts moving. The boatman and
+the rest of the regional quest remain open.
+
+Set `KQ8_WESTERN_PATROL_RELOAD_SLOT` to a genuine
+`WesternPatrolReload` save and use the configured GOG installation:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::earned_crossbow_defeats_the_river_weeper_and_restores_its_award -- --ignored --exact --test-threads=1
+```
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -257,6 +286,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::outer_mace_guard_retreats_after_running_and_reloads` | `KQ8_NORTH_SUPPLIES_SLOT` (`NorthSuppliesReload`) | `OuterGuardReload` |
 | `dead_city::first_hall_supplies_heal_the_return_to_the_outer_corridor` | `KQ8_OUTER_GUARD_SLOT` (`OuterGuardReload`) | `CorridorSuppliesReload` |
 | `dead_city::saved_western_patrol_victory_reloads_without_another_award` | Required genuine `KQ8_WESTERN_PATROL_SLOT` (`WesternPatrol`) | `WesternPatrolReload`; reload only |
+| `dead_city::earned_crossbow_defeats_the_river_weeper_and_restores_its_award` | Required genuine `KQ8_WESTERN_PATROL_RELOAD_SLOT` (`WesternPatrolReload`) | `RiverWeeperReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

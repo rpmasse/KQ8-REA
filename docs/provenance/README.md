@@ -3,6 +3,18 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Earned ranged route.** Ranged-weapons rules 1, 13–16 and 20 describe
+the ordinary HUD selection, click masks, first-person facing and
+standing shots. The unattended player uses those existing input paths;
+it does not dispatch damage or change projectile/AI rules. The GOG
+Dead City monster table supplies weeper15 and its 575-point award.
+Fighting rule 32 and the stats rules supply death completion and
+level-up. The two-process earned encounter verifies the resulting
+award and save continuity. The native F2/stoprun anomaly is recorded
+as Q200; no original behavior is inferred from that Rust failure.
+[Ranged study](../behaviour/ranged-weapons.md),
+[native result](../dead-city-progression.md#the-river-weeper)
+
 **Supplied western patrol and restored victory.** The installed Dead
 City monster table and its loaded stats give skeleton55 250 health,
 20 damage, 20 protection and 500 experience. The initial resources

@@ -1,5 +1,42 @@
 # STATUS
 
+## 2026-11-07 Earned crossbow clears the river Weeper
+
+The two-process campaign check passed in 76.51 seconds. From the
+genuine `WesternPatrolReload` save, Connor selects the Small Crossbow
+through the normal HUD, turns toward weeper15 in first person and
+shoots through visible gameplay rays. Ten ordinary projectile hits
+defeat it on update 395. Its death completes on 415 and awards 575
+experience once: level nine becomes ten, health 11 becomes 100,
+and the remaining experience is 332. The fresh `RiverWeeperReload`
+retains stats [100,75,23,9,332], both weapons, first-person view and
+the defeated Weeper, without another award. God mode and AI-off are
+false, and the GOG Options.cs is unchanged. Evidence is local
+`earned-river-weeper/1794022916871220500`.
+All 877 standard workspace tests pass after the final input changes.
+
+The new ranged route uses the normal ranged HUD slot and existing
+shot path. Its visibility check needed the ranged aim mask; the
+plain interaction mask excludes ordinary enemies. In first person,
+the replay must turn Connor before requesting the visible shot.
+Original damage, collision, animation and enemy rules are unchanged.
+
+Earlier attempts never fired: third-person preflight encountered
+doorway2 and used the wrong target mask; F2 during stoprun stalled
+movement; standing F2 reached the firing point but the same mask
+rejected the enemy; the corrected-mask run needed an ordinary turn
+to bring it on screen. Logs remain in `dead-road-riverweeper`
+(`1794022218511`, `1794022339903`, `1794022499420`) and
+`earned-river-weeper/1794022717757448500`.
+
+The mid-transition F2 case remains open as Q200. Forward stays active,
+but the current Rust refresh replays stoprun after its transition
+finishes and holds the last frame. The existing Q193 note is not
+precise enough to change that behavior without study. This route
+switches view while standing; it does not fix that separate case.
+The reliable western-patrol replay and the boatman, skull, feather
+and scales still remain open. [Route and command](docs/dead-city-progression.md#the-river-weeper)
+
 ## 2026-11-07 Western patrol victory, reload and repeat failures
 
 The supplied exploratory encounter defeated skeleton55 on update 556;
