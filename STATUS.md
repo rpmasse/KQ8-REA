@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-07 Original credits presentation completed
+
+Credits now uses all 25 original cards, authored mixed-font rows and
+output-pixel layout, real-time deadlines, no key/click skipping, a final
+photograph and late level/experience scoring. Escape and final expiry
+fade the menu theme for one second and return to Main. Both grouped
+core matrices pass; the viewer target compiles and one native
+Options → Credits → Main route passes in 12.14 seconds without retry.
+The two original-data assertion failures and their corrections remain
+recorded. Successful clock/movie/interface checks are not repeated.
+
+The ending's existing EndGame teardown makes late scoring see no active
+Connor; whether that original lifetime boundary is faithful remains
+assigned to study A. Audible fade quality and full campaign ending are
+not tested by the sound-off native route. No manual testing.
+Estimates: M4 about 85%, M5 60%, M6 about 25%.
+[Commands, results and limits](docs/credits-completion.md)
+
 ## 2026-11-07 Arrival-driver cause isolated; tile implementation started
 
 The original-list Walker/Mover probe reproduces the small-radius orbit:

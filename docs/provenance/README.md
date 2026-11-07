@@ -3,6 +3,14 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Original credits presentation.** Study A's credits-completion.md and
+original GUI/font/palette/message data supply card cadence, mixed row
+layout, photo placement, no-skip input, late score and exit fade. The
+original-data matrix corrected A's terminal-newline count to 132 rows/
+128 seconds and confirmed the optional-palette fallback. Both core
+matrices and one native menu flow pass; full ending lifetime and audible
+fade remain unverified. [Evidence](../credits-completion.md).
+
 **Scripted preparation and health.** Study A's scripted-controller-
 commands.md rules 1–4 supply preSpecial and reduceHealth semantics.
 Implementation uses this prose, existing shared animation/stat paths and

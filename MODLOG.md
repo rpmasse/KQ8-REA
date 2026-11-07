@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-07 Original credits timing, layout and score
+
+Replaced fixed-duration/key-skipping credits with original line-count
+real-time deadlines, mixed-font rows, photo placement and final-card
+level/current-experience scoring. Both entry routes share the same screen;
+doCredits has no score argument. Exit fades the retained theme and returns
+to Main. Both core matrices pass; viewer compilation takes 140 seconds
+and one native flow passes in 12.14 seconds. The source parser already
+matched terminal-newline and optional-palette rules; erroneous data
+expectations were corrected with both failed logs retained. Original
+ending active-state lifetime remains a separate unresolved integration.
+[Exact commands and evidence](docs/credits-completion.md)
+
 ## 2026-11-07 Route-driver diagnosis and next shared controller batch
 
 A bounded original-list Walker/Mover probe reproduces the 25-unit
