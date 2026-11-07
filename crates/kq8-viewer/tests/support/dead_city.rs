@@ -2,6 +2,64 @@
 
 
 #[test]
+#[ignore = "requires GOG assets, graphics and genuine KQ8_GOOD_SKULL_SLOT"]
+fn skull_chamber_potion_is_earned_and_reloaded_with_the_good_skull() {
+    let play = Play::new("earned-skull-chamber-potion");
+    let source = earned_slot("KQ8_GOOD_SKULL_SLOT")
+        .expect("set KQ8_GOOD_SKULL_SLOT to a genuine GoodSkullReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "GoodSkullReload");
+    assert!(carries_one(&start, "INVITEM_GoodSkull"));
+    assert!(!carries_one(&start, "INVITEM_Invulnerable"));
+    let item = start["items"].as_array().unwrap().iter()
+        .find(|item| item["kind"] == "INVITEM_Invulnerable"
+            && item["place"]["World"]["position"] == json!([33111.,203729.,2000.])).unwrap();
+    let name = item["name"].as_str().unwrap();
+    let path = play.root.join("north-bank-potion.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":[
+        {"name":"Collect the original skull chamber potion","xy":[32750,204000],
+            "radius":100,"run":false,"aim":name}
+    ]})).unwrap()).unwrap();
+    let (taken, viewer) = leg(&play, 1, "SkullChamberPotion", 180,
+        &["--walk-route",path.to_str().unwrap()]);
+    assert!(viewer.lines().any(|line| line.contains(&format!("test --aim {name} (camera through gameplay pixel"))
+        && line.contains(&format!("hits {name} first"))));
+    assert!(log(&play, "SkullChamberPotion", "items.log")
+        .contains("IN REACH: picked up; Connor's INVITEM_Invulnerable 0 -> 1"));
+    let (restored, _) = leg(&play, 2, "SkullChamberPotionReload", 45, &[]);
+    for saved in [&taken,&restored] {
+        assert_eq!(saved["world"], "DeadCity");
+        assert!(carries_one(saved, "INVITEM_GoodSkull"));
+        assert!(carries_one(saved, "INVITEM_Invulnerable"));
+        let potion = saved["journey"]["items"].as_array().unwrap().iter()
+            .find(|item| item["kind"] == "INVITEM_Invulnerable").unwrap();
+        assert_eq!(potion["name"], name);
+        assert_eq!(potion["place"]["Carried"], "Connor");
+        let other: Vec<_> = saved["journey"]["items"].as_array().unwrap().iter()
+            .filter(|item| item["kind"] != "INVITEM_Invulnerable").cloned().collect();
+        assert_eq!(other, start["journey"]["items"].as_array().unwrap().clone());
+        for field in ["stats","flags","potions"] {
+            assert_eq!(saved["journey"][field], start["journey"][field]);
+        }
+        for field in ["object_copies","vars"] {
+            assert_eq!(saved["kept"]["deadcity"][field], start["kept"]["deadcity"][field], "{field}");
+        }
+        let mut expected_gone = start["kept"]["deadcity"]["gone"].as_array().unwrap().clone();
+        expected_gone.push(json!(name.to_ascii_lowercase()));
+        expected_gone.sort_by(|a,b| a.as_str().unwrap().cmp(b.as_str().unwrap()));
+        expected_gone.dedup();
+        assert_eq!(saved["kept"]["deadcity"]["gone"], json!(expected_gone));
+        let plate = |save: &Value| save["traps"]["states"].as_array().unwrap().iter()
+            .find(|trap| trap["name"] == "triptrp5").unwrap()["inside"].clone();
+        assert_eq!(plate(saved), plate(&start));
+    }
+    assert_eq!(taken["journey"]["items"], restored["journey"]["items"]);
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+
+
+#[test]
 #[ignore = "requires GOG assets, graphics and genuine KQ8_SKULL_EASTERN_ARCHER_SLOT"]
 fn original_blocks_and_jumps_cross_the_skull_river_and_reload() {
     let play = Play::new("earned-skull-river-crossing");

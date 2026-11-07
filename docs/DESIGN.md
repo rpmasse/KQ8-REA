@@ -13,6 +13,87 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+### Grouped completion and verification (user update, 2026-11-07)
+
+Complete M4–M6 by shared engine behavior, with representative checks
+and broad campaign integration. Do not require a separate native test
+for every item, enemy, puzzle object or authored dialogue branch.
+Existing successful checks remain evidence and are not repeated unless
+a later change affects their rule or an unresolved failure requires it.
+
+| Milestone | Shared implementation groups | Verification scope |
+| --- | --- | --- |
+| M4 | Inventory selection/application; menu and display transitions; dialogue/caption ownership; credits and scoring | Group boundary/transition cases in core checks, then use one representative native flow for each changed behavior family. Audit original data to identify real exceptions. |
+| M5 | Hits/protection; melee/ranged controllers; enemy decision families; death/recovery; terrain hazards | Use parameter/data matrices across weapons and monsters. Native checks establish shared dispatch and state ownership; add cases only for distinct controllers or a failure. Cover ordinary poison/lava/swamp together. |
+| M6 | Script/event coverage; item/object/trigger lifecycle; timed puzzle persistence; world transitions; campaign progression | Audit all regional scripts/data against shared implementations, then use integrated chapter/campaign routes covering multiple quests and transitions per run. Keep earned checkpoints for recovery, not a mandatory fresh process after every pickup. |
+
+A unique asset name or parameter value is not by itself a new engine
+behavior. A new callback type, controller, persistence rule or observed
+failure can justify a focused check. Select representative normal,
+boundary and failure cases together before coding, run that batch once
+successfully, then move on. Broad coverage must still include every
+required behavior and the uninterrupted New Game-to-ending path; this
+changes the verification strategy, not the fidelity or completion target.
+Manual testing remains deferred until the Rust recreation is complete.
+
+**M5 ordinary terrain-liquid damage (2026-11-07).** Implement the
+confirmed non-ontop, non-special-status rules in terrain-hazards.md:
+material-source priority, configured amounts, Connor-level and world-
+clock arithmetic, the 250-unit depth boundary, immunity and fire/ice
+kind selection. Add a reusable core calculation and dispatch from
+Connor's post-movement position through the ordinary world attack,
+retaining damage rolls, armor, owning-state and death handling. Add the
+documented live addImmune command and confirmed world-hit sound rules.
+Generic objects remain initially terrain-immune. Do not guess ontop
+sinking/restoration, special-status lifecycle or original save-clock
+semantics. Check original-data amounts/boundaries, protection and one
+native world-hit/death sequence; never validate a dangerous campaign
+route merely because the old engine omitted hazard dispatch.
+The implementation agent owns terrain_hazards.rs, lib.rs, active.rs,
+fight.rs, journey.rs, door_view.rs, the narrow connor_view.rs hurt-sound change,
+tests/terrain_hazards.rs and docs/terrain-liquid-damage.md.
+
+**M4 empty inventory-cell mouse behavior (2026-11-07).** Inventory
+rules 10 and 12 distinguish right-clicking an empty cell (no action)
+from left-clicking it while a quest item is held (put it back). The
+current GUI resolves both to the held item. Pass the actual button to
+item lookup for both physical-pointer and named diagnostic input, so
+only the left-click return falls back to that item. Use the genuine
+GoodSkullReload save: describe its visible quest item as a positive
+control, hold it, right-click an empty cell, then left-click that cell.
+Verify no second description or hand change on the right-click, normal
+return on the left-click, and unchanged inventory/stats in the save.
+The implementation agent owns gui_view.rs, inventory_empty_slot.rs and
+docs/inventory-empty-slot.md. No new UI or gameplay rules are added.
+
+**M6 return with the earned good skull (2026-11-07).** Preserve the
+GoodSkullReload checkpoint and both earlier archer victories. Plan the
+reverse river crossing with the complete original Conner.anm jump,
+hold and stopping movements through the existing Rust controller and
+mover. The earlier numerical probe omitted horizontal falling motion,
+so it is insufficient to establish a return route from the lower bank.
+Check the original terrain/materials and block bounds for a supported
+launch, collision-free flight and safe final bank position, including
+position and heading error. Native normal-input traversal must then
+preserve the skull and earned state through a save before returning
+through portrap6. Keep original jump distances, damage and collision.
+Use intermediate saves instead of repeating completed crossings.
+
+The central original-motion search finds no return candidate without
+brief deep-liquid exposure. A wider search finds a western-edge route
+near x=27000 that stays above the deep-liquid threshold, including the
+original hold/stop travel. Its river-wall trap clearance and native
+traversal remain to verify in the broader campaign route. Q206 supplies
+the ordinary terrain-damage rules; no native return is claimed.
+Meanwhile, WORLDINV.CS places one Invulnerable potion on the already
+reached north bank at (33111,203729,2000), loaded as NoName49 in this
+earned world. Collect it with normal walking and a camera ray, save
+and reload its exact identity while preserving the GoodSkull, shelf
+replacement and prior campaign state. Do not consume it or assume it
+protects against terrain damage. The pickup and fresh reload now pass
+their corrected recorded-state checks; the potion remains unconsumed.
+The study confirms it raises ordinary protection, not terrain immunity.
+
 **M6 earned good-skull pickup and shelf replacement (2026-11-07).**
 Continue from SkullRiverCrossedReload without repeating the jumps or
 archer fights. The static original terrain/BSP route goes from the

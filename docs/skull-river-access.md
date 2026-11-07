@@ -274,6 +274,47 @@ tests and documentation change; no unrelated core checks are rerun.
 
 ## Remaining work
 
+### North-bank potion and return planning
+
+WORLDINV.CS places NoName49, one Invulnerable potion, at
+(33111,203729,2000). Normal walking and a camera ray collect it, then
+a fresh process restores it alongside the GoodSkull and unchanged
+level-12 stats [39,85,27,11,2474]. Both native legs complete in the
+29.74-second run earned-skull-chamber-potion/1794048357391220700.
+The integration test then incorrectly compares the removed-object list
+without allowing NoName49's normal pickup removal. Corrected checks
+pass against both saved results, and the corrected target compiles
+with --no-run in 16.13 seconds. No native sequence is repeated.
+The final Options.cs byte assertion was not reached and is not tested
+for this run. Evidence: skull-chamber-potion-native.log and
+skull-chamber-potion-compile.log. Newest earned continuation is its
+slots/slot-3.json, SkullChamberPotionReload at (32656,204036,864).
+
+```powershell
+$env:KQ8_GAME_DIR=(Resolve-Path -LiteralPath "../King's Quest 8 GOG").Path
+$env:KQ8_GOOD_SKULL_SLOT=(Resolve-Path -LiteralPath 'kq8-artifacts/earned-good-skull/1794047529603851200/slots/slot-3.json').Path
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::skull_chamber_potion_is_earned_and_reloaded_with_the_good_skull -- --ignored --exact --nocapture
+```
+
+Expected: one carried potion with its original identity, preserved skull
+and campaign state, and only that collected item added to the removal
+list. The existing successful gameplay evidence is retained; this
+command is documented for future use, not a request to repeat it now.
+
+The full-controller numerical probe uses the original Conner.anm
+movements, including the falling hold and stopping animations. Central
+return jumps briefly enter deep fast-poison. Q206's original-engine
+study establishes that the configured zero value means immediate
+1,000-point base hits, so the missing Rust damage path cannot be used
+as evidence of a safe crossing. The potion does not grant terrain
+immunity. A wider search finds western-edge candidates near x=27000
+without deep exposure; the sample from (27000,202000,705) lands at
+(27000,195394,705) and stops near (26954,194149,864). That model omits
+live callbacks and buildings; trap clearance and native traversal are
+not yet verified. The next integrated chapter route can use this plan
+after the shared hazard implementation, rather than adding another
+standalone check for each pickup or encounter.
+
 Complete the return from the skull shelf, statue/feather/scales and
 the remaining campaign. Those continuations are **not tested** from
 this earned skull state. No successful native test was repeated.

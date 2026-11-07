@@ -3,6 +3,20 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Empty quest cells.** Inventory rules 10/12 supply silent right-clicks
+on empty cells and left-click return of the held item. Both viewer
+input paths share the corrected lookup. A real earned inventory supplies
+the representative native check; corrected assertions reuse its logs
+and save without repeating gameplay.
+[Evidence](../inventory-empty-slot.md).
+
+**Skull-chamber potion.** Original WORLDINV.CS line 17 places one
+Invulnerable potion at (33111,203729,2000). Its earned identity is
+NoName49. Normal camera pickup and native reload preserve it alongside
+the GoodSkull; the world removal list gains that collected item as usual.
+This does not establish protection from terrain hazards.
+[Evidence](../skull-river-access.md#north-bank-potion-and-return-planning).
+
 **Earned good skull and shelf clicker.** Original Dead City GSKULL.CS
 supplies the no-skull branch, SkullMsg increment, dynamic clicker and
 0.4-second inventory/deletion cue. Original placement data supplies
