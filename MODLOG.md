@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-07 Scripted prop moves release occupied triggers
+
+Installed prop collider metadata is available to the core on fresh load,
+reload and accepted physical pushes. Script commands update logical and
+saved placements immediately. Outer script calls then run stay-only trap
+checks, preserving out-and-back movement and nested script order. Each
+trap sees changes made by an earlier departure callback. Requests from
+callbacks during viewer request processing are applied in the same update.
+
+Eleven focused cases pass once each, including JSON restore and callback
+reposition/deletion across overlapping triggers. The remaining core suite
+passes once (686 passed, 17 ignored), before the final overlap correction.
+Original Gnome boulder integration and a fresh loader restoration pass
+once in 2.30 seconds. The test exposed missing KQBoulder save registration;
+the loader now includes this still prop class in its existing path. Earlier
+string-typing, capitalization, save-registration and click-target assumption
+failures are retained in the evidence. The release viewer test target builds.
+No manual testing and no repeat of a successful focused test.
+[Commands, sources and remaining gaps](docs/scripted-prop-traps.md)
+
 ## 2026-11-07 Physical pushable trigger dispatch and trap position lookup
 
 Accepted pushes now carry their clipped movement path into the trap

@@ -802,6 +802,7 @@ pub fn spawn_doors(
     );
     active.world.camera_world = objects.realm.clone();
     active.world.prop_placements = std::mem::take(&mut objects.prop_placements);
+    active.register_prop_colliders(objects.objects.iter().cloned());
     active.world.shadows_allowed = objects.shadows_allowed;
     // Traps (3d-2): loaded where the start-up scripts left them.
     let mut trap_log = match Log::create("traps") {
@@ -1413,6 +1414,7 @@ pub fn trap_step(
             }
             asked = true;
         }
+        let callback_from = sim.active.world.requests.len();
         let line = match r {
             Request::ConnorThrowRock { aim } => {
                 let w = &mut sim.active.world;
@@ -1812,6 +1814,13 @@ pub fn trap_step(
         shared.log.lock().unwrap().summary(format!("traps: {line}"));
         if let Some(log) = &mut sim.trap_log {
             log.detail(line);
+        }
+        // A script invoked while applying a request (including placement
+        // departures) has finished. Apply only its new requests before
+        // returning to the remaining queue; do not defer them one update.
+        // Choice already drains its own StartChoice requests above.
+        for request in sim.active.world.requests.drain(callback_from..).rev() {
+            requests.push_front((usize::MAX, request));
         }
     }
     if sim.active.finish_scripted_death(&mut connor.walker) {

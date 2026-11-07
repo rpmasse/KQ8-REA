@@ -3,6 +3,17 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Scripted prop placement and trigger departure.** `traps.md` rule 5(b),
+Q102, supplies the end-of-script stay-only rule; rules 7-9 supply shape,
+mask and departure semantics. `active.rs` retains loaded prop shapes,
+updates logical placement and handles moved notices at outer script
+boundaries. `door_view.rs` supplies loaded metadata and processes callback
+requests in the same update. Synthetic tests cover script order, shapes,
+JSON restore and overlapping callbacks. The installed Gnome boulder script
+and collider supply the original-data integration check. No original
+executable, decompiled code or disassembly was read by implementation B.
+[Evidence and limits](../scripted-prop-traps.md)
+
 **Physical pushable trigger dispatch.** `pushing.md` rule 4 and `traps.md`
 rules 4-9 supply the accepted movement, shape, mask and event rules.
 `connor_mover.rs` carries the clipped push path; `trap.rs` adds an oriented

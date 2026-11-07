@@ -13,6 +13,49 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 scripted prop placement and occupied traps (2026-11-07).** Apply
+traps.md rule 5(b), Q102, at the end of each outer script call. Retain
+the installed prop collider metadata in core, refresh it on physical
+pushes, and update logical/saved placement when the move command runs.
+Queue moved prop names, then use each prop's final placement for a
+stay-only test after the script and its nested calls return. Do not
+sweep the jump, enter a destination trap, or gate departure on its
+current collision mask. A move out and back within one script must
+keep membership. A departure callback may move another occupied prop;
+its callback and viewer requests must be processed in the same update.
+
+Use the existing script/event entry points, preserving request order
+instead of reconstructing event boundaries from the viewer's combined
+queue. Capture only requests produced during viewer callbacks for
+immediate processing. Leave deletion/replacement occupancy (Q203),
+Connor's broader placement scheduling and drawn prop rotation explicit
+as separate gaps. Deleted prop identities must not emit a fabricated
+departure. Register loaded shapes on save restoration as on fresh load.
+
+Check end-of-script ordering, nested calls, multiple moves, both shape
+types, masks, multi-occupant departure and chained placements with
+focused automated checks. Use an original installed puzzle script for
+one integration check. Do not rerun successful tests without a relevant
+change or new unresolved concern.
+
+Eleven focused cases now pass once each, including restored occupancy and
+callbacks that reposition/delete a prop before another trigger checks it.
+The remaining core suite passes once (686 passed, 17 ignored) before the
+final per-trigger refresh correction. Original Gnome integration and a
+fresh data load preserving the scripted boulder position pass once in
+2.30 seconds. The release viewer test target builds successfully.
+[Commands and limitations](scripted-prop-traps.md)
+
+The second installed Gnome check reaches the correct departure but fails
+its saved-position lookup. Inspection finds the loader registers only
+`KQObject` for prop placement snapshots, although it explicitly loads
+`KQBoulder` as a still physical prop. Extend that same registration and
+restore path to `KQBoulder`, without changing its unstudied animation or
+physics. Check a fresh Gnome load using the saved placement; retain the
+earlier integration failures and their exact causes. The added reload
+check initially assumed a click target; comparison now preserves the
+original boulder's absence of one. No successful case was repeated.
+
 **M6 physical pushables and puzzle triggers (2026-11-07).** The live
 push application updates drawing, collisions and saved placements but
 does not tell traps. Original Dead City girltrap.cs waits for the box's
