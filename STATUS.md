@@ -1,5 +1,36 @@
 # STATUS
 
+## 2026-11-07 Earned western Rock and three archers
+
+The two-process continuation passed in 155.92 seconds from the
+genuine FerrymanKnowledgeReload. Connor exits the boathouse, uses
+the earned Mace against BowGuys16, 15 and 17, then visibly clicks
+the Rock placed by WORLDINV.CS at (56446,125813). Each archer awards
+200 experience once, on updates 421, 525 and 621; pickup is on 886.
+WesternRockReload retains one Rock, both weapons, the three defeats,
+Ferryman topic 4 and KnowAboutFeather, with level eleven stats
+[61,80,25,10,1112]. No Feather is granted. God mode and AI-off are
+false, and GOG Options.cs is unchanged. Evidence:
+earned-western-rock/1794026411163329300 and western-rock-final-native.log.
+
+The first attempt, 1794026311032000700, failed after 46.32 seconds.
+It killed BowGuys16, then tried to approach within 300 units of
+BowGuys15's center and stopped against its body at distance 575.
+The correction uses a 900-unit arrival radius for the two actor-center
+marks, beginning normal attacks outside their colliders. Combat
+and movement rules were not changed. The failed trace remains in
+western-rock-native.log.
+
+The original startup script explicitly loads trip5/triptrp5, and
+rockme.cs accepts Rock for these pressure plates. This establishes
+their presence, not a reachable route. The offline search was
+extended to the full 262144-unit terrain domain with the documented
+walkable slope limit. It still stops 7742 units from the trip5
+approach and 15917 from the skull approach. These are numeric
+diagnostics only: they do not prove that ordinary play cannot reach
+either place. No portal or plate solution is claimed.
+[Exact automated command](docs/dead-city-progression.md#the-western-rock)
+
 ## 2026-11-07 Installed regional patches now take priority
 
 The original GOG installation's 22 regional patch files were being

@@ -13,6 +13,34 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5–M6 western rock and archers (2026-11-07).** The installed
+world inventory places a Rock at (56446,125813), on the western
+approach to the portal area. The earned Ferryman save has no Rock.
+The original trip plates accept this item through rockme.cs, though
+access to the isolated trip5 area remains unresolved. First verify
+the useful ordinary approach: leave the boathouse, clear BowGuys15,
+16 and 17 on the western road with the earned Mace, and pick up
+the placed Rock through a visible click. Their saved original stats
+give 45 health and 200 experience each. Preserve the Rock, three
+defeats, equipment, knowledge and stats through a fresh-process
+reload. Use the existing input route, with no grants, teleports,
+AI changes or engine-rule edits. This establishes the next earned
+checkpoint without claiming the portal puzzle is solved.
+
+The first route defeated BowGuys16 and earned its 200 points, then
+stopped against BowGuys15's body 575 units from the mark. That mark
+incorrectly required reaching within 300 units of the actor center.
+Use a 900-unit arrival radius for the two center marks so ordinary
+attack input starts outside their colliders. Keep the already working
+first approach and all combat rules unchanged; retain the failed run.
+
+The corrected two-process run passed in 155.92 seconds. The fresh
+WesternRockReload retains one Rock, all three defeats, both weapons
+and Ferryman knowledge, with [61,80,25,10,1112] at level eleven.
+An offline search over the full terrain domain still stops short
+of the trip5 and skull areas. The Rock route is earned and verified;
+the portal access puzzle remains unresolved.
+
 **M4–M6 installed world patches (2026-11-07).** The access audit
 exposes a fidelity gap before the next route: `World::load` and
 `entries_ending` read only archives, so they miss the installed

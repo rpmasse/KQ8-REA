@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-07 Earn the western Rock through the archer road
+
+Added an unattended route from the earned Ferryman checkpoint,
+through three original archer encounters, to the placed western
+Rock. The route and fresh reload passed in 155.92 seconds, retaining
+one Rock, the three defeats and their 600 experience, equipment and
+quest knowledge. Final stats are [61,80,25,10,1112] at level eleven.
+No game-engine rules changed. The first run's collision-boundary
+mistake and its corrected route radius are retained in STATUS.
+The full-map access audit still leaves the portal and skull routes
+unresolved. [Source, result and command](docs/dead-city-progression.md#the-western-rock)
+
 ## 2026-11-07 Read the original installed world patches
 
 World lookup and script/object enumeration now give regional patch

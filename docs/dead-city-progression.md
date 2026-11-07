@@ -313,6 +313,35 @@ cargo test --locked -p kq8-core inventory_description_script_accepts_short_and_f
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::four_ferryman_topics_earn_knowledge_and_reload -- --ignored --exact --test-threads=1
 ```
 
+## The western Rock
+
+The original WORLDINV.CS places one Rock on the western road at
+(56446,125813). From a genuine FerrymanKnowledgeReload, the unattended
+route leaves the boathouse, defeats BowGuys16, 15 and 17 with the
+earned Mace, and clicks that Rock through a visible gameplay ray.
+Each archer awards 200 experience once. The route and a fresh-process
+reload passed in 155.92 seconds: WesternRockReload retains one Rock,
+both weapons, the three defeated archers and Ferryman knowledge,
+with stats [61,80,25,10,1112] at level eleven. AI and damage remain
+enabled; GOG Options.cs is unchanged.
+
+The first attempt stopped against an archer's body because its
+arrival mark lay inside the collision boundary. The corrected
+mark begins ordinary attack input outside that boundary; no combat
+or movement rules changed. Both results are recorded in STATUS.
+The later portal, skull and feather routes remain unverified.
+
+Set `KQ8_GAME_DIR` to the original GOG installation and
+`KQ8_FERRYMAN_KNOWLEDGE_SLOT` to a genuine FerrymanKnowledgeReload:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::western_archers_and_rock_survive_reload -- --ignored --exact --test-threads=1
+```
+
+The test should pass after two unattended Windows launches, including
+the disk reload. Local evidence is
+`kq8-artifacts/earned-western-rock/1794026411163329300`.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -347,6 +376,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::earned_crossbow_defeats_the_river_weeper_and_restores_its_award` | Required genuine `KQ8_WESTERN_PATROL_RELOAD_SLOT` (`WesternPatrolReload`) | `RiverWeeperReload` |
 | `dead_city::earned_mace_clears_the_boathouse_guard_and_reloads` | Required genuine `KQ8_RIVER_WEEPER_SLOT` (`RiverWeeperReload`) | `BoathouseGuardReload` |
 | `dead_city::four_ferryman_topics_earn_knowledge_and_reload` | Required genuine `KQ8_BOATHOUSE_GUARD_SLOT` (`BoathouseGuardReload`) | `FerrymanKnowledgeReload` |
+| `dead_city::western_archers_and_rock_survive_reload` | Required genuine `KQ8_FERRYMAN_KNOWLEDGE_SLOT` (`FerrymanKnowledgeReload`) | `WesternRockReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

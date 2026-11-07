@@ -3,6 +3,19 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Western Rock campaign route.** The original Dead City WORLDINV.CS
+places the Rock at (56446,125813). The earned save identifies that
+loose item as NoName45 and retains the original BowGuys15–17
+placements and 200-point rewards. Fighting rules 32 and 39–41
+supply ordinary death awards and Shift-click attacks with the earned
+Mace; inventory rule 8 supplies pickup through the visible click.
+The test changes only player inputs and checks the subsequent save.
+NewWorld.cs, trip5/triptrp5 and rockme.cs establish the original
+plate/rock relationship, but do not prove the access route. The
+offline map audit uses terrain.md's 262144-unit Dead City domain
+and connor-physics.md's normal-Z threshold, without changing the
+live mover. [Result and command](../dead-city-progression.md#the-western-rock)
+
 **Installed world patches.** The models-and-textures note's "Which
 one wins" section establishes priority for regional loose patch
 files and records that other loose copies match their archives in
