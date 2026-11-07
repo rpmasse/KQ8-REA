@@ -189,6 +189,24 @@ photograph and Connor's score. The menu's Credits choice and the ending's
     condition. A missing movie file returns from the movie command,
     allowing the following `doCredits` to execute. Exact movie input
     and audio synchronization remain outside this bounded study.
+    **Existing-file failure clarification, 2026-11-07:** the missing-file
+    result must not be generalized to decoder or media-open failures.
+    A readable file reaches the Windows MCI movie service with its
+    standard error dialogs enabled. Thus an MCI-reported codec or
+    media-open error can present an acknowledgement before any return
+    to the script. This is a Windows media error, not a game-authored
+    Credits or Main-menu popup. The executable's choice is traced;
+    the dialog consequence follows the documented
+    [MCI error behavior](https://learn.microsoft.com/en-us/windows/win32/multimedia/error-messages-and-notifications)
+    and [movie-window creation contract](https://learn.microsoft.com/en-us/windows/win32/api/vfw/nf-vfw-mciwndcreatea).
+    There is no single reliable original continuation rule for every
+    setup failure: failure of the preliminary display-device switch
+    returns before opening media, whereas failed movie-window creation
+    is not routed through an equivalent early return. The subsequent
+    wait expects the movie to report that it has stopped. Consequently,
+    neither an immediate silent return nor a guaranteed return after
+    acknowledging every decoder/setup error is established. These
+    error paths are static findings, **not tested** in the original.
 23. **Credits still reads the ending Connor, traced.** `doCredits`
     selects the same credits viewer used by the menu. It does not
     undo the completed-session restriction and does not dispose of
@@ -205,6 +223,11 @@ photograph and Connor's score. The menu's Credits choice and the ending's
     replacement during a later new game, load, quit or application
     shutdown is a separate lifecycle operation, not an effect of
     `killGame`, movie completion or credits exit.
+    **New-menu clarification, 2026-11-07:** New's already-running warning
+    requires a started game whose gameplay remains available. An ended
+    session therefore skips that warning even while Credits retains
+    access to its score. The death menu uses the same warning predicate;
+    see `main-menu.md` rule 10.
 
 The lifecycle findings above are static evidence, **not tested** by
 running the original ending.
@@ -241,6 +264,12 @@ running the original ending.
 - The original's incorrect usage text for malformed `doCredits`
   invocations is not a gameplay feature; report the actual command's
   no-argument usage clearly.
+- Do not reproduce a movie failure that waits indefinitely for a stopped
+  state or repeatedly reports a backend error. Preserve the distinction
+  between an unreadable/missing file and a reported media failure. Safe
+  cleanup and continuation after acknowledging an existing-file playback
+  error may be used as a compatibility safeguard, but must not be
+  described as a verified original continuation for every failure.
 
 ## How to check automatically
 
@@ -283,5 +312,10 @@ families and numeric checks rather than a separate test for each card:
 - Audio synchronization with the ending movie or the ending script's
   separate music commands is not established by studying the credits
   viewer. Its card timing is not synchronized to an audio track.
+- The exact text and number of Windows media-error acknowledgements,
+  and whether each codec/setup failure eventually reaches the stopped
+  state after acknowledgement, remain untested and depend on the
+  external media service. No universal original failure-return contract
+  is established by rule 22.
 - Palette-load failure and malformed-data handling were read statically,
   not exercised. There has been **no manual testing**.

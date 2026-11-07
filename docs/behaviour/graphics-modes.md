@@ -226,6 +226,28 @@ handling should be recorded as a compatibility safeguard, not evidence
 of the original's behavior. Do not claim a modern graphics API is an
 original renderer merely by displaying one of these menu labels.
 
+### Scope of a modern rendering backend
+
+**Compatibility assessment, 2026-11-07; not an original-runtime claim.**
+The established menu contract can be represented independently of the
+host graphics API: renderer-family identity, enumerated source device
+name, fullscreen availability, and the original 800-mode capability
+provide the inputs to rules 1–10. A modern WGPU adapter does not by
+itself supply any of those original device identities or Glide hardware
+facts. In particular, modern GPU memory or resolution support is not
+evidence for the original Glide capability check.
+
+Keeping an explicit original-device compatibility profile separate from
+the actual host adapter would allow those menu rules to be applied
+without claiming that WGPU's adapter is an original Glide or Direct3D
+device. This is an implementation possibility, not a newly discovered
+original selection rule. The original does not define which simulated
+device list a modern recreation should expose, which source profile
+should be selected by default, or whether a modern renderer reproduces
+all output differences between the original families. A profile name
+alone cannot establish rendering fidelity. No additional original mode
+selection or source-profile rule was settled by this bounded follow-up.
+
 ## How to check with representative families
 
 These are proposed automated checks, **not tested in this study**. No
@@ -266,6 +288,10 @@ manual play or visual comparison is requested.
 - Exact gameplay/camera/animation state survival across a successful
   backend replacement. No new-world load was found in that path, but
   a complete state-preservation audit has not been performed.
+- Which original-device compatibility profiles, if any, the modern
+  renderer can faithfully support, and which virtual device list/default
+  to expose. These are recreation decisions requiring rendering evidence;
+  ordinary modern adapter enumeration does not answer them.
 
 Q207 is therefore partially answered. Q108's general rectangle and font
 scaling, caption width, and Save/Load layout exception are established;

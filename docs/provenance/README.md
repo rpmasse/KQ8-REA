@@ -9,7 +9,11 @@ retained Connor, late score access, missing-movie continuation and later
 session cleanup. The Rust presentation/world lifetime implementation and
 headless original Temple4 callback matrix use those prose rules and the
 installed script/GUI assets. Existing-file decoder failure and the
-post-ending New Game warning are not established by this component.
+post-ending New Game warning were not established by the initial component.
+The follow-up study confirms the existing warning predicate (started and
+playable) and distinguishes native media acknowledgements from missing-
+file return. Guaranteed cleanup after every codec error remains a
+recreation safeguard, not verified original continuation.
 [Evidence](../credits-completion.md).
 
 **Tile, projectile and ending follow-up studies.** Study A's
@@ -26,8 +30,8 @@ original GUI/font/palette/message data supply card cadence, mixed row
 layout, photo placement, no-skip input, late score and exit fade. The
 original-data matrix corrected A's terminal-newline count to 132 rows/
 128 seconds and confirmed the optional-palette fallback. Both core
-matrices and one native menu flow pass; full ending lifetime and audible
-fade remain unverified. [Evidence](../credits-completion.md).
+matrices and one native menu flow pass; the complete campaign ending and
+audible fade remain unverified. [Evidence](../credits-completion.md).
 
 **Scripted preparation and health.** Study A's scripted-controller-
 commands.md rules 1–4 supply preSpecial and reduceHealth semantics.

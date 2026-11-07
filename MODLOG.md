@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-07 Ending edge clarification and next chapter preparation
+
+Study A establishes the post-ending/death New warning predicate and
+distinguishes missing AVI return from existing-file Windows media-error
+acknowledgements. No runtime comparison is claimed; a guaranteed Rust
+cleanup path after such an error is documented as a safeguard. Its graphics
+follow-up separates original-device profiles from modern adapter facts
+without inventing a default profile.
+
+Collision-derived planning clears the eastern arrival props. An original-
+movement probe crosses the three bridge gaps with two running jumps and
+avoids the swept lethal trap; the later north-bank waypoint fails on
+terrain. Only the changed final approach is checked next and passes in
+69 updates. The earned chapter harness is prepared and its PowerShell
+syntax passes; it has not launched. DESIGN also records diagnostic idle
+intervals and the original decimal move-flag parser correction found by
+the grouped tile-data matrix. M4 about 86%, M5 60%, M6 about 25%.
+
 ## 2026-11-07 Retain ended game lifetime for original late credits scoring
 
 WorldChange now distinguishes game-started from gameplay availability.

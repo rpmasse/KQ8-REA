@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-07 Ending edge study and eastern-chamber preparation
+
+Study A confirms New's existing-game warning requires both a started
+game and available gameplay, matching the retained-ending implementation.
+Missing movie files return directly; existing-file Windows media errors
+may acknowledge and have no universal clean-return guarantee. Rust's
+bounded acknowledgement return remains a documented safeguard.
+
+The offline collision-derived route clears the arrival props and two
+running jumps clear the broken bridge's low lethal trap. Its last north-
+bank waypoint cannot be reached because of terrain; a separate front-
+of-statue approach from the reached far-bank position passes. No new
+native campaign run has occurred. A diagnostic idle interval is added
+for the statue's authored timed sequence, and the integrated earned
+portal/bridge/skull/feather harness is prepared. The shared viewer test
+compile caught its borrow error, now corrected. Native behavior remains
+pending the shared production build; no prior river/well run is repeated.
+Estimates remain M4 about 86%, M5 60%, M6 about 25%.
+
 ## 2026-11-07 Ending lifetime retained through movie and late credits score
 
 The ending now disables gameplay while retaining Connor and the world.
