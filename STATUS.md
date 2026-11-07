@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-07 Death's hall saves and maze key
+
+The first hall’s four pedestals open the doors to the letter tiles.
+In the eight-launch regression from `FirstHallReload`, Connor
+activated all four, saved in the hall, jumped to D, reloaded and
+finished E, A, T and H. Death’s key sequence ran and a new process
+restored the awarded key. `MazeKeyReload` has 80 health, level eight
+and 1,197 experience. The regression passed in 740.44 seconds.
+
+Before this fix, restoring an earned tile-entrance save left Connor
+walking normally across the start strip. The disk format now retains
+his tile controller and rebuilds its 64 stone references from the
+restored world. A save during the jump holds both the puzzle state
+and its playing movement. The compatibility path recognizes the
+exact initial hall position in older saves. Later letter and jump
+progress cannot be inferred in general from those older files.
+The half-jump, original older entrance save and two-phase teleport
+checks passed in 64.97, 36.27 and 98.67 seconds. All 877 standard
+workspace tests passed. A single from-New invocation through the
+maze key remains untested.
+[Commands and evidence](docs/dead-city-progression.md)
+
 ## 2026-11-07 Dead City entrance archers and Paddle
 
 The two-launch campaign replay passed in 158.21 seconds from

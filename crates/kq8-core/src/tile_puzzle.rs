@@ -32,7 +32,7 @@ pub const SENT_BACK_CONDITION: u8 = 133;
 
 /// A spot of the floor: a stone (rows 0-7) or one of the extra rows
 /// (−2, −1, 8; rule 5). Columns 0-7.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Cell {
     pub row: i32,
     pub col: i32,
@@ -240,7 +240,7 @@ pub fn teleport_places(stones: &Stones, landing: Landing, letter: usize) -> ([f3
 }
 
 /// The lines of rule 15, once each per visit (the state starts fresh).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Lines {
     pub teleported: bool,
     pub had_right: bool,

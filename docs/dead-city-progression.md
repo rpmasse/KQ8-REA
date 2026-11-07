@@ -27,10 +27,42 @@ Walking into that gate without the key stopped the replay. The gate
 is a gameplay prerequisite. The original `Death.cs` creates the key
 sequence, and `keycycle.cs` gives the key when its animation finishes.
 
-Work through the paddle pedestals, the hall of death's letter tiles
-and the encounter with Death before trying the gate again. The good
-skull, the statue that produces the feather, and the scales still
-need verification with earned items. The existing focused scales
+## The paddle pedestals and letter tiles
+
+The earned route uses Scary3, Scary2, Scary4 and Scary5. Connor puts
+the Paddle on each pedestal using the quest strip, then pushes it from
+the side. Both push directions occur. After the first push he defeats
+the skeleton that approaches the pedestal. One earlier run waited
+there and lost too much health to survive the next attack. The first
+three pedestals each return the Paddle. The fourth starts the laser
+sequence, opens both hall doors and returns control.
+
+Entering the hall starts the original `dhalltrp.cs` sequence and
+places Connor at the south edge of an eight-by-eight floor. A disk
+save used to lose the tile controller: loading at the entrance made
+the Forward key walk normally. A current save restores the letter
+Connor needs next, his movement and the remaining puzzle state. It
+rebuilds the 64 stone references from the loaded world. A forward
+jump onto the wrong stone sends Connor back to the strip. A save
+made halfway through that jump resumes and produces one landing.
+The two-process in-flight check saved `tilejump1` at phase 0.5 and
+passed in 64.97 seconds. Loading a real pre-fix save from the original
+hall entrance also recovered the controller and passed in 36.27 seconds.
+Another three-launch check saved during both halves of D's teleport.
+The restored camera finished its flight, the letter remark played once
+and E remained the next letter. It passed in 98.67 seconds.
+
+Connor jumps across the start strip and onto D. A fresh process
+loads the resulting save near E. Regular turn and Jump input takes
+him through E, A, T and H. Death then delivers his original dialogue.
+The `givekey` movement loads `keycycle.kq`; its final callback grants
+one Key to Death's Maze. The `DeathMazeKey` save has Connor back at
+the first hall with the key. The eight-process regression from
+`FirstHallReload` completed in 740.44 seconds. The final fresh
+load recorded one key, 80 health and 1,197 experience at level eight.
+
+The good skull, the statue that produces the feather and the scales
+still need verification in this campaign. The existing focused scales
 test starts with a supplied feather.
 
 ## Repeat the automated route
@@ -46,3 +78,16 @@ cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::entr
 
 The verified continuation used the earned arrival save. A single
 invocation from New Game through this hall has not been run.
+
+| Test in `daventry_cottage_shield` | Optional earned input | Output |
+| --- | --- | --- |
+| `dead_city::four_paddle_pedestals_open_the_death_hall` | `KQ8_DEAD_CITY_PADDLE_SLOT` (`FirstHallReload`) | `HallOpened` |
+| `dead_city::opened_doors_to_tile_floor` | `KQ8_DEATH_HALL_SLOT` (`HallOpened`) | `TileEntry` |
+| `dead_city::saved_tile_jump_finishes_once_and_returns_to_the_strip` | `KQ8_TILE_ENTRY_SLOT` (`TileEntry`) | `TileLanding` |
+| `dead_city::tile_teleport_resumes_its_flight_and_speaks_once` | `KQ8_TILE_ENTRY_SLOT` (`TileEntry`) | `TileTeleportReload` |
+| `dead_city::old_tile_entrance_recovers_the_original_first_jump` | `KQ8_LEGACY_TILE_ENTRY_SLOT` (older `TileEntry`) | `RecoveredTile` |
+| `dead_city::restored_letter_sequence_earns_deaths_key` | `KQ8_TILE_ENTRY_SLOT` (`TileEntry`) | `MazeKeyReload` |
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
+```

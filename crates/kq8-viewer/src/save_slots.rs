@@ -77,6 +77,8 @@ pub(super) struct Snapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     rope_climb: Option<connor_view::SavedClimb>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    tile: Option<connor_view::SavedTile>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     rope_camera_locked: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     speech: Option<kq8_core::talk::SavedTalk>,
@@ -97,6 +99,20 @@ pub(super) struct Snapshot {
 }
 
 impl Snapshot {
+    /// Older builds omitted Tile. At dhalltrp.cs's original starting
+    /// point the next letter is known; later positions can be ambiguous.
+    fn old_tile_entrance(&self) -> bool {
+        self.tile.is_none() && self.world.eq_ignore_ascii_case("DeadCity")
+            && self.position[0] == 238_340.0 && self.position[1] == 122_000.0
+            && self.camera.as_ref().is_some_and(|camera| camera.has_tile_hold())
+            && self.special.is_none() && self.talk_pose.is_none() && self.choice.is_none()
+            && self.swing.is_none() && self.shot.is_none()
+            && self.combat_death.is_none() && self.rope_climb.is_none()
+            && self.kept.get("deadcity").is_some_and(|region| {
+                ["DeadCity::DeadHall::TrapOn", "DeadCity::Azriel::metConnor"].iter().all(|key|
+                    region.vars.iter().any(|(name, value)| name.eq_ignore_ascii_case(key) && value == "false"))
+            })
+    }
     pub(super) fn item_load(&self) -> load::ItemLoad {
         load::ItemLoad::Slot {
             objects: self.items.clone(),
@@ -116,6 +132,13 @@ impl Snapshot {
     }
 
     fn validate(&self) -> Result<(), String> {
+        if self.tile.as_ref().is_some_and(|tile| !tile.valid(self.special.is_some())
+            || self.special.as_ref().is_some_and(|s| s.combat_death())
+            || self.camera.is_none() || self.rope_climb.is_some() || self.choice.is_some()
+            || self.swing.is_some() || self.shot.is_some() || self.talk_pose.is_some()
+            || self.combat_death.is_some() || self.hit_timing.as_ref().is_some_and(|t| t.has_reaction_pose())) {
+            return Err("save has invalid Tile continuation or competing controller poses".into());
+        }
         if self.trap_checked_at.is_some_and(|p| !p.into_iter().all(f32::is_finite)) {
             return Err("save has invalid trap sweep position".into());
         }
@@ -398,10 +421,20 @@ impl Snapshot {
                 sim.connor_checked_at = self.trap_checked_at;
             }
             if let Some(drains) = &self.drains {
-                sim.active.world.restore_drains(drains, self.special.is_some())?;
+                sim.active.world.restore_drains(drains, self.special.is_some() && self.tile.is_none())?;
             }
             if let Some(conversation) = &self.conversation { sim.active.world.restore_conversation(conversation)?; }
         }
+        let tile_stones = if self.tile.is_some() || self.old_tile_entrance() {
+            let sim = world.get_resource::<crate::door_view::DoorSim>()
+                .ok_or("the world is unavailable while restoring Tile")?;
+            let (stones, missing) = kq8_core::tile_puzzle::Stones::read(&|name| {
+                sim.active.world.place_of(name).map(|placement| placement.position)
+            });
+            Some((stones, 64 - missing.len()))
+        } else {
+            None
+        };
         if let Some(mut connor) = world.get_resource_mut::<connor_view::ConnorSim>() {
             connor.first_person = actor_view;
             if let Some([pitch, roll]) = self.actor_tilt {
@@ -437,12 +470,21 @@ impl Snapshot {
             if let Some(pose) = &self.talk_pose { connor.restore_talk_pose(pose)?; }
             if let Some(choice) = &self.choice { connor.restore_choice(choice)?; }
             if let Some(climb) = &self.rope_climb { connor.restore_climb(climb)?; }
+            if let Some((stones, found)) = tile_stones {
+                if let Some(tile) = &self.tile {
+                    connor.restore_tile(tile, stones, found)?;
+                } else if found == 64 {
+                    connor.restore_old_tile_entrance(stones);
+                }
+            }
         } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.combat_death.is_some()
             || self.pending_combat_death.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() || self.choice.is_some()
             || self.hit_timing.as_ref().is_some_and(|timing| timing.has_reaction_pose()) {
             return Err("Connor is unavailable while restoring his attack".into());
         } else if self.rope_climb.is_some() {
             return Err("Connor is unavailable while restoring his rope climb".into());
+        } else if self.tile.is_some() {
+            return Err("Connor is unavailable while restoring the Tile puzzle".into());
         }
         if let Some(saved) = &self.camera {
             world.get_resource_mut::<crate::game_camera::GameCam>().ok_or("camera unavailable on restore")?.restore(saved)?;
@@ -654,6 +696,7 @@ pub fn save_slot_with_thumbnail(
         trap_checked_at: sim.connor_checked_at,
         rope_place: Some(kq8_core::rope::SavedRope::capture(&sim.active.world.rope, sim.active.world.now())),
         rope_climb: connor.saved_climb()?,
+        tile: connor.saved_tile(),
         rope_camera_locked: Some(sim.active.world.rope_first_person_lock),
         speech: Some(sim.active.world.talk.saved(sim.active.world.now())),
         speech_sources: world.get_resource::<crate::talk_view::Speech>().map(|s| s.sources.clone()),
@@ -819,6 +862,32 @@ mod tests {
                 "blocked":[false,false],"moving":{"state":"Normal","on_ground":true,"use_gravity":true,"keep_on_ground":true,
                     "fall_timer":0.,"air_updates":0,"pull":[0.,0.,-1.],"submerged":false}}});
         serde_json::from_value(json).unwrap()
+    }
+
+    #[test]
+    fn tile_checkpoint_validates_letter_bounds_and_movement_ownership() {
+        let legacy = serde_json::to_value(choice_fixture()).unwrap();
+        let mut tile = serde_json::json!({
+            "expected":0, "can_exit":false,
+            "lines":{"teleported":false,"had_right":false,"sent_back_said":false},
+            "stage":"Keys","remembered":0,"lit":null,
+            "mode":"Free","pose":legacy["choice"]["pose"],"steps":[325.,325.]
+        });
+        let valid = |value:&serde_json::Value,has_special| {
+            serde_json::from_value::<connor_view::SavedTile>(value.clone()).unwrap().valid(has_special)
+        };
+        assert!(valid(&tile,false));
+        assert!(!valid(&tile,true));
+        tile["expected"]=5.into();
+        assert!(!valid(&tile,false));
+        tile["mode"]="Special".into();
+        tile["stage"]=serde_json::json!({"Up":{"right":true}});
+        assert!(valid(&tile,true));
+        tile["expected"]=0.into();
+        tile["stage"]=serde_json::json!({"Jumping":{"from":{"row":-1,"col":4},"to":{"row":0,"col":4}}});
+        assert!(valid(&tile,true));
+        tile["stage"]["Jumping"]["to"]["row"]=i32::MAX.into();
+        assert!(!valid(&tile,true));
     }
 
     #[test]
@@ -1132,6 +1201,7 @@ mod tests {
             trap_checked_at: None,
             rope_place: None,
             rope_climb: None,
+            tile: None,
             rope_camera_locked: None,
             speech: None,
             speech_sources: None,

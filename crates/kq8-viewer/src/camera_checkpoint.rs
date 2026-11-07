@@ -32,6 +32,7 @@ pub struct SavedCamera {
 }
 
 impl SavedCamera {
+    pub(crate) fn has_tile_hold(&self) -> bool { self.cam.hold }
     pub fn valid(&self) -> bool {
         let pose = |p: Pose| p.0.into_iter().chain([p.1, p.2]).all(f32::is_finite);
         self.cam.valid_checkpoint() && self.shake.valid() && self.first_person.as_ref().is_none_or(FirstPersonView::valid)

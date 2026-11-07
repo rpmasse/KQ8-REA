@@ -1,5 +1,17 @@
 # What works, in detail
 
+## Saving Death’s hall
+
+The tile controller now survives a disk save. It keeps the next
+letter, the current jump or teleport, Connor's pose, the spoken-line
+flags and the highlighted tile. Loading rebuilds the stone positions
+from the world and resumes the original input rules. The existing
+camera checkpoint retains an active flight. The entrance can also
+be recognized in older saves at the exact original starting position
+with the hall active and all 64 stones present. Older files omitted
+later letter progress and movement phases, which limits what can be
+recovered from them. [Automated route](dead-city-progression.md), [original study](behaviour/tile-puzzle.md)
+
 The full list behind the short summary in [README.md](../README.md): what
 each feature does, how close it is to the original, and how it was
 checked ("by eye" = the user looked at it in the viewer; "in the logs" =

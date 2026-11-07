@@ -3,6 +3,16 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Death’s hall puzzles and saves.** Dead City's pedestal scripts install
+the paddle, count the first three pushes and activate the fourth.
+`laserctr.cs` opens the hall and `dhalltrp.cs` sets up its original
+floor. The tile study records that a load rebuilds the stone table.
+The Rust save retains its own controller, pose and letter progress
+and resolves the stone positions from the restored world. The replay
+uses the bound turn and Jump keys; the ordinary tile controller
+chooses the stone, judges the landing and runs each teleport.
+[Tile study](../behaviour/tile-puzzle.md), [campaign evidence](../dead-city-progression.md)
+
 **Dead City’s entrance.** The installed DeadCity archive supplies
 `introtp.cs`, the original skeleton archers and weapons, and
 `dpaddle.cs`. The Windows replay uses the earned Small Axe, ordinary

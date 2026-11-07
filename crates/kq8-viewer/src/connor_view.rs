@@ -39,7 +39,7 @@ use crate::Shared;
 mod tile;
 #[path = "connor_scales.rs"]
 mod scales;
-pub use tile::{unlit_step, TileCall};
+pub use tile::{unlit_step, SavedTile, TileCall};
 
 /// One drawable movement: its loop for the walker and its number of frames.
 pub struct DrawnMovement {
@@ -423,8 +423,9 @@ impl SavedShotTiming {
     }
 }
 
-/// A standalone Special list with its current cue position. Resolved
-/// movement names are looked up again in the installed game data on load.
+/// A Special list with its current cue position. A tile jump or teleport
+/// keeps this movement alongside its puzzle state. Movement names are
+/// resolved again from the installed data on load.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SavedSpecial {
     movement: String,
@@ -803,7 +804,7 @@ impl ConnorSim {
         let walker = &self.walker;
         if walker.mode != Mode::Special || self.swing.is_some() || self.shot.is_some()
             || self.throw.is_some() || self.rock.is_some() || self.rope.is_some()
-            || self.tile.is_some() || self.scales.is_some() {
+            || self.scales.is_some() {
             return None;
         }
         let steps = walker.special.iter().map(|step| match step {

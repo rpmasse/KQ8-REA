@@ -14,7 +14,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M6 · Campaign and saves | Using earned campaign saves, Connor completes the Wizard’s Ring of Light quest, travels through Castle Daventry and enters Dead City. Focused checks cover the scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete Dead City and the remaining regional quests, optional branches and bosses. Verify one continuous New Game through the ending and credits. |
 | M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
 
-**Current campaign boundary.** In Dead City, Connor survived the entrance ambush, defeated both skeleton archers with his earned Small Axe and collected the Paddle. A fresh launch preserved the two kills and the Paddle. The spike gate requires the Key to Death’s Maze. The hall puzzles and Death’s key sequence are the next steps on the route toward the skull and the scales. [Dead City route](docs/dead-city-progression.md)
+**Current campaign boundary.** In Dead City, Connor defeats the entrance archers, uses the Paddle on all four pedestals and jumps the letters D, E, A, T and H in Death’s hall. A save after D now resumes with E as the next letter. Death gives Connor the Key to Death’s Maze. The spike gate, skull, feather and scales lie ahead on this campaign route. [Dead City route](docs/dead-city-progression.md)
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
@@ -89,6 +89,7 @@ cargo test --locked -p kq8-viewer --test daventry_cottage_shield shadow::wizard_
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield castle::waterfall_rope_and_brick_puzzle -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield castle_interior::fireplace_passage_to_ashes_and_fresh_reload -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield wizard_ring::ring_opens_dead_city_and_arrival_survives_reload -- --ignored --exact --test-threads=1
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
 cargo test --locked -p kq8-viewer --bin kq8-viewer fallen_tree_and_dock_use_the_same_surfaces_on_script_load_and_revisit -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
 cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored
