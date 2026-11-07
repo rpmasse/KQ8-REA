@@ -22,6 +22,8 @@
 //!   the numbers back. Un-applying (rule 15): for `Dur` ≥ 0 the numbers
 //!   are taken back; a stacking item at 0 leaves the inventory. Taking an
 //!   item out un-applies it first (rule 17).
+//! - Applying a quest item first un-applies other applied quest items in
+//!   Connor's inventory (rule 16). Holding one in the pointer is separate.
 //! - A left click on a slot (rule 9): ignored during handsOff; quest
 //!   items, money, rocks and the rope are held (4c-4); the mask piece
 //!   opens the main menu; everything else is applied, with its `useSnd`
@@ -236,13 +238,26 @@ fn added_extras(w: &mut WorldState, kind: &str, category: &str) {
     w.item_note(format!("{kind} added: inventory help case {case}, first eligible update {first_update}"));
 }
 
-/// Rule 14: applies item `name` to Connor. Returns the log line.
+/// Rules 14, 16: applies item `name` to Connor, replacing an applied
+/// quest item first. Returns the log line.
 pub fn apply(w: &mut WorldState, name: &str, why: &str) -> String {
     let Some(i) = w.items.index(name) else { return format!("apply {name}: no such item") };
     let o = w.items.objects[i].clone();
     let Some(t) = w.items.kind(&o.kind).cloned() else { return format!("apply {name}: unknown type {}", o.kind) };
     if o.third != -1 {
         return format!("apply {name} ({why}): already applied (userId {}); nothing (inventory.md rule 14)", o.third);
+    }
+    let mut replaced = String::new();
+    if t.category == "QuestItem" {
+        let old: Vec<_> = w.items.objects.iter()
+            .filter(|x| x.carried_by("Connor") && x.third != -1)
+            .filter(|x| category(w, &x.kind) == "QuestItem")
+            .map(|x| x.name.clone())
+            .collect();
+        for old in old {
+            let undone = unapply(w, &old, "another quest item applied");
+            replaced.push_str(&format!("un-applied {old} first{undone} (inventory.md rule 16); "));
+        }
     }
     // potions.md rule 13: a potion's effect switches on first.
     let (added, effect) = if t.duration > 0.0 { crate::potions::effect_on(w, crate::potions::Effect::of(&o.kind)) } else { (0, String::new()) };
@@ -252,7 +267,7 @@ pub fn apply(w: &mut WorldState, name: &str, why: &str) -> String {
     w.items.objects[i].third = CONNOR_USER_ID;
     let stats = connor_add(w, Stats(t.stats), &format!("its numbers {:?} added", t.stats));
     let effect = if effect.is_empty() { effect } else { format!("{effect}; ") };
-    let mut line = format!("apply {name} ({}, {why}): {effect}x{} -> x{}; {stats}", o.kind, o.quantity, w.items.objects[i].quantity);
+    let mut line = format!("apply {name} ({}, {why}): {replaced}{effect}x{} -> x{}; {stats}", o.kind, o.quantity, w.items.objects[i].quantity);
     if t.duration > 0.0 {
         // potions.md rule 33: whole seconds, counted from this update.
         let mut r = crate::potions::Running::new(name, &o.kind, t.duration.round() as i64, w.updates);
@@ -883,6 +898,117 @@ mod tests {
         assert_eq!(a.world.items.get(&suit).map(|o| o.place.clone()), Some(Place::World { position: [1.0, 2.0, 3.0], angles: [0.0; 3] }));
         assert_eq!(stats(&a)[3], 1);
         assert!(a.world.items.get(&dagger).unwrap().carried_by("Connor"));
+    }
+
+    #[test]
+    fn quest_application_replacement_lifecycle_matrix() {
+        use crate::journey::Journey;
+        use crate::potions::StatusIcon;
+
+        // Synthetic quest types make both permanent and timed statistics
+        // observable without the Candle's separate pickup experience rule.
+        for old_duration in [0, 4] {
+            for new_duration in [0, 6] {
+                let fixture = || {
+                    let mut a = active();
+                    let template = a.world.items.kind("Candle").unwrap().clone();
+                    for (kind, duration, stats) in [
+                        ("INVITEM_QuestOld", old_duration, [0, 2, 3, 4, 0]),
+                        ("INVITEM_QuestNew", new_duration, [0, 7, 1, 2, 0]),
+                    ] {
+                        let mut t = template.clone();
+                        t.name = kind.into();
+                        t.duration = duration as f32;
+                        t.stats = stats;
+                        a.world.items.types.types.push(t);
+                    }
+                    a
+                };
+                let mut a = fixture();
+                let dagger = carry(&mut a, "Dagger", 1);
+                let clarity = carry(&mut a, "Clarity", 2);
+                apply(&mut a.world, &clarity, "unrelated potion");
+                let baseline = stats(&a);
+                let old = carry(&mut a, "QuestOld", 1);
+                let new = carry(&mut a, "QuestNew", 1);
+                let old_unapplied = a.world.items.get(&old).unwrap().clone();
+                let mut new_applied = a.world.items.get(&new).unwrap().clone();
+                new_applied.third = CONNOR_USER_ID;
+                assert_eq!(bar_click(&mut a.world, &old, true, false, "hold"), BarResult::Hold);
+                apply(&mut a.world, &old, "first quest item");
+                assert_eq!(stats(&a), [10, 17, 3, 4, 0]);
+                a.world.updates = 17;
+                timers(&mut a.world);
+                let clarity_running = a.world.potions.iter().find(|r| r.item == clarity).unwrap().clone();
+                let before_events = a.world.connor_stats_events;
+
+                apply(&mut a.world, &new, "replace quest item");
+                assert_eq!(stats(&a), [10, 22, 1, 2, 0], "old Dur {old_duration}, new Dur {new_duration}");
+                assert_eq!(a.world.connor_stats_events, before_events + 2, "one removal, then one application");
+                assert_eq!(a.world.items.get(&old), Some(&old_unapplied), "old ownership, count and strip order are kept");
+                assert_eq!(a.world.items.get(&new), Some(&new_applied));
+                assert_eq!(a.world.hand.as_deref(), Some(old.as_str()), "applying does not change the held item");
+                assert_eq!(a.world.items.get(&dagger).unwrap().third, CONNOR_USER_ID);
+                assert_eq!(a.world.potions.iter().find(|r| r.item == clarity), Some(&clarity_running));
+                assert!(!a.world.potions.iter().any(|r| r.item == old));
+                assert_eq!(a.world.potions.iter().filter(|r| r.item == new).count(), usize::from(new_duration > 0));
+                assert_eq!(a.world.status_icons[0], Some(StatusIcon::Potion(clarity.clone())));
+                assert_eq!(a.world.status_icons[1], (new_duration > 0).then(|| StatusIcon::Potion(new.clone())));
+                assert!(a.world.status_icons[2..].iter().all(Option::is_none));
+
+                // A repeated application changes neither statistics nor the
+                // remaining timer, icon, inventory or pointer state.
+                a.world.updates = 21;
+                timers(&mut a.world);
+                let before = Journey::take(&a.world, &a.scripts.vars, "Daventry");
+                let icons = a.world.status_icons.clone();
+                let before_events = a.world.connor_stats_events;
+                assert!(apply(&mut a.world, &new, "repeat").contains("already applied"));
+                assert_eq!(Journey::take(&a.world, &a.scripts.vars, "Daventry"), before);
+                assert_eq!(a.world.status_icons, icons);
+                assert_eq!(a.world.connor_stats_events, before_events);
+
+                // Round-trip the actual carried-state record onto a different
+                // update clock, then remove through the ordinary drop command.
+                let bytes = serde_json::to_vec(&before).unwrap();
+                let saved: Journey = serde_json::from_slice(&bytes).unwrap();
+                let mut loaded = fixture();
+                loaded.world.updates = 500;
+                saved.give(&mut loaded.world, &mut loaded.scripts.vars);
+                let restored = Journey::take(&loaded.world, &loaded.scripts.vars, "Daventry");
+                assert_eq!((restored.stats, &restored.items, &restored.hand, &restored.potions),
+                    (before.stats, &before.items, &before.hand, &before.potions));
+                assert_eq!(loaded.world.status_icons, icons);
+                assert_eq!(loaded.test_command("KQMonster::dropItem Connor QuestNew 7 8 9 0 0 0", "remove applied quest item"), Some("0".into()));
+                assert_eq!(stats(&loaded), baseline);
+                let dropped = loaded.world.items.get(&new).unwrap();
+                assert_eq!(dropped.third, -1);
+                assert_eq!(dropped.place, Place::World { position: [7.0, 8.0, 9.0], angles: [0.0; 3] });
+                assert_eq!(loaded.world.hand.as_deref(), Some(old.as_str()));
+                assert_eq!(loaded.world.potions.len(), 1);
+                assert_eq!(loaded.world.potions[0].item, clarity);
+                assert!(loaded.world.status_icons[1..].iter().all(Option::is_none));
+                let after_drop = loaded.world.connor_stats_events;
+                loaded.world.updates += 90;
+                timers(&mut loaded.world);
+                assert_eq!(stats(&loaded), baseline, "the removed timer must not subtract statistics later");
+                assert_eq!(loaded.world.connor_stats_events, after_drop);
+
+                // Without removal, a timed replacement expires exactly once;
+                // a permanent replacement remains on after both old deadlines.
+                a.world.updates = 107;
+                timers(&mut a.world);
+                assert_eq!(stats(&a), if new_duration > 0 { baseline } else { [10, 22, 1, 2, 0] });
+                assert_eq!(a.world.items.get(&new).unwrap().third, if new_duration > 0 { -1 } else { CONNOR_USER_ID });
+                assert_eq!(a.world.connor_stats_events, before_events + u64::from(new_duration > 0));
+                assert_eq!(a.world.potions.len(), 1);
+                assert_eq!(a.world.potions[0].item, clarity);
+                assert!(a.world.status_icons[1..].iter().all(Option::is_none));
+                a.world.updates += 1;
+                timers(&mut a.world);
+                assert_eq!(a.world.connor_stats_events, before_events + u64::from(new_duration > 0));
+            }
+        }
     }
 
     #[test]
