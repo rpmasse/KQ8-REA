@@ -1,5 +1,27 @@
 # MODLOG
 
+## 2026-11-07 Clear the prepared central and western passages
+
+The genuinely healed save now passes the central encounter and
+reload in 179.31 seconds. All three guards die, their combined 500
+experience is awarded once, and ordinary damage leaves 23 health.
+The seven dropped supplies and reload pass in 96.07 seconds: four
+Mushrooms heal 20, while 25 coins and one Strength potion remain.
+
+The western passage guard passes with the existing retreat driver
+and fresh reload in 89.47 seconds. Two logged misses and three normal
+Mace hits leave Connor at 39 health; the original 400 experience is
+awarded once. The earned Strength potion raises hand damage 80 to
+120, expires exactly 300 updates later, and restores 80. The latest
+save keeps both Rocks and 25 coins beyond the guard.
+
+The first western charged-attack attempt failed in 45.22 seconds;
+its trace remains alongside the earlier central failures. Original
+terrain blocks 14 sampled sight lines from nearby northern guards,
+and live traversal confirms no damage from them. No engine rules
+changed. The graveyard and subsequent quests remain incomplete.
+[Sources, commands and all outcomes](docs/dead-city-progression.md#prepared-central-and-western-passage)
+
 ## 2026-11-07 Verify earned well healing; retain central guard failures
 
 Added an ordinary-input return from the second Rock checkpoint to

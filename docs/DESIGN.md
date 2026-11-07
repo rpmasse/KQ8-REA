@@ -13,6 +13,77 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 prepared central encounter (2026-11-07).** Resume only after the
+documented two failures and independent well-healing result. The
+unchanged enemy/team data and failed Mace log show 62 incoming damage
+before death; the genuine SylphWellReload now has 110 rather than 61
+health. That is new earned preparation, not a change to combat rules
+or proof that the encounter will succeed. Walk the cleared southern
+route to the eastern straight outside the central team's alarm
+distance, save there with unchanged health/items and reload in a
+fresh process. Use the same Mace approach and three enemy targets
+as the retained failed test. Check all three original deaths and
+their 500 combined experience, normal damage, unchanged two Rocks
+and quest flags, then another fresh-process reload beyond the guards.
+Inspect any new failure before retrying; do not edit the source save,
+grant supplies or alter AI, collision or damage. Nearby BowGuys1/2
+remain possible threats; proximity alone does not prove visibility.
+
+The prepared encounter passes in 179.31 seconds, including its
+approach checkpoint and final fresh-process reload. All three deaths
+finish once, awarding 500 experience; CentralGuardsReload retains
+23 health, two Rocks and level eleven experience 7112. The earlier
+61-health failures remain valid evidence. Next collect the actual
+guard drops with visible ordinary clicks, use the four dropped
+Mushrooms through inventory key 1, and preserve the remaining coin
+and Strength potion supplies. Verify their original quantities and
+health effects, then reload before the further winding passage.
+Do not manufacture drops or treat this preparation as proof that
+the graveyard has been reached.
+
+The seven original drops, four Mushroom uses and fresh reload pass
+in 96.07 seconds. CentralSuppliesReload retains 43 health, hand/ranged
+80/25, protection 10, experience 7112, 25 coins, one unused Strength
+potion and both Rocks. Before the northern/western passage, inspect
+static sight blockers between the nearby MaceBoy guards and the
+planned road using original terrain and matched building geometry.
+An unobstructed diagnostic line is not proof of live safety because
+plain objects, unmatched buildings and active movement are omitted.
+
+Fourteen sampled lines from MaceBoy1/2 to the northern bend encounter
+original terrain above the sight line. The road itself remains
+walkable in the terrain/building diagnostic. The western guard's
+line toward (118000,117000) has no blocker in that limited diagnostic,
+so explicitly plan its encounter. Continue from CentralSuppliesReload
+through the bend, use the earned Strength potion with inventory key 6
+before entering skeleton52's 5000-unit alarm radius, and fight with
+the earned Mace. Verify the temporary 80-to-120 hand-stat effect,
+ordinary damage/death and 400 experience once, then the original
+20-second expiry back to 80 and consumption of that one potion.
+Save/reload on the western passage beyond the guard. The actual
+graveyard floor, zombies and plates remain subsequent work.
+
+The first western-guard attempt fails in 45.22 seconds: Strength
+correctly raises hand damage to 120, but five incoming attacks kill
+Connor before the charged exchange finishes. Preserve that trace.
+For the second attempt reuse the existing ordinary retreat driver,
+which already passed the outer Mace guard: withdraw before the
+enemy's attack cue, release Back outside its 1300-unit reach, then
+counter with a normal swing inside Connor's 2350-unit reach. Require
+a real miss in the combat log along with the victory/expiry/reload
+checks. Do not change actor stats or damage; stop after a second
+failure and inspect the new evidence before another variation.
+
+The retreat attempt and fresh-process reload pass in 89.47 seconds.
+Two attacks miss beyond the guard's 1300 reach; three ordinary Mace
+hits defeat him with four health lost by Connor. His original 400
+experience completes on update 590. Strength starts on 430, expires
+on 730 and restores hand damage from 120 to 80. WesternPassageReload
+is at (107494.71,117003.98,192), level eleven [39,80,25,10,7512],
+carrying both Rocks and 25 coins. Continue with the remaining winding
+approach, graveyard zombies and portal plates; none is claimed by
+this passage result. Keep all earlier failed traces.
+
 **M6 central passage archers (2026-11-07).** Continue from the genuine
 SecondRockReload through the already cleared southern corridor and
 the winding eastern passage. The original placed skeleton2 and

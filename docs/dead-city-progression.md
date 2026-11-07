@@ -468,9 +468,9 @@ the graveyard or enabled its four portals. Those sections remain open.
 
 ## Central passage combat and the Sylph well
 
-The route beyond SecondRockReload is **not complete**. Two native
-combat attempts failed, and further variations of that route have
-stopped pending a better-supported approach:
+The first two native combat attempts beyond SecondRockReload failed.
+That route was stopped, then resumed only after independently
+verifying the original well healing described below:
 
 | Attempt | Observed result | Native duration |
 | --- | --- | --- |
@@ -485,8 +485,9 @@ Evidence is under kq8-artifacts/earned-central-archers/1794030315905121300
 and earned-central-guards/1794030484043099000, with corresponding
 central-archers-native.log and central-guards-native.log.
 
-The retained test currently reproduces the second failure. With the
-original `KQ8_GAME_DIR` and genuine `KQ8_SECOND_ROCK_SLOT` configured:
+The failed Mace revision is retained in commit 8fff486. The current
+test instead starts from the genuine healed `KQ8_SYLPH_WELL_SLOT`
+(`SylphWellReload`) and passes with the original `KQ8_GAME_DIR`:
 
 ```powershell
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::central_passage_guards_with_earned_mace_survive_reload -- --ignored --exact --test-threads=1
@@ -529,7 +530,75 @@ this command should pass the return, healing and reload assertions:
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::earned_return_to_sylph_well_heals_through_visible_clicks_and_reloads -- --ignored --exact --test-threads=1
 ```
 
-The central encounter has **not** been retried from this healed save.
+## Prepared central and western passage
+
+The healed continuation passed in **179.31 seconds**, including a
+safe approach save and two fresh-process loads. It defeats all three
+original central team members with the earned Mace, awards their
+combined 500 experience once and retains both Rocks and quest flags.
+CentralGuardsReload ends at (129515.93,104362.805,864), with level
+eleven stats [23,80,25,10,7112]. Ordinary incoming damage is retained.
+Evidence: earned-prepared-central-guards/1794031235820492500 and
+prepared-central-guards-native.log under kq8-artifacts.
+
+The next native check passed in **96.07 seconds**. Visible clicks
+collect the seven actual drops: four Mushrooms, coin stacks of 7 and
+18, and one Strength potion. Four uses of inventory key 1 heal 20
+points. CentralSuppliesReload retains [43,80,25,10,7112], 25 coins,
+one unused Strength potion, both Rocks and all earlier quest state.
+Original Invinfo.itl gives each Mushroom [5,0,0,0,0]; no other stat
+changes. Evidence: earned-central-supplies/1794031529033744000 and
+central-supplies-native.log. With `KQ8_CENTRAL_GUARDS_SLOT` pointing
+to the genuine CentralGuardsReload, this command should pass:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::central_guard_drops_heal_and_preserve_supplies_after_reload -- --ignored --exact --test-threads=1
+```
+
+The original terrain blocks 14 sampled lines from MaceBoy1/2 to the
+northern bend. The native continuation reaches the western guard
+without their damage. The diagnostic uses actual enemy eye heights,
+terrain plus 1250 at Connor's planned position, matched building
+collision lines and terrain samples every 100 units. It omits other
+objects, unmatched buildings, saved terrain changes and moving actors;
+an unobstructed result does not prove live visibility. Evidence:
+northern-guard-sight-band.log, northern-passage-ground.log and
+western-guard-sight.log.
+
+The first western guard attempt failed in **45.22 seconds**.
+The earned Strength potion raises hand damage from 80 to 120, but
+stationary charged attacks allow five incoming hits. Connor reaches
+negative health on update 598, kills skeleton52 with the still-pending
+charged swing on 614, and enters Die on 622. That is a failed campaign
+continuation, not a verified victory. Evidence:
+earned-western-passage-guard/1794031852408072000 and
+western-passage-guard-native.log. The follow-up uses the existing
+retreat/counterattack input sequence from the outer Mace encounter.
+
+That follow-up and fresh-process reload **pass in 89.47 seconds**.
+Skeleton52 misses on updates 505 and 529 at distances 1430 and 1370,
+beyond his original 1300 reach. Three normal Mace hits defeat him;
+Connor takes four damage. The original 400 experience is awarded
+once on update 590. Strength starts on 430 and expires on 730:
+exactly 300 updates, or 20 seconds. Hand damage returns from 120
+to 80 and the consumed potion is removed.
+
+WesternPassageReload ends at (107494.71,117003.98,192), with level
+eleven stats [39,80,25,10,7512], both Rocks and 25 coins. The guard
+stays gone and the reward does not repeat after reload. Original
+options, other inventory and quest flags remain unchanged. Evidence:
+earned-western-passage-guard/1794031981737135600/slots/slot-3.json
+and western-passage-retreat-native.log under kq8-artifacts.
+With `KQ8_CENTRAL_SUPPLIES_SLOT` pointing to the genuine
+CentralSuppliesReload and `KQ8_GAME_DIR` set, this command should pass:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::western_passage_guard_uses_earned_strength_and_reloads_after_expiry -- --ignored --exact --test-threads=1
+```
+
+The remaining winding approach, graveyard zombies and portal plates
+are **not yet verified** by this earned route.
+
 The standard workspace suite was not rerun for these ignored native
 route additions; no game-engine implementation changed.
 
@@ -575,6 +644,9 @@ invocation from New Game through this hall has not been run.
 | `dead_city::passage_weeper_with_earned_crossbow_survives_reload` | Required genuine `KQ8_SOUTHERN_PASSAGE_SLOT` (`SouthernPassageReload`) | `PassageWeeperReload` |
 | `dead_city::second_placed_rock_is_picked_up_and_reloaded` | Required genuine `KQ8_PASSAGE_WEEPER_SLOT` (`PassageWeeperReload`) | `SecondRockReload` |
 | `dead_city::earned_return_to_sylph_well_heals_through_visible_clicks_and_reloads` | Required genuine `KQ8_SECOND_ROCK_SLOT` (`SecondRockReload`) | `SylphWellReload` |
+| `dead_city::central_passage_guards_with_earned_mace_survive_reload` | Required genuine `KQ8_SYLPH_WELL_SLOT` (`SylphWellReload`) | `CentralPrepared`, `CentralGuardsReload` |
+| `dead_city::central_guard_drops_heal_and_preserve_supplies_after_reload` | Required genuine `KQ8_CENTRAL_GUARDS_SLOT` (`CentralGuardsReload`) | `CentralSuppliesReload` |
+| `dead_city::western_passage_guard_uses_earned_strength_and_reloads_after_expiry` | Required genuine `KQ8_CENTRAL_SUPPLIES_SLOT` (`CentralSuppliesReload`) | `WesternPassageReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
