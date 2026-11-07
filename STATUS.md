@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-07 Earned Rock lands inside the plate; portal stays closed
+
+The first native Rock attempt fails in 41.93 seconds. The visible
+ground click at gameplay pixel (814,417) starts ThrowRock normally.
+On update 80 the original rockHit.cs drops one recoverable Rock at
+(114047.86,108670.29,0), inside the plate footprint. Carried Rocks
+change from two to one, but triptrp5 has no occupant and both portal
+masks remain zero. Save and reload processes finish; the assertion
+requiring mask 4 fails. Evidence: kq8-artifacts/western-plate-rock-native.log
+and earned-western-plate-rock/1794035062532059200. This is one real
+failed attempt, not a successful puzzle check.
+
+The new route diagnostic aims through an on-screen gameplay pixel,
+rejects nearer aimable objects and checks the drawn-ground hit.
+No projectile or trap rules changed. Existing notes say dropItem
+places an item without flight and placement alone does not enter a
+trap. The original projectile-to-item trap handoff is unresolved
+(Q203); Rock aim and flight fidelity remain Q202. Do not force On
+at item creation or alter the pressure box to make this test pass.
+The earlier passing campaign checkpoint remains WesternPlateReleasedReload.
+[Command and limits](docs/dead-city-progression.md#earned-rock-placement-failure)
+
 ## 2026-11-07 Graveyard zombie and western plate On/Off verified
 
 The ordinary return around the cleared roads and fresh reload pass

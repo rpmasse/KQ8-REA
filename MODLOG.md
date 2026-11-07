@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-07 Visible ground aiming and failed earned Rock placement
+
+The unattended route can aim at visible ground through a gameplay
+pixel, rejecting an obstructed ray or a different ground hit. The
+first native plate attempt fails in 41.93 seconds: ThrowRock and
+the original landing script leave one recoverable Rock within the
+plate footprint, but no trap occupant or open portal. The ignored
+test is explicitly marked as a known failure and its evidence is
+retained. Original aim/arc and trap handoff need Q202/Q203 study;
+no engine physics, pressure box or campaign state was altered.
+[Command and limits](docs/dead-city-progression.md#earned-rock-placement-failure)
+
+Viewer headless validation passes once: 44 passed, 28 ignored.
+Command: `cargo test --locked --release -p kq8-viewer --bin kq8-viewer`.
+The native failure was not rerun; it needs new original-behavior evidence.
+
 ## 2026-11-07 Earned graveyard preparation, zombie and pressure plate
 
 The independent well return/healing and fresh reload pass in 242.61

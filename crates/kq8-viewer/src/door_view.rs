@@ -1953,9 +1953,26 @@ pub fn door_click_input(
             let origin = to_game(at.translation() * UNITS_PER_METRE);
             let p: Vec<f32> = name[1..].split(':').filter_map(|v| v.parse().ok()).collect();
             let target = [p.first().copied().unwrap_or(0.0), p.get(1).copied().unwrap_or(0.0), p.get(2).copied().unwrap_or(0.0)];
-            let d: [f32; 3] = std::array::from_fn(|k| target[k] - origin[k]);
-            let len = d.iter().map(|v| v * v).sum::<f32>().sqrt().max(1e-6);
-            (origin, d.map(|v| v / len), format!("test --aim-point ({:.0}, {:.0}, {:.0})", target[0], target[1], target[2]))
+            if landmark {
+                let world_point = Vec3::new(target[0], target[2], -target[1]) / UNITS_PER_METRE;
+                let pixel = camera.world_to_viewport(at, world_point).ok().filter(|p| {
+                    camera.logical_viewport_rect().is_some_and(|r| r.contains(*p))
+                        && window.single().is_ok_and(|w| panel_at(w, *p).is_none())
+                });
+                let pixel_ray = pixel.and_then(|p| camera.viewport_to_world(at, p).ok().map(|r| (p,r)));
+                let Some((pixel, ray)) = pixel_ray else {
+                    aim.turn_for_target(&shared, &mut sim, format!(
+                        "update {updates}: walk-route turns the camera for ground {target:?}: outside the gameplay area or covered by a panel"));
+                    return;
+                };
+                (to_game(ray.origin * UNITS_PER_METRE), to_game(*ray.direction),
+                    format!("test --aim-ground ({:.0}, {:.0}, {:.0}) (camera through gameplay pixel {:.0},{:.0})",
+                        target[0],target[1],target[2],pixel.x,pixel.y))
+            } else {
+                let d: [f32; 3] = std::array::from_fn(|k| target[k] - origin[k]);
+                let len = d.iter().map(|v| v * v).sum::<f32>().sqrt().max(1e-6);
+                (origin, d.map(|v| v / len), format!("test --aim-point ({:.0}, {:.0}, {:.0})", target[0], target[1], target[2]))
+            }
         }
         Some(name) => {
             let origin = to_game(at.translation() * UNITS_PER_METRE);
@@ -2017,7 +2034,22 @@ pub fn door_click_input(
         // The route's visibility check must use the current click's mask.
         // Ordinary enemies have type 0x42 and are aimable, but do not have
         // the plain interaction pick's 0x20 bit (ranged-weapons rule 16).
-        let visible = if action == WorldClick::Shoot {
+        let visible = if let Some(point) = target.strip_prefix('@') {
+            let p: Vec<f32> = point.split(':').filter_map(|v| v.parse().ok()).collect();
+            let w = &sim.active.world;
+            let obstacle = w.mask_pick(origin, dir, kq8_core::weapons::AIM_PICK,
+                objects.as_deref().map_or(&[][..], |o| &o.0[..]),
+                buildings.as_deref().map_or(&[][..], |b| &b.0[..]));
+            let far = std::array::from_fn(|k| origin[k]+dir[k]*kq8_core::active::CLICK_LINE_LENGTH);
+            let ground = lookup.as_deref().and_then(|g|
+                kq8_core::connor_mover::GroundLookup::drawn_line_hit(&g.0,origin,far));
+            // This is a ground-target diagnostic, not a way to click through
+            // scenery. Apply the same aim-pick priority as the shot below.
+            (matches!(action, WorldClick::ThrowRock | WorldClick::Shoot)
+                && obstacle.is_none() && p.len()==3 && ground.is_some_and(|g|
+                    (0..3).map(|i| (g[i]-p[i]).powi(2)).sum::<f32>()<=25.*25.))
+                .then(|| target.clone())
+        } else if action == WorldClick::Shoot {
             sim.active.world.mask_pick(origin, dir, kq8_core::weapons::AIM_PICK,
                 objects.as_deref().map_or(&[][..], |o| &o.0[..]),
                 buildings.as_deref().map_or(&[][..], |b| &b.0[..]))

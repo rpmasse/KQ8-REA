@@ -13,6 +13,35 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 earned Rock on the western plate (2026-11-07).** Continue from
+WesternPlateReleasedReload with 110 health and both earned Rocks.
+The original trip5 has no clickable collider, while triptrp5 accepts
+world inventory objects. Use an ordinary Rock-slot selection and a
+visible ground click at the plate, then inspect the launch, landing
+script, carried quantity, actual world Rock and pressure occupancy.
+Require the portal to remain enabled while Connor is outside and
+after a fresh reload. No item grants, projectile-position edits,
+direct script calls or changes to the original pressure box.
+
+Extend the existing unattended route's on-screen aiming to ground
+points: project into the gameplay area, use its normal pointer ray,
+and reject nearer aimable objects or ground hits away from the intended
+point. The existing camera-drag search may find a visible view; it
+must not create a click behind the camera. Keep this diagnostic
+extension separate from gameplay and projectile rules.
+
+The behavior note does not yet establish the original Rock aim and
+arc integration; the existing implementation uses a documented
+approximation. Record that study gap explicitly. A successful puzzle
+check would verify this earned route and save state, not exact
+original trajectory fidelity. Do not tune physics to make it pass.
+
+The first native attempt fails after 41.93 seconds: the ground click,
+throw, original landing script and inventory decrement occur, but
+the Rock inside the plate footprint does not enter triptrp5. Both
+portal masks remain zero through reload. Keep this as an explicitly
+failing diagnostic pending the original trap-handoff rule (Q203).
+
 **M6 graveyard preparation through the well (2026-11-07).** The two
 failed encounters remain stopped. From the genuine entrance save,
 follow the already-traversed roads back around the western passage,
