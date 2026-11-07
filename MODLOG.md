@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-07 Equip the dropped Mace and recover health
+
+The northern campaign now clicks its Mace and three Mushroom drops,
+consumes the Mushrooms with the inventory key and restores the
+equipment in a fresh process. The broadsword exchange, health and
+melee-stat changes passed in 36.12 seconds. The blocked westward
+probe identified the original Cell04 gate and its distant switch.
+Two outer-route attempts ended in combat with skeleton56 and are
+recorded in STATUS under the two-attempt rule. All 877 standard
+workspace tests passed.
+[Route and command](docs/dead-city-progression.md#junction-equipment-and-the-closed-cells)
+
 ## 2026-11-07 Clear and restore the northern junction
 
 The earned campaign continues from the northwest passage through a

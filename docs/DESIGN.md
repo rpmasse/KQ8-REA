@@ -42,6 +42,16 @@ from a 235-unit waypoint while the archer kept firing. Increase the
 three combat arrival radii to 400 units, still within normal weapon
 reach, so the driver stops navigating and starts the intended attack.
 
+The westward route reached a closed cell gate, `Cell04`. Its
+original switch is on the other side of the maze. The offline route
+planner omitted animated doors, so add the current save’s closed
+door bounds to that local diagnostic before choosing another route.
+Keep game collision and the original switch prerequisites intact.
+The closed-door-aware path reaches the outer north corridor around
+the cells. Checkpoint the Mace and three consumed Mushrooms first.
+Then approach its stronger mace guard, using ordinary retreat and
+counterattack inputs already exercised against the Daventry guard.
+
 **M6 enter the maze with Death’s key.** Load the earned key, approach
 the closed spike gate and offer it through the quest strip. Verify
 that the opening finishes and the key is consumed. Load the opened

@@ -124,6 +124,31 @@ all three victories, 12 health and 1,367 experience at level nine.
 Their Mace and three Mushroom drops can support the next western
 stretch. The route continues from the earned corner save.
 
+## Junction equipment and the closed cells
+
+The next two-process check collects the Mace and three Mushrooms
+dropped by the junction guards. The Mace replaces the broadsword
+and raises melee strength from 67 to 70. Three presses of the first
+inventory key consume the Mushrooms and raise health from 12 to 27.
+The fresh reload restores that health, the equipped Mace, and the
+broadsword where the Mace originally lay. The test passed in 36.12
+seconds and ends on the road east of the closed cells.
+
+An earlier westward probe stopped at Cell04. The offline planner
+included terrain and scenery but omitted animated doors. The
+original ASwitch4 script controls Cell04 from a switch across the
+maze. Adding the save’s 59 closed doors to the local diagnostic
+found a route around the cells to the north. The direct route to
+the western Weeper remains unverified.
+
+Two attempts along the outer route reached its stronger mace guard,
+skeleton56, and ended in Connor’s death. The first counterattack run
+killed the guard after Connor’s health had already fallen below zero.
+The second began the approach on foot earlier. The verified handoff
+remains `NorthSuppliesReload`, before this encounter. The guard has
+225 health and a half-second attack delay. Its pursuing movement needs
+an input and combat audit before another route attempt.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -151,6 +176,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::equipped_connor_defeats_the_three_maze_guards` | `KQ8_HALL_EQUIPMENT_SLOT` (`HallEquipment`) | `MazeGuardsReload` |
 | `dead_city::gate_drops_and_northwest_passage_reload` | `KQ8_MAZE_GUARDS_SLOT` (`MazeGuardsReload`) | `NorthCornerReload` |
 | `dead_city::northern_mace_guard_and_archers_reload` | `KQ8_NORTH_MAZE_CORNER_SLOT` (`NorthCornerReload`) | `NorthJunctionReload` |
+| `dead_city::northern_drops_equip_mace_and_heal_before_the_cell_gate` | `KQ8_NORTH_JUNCTION_SLOT` (`NorthJunctionReload`) | `NorthSuppliesReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
@@ -158,4 +184,5 @@ cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::equipped_connor_defeats_the_three_maze_guards -- --ignored --exact --test-threads=1
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::gate_drops_and_northwest_passage_reload -- --ignored --exact --test-threads=1
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::northern_mace_guard_and_archers_reload -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::northern_drops_equip_mace_and_heal_before_the_cell_gate -- --ignored --exact --test-threads=1
 ```
