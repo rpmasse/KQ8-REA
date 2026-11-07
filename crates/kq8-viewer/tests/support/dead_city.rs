@@ -1,4 +1,102 @@
 //! The skeleton archers on the road from the Dead City arrival to the first hall.
+
+
+#[test]
+#[ignore = "requires GOG assets, graphics and genuine KQ8_SKULL_EASTERN_ARCHER_SLOT"]
+fn original_blocks_and_jumps_cross_the_skull_river_and_reload() {
+    let play = Play::new("earned-skull-river-crossing");
+    let source = earned_slot("KQ8_SKULL_EASTERN_ARCHER_SLOT")
+        .expect("set KQ8_SKULL_EASTERN_ARCHER_SLOT to SkullEasternArcherReload");
+    let start: Value = serde_json::from_slice(&fs::read(&source).unwrap()).unwrap();
+    assert_eq!(start["label"], "SkullEasternArcherReload");
+    assert_eq!(start["journey"]["stats"], json!({"stats":[39,85,27,11,2474],"level":12}));
+    let check_state = |saved: &Value| {
+        assert_eq!(saved["world"], "DeadCity");
+        for field in ["stats","items","flags"] {
+            assert_eq!(saved["journey"][field], start["journey"][field], "{field}");
+        }
+        assert_eq!(saved["view_flags"]["active"], false);
+        for name in ["skeleton16","skeleton17"] {
+            assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap().iter().any(|gone| gone == name));
+        }
+        for (flag,value) in [("FirstFive","true"),("FiveOn","false"),("SixOn","true")] {
+            assert!(region_flag(saved, &format!("DeadCity::Portal::{flag}"), value));
+        }
+        let plate = |save: &Value| save["traps"]["states"].as_array().unwrap().iter()
+            .find(|trap| trap["name"] == "triptrp5").unwrap()["inside"].clone();
+        assert_eq!(plate(saved), plate(&start));
+        assert!(!carries_one(saved, "INVITEM_GoodSkull"));
+        assert!(!carries_one(saved, "INVITEM_BadSkull"));
+    };
+    let labels = ["SkullLowerBlock","SkullHigherBlock","SkullRiverCrossed"];
+    // Original walk-stop motion continues after the last key release.
+    // The bank's safe slope starts before the flat 864-unit shelf; test
+    // the actual hazard boundary, not the landmark's arrival radius.
+    let check_bank = |saved: &Value| {
+        assert!(saved["position"][1].as_f64().unwrap()>202250.);
+        assert!(saved["position"][2].as_f64().unwrap()>614.);
+    };
+    let routes = [
+        json!({"start":25,"landmarks":[
+            {"name":"Return along the dry south bank 1","xy":[34500,193000],"radius":100,"run":false},
+            {"name":"Return along the dry south bank 2","xy":[33000,192850],"radius":100,"run":false},
+            {"name":"Approach the lower block from dry ground","xy":[31550,192700],"radius":50,"run":false},
+            {"name":"Jump onto the lower original block","xy":[31550,193400],"radius":50,"run":false,
+                "jump_toward":[32757,194133]}
+        ]}),
+        json!({"start":25,"landmarks":[
+            {"name":"Jump onto the higher original block","xy":[32900,194300],"radius":50,"run":false,
+                "jump_toward":[34550,195332]}
+        ]}),
+        json!({"start":25,"landmarks":[
+            {"name":"Run and jump across the skull river","xy":[34600,196100],"radius":50,"run":false,
+                "jump_toward":[34600,205000],"running_jump":true},
+            {"name":"Reach the dry north bank","xy":[34600,203000],"radius":90,"run":false}
+        ]}),
+    ];
+    let (mut saved, first) = if let Some(checkpoint) = earned_slot("KQ8_SKULL_RIVER_CHECKPOINT") {
+        let saved = prepare(&play, &checkpoint);
+        check_state(&saved);
+        let first = labels.iter().position(|label| saved["label"] == *label)
+            .expect("checkpoint must be an earned block or river-crossing save") + 1;
+        (saved, first)
+    } else {
+        (prepare(&play, &source), 0)
+    };
+    let mut slot = 1;
+    for i in first..routes.len() {
+        let path = play.root.join(format!("skull-river-{i}.json"));
+        fs::write(&path, serde_json::to_vec(&routes[i]).unwrap()).unwrap();
+        let mut inputs = vec!["--walk-route",path.to_str().unwrap()];
+        if saved["view_flags"]["active"] == true {
+            inputs.extend(["--key","physical:F2,3"]);
+        }
+        let (next, viewer) = leg(&play, slot, labels[i], [300,150,220][i], &inputs);
+        assert!(viewer.contains("walk-route landed on update"), "no landing for {}", labels[i]);
+        let motion = log(&play, labels[i], "connor.log");
+        assert!(motion.contains(if i == 2 { "jump: runJump from" } else { "jump: jump from" }),
+            "original jump kind was not accepted for {}", labels[i]);
+        assert!(!motion.contains("jump refused:"), "jump refused for {}", labels[i]);
+        check_state(&next);
+        let p = next["position"].as_array().unwrap();
+        if i < 2 {
+            assert!((p[2].as_f64().unwrap()-[1779.,2689.][i]).abs()<30.,
+                "{} did not end on the original block: {p:?}",labels[i]);
+        } else {
+            assert!(viewer.contains("walk-route at Reach the dry north bank"));
+            check_bank(&next);
+        }
+        saved = next;
+        slot += 1;
+    }
+    let (restored, _) = leg(&play, slot, "SkullRiverCrossedReload", 45, &[]);
+    check_state(&restored);
+    assert_eq!(restored["journey"]["stats"], saved["journey"]["stats"]);
+    check_bank(&saved);
+    check_bank(&restored);
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
 use super::{
     carries_one, earned_slot, hero_flag,
     shadow::{leg, log, prepare},

@@ -13,6 +13,32 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 original skull-river block and jump crossing (2026-11-07).** Start
+from SkullEasternArcherReload with both archers genuinely defeated.
+Read the installed C_jump/C_rnjmp sequences and Conner.anm timing, and
+use the existing Rust mover with the original oriented block bounds and
+terrain to plan standing jumps onto block.32 and block.31, then a running
+jump across the damaging strip. This local numerical planning omits live
+callbacks and does not count as a playable crossing.
+
+Extend the unattended route only as needed to press the normal Run,
+Forward and Jump keys for an explicitly requested running jump. Retain
+ordinary collision, gravity, hazards and authored movement distances.
+The native route must record actual launch/landing positions, reach the
+far bank alive without a scripted move, and preserve inventory, XP,
+defeated enemies and the held Rock through a fresh-process reload.
+Use genuine intermediate platform saves if a later step fails, so a
+successful climb need not be repeated. Only then attempt the skull shelf.
+
+Both standing jumps and the running crossing now succeed in native
+play, and a fresh-process continuation reload passes once in 10.96
+seconds. The initial final-position assertion was corrected to include
+the safe bank slope reached by the original stopping animation; the
+successful jumps were not repeated. Health remains 39, with inventory,
+quest state and both archer deaths preserved. Continue from the earned
+SkullRiverCrossedReload save for the shelf interaction.
+[Evidence](skull-river-access.md#original-block-and-jump-crossing)
+
 **M5–M6 healed return and eastern skull archer (2026-11-07).** Continue
 from SkullReturnWellReload with 120 health. The current static segment
 plan leaves the well westward via (66000,104750), (64000,107000) and

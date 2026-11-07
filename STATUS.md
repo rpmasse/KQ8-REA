@@ -1,5 +1,31 @@
 # STATUS
 
+## 2026-11-07 Original skull-river jumps and saved crossing verified
+
+Normal standing jumps reach block.32 at update 149, feet 1779, and
+block.31 at update 60 of the next leg, feet 2689. The new diagnostic
+running_jump option presses ordinary Run, Forward and Jump keys; the
+running jump lands across the river at update 68, (34744,202931,864).
+No gameplay physics or animation distances change. Health stays 39.
+
+The three native legs pass and save, but the overall test initially
+fails after 68.49 seconds: it incorrectly requires the final save to
+remain above y=202900. The original walk-stop animation carries Connor
+from the reached flat-bank target onto the safe slope at
+(35363,202274,662). The corrected assertion uses the actual bank/hazard
+boundary and is checked against that existing save. The continuation
+then verifies only the outstanding fresh-process reload, passing once
+in 10.96 seconds after a 14.57-second test compilation. No jump repeats.
+
+Newest earned save: earned-skull-river-crossing/1794047351774964100/
+slots/slot-2.json, SkullRiverCrossedReload. Stats [39,85,27,11,2474],
+level 12, items, both archer deaths, portal flags and the held Rock
+persist. Original Options.cs is unchanged. Evidence: the initial
+skull-river-crossing-native.log and passing skull-river-crossing-reload.log.
+Next recover the original good skull. No manual testing. Estimates:
+M4 about 80%, M5 60%, M6 about 25%.
+[Commands and limits](docs/skull-river-access.md#original-block-and-jump-crossing)
+
 ## 2026-11-07 Both skull-chamber archers defeated; reload passes
 
 The healed portal revisit, eastern-archer encounter and fresh-process
