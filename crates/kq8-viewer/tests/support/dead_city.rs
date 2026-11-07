@@ -1018,6 +1018,10 @@ fn earn_north_supplies() -> PathBuf {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_NORTH_SUPPLIES_SLOT"]
 fn outer_mace_guard_retreats_after_running_and_reloads() {
+    earn_outer_guard();
+}
+
+fn earn_outer_guard() -> PathBuf {
     let play = Play::new("earned-outer-mace-guard");
     let source = earned_slot("KQ8_NORTH_SUPPLIES_SLOT").unwrap_or_else(earn_north_supplies);
     let start = prepare(&play, &source);
@@ -1071,4 +1075,181 @@ fn outer_mace_guard_retreats_after_running_and_reloads() {
         fs::read(play.game.join("Options.cs")).unwrap(),
         play.options
     );
+    play.slots.join("slot-3.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_OUTER_GUARD_SLOT"]
+fn first_hall_supplies_heal_the_return_to_the_outer_corridor() {
+    earn_corridor_supplies();
+}
+
+fn earn_corridor_supplies() -> PathBuf {
+    let play = Play::new("earned-corridor-supplies");
+    let source = earned_slot("KQ8_OUTER_GUARD_SLOT").unwrap_or_else(earn_outer_guard);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "OuterGuardReload");
+    let mut herbs: Vec<_> = start["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|item| {
+            item["kind"] == "INVITEM_Mushroom"
+                && item["place"]["World"]["position"][1]
+                    .as_f64()
+                    .is_some_and(|y| y < 80000.0)
+        })
+        .collect();
+    assert_eq!(herbs.len(), 4);
+    herbs.sort_by(|a, b| {
+        a["place"]["World"]["position"][0]
+            .as_f64()
+            .unwrap()
+            .total_cmp(&b["place"]["World"]["position"][0].as_f64().unwrap())
+    });
+    let mut points: Vec<Value> = [
+        [159750, 152000],
+        [162250, 149500],
+        [161885, 144000],
+        [161885, 140750],
+        [162250, 129750],
+        [162250, 116000],
+        [165750, 112250],
+        [168750, 112250],
+        [178000, 108000],
+        [180000, 107250],
+        [181750, 104750],
+        [181750, 101500],
+        [180500, 90000],
+        [178750, 88250],
+        [177500, 84000],
+        [177500, 70250],
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(i, xy)| {
+        let narrow = i == 2 || i == 3;
+        json!({"name":format!("Return to the first hall {}",i+1),"xy":xy,
+            "radius":if narrow {90} else {280},"run":!narrow})
+    })
+    .collect();
+    for herb in &herbs {
+        let p = &herb["place"]["World"]["position"];
+        points.push(
+            json!({"name":format!("Take first hall Mushroom {}",herb["name"]),
+            "xy":[p[0].as_f64().unwrap()+360.0,p[1].as_f64().unwrap()-250.0],
+            "radius":300,"run":true,"aim":herb["name"]}),
+        );
+    }
+    let pickup_path = play.root.join("hall-supplies.json");
+    fs::write(
+        &pickup_path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (picked, viewer) = leg(
+        &play,
+        1,
+        "HallHerbs",
+        1120,
+        &["--walk-route", pickup_path.to_str().unwrap()],
+    );
+    assert_eq!(picked["journey"]["stats"], start["journey"]["stats"]);
+    assert!(picked["journey"]["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item["kind"] == "INVITEM_Mushroom"
+            && item["quantity"] == 4
+            && item["place"]["Carried"] == "Connor"));
+    for herb in &herbs {
+        let name = herb["name"].as_str().unwrap();
+        assert!(viewer.lines().any(|line| line
+            .contains(&format!("test --aim {name} (camera through gameplay pixel"))
+            && line.contains(&format!("hits {name} first"))));
+    }
+    let points: Vec<Value> = [
+        [177500, 70250],
+        [177500, 84000],
+        [178750, 88250],
+        [180500, 90000],
+        [181750, 101500],
+        [181750, 104750],
+        [180000, 107250],
+        [178000, 108000],
+        [168750, 112250],
+        [165750, 112250],
+        [162250, 116000],
+        [162250, 129750],
+        [161885, 140750],
+        [161885, 144000],
+        [162250, 149500],
+        [159750, 152000],
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(i, xy)| {
+        let narrow = i == 12 || i == 13;
+        let mut point = json!({"name":format!("Return with supplies {}",i+1),"xy":xy,
+            "radius":if narrow {90} else {280},"run":!narrow});
+        if i < 4 {
+            point["inventory_slot"] = json!(1);
+        }
+        point
+    })
+    .collect();
+    let return_path = play.root.join("supplied-return.json");
+    fs::write(
+        &return_path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (healed, viewer) = leg(
+        &play,
+        2,
+        "RestockedCorridor",
+        1040,
+        &["--walk-route", return_path.to_str().unwrap()],
+    );
+    assert!(viewer.contains("walk-route at Return with supplies 16"));
+    assert_eq!(
+        log(&play, "RestockedCorridor", "items.log")
+            .matches("INVITEM_Mushroom, slot used")
+            .count(),
+        4
+    );
+    let (restored, _) = leg(&play, 3, "CorridorSuppliesReload", 45, &[]);
+    let mut expected = start["journey"]["stats"].clone();
+    expected["stats"][0] = json!(expected["stats"][0].as_i64().unwrap() + 20);
+    for saved in [&healed, &restored] {
+        assert_eq!(saved["journey"]["stats"], expected);
+        assert!(
+            !saved["journey"]["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["kind"] == "INVITEM_Mushroom"
+                    && item["place"]["Carried"] == "Connor")
+        );
+        assert!(carries_one(saved, "INVITEM_Mace"));
+        assert!(carries_one(saved, "INVITEM_SmCrossbow"));
+        assert!((159000.0..160500.0).contains(&saved["position"][0].as_f64().unwrap()));
+        assert!((151500.0..152500.0).contains(&saved["position"][1].as_f64().unwrap()));
+        assert_eq!(
+            saved["kept"]["deadcity"]["interactions"]["doors"]["cell04"]["state"],
+            "Closed"
+        );
+        for herb in &herbs {
+            assert!(!saved["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["name"] == herb["name"] && item["place"].get("World").is_some()));
+        }
+    }
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+    play.slots.join("slot-4.json")
 }

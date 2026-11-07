@@ -3,6 +3,15 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Dead City supply return.** The earned disk save records four loose
+Mushrooms created by the first hall's real enemy drops. Their pickup
+and health-slot use follow inventory.md rules 8–14 and the installed
+item table's five-health value. The flame tower and Cell04 positions
+and bounds come from the installed world data and native collision
+logs. The route changes ordinary walking inputs through that gap;
+it does not move colliders or grant health, items or quest state.
+[Supply route and check](../dead-city-progression.md#recovering-the-remaining-first-hall-supplies)
+
 **Retreat after a running approach.** Connor’s Run action is a
 persistent toggle under the movement study’s rules 1–4. The original
 Dead City MONSTERS.KQ assigns skeleton56 a patrol. The failed route’s

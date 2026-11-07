@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-07 Recover earned supplies before the river route
+
+Added an unattended first-hall supply round trip from the earned
+outer-guard save. Four actual Mushrooms are clicked, saved, consumed
+through the health slot, and followed by a fresh-process reload at
+the corridor. The three-process test passed in 166.50 seconds with
+47 health and unchanged experience. The initial flame-tower collision
+and corrected walking path are documented in STATUS.md. No production
+engine code changed. Original Options.cs bytes are unchanged.
+[Exact command and evidence](docs/dead-city-progression.md#recovering-the-remaining-first-hall-supplies)
+
 ## 2026-11-07 Record the failed river approach
 
 An unattended run from the earned 27-health outer-guard save passed

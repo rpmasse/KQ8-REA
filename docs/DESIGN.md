@@ -13,6 +13,24 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 recover the first hall's remaining supplies (2026-11-07).**
+The earned outer-guard slot contains four uncollected Mushroom drops
+from the cleared entrance fights. Walk back through the open spike
+gate, collect each through the ordinary visible click and use the
+health inventory slot while returning along the cleared road. Keep
+the same earned 27-health source and all enemy, door and quest state.
+The expected increase is 20 health, with no experience change. Save
+and reload near the outer corridor before another river approach.
+Compare all four pickups, consumptions and restored stats; preserve
+the failed unsupplied route as a separate result. No new duel variation
+is part of this check.
+
+The first southbound run collided repeatedly with flametow.10 at
+(162813,141750). Its bounds and closed Cell04 leave a narrow passage
+on the tower's west side. The large running waypoint radius accepted
+a line too far east. Line up at x 161885 and walk this short section
+with a 90-unit waypoint radius before resuming the cleared road.
+
 **M6 northern corridor to the boatman (2026-11-07).** Close the two
 failed western patrol duels without another combat variation. The
 latest verified outer-guard save has 27 health. Follow the original

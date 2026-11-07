@@ -178,6 +178,24 @@ that fight. Those logs are retained in local `dead-road-westernpatrol`
 artifacts. Further encounter variations are stopped under the project
 handoff rule. Original-runtime comparison is **not tested**.
 
+## Recovering the remaining first-hall supplies
+
+The earned outer-guard save still contains four Mushroom drops from
+the cleared first hall. The route returns through the open spike
+gate, clicks each actual drop, saves, and starts a fresh process for
+the return. Four ordinary health-slot inputs raise health from 27
+to 47 while experience stays at 1,817 and level stays at nine. The
+exploratory pickup and return both passed. The canonical three-process
+test passed in 166.50 seconds, including the final fresh-process
+reload with 47 health, the Mace and Small Crossbow, no remaining
+Mushrooms, and Cell04 still closed.
+
+The initial southbound attempt stopped at flametow.10, a solid prop
+beside closed Cell04. Its running waypoint accepted a line too far
+east. The corrected route walks at x 161885 through the gap, using
+a 90-unit arrival radius, then resumes running. It preserves both
+colliders and all enemy and quest state.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -207,6 +225,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::northern_mace_guard_and_archers_reload` | `KQ8_NORTH_MAZE_CORNER_SLOT` (`NorthCornerReload`) | `NorthJunctionReload` |
 | `dead_city::northern_drops_equip_mace_and_heal_before_the_cell_gate` | `KQ8_NORTH_JUNCTION_SLOT` (`NorthJunctionReload`) | `NorthSuppliesReload` |
 | `dead_city::outer_mace_guard_retreats_after_running_and_reloads` | `KQ8_NORTH_SUPPLIES_SLOT` (`NorthSuppliesReload`) | `OuterGuardReload` |
+| `dead_city::first_hall_supplies_heal_the_return_to_the_outer_corridor` | `KQ8_OUTER_GUARD_SLOT` (`OuterGuardReload`) | `CorridorSuppliesReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
@@ -216,4 +235,5 @@ cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::northern_mace_guard_and_archers_reload -- --ignored --exact --test-threads=1
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::northern_drops_equip_mace_and_heal_before_the_cell_gate -- --ignored --exact --test-threads=1
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::outer_mace_guard_retreats_after_running_and_reloads -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::first_hall_supplies_heal_the_return_to_the_outer_corridor -- --ignored --exact --test-threads=1
 ```

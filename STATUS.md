@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-07 First-hall supplies recovered
+
+The three-process regression passed in 166.50 seconds. It uses
+ordinary movement and visible clicks to recover the four remaining
+Mushroom drops, saves in the hall, then consumes each on the return.
+The final `CorridorSuppliesReload` has 47 health, level nine and
+1,817 experience. The Mace and Small Crossbow remain carried; the
+Mushrooms are gone and Cell04 stays closed. The GOG Options.cs is
+unchanged. [Route and exact command](docs/dead-city-progression.md#recovering-the-remaining-first-hall-supplies)
+
+The first southbound attempt hit flametow.10 repeatedly and stopped.
+Original prop and door bounds identify the narrow west-side gap.
+Walking through it at x 161885 with a 90-unit waypoint radius passed
+in the subsequent exploratory run and the canonical regression.
+No collider or combat rules changed. The river route with these
+recovered supplies is the next check; the prior fatal route remains
+documented below.
+
 ## 2026-11-07 River approach stopped by low health
 
 The distinct running route toward the boathouse started from the
