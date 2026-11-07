@@ -62,8 +62,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-// Our private queue notice, not a script-visible original event class name.
-const TRAP_LOOKUP_EVENT: &str = "__kq8_trap_lookup";
+const TRAP_LOOKUP_EVENT: &str = "KQLookupEvent";
 
 use kq8_data::world_script::Vars;
 
@@ -72,6 +71,8 @@ use crate::click::{distance_to_box, ray_box, CLICKABLE};
 use crate::collide::{pair_collides, BoxCollider, ColliderKind, Placement, CONNOR_MASK, CONNOR_TYPE};
 use crate::door::{turn_degrees, Door};
 use crate::events::{EventQueue, Pending};
+#[path = "saved_world.rs"]
+mod saved_world;
 use crate::item::{Accepts, Items, Place};
 use crate::music::MusicRequest;
 use crate::named_anim::{NamedAnimPlayer, Request as AnimRequest, Started};
@@ -725,10 +726,9 @@ pub struct WorldState {
     /// update in each of the six directions (connor-collision.md rules 7–10).
     contact_scripts: BTreeMap<String, (String, [u64; 6])>,
     pub queue: EventQueue,
-    /// Immediate notices emitted during restored objects' Init, not later input.
-    init_notices: Vec<Pending>,
-    /// Updates done; game time = updates / 15.
+    /// Local update cadence and diagnostic count; separate from simulation time.
     pub updates: u64,
+    simulation_time: f32,
     pub terrain_changes: crate::ground_anim::GroundChanges,
     /// Cases in the installed 500.MSG requested by the world's help scripts.
     pub help_prompts: crate::starting_help::Requests,
@@ -761,6 +761,8 @@ pub struct WorldState {
     /// `getEndLoop <from> <to> 1`: lower-case `<from>` → `<to>` (one
     /// listener per object, `clicking.md` rule 21).
     end_loop_listeners: BTreeMap<String, String>,
+    end_loop_listener_ids: BTreeMap<String,u64>,
+    pending_end_loop_listeners: BTreeMap<String,String>,
     /// Every deleted object, lower case (`deleteObject`, 3g-5): events to
     /// it are dropped.
     deleted: BTreeSet<String>,
@@ -1203,17 +1205,7 @@ impl WorldState {
     }
 
     pub fn now(&self) -> f64 {
-        self.updates as f64 / crate::UPDATES_PER_SECOND
-    }
-
-    pub fn saved_events(&self) -> crate::events::SavedEvents {
-        self.queue.checkpoint(self.now(), &self.held_for_load, &self.end_loop_listeners)
-    }
-
-    pub fn restore_events(&mut self, saved: crate::events::SavedEvents) {
-        self.held_for_load.clear();
-        let notices = std::mem::take(&mut self.init_notices);
-        self.end_loop_listeners = self.queue.restore_with_init(self.now(), saved, notices);
+        self.simulation_time as f64
     }
 
     /// `potions.md` rule 26 (M5 5g-6, 5g-9): where the characters are
@@ -1563,6 +1555,7 @@ impl WorldState {
             }
         }
         let name = self.items.make(kind, quantity, Place::World { position, angles })?.name.clone();
+        self.register_event_receiver(&name);
         self.known.insert(name.to_ascii_lowercase());
         self.queue_item_registration(&name, new_inv_item);
         Ok(name)
@@ -1860,6 +1853,7 @@ impl WorldState {
                 }
                 let made = self.items.make(&m.kind, m.quantity, Place::Carried(m.who.clone())).map(|o| o.name.clone());
                 if let Ok(name) = &made {
+                    self.register_event_receiver(name);
                     self.known.insert(name.to_ascii_lowercase());
                 }
                 made
@@ -2230,7 +2224,7 @@ impl WorldState {
             return "1".into();
         };
         for n in [from, to] {
-            if !self.known.contains(&n.to_ascii_lowercase()) {
+            if self.queue.receiver(n).is_none() {
                 self.note(format!("{at}: ERROR getEndLoop: unknown object '{n}'"));
                 return "1".into();
             }
@@ -2238,10 +2232,13 @@ impl WorldState {
         let key = from.to_ascii_lowercase();
         if number_value(on) != 0.0 {
             self.note(format!("{at}: getEndLoop: {to} hears when {from}'s play-once movements end"));
+            self.end_loop_listener_ids.insert(key.clone(), self.queue.receiver(to).unwrap());
             self.end_loop_listeners.insert(key, to.clone());
         } else {
             self.note(format!("{at}: getEndLoop: {from} no longer reports its movements' ends"));
             self.end_loop_listeners.remove(&key);
+            self.end_loop_listener_ids.remove(&key);
+            self.pending_end_loop_listeners.remove(&key);
         }
         "0".into()
     }
@@ -2508,6 +2505,7 @@ impl WorldState {
         self.came_in.push((key.clone(), name.clone()));
         self.loading.insert(lower.clone());
         self.persistent_stat_objects.insert(lower.clone());
+        self.register_event_receiver(&name);
         self.known.insert(lower);
         // A trap: its box is in place from now on (it was off since the start).
         let trap = match self.trap_index(&name) {
@@ -2557,6 +2555,7 @@ impl WorldState {
             return "1".into();
         }
         self.deleted.remove(&lower);
+        self.register_event_receiver(&name);
         self.known.insert(lower.clone());
         keys.name = name.clone();
         self.note(format!("{at}: loadKQ {key}: the portal {name} to {:?} (magic-map.md rule 39); $ObjectName = {name}", keys.world));
@@ -2756,6 +2755,7 @@ impl WorldState {
             self.bmp_swaps.insert(lower.clone(), (from, to));
         }
         self.deleted.remove(&lower);
+        self.register_event_receiver(&line.name);
         self.known.insert(lower);
         self.monsters.retain(|m| !m.name.eq_ignore_ascii_case(&line.name));
         self.monsters.push(Monster { name: line.name.clone(), position, script: actor.script.clone(),
@@ -2802,6 +2802,7 @@ impl WorldState {
         // A world object by that name now (`deleteObject` finds it).
         let key = name.to_ascii_lowercase();
         self.deleted.remove(&key);
+        self.register_event_receiver(&name);
         self.known.insert(key);
         self.note(format!(
             "{at}: loadObject {name} {file}: a still plain object at ({:.0}, {:.0}, {:.0}) turned ({:.3}, {:.3}, {:.3}); no script, not solid, not clickable (anim-scripts.md rule 34)",
@@ -2858,6 +2859,7 @@ impl WorldState {
         if kq8_data::characters::Class::of(&t.class).is_none() {
             self.persistent_stat_objects.insert(lower.clone());
         }
+        self.register_event_receiver(&name);
         self.known.insert(lower);
         let what = match &t.kind {
             TemplateKind::Anim(p) => {
@@ -2932,9 +2934,11 @@ impl WorldState {
         let mut player = NamedAnimPlayer::new(name, vec![movement], 0, placement);
         player.once = true;
         self.persistent_stat_objects.insert(key.clone());
+        self.register_event_receiver(name);
         self.known.insert(key.clone());
         self.deleted.remove(&key);
         self.end_loop_listeners.remove(&key);
+        self.end_loop_listener_ids.remove(&key);
         self.anims.push(AnimObject { player, script: None, gone: false, character: None, translucency: None });
         self.requests.push(Request::Spawn { file: file_key, name: name.clone(), placement, at: at.into() });
         self.note(format!("{at}: loadAnim {name}: playing {file} at {:?}", placement.position));
@@ -3810,7 +3814,8 @@ impl WorldState {
             self.queue.send(now, 0.0, name, "KQCueEvent", &[CUE_END_LOOP.into(), "0".into(), movement.into()], &at);
             self.note(format!("{name}: movement '{movement}' ended: cues itself {CUE_END_LOOP} (EndLoop {movement}, through the queue)"));
         }
-        if let Some(to) = self.end_loop_listeners.get(&name.to_ascii_lowercase()).cloned() {
+        if let Some(to) = self.end_loop_listeners.get(&name.to_ascii_lowercase()).cloned()
+            .filter(|to|self.end_loop_listener_ids.get(&name.to_ascii_lowercase()).copied()==self.queue.receiver(to)) {
             self.queue.send(now, 0.0, &to, "KQCueEvent", &[CUE_HEARD_END.into(), "0".into(), movement.into()], &at);
             self.note(format!("{name}: movement '{movement}' ended: tells {to} (getEndLoop: Cue {CUE_HEARD_END} 0 {movement})"));
         }
@@ -3908,6 +3913,7 @@ impl WorldState {
         // same name. Deletion's own occupancy behavior remains Q203.
         self.prop_colliders.remove(&key);
         self.placed_props_in_trap.retain(|n| n != &key);
+        self.remove_event_receiver(name);
         self.deleted.insert(key);
         true
     }
@@ -4149,7 +4155,7 @@ impl WorldState {
         }
         let delay = number_value(delay);
         let now = self.now();
-        self.queue.send(now, delay, target, kind, &words[4..], at);
+        self.queue.send_script(now, delay, target, kind, &words[4..], at);
         self.note(format!("{at}: sendEvent {delay} {target} {kind} {} (due at {:.4} s)", words[4..].join(" "), now + delay.max(0.0)));
         "0".into()
     }
@@ -4169,14 +4175,15 @@ pub(crate) fn tuple_of(words: &[String]) -> Option<Tuple> {
 impl WorldState {
     fn queue_trap_lookup(&mut self, i: usize, reason: &str) {
         let t = &self.traps[i];
-        if t.gone || !t.settings.lookup_call || t.settings.script.is_none() || self.is_gone(&t.settings.name)
-            || self.queue.has_target_kind(&t.settings.name, TRAP_LOOKUP_EVENT) { return; }
+        if t.gone || self.is_gone(&t.settings.name) { return; }
+        // Every ordinary trap posts after Init; flag/script gate delivery only.
+        // scripted-controller-commands.md rule 7; saved-world-events.md rule 2.
         let name = t.settings.name.clone();
         self.queue.send(self.now(), 0.0, &name, TRAP_LOOKUP_EVENT, &[], reason);
-        self.note(format!("trap {name}: Lookup notice queued after {reason} (traps.md rule 15a)"));
+        self.note(format!("trap {name}: Lookup notice queued after {reason} (scripted-controller-commands.md rule 7)"));
     }
 
-    /// Post-load notices are idempotent while one is already waiting.
+    /// Each registration posts its own lookup; saved/live work is not deduplicated.
     pub fn queue_trap_lookups(&mut self, reason: &str) {
         for i in 0..self.traps.len() { self.queue_trap_lookup(i, reason); }
     }
@@ -4716,6 +4723,10 @@ impl ScriptHost for WorldState {
                 Some(self.character_switch(words, at))
             }
             "move" => Some(self.move_command(words, at)),
+            "setCurrentTime" => {
+                let result=match words { [_,time]=>time.parse::<f32>().map_err(|_|"invalid simulation time".to_string()).and_then(|t|self.set_current_time(t)), _=>Err("usage: setCurrentTime seconds".into()) };
+                Some(match result {Ok(())=>"0".into(),Err(error)=>{self.note(format!("{at}: {error}"));"1".into()}})
+            }
             "tileExit" | "deadHallTeleport" => Some(self.tile_command(words, at)),
             "KQMonster::setReactPercent" | "KQMonster::setSpecialReact" => Some(self.react_command(words, at)),
             "KQConner::setRequiredWeaponMode" => Some(self.required_weapon_mode_command(words, at)),
@@ -4844,7 +4855,7 @@ impl Active {
         known.extend(clickables.iter().map(|c| c.name.to_ascii_lowercase()));
         let sources = sources.into_iter().map(|(n, b)| (n.to_ascii_lowercase(), b)).collect();
         let swamp_power = crate::tile_objects::SwampPower::from_vars(&vars);
-        Active {
+        let mut active = Active {
             scripts: Scripts::new(vars),
             world: WorldState {
                 doors,
@@ -4867,8 +4878,8 @@ impl Active {
                 sources,
                 contact_scripts: BTreeMap::new(),
                 queue: EventQueue::default(),
-                init_notices: Vec::new(),
                 updates: 0,
+                simulation_time: 0.,
                 terrain_changes: Default::default(),
                 log: Vec::new(),
                 trap_log: Vec::new(),
@@ -4884,6 +4895,8 @@ impl Active {
                 vars_out: Vec::new(),
                 accepts: BTreeMap::new(),
                 end_loop_listeners: BTreeMap::new(),
+                end_loop_listener_ids: BTreeMap::new(),
+                pending_end_loop_listeners: BTreeMap::new(),
                 deleted: BTreeSet::new(),
                 switched_off: BTreeSet::new(),
                 connor_stats: None,
@@ -5013,12 +5026,19 @@ impl Active {
                 conversation_log: Vec::new(),
                 connor_gestures: Vec::new(),
             },
-        }
+        };
+        // Actual initial objects only; `known` can also contain catalog names.
+        let names:Vec<_>=active.world.doors.iter().filter(|d|!d.gone).map(|d|d.door.name.clone())
+            .chain(active.world.clickables.iter().filter(|c|!c.gone).map(|c|c.name.clone())).collect();
+        for name in names {active.world.register_event_receiver(&name);}
+        active.world.register_event_receiver(MUSIC_TARGET);
+        active
     }
 
     /// Adds the world's chests (before [`Active::start`]).
     pub fn add_chests(&mut self, chests: impl IntoIterator<Item = ActiveChest>) {
         for c in chests {
+            if !c.gone {self.world.register_event_receiver(&c.chest.name);}
             self.world.known.insert(c.chest.name.to_ascii_lowercase());
             self.world.chests.push(c);
         }
@@ -5028,6 +5048,7 @@ impl Active {
     /// caller's [`ClickWalls`] uses.
     pub fn add_buildings(&mut self, buildings: impl IntoIterator<Item = ActiveBuilding>) {
         for b in buildings {
+            self.world.register_event_receiver(&b.name);
             self.world.known.insert(b.name.to_ascii_lowercase());
             self.world.buildings.push(b);
         }
@@ -5180,6 +5201,7 @@ impl Active {
     /// scripts until loaded.
     pub fn set_dormant(&mut self, files: impl IntoIterator<Item = (String, String, Option<String>)>) {
         for (file, name, script) in files {
+            self.world.remove_event_receiver(&name);
             self.world.known.remove(&name.to_ascii_lowercase());
             self.world.dormant.insert(file.to_ascii_lowercase(), (name, script));
         }
@@ -5187,6 +5209,7 @@ impl Active {
 
     /// Connor's starting stats and level (`Connor.kq`).
     pub fn set_connor_stats(&mut self, c: ConnorStats) {
+        self.world.register_event_receiver(CONNOR);
         self.world.connor_stats = Some(c);
     }
 
@@ -5330,6 +5353,7 @@ impl Active {
     /// Adds the other animated objects (3i-4), in the viewer's order.
     pub fn add_anims(&mut self, anims: impl IntoIterator<Item = AnimObject>) {
         for a in anims {
+            if !a.gone {self.world.register_event_receiver(&a.player.name);}
             self.world.known.insert(a.player.name.to_ascii_lowercase());
             if a.character.is_none() {
                 let p = &a.player;
@@ -5372,6 +5396,7 @@ impl Active {
     /// Adds the scripted objects (before [`Active::start`]).
     pub fn add_objects(&mut self, objects: impl IntoIterator<Item = ActiveObject>) {
         for o in objects {
+            if !o.gone {self.world.register_event_receiver(o.name());}
             self.world.known.insert(o.name().to_ascii_lowercase());
             let p = &o.player;
             self.world.start_states.insert(p.name.to_ascii_lowercase(), (p.movement_name().to_string(), p.base, Some(o.collision_type)));
@@ -5416,6 +5441,7 @@ impl Active {
     /// Adds the world's traps (before [`Active::start`]).
     pub fn add_traps(&mut self, traps: impl IntoIterator<Item = Trap>) {
         for t in traps {
+            if !t.gone {self.world.register_event_receiver(&t.settings.name);}
             self.world.known.insert(t.settings.name.to_ascii_lowercase());
             self.world.traps.push(t);
         }
@@ -5533,6 +5559,7 @@ impl Active {
                     self.world.items.objects[i].pending_delete = false;
                 }
                 let key = name.to_ascii_lowercase();
+                self.world.remove_event_receiver(&name);
                 self.world.deleted.insert(key.clone());
                 self.world.flights.retain(|f| !f.item.eq_ignore_ascii_case(&name));
                 self.world.placed_props_in_trap.retain(|n| n != &key);
@@ -5766,7 +5793,6 @@ impl Active {
     /// Every object's accept list is read first (`clicking.md` rule 21:
     /// before `Init`).
     pub fn start(&mut self) {
-        let init_from = self.world.queue.sequence();
         let w = &self.world;
         let names: Vec<String> = (w.doors.iter().map(|d| d.door.name.clone()))
             .chain(w.objects.iter().map(|o| o.name().to_string()))
@@ -5841,7 +5867,10 @@ impl Active {
             self.call_trap(i, &["Init"]);
             self.world.queue_trap_lookup(i, "trap Init");
         }
-        self.world.init_notices = self.world.queue.immediate_since(init_from, self.world.now());
+        // Compatibility bulk startup. The ordered loader calls the same hook
+        // immediately after each individual object's Init instead.
+        let pending:Vec<_>=self.world.pending_end_loop_listeners.keys().cloned().collect();
+        for name in pending {self.world.finish_saved_object_init(&name);}
     }
 
     /// The nearest clickable box the ray `origin + t × dir` meets (rule
@@ -6473,7 +6502,6 @@ impl Active {
     /// `EndLoop`, `Cue 300`, scripts' `sendEvent 0`), before the frame is
     /// drawn (`anim-scripts.md` rule 8, Q119; M4 4e-10).
     pub fn update(&mut self) {
-        self.world.init_notices.clear();
         self.world.variables_changed(&self.scripts.vars);
         let now = self.world.now();
         self.world.terrain_hazards.rearm(now);
@@ -6708,6 +6736,7 @@ impl Active {
             // anim-scripts.md rule 38 (Q162): a dead character is removed
             // after its own `Die`; its corpse has no name of its own.
             if self.world.anims.iter().any(|a| a.gone && a.character.is_some() && a.player.name.eq_ignore_ascii_case(&name)) {
+                self.world.remove_event_receiver(&name);
                 self.world.deleted.insert(name.to_ascii_lowercase());
             }
         }
@@ -6744,6 +6773,9 @@ impl Active {
             if op.elapsed < op.frames { op.elapsed += 1; }
         }
         self.world.updates += 1;
+        // The existing recreation scheduler is fixed at 15 updates/second;
+        // Q208 establishes f32 time, not that scheduler's historical accuracy.
+        self.world.simulation_time += (1.0 / crate::UPDATES_PER_SECOND) as f32;
     }
 
     /// Remarks and speech, once per update after the events (M4 4a-2,
@@ -6893,8 +6925,13 @@ impl Active {
     }
 
     fn handle(&mut self, e: Pending) {
+        if !self.world.queue.deliverable(&e) {
+            self.world.note(format!("saved event {} to {} discarded: receiver lifetime absent",e.kind,e.target));
+            return;
+        }
         let from = if e.from.is_empty() { String::new() } else { format!(" (sent by {})", e.from) };
-        if e.kind == TRAP_LOOKUP_EVENT {
+        if e.kind == TRAP_LOOKUP_EVENT || e.kind == "__kq8_trap_lookup" {
+            self.world.resolve_saved_listener(&e.target);
             let trap = self.world.trap_index(&e.target).filter(|&i| {
                 let t = &self.world.traps[i];
                 !t.gone && t.settings.lookup_call && t.settings.script.is_some() && !self.world.is_gone(&e.target)
@@ -6910,14 +6947,14 @@ impl Active {
         // sound.md rule 57f: a script's push or pop, now due.
         if e.target == MUSIC_TARGET {
             let name = e.data.first().cloned().unwrap_or_default();
-            let req = if e.kind == "KQMusic::push" { MusicRequest::Push(name) } else { MusicRequest::Pop(name) };
+            let req = match crate::events::canonical_kind(&e.kind) {"KQMusicPushEvent"=>MusicRequest::Push(name),"KQMusicPopEvent"=>MusicRequest::Pop(name),"KQMusicPlayEvent"=>MusicRequest::Play(name),_=>{self.world.note(format!("unsupported music event {}",e.kind));return;}};
             self.world.note(format!("{} now due{from}: handed to the music", req.describe()));
             self.world.music.push(req);
             return;
         }
         // talking.md rule 13: a notify group's TalkComplete, a moment after
         // the line ended.
-        if e.kind == "TalkComplete" {
+        if crate::events::canonical_kind(&e.kind) == "KQTalkMessageCompleteEvent" {
             let line = if self.world.is_gone(&e.target) {
                 "deleted; dropped".to_string()
             } else {
@@ -6931,7 +6968,7 @@ impl Active {
             return;
         }
         // characters.md rule 15 (Q156): `$3` who changed, `$4` old, `$5` new.
-        if e.kind == "StateChange" {
+        if crate::events::canonical_kind(&e.kind) == "KQStateChangeNotifyEvent" {
             let line = if self.world.is_gone(&e.target) {
                 "deleted; dropped".to_string()
             } else {
@@ -7370,9 +7407,9 @@ KQObject::setScript nobody new.cs
         }
         assert_eq!(state(&a), DoorState::Closed);
         assert_eq!(a.scripts.vars.get("D::End"), Some("close"));
-        assert_eq!(a.scripts.vars.get("D::Cue"), Some(""), "no relay after getEndLoop 0, and cue 500 is no Cue call");
+        assert_eq!(a.scripts.vars.get("D::Cue"), Some("500 0"), "no relay after getEndLoop 0; Cue500 now reaches the ordinary callback after projectile handling");
         let log = a.take_log().join("\n");
-        assert!(log.contains("KQCueEvent 500 to Condoor") && log.contains("projectile"), "{log}");
+        assert!(log.contains("script door.cs Condoor Cue 500 0"), "{log}");
     }
 
     #[test]
@@ -7915,10 +7952,8 @@ endif
         assert!(!restored.world.interior_lighting["room"]);
         restored.update();
         assert!(restored.world.interior_lighting["room"], "the new Init cue must not be lost");
-        assert_eq!(restored.world.queue.len(), 1, "keep the saved timer, not a second future Init timer");
-        for _ in 0..43 { restored.update(); }
-        assert_eq!(restored.scripts.vars.get("T::Timer"), None);
-        restored.update();
+        assert_eq!(restored.world.queue.len(), 2, "retain both saved and shifted Init timers without deduplication");
+        while restored.world.now()<3.2 {restored.update();}
         assert_eq!(restored.scripts.vars.get("T::Timer"), Some("fired"));
         assert!(restored.world.queue.is_empty());
     }
@@ -8359,6 +8394,7 @@ endif
         let script = "if test $2 == ConnorAction\n setDeleteWhenDone $1 1\n getEndLoop $1 Connor 1\n sendEvent 0 $1 KQAnimPlayEvent open\nendif\nif test $2 == Die\n set D::died $1 $3\nendif\n";
         let mut a = with_object(script, "x");
         // Not a KQAnimOnce yet: setDeleteWhenDone finds nothing (rule 13).
+        a.world.register_event_receiver(CONNOR); // this fixture's logical actor
         a.click("basket1", [0.0, -1000.0, 0.0], 2350.0, None);
         assert!(a.take_log().join("\n").contains("setDeleteWhenDone: could not find object 'basket1'"));
         a.world.objects[0].player.once = true;
@@ -8401,7 +8437,7 @@ endif
         let script = "if test $2 == Die\n set D::died $1 $3\nendif\n";
         for scripted in [false, true] {
             for kind in [None, Some(HitKind::Normal), Some(HitKind::Projectile), Some(HitKind::Fire), Some(HitKind::Ice)] {
-                let make = || {
+                let make = |start:bool| {
                     let mut a = if scripted { with_object(script, "x") } else {
                         let mut a = Active::new(Vars::default(), vec![], vec![], ["Connor".into()], [("o.cs".into(), script.as_bytes().to_vec())]);
                         let mut player = crate::named_anim::tests::still_then_open("basket1");
@@ -8411,13 +8447,14 @@ endif
                     };
                     if scripted { a.world.objects[0].player.once = true; }
                     a.world.persistent_stat_objects.insert("basket1".into());
+                    a.world.register_event_receiver(CONNOR);
                     a.set_stats("basket1", Stats([100, 0, 0, 0, 0]));
                     a.console_command("setDeleteWhenDone basket1 1", "test");
                     a.console_command("getEndLoop basket1 Connor 1", "test");
-                    a.console_command("sendEvent 0 basket1 KQAnimPlayEvent open", "test");
+                    if start {a.console_command("sendEvent 0 basket1 KQAnimPlayEvent open", "test input");}
                     a
                 };
-                let mut a = make();
+                let mut a = make(true);
                 if let Some(kind) = kind {
                     let id = match kind { HitKind::Normal => "0", HitKind::Projectile => "1", HitKind::Fire => "2", HitKind::Ice => "3" };
                     a.world.scripted_attack("basket1", &["test".into(), id.into(), "1".into(), "0".into()], "test");
@@ -8429,7 +8466,7 @@ endif
                 assert!(kept.valid_animations());
                 let phase = if scripted { a.world.objects[0].player.phase } else { a.world.anims[0].player.phase };
                 assert!(phase > 0.0 && phase < 1.0);
-                let mut b = make();
+                let mut b = make(false); // fresh user input is not part of restoring a paused pose
                 b.console_command("setDeleteWhenDone basket1 0", "fresh default before restore");
                 b.world.restore_events(a.world.saved_events());
                 kept.restore_object_stats(&mut b.world);
@@ -8985,7 +9022,7 @@ endif
         let mut a = fighter();
         a.world.hit_character(0, "Connor", 3, crate::fight::HitKind::Projectile);
         let before = a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats;
-        let event = |a: &mut Active, data: &[&str]| a.stats_change(&Pending { due: 0.0, seq: 0,
+        let event = |a: &mut Active, data: &[&str]| a.stats_change(&Pending { due: 0.0, seq: 0, receiver: None,
             target: "gob".into(), kind: "KQStatsChangeRequestEvent".into(),
             data: data.iter().map(|s| s.to_string()).collect(), from: "test".into() }, "");
         event(&mut a, &["2", "-150", "4", "150", "5"]);
@@ -9015,7 +9052,7 @@ endif
             f.stats.0[0] = 2;
             a.world.sources.insert("gob.cs".into(), b"if test $2 == Die\n inc S::Dead\n set S::Kind $3\nendif\n".to_vec());
             a.world.anims[0].script = Some("gob.cs".into());
-            let e = Pending { due: 0.0, seq: 0, target: "gob".into(), kind: "KQStatsChangeRequestEvent".into(), data: vec!["-3".into()], from: "test".into() };
+            let e = Pending { due: 0.0, seq: 0, receiver: None, target: "gob".into(), kind: "KQStatsChangeRequestEvent".into(), data: vec!["-3".into()], from: "test".into() };
             a.stats_change(&e, "");
             let c = a.world.anims[0].character.as_ref().unwrap();
             assert_eq!(c.state, crate::character::State::Die);
@@ -9042,6 +9079,7 @@ endif
         a.world.anims.push(second);
         a.world.hit_character(0, "Connor", 4, crate::fight::HitKind::Normal);
         a.world.updates = 150;
+        a.world.advance_clock_for_test(10.);
         let first = &mut a.world.anims[0];
         first.player.base.position = [1200., 1300., 100.];
         first.player.phase = 0.4;
@@ -9736,7 +9774,7 @@ getGuiStatus
         // interface.md rule 24: every stats event on Connor counts, even
         // all zeros.
         a.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
-        let e = |d: &[&str]| Pending { due: 0.0, seq: 0, target: "Connor".into(), kind: "KQStatsChangeRequestEvent".into(), data: d.iter().map(|s| s.to_string()).collect(), from: "test".into() };
+        let e = |d: &[&str]| Pending { due: 0.0, seq: 0, receiver: None, target: "Connor".into(), kind: "KQStatsChangeRequestEvent".into(), data: d.iter().map(|s| s.to_string()).collect(), from: "test".into() };
         a.stats_change(&e(&["0", "0", "0", "0", "0"]), "");
         a.stats_change(&e(&["-2", "0", "0", "0", "0"]), "");
         assert_eq!((a.world.connor_stats_events, a.world.connor_stats.map(|c| c.stats.0[0])), (2, Some(8)));
@@ -9745,7 +9783,7 @@ getGuiStatus
     #[test]
     fn connor_stats_death_remembers_weapon_kind_through_journey_json() {
         use crate::fight::HitKind;
-        let event = |a: &mut Active| a.stats_change(&Pending { due: 0.0, seq: 0, target: "Connor".into(),
+        let event = |a: &mut Active| a.stats_change(&Pending { due: 0.0, seq: 0, receiver: None, target: "Connor".into(),
             kind: "KQStatsChangeRequestEvent".into(), data: vec!["-1000".into()], from: "test".into() }, "");
         for prior in [None, Some(HitKind::Normal), Some(HitKind::Projectile), Some(HitKind::Fire), Some(HitKind::Ice)] {
             let mut a = fighter();
@@ -9784,7 +9822,7 @@ getGuiStatus
         a.world.connor_roping = false; a.world.connor_dying = true; a.world.hit_connor("ignored", 1, HitKind::Normal);
         assert_eq!(a.world.connor_last_hit, Some(HitKind::Projectile));
         a.world.connor_dying = false;
-        let event = |data: &[&str]| Pending { due: 0.0, seq: 0, target: "Connor".into(), kind: "KQStatsChangeRequestEvent".into(),
+        let event = |data: &[&str]| Pending { due: 0.0, seq: 0, receiver: None, target: "Connor".into(), kind: "KQStatsChangeRequestEvent".into(),
             data: data.iter().map(|v| v.to_string()).collect(), from: "test".into() };
         a.stats_change(&event(&["-1"]), "");
         assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 0);
@@ -9853,6 +9891,7 @@ getGuiStatus
     fn set_state_connor_special_is_handed_over_and_his_ends_are_relayed() {
         let script = "if test $2 == ConnorAction\n getEndLoop Connor $1 1\n KQMonster::setState Connor special 'AnimList=bricks.anm,AnimListOn,push'\n KQMonster::setState ogre attack\nendif\nif test $2 == Cue\n set C::heard $5\nendif\n";
         let mut a = with_object(script, "x");
+        a.world.register_event_receiver(CONNOR);
         a.click("basket1", [0.0, -1000.0, 0.0], 2350.0, None);
         assert_eq!(a.world.requests.iter().filter(|r| matches!(r, Request::ConnorSpecial { items, .. } if items == "AnimList=bricks.anm,AnimListOn,push")).count(), 1);
         assert!(a.take_log().join("\n").contains("stub (later milestone, nothing done): KQMonster::setState ogre attack"));
@@ -10987,7 +11026,8 @@ deleteObject waterfall2
         }
         let log = a.take_log().join("\n");
         assert!(log.contains("KQStatsChangeRequestEvent 2 0 0 0 0 to Connor") && log.contains("Connor's stats unknown"), "{log}");
-        assert!(log.contains("event KQCueEvent 1 0 to fishies.01 (sent by fish.cs line 7): deleted; dropped"), "{log}");
+        assert!(!log.contains("event KQCueEvent 1 0 to fishies.01"), "removal cancels queued work before delivery: {log}");
+        assert!(a.world.queue.is_empty());
     }
 
     #[test]
@@ -11307,7 +11347,7 @@ mod trap_lookup_tests {
     }
 
     #[test]
-    fn lookup_waits_for_queue_service_and_pending_restore_does_not_duplicate_it() {
+    fn lookup_waits_for_queue_service_and_retains_saved_and_new_registrations() {
         let mut a = fixture(true, true, false);
         a.start();
         assert_eq!(a.scripts.vars.get("T::Init"), Some("1"));
@@ -11318,10 +11358,10 @@ mod trap_lookup_tests {
         loaded.world.restore_events(pending);
         loaded.world.queue_trap_lookups("restore");
         loaded.world.queue_trap_lookups("same pending restore");
-        assert_eq!(loaded.world.queue.len(), 2);
+        assert_eq!(loaded.world.queue.len(), 6, "two Init cues and four distinct lookup postings");
         loaded.world.known.insert("late".into());
         loaded.update();
-        assert_eq!(loaded.scripts.vars.get("T::Lookup"), Some("1"));
+        assert_eq!(loaded.scripts.vars.get("T::Lookup"), Some("4"));
         assert_eq!(loaded.scripts.vars.get("T::Args"), Some("Gate Lookup"));
         assert_eq!(loaded.scripts.vars.get("T::InitCueSeen"), Some("done"));
         assert_eq!(loaded.scripts.vars.get("T::LateKnown"), Some("0"));
@@ -11330,15 +11370,18 @@ mod trap_lookup_tests {
         loaded.world.restore_events(completed);
         loaded.world.queue_trap_lookups("another restore after completion");
         loaded.update();
-        assert_eq!(loaded.scripts.vars.get("T::Lookup"), Some("2"));
+        assert_eq!(loaded.scripts.vars.get("T::Lookup"), Some("5"));
         assert_eq!(loaded.scripts.vars.get("T::Init"), Some("1"));
     }
 
     #[test]
-    fn lookup_requires_a_live_flagged_script_and_runs_after_runtime_load_init() {
-        for (flag, script, gone) in [(false, true, false), (true, false, false), (true, true, true)] {
+    fn lookup_posts_for_every_live_trap_but_callbacks_require_a_flagged_script() {
+        for (flag, script, gone) in [(false, true, false), (true, false, false), (false, false, false), (true, true, true)] {
             let mut a = fixture(flag, script, gone);
-            a.start(); a.update();
+            a.start();
+            assert_eq!(a.world.queue.len(), if gone { 0 } else { 1 + usize::from(script) },
+                "every live trap posts lookup, in addition to its scripted Init cue");
+            a.update();
             assert_eq!(a.scripts.vars.get("T::Lookup"), None);
         }
         let mut removed = fixture(true, true, false);
