@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-07 Earned graveyard preparation, zombie and pressure plate
+
+The independent well return/healing and fresh reload pass in 242.61
+seconds; the healed return and reload pass in 242.48 seconds. Fifteen
+original well interactions restore 39 health to 110. Both journeys
+preserve equipment, quest flags, moved props and completed guards.
+
+Normal Mace swings from its existing reach defeat zombie6 without
+damage, awarding 402 experience once. The corrected encounter and
+held-plate reload pass in 69.41 seconds. An earlier position assertion
+failed in 69.79 seconds because the unchanged stopping animation
+carried Connor onto the plate; that trace is retained. The passing
+check explicitly requires its original On actions and saved occupancy.
+
+Walking off and reloading pass in 30.77 seconds: both portal masks
+clear, the plate rises and its map icon is removed. Neither On/Off
+nor the reward repeats on reload. Full health and both Rocks remain.
+No engine rules changed. Rock placement, portal use and later quests
+remain unverified; the earlier combat failures remain documented.
+[Commands, sources and limits](docs/dead-city-progression.md#earned-graveyard-preparation-and-western-plate)
+
 ## 2026-11-07 Verify the graveyard entrance; retain two encounter failures
 
 The ordinary winding entrance and fresh-process reload pass in

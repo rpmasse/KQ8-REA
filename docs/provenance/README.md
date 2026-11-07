@@ -3,6 +3,22 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Earned graveyard preparation and western plate.** The genuine
+entrance checkpoint and previously traversed roads supply the well
+round trip. Original sylphwel.cs supplies five health per ordinary
+interaction; existing stats notes supply the level-eleven cap of 110.
+The existing fighting and character-movement notes give Connor's
+2350 hand reach, zombie6's emergence rule and its original 900 reach.
+MONSTERS.KQ and Zombie3.anm supply its stats, attack and 402 reward.
+TRIPTRP5.KQ defines the original trigger bounds and mask 519;
+TRIPTRP5.CS defines both portal-mask changes, the down/up animation
+and map-icon addition/removal. Native ordinary-input checks verify
+the earned preparation, encounter and plate On/Off across fresh
+reloads. The failed endpoint expectation remains recorded. No
+original assets, extracted scripts or saves are committed, and
+Rock placement or portal use is not claimed by these checks.
+[Evidence and commands](../dead-city-progression.md#earned-graveyard-preparation-and-western-plate)
+
 **Graveyard entrance and encounter audit.** Original Dead City terrain
 and matched building collision geometry supply the winding entrance;
 the genuine WesternPassageReload supplies all starting state.

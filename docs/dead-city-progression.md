@@ -684,6 +684,93 @@ cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_
 The standard workspace suite was not rerun for these ignored native
 route additions; no game-engine implementation changed.
 
+## Earned graveyard preparation and western plate
+
+After the two failed approaches, an independent ordinary-input
+return followed the cleared roads to the Sylph well. Fifteen visible
+clicks ran the original five-health event on updates 2736-2750,
+restoring 39 to the level-eleven maximum of 110. No incoming damage
+occurred on the road. The route, healing and fresh-process reload
+**pass in 242.61 seconds**. GraveyardWellReload ends at
+(66728.32,104706.875,1584), with [110,80,25,10,7512], unchanged items,
+quest flags and moved props, and all cleared guards still gone.
+
+The reverse road and another fresh-process reload **pass in 242.48
+seconds**, retaining all 110 health. HealedGraveyardReload ends at
+(111066.125,100055.83,0), with the same experience and both Rocks.
+Evidence under kq8-artifacts:
+earned-graveyard-well/1794033520956824200/slots/slot-3.json,
+earned-healed-graveyard-return/1794033787998345400/slots/slot-3.json,
+graveyard-well-native.log and healed-graveyard-return-native.log.
+
+This preparation uses the original sylphwel.cs interaction and the
+existing health cap. No save values, damage, movement or AI rules
+change. The return uses previously traversed roads around the ridges;
+the shorter offline line near spiritW was not used. The proximity
+audit remains a planning aid, not proof of visibility or safety.
+
+The first prepared Mace run defeats zombie6 without damage. It rises
+on update 82; six normal hits land on 90,108,120,130,146,164. Its death
+finishes on 199 and awards the original 402 experience once. This
+uses Connor's existing 2350 hand reach, rather than the failed input
+strategy that approached within the zombie's 900 reach to bait it.
+
+That test nevertheless **fails in 69.79 seconds**: its final position
+assertion expected Connor outside the plate, but his ordinary stopping
+animation carries him onto it. The original triptrp5 fires On on update
+314, enables both portal masks, plays the plate down and adds its map
+icon. The final position is (113745.86,108677.21,0), with full health
+and 7914 experience. The failed trace is retained in
+earned-healed-graveyard-zombie/1794034064579530000 and
+healed-graveyard-zombie-native.log. The corrected check explicitly
+requires the held plate and its fresh reload; no collision or
+movement adjustment is made to pass it.
+
+The corrected encounter and held-plate check **pass in 69.41
+seconds**, including a fresh-process reload. WesternPlateHeldReload
+has [110,80,25,10,7914], both Rocks, Connor inside triptrp5 and both
+portal trap masks at 4. The original On and death reward each occur
+once and do not repeat on reload. Evidence:
+earned-healed-graveyard-zombie/1794034224062657900/slots/slot-3.json
+and healed-graveyard-plate-native.log.
+
+The ordinary walk off and fresh reload **pass in 30.77 seconds**.
+On update 51 TRIPTRP5.CS removes bit 4 from both portal masks, plays
+the plate up and removes the restored dc_port1.bmp map icon. The
+plate is then empty, both portal masks remain zero after reload,
+and Off does not repeat. WesternPlateReleasedReload ends at
+(112108.76,108774.945,0), with full 110 health, 7914 experience and
+unchanged inventory and quest state. Evidence:
+earned-western-plate-release/1794034374631528600/slots/slot-3.json
+and western-plate-release-native.log.
+
+These checks cover Connor holding and releasing the plate. Leaving
+a Rock on it, keeping the portal active while away, using the portal,
+the skull and subsequent quests are **not tested** by this segment.
+
+To repeat the two passing preparation stages, set KQ8_GAME_DIR to
+the original GOG installation. First set KQ8_GRAVEYARD_ENTRANCE_SLOT
+to GraveyardEntranceReload. For the second command set
+KQ8_GRAVEYARD_WELL_SLOT to the resulting GraveyardWellReload:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::graveyard_return_to_the_well_heals_and_preserves_campaign -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::healed_return_to_graveyard_preserves_health_and_earned_state -- --ignored --exact --test-threads=1
+```
+
+For the encounter command, set KQ8_HEALED_GRAVEYARD_SLOT to
+HealedGraveyardReload. For the release command, set
+KQ8_WESTERN_PLATE_SLOT to the resulting WesternPlateHeldReload.
+Both commands should pass with normal damage and AI enabled:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::healed_graveyard_zombie_and_western_plate_survive_reload -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::western_plate_release_disables_portal_and_reloads -- --ignored --exact --test-threads=1
+```
+
+The standard workspace suite was not rerun for these ignored native
+route additions; no game-engine implementation changed.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -731,6 +818,10 @@ invocation from New Game through this hall has not been run.
 | `dead_city::western_passage_guard_uses_earned_strength_and_reloads_after_expiry` | Required genuine `KQ8_CENTRAL_SUPPLIES_SLOT` (`CentralSuppliesReload`) | `WesternPassageReload` |
 | `dead_city::graveyard_entrance_preserves_earned_state_and_reloads` | Required genuine `KQ8_WESTERN_PASSAGE_SLOT` (`WesternPassageReload`) | `GraveyardEntranceReload` |
 | `dead_city::graveyard_zombie_and_plate_approach_survive_reload` | Required genuine `KQ8_GRAVEYARD_ENTRANCE_SLOT` (`GraveyardEntranceReload`) | Currently failing; no continuation |
+| `dead_city::graveyard_return_to_the_well_heals_and_preserves_campaign` | Required genuine `KQ8_GRAVEYARD_ENTRANCE_SLOT` (`GraveyardEntranceReload`) | `GraveyardWellReload` |
+| `dead_city::healed_return_to_graveyard_preserves_health_and_earned_state` | Required genuine `KQ8_GRAVEYARD_WELL_SLOT` (`GraveyardWellReload`) | `HealedGraveyardReload` |
+| `dead_city::healed_graveyard_zombie_and_western_plate_survive_reload` | Required genuine `KQ8_HEALED_GRAVEYARD_SLOT` (`HealedGraveyardReload`) | `WesternPlateHeldReload` |
+| `dead_city::western_plate_release_disables_portal_and_reloads` | Required genuine `KQ8_WESTERN_PLATE_SLOT` (`WesternPlateHeldReload`) | `WesternPlateReleasedReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
