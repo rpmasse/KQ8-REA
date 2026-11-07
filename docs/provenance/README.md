@@ -3,6 +3,21 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Graveyard entrance and encounter audit.** Original Dead City terrain
+and matched building collision geometry supply the winding entrance;
+the genuine WesternPassageReload supplies all starting state.
+MONSTERS.KQ line 105, Zombie3.anm and the earned save identify zombie6,
+its combat values and attack cue. Existing fighting notes govern
+damage and the Back-key reach multiplier. character-movement.md
+rule 30 explains why the distant ranged attempt cannot target an
+underground zombie before its alarm condition is met. TRIP5.KQ and
+TRIPTRP5.CS identify the subsequent plate; its activation is not yet
+verified. Neither failed route changes these rules or saved values.
+Only the entrance and fresh reload pass. The local route-distance
+helper now uses double Clamp arguments to correct its earlier
+projection error; that diagnostic never proves live safety.
+[Evidence, failures and commands](../dead-city-progression.md#graveyard-entrance-and-first-zombie)
+
 **Prepared central and western passage.** Original well healing
 supplies the genuine 110-health starting save. MONSTERS.KQ lines
 14-16 define the central team and its original drops: four Mushrooms,

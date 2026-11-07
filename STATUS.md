@@ -1,5 +1,55 @@
 # STATUS
 
+## 2026-11-07 Graveyard entrance passes; two zombie attempts stopped
+
+The ordinary winding entrance and fresh-process reload pass in
+109.36 seconds. GraveyardEntranceReload is at (111013.625,99472.47,0),
+with unchanged [39,80,25,10,7512], both Rocks and all quest state.
+Evidence: earned-graveyard-entrance/1794032840475660800/slots/slot-3.json
+and graveyard-entrance-native.log under kq8-artifacts.
+
+The first zombie6 attempt fails in 19.66 seconds. One attack misses,
+but three subsequent hits take health 39 to 29 to 3 to -4. Connor
+enters Die on update 239; zombie6 still has 179 health. The existing
+retreat driver holds Back at those hits, extending the zombie's
+900 reach to 1125; it did not withdraw far enough before the cue.
+No victory, reward, plate arrival or new save is claimed.
+Evidence: earned-graveyard-zombie/1794032972112326600 and
+graveyard-zombie-native.log. This is the first real graveyard combat
+failure; the entrance checkpoint remains valid.
+
+The second attempt, using the earned Small Crossbow from 4861 units
+away, fails in 22.72 seconds. No shot is dispatched: the normal
+gameplay ray cannot target zombie6 and the camera search exhausts
+its full turn. Native logs show Birth, not active, not drawn and
+collider out throughout. character-movement.md rule 30 explains
+that it rises only after seeing Connor within its 3000 alarm radius.
+The earlier clear terrain/building sight line did not imply a live
+target. Evidence: earned-graveyard-zombie/1794033128236711700 and
+graveyard-zombie-crossbow-native.log.
+
+Combat retries are stopped after these two failures. The retained
+ignored zombie test is currently failing; only the entrance is
+verified. No game-engine bug is established. The next independent
+preparation is an ordinary return to the Sylph well, healing through
+its existing interaction, and a fresh reload before returning.
+graveyard-well-return-plan.log records a possible long cleared-road
+route; that return is not tested. Any later ranged attempt must first
+respect the original emergence condition. Plates and later quests
+remain unverified. M4-M6 remain incomplete.
+
+## 2026-11-07 Follow-up graveyard threat correction
+
+The local proximity diagnostic had a numeric overload error:
+PowerShell selected an integer Math.Clamp overload from bounds 0/1,
+rounding projections onto route segments. Explicit double arguments
+correct it. The old planned graveyard line passes within 690 units
+of zombie6 at (113515,103640,0), with 410 health and alarm radius 3000.
+The previously listed nearby enemies were not a complete assessment.
+Evidence: graveyard-after-western-threat-audit.log. This corrects an
+offline diagnostic; the published central/western native results
+remain unchanged. No graveyard native attempt has started yet.
+
 ## 2026-11-07 Central and western passages verified
 
 The independently healed SylphWellReload supports the central

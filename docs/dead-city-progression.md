@@ -596,8 +596,90 @@ CentralSuppliesReload and `KQ8_GAME_DIR` set, this command should pass:
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::western_passage_guard_uses_earned_strength_and_reloads_after_expiry -- --ignored --exact --test-threads=1
 ```
 
-The remaining winding approach, graveyard zombies and portal plates
-are **not yet verified** by this earned route.
+This checkpoint ends before the winding graveyard entrance. The
+follow-up entrance result and unresolved encounter are recorded below.
+
+The standard workspace suite was not rerun for these ignored native
+route additions; no game-engine implementation changed.
+
+## Graveyard entrance and first zombie
+
+The local proximity diagnostic previously passed integer bounds to
+PowerShell's `Math.Clamp`. That selected an integer overload and
+rounded route projections. Explicit double arguments correct the
+calculation: the earlier planned graveyard route passes within 690
+units of zombie6, inside its 3000-unit alarm radius. The previously
+listed nearby enemies were incomplete. This was a planning error;
+it does not invalidate the published native encounter results.
+
+Original terrain samples along the western edge do not support the
+proposed avoidance route: x=110250/110500 has normal Z=0.721, and
+the flat center at x=110750 fails the conservative walking band.
+These samples are not a proof that every possible detour is blocked.
+The corrected current-route audit uses animation base positions,
+matching the live AI, and treats proximity only as a possible threat.
+Evidence: graveyard-after-western-threat-audit.log,
+graveyard-western-edge.log and graveyard-current-threat-audit.log.
+
+The winding entrance from WesternPassageReload **passes in 109.36
+seconds**, including a fresh-process reload. All 16 waypoints are
+reached by update 519. GraveyardEntranceReload ends at
+(111013.625,99472.47,0), with unchanged level-eleven stats
+[39,80,25,10,7512], both Rocks, other items and quest state.
+This stops outside the zombie's alarm radius. Evidence:
+earned-graveyard-entrance/1794032840475660800/slots/slot-3.json
+and graveyard-entrance-native.log under kq8-artifacts.
+
+The first zombie encounter **fails in 19.66 seconds**. The existing
+Mace retreat input driver obtains one miss but then fails to withdraw
+beyond the extended reach while holding Back. Three hits take health
+39 to 29 to 3 to -4, and Connor enters Die on update 239. Zombie6 has
+179 health left. There is no reward, plate arrival or successful
+continuation from this run. Evidence:
+earned-graveyard-zombie/1794032972112326600 and
+graveyard-zombie-native.log. No damage, AI, animation or saved state
+was changed to alter this outcome.
+
+The second attempt uses the earned Small Crossbow from the entrance
+checkpoint, 4861 units away. It **fails in 22.72 seconds** before any
+shot: the ordinary gameplay ray finds no target and the camera search
+stops after a full turn. Native logs report zombie6 in Birth, not
+active, not drawn and with its collider out. The existing
+character-movement.md rule 30 requires Connor to be visible and
+within its alarm radius before it rises. Clear terrain/building
+sight alone did not imply a target. Evidence:
+earned-graveyard-zombie/1794033128236711700 and
+graveyard-zombie-crossbow-native.log.
+
+After these two failures, combat retries stopped. The next independent
+preparation is a genuine return to the Sylph well, healing and reload.
+The read-only planner found a long road around the ridges, recorded in
+graveyard-well-return-plan.log; that return is **not tested**. A future
+ranged encounter must first respect the original emergence condition.
+
+The original MONSTERS.KQ line 105 supplies zombie6 and its Mushroom
+drop. Its restored stats are [410,33,33,2,402]. Zombie3.anm defines a
+20-frame attack with its Do cue halfway through; the existing combat
+notes define reach, the Back multiplier and damage. TRIP5.KQ has
+colliderType=0, so accepting Rock in its script alone does not prove
+that an ordinary interaction click can target the plate. The plate
+and its actual activation remain a subsequent check.
+
+To repeat the entrance, set KQ8_GAME_DIR to the unchanged original
+GOG install and KQ8_WESTERN_PASSAGE_SLOT to the genuine
+WesternPassageReload, then run:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::graveyard_entrance_preserves_earned_state_and_reloads -- --ignored --exact --test-threads=1
+```
+
+With KQ8_GRAVEYARD_ENTRANCE_SLOT pointing to GraveyardEntranceReload,
+this command reproduces the currently **failing** crossbow approach;
+it is retained for investigation, not a passing campaign stage:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::graveyard_zombie_and_plate_approach_survive_reload -- --ignored --exact --test-threads=1
+```
 
 The standard workspace suite was not rerun for these ignored native
 route additions; no game-engine implementation changed.
@@ -647,6 +729,8 @@ invocation from New Game through this hall has not been run.
 | `dead_city::central_passage_guards_with_earned_mace_survive_reload` | Required genuine `KQ8_SYLPH_WELL_SLOT` (`SylphWellReload`) | `CentralPrepared`, `CentralGuardsReload` |
 | `dead_city::central_guard_drops_heal_and_preserve_supplies_after_reload` | Required genuine `KQ8_CENTRAL_GUARDS_SLOT` (`CentralGuardsReload`) | `CentralSuppliesReload` |
 | `dead_city::western_passage_guard_uses_earned_strength_and_reloads_after_expiry` | Required genuine `KQ8_CENTRAL_SUPPLIES_SLOT` (`CentralSuppliesReload`) | `WesternPassageReload` |
+| `dead_city::graveyard_entrance_preserves_earned_state_and_reloads` | Required genuine `KQ8_WESTERN_PASSAGE_SLOT` (`WesternPassageReload`) | `GraveyardEntranceReload` |
+| `dead_city::graveyard_zombie_and_plate_approach_survive_reload` | Required genuine `KQ8_GRAVEYARD_ENTRANCE_SLOT` (`GraveyardEntranceReload`) | Currently failing; no continuation |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

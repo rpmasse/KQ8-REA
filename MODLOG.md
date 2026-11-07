@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-07 Verify the graveyard entrance; retain two encounter failures
+
+The ordinary winding entrance and fresh-process reload pass in
+109.36 seconds, preserving 39 health, both Rocks, other inventory
+and quest state. The next Mace encounter fails in 19.66 seconds:
+three hits kill Connor while zombie6 still has 179 health. A ranged
+attempt from the entrance fails in 22.72 seconds without firing,
+because the zombie remains underground and has no live target collider.
+The existing behavior note requires proximity before emergence.
+
+Combat retries stopped after those two failures. The passing entrance
+and failing ignored crossbow route are retained with explicit limits.
+No engine rules changed. The local threat helper's integer Clamp
+overload was corrected; its older nearby-enemy list was incomplete.
+The next independent preparation is a genuine return to the well;
+that return and the portal plates are not tested.
+[Sources, commands and failure evidence](docs/dead-city-progression.md#graveyard-entrance-and-first-zombie)
+
 ## 2026-11-07 Clear the prepared central and western passages
 
 The genuinely healed save now passes the central encounter and
