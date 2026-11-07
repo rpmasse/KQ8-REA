@@ -57,6 +57,7 @@ mod map_view;
 mod rope_view;
 mod copies_view;
 mod door_view;
+mod display_mode;
 mod draw_distance;
 mod effects_view;
 mod game_camera;
@@ -620,11 +621,16 @@ fn main() -> ExitCode {
         Scene::Model(m, _) => format!("KQ8 viewer - {}", m.label),
         Scene::Ground(..) => format!("KQ8 viewer - {} ground", args.world),
     };
+    let mut primary_window = Window { title, ..default() };
+    if matches!(&scene, Scene::Ground(_)) {
+        let high = option_settings::Preferences::load(&opts.game).settings.graphics.high_resolution;
+        primary_window.resolution = kq8_core::caption::screen(high).into();
+    }
     let mut app = App::new();
     app.add_plugins(
         DefaultPlugins
             .set(WindowPlugin {
-                primary_window: Some(Window { title, ..default() }),
+                primary_window: Some(primary_window),
                 ..default()
             })
             .set(args.renderer.plugin()),

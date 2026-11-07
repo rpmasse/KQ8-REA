@@ -113,6 +113,18 @@ making the known resolution transition internally consistent. This batch
 can complete the transition mechanism without claiming those groups are
 complete.
 
+**Native acknowledgement evidence extension (2026-11-07).** After the
+grouped headless matrix passes, run one bounded unattended production
+viewer flow: Main → Options → Graphics, select 800, select 800 again,
+return to 640, then leave Graphics and Options. Use the existing queued
+menu-input handler, an isolated working directory/local Options.cs and
+save directory, a 180-frame cap and a 45-second child-process deadline.
+Assert two ordered real WindowResized/camera confirmations, no duplicate
+request or mismatch, successful exit and unchanged original Options
+bytes/hash. Do not load a world, replay movies/credits or perform manual
+inspection. Record the production executable hash and reuse all earlier
+matrix evidence; only a failure or changed source justifies another run.
+
 **M5–M6 carried-item removal and drop continuation (2026-11-07).**
 Complete the shared items.md rule11/Q203 lifecycle before using the last
 earned Rock on another pressure plate. The current quantity-based split

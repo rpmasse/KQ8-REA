@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-07 Apply original 640/800 presentation changes live
+
+Coordinate requested and acknowledged window/camera dimensions before
+committing resolution preferences, then resize menus, HUD and captions
+in place. Preserve selections, capture state, clocks, game state and
+projection; refresh unchanged caption text after a layout change. Expose
+explicit capability inputs without inventing a historical device profile.
+The grouped matrix passes 1/1 in 0.23s. The additional bounded real-Windows
+round trip passes first attempt, 1/1 in 6.16s, with two acknowledgements,
+a duplicate-selection no-op, normal menu return and unchanged original
+Options bytes. No prior native flow is replayed. Evidence and exact
+commands are in docs/live-display-transitions.md. Estimates remain
+M4 about 88%, M5 about 64%, M6 about 28%.
+
 ## 2026-11-07 Complete shared tile controller and pending-effect batch
 
 Implement the Swamp/Barren controllers, class hazards/platform events,

@@ -3,6 +3,16 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Live original resolution changes.** graphics-modes.md supplies the
+known 640/800 presentation and interface resize rules; installed GUI and
+caption data supplies their original geometry and art. The modern backend
+uses explicit capability inputs and actual window/camera acknowledgement,
+without claiming to identify a historical Glide/Direct3D device. One
+grouped retained-state matrix and one real Windows resolution round trip
+pass. Device selection, software palette parity and failure behavior
+beyond the documented safeguards remain separate.
+[Evidence](../live-display-transitions.md).
+
 **Swamp/Barren tile controllers and effects.** The implementation uses
 Study A's secondary-tile-puzzles.md and object-projectile-cues.md, plus
 the installed tile definitions, scripts, movements and bitmap names.

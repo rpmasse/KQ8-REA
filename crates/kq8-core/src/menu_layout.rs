@@ -24,6 +24,10 @@ pub struct Layout {
 }
 
 impl Layout {
+    pub(crate) fn caption<'a>(&self, key: &str, menu: &'a MenuArt) -> Option<&'a str> {
+        self.controls[key].label.map(|id| menu.label(id))
+    }
+
     pub(crate) fn read(path: &Path, file: &str, prefix: &str) -> Result<Self, String> {
         let game = GameDir::open(path).map_err(|e| e.to_string())?;
         let read = |name: &str| {

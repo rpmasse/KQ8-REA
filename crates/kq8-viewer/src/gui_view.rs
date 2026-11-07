@@ -429,6 +429,19 @@ pub struct Gui {
 pub struct GuiCover(pub Vec<(&'static str, [f32; 4])>);
 
 impl Gui {
+    /// Q207: resolve again from authored edges without replacing panel,
+    /// inventory, map, animation or palette state.
+    pub(crate) fn resize(&mut self, screen: [u32; 2]) {
+        if self.screen == screen { return; }
+        self.root = gui_draw::resolve_layout(&self.authored_root, screen);
+        self.screen = screen;
+        self.scale = kq8_core::caption::scale(screen);
+        self.last.clear();
+        self.note(format!("GUI resized to {}x{}; retained panel/item/map clocks and state", screen[0], screen[1]));
+    }
+
+    pub(crate) fn screen_size(&self) -> [u32; 2] { self.screen }
+
     pub fn apply_palette(&mut self, values: crate::live_palette::Values) {
         if values == self.palette_values { return; }
         self.palette = kq8_data::palette::for_output(self.source_palette,values.brightness,values.output);
