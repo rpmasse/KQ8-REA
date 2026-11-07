@@ -3,6 +3,21 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Retreat after a running approach.** Connor’s Run action is a
+persistent toggle under the movement study’s rules 1–4. The original
+Dead City MONSTERS.KQ assigns skeleton56 a patrol. The failed route’s
+movement records showed running during the intended walking tactic.
+The unattended player now presses the configured Run key before
+retreat input. Ordinary combat still judges each hit from the original
+animation cue, range and facing rules.
+The controller's counterattack timing now reads the `Do` cue from
+the loaded enemy movement, following the existing fighting study,
+instead of assuming a fixed halfway point. This is input selection
+for automated checks, not a change to the original combat rules.
+[Movement study](../behaviour/connor-movement.md),
+[combat study](../behaviour/fighting.md),
+[native check](../dead-city-progression.md#the-outer-mace-guard)
+
 **First hall equipment and maze guards.** The earned GOG Dead City
 encounters create the broadsword, healing crystal and three gate
 guards. The inventory rules describe weapon exchange, stat application

@@ -908,6 +908,10 @@ fn earn_north_junction() -> PathBuf {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_NORTH_JUNCTION_SLOT"]
 fn northern_drops_equip_mace_and_heal_before_the_cell_gate() {
+    earn_north_supplies();
+}
+
+fn earn_north_supplies() -> PathBuf {
     let play = Play::new("earned-north-road-supplies");
     let source = earned_slot("KQ8_NORTH_JUNCTION_SLOT").unwrap_or_else(earn_north_junction);
     let start = prepare(&play, &source);
@@ -1004,6 +1008,65 @@ fn northern_drops_equip_mace_and_heal_before_the_cell_gate() {
         assert!((161600.0..162800.0).contains(&save["position"][0].as_f64().unwrap()));
         assert!((140000.0..143000.0).contains(&save["position"][1].as_f64().unwrap()));
     }
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+    play.slots.join("slot-3.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_NORTH_SUPPLIES_SLOT"]
+fn outer_mace_guard_retreats_after_running_and_reloads() {
+    let play = Play::new("earned-outer-mace-guard");
+    let source = earned_slot("KQ8_NORTH_SUPPLIES_SLOT").unwrap_or_else(earn_north_supplies);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "NorthSuppliesReload");
+    assert!(carries_one(&start, "INVITEM_Mace"));
+    let path = play.root.join("patrol.json");
+    let route = json!({"start":3,"landmarks":[
+        {"name":"East side of the cells","xy":[162250,149500],"radius":250,"run":true},
+        {"name":"North side of the cells","xy":[159750,152000],"radius":250,"run":true},
+        {"name":"Counterattack the outer mace guard","xy":[158600,152100],"radius":500,"run":true,
+            "fight":"skeleton56","retreat":true}
+    ]});
+    fs::write(&path, serde_json::to_vec(&route).unwrap()).unwrap();
+    let (won, _) = leg(
+        &play,
+        1,
+        "OuterMaceGuard",
+        760,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    let combat = log(&play, "OuterMaceGuard", "fight.log");
+    assert!(combat.contains("skeleton56 missing Connor, too far away"));
+    assert!(combat.contains("skeleton56: hit by Connor"));
+    assert_eq!(
+        combat
+            .matches("skeleton56: its death ended (rule 32)")
+            .count(),
+        1
+    );
+    assert_eq!(
+        won["journey"]["stats"]["level"],
+        start["journey"]["stats"]["level"]
+    );
+    assert_eq!(
+        won["journey"]["stats"]["stats"][4].as_i64().unwrap(),
+        start["journey"]["stats"]["stats"][4].as_i64().unwrap() + 450
+    );
+    let (restored, _) = leg(&play, 2, "OuterGuardReload", 45, &[]);
+    assert_eq!(restored["journey"]["stats"], won["journey"]["stats"]);
+    assert!(restored["kept"]["deadcity"]["gone"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|v| v == "skeleton56"));
+    assert!(carries_one(&restored, "INVITEM_Mace"));
+    assert_eq!(
+        restored["kept"]["deadcity"]["interactions"]["doors"]["cell04"]["state"],
+        "Closed"
+    );
     assert_eq!(
         fs::read(play.game.join("Options.cs")).unwrap(),
         play.options
