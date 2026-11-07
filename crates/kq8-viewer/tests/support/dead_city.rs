@@ -446,6 +446,26 @@ fn earn_maze_key() -> PathBuf {
     play.slots.join("slot-4.json")
 }
 
+fn gate_approach(play: &Play) -> PathBuf {
+    let mut points = Vec::new();
+    for xy in [
+        [177500, 70250],
+        [177500, 84000],
+        [178750, 88250],
+        [180500, 90000],
+    ] {
+        points.push(json!({"name":format!("Approach the gate {}",points.len()+1),"xy":xy,"radius":235,"run":true}));
+    }
+    points.push(json!({"name":"Use Death's key","xy":[181750,100700],"radius":150,"run":true,"aim":"spmove"}));
+    let path = play.root.join("unlock.json");
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    path
+}
+
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_DEATH_KEY_SLOT"]
 fn death_key_opens_the_spike_gate() {
@@ -463,22 +483,7 @@ fn death_key_opens_the_spike_gate() {
         })
         .unwrap();
     let key_name = item["name"].as_str().unwrap();
-    let mut points = Vec::new();
-    for xy in [
-        [177500, 70250],
-        [177500, 84000],
-        [178750, 88250],
-        [180500, 90000],
-    ] {
-        points.push(json!({"name":format!("Approach the gate {}",points.len()+1),"xy":xy,"radius":235,"run":true}));
-    }
-    points.push(json!({"name":"Use Death's key","xy":[181750,100700],"radius":150,"run":true,"aim":"spmove"}));
-    let path = play.root.join("unlock.json");
-    fs::write(
-        &path,
-        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
-    )
-    .unwrap();
+    let path = gate_approach(&play);
     let (opened, viewer) = leg(
         &play,
         1,
@@ -536,6 +541,281 @@ fn death_key_opens_the_spike_gate() {
         .unwrap()
         .iter()
         .any(|item| item["kind"] == "INVITEM_KeyToDeathMaze"));
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+}
+
+/// Identify the earned drop by kind and hall, independent of its generated name.
+fn hall_drop<'a>(save: &'a Value, kind: &str) -> &'a Value {
+    let mut drops = save["items"].as_array().unwrap().iter().filter(|item| {
+        let pos = &item["place"]["World"]["position"];
+        item["kind"] == kind
+            && pos[0]
+                .as_f64()
+                .is_some_and(|x| (170000.0..190000.0).contains(&x))
+            && pos[1]
+                .as_f64()
+                .is_some_and(|y| (58000.0..75000.0).contains(&y))
+    });
+    let drop = drops
+        .next()
+        .unwrap_or_else(|| panic!("missing {kind} in the first hall"));
+    assert!(drops.next().is_none(), "ambiguous {kind} in the first hall");
+    drop
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_DEATH_KEY_SLOT"]
+fn hall_combat_drops_replace_the_axe_and_reload() {
+    earn_hall_equipment();
+}
+
+fn earn_hall_equipment() -> PathBuf {
+    let play = Play::new("earned-hall-equipment");
+    let source = earned_slot("KQ8_DEATH_KEY_SLOT").unwrap_or_else(earn_maze_key);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "MazeKeyReload");
+    assert!(carries_one(&start, "INVITEM_SmallAx"));
+    let axe = start["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["kind"] == "INVITEM_SmallAx" && item["place"]["Carried"] == "Connor")
+        .unwrap();
+    let crystal = hall_drop(&start, "INVITEM_Crystal");
+    let sword = hall_drop(&start, "INVITEM_BroadSword");
+    let mut points = Vec::new();
+    for (drop, dx, dy, radius) in [(crystal, 430.0, -320.0, 160), (sword, 490.0, -300.0, 150)] {
+        let p = &drop["place"]["World"]["position"];
+        points.push(
+            json!({"name":format!("Pick up {}",drop["kind"]),"aim":drop["name"],
+            "xy":[p[0].as_f64().unwrap()+dx,p[1].as_f64().unwrap()+dy],"radius":radius}),
+        );
+    }
+    let path = play.root.join("pickups.json");
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (taken, viewer) = leg(
+        &play,
+        1,
+        "HallEquipment",
+        170,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    for item in [crystal, sword] {
+        let name = item["name"].as_str().unwrap();
+        assert!(viewer.lines().any(|line| line
+            .contains(&format!("test --aim {name} (camera through gameplay pixel"))
+            && line.contains(&format!("hits {name} first"))));
+    }
+    let (restored, _) = leg(&play, 2, "HallEquipmentReload", 45, &[]);
+    let mut expected = start["journey"]["stats"].clone();
+    let hand = expected["stats"][1].as_i64().unwrap();
+    expected["stats"][1] = json!(hand + 2);
+    for save in [&taken, &restored] {
+        assert_eq!(save["journey"]["stats"], expected);
+        assert!(carries_one(save, "INVITEM_KeyToDeathMaze"));
+        for drop in [crystal, sword] {
+            assert!(carries_one(save, drop["kind"].as_str().unwrap()));
+            assert!(save["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|i| i["name"] == drop["name"] && i["place"]["Carried"] == "Connor"));
+        }
+        let exchanged = hall_drop(save, "INVITEM_SmallAx");
+        assert_eq!(exchanged["name"], axe["name"]);
+        assert_eq!(
+            exchanged["place"]["World"]["position"],
+            sword["place"]["World"]["position"]
+        );
+    }
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+    play.slots.join("slot-2.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_HALL_EQUIPMENT_SLOT"]
+fn equipped_connor_defeats_the_three_maze_guards() {
+    earn_gate_victory();
+}
+
+fn earn_gate_victory() -> PathBuf {
+    use kq8_core::keyboard_menu::{keyword, Bindings};
+    use kq8_data::GameDir;
+    let play = Play::new("earned-maze-guards");
+    let source = earned_slot("KQ8_HALL_EQUIPMENT_SLOT").unwrap_or_else(earn_hall_equipment);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "HallEquipment");
+    for kind in [
+        "INVITEM_KeyToDeathMaze",
+        "INVITEM_Crystal",
+        "INVITEM_BroadSword",
+    ] {
+        assert!(carries_one(&start, kind));
+    }
+    let path = gate_approach(&play);
+    let bindings = GameDir::open(&play.game)
+        .unwrap()
+        .find("movekeys.kq")
+        .unwrap();
+    let bindings = Bindings::read(&fs::read(bindings).unwrap()).unwrap();
+    let draw = format!("physical:{},348", keyword(bindings.0[6]).unwrap());
+    let (armed, _) = leg(
+        &play,
+        1,
+        "ArmedMazeGate",
+        390,
+        &[
+            "--key",
+            "left:IDCTL_INVBAR_QUEST2,8",
+            "--key",
+            &draw,
+            "--walk-route",
+            path.to_str().unwrap(),
+        ],
+    );
+    assert_eq!(armed["weapon_state"]["set_mode"], "Hand");
+    assert_eq!(armed["weapon_state"]["ready_item"], "INVITEM_BroadSword");
+    assert_eq!(
+        armed["kept"]["deadcity"]["interactions"]["doors"]["spmove"]["state"],
+        "Opened"
+    );
+    let heal = json!({"slot":2,"at_health":46});
+    let path = play.root.join("guards.json");
+    let points = json!([
+        {"name":"Fight the east guard","xy":[181970,103520],"radius":235,"run":true,
+            "fight":"skeleton5","keep_weapon":true,"heal":heal},
+        {"name":"Fight the west guard","xy":[181970,103520],"radius":435,
+            "fight":"skeleton4","keep_weapon":true,"heal":heal},
+        {"name":"Fight the archer","xy":[182210,110250],"radius":250,"run":true,
+            "fight":"skeleton6","heal":heal}
+    ]);
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (cleared, _) = leg(
+        &play,
+        2,
+        "MazeSentries",
+        550,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    let combat = log(&play, "MazeSentries", "fight.log");
+    let items = log(&play, "MazeSentries", "items.log");
+    assert_eq!(items.matches("INVITEM_Crystal, slot used").count(), 1);
+    for name in ["skeleton5", "skeleton4", "skeleton6"] {
+        assert!(combat.contains(&format!("{name}: hit by Connor")));
+        assert_eq!(
+            combat
+                .matches(&format!("{name}: its death ended (rule 32)"))
+                .count(),
+            1
+        );
+    }
+    let (restored, _) = leg(&play, 3, "MazeGuardsReload", 45, &[]);
+    for save in [&cleared, &restored] {
+        assert!(carries_one(save, "INVITEM_BroadSword"));
+        assert!(!carries_one(save, "INVITEM_Crystal"));
+        let gone = save["kept"]["deadcity"]["gone"].as_array().unwrap();
+        for name in ["skeleton5", "skeleton4", "skeleton6"] {
+            assert!(gone
+                .iter()
+                .any(|v| v.as_str().is_some_and(|n| n.eq_ignore_ascii_case(name))));
+        }
+    }
+    assert_eq!(restored["journey"]["stats"], cleared["journey"]["stats"]);
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+    play.slots.join("slot-4.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_MAZE_GUARDS_SLOT"]
+fn gate_drops_and_northwest_passage_reload() {
+    let play = Play::new("earned-north-maze-corner");
+    let source = earned_slot("KQ8_MAZE_GUARDS_SLOT").unwrap_or_else(earn_gate_victory);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "MazeGuardsReload");
+    let mut herbs: Vec<_> = start["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|item| {
+            let pos = &item["place"]["World"]["position"];
+            item["kind"] == "INVITEM_Mushroom"
+                && pos[0]
+                    .as_f64()
+                    .is_some_and(|x| (180000.0..186000.0).contains(&x))
+                && pos[1]
+                    .as_f64()
+                    .is_some_and(|y| (100000.0..108000.0).contains(&y))
+        })
+        .collect();
+    assert_eq!(herbs.len(), 2);
+    herbs.sort_by(|a, b| {
+        let y = |v: &Value| v["place"]["World"]["position"][1].as_f64().unwrap();
+        y(b).total_cmp(&y(a))
+    });
+    let mut points = Vec::new();
+    for item in &herbs {
+        let p = &item["place"]["World"]["position"];
+        points.push(json!({"name":format!("Collect {}",item["name"]),"aim":item["name"],
+            "xy":[p[0].as_f64().unwrap()-180.0,p[1].as_f64().unwrap()+280.0],"radius":150,"run":true}));
+    }
+    for xy in [
+        [182185, 110160],
+        [178000, 110250],
+        [168000, 112250],
+        [165750, 112250],
+        [162250, 116000],
+    ] {
+        points.push(json!({"name":format!("Northwest passage {}",points.len()),"xy":xy,"radius":180,"run":true}));
+    }
+    let path = play.root.join("corner.json");
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (corner, viewer) = leg(
+        &play,
+        1,
+        "NorthMazeCorner",
+        480,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    for item in &herbs {
+        let name = item["name"].as_str().unwrap();
+        assert!(viewer.lines().any(|l| l
+            .contains(&format!("test --aim {name} (camera through gameplay pixel"))
+            && l.contains(&format!("hits {name} first"))));
+    }
+    let (restored, _) = leg(&play, 2, "NorthCornerReload", 45, &[]);
+    for save in [&corner, &restored] {
+        assert!((161500.0..163000.0).contains(&save["position"][0].as_f64().unwrap()));
+        assert!((115500.0..117000.0).contains(&save["position"][1].as_f64().unwrap()));
+        assert_eq!(save["journey"]["stats"], start["journey"]["stats"]);
+        assert!(save["journey"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["kind"] == "INVITEM_Mushroom"
+                && item["place"]["Carried"] == "Connor"
+                && item["quantity"] == 2));
+    }
     assert_eq!(
         fs::read(play.game.join("Options.cs")).unwrap(),
         play.options

@@ -3,6 +3,14 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**First hall equipment and maze guards.** The earned GOG Dead City
+encounters create the broadsword, healing crystal and three gate
+guards. The inventory rules describe weapon exchange, stat application
+and health items. The replay selects the configured Draw key, uses the
+health strip and requests ordinary attacks. Its target order and health
+threshold are test-player choices. [Inventory study](../behaviour/inventory.md),
+[combat study](../behaviour/fighting.md), [campaign results](../dead-city-progression.md#the-three-maze-guards)
+
 **Death’s hall puzzles and saves.** Dead City's pedestal scripts install
 the paddle, count the first three pushes and activate the fourth.
 `laserctr.cs` opens the hall and `dhalltrp.cs` sets up its original

@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-07 Recover the first hall’s equipment and clear the gate guards
+
+The campaign replay can keep Connor’s weapon drawn between fights and
+press a specified healing slot at a chosen health threshold. Both are
+ordinary player inputs. Existing replays retain their previous inputs.
+Two native checks verify the broadsword exchange, healing crystal,
+three combat awards, and a fresh reload of the cleared gate.
+[Evidence and commands](docs/dead-city-progression.md#the-three-maze-guards)
+
 ## 2026-11-07 Open and cross the maze gate
 
 The campaign uses Death’s earned key on the original spike gate,

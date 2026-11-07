@@ -30,6 +30,12 @@ struct Landmark {
     tile_jump: bool,
     /// Stop here and use ordinary hand-weapon attacks against this character.
     fight: Option<String>,
+    /// Continue to the next opponent without pressing the Away key.
+    #[serde(default)]
+    keep_weapon: bool,
+    /// Choose a health item and when to use its normal inventory key.
+    /// Older routes use slot 1 when five points of health are missing.
+    heal: Option<FightHeal>,
     /// Use the same normal weapon input against a breakable's live health.
     break_object: Option<String>,
     /// Omit to preserve the earlier replay's Shift+click; false is a plain click.
@@ -54,6 +60,12 @@ struct Scene {
 struct ScriptValue {
     name: String,
     value: String,
+}
+
+#[derive(Clone, Copy, Deserialize)]
+struct FightHeal {
+    slot: usize,
+    at_health: i64,
 }
 
 #[derive(Resource, Deserialize, Default)]
@@ -101,6 +113,8 @@ impl Replay {
                     || (l.aim.is_some() && l.click.is_some())
                     || (l.fight.is_some() && l.break_object.is_some())
                     || (l.retreat && l.fight.is_none())
+                    || ((l.keep_weapon || l.heal.is_some()) && l.fight.is_none())
+                    || l.heal.is_some_and(|h| !(1..=4).contains(&h.slot) || h.at_health <= 0)
                     || l.inventory_slot.is_some_and(|n| !(1..=crate::gui_view::INVENTORY_DIGITS.len()).contains(&n)
                         || l.scene.is_some() || l.jump_toward.is_some())
                     || l.until_var.as_ref().is_some_and(|v| v.name.trim().is_empty() || l.scene.is_some()
@@ -266,6 +280,8 @@ pub fn steer(
     if (landmark.scene.is_none() && arrived) || (landmark.retreat && replay.fight_start.is_some()) {
         let retreat = landmark.retreat;
         if let Some(name) = landmark.fight.clone().or_else(|| landmark.break_object.clone()) {
+            let keep_weapon = landmark.keep_weapon;
+            let heal = landmark.heal;
             let big_swing = landmark.big_swing.unwrap_or(true);
             let alive = if landmark.break_object.is_some() {
                 world.stats.get(&name.to_ascii_lowercase()).map(|stats| !stats.dead())
@@ -320,12 +336,14 @@ pub fn steer(
                 }
                 let mut wanted = Vec::new();
                 if tick % 8 == 0
-                    && world
-                        .connor_stats
-                        .is_some_and(|c| c.stats.0[0] <= c.level * 10 - 5)
+                    && world.connor_stats.is_some_and(|c| {
+                        let full = c.level * 10;
+                        let threshold = heal.map_or(full - 5, |h| h.at_health);
+                        c.stats.0[0] < full && c.stats.0[0] <= threshold
+                    })
                 {
-                    // Same first consumable key as in normal play.
-                    wanted.push(KeyCode::Digit1);
+                    let slot = heal.map_or(1, |h| h.slot);
+                    wanted.push(crate::gui_view::INVENTORY_DIGITS[slot - 1].0);
                 }
                 if world.weapon_ready.is_none() {
                     if (tick - began) % 20 == 0 {
@@ -338,8 +356,9 @@ pub fn steer(
                 replay.keys(&mut keys, &wanted);
                 return;
             }
-            // Put away the hand weapon before normal interaction resumes.
-            if world.weapon_ready.is_some() {
+            // Put away the hand weapon before normal interaction resumes,
+            // unless this route is moving directly to another opponent.
+            if world.weapon_ready.is_some() && !keep_weapon {
                 let wanted: Vec<_> = sim
                     .controls
                     .away

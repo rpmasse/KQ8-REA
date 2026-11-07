@@ -13,6 +13,24 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M4–M6 equipment for the maze guards.** The earned maze-key save
+contains a Crystal from the entrance fight and the broadsword left by
+the skeleton near the pedestal. Recover both through real world
+clicks and verify the automatic weapon exchange on reload. The two
+earlier routes through the guard group ended in combat. For a separate
+combat check, have the unattended player keep the equipped blade out
+between adjacent opponents and use its actual Crystal when wounded.
+Keep the default movement and healing inputs for earlier replays.
+
+After the gate guards, locate their drops in the earned save, collect
+the two Mushrooms and follow the traversable northwest corridor. Save
+at its turn before the next archer group. Use a fresh process to
+verify the route before extending it farther into the maze.
+The following junction contains a mace skeleton and two archers.
+After restoring the corner, draw the earned blade, fight that group
+with ordinary attacks and the collected Mushrooms, then checkpoint
+their actual death awards before proceeding west.
+
 **M6 enter the maze with Death’s key.** Load the earned key, approach
 the closed spike gate and offer it through the quest strip. Verify
 that the opening finishes and the key is consumed. Load the opened
