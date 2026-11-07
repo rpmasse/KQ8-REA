@@ -24,6 +24,8 @@ Tossed loot now activates matching trigger boxes along its actual movement path;
 
 Pushed objects now notify puzzle triggers, with an installed-data check of the Temple2 book sequence's start; full puzzle traversal and remaining occupancy rules are still incomplete. [Pushed-object triggers](docs/pushed-object-traps.md)
 
+Scripted prop moves now notify occupied triggers after the script finishes, with original Gnome boulder and position-restoration checks passing; full campaign coverage remains incomplete. [Scripted placement](docs/scripted-prop-traps.md)
+
 Press **F2** during play to switch between first and third person. The
 viewer selects Connor’s arm and weapon animations from the tables in
 your installed `GAME/Kq/Connor.kq`. Drawing a weapon, using a rope and

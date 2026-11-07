@@ -690,6 +690,11 @@ pub struct WorldState {
     pub traps: Vec<Trap>,
     /// Stay checks due after a script directly places a character already inside a trap (Q102).
     placed_in_trap: Vec<(usize, [f32; 3])>,
+    /// Installed prop shapes, also rebuilt on reload; placements are updated
+    /// by script commands and physical pushes, never inferred from drawing.
+    prop_colliders: BTreeMap<String, BoxCollider>,
+    /// Names moved during the current outer script, checked at its end (Q102).
+    placed_props_in_trap: Vec<String>,
     pub clickables: Vec<Clickable>,
     /// The buildings, in the caller's order (3g-2).
     pub buildings: Vec<ActiveBuilding>,
@@ -3129,6 +3134,7 @@ impl WorldState {
             // A box object (a barrel; M5 5c fix 5).
             self.clickables.iter().find(|c| !c.gone && c.name.eq_ignore_ascii_case(who)).map(|c| c.placement)
                 .or_else(|| self.prop_placements.get(&who.to_ascii_lowercase()).copied().flatten())
+                .or_else(|| self.prop_colliders.get(&who.to_ascii_lowercase()).map(|b| b.placement))
         }
     }
 
@@ -3166,6 +3172,8 @@ impl WorldState {
             if self.traps.iter().any(|t| t.inside.iter().any(|name| name.eq_ignore_ascii_case(&who))) {
                 if let Some(i) = self.anim_index(&who).filter(|&i| self.anims[i].character.is_some()) {
                     self.placed_in_trap.push((i, new.position));
+                } else {
+                    self.placed_props_in_trap.push(who.to_ascii_lowercase());
                 }
             }
             self.note(format!(
@@ -3188,6 +3196,7 @@ impl WorldState {
         // A box object (a barrel, a script's copy such as Dead City's
         // `paddle2`): its click box moves here; its drawing and collider
         // in the viewer.
+        let placement = self.place_of(&who).map(|old| moved_placement(old, flags, position, turn).0);
         let click_box = match self.clickables.iter_mut().find(|c| !c.gone && c.name.eq_ignore_ascii_case(&who)) {
             Some(c) => {
                 c.placement = moved_placement(c.placement, flags, position, turn).0;
@@ -3196,6 +3205,14 @@ impl WorldState {
             }
             None => String::new(),
         };
+        if let Some(placement) = placement.filter(|_| !who.eq_ignore_ascii_case("Connor") && !who.eq_ignore_ascii_case("KQCamera")) {
+            self.record_prop_placement(&who, placement);
+            let key = who.to_ascii_lowercase();
+            if let Some(b) = self.prop_colliders.get_mut(&key) { b.placement = placement; }
+            if self.traps.iter().any(|t| !t.gone && t.inside.iter().any(|n| n.eq_ignore_ascii_case(&who))) {
+                self.placed_props_in_trap.push(key);
+            }
+        }
         self.note(format!("{at}: move {who} {flags} {position:?} {turn:?}: handed to the viewer{click_box}"));
         self.requests.push(Request::Move { who, flags, position, turn, at: at.to_string() });
         "0".into()
@@ -3738,6 +3755,10 @@ impl WorldState {
             *place = None;
         }
         self.deleted_this_event.insert(key.clone());
+        // Do not transfer a deferred moved notice to a future copy with the
+        // same name. Deletion's own occupancy behavior remains Q203.
+        self.prop_colliders.remove(&key);
+        self.placed_props_in_trap.retain(|n| n != &key);
         self.deleted.insert(key);
         true
     }
@@ -4315,7 +4336,7 @@ impl Active {
             return false;
         }
         self.world.note(format!("script {file} {}", args.join(" ")));
-        self.scripts.call(&file, args, &mut self.world);
+        self.call_script(&file, args);
         true
     }
 
@@ -4331,7 +4352,9 @@ impl Active {
     /// to the player. Raw host probes above can inspect the emitted values.
     pub fn console_command(&mut self, line: &str, at: &str) -> Option<String> {
         let words = self.command_words(line, at)?;
-        self.scripts.console_world_command(&words, &mut self.world, at)
+        let result = self.scripts.console_world_command(&words, &mut self.world, at);
+        self.prop_placements_after_script();
+        result
     }
 
     fn command_words(&mut self, line: &str, at: &str) -> Option<Vec<String>> {
@@ -4648,6 +4671,8 @@ impl Active {
                 anims: Vec::new(),
                 traps: Vec::new(),
                 placed_in_trap: Vec::new(),
+                prop_colliders: BTreeMap::new(),
+                placed_props_in_trap: Vec::new(),
                 clickables,
                 buildings: Vec::new(),
                 interior_lighting: BTreeMap::new(),
@@ -5170,7 +5195,7 @@ impl Active {
         match o.script.clone() {
             Some(script) => {
                 self.world.note(format!("script {script} {}", all.join(" ")));
-                self.scripts.call(&script, &all, &mut self.world);
+                self.call_script(&script, &all);
                 true
             }
             None => {
@@ -5189,7 +5214,7 @@ impl Active {
         match c.script.clone() {
             Some(script) => {
                 self.world.note(format!("script {script} {}", all.join(" ")));
-                self.scripts.call(&script, &all, &mut self.world);
+                self.call_script(&script, &all);
             }
             None => self.world.note(format!("chest {name} has no script; {} not called", all.join(" "))),
         }
@@ -5214,7 +5239,7 @@ impl Active {
         match t.settings.script.clone() {
             Some(script) => {
                 self.world.note(format!("script {script} {}", all.join(" ")));
-                self.scripts.call(&script, &all, &mut self.world);
+                self.call_script(&script, &all);
             }
             None => self.world.note(format!("trap {name} has no script; {} not called", all.join(" "))),
         }
@@ -5236,6 +5261,9 @@ impl Active {
         let from = before.placement.position;
         let position = std::array::from_fn(|i| from[i] + movement.delta[i]);
         let placement = Placement { position, rotation: before.placement.rotation };
+        let mut collider = before.clone();
+        collider.placement = placement;
+        self.register_prop_colliders([collider]);
         self.world.record_prop_placement(name, placement);
         if let Some(c) = self.world.clickables.iter_mut().find(|c| !c.gone && c.name.eq_ignore_ascii_case(name)) {
             c.placement = placement;
@@ -5253,6 +5281,49 @@ impl Active {
         let calls = self.traps_check_path(&v, false, false, Some(&path));
         self.character_placements();
         calls
+    }
+
+    /// Retain original shapes for script placement, including restored occupants.
+    pub fn register_prop_colliders(&mut self, colliders: impl IntoIterator<Item = BoxCollider>) {
+        for b in colliders {
+            self.world.prop_colliders.insert(b.name.to_ascii_lowercase(), b);
+        }
+    }
+
+    /// Q102: nested scripts finish before moved notices are handled. The final
+    /// placement is tested, not the path or intermediate `move` commands.
+    fn call_script(&mut self, script: &str, args: &[String]) -> bool {
+        let result = self.scripts.call(script, args, &mut self.world);
+        self.prop_placements_after_script();
+        result
+    }
+
+    fn prop_placements_after_script(&mut self) {
+        let mut seen = BTreeSet::new();
+        for name in std::mem::take(&mut self.world.placed_props_in_trap) {
+            if !seen.insert(name.clone()) || self.world.is_deleted(&name) { continue; }
+            for i in 0..self.world.traps.len() {
+                // A preceding Off callback can move or delete this same prop.
+                // Each subsequent listener must see that current state.
+                if self.world.is_deleted(&name) { break; }
+                let shape = self.world.prop_colliders.get(&name).cloned()
+                    .or_else(|| self.world.object_index(&name).and_then(|i| self.world.objects[i].collider()))
+                    .or_else(|| self.world.chest_index(&name).and_then(|i| self.world.chests[i].collider()))
+                    .or_else(|| self.world.door_index(&name).and_then(|i| self.world.doors[i].collider()));
+                let Some(b) = shape else {
+                    self.world.note(format!("script-placed {name}: occupied trap shape unavailable; stay check not done"));
+                    continue;
+                };
+                let Some(placement) = self.world.place_of(&name) else { continue };
+                let balls = crate::collide::BallStack::from_box(b.min, b.max);
+                let shape = if b.kind.ball_stack { crate::trap::VisitorShape::Balls(&balls) }
+                    else { crate::trap::VisitorShape::Box(placement.rotation) };
+                let v = Visitor { name: &b.name,
+                    collision_type: self.world.collision_type_of(&name).unwrap_or(b.kind.collision_type),
+                    from: placement.position, position: placement.position, min: b.min, max: b.max, shape };
+                self.trap_check_at(i, &v, true, false, None);
+            }
+        }
     }
 
     /// Tossed loot moves through ordinary traps (traps.md rules 4-9;
@@ -5337,54 +5408,55 @@ impl Active {
     }
 
     fn traps_check_path(&mut self, v: &Visitor, placed: bool, is_connor: bool, path: Option<&[([f32; 3], [f32; 3])]>) -> Vec<String> {
-        let mut calls = Vec::new();
-        for i in 0..self.world.traps.len() {
-            let t = &self.world.traps[i];
-            if t.gone || ((!t.counts(v.collision_type) || placed) && !t.inside.iter().any(|n| n.eq_ignore_ascii_case(v.name))) {
-                continue;
-            }
-            let shrunk_before = self.world.traps[i].shrunk;
-            let c = if placed { self.world.traps[i].stay_check(v) }
-                else if let Some(path) = path { self.world.traps[i].check_path(v, path) }
-                else { self.world.traps[i].check(v) };
-            let Some(args) = c.call else { continue };
-            let t = &self.world.traps[i];
-            let (name, gone) = (t.settings.name.clone(), t.gone);
-            let change = match (shrunk_before, t.shrunk) {
-                (true, false) => "; grows to full",
-                (false, true) => "; shrinks again",
-                _ => "",
-            };
-            let line = format!(
-                "trap {name}: {}{} at ({:.0}, {:.0}, {:.0}): touching {}, box centre inside {}, {} box ({:.0}, {:.0}, {:.0})..({:.0}, {:.0}, {:.0}){change}; inside now: [{}]",
-                args.join(" "),
-                if placed { " (stay test right after a script's move, rule 5)" } else { "" },
-                v.position[0],
-                v.position[1],
-                v.position[2],
-                c.touching,
-                c.centre_inside,
-                if shrunk_before { "inner (shrunk)" } else { "full" },
-                c.min[0],
-                c.min[1],
-                c.min[2],
-                c.max[0],
-                c.max[1],
-                c.max[2],
-                t.inside.join(", ")
-            );
-            let was = std::mem::replace(&mut self.world.in_trap, true);
-            self.world.note(line);
-            self.world.spirit_touch(i, &args, is_connor);
-            if gone {
-                self.world.note(format!("trap {name}: one-shot, deleted after its On (rule 11)"));
-            }
-            self.world.in_trap = was;
-            calls.push(format!("{name} {}", args.join(" ")));
-            let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-            if self.world.traps[i].settings.spirit.is_none() { self.call_trap(i, &refs); }
+        (0..self.world.traps.len()).filter_map(|i| self.trap_check_at(i, v, placed, is_connor, path)).collect()
+    }
+
+    fn trap_check_at(&mut self, i: usize, v: &Visitor, placed: bool, is_connor: bool, path: Option<&[([f32; 3], [f32; 3])]>) -> Option<String> {
+        let t = &self.world.traps[i];
+        if t.gone || ((!t.counts(v.collision_type) || placed) && !t.inside.iter().any(|n| n.eq_ignore_ascii_case(v.name))) {
+            return None;
         }
-        calls
+        let shrunk_before = self.world.traps[i].shrunk;
+        let c = if placed { self.world.traps[i].stay_check(v) }
+            else if let Some(path) = path { self.world.traps[i].check_path(v, path) }
+            else { self.world.traps[i].check(v) };
+        let args = c.call?;
+        let t = &self.world.traps[i];
+        let (name, gone) = (t.settings.name.clone(), t.gone);
+        let change = match (shrunk_before, t.shrunk) {
+            (true, false) => "; grows to full",
+            (false, true) => "; shrinks again",
+            _ => "",
+        };
+        let line = format!(
+            "trap {name}: {}{} at ({:.0}, {:.0}, {:.0}): touching {}, box centre inside {}, {} box ({:.0}, {:.0}, {:.0})..({:.0}, {:.0}, {:.0}){change}; inside now: [{}]",
+            args.join(" "),
+            if placed { " (stay test right after a script's move, rule 5)" } else { "" },
+            v.position[0],
+            v.position[1],
+            v.position[2],
+            c.touching,
+            c.centre_inside,
+            if shrunk_before { "inner (shrunk)" } else { "full" },
+            c.min[0],
+            c.min[1],
+            c.min[2],
+            c.max[0],
+            c.max[1],
+            c.max[2],
+            t.inside.join(", ")
+        );
+        let was = std::mem::replace(&mut self.world.in_trap, true);
+        self.world.note(line);
+        self.world.spirit_touch(i, &args, is_connor);
+        if gone {
+            self.world.note(format!("trap {name}: one-shot, deleted after its On (rule 11)"));
+        }
+        self.world.in_trap = was;
+        let call = format!("{name} {}", args.join(" "));
+        let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+        if self.world.traps[i].settings.spirit.is_none() { self.call_trap(i, &refs); }
+        Some(call)
     }
 
     pub fn register_contact_script(&mut self, name: &str, script: String) {
@@ -5432,24 +5504,24 @@ impl Active {
             let mut all = vec![n];
             all.extend(args.iter().map(|a| a.to_string()));
             self.world.note(format!("script {script} {}", all.join(" ")));
-            self.scripts.call(&script, &all, &mut self.world);
+            self.call_script(&script, &all);
         } else if let Some((n, script)) = w.items.get(name).filter(|o| o.in_world()).and_then(|o| Some((o.name.clone(), o.script.clone()?))) {
             let mut all = vec![n];
             all.extend(args.iter().map(|a| a.to_string()));
             self.world.note(format!("script {script} {}", all.join(" ")));
-            self.scripts.call(&script, &all, &mut self.world);
+            self.call_script(&script, &all);
         } else if let Some(b) = w.buildings.iter().find(|b| b.name.eq_ignore_ascii_case(name)).and_then(|b| Some((b.name.clone(), b.script.clone()?))) {
             let mut all = vec![b.0];
             all.extend(args.iter().map(|a| a.to_string()));
             self.world.note(format!("script {} {}", b.1, all.join(" ")));
-            self.scripts.call(&b.1, &all, &mut self.world);
+            self.call_script(&b.1, &all);
         } else if let Some((n, script)) = w.monsters.iter().find(|m| m.name.eq_ignore_ascii_case(name)).and_then(|m| Some((m.name.clone(), m.script.clone()?))) {
             // A monster's script (M4 4a-2: only for TalkComplete; monsters
             // don't get Init yet, M5).
             let mut all = vec![n];
             all.extend(args.iter().map(|a| a.to_string()));
             self.world.note(format!("script {script} {}", all.join(" ")));
-            self.scripts.call(&script, &all, &mut self.world);
+            self.call_script(&script, &all);
         } else {
             return false;
         }
@@ -5465,7 +5537,7 @@ impl Active {
         match d.script.clone() {
             Some(script) => {
                 self.world.note(format!("script {script} {}", all.join(" ")));
-                self.scripts.call(&script, &all, &mut self.world);
+                self.call_script(&script, &all);
                 true
             }
             None => {
@@ -5543,7 +5615,7 @@ impl Active {
         }
         for (script, name) in more {
             self.world.note(format!("script {script} {name} Init (anim-scripts.md rule 33)"));
-            self.scripts.call(&script, &[name, "Init".into()], &mut self.world);
+            self.call_script(&script, &[name, "Init".into()]);
         }
         // traps.md rule 13 (after the doors, chests, objects: our order).
         for i in 0..self.world.traps.len() {
@@ -5840,7 +5912,7 @@ impl Active {
         let mut all = vec![b.name.clone()];
         all.extend(args);
         self.world.note(format!("{head}; script {script} {}", all.join(" ")));
-        self.scripts.call(&script, &all, &mut self.world);
+        self.call_script(&script, &all);
         self.click_turn(&b.name, &all[1..], true, b.placement.position, b.do_not_point_at);
         ClickResult::Script(all)
     }
@@ -5974,7 +6046,7 @@ impl Active {
         match script {
             Some(script) => {
                 self.world.note(format!("script {script} {}", all.join(" ")));
-                self.scripts.call(&script, &all, &mut self.world);
+                self.call_script(&script, &all);
             }
             None => self.world.note(format!("{name} has no script; {} not called", all.join(" "))),
         }
@@ -6008,7 +6080,7 @@ impl Active {
         }
         let called = self.world.collect_world_item(i, placement.position, &format!("{head}: IN REACH"));
         if let Some((script, args)) = &called {
-            self.scripts.call(script, args, &mut self.world);
+            self.call_script(script, args);
         }
         let do_args = ["ConnorAction".to_string(), "do".into(), "do".into()];
         self.click_turn(&o.name, &do_args, called.is_some(), placement.position, o.do_not_point_at);
@@ -6405,7 +6477,7 @@ impl Active {
         // during its callback, even when several land on the same tick.
         for (name, script, event, position) in std::mem::take(&mut self.world.projectile_calls) {
             self.world.projectile_caller = Some((name.clone(), position));
-            self.scripts.call(&script, &[name, event.into()], &mut self.world);
+            self.call_script(&script, &[name, event.into()]);
             self.world.projectile_caller = None;
         }
         // azriel-hammer.md rule 8 (M6 6b-2): the hammer on the lever.

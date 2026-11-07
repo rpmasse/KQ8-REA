@@ -3501,7 +3501,9 @@ impl Placer<'_> {
         if let Some(k) = self.kept_states.get(&p.name.to_ascii_lowercase()).filter(|_| !unused).cloned() {
             self.apply_kept(&label, &mut file[0], &mut p, &k);
         }
-        if !unused && self.persist_props && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQObject")) {
+        // KQBoulder is loaded below as a still physical prop too. Its
+        // script/physical placement must survive a saved-world reload.
+        if !unused && self.persist_props && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQObject") || c.eq_ignore_ascii_case("KQBoulder")) {
             let key = p.name.to_ascii_lowercase();
             let saved = self.saved_props.get(&key).copied();
             if let Some(place) = saved {
@@ -6013,6 +6015,95 @@ mod campaign_tests {
         let trace = active.world.trap_log.join("\n");
         assert!(!trace.contains("can't find 'booktrap'") && !trace.contains("no template"), "{trace}");
         log.detail(trace);
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_gnome_boulder_script_leaves_its_disabled_trigger_before_returning() {
+        use kq8_core::{active::{Active, Request}, connor_mover::{MoverWorld, Scene}};
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-boulder-placement-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let boulder = objects.objects.iter().find(|o| o.name.eq_ignore_ascii_case("boulder")).unwrap().clone();
+        let trap = objects.traps.iter().find(|t| t.settings.name.eq_ignore_ascii_case("bouldtrp")).unwrap().clone();
+        let trap_name = trap.settings.name.clone();
+        assert!(boulder.kind.ball_stack && boulder.kind.collision_type & trap.settings.mask != 0);
+        let target = trap.settings.position;
+        let mut active = Active::new(objects.vars, vec![], objects.clickables, objects.known, objects.scripts);
+        active.world.prop_placements = objects.prop_placements;
+        active.register_prop_colliders(objects.objects);
+        active.add_traps([trap]);
+        assert_eq!(active.scripts.vars.get("Gnome::Boulder::Dropped"), Some("0"));
+
+        // Installed geometry and script, isolated from the rest of the level:
+        // an accepted physical push enters the real trigger. The On script
+        // clears its mask, then instantly moves the boulder out of its box.
+        // No forced trap call, synthetic script or original-file edit is used.
+        let delta = [target[0] - boulder.placement.position[0], target[1] - boulder.placement.position[1], 0.];
+        let colliders = [boulder.clone()];
+        let scene = Scene::new(&ground.terrain, &[], &colliders);
+        let (accepted, why) = scene.push_object(&boulder.name, delta);
+        assert_eq!(accepted, delta, "{why}");
+        let moved = scene.moved.take();
+        assert_eq!(moved.len(), 1);
+        assert_eq!(active.prop_moved(&boulder, &moved[0]), [format!("{trap_name} On boulder")]);
+
+        assert_eq!(active.world.updates, 0, "the move and departure finish in the originating update");
+        assert_eq!(active.scripts.vars.get("Gnome::Boulder::Dropped"), Some("1"));
+        assert_eq!(active.world.traps[0].settings.mask, 0);
+        assert!(active.world.traps[0].inside.is_empty(), "disabled mask must not suppress the occupied trap's stay check");
+        assert_eq!(active.world.place_of("boulder").unwrap().position, [104000., 93250., 20700.]);
+        assert_eq!(active.world.prop_placements["boulder"].unwrap().position, [104000., 93250., 20700.]);
+        assert!(active.world.requests.iter().any(|r| matches!(r, Request::HandsOff { on: true, .. })));
+        assert!(active.world.requests.iter().any(|r| matches!(r, Request::CameraFollow { connor: false, .. })));
+        let moves: Vec<_> = active.world.requests.iter().filter_map(|r| match r {
+            Request::Move { who, position, .. } => Some((who.as_str(), *position)), _ => None,
+        }).collect();
+        assert_eq!(moves, [("boulder", [104000., 93250., 20700.]),
+            ("KQCamera", [104250., 93620., 18750.]), ("Connor", [102850., 91750., 20700.])]);
+        let mut queued = active.world.queue.clone();
+        let first = queued.take_due(0.1).unwrap();
+        let second = queued.take_due(3.).unwrap();
+        assert_eq!((first.target.as_str(), first.kind.as_str(), first.data.as_slice()),
+            (trap_name.as_str(), "KQCueEvent", ["1".to_string(), "0".to_string()].as_slice()));
+        assert_eq!((second.target.as_str(), second.kind.as_str(), second.data.as_slice()),
+            (trap_name.as_str(), "KQCueEvent", ["2".to_string(), "0".to_string()].as_slice()));
+        assert!(queued.is_empty());
+        let trace = active.world.trap_log.join("\n");
+        let on = trace.find(&format!("trap {trap_name}: On boulder")).unwrap();
+        let off = trace.find(&format!("trap {trap_name}: Off boulder")).unwrap();
+        assert!(on < off && trace.contains("stay test right after a script's move"), "{trace}");
+        log.detail(trace);
+
+        // Use the same prop-position input as saved-world loading, including
+        // serialization and a fresh original-data load. This checks the moved
+        // boulder's model and collision position, not the later fall cutscene.
+        let kept_props: BTreeMap<String, kq8_core::collide::Placement> = active.world.prop_placements.iter()
+            .filter_map(|(name, place)| place.map(|p| (name.clone(), p))).collect();
+        let bytes = serde_json::to_vec(&kept_props).unwrap();
+        let saved_props = serde_json::from_slice(&bytes).unwrap();
+        let arrival = Arrival { no_name_from: 0, items: None, exit_movement: None,
+            kept_vars: active.scripts.vars.iter().filter(|(name, _)| name.starts_with("Gnome::"))
+                .map(|(name, value)| (name.to_string(), value.to_string())).collect(),
+            gone: Default::default(), came_in: vec![], object_copies: vec![],
+            states: Default::default(), prop_placements: saved_props, kept_maps: Default::default() };
+        let restored = load_objects(&game, &world, &ground.terrain, &mut log, Some(arrival), None);
+        let expected = active.world.place_of("boulder").unwrap();
+        let restored_collider = restored.objects.iter().find(|o| o.name.eq_ignore_ascii_case("boulder")).unwrap();
+        assert_eq!(restored_collider.placement, expected);
+        assert_eq!((restored_collider.min, restored_collider.max), (boulder.min, boulder.max));
+        assert_eq!(restored.prop_placements["boulder"], Some(expected));
+        let restored_model = restored.placed.iter().find(|(p, _, unused)| !unused && p.name.eq_ignore_ascii_case("boulder")).unwrap();
+        assert_eq!(restored_model.0.position, expected.position);
+        // Preserve the installed object's clickability. This KQBoulder has
+        // no click target; loading a saved position must not invent one.
+        let restored_click = restored.clickables.iter().find(|c| c.name.eq_ignore_ascii_case("boulder"));
+        let original_click = active.world.clickables.iter().find(|c| c.name.eq_ignore_ascii_case("boulder"));
+        assert_eq!(restored_click.map(|c| c.placement), original_click.map(|c| c.placement));
+        assert_eq!(restored.vars.get("Gnome::Boulder::Dropped"), Some("1"));
+        log.detail(format!("serialized Gnome boulder restored in model and collider at {:?}; click target presence unchanged", expected.position));
     }
 
     #[test]

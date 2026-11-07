@@ -1,5 +1,36 @@
 # STATUS
 
+## 2026-11-07 Script-moved props notify occupied traps after the event
+
+Script placement now updates the prop's logical position immediately and
+checks existing trigger occupancy after the outer script finishes. It
+does not sweep the jump or enter destination triggers. Removed masks do
+not suppress departure. Each trigger sees position/deletion changes from
+the preceding callback; saved occupants rebuild their shape on loading.
+The viewer also applies callback requests in the same update.
+
+The final original Gnome boulder integration passes once in 2.30 seconds:
+its actual trigger callback, departure, camera/Connor requests and cues
+are correct, and serialized boulder placement survives a fresh original
+data load. Model/collider positions agree, the Dropped flag remains set,
+and the original absence of a click target is preserved. The loader now
+registers the still KQBoulder class for saved prop positions. The release
+viewer test target builds successfully; no successful test is repeated.
+
+Eleven focused cases pass once each. The remaining core suite passed
+once (686 passed, 17 ignored, eight focused cases excluded), before the
+final overlap review correction. The three failed original-data runs are
+retained: name capitalization, missing boulder save registration, and an
+incorrect assumption that the original boulder has a click target. The
+save failure was recorded before source inspection identified the class
+filter; the test's save requirement was kept. A focused test's initial
+string-type compile error is also retained. These are not counted as passes.
+[Commands and exact limits](docs/scripted-prop-traps.md)
+
+M4 remains approximately 80%, M5 60%, M6 20-25%. These are engineering
+estimates, not a measured feature inventory. M4-M6 are not complete;
+the earned Rock puzzle remains unresolved and no manual test was used.
+
 ## 2026-11-07 Physical pushes reach puzzle triggers; original book callback passes
 
 Physical pushes now retain their actual collision path and notify

@@ -61,6 +61,8 @@ pub mod starting_help;
 pub mod stats;
 pub mod talk;
 pub mod trap;
+#[cfg(test)]
+mod prop_placement_tests;
 pub mod spirit_trap;
 pub mod tile_puzzle;
 pub mod turn_keys;
