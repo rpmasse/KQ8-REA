@@ -1,5 +1,47 @@
 # STATUS
 
+## 2026-11-07 Boatman approach and input handoff
+
+The supplied river run reached its final waypoint at update 1044
+with 11 health, then waited for a save scheduled at 1500. A pursuing
+skeleton38 killed Connor on 1108 during that idle wait. The process
+was stopped after the recorded death; no new checkpoint was earned.
+
+Two continuous boatman attempts reached the real Ferryman click and
+his original 2,000-point award, restoring 100 health at level ten.
+The first then timed out swinging at skeleton38, who had stayed at
+his authored position 16,341 units away. The next used that original
+road, but stopped at the talking spot: a scripted camera turn cleared
+turn intent while the test kept holding Right. Original movement
+rules require a release and re-press. Stop blind variations of these
+routes; validate this specific input correction in a focused
+conversation fixture before resuming. These runs are local
+`dead-road-ferrymanroad/1794020163924` and `1794020324535`.
+Neither completed the first topic or produced a campaign save.
+
+The focused turn-input correction passed in 12.35 seconds. It
+releases the held turn on update 13, leaves the conversation area
+on 47 and sends TalkExit once on 85. The fixture positions Connor
+at Ferryman and starts the original conversation directly. It uses
+ordinary key events thereafter, with normal AI and damage. Its first
+run reached the movement result but selected Options instead of
+Save because Load was disabled in the empty save directory. The
+corrected fresh-slot menu sequence passed and preserved GOG options.
+All 877 standard workspace tests pass. The earned campaign
+continuation has not passed yet.
+The final focused rerun passed in 12.75 seconds.
+
+The post-fix campaign run ended earlier on the river road: two
+skeleton55 hits left 22 of the starting 47 health, and weeper15's
+two drains killed Connor on update 753. It did not reach Ferryman.
+The saved, verified boundary remains `CorridorSuppliesReload`.
+Stop running-route variations. A supported next plan must address
+the road enemies, using the earned weapons and the existing combat
+studies, before claiming a reliable boatman continuation. The
+Small Crossbow is carried, but a ranged encounter with these enemies
+is **not tested**. Preserve the logs in
+`dead-road-ferrymanroad/1794020859531`; no enemy rule was changed.
+
 ## 2026-11-07 First-hall supplies recovered
 
 The three-process regression passed in 166.50 seconds. It uses

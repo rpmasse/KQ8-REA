@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-07 Re-press route turns after scripted turns
+
+The unattended walking driver releases a requested held turn key
+for one update when scripted turning has cleared its turn intent.
+The next update sends the new key press required by the original
+movement rules. The focused Ferryman conversation check passed in
+12.35 seconds: release on update 13, leave the stay area on 47,
+reach the walking destination on 65 and one TalkExit on 85.
+
+The first fixture reached that same movement result but failed to
+save: it used the campaign's menu sequence with an existing save,
+while its fresh directory disables Load. The corrected fresh-slot
+Save sequence passed. This fixture positions Connor and starts the
+original conversation directly; it is not an earned campaign route.
+GOG Options.cs is unchanged. Engine turning behavior is unchanged.
+All 877 standard workspace tests passed after this change.
+The final focused rerun passed in 12.75 seconds after clarifying the
+diagnostic message to report cleared intent without assuming its cause.
+Command: `cargo test --locked --release -p kq8-viewer --test route_conversation_input -- --ignored --test-threads=1`.
+
 ## 2026-11-07 Recover earned supplies before the river route
 
 Added an unattended first-hall supply round trip from the earned

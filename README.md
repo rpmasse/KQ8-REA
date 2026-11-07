@@ -62,6 +62,7 @@ cargo test --locked -p kq8-viewer --test graphics_preferences -- --ignored
 cargo test --locked -p kq8-viewer --test shadow_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test speech_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test conversation_checkpoint -- --ignored
+cargo test --locked --release -p kq8-viewer --test route_conversation_input -- --ignored --test-threads=1
 cargo test --locked -p kq8-viewer --test connor_weapon_checkpoint -- --ignored
 cargo test --locked -p kq8-data connor_view_ -- --include-ignored
 cargo test --locked -p kq8-viewer --test keyboard_menu -- --ignored --test-threads=1

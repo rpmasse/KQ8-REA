@@ -3,6 +3,19 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Route key presses after scripted turning.** Connor movement,
+Turning rule 2, states that a held turn key sends no new event when
+an automatic turn completes: the player must release and press it
+again. Conversation rules 13–14 cover turn input and camera-line
+automatic turns. The native Ferryman trace exposed the route driver
+holding Right after turn intent became zero. The driver now performs
+the documented release/re-press through bound keys. The isolated
+`route_conversation_input` check positions Connor at the original
+Feryinfo.kq talking spot and uses the reaper.cs conversation tuple;
+it does not establish an earned campaign outcome.
+[Movement study](../behaviour/connor-movement.md#turning),
+[conversation study](../behaviour/conversation.md#during-the-conversation)
+
 **Dead City supply return.** The earned disk save records four loose
 Mushrooms created by the first hall's real enemy drops. Their pickup
 and health-slot use follow inventory.md rules 8–14 and the installed
