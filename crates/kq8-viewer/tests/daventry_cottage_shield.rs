@@ -9,6 +9,8 @@ mod castle;
 mod castle_interior;
 #[path = "support/wizard_ring.rs"]
 mod wizard_ring;
+#[path = "support/dead_city.rs"]
+mod dead_city;
 #[path = "support/pickup_help.rs"]
 mod pickup_help;
 #[path = "support/first_person.rs"]

@@ -133,6 +133,10 @@ fn earn_ring() -> PathBuf {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_RING_OF_LIGHT_SLOT"]
 fn ring_opens_dead_city_and_arrival_survives_reload() {
+    enter_dead_city();
+}
+
+pub(super) fn enter_dead_city() -> PathBuf {
     let play = Play::new("earned-dead-city-campaign");
     let source = earned_slot("KQ8_RING_OF_LIGHT_SLOT").unwrap_or_else(earn_ring);
     let first = prepare(&play, &source);
@@ -230,4 +234,5 @@ fn ring_opens_dead_city_and_arrival_survives_reload() {
         fs::read(play.game.join("Options.cs")).unwrap(),
         play.options
     );
+    play.slots.join("slot-4.json")
 }

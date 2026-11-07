@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-07 Dead City entrance archers and Paddle
+
+The two-launch campaign replay passed in 158.21 seconds from
+`DeadCityReload`. It restored one Paddle and both defeated archers,
+with Connor at level seven, 58 health and 137 experience. The first
+run walked back after the entrance script had already moved Connor
+forward, and the archers killed him. The corrected route waits for
+the conversation and fights from the script’s actual endpoint.
+The road past the hall reached a locked spike gate. Original
+`spmove.cs` requires the Key to Death’s Maze, supplied later by
+`keycycle.cs`. The paddle pedestals and Death's hall come before
+the skull on this route. [Commands and evidence](docs/dead-city-progression.md)
+
 ## 2026-11-07 Ring of Light and Dead City arrival
 
 Five Windows launches from `AshesReload` verified the return portal,

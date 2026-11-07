@@ -3,6 +3,12 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Dead City’s entrance.** The installed DeadCity archive supplies
+`introtp.cs`, the original skeleton archers and weapons, and
+`dpaddle.cs`. The Windows replay uses the earned Small Axe, ordinary
+movement and the gameplay click ray. `spmove.cs` and `keycycle.cs`
+establish why the spike gate needs Death’s key. [Route and evidence](../dead-city-progression.md)
+
 **The Ring of Light.** CastleD’s `portalt2.cs` and `portal2.kq`
 describe the return to Daventry. The third ingredient, four animation
 callbacks, awarded ring and updated story state come from the installed
