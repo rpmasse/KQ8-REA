@@ -3,6 +3,18 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Earned Sylph introductory conversations.** Original sylph.cs
+selects cases 10/11/12 in message group 2000/7/14; final sequences
+2/5/3 set metConnor to 1/2/3 and the second grants 3000 experience.
+sylfinfo.kq supplies the start/stay areas and talking spot;
+conversation.md rules 3, 5 and 8–15 explain ordinary click dispatch
+and talk state behavior. The automated route uses visible world
+clicks and checks these callbacks, inventory, plate state, rewards
+and fresh-process persistence. scale.cs places Mold only during
+scales completion, so the later item quest is not claimed here.
+Original data remains read-only; no extracted files are committed.
+[Evidence and command](../dead-city-progression.md#the-sylph-conversations)
+
 **Sylph pressure blocks.** Original Dead City newWorld.cs places
 mtbxbg.kq copies on trip12–15. The type is a physical ball-stack
 pushable; pushing.md rules 1–7 define its movement and collision.
@@ -15,8 +27,8 @@ The two failed continuations remain documented. Native heading and
 collision logs, the route driver's own 0.13-radian tolerance, and
 original terrain/placed bounds explain why the old crossing grazed
 torch.dt4. A wider sampled corridor and closer marks resolve it
-without altering original movement rules. Sylph's later conversations
-and item quest are not covered by this result.
+without altering original movement rules. Sylph's introductory
+conversations are covered separately above; the item quest is open.
 [Evidence and limits](../dead-city-progression.md#the-sylph-pressure-blocks)
 
 **Western Rock campaign route.** The original Dead City WORLDINV.CS

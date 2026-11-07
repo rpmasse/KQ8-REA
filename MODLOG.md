@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-07 Earn the three Sylph introductory topics
+
+Added an ordinary-input route from SylphSummonedReload through all
+three original conversations and a fresh-process reload. The check
+passed in 252.41 seconds: each final callback advances metConnor,
+the second awards 3000 experience once, and the final save retains
+the plate puzzle, inventory and level eleven stats [61,80,25,10,6112].
+No engine rules changed. The initial offline route's excluded band
+was replaced with a wider portal detour before gameplay testing.
+
+The original scale script makes Mold a later campaign dependency.
+An independent data audit rules out duplicate script/object copies
+across Dead City's four archives and finds floor contacts in the
+tower span omitted by the terrain-only path search. Actual graveyard
+access remains unverified; the numeric limits are recorded in STATUS.
+[Sources, command and evidence](docs/dead-city-progression.md#the-sylph-conversations)
+
 ## 2026-11-07 Complete the earned Sylph pressure-plate route
 
 Audited the failed route against its recorded heading, original

@@ -1965,3 +1965,100 @@ fn all_four_sylph_plates_summon_her_once_and_reload() {
         play.options
     );
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_SYLPH_SUMMONED_SLOT"]
+fn three_sylph_topics_award_experience_once_and_reload() {
+    let play = Play::new("earned-sylph-topics");
+    let source = earned_slot("KQ8_SYLPH_SUMMONED_SLOT")
+        .expect("set KQ8_SYLPH_SUMMONED_SLOT to an earned SylphSummonedReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "SylphSummonedReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert!(region_flag(&start, "DeadCity::Sylph::metConnor", "0"));
+    assert!(region_flag(&start, "DeadCity::Sylph::isIn", "true"));
+    assert_eq!(start["journey"]["stats"]["level"], 11);
+    assert_eq!(start["journey"]["stats"]["stats"][4], 3112);
+    let mut previous = start.clone();
+    for topic in 1..=3 {
+        let label = format!("SylphTopic{topic}");
+        let path = play.root.join(format!("sylph-topic-{topic}.json"));
+        let mut points = Vec::<Value>::new();
+        if topic == 1 {
+            // Use the wide route around portsa2 and portsa5, then
+            // enter SylphInfo's original conversation start area.
+            for xy in [
+                [58000, 83500],
+                [57750, 90750],
+                [57000, 98750],
+                [57000, 104500],
+                [57750, 113000],
+                [59750, 115000],
+                [62750, 115000],
+                [66500, 111380],
+            ] {
+                points.push(json!({"name":format!("Approach Sylph {}",points.len()+1),
+                    "xy":xy,"radius":180,"run":true}));
+            }
+            points.push(json!({"name":"Meet Sylph at the well","xy":[70000,108000],
+                "radius":150,"run":false,"aim":"Sylph"}));
+        } else {
+            let at = &previous["position"];
+            points.push(json!({"name":format!("Ask Sylph topic {topic}"),
+                "xy":[at[0],at[1]],"radius":250,"aim":"Sylph"}));
+        }
+        fs::write(
+            &path,
+            serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+        )
+        .unwrap();
+        let (saved, viewer) = leg(
+            &play,
+            topic,
+            &label,
+            if topic == 1 { 1300 } else { 1000 },
+            &["--walk-route", path.to_str().unwrap()],
+        );
+        assert!(viewer.lines().any(|line| line
+            .contains("test --aim Sylph (camera through gameplay pixel")
+            && line.contains("hits Sylph first")), "{label}: no visible Sylph click");
+        assert!(region_flag(&saved, "DeadCity::Sylph::metConnor", &topic.to_string()),
+            "{label}: the original final TalkComplete did not advance the topic");
+        let conversation = log(&play, &label, "conversation.log");
+        assert!(conversation.contains("the conversation with Sylph ends"));
+        assert!(!conversation.contains("walked out of the stay area"));
+        let doors = log(&play, &label, "doors.log");
+        let last = [2, 5, 3][topic as usize - 1];
+        assert_eq!(doors.matches(&format!(
+            "Sylph: TalkComplete 2000 7 14 {} {last} (line #", 9 + topic
+        )).count(), 1);
+        assert_eq!(doors.matches("KQStatsChangeRequestEvent 0 0 0 0 3000 to Connor").count(),
+            usize::from(topic == 2));
+        assert!(!doors.contains("KQStatsChangeRequestEvent 0 0 0 0 2000 to Connor"));
+        let mut expected = start["journey"]["stats"].clone();
+        expected["stats"][4] = json!(if topic == 1 { 3112 } else { 6112 });
+        assert_eq!(saved["journey"]["stats"], expected);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        for id in [12, 13, 14, 15] {
+            assert!(region_flag(&saved, &format!("DeadCity::Sylph::B{id}"), "up"));
+        }
+        assert!(region_flag(&saved, "DeadCity::Sylph::isIn", "true"));
+        assert_eq!(saved["kept"]["deadcity"]["prop_placements"],
+            start["kept"]["deadcity"]["prop_placements"]);
+        previous = saved;
+    }
+    let (restored, _) = leg(&play, 4, "SylphKnowledgeReload", 45, &[]);
+    assert!(region_flag(&restored, "DeadCity::Sylph::metConnor", "3"));
+    assert!(region_flag(&restored, "DeadCity::Sylph::isIn", "true"));
+    assert_eq!(restored["journey"]["stats"], previous["journey"]["stats"]);
+    assert_eq!(restored["journey"]["items"], previous["journey"]["items"]);
+    assert_eq!(restored["kept"]["deadcity"]["prop_placements"],
+        start["kept"]["deadcity"]["prop_placements"]);
+    for id in [12, 13, 14, 15] {
+        assert!(region_flag(&restored, &format!("DeadCity::Sylph::B{id}"), "up"));
+    }
+    let reload = log(&play, "SylphKnowledgeReload", "doors.log");
+    assert!(!reload.contains("KQStatsChangeRequestEvent 0 0 0 0 2000 to Connor"));
+    assert!(!reload.contains("KQStatsChangeRequestEvent 0 0 0 0 3000 to Connor"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
