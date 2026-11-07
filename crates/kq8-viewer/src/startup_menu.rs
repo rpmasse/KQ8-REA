@@ -20,6 +20,9 @@ use std::{collections::VecDeque, path::Path};
 #[cfg(test)]
 #[path = "ending_lifetime.rs"]
 mod ending_lifetime;
+#[cfg(test)]
+#[path = "display_transition_tests.rs"]
+mod display_transition_tests;
 
 #[derive(Resource, Default)]
 pub struct MenuRequest(pub bool, pub Vec<Key>);
@@ -74,6 +77,7 @@ pub fn register(app: &mut App, game: &Path, sound: bool) {
             .chain()
             .before(crate::world_build::world_change_step),
     );
+    crate::display_mode::register(app, crate::display_mode::VIEWER_CAPABILITIES);
 }
 
 #[derive(Default, Resource)]
@@ -813,6 +817,23 @@ fn redraw(world: &mut World) {
     }
 }
 
+/// Resize existing menu objects in place. Their selections, captured key,
+/// list/name state, clocks, modal state and audio ownership are retained.
+pub(crate) fn resize_presentation(world: &mut World, size: [u32; 2]) {
+    let high_available = crate::display_mode::high_available(world);
+    let Some(mut menu) = world.get_resource_mut::<Menu>() else { return };
+    menu.art.resize(size == [800, 600]);
+    let menu = &mut *menu;
+    if let Some(page) = &mut menu.options { page.resize(&menu.art); }
+    if let Some(page) = &mut menu.graphics {
+        page.set_high_resolution_available(high_available);
+        page.resize(&menu.art);
+    }
+    if let Some(page) = &mut menu.keyboard { page.resize(&menu.art); }
+    if let Some((_, art)) = &mut menu.slot_page { art.resize(size); }
+    redraw(world);
+}
+
 /// The slider applies to the active menu surface immediately (Q186).
 /// Refresh cached backdrop pixels while retaining each panel's selection.
 pub fn palette_changed(world: &mut World, values: crate::live_palette::Values, why: &str) {
@@ -887,7 +908,8 @@ fn option_key(world: &mut World, key: Key) {
     } else if back == options_menu::Destination::Graphics {
         let source = &world.resource::<Source>().game;
         match graphics_menu::Screen::open(source, &world.resource::<Menu>().art) {
-            Ok(screen) => {
+            Ok(mut screen) => {
+                screen.set_high_resolution_available(crate::display_mode::high_available(world));
                 let mut menu = world.resource_mut::<Menu>();
                 menu.child_clock = std::time::Instant::now();
                 menu.mask_frame = 0;
@@ -946,6 +968,14 @@ fn graphics_key(world: &mut World, key: Key) {
         }
         action
     };
+    if graphics.high_resolution != old.high_resolution {
+        let requested = crate::display_mode::Size::from_high(graphics.high_resolution);
+        if let Err(error) = crate::display_mode::request(world, requested) {
+            log.lock().unwrap().summary(format!("display: {error}"));
+        }
+        // The window/camera acknowledgement owns this preference change.
+        graphics.high_resolution = old.high_resolution;
+    }
     if graphics != old {
         world.resource_mut::<Preferences>().settings.graphics = graphics.clone();
         if graphics.dynamic_lighting != old.dynamic_lighting {
@@ -1121,6 +1151,7 @@ fn slot_key(world: &mut World, key: Key) -> Action {
 }
 
 pub fn step(world: &mut World) {
+    if crate::display_mode::pending(world) { return; }
     let Some(win) = world
         .query_filtered::<&Window, With<bevy::window::PrimaryWindow>>()
         .iter(world)
@@ -1136,13 +1167,13 @@ pub fn step(world: &mut World) {
         .map(|image| [image.texture_descriptor.size.width, image.texture_descriptor.size.height])
         .unwrap_or(menu.art.size());
     let logical = Vec2::new(dimensions[0] as f32, dimensions[1] as f32);
-    let scale = (size.x / logical.x).min(size.y / logical.y);
+    let (origin, scale) = crate::display_mode::canvas_frame(size, dimensions);
     if scale <= 0. {
         return;
     }
     let pos = win
         .cursor_position()
-        .map(|p| (p - (size - logical * scale) * 0.5) / scale);
+        .map(|p| (p - origin) / scale);
     for mut node in world
         .query_filtered::<&mut Node, With<MenuPicture>>()
         .iter_mut(world)

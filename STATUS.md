@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-07 Live original resolution changes verified on Windows
+
+The single unattended native resize flow passes first attempt, 1/1 in
+6.16s. Real Window/camera acknowledgements confirm 800x600 revision1,
+then 640x480 revision2; selecting 800 twice adds no request. The normal
+Options/Main return succeeds, isolated preferences end at 640 and the
+original Options.cs bytes are unchanged. No world loads in this check.
+The grouped headless matrix already verifies loaded HUD, caption and
+game-state retention, so it is not repeated. Evidence and commands:
+docs/live-display-transitions.md. Original driver/profile selection,
+software palette parity and broader M4 branches remain unfinished.
+Estimates remain M4 about 88%, M5 about 64%, M6 about 28%.
+
 ## 2026-11-07 Tile pending effects complete; live display matrix passes
 
 The tile batch now saves pending completion, reward, bridge, exit, music

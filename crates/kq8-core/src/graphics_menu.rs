@@ -1,4 +1,4 @@
-//! The original Graphics.gui panel. Mode changes still need executable research.
+//! Original Graphics.gui layout; device-profile selection remains separate.
 use crate::{
     gui_draw::Canvas,
     main_menu::{Art, Key},
@@ -73,6 +73,7 @@ pub struct Screen {
     background: Canvas,
     row: Row,
     pub dragging: bool,
+    high_available: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -105,8 +106,21 @@ impl Screen {
             }
         }
         let background = Self::backdrop(&layout,art);
-        Ok(Self { layout, background, row: Row::Low, dragging: false })
+        Ok(Self { layout, background, row: Row::Low, dragging: false, high_available: true })
     }
+
+    pub fn resize(&mut self, art: &Art) {
+        self.layout.resize(art.size(), false);
+        self.background = Self::backdrop(&self.layout, art);
+    }
+
+    /// Explicit capability input. This does not identify a host GPU as Glide.
+    pub fn set_high_resolution_available(&mut self, available: bool) {
+        self.high_available = available;
+        if !available && self.row == Row::High { self.row = Row::Low; }
+    }
+
+    fn available(&self, row: Row) -> bool { row != Row::High || self.high_available }
 
     fn backdrop(layout: &Layout, art: &Art) -> Canvas {
         let mut background = Canvas::new(layout.size[0], layout.size[1]);
@@ -120,7 +134,7 @@ impl Screen {
             "RESOLUTION",
         ]
         .into_iter()
-        .chain(ROWS.iter().map(|r| r.key()))
+        .chain(ROWS.iter().filter(|r| !matches!(r, Row::Low | Row::High)).map(|r| r.key()))
         {
             let caption = match key {
                 "DIRECTDRAW" => Some("DirectDraw"),
@@ -151,6 +165,7 @@ impl Screen {
     pub fn palette_sample(&self, rgba: &[u8], width: u32, height: u32) -> Option<Vec<u8>> {
         if (width,height) != (self.background.width,self.background.height) || rgba.len() != width as usize*height as usize*4 { return None; }
         let mut dynamic: Vec<[i32;4]> = ROWS.iter().filter_map(|r|r.value()).map(|key|self.layout.controls[key].rect).collect();
+        dynamic.extend([Row::Low, Row::High].map(|row| self.layout.controls[row.key()].rect));
         for key in ["CURSOR1","CURSOR2"] {
             let [l,_,r,_] = self.layout.controls[key].rect;
             dynamic.push([l,0,r,height as i32]);
@@ -180,7 +195,8 @@ impl Screen {
     fn choose(&self, settings: &mut Graphics) -> Action {
         match self.row {
             Row::Low => settings.high_resolution = false,
-            Row::High => settings.high_resolution = true,
+            Row::High if self.high_available => settings.high_resolution = true,
+            Row::High => {}
             Row::Lights => settings.dynamic_lighting = !settings.dynamic_lighting,
             Row::Brightness => {}
             Row::Back => return Action::Back,
@@ -198,11 +214,13 @@ impl Screen {
             Key::Escape => return Action::Back,
             Key::Up | Key::Down | Key::Tab => {
                 let i = ROWS.iter().position(|r| *r == self.row).unwrap();
-                self.row = ROWS[(i + if key == Key::Up { ROWS.len() - 1 } else { 1 }) % ROWS.len()];
+                let by = if key == Key::Up { ROWS.len() - 1 } else { 1 };
+                self.row = (1..=ROWS.len()).map(|step| ROWS[(i + by * step) % ROWS.len()])
+                    .find(|&row| self.available(row)).unwrap();
             }
             Key::Click(x, y) => {
                 for row in ROWS {
-                    if self.hit(row.key(), x, y) || row.value().is_some_and(|v| self.hit(v, x, y)) {
+                    if self.available(row) && (self.hit(row.key(), x, y) || row.value().is_some_and(|v| self.hit(v, x, y))) {
                         self.row = row;
                         if row == Row::Brightness {
                             self.dragging = self.hit("BRIGHTNESS_SLIDER", x, y);
@@ -226,7 +244,7 @@ impl Screen {
                 };
             }
             Key::Left | Key::Right if self.row == Row::Low || self.row == Row::High => {
-                settings.high_resolution = key == Key::Right
+                if key == Key::Left || self.high_available { settings.high_resolution = key == Key::Right; }
             }
             Key::Left | Key::Right => return self.choose(settings),
             Key::Enter => return self.choose(settings),
@@ -237,6 +255,26 @@ impl Screen {
 
     pub fn render(&self, settings: &Graphics, art: &Art, frame: usize) -> Canvas {
         let mut out = self.background.clone();
+        for (row, selected) in [(Row::Low, !settings.high_resolution), (Row::High, settings.high_resolution)] {
+            let key = row.key();
+            let label = self.layout.caption(key, art).unwrap_or("");
+            let marked = if selected { format!("> {label} <") } else { label.to_owned() };
+            let rect = self.layout.controls[key].rect;
+            if self.available(row) {
+                self.layout.draw(&mut out, art, key, key, rect, 0, Some(&marked));
+            } else {
+                let mut glyphs = Canvas::new(out.width, out.height);
+                self.layout.draw(&mut glyphs, art, key, key, rect, 0, Some(&marked));
+                for y in rect[1].max(0)..rect[3].min(out.height as i32) {
+                    for x in rect[0].max(0)..rect[2].min(out.width as i32) {
+                        let p = (y as usize * out.width as usize + x as usize) * 4;
+                        if (x+y)%2 == 0 && glyphs.rgba[p+3] != 0 {
+                            out.rgba[p..p+4].copy_from_slice(&glyphs.rgba[p..p+4]);
+                        }
+                    }
+                }
+            }
+        }
         for row in ROWS {
             let Some(key) = row.value() else { continue };
             let rect = self.layout.controls[key].rect;

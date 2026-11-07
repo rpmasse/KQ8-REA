@@ -202,6 +202,11 @@ pub enum Destination {
 }
 
 impl Screen {
+    pub fn resize(&mut self, art: &MenuArt) {
+        self.layout.resize(art.size(), false);
+        self.background = Self::backdrop(&self.layout, art);
+    }
+
     pub fn palette_changed(&mut self, art: &MenuArt) {
         self.background = Self::backdrop(&self.layout,art);
     }

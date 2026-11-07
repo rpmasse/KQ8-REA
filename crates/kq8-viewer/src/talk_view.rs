@@ -235,11 +235,24 @@ pub struct CaptionStyle {
     palette_values: crate::live_palette::Values,
     palette_revision: u64,
     caption_box: kq8_core::caption::Box,
+    authored_width: i32,
+    layout_revision: u64,
     /// The game's screen (800 × 600 with `set800mode 1`; 4c-1).
     screen: [u32; 2],
 }
 
 impl CaptionStyle {
+    pub(crate) fn resize(&mut self, screen: [u32; 2]) {
+        if self.screen == screen { return; }
+        self.screen = screen;
+        self.caption_box.width = kq8_core::gui_draw::resolve_rect(
+            [0, 0, self.authored_width, 0], [640, 480], screen.map(|n| n as i32))[2].max(1) as u32;
+        self.caption_box.scale = kq8_core::caption::scale(screen);
+        self.layout_revision += 1;
+    }
+
+    pub(crate) fn screen_size(&self) -> [u32; 2] { self.screen }
+
     pub fn apply_palette(&mut self, values: crate::live_palette::Values) {
         if self.palette_values == values { return; }
         self.palette = kq8_data::palette::for_output(self.source_palette,values.brightness,values.output);
@@ -337,7 +350,7 @@ pub fn load_caption(game: &GameDir, region: &crate::load::World, log: &mut Log) 
         caption_box.row_height,
         kq8_core::caption::STRIP_PAD
     ));
-    Some(CaptionStyle { font, strip: strip.map(|(_, s)| s), palette, source_palette, palette_values:region.palette_values(),palette_revision:0, caption_box, screen })
+    Some(CaptionStyle { font, strip: strip.map(|(_, s)| s), palette, source_palette, palette_values:region.palette_values(),palette_revision:0, caption_box, authored_width: (r-l).max(1), layout_revision: 0, screen })
 }
 
 /// The caption picture's node (4b-3).
@@ -371,6 +384,7 @@ pub struct CaptionMade {
     out: f32,
     size: [u32; 2],
     palette_revision: u64,
+    layout_revision: u64,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -418,8 +432,9 @@ pub fn caption_picture_draw(
     // text, or a new window size, makes a new picture.
     // A player can disable subtitles while a spoken line is paused.
     let shown = speech.caption.as_ref().filter(|_|options.settings.subtitles).map(|(_, t)| t.clone());
-    if *last != shown || (made.out - out).abs() > 1e-3 || made.palette_revision != style.palette_revision {
+    if *last != shown || (made.out - out).abs() > 1e-3 || made.palette_revision != style.palette_revision || made.layout_revision != style.layout_revision {
         made.palette_revision = style.palette_revision;
+        made.layout_revision = style.layout_revision;
         made.out = out;
         *last = shown;
         *last_place = None;

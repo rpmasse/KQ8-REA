@@ -155,6 +155,16 @@ pub struct Screen {
 }
 
 impl Screen {
+    pub fn resize(&mut self, art: &Art) {
+        self.layout.resize(art.size(), false);
+        let mut background = Canvas::new(self.layout.size[0], self.layout.size[1]);
+        for name in ["BACKGROUND", "TITLE", "TO_MAIN"]
+            .into_iter().map(str::to_owned).chain(ROWS.iter().map(|r| r.to_string())) {
+            self.layout.draw(&mut background, art, &name, &name, self.layout.controls[&name].rect, 0, None);
+        }
+        self.background = background;
+    }
+
     pub fn open(path: &Path, art: &Art) -> Result<Self, String> {
         let mut layout = Layout::read(path, "movekey.gui", "IDCTL_MOVEKEYS_")?;
         layout.resize(art.size(), false);

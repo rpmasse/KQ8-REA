@@ -615,6 +615,7 @@ pub fn insert_world(world: &mut World, read: WorldRead, opts: &Options) {
     world.init_resource::<crate::scene_lights::LightsGroup>();
     world.init_resource::<crate::scene_lights::GroundLights>();
     world.init_resource::<crate::shadow_view::FrameSources>();
+    crate::display_mode::sync_world_presentation(world);
 }
 
 /// Startup (and later on request): puts the pending world in and spawns
