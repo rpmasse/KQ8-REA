@@ -785,7 +785,7 @@ was changed. Original trap handoff is Q203; aim/arc fidelity is Q202.
 
 Evidence is kq8-artifacts/earned-western-plate-rock/1794035062532059200
 and kq8-artifacts/western-plate-rock-native.log. To reproduce this
-known failure, set KQ8_GAME_DIR and KQ8_WESTERN_PLATE_RELEASED_SLOT
+original failure on its old build, set KQ8_GAME_DIR and KQ8_WESTERN_PLATE_RELEASED_SLOT
 to the GOG installation and the genuine WesternPlateReleasedReload
 checkpoint, respectively:
 
@@ -793,7 +793,7 @@ checkpoint, respectively:
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::earned_rock_holds_western_portal_open_after_reload -- --ignored --exact --test-threads=1
 ```
 
-Expected current result: failure at the portal-mask assertion (0,
+Observed old result: failure at the portal-mask assertion (0,
 expected 4). Do not repeat this test until new source evidence supports
 a relevant implementation change. Original Options.cs preservation
 is asserted later in the test and was not reached in this failed run.
@@ -801,6 +801,27 @@ is asserted later in the test and was not reached in this failed run.
 The viewer headless command `cargo test --locked --release -p
 kq8-viewer --bin kq8-viewer` passes once (44 passed, 28 ignored).
 Its log is kq8-artifacts/visible-ground-viewer-tests.log.
+
+## Earned Rock pressure and reload now pass
+
+Q203's separate study identifies stationary collision registration as
+the missing event. The fresh world Rock's ball stack now runs the normal
+geometry/mask contact and synchronous script callback; the projectile
+does not transfer occupancy. The same earned route passes once in
+46.00 seconds. No aim, pressure box, inventory grant or flight was changed.
+
+WesternPlateRock and WesternPlateRockReload both retain NoName98 as
+triptrp5's occupant, with no Connor occupant and both portrap5/portrp5b
+masks 4. Carried Rocks change from two to one; other carried items,
+stats and flags are preserved. Original Options.cs preservation also
+passes. Evidence: `kq8-artifacts/western-plate-rock-registration.log`
+and `earned-western-plate-rock/1794039587261976800/slots/slot-3.json`.
+
+The command above is now a passing reproduction command, not a request
+to repeat a successful check. Portal traversal and later quest steps
+are still incomplete; pickup/deletion release, singleton/non-Rock item
+rules and Q202 trajectory fidelity remain separate work.
+[Implementation and focused checks](item-registration-traps.md)
 
 ## Repeat the automated route
 

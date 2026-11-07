@@ -680,6 +680,13 @@ pub enum Pick {
 /// Ground height at (x, y): the floor (`true`) or the surface (`false`).
 pub type Heights = Box<dyn Fn(f32, f32, bool) -> Option<f32> + Send + Sync>;
 
+struct ItemRegistration {
+    name: String,
+    next_trap: usize,
+    new_inv_item: bool,
+    restore_trap_log: Option<bool>,
+}
+
 /// Everything a script can touch, apart from the variables.
 pub struct WorldState {
     pub doors: Vec<ActiveDoor>,
@@ -695,6 +702,9 @@ pub struct WorldState {
     prop_colliders: BTreeMap<String, BoxCollider>,
     /// Names moved during the current outer script, checked at its end (Q102).
     placed_props_in_trap: Vec<String>,
+    item_registrations: BTreeMap<u64, ItemRegistration>,
+    item_registration_requests: Vec<u64>,
+    next_item_registration: u64,
     pub clickables: Vec<Clickable>,
     /// The buildings, in the caller's order (3g-2).
     pub buildings: Vec<ActiveBuilding>,
@@ -1530,7 +1540,7 @@ impl WorldState {
         }
     }
 
-    fn make_world_item(&mut self, kind: &str, quantity: i64, mut position: [f32; 3], angles: [f32; 3], at: &str) -> Result<String, String> {
+    fn make_world_item(&mut self, kind: &str, quantity: i64, mut position: [f32; 3], angles: [f32; 3], at: &str, new_inv_item: bool) -> Result<String, String> {
         if position[2] == -1.0 || position[2] == -2.0 {
             let floor = position[2] == -1.0;
             match self.heights.as_ref().and_then(|h| h(position[0], position[1], floor)) {
@@ -1540,7 +1550,92 @@ impl WorldState {
         }
         let name = self.items.make(kind, quantity, Place::World { position, angles })?.name.clone();
         self.known.insert(name.to_ascii_lowercase());
+        self.queue_item_registration(&name, new_inv_item);
         Ok(name)
+    }
+
+    fn trap_contact_at(&mut self, i: usize, v: &Visitor, placed: bool, is_connor: bool, path: Option<&[([f32; 3], [f32; 3])]>) -> Option<(String, Vec<String>)> {
+        let t = &self.traps[i];
+        if t.gone || ((!t.counts(v.collision_type) || placed) && !t.inside.iter().any(|n| n.eq_ignore_ascii_case(v.name))) {
+            return None;
+        }
+        let shrunk_before = self.traps[i].shrunk;
+        let c = if placed { self.traps[i].stay_check(v) }
+            else if let Some(path) = path { self.traps[i].check_path(v, path) }
+            else { self.traps[i].check(v) };
+        let args = c.call?;
+        let t = &self.traps[i];
+        let (name, gone) = (t.settings.name.clone(), t.gone);
+        let change = match (shrunk_before, t.shrunk) {
+            (true, false) => "; grows to full",
+            (false, true) => "; shrinks again",
+            _ => "",
+        };
+        let line = format!(
+            "trap {name}: {}{} at ({:.0}, {:.0}, {:.0}): touching {}, box centre inside {}, {} box ({:.0}, {:.0}, {:.0})..({:.0}, {:.0}, {:.0}){change}; inside now: [{}]",
+            args.join(" "),
+            if placed { " (stay test right after a script's move, rule 5)" } else { "" },
+            v.position[0],
+            v.position[1],
+            v.position[2],
+            c.touching,
+            c.centre_inside,
+            if shrunk_before { "inner (shrunk)" } else { "full" },
+            c.min[0],
+            c.min[1],
+            c.min[2],
+            c.max[0],
+            c.max[1],
+            c.max[2],
+            t.inside.join(", ")
+        );
+        let was = std::mem::replace(&mut self.in_trap, true);
+        self.note(line);
+        self.spirit_touch(i, &args, is_connor);
+        if gone {
+            self.note(format!("trap {name}: one-shot, deleted after its On (rule 11)"));
+        }
+        self.in_trap = was;
+        let call = format!("{name} {}", args.join(" "));
+        Some((call, args))
+    }
+
+    fn queue_item_registration(&mut self, name: &str, new_inv_item: bool) {
+        let token = self.next_item_registration;
+        self.next_item_registration += 1;
+        self.item_registrations.insert(token, ItemRegistration { name: name.into(), next_trap: 0,
+            new_inv_item, restore_trap_log: None });
+        self.item_registration_requests.push(token);
+    }
+
+    fn resume_item_registration(&mut self, token: u64) -> Option<(String, Vec<String>)> {
+        let mut work = self.item_registrations.remove(&token)?;
+        if let Some(was) = work.restore_trap_log.take() { self.in_trap = was; }
+        while work.next_trap < self.traps.len() {
+            let i = work.next_trap;
+            work.next_trap += 1;
+            // Registration is a contact at the live transform, not a sweep.
+            // Earlier callbacks may move/delete this item or disable a trap.
+            if self.is_deleted(&work.name) || self.is_switched_off(&work.name) { break; }
+            let Some(item) = self.items.get(&work.name).filter(|o| o.in_world()) else { break };
+            let Some(placement) = item.placement() else { break };
+            let Some((min, max)) = self.items.click_box(item) else { break };
+            let balls = crate::collide::BallStack::from_box(min, max);
+            let v = Visitor { name: &work.name, collision_type: crate::item::ITEM_TYPE,
+                from: placement.position, position: placement.position, min, max,
+                shape: crate::trap::VisitorShape::OrientedBalls(&balls, placement.rotation) };
+            let Some((_, args)) = self.trap_contact_at(i, &v, false, false, None) else { continue };
+            let t = &self.traps[i];
+            if t.settings.spirit.is_some() { continue; }
+            let Some(script) = t.settings.script.clone() else { continue };
+            let mut all = vec![t.settings.name.clone()];
+            all.extend(args);
+            work.restore_trap_log = Some(std::mem::replace(&mut self.in_trap, true));
+            self.item_registrations.insert(token, work);
+            return Some((script, all));
+        }
+        if work.new_inv_item { self.vars_out.push(("NewInvItem".into(), work.name)); }
+        None
     }
 
     pub fn door_index(&self, name: &str) -> Option<usize> {
@@ -1743,7 +1838,7 @@ impl WorldState {
             }
         };
         let made = match m.position.filter(|_| m.in_world()) {
-            Some(p) => self.make_world_item(&m.kind, m.quantity, p, m.angles, at),
+            Some(p) => self.make_world_item(&m.kind, m.quantity, p, m.angles, at, true),
             None => {
                 if !self.known.contains(&m.who.to_ascii_lowercase()) {
                     self.note(format!("{at}: ERROR {}: unknown character '{}'; nothing made", words.join(" "), m.who));
@@ -1760,7 +1855,7 @@ impl WorldState {
             Ok(name) => {
                 let sound = if m.who.eq_ignore_ascii_case("Connor") && !m.in_world() { format!("; {}", self.pickup_sound(&m.kind)) } else { String::new() };
                 let line = format!("{at}: made {}; NewInvItem = {name}{sound}", self.items.describe(&name));
-                self.vars_out.push(("NewInvItem".into(), name.clone()));
+                if !m.in_world() { self.vars_out.push(("NewInvItem".into(), name.clone())); }
                 self.item_note(line);
                 // M4 4c-3: Connor's inventory rules (inventory.md rule 8).
                 if m.who.eq_ignore_ascii_case("Connor") && !m.in_world() {
@@ -1827,12 +1922,14 @@ impl WorldState {
         let name = item.name.clone();
         let idx = self.items.index(&name).expect("found carried item");
         let place = Place::World { position: [x, y, z], angles: [rx, ry, rz] };
+        self.vars_out.push(("NewInvItem".into(), name.clone()));
         let dropped = if item.quantity > 1 && self.items.kind(kind).is_some_and(|t| crate::connor_inventory::stacks(&t.category)) {
             // A thrown rock leaves one rock at its impact point, while the
             // remaining stack keeps its inventory identity.
             let one = self.items.make(kind, 1, place).expect("carried type exists").name.clone();
             self.known.insert(one.to_ascii_lowercase());
             self.items.objects[idx].quantity -= 1;
+            self.queue_item_registration(&one, true);
             one
         } else {
             if who.eq_ignore_ascii_case("Connor") {
@@ -1853,7 +1950,8 @@ impl WorldState {
             name
         };
         self.item_note(format!("{at}: dropItem {who}: {}", self.items.describe(&dropped)));
-        self.vars_out.push(("NewInvItem".into(), dropped));
+        // Fresh-item completion sets NewInvItem after its registration scripts.
+        // Existing-item placement keeps the selected inventory identity.
         "0".into()
     }
 
@@ -3116,6 +3214,7 @@ impl WorldState {
         if let Some((_, p)) = self.projectile_caller.as_ref().filter(|(n, _)| n.eq_ignore_ascii_case(who)) {
             return Some(*p);
         }
+        if let Some(item) = self.items.get(who) { return item.placement(); }
         if let Some(i) = self.object_index(who) {
             Some(self.objects[i].player.base)
         } else if let Some(i) = self.anim_index(who) {
@@ -3153,6 +3252,15 @@ impl WorldState {
         if flags > 3 {
             self.note(format!("{at}: move {who}: flags {flags} unknown; not moved"));
             return "1".into();
+        }
+        if let Some(i) = self.items.index(&who).filter(|&i| self.items.objects[i].in_world()) {
+            let old = self.items.objects[i].placement().unwrap();
+            let new = moved_placement(old, flags, position, turn).0;
+            self.items.objects[i].place = Place::World { position: new.position,
+                angles: kq8_data::objects::angles_of(new.rotation) };
+            self.placed_props_in_trap.push(who.to_ascii_lowercase());
+            self.note(format!("{at}: script-placed item {who} at {:?}; stay check after the event", new.position));
+            return "0".into();
         }
         let base = if let Some(i) = self.object_index(&who) {
             Some(&mut self.objects[i].player.base)
@@ -4626,6 +4734,14 @@ impl ScriptHost for WorldState {
         std::mem::take(&mut self.calls_out)
     }
 
+    fn take_continuations(&mut self) -> Vec<u64> {
+        std::mem::take(&mut self.item_registration_requests)
+    }
+
+    fn resume_continuation(&mut self, token: u64) -> Option<(String, Vec<String>)> {
+        self.resume_item_registration(token)
+    }
+
     fn call_returned(&mut self, script: &str, args: &[String]) {
         if args.get(1).is_some_and(|a| a == "Init") {
             if let Some(i) = args.first().and_then(|name| self.trap_index(name)) {
@@ -4673,6 +4789,9 @@ impl Active {
                 placed_in_trap: Vec::new(),
                 prop_colliders: BTreeMap::new(),
                 placed_props_in_trap: Vec::new(),
+                item_registrations: BTreeMap::new(),
+                item_registration_requests: Vec::new(),
+                next_item_registration: 0,
                 clickables,
                 buildings: Vec::new(),
                 interior_lighting: BTreeMap::new(),
@@ -5307,6 +5426,12 @@ impl Active {
                 // Each subsequent listener must see that current state.
                 if self.world.is_deleted(&name) { break; }
                 let shape = self.world.prop_colliders.get(&name).cloned()
+                    .or_else(|| self.world.items.get(&name).and_then(|item| {
+                        let (min, max) = self.world.items.click_box(item)?;
+                        Some(BoxCollider { name: item.name.clone(), min, max, placement: item.placement()?,
+                            kind: ColliderKind { collision_type: crate::item::ITEM_TYPE,
+                                collision_mask: crate::item::ITEM_MASK, ball_stack: true, keep_on_ground: false } })
+                    }))
                     .or_else(|| self.world.object_index(&name).and_then(|i| self.world.objects[i].collider()))
                     .or_else(|| self.world.chest_index(&name).and_then(|i| self.world.chests[i].collider()))
                     .or_else(|| self.world.door_index(&name).and_then(|i| self.world.doors[i].collider()));
@@ -5316,7 +5441,8 @@ impl Active {
                 };
                 let Some(placement) = self.world.place_of(&name) else { continue };
                 let balls = crate::collide::BallStack::from_box(b.min, b.max);
-                let shape = if b.kind.ball_stack { crate::trap::VisitorShape::Balls(&balls) }
+                let shape = if self.world.items.get(&name).is_some() { crate::trap::VisitorShape::OrientedBalls(&balls, placement.rotation) }
+                    else if b.kind.ball_stack { crate::trap::VisitorShape::Balls(&balls) }
                     else { crate::trap::VisitorShape::Box(placement.rotation) };
                 let v = Visitor { name: &b.name,
                     collision_type: self.world.collision_type_of(&name).unwrap_or(b.kind.collision_type),
@@ -5412,53 +5538,11 @@ impl Active {
     }
 
     fn trap_check_at(&mut self, i: usize, v: &Visitor, placed: bool, is_connor: bool, path: Option<&[([f32; 3], [f32; 3])]>) -> Option<String> {
-        let t = &self.world.traps[i];
-        if t.gone || ((!t.counts(v.collision_type) || placed) && !t.inside.iter().any(|n| n.eq_ignore_ascii_case(v.name))) {
-            return None;
-        }
-        let shrunk_before = self.world.traps[i].shrunk;
-        let c = if placed { self.world.traps[i].stay_check(v) }
-            else if let Some(path) = path { self.world.traps[i].check_path(v, path) }
-            else { self.world.traps[i].check(v) };
-        let args = c.call?;
-        let t = &self.world.traps[i];
-        let (name, gone) = (t.settings.name.clone(), t.gone);
-        let change = match (shrunk_before, t.shrunk) {
-            (true, false) => "; grows to full",
-            (false, true) => "; shrinks again",
-            _ => "",
-        };
-        let line = format!(
-            "trap {name}: {}{} at ({:.0}, {:.0}, {:.0}): touching {}, box centre inside {}, {} box ({:.0}, {:.0}, {:.0})..({:.0}, {:.0}, {:.0}){change}; inside now: [{}]",
-            args.join(" "),
-            if placed { " (stay test right after a script's move, rule 5)" } else { "" },
-            v.position[0],
-            v.position[1],
-            v.position[2],
-            c.touching,
-            c.centre_inside,
-            if shrunk_before { "inner (shrunk)" } else { "full" },
-            c.min[0],
-            c.min[1],
-            c.min[2],
-            c.max[0],
-            c.max[1],
-            c.max[2],
-            t.inside.join(", ")
-        );
-        let was = std::mem::replace(&mut self.world.in_trap, true);
-        self.world.note(line);
-        self.world.spirit_touch(i, &args, is_connor);
-        if gone {
-            self.world.note(format!("trap {name}: one-shot, deleted after its On (rule 11)"));
-        }
-        self.world.in_trap = was;
-        let call = format!("{name} {}", args.join(" "));
+        let (call, args) = self.world.trap_contact_at(i, v, placed, is_connor, path)?;
         let refs: Vec<&str> = args.iter().map(String::as_str).collect();
         if self.world.traps[i].settings.spirit.is_none() { self.call_trap(i, &refs); }
         Some(call)
     }
-
     pub fn register_contact_script(&mut self, name: &str, script: String) {
         self.world.contact_scripts.insert(name.to_ascii_lowercase(), (script, [0; 6]));
     }
@@ -6123,7 +6207,8 @@ impl Active {
                 // Rule 7: open plays; the item appears at invLoc / invDir.
                 let s = c.chest.settings.clone();
                 let opened = self.world.chests[i].chest.play("open");
-                let made = s.item.as_ref().map(|kind| self.world.make_world_item(kind, s.quantity, s.item_position, s.item_angles, &at));
+                let made = s.item.as_ref().map(|kind| self.world.make_world_item(kind, s.quantity, s.item_position, s.item_angles, &at, false));
+                self.scripts.finish_host_effects(&mut self.world, &at, 0);
                 let (after, what) = match made {
                     Some(Ok(item_name)) => {
                         let line = format!("{at}: made {}", self.world.items.describe(&item_name));
@@ -6183,6 +6268,14 @@ impl Active {
                 };
                 self.world.note(format!("{head}: IN REACH: click (empty): {empty}"));
             }
+        }
+        if before == ChestState::Closed {
+            // Registration callbacks are nested inside opening the chest.
+            // Finish the click's own remembered-item/state changes first,
+            // then deliver movement notices and release deleted names.
+            ScriptHost::event_done(&mut self.world);
+            self.prop_placements_after_script();
+            self.character_placements();
         }
         ClickResult::Chest { before, after: self.world.chests[i].chest.state }
     }
@@ -7788,6 +7881,37 @@ endif
 
     /// Connor 1,000 in front of the chest.
     const BY_CHEST: [f32; 3] = [0.0, -1310.0, 0.0];
+
+    #[test]
+    fn chest_item_registration_finishes_its_click_before_pending_departures() {
+        let mut a = with_chest(Some("INVITEM_Crystal"));
+        a.world.sources.insert("loot-contact.cs".into(), b"if test $2 == On\n move crate 0 10000 0 0\n deleteObject disposable\n set Test::phase finished\nendif\n".to_vec());
+        a.world.sources.insert("held.cs".into(), b"if test $2 == Off\n set Test::departed $Test::phase\nendif\n".to_vec());
+        let b = BoxCollider { name: "crate".into(), min: [-5.; 3], max: [5.; 3],
+            placement: Placement::at([5000., 0., 0.]), kind: ColliderKind {
+                collision_type: 1, collision_mask: 11, ball_stack: false, keep_on_ground: false } };
+        a.world.known.extend(["crate".into(), "disposable".into()]);
+        a.world.clickables.push(Clickable::plain("crate", "KQObject", b.min, b.max, b.placement, 1));
+        a.world.prop_placements.insert("crate".into(), None);
+        for (name, position, mask, script) in [
+            ("held", [5000., 0., 0.], 1, "held.cs"),
+            ("loot", [0., 0., 380.], 512, "loot-contact.cs"),
+        ] {
+            a.add_traps([Trap::new(crate::trap::TrapSettings { name: name.into(), position,
+                min: [-100.; 3], max: [100.; 3], mask, script: Some(script.into()),
+                lookup_call: false, trap_type: 0, inner_percent: None, spirit: None })]);
+        }
+        a.prop_moved(&b, &crate::connor_mover::PropMove { name: b.name.clone(), delta: [1., 0., 0.], path: vec![([0.; 3], [1., 0., 0.])] });
+        assert_eq!(a.world.traps[0].inside, ["crate"]);
+        assert_eq!(a.click("smlchst3", BY_CHEST, 2350., None),
+            ClickResult::Chest { before: ChestState::Closed, after: ChestState::Open });
+        assert_eq!(a.world.chests[0].chest.remembered.as_deref(), Some("NoName0"));
+        assert_eq!(a.world.traps[1].inside, ["NoName0"]);
+        assert!(a.world.traps[0].inside.is_empty());
+        assert_eq!(a.scripts.vars.get("Test::departed"), Some("finished"));
+        assert!(a.world.is_deleted("disposable"));
+        assert!(a.world.deleted_this_event.is_empty(), "the next event may reuse a deleted name");
+    }
 
     #[test]
     fn returning_twice_resumes_a_door_and_collects_remembered_chest_loot_once() {

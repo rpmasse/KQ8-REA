@@ -2869,7 +2869,7 @@ fn western_plate_release_disables_portal_and_reloads() {
 }
 
 #[test]
-#[ignore = "known failure: landed Rock does not hold the plate (Q203); requires GOG assets, graphics and KQ8_WESTERN_PLATE_RELEASED_SLOT"]
+#[ignore = "requires GOG assets, graphics and earned KQ8_WESTERN_PLATE_RELEASED_SLOT"]
 fn earned_rock_holds_western_portal_open_after_reload() {
     let play = Play::new("earned-western-plate-rock");
     let source = earned_slot("KQ8_WESTERN_PLATE_RELEASED_SLOT")

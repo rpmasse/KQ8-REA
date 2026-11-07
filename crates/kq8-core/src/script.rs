@@ -98,6 +98,12 @@ pub trait ScriptHost {
     fn take_calls(&mut self) -> Vec<(String, Vec<String>)> {
         Vec::new()
     }
+    /// Command-owned resumable effects. The interpreter captures these tokens
+    /// before entering callbacks, so nested commands cannot take their work.
+    fn take_continuations(&mut self) -> Vec<u64> { Vec::new() }
+    /// Run until another synchronous script is needed, or completion. A final
+    /// variable result is exposed through take_vars only when the work ends.
+    fn resume_continuation(&mut self, _token: u64) -> Option<(String, Vec<String>)> { None }
     /// A synchronous host-requested script has returned, before the
     /// command following it runs (e.g. a loaded trap's Init).
     fn call_returned(&mut self, _script: &str, _args: &[String]) {}
@@ -340,6 +346,12 @@ impl Scripts {
     /// loadKQ calls the new object's Init before the next command runs.
     fn host_command(&mut self, words: &[String], host: &mut dyn ScriptHost, at: &str, depth: usize) -> Option<String> {
         let result = host.world_command(words, at);
+        self.finish_host_effects(host, at, depth);
+        result
+    }
+
+    pub(crate) fn finish_host_effects(&mut self, host: &mut dyn ScriptHost, at: &str, depth: usize) {
+        let continuations = host.take_continuations();
         for (var, value) in host.take_vars() {
             self.vars.set(&var, value);
         }
@@ -348,7 +360,16 @@ impl Scripts {
             self.run(&script, &args, host, depth + 1);
             host.call_returned(&script, &args);
         }
-        result
+        for token in continuations {
+            loop {
+                let call = host.resume_continuation(token);
+                for (var, value) in host.take_vars() { self.vars.set(&var, value); }
+                let Some((script, args)) = call else { break };
+                host.log(format!("{at}: resumes synchronous {script} {}", args.join(" ")));
+                self.run(&script, &args, host, depth + 1);
+                host.call_returned(&script, &args);
+            }
+        }
     }
 
     pub(crate) fn console_world_command(&mut self, words: &[String], host: &mut dyn ScriptHost, at: &str) -> Option<String> {

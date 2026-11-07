@@ -13,6 +13,40 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 fresh world-item registration (Q203, 2026-11-07).** The separate
+study corrects the blanket no-entry-on-creation assumption: a fresh active
+world item's stationary shape contacts accepting triggers synchronously.
+Implement an explicit registration operation, separate from allocation,
+saved-item restoration and zero-time movement of an existing collider.
+Process trigger candidates sequentially, reading current item placement,
+mask and deletion state after each callback. Keep the item's actual name
+and ball-stack geometry; never force On from the pressure-plate footprint.
+
+Extend the existing script-host callback boundary with command-owned
+continuations. Capture each command's work before nested scripts run,
+resume registration after each callback, and apply its final NewInvItem
+only when registration finishes. This prevents nested item creation from
+stealing the outer command's completion state. Add live item location
+lookup and existing-item script placement so callbacks can query/move
+the visitor. Reuse the end-of-script stay checks without new entry.
+
+Check stationary geometry/masks, callback ordering, nested creation,
+callback relocation/deletion, no entry on script movement and restored
+membership with automated cases. Then run the previously failed earned
+Rock pressure-plate/save route once after the focused cases pass. Keep
+Q202 trajectory fidelity separate. Pickup/deletion release and the final
+carried-unit/category edge cases are subsequent source-driven lifecycle
+work; do not infer them from the existing Rust stack implementation.
+
+Nine focused registration cases now pass once each; the remaining core
+suite passes once (697 passed, 17 ignored). Review adds one chest-click
+completion fix and a tenth passing case. The earlier earned Rock failure
+now passes in 46.00 seconds through a fresh Windows process reload, with
+NoName98 occupying the plate and both portal masks 4. The final release
+viewer check passes. No successful case was repeated. The source's full
+item lifecycle, collision overrides and spatial registration ordering
+remain separate gates. [Evidence and limitations](item-registration-traps.md)
+
 **M6 scripted prop placement and occupied traps (2026-11-07).** Apply
 traps.md rule 5(b), Q102, at the end of each outer script call. Retain
 the installed prop collider metadata in core, refresh it on physical

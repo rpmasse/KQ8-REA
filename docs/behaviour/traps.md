@@ -62,11 +62,13 @@ never blocks anything.
    (`connor-collision.md` rule 3), so nobody is stopped or pushed by a
    trap.
 
-   **Only moving things set traps off.** A touch is only found while the
-   visitor moves (`connor-collision.md` rule 1). An object lying still in
-   a trap's box doesn't count until it moves; an item counts while it is
-   tossed or falls (its throw moves it through its mover), a pushed box
-   while it is pushed.
+   **Movement and initial collision registration are separate contact
+   opportunities** (corrected 2026-11-07, Q203). Ordinary movement probes
+   for touches (`connor-collision.md` rule 1): an item while tossed or
+   falling, a box while pushed. Starting collision participation also
+   checks eligible overlaps. A newly registered stationary world item
+   can therefore enter a trap without a subsequent move; see the Rock
+   study below. Merely remaining still does not repeat entry.
 
    **Placed by a script (traced 2026-10-19, Q102).** A script's `move
    <object> …` (Connor or any other object) goes through the same
@@ -91,11 +93,17 @@ never blocks anything.
      not at his next move. (Daventry's mill wheel: `wheeltp2` gets `Off`
      right after its cue 2 moves him under the wheel; its script does
      nothing on `Off`, so nothing visible changes.)
-   - **(c) `loadKQ`** puts a new object's shape at its spot when it is
-     added, with no sweep, so it does not set off a trap it lands in
-     until it moves itself through its mover (a tossed item, a pushed
-     box); an object that never moves never does. (That no trap checks
-     its box when it is itself added was looked for and not found.)
+   - **(c) New collision registration (corrected Q203).** The earlier
+     blanket claim that `loadKQ` cannot cause entry until movement was
+     wrong: registering an active collider checks existing eligible
+     overlaps at its current placement. This is separate from the
+     zero-time move of an already registered collider in (a). The
+     complete stationary-contact route is verified for fresh world
+     inventory items, including a Rock made by `dropItem`. Entry still
+     requires a collision shape, active participation, an eligible
+     collision-detail pair, the trap's accepting mask and actual shape
+     contact. This is not a rule to send `On` for every `loadKQ`, item
+     creation or placement regardless of those conditions.
 
 ### Entering and leaving
 
@@ -106,7 +114,7 @@ never blocks anything.
    name. If someone else was already inside, it runs with `$2` = `Cue`,
    `$3` = `301`, `$4` = the newcomer's name. In Daventry only Connor sets
    traps off, so there it is always `On` with `$3` = `Connor`.
-   **"Touches" (traced 2026-10-13):** found by the same swept test as
+   **"Touches" (traced 2026-10-13):** during movement, found by the same swept test as
    walls (`connor-physics.md` "Collision shape"), using the visitor's own
    shape: for Connor, items and other ball stacks, each ball's path is
    tested against the trap's box widened by the ball's radius; for a box
@@ -114,7 +122,8 @@ never blocks anything.
    move that passes right through a thin trap in one update still
    enters it (and the next move's stay test, rule 7, then finds him
    outside: `Off`). A visitor whose shape **starts inside** the box also
-   counts as touching, at its next move.
+   counts as touching, at its next move. Initial registration can also
+   find a stationary ball stack touching the trap (Q203 below).
 7. **Staying.** Every time an object inside moves, the trap checks
    whether it is still inside: first, is the **centre of the object's
    box** (its position plus the middle of its `BOUNDS.KQ` box) inside the
@@ -127,6 +136,115 @@ never blocks anything.
    is being shut down, no `Off` is sent.
 9. So `On` comes when he first **touches** the box, and `Off` only once
    he is **out of touch and his middle is outside** it.
+
+### Recoverable Rock, registration and removal (Q203, 2026-11-07)
+
+Static study of the original executable, checked against the installed
+Dead City archive's `prrock.kq`, `triptrp5.kq` and `triptrp5.cs`, and the
+loose `rockHit.cs`, `Invinfo.itl` and `BOUNDS.KQ`. Original runtime,
+native save/reload and manual play **not tested**. This corrects rule
+5(c)'s earlier Q102 conclusion; the existing-collider script-move rules
+5(a–b) remain unchanged.
+
+**Which object holds the plate, and when**
+
+- The authored Rock projectile has collision type **1**, mask **0x1f**
+  and `collisionDetail=1`. A trap uses collision detail **1** too.
+  **A pair where both have detail 1 is excluded before geometry and
+  contact delivery.** Thus the flying projectile does not become this
+  trap's occupant, even though `triptrp5`'s mask 519 includes type 1.
+  Collision detail is distinct from the choice of box or ball shape.
+- On the projectile's `Die`, `rockHit.cs` reads that projectile's final
+  position and angles and calls `dropItem Connor INVITEM_Rock` there.
+  The command deducts **one carried Rock** and creates a **fresh world
+  item of quantity 1**, even when the carried quantity was only 1.
+  This is a Rock-category exception, not a general identity rule for
+  other dropped items (`items.md` rule 11). The projectile is not
+  retained and there is no transfer of trap membership.
+- **Last-carried-item edge:** common inventory removal first puts the
+  old quantity-1 object into world ownership at its stored carried
+  placement, normally the origin. Its quantity stays 1. The Rock branch
+  then creates the distinct landing item; no cleanup of the old world
+  identity was found in this command chain, including inventory UI
+  updates. With more than one carried Rock, only the carried count is
+  reduced and the old identity stays carried. Thus dropping the last
+  Rock is not a pure replacement of its old identity. This is static
+  original behavior, with its runtime consequences **not tested**.
+- The new world item has collision type **0x220**, mask **0x809**,
+  collision detail **2**, and its ordinary ball-stack shape. When its
+  collider becomes active and is registered, stationary overlap is
+  tested immediately. Each ball centre is tested against the trap box
+  expanded by that ball's radius, including boundaries. The item's
+  full current orientation rotates each local ball centre before its
+  position is added; the radius stays unchanged. Pitch/roll therefore
+  need not leave the stack vertical in world space (heading alone
+  leaves a centre on the local z axis unchanged). No nonzero
+  displacement is required. `triptrp5`'s mask **519** accepts its 0x200
+  bit; the item's mask need not contain the trap's 0x10 bit.
+- Successful contact adds the new item's own identity and runs the
+  ordinary `On`, or `Cue 301` if another occupant already exists,
+  **synchronously during registration**, before `dropItem` returns.
+  The callback names the fresh item (`NoName<n>`), not Connor, the
+  carried stack or projectile. After the common inventory removal
+  described above, `dropItem` sets `NewInvItem` to the selected carried
+  object's name; only **after** fresh world
+  insertion and its nested trap callback return does it replace
+  `NewInvItem` with the fresh item's name. A nested callback must use
+  its visitor argument, not assume `NewInvItem` already names it.
+  Any contact caused by returning the last old identity to world
+  ownership occurs even earlier, before that first assignment.
+- Contacts are processed sequentially in existing collision-registration
+  order. A callback can change the item's position or collision masks
+  before later candidates are tested; later tests use that current
+  state. Pending deletion is checked before narrow contact delivery.
+  Do not turn a single creation-position snapshot into a batch of
+  callbacks that ignores changes made by earlier callbacks.
+- After the `Die` script returns, the projectile requests deletion.
+  Removal is deferred until the current queued event finishes, before
+  the next queued event. The ordinary authored sequence therefore has
+  world-item entry and then projectile cleanup, with no projectile
+  departure callback. The new item stays motionless on the plate; it
+  does not need a fall, synthetic movement or forced `On`.
+
+**Pickup, deletion and saved membership**
+
+- Actual deletion tells every trap holding the deleted identity to
+  remove it before the object and its name disappear. This invokes
+  ordinary `Off` when last, otherwise `Cue 302`, with the departing
+  object's name. World shutdown suppresses these callbacks. Requesting
+  deletion and completing deletion are separate moments.
+- Picking up this Rock into an existing carried Rock stack merges its
+  quantity and requests deletion of the world item; that deletion
+  releases the plate. Without a merge, carrying retains the item
+  identity, places it at the origin and deactivates it. Committing
+  that relocation posts the ordinary stay checks, which release this
+  Dead City plate after the current event. This second path is not an
+  unconditional direct-release operation: a hypothetical trap at the
+  origin can expose different original bookkeeping.
+- A save stores occupant object names in the trap's `trappedObject`
+  entries. On restoration, contact with a saved name, matched ignoring
+  capitals, reattaches that identity **without `On` or `Cue 301`**.
+  Initial registration supplies such contact for a stationary restored
+  item. While saved names remain to be reattached, other contacts do
+  not take the ordinary new-entry callback path. The `Lookup` script
+  call is separate and does not itself rebuild membership. After a
+  completed Rock landing, the retained occupant is the world item's
+  name; pickup/deletion later releases that same identity.
+
+**Derived numeric check, not an original runtime test.** `triptrp5`'s
+world box is **(113742,108426,50)–(114242,108926,525)**. The installed
+`rok.kqs` bounds yield one ball of radius **105**, at local **(0,0,105)**
+(the `Invinfo.itl` radius 250 is not this collision radius). With zero
+item rotation, an item placed at **(114047.86,108670.29,0)** has its ball
+centre inside the radius-expanded trap box and qualifies immediately
+on active registration. This does not establish the original throw's
+aim, arc or landing angles; those remain Q202.
+
+For implementation checks, distinguish fresh active registration from
+repositioning an existing collider; test both one and several carried
+Rocks, first and additional trap occupants, rejected masks/detail pairs,
+both pickup branches, ordinary deletion and silent saved-name reattachment.
+Record visitor identity, callback order, `NewInvItem` and final membership.
 
 ### `trapType` (bit flags)
 
@@ -489,6 +607,8 @@ and native original-game save/reload were not run during this study.
 2. ~~The exact contact test used for "touching" (rule 6).~~ Answered
    2026-10-13: the swept shape test, along the move (rule 6).
 3. ~~Whether an object placed inside a trap by `move` or `loadKQ`, without
-   moving there, sets it off (rule 5).~~ Answered 2026-10-19 (Q102): not
-   at once; at its next ordinary move. The trap it left hears of a
-   `move` at once (rule 5, "Placed by a script").
+   moving there, sets it off (rule 5).~~ Q102's existing-collider `move`
+   answer remains: no destination entry then, but the old trap receives
+   the deferred stay check. **Corrected 2026-11-07 (Q203):** initial
+   active collider registration can enter immediately, including a
+   stationary recoverable Rock; see rule 5(c) and the Q203 study above.
