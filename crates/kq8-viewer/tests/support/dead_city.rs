@@ -1754,3 +1754,207 @@ fn western_archers_and_rock_survive_reload() {
         play.options
     );
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_WESTERN_ROCK_SLOT"]
+fn first_sylph_block_lights_its_tower_and_reloads() {
+    let play = Play::new("earned-sylph-first-block");
+    let source = earned_slot("KQ8_WESTERN_ROCK_SLOT")
+        .expect("set KQ8_WESTERN_ROCK_SLOT to an earned WesternRockReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "WesternRockReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert!(region_flag(&start, "DeadCity::Sylph::B15", "down"));
+    assert_eq!(start["weapon_state"]["set_mode"], "None");
+    let path = play.root.join("block15.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":3,"landmarks":[
+        {"name":"Stand north of the western block","xy":[55657,125300],"radius":120,"run":false},
+        {"name":"Push block15 off its plate","xy":[55657,121500],"radius":150,"run":false,
+            "until_var":{"name":"DeadCity::Sylph::B15","value":"up"}},
+        {"name":"Leave the first raised plate clear","xy":[56800,121500],"radius":160,"run":false}
+    ]})).unwrap()).unwrap();
+    let (earned, viewer) = leg(
+        &play,
+        1,
+        "FirstSylphBlock",
+        550,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    assert!(viewer.contains("walk-route at Push block15 off its plate"));
+    assert!(viewer.contains("walk-route at Leave the first raised plate clear"));
+    let motion = log(&play, "FirstSylphBlock", "connor.log");
+    assert!(
+        motion.contains("push touch block15 (physical)") && motion.contains("pushed block15 by ")
+    );
+    let doors = log(&play, "FirstSylphBlock", "doors.log");
+    assert_eq!(
+        doors.matches("KQAnimPlayEvent up to object trip15").count(),
+        1
+    );
+    let (restored, _) = leg(&play, 2, "FirstSylphBlockReload", 45, &[]);
+    for saved in [&earned, &restored] {
+        assert!(region_flag(saved, "DeadCity::Sylph::B15", "up"));
+        for name in ["B12", "B13", "B14"] {
+            assert!(region_flag(
+                saved,
+                &format!("DeadCity::Sylph::{name}"),
+                "down"
+            ));
+        }
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "false"));
+        assert!(region_flag(saved, "DeadCity::Sylph::FirstTime", "false"));
+        let position = &saved["kept"]["deadcity"]["prop_placements"]["block15"]["position"];
+        assert!(position[1].as_f64().unwrap() < 122900.0);
+        assert_eq!(position[2], 950.0);
+        let trap = saved["traps"]["states"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["name"] == "trptrp15")
+            .unwrap();
+        assert!(trap["inside"].as_array().unwrap().is_empty());
+        assert!(saved["kept"]["deadcity"]["object_copies"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|object| object["name"] == "flame.port501"));
+        assert_eq!(saved["journey"]["stats"], start["journey"]["stats"]);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+    }
+    assert_eq!(
+        earned["kept"]["deadcity"]["prop_placements"],
+        restored["kept"]["deadcity"]["prop_placements"]
+    );
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+}
+
+#[test]
+#[ignore = "known failing final-block approach; requires GOG assets, graphics and a genuine KQ8_FIRST_SYLPH_BLOCK_SLOT"]
+fn all_four_sylph_plates_summon_her_once_and_reload() {
+    let play = Play::new("earned-sylph-summoned");
+    let source = earned_slot("KQ8_FIRST_SYLPH_BLOCK_SLOT")
+        .expect("set KQ8_FIRST_SYLPH_BLOCK_SLOT to an earned FirstSylphBlockReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "FirstSylphBlockReload");
+    assert!(region_flag(&start, "DeadCity::Sylph::B15", "up"));
+    assert!(region_flag(&start, "DeadCity::Sylph::FirstTime", "false"));
+    let path = play.root.join("remaining-blocks.json");
+    let mut points = Vec::<Value>::new();
+    for (id, approach, end, clear) in [
+        (
+            14,
+            vec![
+                [70500, 121500],
+                [78750, 123000],
+                [82500, 125000],
+                [83657, 125300],
+            ],
+            [83657, 121500],
+            // Leave sideways once the plate is up; otherwise the next
+            // northbound leg keeps pushing the block along the road.
+            [85500, 123000],
+        ),
+        (
+            13,
+            vec![
+                [86250, 112500],
+                [86250, 98750],
+                [86250, 85000],
+                [83657, 79300],
+            ],
+            [83657, 75500],
+            [85500, 77000],
+        ),
+        (
+            12,
+            vec![
+                [85500, 81000],
+                [71750, 81000],
+                [58250, 80500],
+                [55657, 79300],
+            ],
+            [55657, 75500],
+            [57500, 77000],
+        ),
+    ] {
+        for (i, xy) in approach.iter().enumerate() {
+            points.push(json!({"name":format!("Approach block{id} {}",i+1),"xy":xy,
+                "radius":if i+1==approach.len(){120}else{220},"run":i+1<approach.len()}));
+        }
+        points.push(
+            json!({"name":format!("Push block{id} clear"),"xy":end,"radius":150,"run":false,
+            "until_var":{"name":format!("DeadCity::Sylph::B{id}"),"value":"up"}}),
+        );
+        points.push(
+            json!({"name":format!("Leave plate {id} clear"),"xy":clear,"radius":160,"run":false}),
+        );
+    }
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (earned, viewer) = leg(
+        &play,
+        1,
+        "SylphSummoned",
+        1600,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    let motion = log(&play, "SylphSummoned", "connor.log");
+    for id in [14, 13, 12] {
+        assert!(viewer.contains(&format!("walk-route at Leave plate {id} clear")));
+        assert!(motion.contains(&format!("push touch block{id} (physical)")));
+    }
+    let doors = log(&play, "SylphSummoned", "doors.log");
+    assert_eq!(
+        doors
+            .matches("KQStatsChangeRequestEvent 0 0 0 0 2000 to Connor")
+            .count(),
+        1
+    );
+    let mut stats = start["journey"]["stats"].clone();
+    stats["stats"][4] = json!(3112);
+    let (restored, _) = leg(&play, 2, "SylphSummonedReload", 45, &[]);
+    for saved in [&earned, &restored] {
+        for id in [12, 13, 14, 15] {
+            assert!(region_flag(saved, &format!("DeadCity::Sylph::B{id}"), "up"));
+            let trap = saved["traps"]["states"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|t| t["name"] == format!("trptrp{id}"))
+                .unwrap();
+            assert!(trap["inside"].as_array().unwrap().is_empty());
+            assert!(saved["kept"]["deadcity"]["prop_placements"][format!("block{id}")].is_object());
+        }
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        assert!(region_flag(saved, "DeadCity::Sylph::FirstTime", "true"));
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "0"));
+        let sylph = saved["kept"]["deadcity"]["characters"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["name"] == "Sylph")
+            .unwrap();
+        assert_eq!(
+            sylph["character"]["ai"]["home"],
+            json!([70662.0, 105677.0, 1584.0])
+        );
+        assert_eq!(saved["journey"]["stats"], stats);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+    }
+    assert_eq!(
+        earned["kept"]["deadcity"]["prop_placements"],
+        restored["kept"]["deadcity"]["prop_placements"]
+    );
+    assert!(!log(&play, "SylphSummonedReload", "doors.log")
+        .contains("KQStatsChangeRequestEvent 0 0 0 0 2000 to Connor"));
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+}

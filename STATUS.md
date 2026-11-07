@@ -1,5 +1,44 @@
 # STATUS
 
+## 2026-11-07 First Sylph plate verified; full route remains open
+
+The first block and fresh-process reload passed in 52.94 seconds
+from WesternRockReload. Bound movement keys physically push block15
+off trptrp15. Its original Off callback raises trip15, sets B15 up
+and creates flame.port501. FirstSylphBlockReload retains the moved
+block at (56803.633,120754.625,950), an empty plate trigger and the
+tower flame. The other three B flags remain down; Sylph is absent
+and no appearance reward is given. Stats [61,80,25,10,1112], inventory,
+AI/damage settings and GOG Options.cs are unchanged. Evidence:
+earned-sylph-first-block/1794027010744231100,
+sylph-first-block-final-native.log.
+
+The first test draft, 1794026925710997100, completed and saved the
+push but failed at 43.45 seconds on incorrect expected log wording.
+The corrected test checks the actual plate animation event and
+saved flag. This was a harness error, not a failed push.
+
+The remaining-three-block continuation has two real failures:
+
+- 1794027170136062000, 64.90 seconds: block14's plate was released,
+  but the departure path kept pushing it down the road until higher
+  ground stopped the object. No continuation save was produced.
+- 1794027397345330500, 73.42 seconds: sideways departure cleared
+  blocks14 and13. The approach to block12 then repeatedly hit
+  torch.dt4 head-on, ending on update1043 near (69650,80390,1248).
+  The offline planned line missed the torch, but the live running
+  path drifted into it. No continuation save or appearance award
+  was produced.
+
+Stopped native retries after these two failures. The full-puzzle
+regression is explicitly marked known failing. The next investigation
+must compare actual steering and collider clearance before another
+route, without changing the original movement rules. The latest
+verified campaign save is FirstSylphBlockReload; the Sylph appearance,
+reward and remaining plates are **not verified**. No engine rules
+were changed in this step.
+[Commands and evidence](docs/dead-city-progression.md#the-sylph-pressure-blocks)
+
 ## 2026-11-07 Earned western Rock and three archers
 
 The two-process continuation passed in 155.92 seconds from the

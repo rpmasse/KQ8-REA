@@ -3,6 +3,18 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Sylph pressure blocks.** Original Dead City newWorld.cs places
+mtbxbg.kq copies on trip12–15. The type is a physical ball-stack
+pushable; pushing.md rules 1–7 define its movement and collision.
+trptrp15.cs supplies the first plate's Off callback, B15 flag and
+flame.port501 creation. sylftest.cs requires all four B flags up
+and supplies the one-time 2000-point appearance reward. The first
+push and reload are verified with bound movement keys. The full
+route is known failing before its last plate, so the appearance and
+reward are not claimed. The second failure identifies torch.dt4
+from native collision logs and its original placed bounds.
+[Evidence and limits](../dead-city-progression.md#the-sylph-pressure-blocks)
+
 **Western Rock campaign route.** The original Dead City WORLDINV.CS
 places the Rock at (56446,125813). The earned save identifies that
 loose item as NoName45 and retains the original BowGuys15–17
