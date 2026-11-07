@@ -39,6 +39,8 @@ pub mod ground_anim;
 pub mod gui_draw;
 pub mod inventory;
 pub mod item;
+#[cfg(test)]
+mod item_traps;
 pub mod journey;
 pub mod kept_interactions;
 pub mod magic_map;

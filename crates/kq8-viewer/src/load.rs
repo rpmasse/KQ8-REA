@@ -6108,7 +6108,7 @@ mod campaign_tests {
             if active.world.anims[0].gone { break; }
             active.update();
             active.world.characters_ai(&ground.terrain, &objects.buildings, &[]);
-            active.world.flights_step(&ground.terrain, &objects.buildings, &[]);
+            active.flights_step(&ground.terrain, &objects.buildings, &[]);
         }
         assert_eq!(seen, ["teeter", "die", "die2", "fallend"], "{}", active.world.fight_log.join("\n"));
         assert_eq!(drop_update.unwrap().1, "fallend");

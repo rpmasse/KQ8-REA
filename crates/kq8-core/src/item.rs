@@ -518,6 +518,8 @@ pub const TUMBLE: (f32, f32) = (-0.5, 0.5);
 /// What one update of a flight did, for the log.
 #[derive(Debug, Clone, Default)]
 pub struct FlightStep {
+    /// Swept mover segments, excluding unswept placement/ground correction.
+    pub path: Vec<([f32; 3], [f32; 3])>,
     /// Where the arc wanted it (`None` once it only settles).
     pub wanted: Option<[f32; 3]>,
     /// Where it is after the move.
@@ -664,6 +666,7 @@ impl Flight {
             w
         };
         let report = self.mover.update(std::array::from_fn(|k| wanted[k] - at[k]), world);
+        step.path = report.path;
         step.position = self.mover.position;
         step.touches = report.hits.iter().map(|h| format!("{} {} ({})", h.pass, h.hit.what, h.result)).collect();
         // Rule 12, at each touch in order.

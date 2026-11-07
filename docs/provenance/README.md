@@ -3,6 +3,18 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Tossed-item trigger movement.** `active.rs` connects each item's
+flight to the existing script dispatcher from `traps.md` rules 4-9
+and `thrown-items.md` rules 7/11. `connor_mover.rs` reports its actual
+collision-clipped passes; `item.rs` carries that path and `trap.rs`
+checks the ball stack against it. `fight.rs` retains the existing
+flight/landing rules while allowing dispatch between items. Both
+viewer callers use that integration. Synthetic checks in
+`item_traps.rs` exercise the documented movement, masks, callbacks
+and persisted occupancy. Pickup/deletion and Rock handoff remain
+unresolved; no original binary, disassembly or assets were copied.
+[Evidence and limits](../tossed-item-traps.md)
+
 **Earned Rock placement diagnostic.** The route's visible ground aiming
 uses the viewer's existing gameplay viewport, pointer ray, aim mask and
 drawn-ground lookup. Original trip5/triptrp5 data supplies the plate

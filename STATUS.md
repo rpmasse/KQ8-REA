@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-07 Tossed-item movement reaches the trap dispatcher
+
+Seven focused synthetic checks pass for shaped item entry/exit along
+the real mover path, wall clipping, masks, callback order, multiple
+occupants and settled serialized occupancy. Ordinary placed items
+still do not enter. The initial compile-only failure was a private
+test import; the public import fixed it. The native earned Rock
+puzzle remains the failure below, pending Q202/Q203. Pickup/deletion
+release and native campaign use of this new integration are not tested.
+[Commands and limits](docs/tossed-item-traps.md)
+
+The seventh case (wall sliding) initially expected the wrong contact
+position, omitting the existing 25-unit pull-back. Its corrected
+expectation passes without a physics change. The other six cases
+were not rerun. The remaining core regression passes once (671
+passed, 17 ignored), and the viewer release check passes.
+
 ## 2026-11-07 Earned Rock lands inside the plate; portal stays closed
 
 The first native Rock attempt fails in 41.93 seconds. The visible

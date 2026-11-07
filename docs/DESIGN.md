@@ -13,6 +13,31 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5 tossed-item trap movement (2026-11-07).** The item thrower already
+implements flight and collisions, but the live caller never reports
+those moves to traps. Apply traps.md rules 4-9 and thrown-items.md
+rules 7/11: a shaped moving item uses type 0x220 and its ball stack;
+the trap's mask decides entry and the trap never stops the item.
+Record the mover's actual up/across/down and slide segments, clipped
+at physical contacts, so a trigger on the real path counts while one
+on an imaginary diagonal or behind a blocking wall does not. Run the
+existing trap callbacks after each item move, before the next item.
+Do not change flight speed, gravity, collision response or assets.
+
+Preserve placement without entry, stationary settled occupancy,
+multi-occupant On/Cue/Off and saved trigger state. Add focused automated
+checks for entry/exit, actual path versus chord, blocked path, mask,
+missing shape, callback ordering and settled save/reload. Run each
+passing check once. Pickup/deletion and projectile-to-item handoff
+remain Q203; this step does not claim to fix the earned Rock puzzle.
+
+Implemented with seven focused passing checks and one broader core
+pass (671 passed, 17 ignored), excluding the six successes that had
+already run before the final slide case. The viewer release check
+passes. An initial test import and the slide test's pull-back
+expectation were corrected; no native campaign replay was repeated.
+[Commands and limits](tossed-item-traps.md)
+
 **M6 earned Rock on the western plate (2026-11-07).** Continue from
 WesternPlateReleasedReload with 110 health and both earned Rocks.
 The original trip5 has no clickable collider, while triptrp5 accepts

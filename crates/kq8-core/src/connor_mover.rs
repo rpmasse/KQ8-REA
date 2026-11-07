@@ -719,6 +719,9 @@ pub enum FallEvent {
 /// What one update did, for the log.
 #[derive(Debug, Clone, Default)]
 pub struct Report {
+    /// Actual swept movement, clipped at contacts. Trigger checks must not
+    /// replace the up/across/down path with a diagonal through scenery.
+    pub path: Vec<([f32; 3], [f32; 3])>,
     pub drop: f32,
     /// He began the update on walkable ground (logged only).
     pub began_on_ground: bool,
@@ -1065,6 +1068,7 @@ impl Mover {
         }
 
         // 3. Across pass: buildings only, the terrain is not tested (Q26).
+        if start != self.position { report.path.push((start, self.position)); }
         let start = self.position;
         let target = [start[0] + wanted[0], start[1] + wanted[1], start[2]];
         report.across = self.across(world, start, target, head_on_allowed, "across", &mut hits, &mut report);
@@ -1180,6 +1184,7 @@ impl Mover {
             report.head_on |= head_on;
             report.hits.push(HitRecord { pass: "down", hit: h, angle, result });
             self.position = contact;
+            if start != contact { report.path.push((start, contact)); }
             if let Some(at) = monster_top {
                 // connor-physics.md "landing on a KQMonster" (Q131 c; M5
                 // 5b-2): he lands, then is pushed 250 level, away from its
@@ -1200,6 +1205,8 @@ impl Mover {
                 report.push = length(sub(target, contact));
                 self.across(world, contact, target, head_on_allowed, "down slide", hits, report);
             }
+        } else if start != self.position {
+            report.path.push((start, self.position));
         }
 
         // 5. Ground check (keepOnGround): at or below the ground -> on it.
@@ -1306,6 +1313,7 @@ impl Mover {
                 outcome = "push";
                 let Some(h) = hit else {
                     self.position = p;
+                    if start != p { report.path.push((start, p)); }
                     return outcome;
                 };
                 // Rule 4.3 (Q95): a contact kept from earlier in the list
@@ -1323,6 +1331,7 @@ impl Mover {
                 ));
                 report.hits.push(HitRecord { pass, hit: h, angle: None, result });
                 self.position = contact;
+                if start != contact { report.path.push((start, contact)); }
                 if result != "after push" || sub(slide_to, contact).iter().all(|v| v.abs() < SLIDE_MIN) {
                     return outcome;
                 }
@@ -1333,6 +1342,7 @@ impl Mover {
             }
             let Some(h) = hit else {
                 self.position = target;
+                if start != target { report.path.push((start, target)); }
                 return outcome;
             };
             *hits += 1;
@@ -1351,6 +1361,7 @@ impl Mover {
             };
             report.hits.push(HitRecord { pass, hit: h, angle, result });
             self.position = contact;
+            if start != contact { report.path.push((start, contact)); }
             if result != "glance" {
                 report.head_on |= head_on;
                 return result;
@@ -1380,6 +1391,7 @@ impl Mover {
         loop {
             let Some(h) = world.sweep(&self.balls, start, target) else {
                 self.position = target;
+                if start != target { report.path.push((start, target)); }
                 return outcome;
             };
             *hits += 1;
@@ -1393,6 +1405,7 @@ impl Mover {
             let last = retries == OBJECT_RETRIES;
             report.hits.push(HitRecord { pass, hit: h, angle, result: if last { "3 hits" } else { "glance" } });
             self.position = contact;
+            if start != contact { report.path.push((start, contact)); }
             if last {
                 return "3 hits";
             }

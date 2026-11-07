@@ -139,27 +139,32 @@ impl Trap {
 
     /// `v` has moved: does it come in, stay, or leave (rules 6–11)?
     pub fn check(&mut self, v: &Visitor) -> Check {
-        self.check_with(v, true)
+        self.check_path(v, &[(v.from, v.position)])
+    }
+
+    /// As `check`, using the mover's actual passes and slides (rules 5-7).
+    pub fn check_path(&mut self, v: &Visitor, path: &[([f32; 3], [f32; 3])]) -> Check {
+        self.check_with(v, true, path)
     }
 
     /// `v` was put at a new spot by a script's `move` (rule 5 "Placed by a
     /// script", Q102): only the stay test of rule 7 for one already
     /// inside; nothing comes in (that waits for its next ordinary move).
     pub fn stay_check(&mut self, v: &Visitor) -> Check {
-        self.check_with(v, false)
+        self.check_with(v, false, &[(v.from, v.position)])
     }
 
-    fn check_with(&mut self, v: &Visitor, may_enter: bool) -> Check {
+    fn check_with(&mut self, v: &Visitor, may_enter: bool, path: &[([f32; 3], [f32; 3])]) -> Check {
         let (min, max) = self.current_box();
         let counts = !self.gone && self.counts(v.collision_type);
         // Rule 6: each ball's path against the box widened by its radius.
         let r = v.balls.radius;
         let (wide_min, wide_max) = (min.map(|m| m - r), max.map(|m| m + r));
-        let touching = v.balls.heights.iter().any(|h| {
-            let a = [v.from[0], v.from[1], v.from[2] + h];
-            let b = [v.position[0], v.position[1], v.position[2] + h];
+        let touching = path.iter().any(|(from, to)| v.balls.heights.iter().any(|h| {
+            let a = [from[0], from[1], from[2] + h];
+            let b = [to[0], to[1], to[2] + h];
             segment_meets_box(a, b, wide_min, wide_max)
-        });
+        }));
         let centre: [f32; 3] = std::array::from_fn(|i| v.position[i] + (v.min[i] + v.max[i]) / 2.0);
         let centre_inside = (0..3).all(|i| centre[i] >= min[i] && centre[i] <= max[i]);
         let mut out = Check { counts, touching, centre_inside, min, max, call: None };
