@@ -18,6 +18,8 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
+Quest-item replacement now removes the previous item's effects, with grouped automated checks for timers, inventory state and serialized continuation. [Inventory application](docs/inventory-application.md)
+
 The loader now gives the installed regional patch files priority over archive copies, with an automated check of all 22 overrides and the patched portal callback. [File selection](docs/world-file-selection.md)
 
 Fresh world items and tossed loot notify matching triggers through their collision shapes, and pickup/deletion releases occupied traps at the event boundary; the earned Rock hold and pickup both pass reload checks, while other item lifecycle rules remain incomplete. [Item triggers](docs/item-registration-traps.md) · [Pickup and release](docs/item-removal-traps.md)

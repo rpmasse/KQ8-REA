@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-07 Shared quest-item application lifecycle completed
+
+Applying a quest item now unapplies other applied quest items before
+adding its own effects. One grouped matrix covers permanent/timed
+replacement, statistics, timers, icons, holding, repeat application,
+serialized continuation, dropping and expiry. All 16 existing inventory
+tests pass. The new matrix first fails because its drop command lacks
+the required namespace; after that test-only correction it passes all
+four cases. Successful existing checks are not repeated. No native or
+manual run is needed for this shared-core rule. Original campaign
+application triggers remain untraced. Estimates remain M4 about 80%,
+M5 60%, M6 about 25%.
+[Commands, results and limits](docs/inventory-application.md)
+
 ## 2026-11-07 Inventory behavior fixed; remaining work grouped
 
 The shared GUI item lookup now leaves an empty-cell right click silent

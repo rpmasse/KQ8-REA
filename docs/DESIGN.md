@@ -36,6 +36,18 @@ required behavior and the uninterrupted New Game-to-ending path; this
 changes the verification strategy, not the fidelity or completion target.
 Manual testing remains deferred until the Rust recreation is complete.
 
+**M4 inventory-application lifecycle batch (2026-11-07).** Close the
+shared quest-item replacement rule in inventory.md rule 16: applying a
+quest item first unapplies another applied quest item. Keep this distinct
+from holding an item in the pointer, which bar clicks already cover.
+Use one core lifecycle matrix for permanent and timed replacement,
+stat/timer/icon removal, one new application, repeated application and
+removal/continuation. Reuse the completed bar-input native evidence.
+The implementation agent owns connor_inventory.rs and a short evidence
+note, coordinating with the hazard agent's separate journey/save work.
+No additional native game launch is needed for this core rule unless
+the grouped checks reveal a distinct viewer integration defect.
+
 **M5 ordinary terrain-liquid damage (2026-11-07).** Implement the
 confirmed non-ontop, non-special-status rules in terrain-hazards.md:
 material-source priority, configured amounts, Connor-level and world-

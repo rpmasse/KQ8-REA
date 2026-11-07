@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-07 Shared quest-item application lifecycle
+
+Quest-item application now uses the existing unapply path to remove
+another applied quest item's statistics, timer and icon first. Holding,
+equipment and unrelated potions keep their state. A four-case matrix
+covers permanent/timed replacement, repeat application, serialized
+continuation, removal and expiry. The 16 existing inventory tests pass;
+the new matrix passes after correcting its test command's missing
+namespace. Successful tests are reused, with no native or manual run.
+Original campaign application triggers remain untraced.
+[Evidence and commands](docs/inventory-application.md)
+
 ## 2026-11-07 Inventory input correction and grouped completion strategy
 
 Empty quest cells now distinguish the mouse button: right-click does

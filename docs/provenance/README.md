@@ -3,6 +3,13 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Quest-item application.** Study A's inventory rules 14–17 supply
+application, unapplication and replacement behavior. The shared core
+reuses the existing timer/statistic/icon removal path; synthetic item
+types distinguish permanent and timed effects in one lifecycle matrix.
+This does not establish original campaign callers or original save
+format equivalence. [Evidence](../inventory-application.md).
+
 **Empty quest cells.** Inventory rules 10/12 supply silent right-clicks
 on empty cells and left-click return of the held item. Both viewer
 input paths share the corrected lookup. A real earned inventory supplies
