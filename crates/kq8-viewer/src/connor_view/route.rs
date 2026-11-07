@@ -27,6 +27,9 @@ struct Landmark {
     until_var: Option<ScriptValue>,
     /// At this landmark, turn in place and press the bound Jump key.
     jump_toward: Option<[f32; 2]>,
+    /// At takeoff, enable Run and press Forward together with Jump.
+    #[serde(default)]
+    running_jump: bool,
     /// Turn toward the neighboring tile at xy and press the bound Jump key.
     #[serde(default)]
     tile_jump: bool,
@@ -120,6 +123,9 @@ impl Replay {
                         || l.aim.is_some() || l.click.is_some() || l.fight.is_some()
                         || l.break_object.is_some() || l.scene.is_some() || l.jump_toward.is_some())
                     || (l.fight.is_some() && l.break_object.is_some())
+                    || (l.running_jump && (l.jump_toward.is_none() || l.fight.is_some()
+                        || l.break_object.is_some() || l.aim.is_some() || l.click.is_some()
+                        || l.scene.is_some()))
                     || (l.retreat && l.fight.is_none())
                     || (l.ranged && (l.fight.is_none() || l.retreat || l.big_swing.is_some()))
                     || ((l.keep_weapon || l.heal.is_some()) && l.fight.is_none())
@@ -223,7 +229,7 @@ pub fn steer(
     }
     if let Some(tick) = replay.jumped {
         replay.keys(&mut keys, &[]);
-        // The standing jump arc lasts 20 simulation updates. It can then
+        // Both original forward jump arcs last 20 simulation updates. They can then
         // continue into Fall before finding a floor or the top of a prop.
         if sim.updates < tick + 20 || !sim.mover.on_ground {
             return;
@@ -413,8 +419,20 @@ pub fn steer(
                 replay.keys(&mut keys, &[key]);
                 return;
             }
-            if !sim.mover.on_ground {
+            if !sim.mover.on_ground || sim.walker.jump_kind(sim.intent).is_err() {
                 replay.keys(&mut keys, &[]);
+                return;
+            }
+            if landmark.running_jump && !sim.intent.run {
+                let Some(key) = sim.controls.run else {
+                    shared.log.lock().unwrap().summary("walk-route: Run has no key binding");
+                    exit.write(AppExit::error());
+                    return;
+                };
+                // Run is a toggle: stop at takeoff and observe the ordinary
+                // key event before sending Forward and Jump on the same tick.
+                let wanted = if replay.held.contains(&key) { vec![] } else { vec![key] };
+                replay.keys(&mut keys, &wanted);
                 return;
             }
         }
@@ -449,8 +467,22 @@ pub fn steer(
         }
         if point.jump_toward.is_some() {
             if let Some(key) = sim.controls.jump {
-                replay.keys(&mut keys, &[key]);
+                let mut wanted = vec![key];
+                if point.running_jump {
+                    let Some(forward) = sim.controls.forward else {
+                        shared.log.lock().unwrap().summary("walk-route: Forward has no key binding");
+                        exit.write(AppExit::error());
+                        return;
+                    };
+                    wanted.push(forward);
+                }
+                replay.keys(&mut keys, &wanted);
                 replay.jumped = Some(sim.updates);
+                shared.log.lock().unwrap().summary(format!(
+                    "walk-route {} jump requested on update {} at ({:.0}, {:.0}, {:.0}), heading {:.3}",
+                    if point.running_jump { "running" } else { "standing" },
+                    sim.updates, pos[0], pos[1], pos[2], sim.walker.heading
+                ));
             } else {
                 shared
                     .log

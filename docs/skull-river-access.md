@@ -167,10 +167,81 @@ genuine HealedSkullChamber save exists, KQ8_HEALED_SKULL_CHAMBER_SLOT
 can skip the completed portal leg. Continue from slot-4 for subsequent
 work rather than repeating the successful encounter.
 
+## Original block and jump crossing
+
+The original installed C_jump.kqs and C_rnjmp.kqs movements both take
+1.333 seconds at the Conner.anm speed of one. Their horizontal travel
+is about 1,423 and 6,356 units respectively. A local numerical probe
+uses those complete movements, original terrain/materials and nearby
+oriented object bounds with the Rust mover. It plans two standing jumps
+onto block.32 (feet at 1,779) and block.31 (feet at 2,689), followed by
+the running jump north across the damaging river strip.
+
+The selected launch points are (31550,193400), (32900,194300) and
+(34600,196100). Each has 27 safe numerical variants covering position
+errors of up to 60 units on each horizontal axis and heading errors of
+0.13 radians. The connecting walks remain supported in the local mover.
+The building/terrain planner also finds a clear south-bank approach.
+These probes omit live callbacks and actors; falling uses zero horizontal
+motion. They are planning evidence, not proof of a playable crossing.
+
+The unattended route's running_jump option enables Run while standing
+at takeoff, then presses the bound Forward and Jump keys together. It
+uses the normal input handler and waits for supported landings. The
+movement, collision, damage and animation rules are unchanged. Each
+block gets a genuine save so a later failure need not repeat that climb.
+KQ8_SKULL_RIVER_CHECKPOINT can resume an earned SkullLowerBlock,
+SkullHigherBlock or SkullRiverCrossed save.
+
+```powershell
+$env:KQ8_GAME_DIR=(Resolve-Path -LiteralPath "../King's Quest 8 GOG").Path
+$env:KQ8_SKULL_EASTERN_ARCHER_SLOT=(Resolve-Path -LiteralPath 'kq8-artifacts/earned-skull-eastern-archer/1794046057966712000/slots/slot-4.json').Path
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::original_blocks_and_jumps_cross_the_skull_river_and_reload -- --ignored --exact --nocapture
+```
+
+Expected: one passing test, both original standing jumps and a running
+jump accepted, Connor alive on the north bank, and unchanged inventory,
+stats, defeated archers, portal flags and held Rock after a fresh reload.
+Both standing jumps and the running jump succeed in native play. The
+lower block lands at update 149, (32696,194193,1779); the higher block
+at update 60 of its leg, (34142,194985,2689). The running jump launches
+at update 44, (34603,196076,2689), and lands at update 68,
+(34744,202931,864). The ordinary hold/stop transitions also contribute
+movement after the authored jump arc.
+
+The initial test fails after 68.49 seconds despite all three native
+legs reporting PASS. It demands final y>202900, but after reaching the
+flat-bank target, the original walk-stop motion carries Connor onto
+the bank slope at (35363,202274,662). That remains less than 250 below
+the water surface, outside the deep-liquid damage condition. Health
+stays 39. The assertion now checks the actual safe-bank boundary,
+y>202250 and z>614, against the existing saved result.
+
+Only the outstanding fresh-process reload is then run; it **passes
+once in 10.96 seconds** after a 14.57-second compilation. Original
+Options.cs, level-12 stats [39,85,27,11,2474], carried items, quest
+flags, both archer deaths and the held Rock remain unchanged. No
+successful jump is repeated. Logs: skull-river-crossing-native.log
+(initial assertion failure), skull-river-crossing-reload.log (pass).
+
+The passing continuation uses the command above with this additional
+environment setting before cargo test:
+
+```powershell
+$env:KQ8_SKULL_RIVER_CHECKPOINT=(Resolve-Path -LiteralPath 'kq8-artifacts/earned-skull-river-crossing/1794047217919130800/slots/slot-4.json').Path
+```
+
+Newest genuine continuation:
+`kq8-artifacts/earned-skull-river-crossing/1794047351774964100/slots/slot-2.json`,
+label SkullRiverCrossedReload. Earlier slot-2 and slot-3 in the first
+run are SkullLowerBlock and SkullHigherBlock. The corrected full route
+compiles, while native evidence uses the completed movement legs and
+the passing reload continuation rather than repeating those legs.
+
 ## Remaining work
 
-Complete the original block/jump crossing, good-skull pickup and
+Complete the good-skull pickup and
 replacement clicker, statue/feather/scales and the remaining campaign.
-The jumping route and skull pickup are **not tested successfully**.
-No runtime source changed in this step; unrelated core tests were not
+The skull pickup is **not tested successfully**. Only the diagnostic
+input route and campaign checks change; unrelated core tests were not
 rerun. No successful native test was repeated. No manual testing.

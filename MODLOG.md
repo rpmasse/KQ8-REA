@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-07 Original two-block river crossing and reload
+
+The unattended walking route can request a running jump through the
+normal bound Run, Forward and Jump keys, and waits for the movement
+controller to accept a jump. Launch and landing positions are logged.
+The campaign check uses the original standing animations to climb both
+blocks, then the running animation to cross the skull-chamber river.
+Genuine saves after each stage allow continuation without repeating it.
+Gameplay physics, animation distances and damage are unchanged.
+
+All three native movement legs succeed without health loss. The test's
+initial final-position assertion fails because it omitted the original
+walk-stop animation's travel onto the safe bank slope. That assertion
+is corrected against the existing saved state; the outstanding reload
+passes once in 10.96 seconds, with identical stats, items and quest
+state. The initial failure and its logs are retained. No successful
+jump is repeated; no unrelated core tests or manual checks are run.
+[Evidence and exact commands](docs/skull-river-access.md#original-block-and-jump-crossing)
+
 ## 2026-11-07 Healed return completes the skull-chamber archer pair
 
 The earned route returns through portal5 without another first-use

@@ -3,6 +3,16 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Original skull-river jumps.** Installed GAME/Common/C_jump.kqs and
+C_rnjmp.kqs, GAME/Kq/Conner.anm, the Dead City terrain/materials and
+loaded original block placements supply the route's distances and
+support surfaces. Connor physics and movement notes supply the existing
+jump selection and landing rules. The diagnostic route only sends
+normal Run, Forward and Jump key events; it changes no game physics.
+Local numerical planning is distinguished from the native crossing and
+save/reload check. B reads data and prose, never executable output.
+[Evidence](../skull-river-access.md#original-block-and-jump-crossing).
+
 **Healed portal revisit and eastern archer.** The installed portrap5
 script's FirstFive guard supplies the no-repeat XP rule. The original
 monster/type tables supply skeleton16's 160 health and 400-XP award.
