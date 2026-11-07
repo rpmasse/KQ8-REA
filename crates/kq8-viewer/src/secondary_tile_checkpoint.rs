@@ -28,7 +28,7 @@ impl ConnorSim {
     }
     pub fn restore_secondary_tile(&mut self,s:&SavedSecondaryTile)->Result<(),String> {
         if !s.valid() {return Err("invalid secondary tile continuation".into());}
-        let rock=s.rock.as_ref().map(|r|Ok::<_,String>(RockThrow {file:r.file.clone(),aim:r.aim,throw:self.saved_movement_name(&r.throw).ok_or("saved Rock throw motion missing")?,out:None,saved_list:r.saved_list.clone(),saved_mode:r.saved_mode})).transpose()?;
+        let rock=s.rock.as_ref().map(|r|Ok::<_,String>(RockThrow {file:r.file.clone(),aim:r.aim,throw:self.saved_movement_name(&r.throw).ok_or("saved Rock throw motion missing")?,out:None,saved_list:r.saved_list.clone(),saved_mode:r.saved_mode,saved_projectile:None})).transpose()?;
         self.restore_controller_pose(&s.pose,s.mode,"secondary tile")?;
         self.secondary_tile=Some(Run {kind:s.kind,grid:None,can_exit:s.can_exit,stage:s.stage.clone(),remembered:s.remembered.clone(),back:s.back,highlighted:s.highlighted,
             lit:None,sequence:s.sequence.clone(),solved:s.solved,saved_projectile:s.saved_projectile.clone()});

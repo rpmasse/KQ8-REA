@@ -369,6 +369,8 @@ pub struct Bolt {
     pub hammer: Option<HammerFlight>,
     pub script: Option<String>,
     pub arc: Option<RockArc>,
+    #[serde(default)]
+    pub ouch_sound: Option<String>,
     pub drain: Option<kq8_data::characters::DrainKeys>,
 }
 
@@ -404,7 +406,7 @@ impl SavedBolts {
                 && b.position.iter().chain(&b.direction).all(|x| x.is_finite())
                 && ((b.direction.iter().map(|x| x * x).sum::<f32>()) - 1.0).abs() < 0.01
                 && [b.heading, b.pitch, b.speed, b.travelled, b.max].iter().all(|x| x.is_finite())
-                && b.speed > 0.0 && b.max > 0.0 && b.travelled >= 0.0 && b.travelled <= b.max
+                && b.speed > 0.0 && b.max > 0.0 && b.travelled >= 0.0 && (b.arc.is_some() || b.travelled <= b.max)
                 && b.damage.unsigned_abs() < 1_000_000_000 && b.updates < 1_000_000
                 && b.hammer.as_ref().is_none_or(|h| [h.modifier, h.min_damage, h.max_damage]
                     .into_iter().all(|n| n.unsigned_abs() < 1_000_000_000))
@@ -412,8 +414,8 @@ impl SavedBolts {
                     balls.radius.is_finite() && balls.radius >= 0.0
                         && (1..=64).contains(&balls.heights.len()) && balls.heights.iter().all(|x| x.is_finite())
                 })
-                && b.arc.as_ref().is_none_or(|arc| arc.velocity.iter().all(|x| x.is_finite())
-                    && arc.gravity.is_finite() && arc.gravity > 0.0)
+                && b.arc.as_ref().is_none_or(RockArc::valid)
+                && b.ouch_sound.as_deref().is_none_or(resource)
                 && b.drain.as_ref().is_none_or(|drain| {
                     drain.duration.is_finite() && drain.duration >= 0.0
                         && drain.shoot_height.is_finite() && drain.hit_height.is_finite()
@@ -424,32 +426,86 @@ impl SavedBolts {
     }
 }
 
-/// The files give upward velocity and peak height, but do not describe the
-/// integration. Use constant gravity and aim the horizontal motion at the
-/// clicked point on the descending part of the arc, limited by file speed.
+/// Q202: two authored height segments, not a gravity integration.
+/// `authored_curve_v1` is deliberately required in saved slots: old
+/// velocity/gravity arcs have no recoverable launch/progress state and
+/// are rejected rather than silently treated as this trajectory.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RockArc {
-    velocity: [f32; 3],
-    gravity: f32,
+    authored_curve_v1: bool,
+    launch: [f32; 3],
+    local_height: f32,
+    rotation: [[f32; 3]; 3],
+    horizontal: [f32; 2],
+    range: f32,
+    progress: f32,
+    peak: f32,
+    up_rate: f32,
+    later_rate: f32,
+    falling: bool,
 }
 
 impl RockArc {
-    fn new(from: [f32; 3], aim: [f32; 3], peak: f32, up: f32, speed: f32) -> Self {
-        let gravity = up * up / (2. * peak);
-        let time = (up + (up * up - 2. * gravity * (aim[2] - from[2])).max(0.).sqrt()) / gravity;
+    fn new(from: [f32; 3], aim: [f32; 3], peak: f32, up: f32, speed: f32,
+        max: f32, local_height: f32, rotation: [[f32; 3]; 3]) -> Self {
         let dx = aim[0] - from[0];
         let dy = aim[1] - from[1];
-        let duration = time.max(dx.hypot(dy) / speed.max(1.));
-        Self { velocity: [dx / duration, dy / duration, up], gravity }
+        let distance = dx.hypot(dy);
+        let range = max.min(distance).max(0.);
+        Self { authored_curve_v1: true, launch: from, local_height, rotation,
+            horizontal: if distance > 0. { [dx / distance, dy / distance] } else { [0.; 2] },
+            range, progress: 0., peak, up_rate: up, later_rate: speed,
+            falling: range == 0. || peak < 0. || local_height + peak < 0. }
+    }
+
+    fn valid(&self) -> bool {
+        self.authored_curve_v1 && self.launch.iter().chain(self.rotation.iter().flatten())
+            .chain(&self.horizontal).chain([&self.local_height, &self.range, &self.progress,
+                &self.peak, &self.up_rate, &self.later_rate]).all(|v| v.is_finite())
+            && self.range >= 0. && self.progress >= 0. && self.up_rate > 0. && self.later_rate > 0.
+    }
+
+    fn height(&self, s: f32) -> f32 {
+        let third = self.range / 3.;
+        let (h, ratio) = if s <= third {
+            (self.peak, (third - s) / third)
+        } else {
+            (self.local_height + self.peak, (s - third) / (2. * third))
+        };
+        self.launch[2] - h + h.abs() * (1. - ratio * ratio).max(0.).sqrt()
     }
 
     fn advance(&mut self, from: [f32; 3], dt: f32) -> [f32; 3] {
-        let mut next = std::array::from_fn(|i| from[i] + self.velocity[i] * dt);
-        next[2] -= 0.5 * self.gravity * dt * dt;
-        self.velocity[2] -= self.gravity * dt;
-        next
+        if self.falling {
+            // Q202 compatibility safeguard: the original vertical temporary
+            // is undefined; initialize it and use the defined -8000/s safeguard.
+            return [from[0], from[1], from[2] - 8000. * dt];
+        }
+        self.progress += if self.progress <= self.range / 3. { self.up_rate } else { self.later_rate } * dt;
+        if self.progress > self.range {
+            self.falling = true;
+            return from; // The exceeded curve point is never visited.
+        }
+        [self.launch[0] + self.horizontal[0] * self.progress,
+            self.launch[1] + self.horizontal[1] * self.progress, self.height(self.progress)]
+    }
+
+    fn steep_contact(&mut self, position: [f32; 3], normals: &[[f32; 3]]) -> bool {
+        if position == [0.; 3] { return false; }
+        let steep = normals.iter().any(|n| {
+            let length = n.iter().map(|v| v * v).sum::<f32>().sqrt();
+            // Degenerate normals supply no usable slope; never divide by zero.
+            length > 0. && length.is_finite() && n[2] / length < 0.707
+        });
+        self.falling |= steep;
+        steep
     }
 }
+
+#[cfg(test)]
+#[path = "rock_projectile_tests.rs"]
+mod rock_projectile_tests;
 
 /// Azriel's Hammer in flight (`azriel-hammer.md` rules 6–9).
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -479,6 +535,7 @@ impl Bolt {
     /// Rule 27: its model turned to its direction (its model's front is
     /// +y, the game's heading 0 faces −y: turned half round), pitch first.
     pub fn rotation(&self) -> [[f32; 3]; 3] {
+        if let Some(arc) = &self.arc { return arc.rotation; }
         kq8_data::objects::rotation([self.pitch, 0.0, self.heading + std::f32::consts::PI])
     }
 }
@@ -1615,7 +1672,24 @@ impl crate::active::WorldState {
     /// start of the log line.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn launch_bolt(&mut self, shooter: &str, file: &str, p: &kq8_data::characters::ProjectileKeys, from: [f32; 3], aim: [f32; 3], damage: i64, why: &str) {
-        let Some((direction, heading, pitch)) = aim_direction(from, aim) else {
+        self.launch_bolt_placed(shooter, file, p, from, aim, damage, why, 0., kq8_data::objects::rotation([0.; 3]), false);
+    }
+
+    /// Full named-part context for Q202. Identity rotation/local zero are
+    /// explicit missing-part safeguards for callers without a model part.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn launch_bolt_placed(&mut self, shooter: &str, file: &str, p: &kq8_data::characters::ProjectileKeys,
+        from: [f32; 3], aim: [f32; 3], damage: i64, why: &str, local_height: f32,
+        part_rotation: [[f32; 3]; 3], ordinary_throw_rock: bool) {
+        if !from.iter().chain(&aim).chain(part_rotation.iter().flatten()).all(|v| v.is_finite())
+            || !local_height.is_finite() || !p.speed.is_finite() || p.speed <= 0. || !p.max_distance.is_finite() || p.max_distance <= 0.
+            || p.parabola.is_some_and(|(peak,up)| !peak.is_finite() || !up.is_finite() || up <= 0.) {
+            self.fight_note(shooter, format!("{why}; invalid projectile placement/rates: no shot"));
+            return;
+        }
+        let direction_aim = if p.parabola.is_some() { [aim[0], aim[1], from[2]] } else { aim };
+        let Some((direction, heading, pitch)) = aim_direction(from, direction_aim)
+            .or_else(|| p.parabola.is_some().then_some(([0., -1., 0.], 0., 0.))) else {
             self.fight_note(shooter, format!("{why}; the aim point is the start point: no shot"));
             return;
         };
@@ -1635,13 +1709,14 @@ impl crate::active::WorldState {
             max: p.max_distance,
             damage,
             // azriel-hammer.md rule 8: the hammer's hits are `Projectile`.
-            kind: if p.parabola.is_some() { HitKind::Normal } else if hammer.is_some() { HitKind::Projectile } else { bolt_kind(p.weapon_type) },
+            kind: if ordinary_throw_rock { HitKind::Normal } else if hammer.is_some() { HitKind::Projectile } else { bolt_kind(p.weapon_type) },
             mask: p.collider_mask,
             balls,
             updates: 0,
             hammer,
             script: p.script.clone(),
-            arc: p.parabola.map(|(peak, up)| RockArc::new(from, aim, peak, up, p.speed)),
+            arc: p.parabola.map(|(peak, up)| RockArc::new(from, aim, peak, up, p.speed, p.max_distance, local_height, part_rotation)),
+            ouch_sound: p.ouch_sound.clone(),
             drain: p.drain.clone(),
         };
         let shape = match &bolt.balls {
@@ -1726,42 +1801,47 @@ impl crate::active::WorldState {
             let balls = b.balls.as_ref().unwrap_or(&point);
             let dist = |p: [f32; 3]| ((p[0] - from[0]).powi(2) + (p[1] - from[1]).powi(2) + (p[2] - from[2]).powi(2)).sqrt();
             let skip = |n: &str| n.eq_ignore_ascii_case(&b.shooter);
-            // What it touches first: (distance, what, touch point).
-            let mut best: Option<(f32, Touched, [f32; 3])> = None;
-            let mut keep = |p: [f32; 3], what: Touched| {
+            // Preserve the supplied surfaces for Rock slope handling. A
+            // StartedInside hit has no reported normal; do not invent one.
+            let mut best: Option<(f32, Touched, [f32; 3], Vec<[f32; 3]>)> = None;
+            let mut keep = |p: [f32; 3], what: Touched, normal: Option<[f32; 3]>| {
+                if b.arc.is_some() && p == [0.; 3] { return; }
                 let d = dist(p);
-                if best.as_ref().is_none_or(|(bd, _, _)| d < *bd) {
-                    best = Some((d, what, p));
+                if best.as_ref().is_none_or(|(bd, _, _, _)| d < *bd) {
+                    best = Some((d, what, p, normal.into_iter().collect()));
+                } else if let Some((bd, _, bp, normals)) = &mut best {
+                    if d == *bd && p == *bp { normals.extend(normal); }
                 }
             };
             // azriel-hammer.md rule 9: on its way back only Connor.
             if b.mask & 0x8 != 0 && !back {
                 for w in buildings.iter().filter(|w| !self.is_switched_off(&w.name)) {
                     if let Some(c) = w.sweep(balls, from, to) {
-                        keep(c.touch, Touched::Building(w.name.clone()));
+                        keep(c.touch, Touched::Building(w.name.clone()), Some(c.normal));
                     }
                 }
             }
-            for o in objects.iter().filter(|o| !back && o.kind.collision_type & b.mask != 0 && !skip(&o.name) && !self.is_switched_off(&o.name)) {
+            for o in objects.iter().filter(|o| !back && (o.kind.collision_type & b.mask != 0 || (b.arc.is_some() && o.kind.collision_mask & 1 != 0)) && !skip(&o.name) && !self.is_switched_off(&o.name)
+                && self.trap_index(&o.name).is_none()) {
                 match o.sweep(balls, from, to) {
-                    Some(ObjectHit::Contact(c)) => keep(c.touch, Touched::Object(o.name.clone(), o.kind.collision_type)),
+                    Some(ObjectHit::Contact(c)) => keep(c.touch, Touched::Object(o.name.clone(), o.kind.collision_type), Some(c.normal)),
                     // connor-collision.md rule 19: projectiles count a start inside as a hit.
-                    Some(ObjectHit::StartedInside { .. }) => keep(from, Touched::Object(o.name.clone(), o.kind.collision_type)),
+                    Some(ObjectHit::StartedInside { .. }) => keep(from, Touched::Object(o.name.clone(), o.kind.collision_type), None),
                     None => {}
                 }
             }
             for (j, a) in self.anims.iter().enumerate() {
                 let Some(c) = a.character.as_deref() else { continue };
-                if back || a.gone || c.unborn || c.collision_type & b.mask == 0 || skip(&a.player.name) || !self.characters_solid.contains(&a.player.name.to_ascii_lowercase()) {
+                if back || a.gone || c.unborn || (c.collision_type & b.mask == 0 && !(b.arc.is_some() && c.collision_mask & 1 != 0)) || skip(&a.player.name) || !self.characters_solid.contains(&a.player.name.to_ascii_lowercase()) {
                     continue;
                 }
                 let Some((min, max)) = c.bounds else { continue };
                 let cyl = CylinderCollider::from_box(&a.player.name, a.player.base.position, min, max, c.collision_type, c.collision_mask);
                 let s = cyl.sweep(balls, from, to);
                 if !s.inside.is_empty() {
-                    keep(from, Touched::Character(j));
+                    keep(from, Touched::Character(j), None);
                 } else if let Some(k) = s.contact {
-                    keep(k.touch, Touched::Character(j));
+                    keep(k.touch, Touched::Character(j), Some(k.normal));
                 }
             }
             let (connor_type, _) = self.connor_collision();
@@ -1770,19 +1850,19 @@ impl crate::active::WorldState {
                 let cyl = CylinderCollider::from_box("Connor", at, min, max, crate::collide::CONNOR_TYPE, 0);
                 let s = cyl.sweep(balls, from, to);
                 if !s.inside.is_empty() {
-                    keep(from, Touched::Connor);
+                    keep(from, Touched::Connor, None);
                 } else if let Some(k) = s.contact {
-                    keep(k.touch, Touched::Connor);
+                    keep(k.touch, Touched::Connor, Some(k.normal));
                 }
             }
             b.updates += 1;
             if b.hammer.is_some() {
-                if let Some(b) = self.hammer_step(b, best, from, to, step, ground) {
+                if let Some(b) = self.hammer_step(b, best.map(|(d,w,p,_)| (d,w,p)), from, to, step, ground) {
                     kept.push(b);
                 }
                 continue;
             }
-            let Some((d, what, p)) = best else {
+            let Some((d, what, p, normals)) = best else {
                 b.travelled += if b.arc.is_some() { (to[0] - from[0]).hypot(to[1] - from[1]) } else { step };
                 b.position = to;
                 let floor = ground.ground(to[0], to[1]).map(|(h, _)| h);
@@ -1791,7 +1871,7 @@ impl crate::active::WorldState {
                     self.fight_note(&b.shooter, format!("{line}; at or below the floor grid ({h:.0}): removed, no damage (rule 29)"));
                     b.position[2] = h;
                     self.projectile_event(&b, "Die");
-                } else if b.travelled > b.max {
+                } else if b.arc.is_none() && b.travelled > b.max {
                     self.fight_note(&b.shooter, format!("{line}; more than its range {:.0}: removed (rule 28)", b.max));
                     self.projectile_event(&b, "Die");
                 } else {
@@ -1802,6 +1882,14 @@ impl crate::active::WorldState {
             };
             b.travelled += d;
             b.position = p;
+            if b.arc.as_mut().is_some_and(|arc| arc.steep_contact(p, &normals)) {
+                self.fight_note(&b.shooter, format!("{}: steep contact {p:?}, normals {normals:?}; horizontal motion stops, initialized -8000/s fall safeguard (Q202)", b.name));
+                if let Some((floor, _)) = ground.ground(p[0], p[1]).filter(|(h, _)| p[2] <= *h) {
+                    b.position[2] = floor;
+                    self.projectile_event(&b, "Die");
+                } else { kept.push(b); }
+                continue;
+            }
             let at = format!("{} update {}: touches {{}} at ({:.0}, {:.0}, {:.0}), {:.0} travelled; removed there (rule 30)", b.name, b.updates, p[0], p[1], p[2], b.travelled);
             if let Some(keys) = b.drain.take() {
                 let target = match what {
@@ -1822,8 +1910,14 @@ impl crate::active::WorldState {
 
     fn projectile_event(&mut self, bolt: &Bolt, event: &'static str) {
         if let Some(script) = &bolt.script {
-            let placement = crate::collide::Placement { position: bolt.position, rotation: kq8_data::objects::rotation([bolt.pitch, 0., bolt.heading]) };
+            let rotation = bolt.arc.as_ref().map_or_else(|| kq8_data::objects::rotation([bolt.pitch, 0., bolt.heading]), |arc| arc.rotation);
+            let placement = crate::collide::Placement { position: bolt.position, rotation };
             self.projectile_calls.push((bolt.name.clone(), script.clone(), event, placement));
+        }
+        if event == "Die" && bolt.kind == HitKind::Normal {
+            if let Some(sound) = &bolt.ouch_sound {
+                self.sounds.push(crate::sound::Start::placed_one_shot(sound, bolt.position, format!("{} removal (Q202)", bolt.name)));
+            }
         }
     }
 
@@ -2159,12 +2253,12 @@ pub(crate) mod tests {
             heading: std::f32::consts::FRAC_PI_2, pitch: 0., speed: 6000., travelled: 800.,
             max: 12000., damage: 19, kind: HitKind::Projectile, mask: 0x1F,
             balls: Some(crate::collide::BallStack { radius: 235., heights: vec![235.] }),
-            updates: 2, hammer: None, script: None, arc: None, drain: None,
+            updates: 2, hammer: None, script: None, arc: None, ouch_sound: None, drain: None,
         };
         let mut rock = ordinary.clone();
         rock.name = "rock2".into();
         rock.kind = HitKind::Normal;
-        rock.arc = Some(RockArc { velocity: [100., 0., 500.], gravity: 1000. });
+        rock.arc = Some(RockArc::new(rock.position, [184520., 43790., 0.], 500., 2500., 2500., 2500., 600., kq8_data::objects::rotation([0.; 3])));
         let mut hammer = ordinary.clone();
         hammer.name = "hammer3".into();
         hammer.hammer = Some(HammerFlight { back: true, modifier: 10, min_damage: 1, max_damage: 50 });

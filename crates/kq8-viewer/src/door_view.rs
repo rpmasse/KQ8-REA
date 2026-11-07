@@ -1393,10 +1393,18 @@ pub fn trap_step(
                     if connor.secondary_tile.is_some() {
                         let started=connor.start_secondary_rock(file.clone(),aim,w.connor_projectile.clone());
                         if started {w.connor_projectile=Some(file);} started
-                    } else {connor.start_rock_throw(file,aim)}
+                    } else {
+                        if connor.may_ready().is_ok() && !connor.hands_off {
+                            w.first_person=false;
+                            connor.refresh_perspective(w);
+                        }
+                        connor.start_rock_throw(file,aim,w.connor_projectile.clone())
+                    }
                 });
                 if started {
                     w.hand = None;
+                    w.first_person = false;
+                    asked = true; // A following script turn sees ThrowRock.
                 }
                 let line = format!("ThrowRock: started={started}, aim {aim:?}");
                 w.fight_note("Connor", &line);
@@ -2068,16 +2076,34 @@ pub fn door_click_input(
     }
     // Rules 14-16: the shot click (Ctrl: the plain click).
     let mut line = line;
-    let throw_rock = action == WorldClick::ThrowRock;
-    let offer_rock = throw_rock && picked.as_ref().is_some_and(|name| sim.active.world.accepts_rock(name));
-    if action == WorldClick::Shoot || (throw_rock && !offer_rock) {
+    if action == WorldClick::ThrowRock {
+        let objs = objects.as_deref().map_or(&[][..], |o| &o.0[..]);
+        let blds = buildings.as_deref().map_or(&[][..], |b| &b.0[..]);
+        let ground = lookup.as_deref().map(|g| &g.0 as &dyn kq8_core::connor_mover::GroundLookup);
+        let (point, hit) = sim.active.world.rock_aim(origin, dir, ground, objs, blds);
+        let held = kq8_core::connor_inventory::hand(&mut sim.active.world);
+        let feet = connor.as_ref().map_or(origin, |c| c.mover.position);
+        let offer = hit.as_ref().and_then(|hit| held.as_ref().and_then(|(_, kind)|
+            sim.active.world.rock_offer(&hit.name, feet, kind).map(|(p, _)| (hit.name.clone(), p))));
+        let line = if let Some((name, position)) = offer {
+            sim.pending.push((name.clone(), "Rock".into()));
+            format!("{line}; Rock ray {point:?}; accepted {name} at placement {position:?}, strict feet-to-box reach: script owns throw (Q202)")
+        } else {
+            sim.active.world.direct_rock_click(point);
+            format!("{line}; Rock mask 0x29 after drawn-ground clip: {point:?}, target {:?}; immediate throw (Q202)", hit.as_ref().map(|h| &h.name))
+        };
+        shared.log.lock().unwrap().summary(&line);
+        sim.log.detail(line);
+        return;
+    }
+    if action == WorldClick::Shoot {
         use kq8_core::weapons::{AIM_PICK, ICEWATER, PLAIN_CLICK_BIT, TALK_PICK};
         let w = &sim.active.world;
         let objs = objects.as_deref().map_or(&[][..], |o| &o.0[..]);
         let blds = buildings.as_deref().map_or(&[][..], |b| &b.0[..]);
         let talk = w.mask_pick(origin, dir, TALK_PICK, objs, blds);
         let plain = talk.as_ref().is_some_and(|h| (h.character.is_some() && h.collision_type & PLAIN_CLICK_BIT != 0) || h.name.eq_ignore_ascii_case(ICEWATER));
-        if plain && !throw_rock {
+        if plain {
             line += &format!("; the ranged weapon is ready, the talk pick meets {} (type 0x{:X}): the plain click (ranged-weapons.md rule 15)", talk.as_ref().map_or("", |h| h.name.as_str()), talk.as_ref().map_or(0, |h| h.collision_type));
         } else {
             let far: [f32; 3] = std::array::from_fn(|k| origin[k] + dir[k] * kq8_core::active::CLICK_LINE_LENGTH);
@@ -2096,11 +2122,7 @@ pub fn door_click_input(
                 },
             };
             let line = format!("{line}; the aim pick meets {what} at ({:.0}, {:.0}, {:.0}) (ranged-weapons.md rule 16)", aim[0], aim[1], aim[2]);
-            if throw_rock {
-                sim.active.world.requests.push(Request::ConnorThrowRock { aim: Some(aim) });
-            } else {
-                sim.shot_clicks.push(ShotClick { aim, what, how: how.clone() });
-            }
+            sim.shot_clicks.push(ShotClick { aim, what, how: how.clone() });
             shared.log.lock().unwrap().summary(&line);
             sim.log.detail(line);
             return;
@@ -2366,8 +2388,8 @@ pub fn door_step(
             let w = &mut sim.active.world;
             if let Some(r) = &c.rock {
                 let mesh = w.projectiles.get(&r.file.to_ascii_lowercase()).and_then(|p| p.mesh_name.as_deref());
-                let part = mesh.and_then(|name| c.part_at(m, phase, name));
-                w.shoot_with_file(&r.file, c.mover.position, c.turn_matrix(), part, r.aim, m);
+                let part = mesh.and_then(|name| c.part_transform_at(m, phase, name));
+                w.shoot_rock(&r.file, c.mover.position, c.turn_matrix(), part, r.aim, c.secondary_tile.is_none(), m);
                 continue;
             }
             let aim = c.throw.as_ref().map_or(c.mover.position, |t| t.aim);
@@ -2378,7 +2400,7 @@ pub fn door_step(
             let line = if who.eq_ignore_ascii_case(kq8_core::talk::CONNOR) { c.throw_caught(&how) } else { format!("{how}: thrown by {who}, not Connor: nothing") };
             sim.active.world.fight_note("Connor", line);
         }
-        c.rock_step();
+        if let Some(projectile) = c.rock_step() { sim.active.world.connor_projectile = projectile; }
         if let Some(line) = c.throw_step() {
             sim.active.world.fight_note("Connor", line);
         }
@@ -2439,7 +2461,9 @@ pub fn door_step(
                 let held = kq8_core::connor_inventory::hand(&mut sim.active.world).map(|(object, kind)| Item { object, kind });
                 let turns = |r: &[Request]| r.iter().filter(|r| matches!(r, Request::ClickTurn { .. })).count();
                 let before = turns(&sim.active.world.requests);
-                let result = sim.active.click(&name, feet, sim.attack_dist, held.as_ref());
+                let result = if how == "Rock" {
+                    held.as_ref().map_or(kq8_core::active::ClickResult::Nothing, |item| sim.active.click_rock(&name, feet, item))
+                } else { sim.active.click(&name, feet, sim.attack_dist, held.as_ref()) };
                 // clicking.md rule 35 (Q105 b): his state at the click,
                 // before his next update, for the turn it asked for.
                 for _ in before..turns(&sim.active.world.requests) {

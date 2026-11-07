@@ -193,7 +193,7 @@ impl ConnorSim {
         let Some(away)=self.drawn("away").map(|m|m.name) else {return false;};let Some(throw)=find(&self.movements,None,"throw").map(|m|m.name) else {return false;};
         self.walker.auto=Some(AutoMove::new(AutoKind::Point,[aim[0],aim[1]],None));self.hands_off=true;
         let t=self.secondary_tile.as_mut().unwrap();t.stage=Stage::Throwing;t.saved_projectile=previous;
-        self.rock=Some(RockThrow {file,aim,throw,out:None,saved_list:self.weapon_set.clone(),saved_mode:self.set_mode});self.walker.throw_play(away);true
+        self.rock=Some(RockThrow {file,aim,throw,out:None,saved_list:self.weapon_set.clone(),saved_mode:self.set_mode,saved_projectile:None});self.walker.throw_play(away);true
     }
     pub fn secondary_rock_finished(&mut self)->bool {
         let Some(t)=self.secondary_tile.as_mut().filter(|t|matches!(t.stage,Stage::Throwing)) else {return false;};

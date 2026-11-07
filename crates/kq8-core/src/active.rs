@@ -2266,6 +2266,31 @@ impl WorldState {
         self.accepts_of(name).takes("INVITEM_Rock", &self.items.types)
     }
 
+    /// Q202: the special Rock offer uses the held type and strict
+    /// feet-to-box reach, independent of weapon attack distance.
+    pub fn rock_offer(&mut self, name: &str, feet: [f32; 3], kind: &str) -> Option<([f32; 3], bool)> {
+        let file = self.items.kind(kind).filter(|t| t.category == "Rock")?.extra.as_ref()?;
+        let range = self.projectiles.get(&file.to_ascii_lowercase())?.max_distance;
+        if self.is_switched_off(name) || !self.accepts_of(name).takes(kind, &self.items.types) { return None; }
+        let (placement, bounds, suppress) = if let Some(i) = self.door_index(name) {
+            let d = &self.doors[i]; (d.door.placement(), d.bounds?, d.do_not_point_at)
+        } else if let Some(i) = self.chest_index(name) {
+            let c = &self.chests[i]; (c.chest.placement(), c.bounds?, c.do_not_point_at)
+        } else if let Some(i) = self.object_index(name) {
+            let o = &self.objects[i]; (o.player.placement(), o.bounds?, o.do_not_point_at)
+        } else if let Some(c) = self.clickables.iter().find(|c| !c.gone && c.name.eq_ignore_ascii_case(name)) {
+            (c.placement.clone(), (c.min, c.max), c.do_not_point_at)
+        } else if let Some(i) = self.character_index(name) {
+            let a = &self.anims[i]; (a.player.placement(), a.character.as_ref()?.bounds?, false)
+        } else if let Some(o) = self.items.get(name) {
+            (o.placement()?, self.items.click_box(o)?, o.do_not_point_at)
+        } else if let Some(b) = self.buildings.iter().find(|b| b.name.eq_ignore_ascii_case(name)) {
+            (b.placement.clone(), b.bounds, b.do_not_point_at)
+        } else { return None; };
+        let distance = crate::click::distance_to_box(feet, &placement, bounds.0, bounds.1);
+        (distance < range).then_some((placement.position, suppress))
+    }
+
     /// `KQObject::setAccepts <object> <value>` (`clicking.md` rule 16):
     /// adds to what the object accepts.
     fn set_accepts(&mut self, words: &[String], at: &str) -> String {
@@ -6097,6 +6122,28 @@ impl Active {
         }
         self.finish_item_events();
         result
+    }
+
+    /// A ray-selected accepting Rock target owns this action. There is
+    /// no automatic throw after the callback, and no ordinary refusal or
+    /// out-of-reach speech. Input queues this just like other clicks.
+    pub fn click_rock(&mut self, name: &str, feet: [f32; 3], item: &Item) -> ClickResult {
+        let Some((position, suppress)) = self.world.rock_offer(name, feet, &item.kind) else { return ClickResult::Nothing };
+        if self.world.swamp_tiles.contains_key(&name.to_ascii_lowercase()) {
+            return self.click(name, feet, 0., Some(item));
+        }
+        let kind = self.world.items.kind(&item.kind).map_or(item.kind.clone(), |t| t.name.clone());
+        let args = vec!["ConnorAction".to_string(), item.object.clone(), kind];
+        let pending = self.world.requests.len();
+        self.world.item_event_depth += 1;
+        let called = self.call_named(name, &args.iter().map(String::as_str).collect::<Vec<_>>());
+        self.world.item_event_depth -= 1;
+        for r in self.world.requests.iter_mut().skip(pending) {
+            if let Request::ConnorThrowRock { aim } = r { *aim = Some(position); }
+        }
+        self.click_turn(name, &args, called, position, suppress);
+        self.finish_item_events();
+        ClickResult::Script(std::iter::once(name.to_string()).chain(args).collect())
     }
 
     fn click_target(&mut self, name: &str, feet: [f32; 3], attack_dist: f32, item: Option<&Item>) -> ClickResult {
@@ -10724,7 +10771,7 @@ deleteObject waterfall2
         let aim = a.world.requests.iter().find_map(|r| if let Request::ConnorThrowRock { aim } = r { *aim } else { None }).unwrap();
         crate::connor_inventory::after_world_click(&mut a.world, &held.object, true);
         let file = a.world.rock_file().unwrap();
-        a.world.shoot_with_file(&file, feet, kq8_data::objects::rotation([0.; 3]), Some(([0., 0., 600.], "throwing hand".into())), aim, "throw do");
+        a.world.shoot_rock(&file, feet, kq8_data::objects::rotation([0.; 3]), Some((kq8_data::shape::Transform {flags:3,p:[0.,0.,600.],m:kq8_data::objects::rotation([0.;3])}, "throwing hand".into())), aim, true, "throw do");
         assert_eq!(a.world.bolts[0].kind, crate::fight::HitKind::Normal);
         assert_eq!(a.world.bolts[0].position, [0., -1000., 700.]);
         assert_eq!(a.world.connor_projectile.as_deref(), Some("bow.kq"));
@@ -10738,13 +10785,13 @@ deleteObject waterfall2
                 break;
             }
         }
-        assert!((1190. ..=1201.).contains(&apex));
+        assert!((650. ..=700.).contains(&apex), "Q202 peak is the launch height, not launch + 500: {apex}");
         assert!(a.world.bolts.is_empty());
         assert_eq!(a.world.items.count("Connor", "INVITEM_Rock"), 1);
         let landed = a.world.items.find("world", "Rock").unwrap();
         let (stone, p) = (landed.name.clone(), landed.placement().unwrap().position);
         assert_eq!(p[2], 100.);
-        assert!((p[1] - aim[1]).abs() < 200.);
+        assert!(p[1] > feet[1] && p[1] < aim[1], "floor ends the authored descending segment before the clicked centre");
         a.click(&stone, p, 2350., None);
         assert_eq!(a.world.items.count("Connor", "INVITEM_Rock"), 2);
         assert!(a.world.items.find("world", "Rock").is_none());

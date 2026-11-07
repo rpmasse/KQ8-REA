@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-07 Authored Rock behavior verified in core; loader work continues
+
+The Rock asset/numeric/dispatch matrix passes in 0.13s after two fixture
+corrections; the affected existing recovery and projectile-save tests
+also pass. Full part transforms, original aim/range/arc/contact rules and
+Die-time recovery replace the approximate trajectory. Viewer hooks compile;
+its full away/throw/out runtime is not tested. Safe handling of undefined
+original falling behavior and incompatible older in-flight arc snapshots
+is explicit in docs/rock-projectile-recreation.md. Shared saved-world core,
+trap contacts and actor constructors are published separately. The live
+ordered asset provider/registration path is the current unfinished work.
+No manual testing. Estimates: M4 about 88%, M5 about 65%, M6 about 28%.
+
 ## 2026-11-07 Pending trap contacts verified; actor recipes shared
 
 The pending trap-name, silent contact attachment and elevator-command core
