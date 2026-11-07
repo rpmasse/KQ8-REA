@@ -9,7 +9,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | Stage | What works | What remains |
 | --- | --- | --- |
 | M0–M3 · Data, worlds and movement | The engine reads the original assets, opens every region and runs Connor’s movement, collision and early Daventry scripts. | Recheck inherited behavior in the Windows build and record differences by region. |
-| M4 · Interface and dialogue | Title, pause, named saves, Options, Keyboard, HUD, captions, inventory tutorials and the Wizard conversation work; empty quest cells now handle the two mouse buttons correctly. Menu masks and HUD flashes use the original ten-frame-per-second timing. Credits shows the 25 original cards and team photograph. Lighting, shadows and indexed palette brightness update in play. | Finish graphics mode and live resolution behavior, software palettes, remaining inventory and dialogue branches, credits timing and score calculation; resolve F2 during movement transitions. |
+| M4 · Interface and dialogue | Menus, HUD, captions, inventory and representative conversations work; original 640/800 interface geometry and credits timing, layout, input and late scoring have grouped checks. Lighting, shadows and indexed palette brightness update in play. | Finish live graphics mode/resolution behavior, software palettes, remaining inventory/dialogue branches and the ending's active-game lifetime; resolve F2 during movement transitions. |
 | M5 · Combat | First-person axe strikes and Small Crossbow shots use Connor’s original animations. Equipped attacks, pending deaths and the three-second game-over hold have save and reload checks. The Weeper, Tower Skeleton, Lucreto and six script-created monster types have focused checks. | Complete the remaining weapons, enemies, bosses and controller transitions. Verify full encounters during campaign play. |
 | M6 · Campaign and saves | Using earned campaign saves, Connor completes the Wizard’s Ring of Light quest, travels through Castle Daventry and enters Dead City. Focused checks cover the scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete Dead City and the remaining regional quests, optional branches and bosses. Verify one continuous New Game through the ending and credits. |
 | M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
@@ -18,7 +18,9 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
-The six menu families and HUD now use the original 640/800 geometry, font and picture rules; live display switching and the studied credits timing/scoring remain unfinished. [Interface checks](docs/original-interface-resolutions.md)
+The six menu families and HUD now use the original 640/800 geometry, font and picture rules; live display switching remains unfinished. [Interface checks](docs/original-interface-resolutions.md)
+
+Credits now follows the original card timing, layout, input and late score calculation, with grouped core checks and one native menu flow; the full ending remains unverified. [Credits checks](docs/credits-completion.md)
 
 Quest-item replacement now removes the previous item's effects, with grouped automated checks for timers, inventory state and serialized continuation. [Inventory application](docs/inventory-application.md)
 

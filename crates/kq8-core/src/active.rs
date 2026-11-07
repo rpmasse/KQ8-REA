@@ -4534,8 +4534,11 @@ impl ScriptHost for WorldState {
                 Some("0".into())
             }
             "doCredits" => {
-                let score=self.connor_stats.as_ref().map(ConnorStats::earned_experience);
-                self.presentations.push_back(crate::credits::Presentation::Credits{score});
+                if words.len() != 1 {
+                    self.note(format!("{at}: usage: doCredits (no arguments)"));
+                    return Some("1".into());
+                }
+                self.presentations.push_back(crate::credits::Presentation::Credits);
                 Some("0".into())
             }
             "sendEvent" => Some(self.send_event(words, at)),

@@ -35,8 +35,8 @@ photograph and Connor's score. The menu's Credits choice and the ending's
    for that interval. It is not a separate timed stage after the text.
 4. **A late update advances one card, traced.** It does not race through
    several overdue cards. Each new deadline starts from the current real
-   time when that card is selected. The installed 25 cards contain 134
-   lines in total, so their nominal uninterrupted duration is **129
+   time when that card is selected. The installed 25 cards contain 132
+   lines in total, so their nominal uninterrupted duration is **128
    seconds**. Update lateness can extend it.
 5. **Escape exits to the main menu, traced.** An ordinary Escape press
    exits from any card, including the final photograph. It does not quit
@@ -64,6 +64,15 @@ photograph and Connor's score. The menu's Credits choice and the ending's
    card into paragraphs according to available width. Leading and
    embedded spaces are retained. In particular, the final card's eight
    lines containing a space are intentional layout and timing input.
+   A terminal line break does **not** add an extra empty row: parsing
+   ends when the next segment starts at the string terminator. Interior
+   empty rows and authored space-only rows still count.
+   **Study correction, 2026-11-07:** the earlier 134-line/129-second
+   total mistakenly counted empty segments after the final CRLF in
+   cases 19 and 20. Rechecking the original parser against the installed
+   message data gives 8 rows/6 seconds for case 19 and 12 rows/8 seconds
+   for case 20, and the corrected 132-row/128-second total above. This
+   corrects a study counting error; original runtime remains not tested.
 9. **A leading asterisk selects the smaller style, traced and data.** A
    line beginning with `*` uses `20sl.pft`; the leading asterisk is
    removed. A line without it uses `27sl.pft`. Both are horizontally and
@@ -85,7 +94,7 @@ photograph and Connor's score. The menu's Credits choice and the ending's
     | Family | Lines | Duration | Gap / first top at 640 × 480 | Gap / first top at 800 × 600 |
     | --- | ---: | ---: | ---: | ---: |
     | One small heading and one large name | 2 | 3 s | 36 / 204 px | 36 / 264 px |
-    | Dense mixed-font card | 13 | 8.5 s | 33 / 26 px | 36 / 66 px |
+    | Dense mixed-font card (case 20) | 12 | 8 s | 35 / 30 px | 36 / 84 px |
     | Densest installed card | 16 | 10 s | 26 / 32 px | 34 / 28 px |
     | Photograph and score, including spacers | 10 | 19 s | 36 / 60 px | 36 / 120 px |
 
@@ -187,7 +196,8 @@ families and numeric checks rather than a separate test for each card:
 
 1. Read the installed message data: cases 1–25 must be available, case
    order must differ from file order, and all style counts must fit the
-   two original text capacities. There are 134 lines in total.
+   two original text capacities. There are 132 lines in total. Cases 19
+   and 20 check that a terminal CRLF does not create a final empty row.
 2. Use a controlled clock for a two-line card, a dense mixed-font card,
    and the final card. Check the durations and coordinates in the table,
    unchanged output before each deadline, one advance at the deadline,

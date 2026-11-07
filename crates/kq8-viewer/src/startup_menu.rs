@@ -108,7 +108,7 @@ fn present_next(world: &mut World) {
                 };
                 open_movie(world, &name, after)
             }
-            Presentation::Credits { score } => open_ending_credits(world, score),
+            Presentation::Credits => open_ending_credits(world),
         };
         if let Err(e) = result {
             world
@@ -125,22 +125,20 @@ fn present_next(world: &mut World) {
 
 /// The movie player can call this after the preceding final AVI has ended.
 /// It also works after the completed region has already been taken down.
-pub fn open_ending_credits(world: &mut World, score: Option<i64>) -> Result<(), String> {
+pub fn open_ending_credits(world: &mut World) -> Result<(), String> {
     let source = world.resource::<Source>();
     let log = world.resource::<crate::Shared>().log.clone();
-    let page = credits::Screen::open(&source.game, score)?;
+    let page = credits_screen(world)?;
+    let active = world.contains_resource::<crate::door_view::DoorSim>();
     if world.contains_resource::<Menu>() {
         let has_saves = !crate::world_build::list_slots()?.is_empty();
         let mut menu = world.resource_mut::<Menu>();
-        menu.state = Choice::default();
+        menu.state = if active { Choice::in_game() } else { Choice::default() };
         menu.state.set_saves(has_saves);
         menu.options = None;
         menu.graphics = None;
         menu.keyboard = None;
         menu.slot_page = None;
-        if let Some(output) = &menu.audio.output {
-            output.send([Command::Stop { id: THEME_ID }]);
-        }
         menu.credits = Some(page);
         credit_status(world, "doCredits");
         redraw(world);
@@ -152,6 +150,7 @@ pub fn open_ending_credits(world: &mut World, score: Option<i64>) -> Result<(), 
         source.sound,
         &mut log.lock().unwrap(),
     )?;
+    menu.state = if active { Choice::in_game() } else { Choice::default() };
     menu.credits = Some(page);
     if let Some(sound) = world.get_resource::<crate::sound_view::SoundSim>() {
         sound.menu_pause(true);
@@ -160,6 +159,17 @@ pub fn open_ending_credits(world: &mut World, score: Option<i64>) -> Result<(), 
     world.run_schedule(DisplayMenu);
     credit_status(world, "doCredits");
     Ok(())
+}
+
+fn credits_screen(world: &World) -> Result<credits::Screen, String> {
+    let graphics = &world.resource::<Preferences>().settings.graphics;
+    let size = world.get_resource::<Menu>().map_or_else(
+        || kq8_core::caption::screen(graphics.high_resolution), |menu| menu.art.size());
+    let now = world.resource::<Time<Real>>().elapsed();
+    let mut page = credits::Screen::open(&world.resource::<Source>().game, size, now)?;
+    page.set_palette(graphics.brightness,
+        kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D));
+    Ok(page)
 }
 
 fn credit_status(world: &World, source: &str) {
@@ -182,23 +192,70 @@ fn credit_status(world: &World, source: &str) {
 }
 
 fn end_credits(world: &mut World) {
+    let slots = crate::world_build::scan_slots();
     let mut menu = world.resource_mut::<Menu>();
+    let active = menu.state.has_game();
     menu.credits = None;
-    if menu.options.is_none() {
-        menu.audio.play("theme.aud");
+    menu.options = None;
+    menu.graphics = None;
+    menu.keyboard = None;
+    menu.slot_page = None;
+    menu.state = if active { Choice::in_game() } else { Choice::default() };
+    if let Ok((slots, corrupt)) = &slots {
+        menu.state.set_saves(!slots.is_empty());
+        if let Some(id) = corrupt { menu.state.ask_corrupt(*id); }
     }
-    let next = if menu.options.is_some() {
-        "Options"
-    } else {
-        "title"
-    };
+    if let Some(output) = &menu.audio.output { output.send([Command::Stop { id: THEME_ID }]); }
+    menu.audio.play("theme.aud");
+    menu.main_clock = std::time::Instant::now();
+    menu.shown = Some(menu.main_clock);
+    menu.mask_frame = 0;
+    if let Err(error) = slots {
+        world.resource::<crate::Shared>().log.lock().unwrap().summary(format!("menu: could not scan saves: {error}"));
+    }
     world
         .resource::<crate::Shared>()
         .log
         .lock()
         .unwrap()
-        .summary(format!("credits: returned to {next}"));
+        .summary("credits: returned to Main after one-second theme fade");
     redraw(world);
+}
+
+/// Both the regular real-time update and keyboard delivery check the
+/// same deadline. No key or pointer event is an unconditional next card.
+fn update_credits(world: &mut World, key: Option<Key>) -> bool {
+    let now = world.resource::<Time<Real>>().elapsed();
+    let result = world.resource_scope(|world, mut menu: Mut<Menu>| {
+        let active = menu.state.has_game();
+        menu.credits.as_mut().unwrap().update(now, key, || credits::ScoreState {
+            active,
+            connor: world.get_resource::<crate::door_view::DoorSim>()
+                .and_then(|sim| sim.active.world.connor_stats),
+        })
+    });
+    let result = match result {
+        Ok(result) => result,
+        Err(error) => {
+            world.resource::<crate::Shared>().log.lock().unwrap().summary(format!("credits: {error}"));
+            world.resource_mut::<Menu>().credits.as_mut().unwrap()
+                .update(now, Some(Key::Escape), credits::ScoreState::default).unwrap()
+        }
+    };
+    match result {
+        credits::Update::Main => { end_credits(world); return true; }
+        credits::Update::BeginExit => {
+            world.resource::<crate::Shared>().log.lock().unwrap().summary("credits: fading menu theme for one second before Main");
+        }
+        credits::Update::Changed => { credit_status(world, "timer"); redraw(world); }
+        credits::Update::Stay => {}
+    }
+    let menu = world.resource::<Menu>();
+    if let (Some(fade), Some(output)) = (menu.credits.as_ref().and_then(|page| page.exit_gain(now)), &menu.audio.output) {
+        let gain = menu.audio.groups.loudness(4) * fade;
+        output.send([Command::Gains { id: THEME_ID, gains: [gain; 2] }]);
+    }
+    false
 }
 
 fn open_if_requested(world: &mut World) {
@@ -601,7 +658,7 @@ pub fn show(
                 .movie_screen(page.playback.is_err().then_some(&page.name)),
         )
     } else if let Some(page) = &menu.credits {
-        canvas_image(page.render(&menu.art))
+        canvas_image(page.render())
     } else {
         image(&menu.art, &menu.state, 0)
     });
@@ -704,7 +761,7 @@ fn redraw(world: &mut World) {
                 .movie_screen(page.playback.is_err().then_some(&page.name)),
         )
     } else if let Some(page) = &menu.credits {
-        canvas_image(page.render(&menu.art))
+        canvas_image(page.render())
     } else if let Some(page) = &menu.graphics {
         canvas_image(page.render(&world.resource::<Preferences>().settings.graphics, &menu.art, menu.mask_frame))
     } else if let Some(page) = &menu.keyboard {
@@ -798,17 +855,7 @@ fn option_key(world: &mut World, key: Key) {
         world.resource_mut::<Preferences>().settings = settings.clone();
     }
     if back == options_menu::Destination::Credits {
-        let score = world
-            .get_resource::<crate::door_view::DoorSim>()
-            .filter(|_| world.resource::<Menu>().state.has_game())
-            .and_then(|s| {
-                s.active
-                    .world
-                    .connor_stats
-                    .as_ref()
-                    .map(|c| c.earned_experience())
-            });
-        match credits::Screen::open(&world.resource::<Source>().game, score) {
+        match credits_screen(world) {
             Ok(screen) => {
                 world.resource_mut::<Menu>().credits = Some(screen);
                 credit_status(world, "Options");
@@ -1095,18 +1142,7 @@ pub fn step(world: &mut World) {
         return;
     }
     if world.resource::<Menu>().credits.is_some() {
-        let delta = world.resource::<Time<Real>>().delta();
-        let mut menu = world.resource_mut::<Menu>();
-        let page = menu.credits.as_mut().unwrap();
-        let before = page.index;
-        if page.tick(delta) {
-            end_credits(world);
-            return;
-        }
-        if page.index != before {
-            credit_status(world, "timer");
-            redraw(world);
-        }
+        if update_credits(world, None) { return; }
     } else if let Some((_, tick)) = world.resource::<Menu>().active_mask_frame() {
         if tick != world.resource::<Menu>().mask_frame {
             redraw(world);
@@ -1193,20 +1229,7 @@ pub fn step(world: &mut World) {
     }
     for (key, live) in input {
         if world.resource::<Menu>().credits.is_some() {
-            match key {
-                Key::Escape => end_credits(world),
-                Key::Enter | Key::Click(_, _) => {
-                    let mut menu = world.resource_mut::<Menu>();
-                    menu.audio.play("intrface.aud");
-                    if menu.credits.as_mut().unwrap().advance() {
-                        end_credits(world);
-                    } else {
-                        credit_status(world, "advance");
-                        redraw(world);
-                    }
-                }
-                _ => {}
-            }
+            if update_credits(world, Some(key)) { return; }
             continue;
         }
         if world.resource::<Menu>().graphics.is_some() {

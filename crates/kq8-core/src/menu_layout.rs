@@ -146,23 +146,37 @@ impl Layout {
         frame: usize,
         caption: Option<&str>,
     ) {
+        let caption = caption.or_else(|| self.controls[key].label.map(|id| menu.label(id)));
+        self.draw_palette(canvas, &menu.palette, key, picture, rect, frame, caption);
+    }
+
+    /// Credits has its own original active palette and message catalogue;
+    /// retain the same GUI picture/font drawing without borrowing Main's.
+    pub(crate) fn draw_palette(
+        &self,
+        canvas: &mut Canvas,
+        palette: &[kq8_data::palette::Rgb; 256],
+        key: &str,
+        picture: &str,
+        rect: [i32; 4],
+        frame: usize,
+        caption: Option<&str>,
+    ) {
         let c = &self.controls[key];
         let [l, _, r, _] = rect;
         if let Some(pic) = self.controls[picture].pic {
             let frames = &self.pictures[&pic.bitmap];
             if let Some(bitmap) = Pic::of(&frames[frame % frames.len()]) {
-                canvas.picture(rect, bitmap, pic.modifier & 0x8000 != 0, 1.0, &menu.palette);
+                canvas.picture(rect, bitmap, pic.modifier & 0x8000 != 0, 1.0, palette);
             }
         }
         if let Some(text) = c.text.filter(|t| t.font != 0) {
             let font = &self.fonts[&text.font];
-            let mut value = caption
-                .or_else(|| c.label.map(|id| menu.label(id)))
-                .unwrap_or("");
+            let mut value = caption.unwrap_or("");
             while !value.is_empty() && text_width(font, value) > r - l {
                 value = &value[..value.char_indices().next_back().unwrap().0];
             }
-            canvas.text(rect, font, text.justification, value, 1.0, &menu.palette);
+            canvas.text(rect, font, text.justification, value, 1.0, palette);
         }
     }
 }
