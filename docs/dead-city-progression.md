@@ -73,12 +73,39 @@ gate to the map and lowers the spikes. A second process loads the open
 gate and walks across its collision plane. The 90.29-second regression
 ended on the far side at y 105245 with 40 health.
 
-The longer route to the north corridor is still open. One attempt
+The first route to the north corridor ended in combat. One attempt
 defeated the archer but died with two skeletons pursuing Connor. A
 second attempt tried to fight them immediately and died near the gate.
 Both runs used ordinary combat from an earned save. The entrance
 battle also left a health crystal and a broadsword in the first hall.
-Those pickups can be investigated from the maze-key save.
+The equipped route revisits those drops from the maze-key save.
+
+## The three maze guards
+
+Connor returns to the crystal and broadsword left by the first hall's
+fights. The replay finds them by item type and position in that hall,
+then clicks each through the gameplay camera. The same Small Axe he
+brought from Daventry appears where the broadsword lay. His hand
+strength rises from 60 to 62 and his experience stays the same. A
+fresh process finds the same two items in his inventory and the same
+axe on the ground. This two-process check passed in 28.98 seconds.
+
+Starting with that equipment, Connor unlocks the gate and draws
+the broadsword before crossing. In a second process he keeps it
+drawn while fighting the two swordsmen, uses the crystal once with
+the second inventory key, and defeats the archer farther north. The
+guards award 300, 300 and 200 experience. A third process restores
+the cleared area and the same level-nine stats, 80 health and 717
+experience toward the next level. This release check passed in
+84.55 seconds. The two earlier defeats used the axe and lacked the
+crystal. The northern maze and the campaign route to the scales remain open.
+
+Connor then collects both Mushrooms dropped by the east swordsman,
+runs west through the passage and saves at its northwest turn. A
+fresh process restores that position, both Mushrooms, 80 health and
+the same experience. This two-process continuation passed in 47.97
+seconds. The next northern junction contains a separate mace
+skeleton and two archers.
 
 ## Repeat the automated route
 
@@ -103,7 +130,13 @@ invocation from New Game through this hall has not been run.
 | `dead_city::old_tile_entrance_recovers_the_original_first_jump` | `KQ8_LEGACY_TILE_ENTRY_SLOT` (older `TileEntry`) | `RecoveredTile` |
 | `dead_city::restored_letter_sequence_earns_deaths_key` | `KQ8_TILE_ENTRY_SLOT` (`TileEntry`) | `MazeKeyReload` |
 | `dead_city::death_key_opens_the_spike_gate` | `KQ8_DEATH_KEY_SLOT` (`MazeKeyReload`) | `AcrossMazeGate` |
+| `dead_city::hall_combat_drops_replace_the_axe_and_reload` | `KQ8_DEATH_KEY_SLOT` (`MazeKeyReload`) | `HallEquipment`, `HallEquipmentReload` |
+| `dead_city::equipped_connor_defeats_the_three_maze_guards` | `KQ8_HALL_EQUIPMENT_SLOT` (`HallEquipment`) | `MazeGuardsReload` |
+| `dead_city::gate_drops_and_northwest_passage_reload` | `KQ8_MAZE_GUARDS_SLOT` (`MazeGuardsReload`) | `NorthCornerReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::hall_combat_drops_replace_the_axe_and_reload -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::equipped_connor_defeats_the_three_maze_guards -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::gate_drops_and_northwest_passage_reload -- --ignored --exact --test-threads=1
 ```

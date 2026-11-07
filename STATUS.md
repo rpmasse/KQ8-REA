@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-07 The three guards beyond Death’s gate
+
+Two Windows processes verified that taking the first hall’s dropped
+broadsword equips it, puts Connor’s Small Axe where the sword lay and
+increases melee strength from 60 to 62. The crystal and exchanged axe
+survived reload. The test passed in 28.98 seconds.
+
+The equipped route clears both swordsmen and the archer. Connor uses
+the crystal once, reaches level nine, and a third process restores
+all three enemies as defeated with 80 health and 717 experience
+toward the next level. The release test passed in 84.55 seconds.
+The two-process continuation takes the guards’ two Mushrooms and
+reloads at the northwest passage at the same 80 health. It passed in
+47.97 seconds. All 877 standard workspace tests passed before this
+additional replay. The two earlier fatal attempts
+are documented below. The next northern junction has a separate group of
+guards. [Automated route](docs/dead-city-progression.md#the-three-maze-guards)
+
 ## 2026-11-07 Beyond the spike gate
 
 From the earned maze key, the two-process spike gate regression

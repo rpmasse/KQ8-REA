@@ -1,5 +1,15 @@
 # What works, in detail
 
+## Earned broadsword and gate combat
+
+The campaign recovers the first hall’s actual crystal and broadsword
+drops, exchanges the carried axe, and restores the equipment in a
+fresh process. With that equipment Connor defeats both swordsmen and
+the archer beyond Death's gate, consumes the crystal once and retains
+the three completed encounters on reload. The unattended player can
+retain its drawn weapon and select a health slot between fights.
+[Automated checks](dead-city-progression.md#the-three-maze-guards)
+
 ## Saving Death’s hall
 
 The tile controller now survives a disk save. It keeps the next
