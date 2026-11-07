@@ -4657,3 +4657,12 @@ The initial moving-shot regression's fixed save-remainder assertion failed with 
 The user explicitly authorized an isolated study agent for Henchman, spirit traps, camera shake and brightness. Session A studied the owned GOG 1.03 Mask.exe/data and, for Q186, the bundled nGlide wrapper. It wrote only prose behavior rules in [henchman.md](../behaviour/henchman.md), [traps.md](../behaviour/traps.md), [camera-shake.md](../behaviour/camera-shake.md) and [brightness.md](../behaviour/brightness.md), reconciling their earlier summaries and QUESTIONS. Raw executable study and local tooling stay ignored. Session B read these descriptions and original readable data, not raw executable-derived code. No original implementation or extracted assets accompany this publication.
 
 The new notes make material corrections: Wait's attack deadline changes only on an actual reaction; spirit traps start at state 2 and can kill after their whole-point floor; shake uses mode-specific angular updates and retained accumulated amplitudes; brightness slider changes do not issue the extra display-gamma call previously inferred. Q190/Q188/Q187 are answered at the documented static scope; Q186 remains open for final output/driver/boundary and complete artwork/movie paths. Note examples are derived checks, not captured original frames. Original runtime, native original save/reload and full routes were not tested by A. Only the separately recorded Rust implementation scenarios have runtime evidence. No manual testing was performed; the full M4–M6 gates still apply.
+**Saved trap contacts and commands.** The implementation uses
+scripted-controller-commands.md rules 1 and 5–10 and traps.md Q203 for
+pending saved names, silent eligible contact attachment, exact trap-name
+lookup, live-only query and pending-only cancellation. One grouped core
+matrix passes. The bounded follow-up establishes unconditional post-Init
+Lookup posting with callback-only delivery, and unresolved names retained
+across saves. Rust preserves their unique union with live names instead of
+the original duplicate-accumulation defect. Production ordered loading
+remains unfinished. [Evidence](../saved-trap-contacts.md).

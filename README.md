@@ -18,7 +18,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 **How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
 
-The six menu families and HUD now use the original 640/800 geometry, font and picture rules; live display switching remains unfinished. [Interface checks](docs/original-interface-resolutions.md)
+The six menu families and HUD use the original 640/800 geometry, font and picture rules; live resolution switching passes automated checks, while original device selection and software palette behavior remain unfinished. [Interface checks](docs/original-interface-resolutions.md) · [Live display checks](docs/live-display-transitions.md)
 
 Credits now follows the original card timing, layout, input and late score calculation, with grouped core checks and one native menu flow; the full ending remains unverified. [Credits checks](docs/credits-completion.md)
 
