@@ -1,5 +1,38 @@
 # STATUS
 
+## 2026-11-07 Inventory behavior fixed; remaining work grouped
+
+The shared GUI item lookup now leaves an empty-cell right click silent
+and retains normal left-click return of a held quest item. The bug was
+reproduced in 10.62 seconds. The post-fix native flow completes in
+11.02 seconds; its stale log-text assertion is corrected and checked
+against the existing logs/save, then the target compiles. No successful
+native sequence is repeated. [Evidence](docs/inventory-empty-slot.md)
+
+The north-bank Invulnerable potion is earned through a normal camera
+ray and survives reload alongside the GoodSkull and shelf replacement.
+The 29.74-second test completes both native processes, then incorrectly
+expects the removed-object list to remain identical. It should gain
+NoName49 when that potion is picked up. The corrected condition and
+remaining state checks pass on the existing saves; corrected source
+compiles in 16.13 seconds. The final Options byte assertions in both
+recorded tests were not reached, and remain not tested for these runs.
+
+Newest campaign save: earned-skull-chamber-potion/1794048357391220700/
+slots/slot-3.json, SkullChamberPotionReload at (32656,204036,864),
+level-12 stats [39,85,27,11,2474]. The potion is carried, not consumed.
+The direct return crosses deadly fast-poison; new original-engine
+prose supplies the missing ordinary damage rules for implementation.
+A wider numerical search finds a western-edge jump avoiding deep
+liquid, but native return is not tested. Preserve this earned checkpoint.
+
+Following the user's update, development proceeds by shared behavior
+groups, combined checks and integrated chapter routes. Individual
+objects get separate checks only for a distinct rule or failure.
+Current groups: inventory input, ordinary terrain hazards, original
+graphics modes, then broader campaign progression. Estimates remain
+M4 about 80%, M5 60%, M6 about 25%. No manual testing.
+
 ## 2026-11-07 Earned good skull and shelf replacement survive reload
 
 The native route from SkullRiverCrossedReload passes once in 37.41

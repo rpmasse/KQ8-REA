@@ -1,5 +1,31 @@
 # MODLOG
 
+## 2026-11-07 Inventory input correction and grouped completion strategy
+
+Empty quest cells now distinguish the mouse button: right-click does
+nothing, while left-click returns the held quest item. Both physical
+pointer and named diagnostic inputs use the corrected shared lookup.
+The original error was reproduced, then the post-fix native flow
+records one occupied-cell description, two silent empty-cell clicks
+and a normal item return with unchanged saved inventory/stats. A stale
+log-substring assertion was corrected against the recorded successful
+run, and the corrected target compiles. Gameplay was not repeated.
+[Evidence](docs/inventory-empty-slot.md)
+
+The earned skull-chamber potion pickup and reload also complete. Its
+test initially rejects the collected item's normal addition to the
+world's removed-object list. The corrected comparison and remaining
+state assertions pass against both existing saves; the corrected test
+target compiles in 16.13 seconds. Original Options byte comparisons
+were not reached in these recorded tests and are not claimed here.
+[Campaign evidence](docs/skull-river-access.md#north-bank-potion-and-return-planning)
+
+The completion plan now groups M4–M6 by shared engine behavior and
+representative checks, then broad campaign integration. Separate native
+checks are not required for every authored object. Q206 tracks ordinary
+terrain damage and unresolved exceptional paths; Q207 tracks original
+display-mode behavior. Successful evidence is reused. No manual tests.
+
 ## 2026-11-07 Earned good-skull pickup and dynamic shelf replacement
 
 A native campaign continuation follows the cleared north bank from

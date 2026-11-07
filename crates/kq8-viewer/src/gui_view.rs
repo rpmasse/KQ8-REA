@@ -705,13 +705,17 @@ impl Gui {
     }
 
     /// What item a control shows (for clicks): its name.
-    fn item_at(&self, control: &str) -> Option<String> {
+    fn item_at(&self, control: &str, left: bool) -> Option<String> {
         let strip = self.strip();
         let slot_no = |prefix: &str| control.strip_prefix(prefix).and_then(|k| k.parse::<usize>().ok());
         if let Some(k) = slot_no("IDCTL_INVBAR_QUEST") {
-            // Rule 12: the empty place a held quest item left puts it back.
-            let held_quest = self.hand.clone().filter(|h| self.inv.quest.iter().any(|(n, _)| n == h));
-            return strip.get(self.quest_first + k - 1).map(|(n, _)| n.clone()).or(held_quest);
+            // Rule 12: a left click on the empty place returns the held
+            // quest item. A right click on an empty cell does nothing
+            // (rule 10); it must not describe the item in the pointer.
+            return strip.get(self.quest_first + k - 1).map(|(n, _)| n.clone()).or_else(|| {
+                if left { self.hand.clone().filter(|h| self.inv.quest.iter().any(|(n, _)| n == h)) }
+                else { None }
+            });
         }
         if let Some(k) = slot_no("IDCTL_HEALTHBAR_") {
             return self.inv.slots.get(k.wrapping_sub(1))?.as_ref().filter(|(_, c, _)| *c > 0).map(|(n, ..)| n.clone());
@@ -1291,7 +1295,7 @@ pub fn gui_step(
                 let (button, control) = name.split_once(':').unwrap_or_default();
                 let control = control.to_ascii_uppercase();
                 let left = button.eq_ignore_ascii_case("left");
-                match (control.as_str(), gui.item_at(&control)) {
+                match (control.as_str(), gui.item_at(&control, left)) {
                     ("IDCTL_INVBAR_QUESTL", _) if left => actions.0.push(BarAction::Scroll { by: -1, how }),
                     ("IDCTL_INVBAR_QUESTR", _) if left => actions.0.push(BarAction::Scroll { by: 1, how }),
                     (MINIMAP, _) if left => gui.toggle_map(&how),
@@ -1852,7 +1856,7 @@ pub fn gui_draw(
                 }
                 continue;
             }
-            match (control.as_str(), gui.item_at(&control)) {
+            match (control.as_str(), gui.item_at(&control, left)) {
                 ("IDCTL_INVBAR_MASK", _) if left && !gui.hands_off => menu.0 = true,
                 ("IDCTL_INVBAR_QUESTL", _) if left => actions.0.push(BarAction::Scroll { by: -1, how }),
                 ("IDCTL_INVBAR_QUESTR", _) if left => actions.0.push(BarAction::Scroll { by: 1, how }),
