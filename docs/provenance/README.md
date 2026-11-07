@@ -3,6 +3,19 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Skull-river access and western archer.** The installed Dead City
+NEWWORLD.CS, monster/type tables, terrain grids/material flags and authored
+block placements supply the hazards, additive guard stats and geometry.
+A's `fighting.md` and `ranged-weapons.md` describe the normal attack and
+projectile rules. Local native logs distinguish a visible camera ray from
+a blocked projectile sweep. An untracked geometry probe supplies planning
+evidence, then the earned Windows route verifies the actual encounter,
+400-XP award and fresh-process reload. Only test code and documentation
+change. Failures and scope limits are in
+[skull-river-access.md](../skull-river-access.md). B did not read the
+original executable or decompiled output; assets and extracted data stay
+local and untracked.
+
 **Earned western portal route.** The installed Dead City triptrp5.cs,
 portrap5.cs/portrp5b.cs and portal `.kq` data provide the activation,
 destination, control sequence and one-time reward. The existing local

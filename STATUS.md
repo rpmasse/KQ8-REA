@@ -1,5 +1,79 @@
 # STATUS
 
+## 2026-11-07 Earned western skull archer and reload pass
+
+After the projectile-path audit below, the revised encounter passes
+once in 48.14 seconds, with an 11.66-second compilation. The earned
+Small Crossbow kills skeleton17; its death completes at update 195,
+awarding 400 XP. The saved and freshly restored level-12 stats are
+[52,85,27,11,2074], at (33253,192808,864). Inventory, quest flags and
+the Rock-held plate persist; original Options.cs is unchanged. The
+other archer remains. Evidence: skull-western-archer-native.log.
+
+Genuine continuation:
+earned-skull-river-guards/1794045168852782700/slots/slot-3.json,
+SkullWesternArcherReload. Do not repeat this successful encounter.
+Next inspect earned healing via the return portal and Sylph's well,
+then the second archer and block/jump crossing. The abandoned lethal
+floor-only skull route is retained as a local prototype, not a working
+test. Runtime rules were unchanged. No manual testing. Engineering
+estimates remain M4 about 80%, M5 60%, M6 about 25%.
+[Commands and limits](docs/skull-river-access.md)
+
+## 2026-11-07 Skull-river guards: second attempt exposes blocked bolt path
+
+The cover attempt compiled in 11.94 seconds and failed after 20.26
+seconds, with Connor entering Die at update 238. Skeleton16 did not
+damage Connor at this position, but skeleton17 did. The camera's ray
+selected skeleton17 correctly. Every fired crossbow bolt instead hit
+block.31 after 712 units, starting with bolt106 at update 113. Thus
+camera visibility did not establish a clear projectile path. Neither
+guard died and no new save was written. Evidence:
+skull-river-guards-cover.log and
+earned-skull-river-guards/1794044813029029800/SkullRiverGuards.
+
+Two actual combat attempts have now failed. Stop native route variants
+at this obstacle. The next required evidence is a numerical sweep of
+the original projectile's spawn, radius and path against the oriented
+block, plus the return shot paths. Keep both failures and the earlier
+river-wall death. No gameplay rule was changed and no successful test
+was repeated. M4 about 80%, M5 60%, M6 about 25% remain estimates.
+
+## 2026-11-07 Skull-river guards: exposed ranged attempt failed
+
+The first ranged attempt compiled in 11.77 seconds and failed after
+16.90 seconds. From (30948,193885,864), Connor's normal camera rays and
+crossbow projectiles hit skeleton17, but both archers hit him. He died
+at update 190 before either enemy died. No new save was written.
+Evidence: skull-river-guards-native.log and
+earned-skull-river-guards/1794044546535599600/SkullRiverGuards.
+
+The monster-list columns add to the type's stats: each guard has 160
+health and awards 400 XP, not 100/200. Original block.31 is tall enough
+to shield a south-bank position from skeleton16 while leaving a ray to
+skeleton17. A revised route will test that cover, then address the
+remaining archer from east of the block. This is one failed combat
+attempt; the earlier river-wall death is a separate route obstruction.
+No successful test was repeated. M4 80%, M5 60%, M6 25% remain estimates.
+
+## 2026-11-07 Good-skull route: river-wall failure, prerequisites identified
+
+The first native skull attempt compiled in 11.49 seconds and failed
+after 12.90 seconds. It reached rivrtrap.01 at update 132, position
+(27006,196473,703); the original 5,000-damage event killed Connor.
+Skeleton16 and skeleton17 were also shooting across the river. No skull
+pickup or new save was produced. Evidence: good-skull-native.log and
+earned-good-skull/1794044067750593900/GoodSkull.
+
+The original files put the bone bridge in the eastern chamber. The
+northwest chamber's river-wall triggers and central fast-poison terrain
+were absent from the earlier static route's eligibility checks. The next
+action is an earned ranged encounter from the dry bank, then crossing
+planning using the original jump arcs and authored blocks. Keep hazards
+and combat active. This is one failed native attempt, not two; no new
+crossing attempt has run yet. M4 about 80%, M5 60%, M6 about 25% remain
+engineering estimates. No manual testing.
+
 ## 2026-11-07 Earned western portal crossing and reload pass
 
 The revised three-process route passes once in 264.89 seconds. Connor

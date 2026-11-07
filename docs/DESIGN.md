@@ -13,6 +13,70 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5–M6 skull-chamber river prerequisites (2026-11-07).** The first
+skull route reached rivrtrap.01 and died. Preserve that failure. Original
+NEWWORLD.CS calls these river-wall death traps; the local terrain materials
+also mark the central strip as fast poison (0x80), so a floor-only walking
+route is insufficient. The bone bridge is in the eastern chamber and
+cannot be used here. MONSTERS.KQ places skeleton16 and skeleton17 on the
+far bank. Combined with their Monstats.mtl base values, each has 160
+health and a 400-experience award (the monster-list columns are additions).
+
+First use the earned Small Crossbow from the dry south bank, through
+ordinary weapon selection and visible camera rays, to defeat those two
+archers. Save the earned result and reload once. Require both original
+death completions and awards, unchanged inventory/quest state, positive
+remaining health, and identical saved stats on reload. No health or
+inventory grants, hidden direct attacks or hazard changes are allowed.
+Then plan the crossing from the original jump arcs and the two authored
+blocks on the south bank; record live launch/landing coordinates before
+claiming the skull can be reached. These are prerequisites, not a
+successful skull pickup. The first exposed ranged attempt failed after
+16.90 seconds: both archers hit Connor before either died. The next
+encounter uses the original tall block.31 as cover from skeleton16
+while shooting skeleton17, then moves east to address skeleton16 alone.
+Static geometry supports this plan; the native projectile log must show
+whether the cover actually works.
+
+The second encounter failed because the camera ray cleared block.31
+but the larger crossbow bolt struck its edge. Stop native retries and
+model the complete shot first. A local sweep using the recorded original
+oriented boxes and live projectile offsets/radii reproduces that contact
+near (33590,194580,1807). It identifies (33300,192800) as a clear firing
+lane to skeleton17 while the block intercepts skeleton16's shot. The
+next native check is only this first archer and its saved aftermath,
+with the earned crossbow selected through the HUD before approaching.
+This keeps a genuine continuation without assuming enough health to
+finish both encounters in one attempt. The second archer, river crossing
+and skull remain required and unverified.
+
+The western-archer encounter and fresh-process reload now pass once in
+48.14 seconds. Connor retains 52 health and gains the original 400 XP;
+the other archer remains. Continue from SkullWesternArcherReload and
+inspect an earned healing route before the second encounter. The failed
+floor-only skull prototype is kept locally rather than as a working
+campaign test. [Evidence and limits](skull-river-access.md)
+
+**M6 earned good skull and shelf replacement (2026-11-07).** Continue
+from WesternPortalCrossedReload with normal walking around the chamber's
+deep-water strip and a visible aim/click on skull.22. The installed
+NEWWORLD.CS places this good skull on skshelf.1; GSKULL.CS creates a
+clicker at the skull's placement and, after 0.4 seconds, gives GoodSkull
+and deletes the original shelf skull. The original item has no stat or
+pickup-experience bonus. With Reaper::metConnor=4, SkullMsg advances
+from zero to one; StatHasGoodSkull remains false until the statue quest.
+
+Require exactly one carried GoodSkull, no BadSkull, the deleted skull
+identity and a saved clicker copy at the authored position. Preserve
+other inventory, stats, quest flags and the Rock-held plate. Reload in
+a fresh process and check those same identities without another grant.
+Use the existing static BSP/terrain route only as planning evidence;
+the native walk and ray must establish actual reach and visibility.
+Do not invoke the skull script, grant inventory or bypass collision.
+Preserve failures and avoid repeating a successful route. The first
+floor-only route failed at a lethal river-wall trigger; use the river
+prerequisite plan above instead of repeating it.
+
 **M6 earned western portal traversal (2026-11-07).** Resume the preserved
 WesternPlateRockReload branch, with the earned Rock still holding triptrp5.
 Use the previously traversed graveyard/well roads, then ordinary movement

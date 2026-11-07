@@ -3100,3 +3100,61 @@ fn saved_western_portal_crossing_reloads_without_another_award() {
         .contains("KQStatsChangeRequestEvent 0 0 0 0 4000 to Connor"));
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and genuine KQ8_WESTERN_PORTAL_SLOT"]
+fn earned_crossbow_defeats_the_western_skull_archer_and_reloads() {
+    let play = Play::new("earned-skull-river-guards");
+    let source = earned_slot("KQ8_WESTERN_PORTAL_SLOT")
+        .expect("set KQ8_WESTERN_PORTAL_SLOT to a genuine WesternPortalCrossedReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "WesternPortalCrossedReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["level"], 12);
+    assert_eq!(start["journey"]["stats"]["stats"], json!([120,85,27,11,1674]));
+    assert!(carries_one(&start, "INVITEM_SmCrossbow"));
+    let path = play.root.join("skull-river-guards.json");
+    let route = json!({"start":25,"landmarks":[
+        {"name":"Approach the original river-bank cover 1","xy":[31000,192650],"radius":100,"run":true},
+        // Full bolt sweeps identify this firing lane: Connor can hit skeleton17,
+        // while the original tall block intercepts skeleton16's return path.
+        {"name":"Defeat the western skull-river archer","xy":[33300,192800],
+            "radius":60,"run":false,"fight":"skeleton17","ranged":true}
+    ]});
+    fs::write(&path, serde_json::to_vec(&route).unwrap()).unwrap();
+    let (won, viewer) = leg(&play, 1, "SkullWesternArcher", 450,
+        &["--walk-route",path.to_str().unwrap(),"--key","physical:F2,3",
+            "--key","left:IDCTL_INVBAR_LONG,4"]);
+    let combat = log(&play, "SkullWesternArcher", "fight.log");
+    for name in ["skeleton17"] {
+        assert!(viewer.lines().any(|line| line.contains(&format!("test --aim {name} (camera through gameplay pixel"))
+            && line.contains(&format!("the aim pick meets character {name}"))));
+        assert!(combat.contains(&format!("{name}: hit by Connor, Projectile")));
+        assert_eq!(combat.matches(&format!("{name}: its death ended (rule 32)")).count(), 1);
+        assert!(!combat.contains(&format!("test --swing {name}")));
+    }
+    assert!(viewer.contains("walk-route at Defeat the western skull-river archer"));
+    let (restored, _) = leg(&play, 2, "SkullWesternArcherReload", 45, &[]);
+    for saved in [&won, &restored] {
+        assert_eq!(saved["journey"]["stats"]["level"], 12);
+        let stats = saved["journey"]["stats"]["stats"].as_array().unwrap();
+        assert!((1..=120).contains(&stats[0].as_i64().unwrap()));
+        assert_eq!(&stats[1..], json!([85,27,11,2074]).as_array().unwrap());
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        assert!(region_flag(saved, "DeadCity::Skulls::SkullMsg", "0"));
+        for name in ["skeleton17"] {
+            assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap().iter().any(|gone| gone == name));
+        }
+        assert!(!saved["kept"]["deadcity"]["gone"].as_array().unwrap().iter().any(|gone| gone == "skeleton16"));
+        let plate = |save: &Value| save["traps"]["states"].as_array().unwrap().iter()
+            .find(|trap| trap["name"] == "triptrp5").unwrap()["inside"].clone();
+        assert_eq!(plate(saved), plate(&start));
+    }
+    assert_eq!(won["journey"]["stats"], restored["journey"]["stats"]);
+    let reload_combat = log(&play, "SkullWesternArcherReload", "fight.log");
+    for name in ["skeleton17"] {
+        assert!(!reload_combat.contains(&format!("{name}: its death ended (rule 32)")));
+    }
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
