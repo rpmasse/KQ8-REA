@@ -11,6 +11,16 @@ health strip and requests ordinary attacks. Its target order and health
 threshold are test-player choices. [Inventory study](../behaviour/inventory.md),
 [combat study](../behaviour/fighting.md), [campaign results](../dead-city-progression.md#the-three-maze-guards)
 
+**Northern equipment and cells.** The installed `GAME/Kq/Invinfo.itl`
+gives the broadsword a hand-stat contribution of 17 and the Mace 20.
+The earned skeleton drops supply the Mace and three Mushrooms.
+The exchange and each five-point heal use the inventory rules.
+`NEWWORLD.CS`, `ASwitch4.KQ` and `ASwitch4.cs` locate Cell04
+and its controlling switch. The local routing diagnostic reads the
+current closed-door records to avoid walking into that gate.
+[Inventory study](../behaviour/inventory.md),
+[route evidence](../dead-city-progression.md#junction-equipment-and-the-closed-cells)
+
 **Death’s hall puzzles and saves.** Dead City's pedestal scripts install
 the paddle, count the first three pushes and activate the fourth.
 `laserctr.cs` opens the hall and `dhalltrp.cs` sets up its original

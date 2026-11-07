@@ -1,5 +1,37 @@
 # STATUS
 
+## 2026-11-07 Junction equipment and the closed cells
+
+The two-process equipment check passed in 36.12 seconds. Connor
+takes the Mace and all three Mushroom drops, consumes each Mushroom,
+and reloads with 27 health and melee strength 70. His broadsword
+is on the ground where the Mace lay. Cell04 remains closed.
+
+The first westward route stopped at Cell04. The offline planner had
+omitted animated doors. Original ASwitch4.cs opens this gate from
+a switch across the maze. Including the current save’s 59 closed
+doors in the local planner found an outer northern route. The direct
+Weeper route remains unverified. [Equipment check](docs/dead-city-progression.md#junction-equipment-and-the-closed-cells)
+
+Two outer-corridor combat attempts failed. From the genuine
+`NorthSuppliesReload` save, the first reached skeleton56 and
+counterattacked, but Connor’s health fell below zero before the guard
+died. The second started its approach on foot earlier and died on
+update 142. The guard has 225 health, 15 hand damage and a 0.5-second
+attack delay in the original data. Connor entered with 27 health.
+The current replay’s retreat controller was built for the stationary
+Daventry spear guard. Its earlier success provides limited evidence
+for this pursuing enemy.
+
+Stop variations of this encounter under the two-attempt rule.
+The verified campaign ends at `NorthSuppliesReload`. Before another
+attempt, audit the live input and movement record against the existing
+combat notes and establish a distinct, supported plan for this enemy
+or another route. Original-runtime comparison of this fight is
+**not tested**. The failures are in local `dead-road-outerguard`
+and `dead-road-outerguard2` logs. All 877 standard workspace tests
+passed after the equipment check.
+
 ## 2026-11-07 Northern maze junction
 
 The next group is a mace skeleton and two archers. The exploratory

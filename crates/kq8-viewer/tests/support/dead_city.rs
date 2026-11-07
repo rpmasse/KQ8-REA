@@ -648,9 +648,18 @@ fn equipped_connor_defeats_the_three_maze_guards() {
     earn_gate_victory();
 }
 
-fn earn_gate_victory() -> PathBuf {
+fn draw_key(play: &Play, tick: u32) -> String {
     use kq8_core::keyboard_menu::{keyword, Bindings};
     use kq8_data::GameDir;
+    let path = GameDir::open(&play.game)
+        .unwrap()
+        .find("movekeys.kq")
+        .unwrap();
+    let bindings = Bindings::read(&fs::read(path).unwrap()).unwrap();
+    format!("physical:{},{tick}", keyword(bindings.0[6]).unwrap())
+}
+
+fn earn_gate_victory() -> PathBuf {
     let play = Play::new("earned-maze-guards");
     let source = earned_slot("KQ8_HALL_EQUIPMENT_SLOT").unwrap_or_else(earn_hall_equipment);
     let start = prepare(&play, &source);
@@ -663,12 +672,7 @@ fn earn_gate_victory() -> PathBuf {
         assert!(carries_one(&start, kind));
     }
     let path = gate_approach(&play);
-    let bindings = GameDir::open(&play.game)
-        .unwrap()
-        .find("movekeys.kq")
-        .unwrap();
-    let bindings = Bindings::read(&fs::read(bindings).unwrap()).unwrap();
-    let draw = format!("physical:{},348", keyword(bindings.0[6]).unwrap());
+    let draw = draw_key(&play, 348);
     let (armed, _) = leg(
         &play,
         1,
@@ -834,19 +838,12 @@ fn northern_mace_guard_and_archers_reload() {
 }
 
 fn earn_north_junction() -> PathBuf {
-    use kq8_core::keyboard_menu::{keyword, Bindings};
-    use kq8_data::GameDir;
     let play = Play::new("earned-north-maze-guards");
     let source = earned_slot("KQ8_NORTH_MAZE_CORNER_SLOT").unwrap_or_else(reach_north_corner);
     let start = prepare(&play, &source);
     assert_eq!(start["label"], "NorthCornerReload");
     assert!(carries_one(&start, "INVITEM_BroadSword"));
-    let bindings = GameDir::open(&play.game)
-        .unwrap()
-        .find("movekeys.kq")
-        .unwrap();
-    let bindings = Bindings::read(&fs::read(bindings).unwrap()).unwrap();
-    let draw = format!("physical:{},8", keyword(bindings.0[6]).unwrap());
+    let draw = draw_key(&play, 8);
     let path = play.root.join("junction.json");
     let points = json!([
         {"name":"Fight the mace guard","xy":[162250,122500],"radius":400,"run":true,
@@ -906,4 +903,109 @@ fn earn_north_junction() -> PathBuf {
         play.options
     );
     play.slots.join("slot-3.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_NORTH_JUNCTION_SLOT"]
+fn northern_drops_equip_mace_and_heal_before_the_cell_gate() {
+    let play = Play::new("earned-north-road-supplies");
+    let source = earned_slot("KQ8_NORTH_JUNCTION_SLOT").unwrap_or_else(earn_north_junction);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "NorthJunctionReload");
+    let drops: Vec<_> = start["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|item| {
+            let pos = &item["place"]["World"]["position"];
+            matches!(
+                item["kind"].as_str(),
+                Some("INVITEM_Mace" | "INVITEM_Mushroom")
+            ) && pos[0]
+                .as_f64()
+                .is_some_and(|x| (160000.0..165000.0).contains(&x))
+                && pos[1]
+                    .as_f64()
+                    .is_some_and(|y| (122000.0..131000.0).contains(&y))
+        })
+        .collect();
+    let mace = drops
+        .iter()
+        .find(|item| item["kind"] == "INVITEM_Mace")
+        .unwrap();
+    let mut herbs: Vec<_> = drops
+        .iter()
+        .filter(|item| item["kind"] == "INVITEM_Mushroom")
+        .collect();
+    assert_eq!(drops.len(), 4);
+    assert_eq!(herbs.len(), 3);
+    herbs.sort_by(|a, b| {
+        let y = |v: &Value| v["place"]["World"]["position"][1].as_f64().unwrap();
+        y(a).total_cmp(&y(b))
+    });
+    let mut points = Vec::new();
+    for item in std::iter::once(mace).chain(herbs.into_iter()) {
+        let p = &item["place"]["World"]["position"];
+        points.push(json!({"name":format!("Take {}",item["name"]),"aim":item["name"],
+            "xy":[p[0].as_f64().unwrap()+360.0,p[1].as_f64().unwrap()-250.0],"radius":400,"run":true}));
+    }
+    for y in [132000, 134000, 136000] {
+        points.push(
+            json!({"name":format!("Use a Mushroom at {y}"),"xy":[162250,y],
+            "radius":350,"run":true,"inventory_slot":1}),
+        );
+    }
+    points.push(json!({"name":"North road before the cell gates","xy":[162000,140750],"radius":300,"run":true}));
+    let path = play.root.join("supplies.json");
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let draw = draw_key(&play, 210);
+    let (supplied, viewer) = leg(
+        &play,
+        1,
+        "NorthRoadSupplies",
+        300,
+        &["--key", &draw, "--walk-route", path.to_str().unwrap()],
+    );
+    for item in &drops {
+        let name = item["name"].as_str().unwrap();
+        assert!(viewer.lines().any(|l| l
+            .contains(&format!("test --aim {name} (camera through gameplay pixel"))
+            && l.contains(&format!("hits {name} first"))));
+    }
+    assert_eq!(
+        log(&play, "NorthRoadSupplies", "items.log")
+            .matches("INVITEM_Mushroom, slot used")
+            .count(),
+        3
+    );
+    let (restored, _) = leg(&play, 2, "NorthSuppliesReload", 45, &[]);
+    let mut expected = start["journey"]["stats"].clone();
+    expected["stats"][0] = json!(expected["stats"][0].as_i64().unwrap() + 15);
+    expected["stats"][1] = json!(expected["stats"][1].as_i64().unwrap() + 3);
+    for save in [&supplied, &restored] {
+        assert_eq!(save["journey"]["stats"], expected);
+        assert!(carries_one(save, "INVITEM_Mace"));
+        assert!(!carries_one(save, "INVITEM_Mushroom"));
+        assert_eq!(save["weapon_state"]["ready_item"], "INVITEM_Mace");
+        assert_eq!(
+            save["kept"]["deadcity"]["interactions"]["doors"]["cell04"]["state"],
+            "Closed"
+        );
+        assert!(save["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["kind"] == "INVITEM_BroadSword"
+                && item["place"]["World"]["position"] == mace["place"]["World"]["position"]));
+        assert!((161600.0..162800.0).contains(&save["position"][0].as_f64().unwrap()));
+        assert!((140000.0..143000.0).contains(&save["position"][1].as_f64().unwrap()));
+    }
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
 }
