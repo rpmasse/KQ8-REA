@@ -13,6 +13,28 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 earned good-skull pickup and shelf replacement (2026-11-07).**
+Continue from SkullRiverCrossedReload without repeating the jumps or
+archer fights. The static original terrain/BSP route goes from the
+bank slope via (32750,203250) to the shelf approach (31500,204500).
+Use normal walking and a visible world-click ray to skull.22.
+The installed GSKULL.CS advances SkullMsg 0 to 1, creates a clicker at
+the skull's original location, then gives one GoodSkull and deletes
+skull.22 after its 0.4-second cue. Require that actual event sequence,
+no BadSkull, no new XP, unchanged other inventory and held Rock, and
+the same dynamic clicker identity/placement after a fresh reload.
+Keep both archer deaths and portal flags. Do not grant the skull or
+move Connor by script. This continues the earlier shelf prototype
+from a genuine river crossing; its failed floor-only access remains
+documented. Statue, feather, scales and later quests remain ahead.
+
+The two-process native pickup/reload check passes once in 37.41
+seconds. The camera ray hits skull.22 at update 104; its delayed cue
+grants one GoodSkull at update 110. Dynamic clicker NoName100, the
+original placement, unchanged stats and prior campaign state survive
+reload. Continue from GoodSkullReload for the return and statue route.
+[Evidence](skull-river-access.md#earned-good-skull-and-shelf-replacement)
+
 **M6 original skull-river block and jump crossing (2026-11-07).** Start
 from SkullEasternArcherReload with both archers genuinely defeated.
 Read the installed C_jump/C_rnjmp sequences and Conner.anm timing, and

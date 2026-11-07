@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-07 Earned good-skull pickup and dynamic shelf replacement
+
+A native campaign continuation follows the cleared north bank from
+the genuine river-crossing save and clicks skull.22 through its normal
+camera ray. The original delayed script grants the GoodSkull, deletes
+the shelf object and leaves its dynamic clicker. A fresh process
+preserves the item, clicker identity/placement, stats and previous
+campaign state. The two-process check passes once in 37.41 seconds.
+
+Only campaign tests and documentation change. The abandoned floor-only
+approach remains recorded as a failure; the new route starts after the
+verified original block/jump crossing. No successful route, unrelated
+core suite or manual test is repeated. Statue/feather/scales and the
+rest of the campaign remain incomplete.
+[Evidence and exact command](docs/skull-river-access.md#earned-good-skull-and-shelf-replacement)
+
 ## 2026-11-07 Original two-block river crossing and reload
 
 The unattended walking route can request a running jump through the

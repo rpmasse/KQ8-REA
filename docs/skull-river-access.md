@@ -238,10 +238,43 @@ run are SkullLowerBlock and SkullHigherBlock. The corrected full route
 compiles, while native evidence uses the completed movement legs and
 the passing reload continuation rather than repeating those legs.
 
+## Earned good skull and shelf replacement
+
+From SkullRiverCrossedReload the original static terrain/BSP planner
+finds a safe north-bank route via (32750,203250) to (31500,204500).
+The native check walks that route and uses a normal camera ray to
+skull.22. At update 104 the ray hits that object first and dispatches
+its original GSKULL.CS action. At update 110 the single delayed cue
+gives one GoodSkull and removes skull.22. No skull is injected.
+
+With Reaper::metConnor already 4, SkullMsg advances from 0 to 1.
+StatHasGoodSkull stays false until the statue is solved. The script
+creates the replacement clicker NoName100 at (31583,206637,994).
+Its identity, file, rotation and position match after a fresh reload.
+No BadSkull appears, and level-12 stats [39,85,27,11,2474], other
+inventory, both archer deaths, portal flags and the held Rock persist.
+Original Options.cs stays unchanged.
+
+The two-process check **passes once in 37.41 seconds**, following a
+14.86-second compilation. Evidence: good-skull-earned-native.log.
+Newest genuine continuation:
+`kq8-artifacts/earned-good-skull/1794047529603851200/slots/slot-3.json`,
+GoodSkullReload at (31469,204559,864). The original river jumps and
+archer encounters are not repeated.
+
+```powershell
+$env:KQ8_GAME_DIR=(Resolve-Path -LiteralPath "../King's Quest 8 GOG").Path
+$env:KQ8_SKULL_RIVER_CROSSED_SLOT=(Resolve-Path -LiteralPath 'kq8-artifacts/earned-skull-river-crossing/1794047351774964100/slots/slot-2.json').Path
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::earned_good_skull_and_its_shelf_replacement_survive_reload -- --ignored --exact --nocapture
+```
+
+Expected: one passing test, one earned GoodSkull and the same dynamic
+shelf replacement after reload, with no repeated pickup cue. Only
+tests and documentation change; no unrelated core checks are rerun.
+
 ## Remaining work
 
-Complete the good-skull pickup and
-replacement clicker, statue/feather/scales and the remaining campaign.
-The skull pickup is **not tested successfully**. Only the diagnostic
-input route and campaign checks change; unrelated core tests were not
-rerun. No successful native test was repeated. No manual testing.
+Complete the return from the skull shelf, statue/feather/scales and
+the remaining campaign. Those continuations are **not tested** from
+this earned skull state. No successful native test was repeated.
+No manual testing.
