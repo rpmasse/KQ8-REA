@@ -1,5 +1,32 @@
 # STATUS
 
+## 2026-11-07 All four Sylph plates and the appearance reward verified
+
+The route clearance audit resolved the final-block approach without
+changing movement or collision rules. The old driver heading remained
+within its 0.13-radian tolerance while the long leg carried Connor
+into torch.dt4. The revised route crosses at Y82500, using closer
+marks beside the torches. Its 791-sample terrain/static-bound check
+has no excluded samples; the subsequent live run passes the crossing.
+
+The full continuation and fresh-process reload passed in 125.28
+seconds from the genuine FirstSylphBlockReload. Block14 clears on
+update240, block13 on670 and block12 on1054. The last plate's original
+callback summons Sylph and awards 2000 experience exactly once.
+SylphSummonedReload preserves all four B flags up, empty plate
+triggers, moved blocks, Sylph's home at (70662,105677,1584), isIn and
+FirstTime true, and metConnor 0. Final stats are level eleven
+[61,80,25,10,3112]; inventory, AI/damage settings and GOG Options.cs
+are unchanged. No reward is repeated on reload.
+
+Evidence: earned-sylph-summoned/1794027970800884800,
+sylph-summoned-audited-native.log and sylph-corridor-audit.log under
+kq8-artifacts. The two earlier failed routes remain documented below.
+SylphSummonedReload is the latest verified campaign save. Her
+conversations and item quest are **not tested** on this earned route;
+the remaining Dead City campaign and M4–M6 remain incomplete.
+[Automated command and checkpoint](docs/dead-city-progression.md#the-sylph-pressure-blocks)
+
 ## 2026-11-07 First Sylph plate verified; full route remains open
 
 The first block and fresh-process reload passed in 52.94 seconds
@@ -30,13 +57,11 @@ The remaining-three-block continuation has two real failures:
   path drifted into it. No continuation save or appearance award
   was produced.
 
-Stopped native retries after these two failures. The full-puzzle
-regression is explicitly marked known failing. The next investigation
-must compare actual steering and collider clearance before another
-route, without changing the original movement rules. The latest
-verified campaign save is FirstSylphBlockReload; the Sylph appearance,
-reward and remaining plates are **not verified**. No engine rules
-were changed in this step.
+Stopped native retries after these two failures and marked the
+full-puzzle regression known failing pending a steering/clearance
+audit. At that point FirstSylphBlockReload was the latest verified
+save. The audit and subsequent successful continuation are recorded
+above; no engine rules were changed in either step.
 [Commands and evidence](docs/dead-city-progression.md#the-sylph-pressure-blocks)
 
 ## 2026-11-07 Earned western Rock and three archers
