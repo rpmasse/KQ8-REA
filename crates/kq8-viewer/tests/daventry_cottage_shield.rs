@@ -7,6 +7,8 @@ mod shadow;
 mod castle;
 #[path = "support/castle_interior.rs"]
 mod castle_interior;
+#[path = "support/wizard_ring.rs"]
+mod wizard_ring;
 #[path = "support/pickup_help.rs"]
 mod pickup_help;
 #[path = "support/first_person.rs"]

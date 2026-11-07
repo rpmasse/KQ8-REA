@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-07 Return the Ashes and enter Dead City
+
+The campaign replay now carries the Ashes back through both castle
+passages and the return portal. It follows the road to the Wizard,
+selects the Ashes in the quest strip, and checks all four original
+casting movements, the ring, the 50 experience award and a fresh
+load. An earlier return route stopped short by relying on movement
+after releasing the keys. The regression walks across the trigger
+from a saved approach. The next check enters the tomb with the ring
+and follows its original portal into Dead City. The destination's
+`ShadBat.cs` consumes the ring once. The first test incorrectly
+expected Connor to keep it after arrival. The corrected expectation
+checks the script’s removal and the saved quest flags. [Campaign checks](docs/daventry-progression.md#return-the-ashes-and-earn-the-ring-of-light)
+
 ## 2026-11-07 Enter Castle Daventry and earn the Ashes
 
 Connor can descend the cleared waterfall, jump into the cave, accept
