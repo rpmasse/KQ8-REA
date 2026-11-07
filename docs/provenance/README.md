@@ -3,6 +3,18 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Physical pushable trigger dispatch.** `pushing.md` rule 4 and `traps.md`
+rules 4-9 supply the accepted movement, shape, mask and event rules.
+`connor_mover.rs` carries the clipped push path; `trap.rs` adds an oriented
+box sweep alongside ball stacks; `active.rs` applies logical placement
+before dispatch. The viewer's push stage calls it. Original girltrap.cs,
+booktrap.cs and bouldtrp.cs identify the missing puzzle interactions and
+their trap-relative distance queries. The installed Temple2 controller
+and scripts are loaded for an isolated integration check. Geometry tests
+use synthetic data. The pre-existing centre approximation is retained
+pending Q204; no executable or disassembly was read by B.
+[Evidence and limits](../pushed-object-traps.md)
+
 **Tossed-item trigger movement.** `active.rs` connects each item's
 flight to the existing script dispatcher from `traps.md` rules 4-9
 and `thrown-items.md` rules 7/11. `connor_mover.rs` reports its actual

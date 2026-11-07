@@ -16,6 +16,7 @@
 //!   through a thin trap counts, and so does a ball that starts inside
 //!   (rule 6). The first one in gives `On <name>`, any later one `Cue 301
 //!   <name>`.
+//!   A box visitor uses its oriented box swept through the same movement.
 //! - Staying: the centre of the object's box is in the trap's box (edges
 //!   count), or its shape still touches it (rule 7). Leaving: both fail;
 //!   the last one out gives `Off <name>`, others `Cue 302 <name>` (rule 8).
@@ -31,7 +32,8 @@
 //! one update's difference); a trap without `colliderMask` has mask 0; a
 //! trap without `innerPercent` keeps its full box. The object's box
 //! centre is not turned with the object (Connor's box is the same all
-//! round).
+//! round); that existing stay-test approximation remains Q204. Box
+//! collision shapes keep their actual orientation.
 
 use crate::collide::BallStack;
 
@@ -91,7 +93,14 @@ pub struct Visitor<'a> {
     /// Its `BOUNDS.KQ` box, own space.
     pub min: [f32; 3],
     pub max: [f32; 3],
-    pub balls: &'a BallStack,
+    pub shape: VisitorShape<'a>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum VisitorShape<'a> {
+    Balls(&'a BallStack),
+    /// Own-space axes expressed in world space; translation is in Visitor.
+    Box([[f32; 3]; 3]),
 }
 
 /// What one check found, for the log, and the script call it leads to.
@@ -157,15 +166,23 @@ impl Trap {
     fn check_with(&mut self, v: &Visitor, may_enter: bool, path: &[([f32; 3], [f32; 3])]) -> Check {
         let (min, max) = self.current_box();
         let counts = !self.gone && self.counts(v.collision_type);
-        // Rule 6: each ball's path against the box widened by its radius.
-        let r = v.balls.radius;
-        let (wide_min, wide_max) = (min.map(|m| m - r), max.map(|m| m + r));
-        let touching = path.iter().any(|(from, to)| v.balls.heights.iter().any(|h| {
-            let a = [from[0], from[1], from[2] + h];
-            let b = [to[0], to[1], to[2] + h];
-            segment_meets_box(a, b, wide_min, wide_max)
-        }));
-        let centre: [f32; 3] = std::array::from_fn(|i| v.position[i] + (v.min[i] + v.max[i]) / 2.0);
+        // Rule 6: sweep the visitor's own collision shape, not its origin.
+        let own_centre: [f32; 3] = std::array::from_fn(|i| (v.min[i] + v.max[i]) / 2.0);
+        let (touching, centre): (bool, [f32; 3]) = match v.shape {
+            VisitorShape::Balls(balls) => {
+                let (wide_min, wide_max) = (min.map(|m| m - balls.radius), max.map(|m| m + balls.radius));
+                let touching = path.iter().any(|(from, to)| balls.heights.iter().any(|h| {
+                    let a = [from[0], from[1], from[2] + h];
+                    let b = [to[0], to[1], to[2] + h];
+                    segment_meets_box(a, b, wide_min, wide_max)
+                }));
+                (touching, std::array::from_fn(|i| v.position[i] + own_centre[i]))
+            }
+            VisitorShape::Box(rotation) => {
+                (path.iter().any(|(from, to)| translated_box_meets_box(v.min, v.max, rotation, *from, *to, min, max)),
+                    std::array::from_fn(|i| v.position[i] + own_centre[i]))
+            }
+        };
         let centre_inside = (0..3).all(|i| centre[i] >= min[i] && centre[i] <= max[i]);
         let mut out = Check { counts, touching, centre_inside, min, max, call: None };
         let was_inside = self.inside.iter().any(|n| n.eq_ignore_ascii_case(v.name));
@@ -200,6 +217,43 @@ impl Trap {
         }
         out
     }
+}
+
+/// Continuous separating-axis test for a translated oriented box and an
+/// axis-aligned trigger. Each projected overlap interval must share the
+/// same time in [0,1]; a broad world bounding box would admit false hits.
+fn translated_box_meets_box(own_min: [f32; 3], own_max: [f32; 3], rotation: [[f32; 3]; 3], from: [f32; 3], to: [f32; 3], min: [f32; 3], max: [f32; 3]) -> bool {
+    if (0..3).any(|i| own_min[i] > own_max[i] || min[i] > max[i]) { return false; }
+    let dot = |a: [f64; 3], b: [f64; 3]| (0..3).map(|i| a[i] * b[i]).sum::<f64>();
+    let basis = [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]];
+    let axes = rotation.map(|row| row.map(f64::from));
+    let half: [f64; 3] = std::array::from_fn(|i| (own_max[i] as f64 - own_min[i] as f64) / 2.);
+    let middle: [f64; 3] = std::array::from_fn(|i| (own_max[i] as f64 + own_min[i] as f64) / 2.);
+    let other_half: [f64; 3] = std::array::from_fn(|i| (max[i] as f64 - min[i] as f64) / 2.);
+    let offset: [f64; 3] = std::array::from_fn(|i| from[i] as f64
+        + (0..3).map(|j| middle[j] * axes[j][i]).sum::<f64>() - (min[i] as f64 + max[i] as f64) / 2.);
+    let delta = std::array::from_fn(|i| to[i] as f64 - from[i] as f64);
+    let cross = |a: [f64; 3], b: [f64; 3]| [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+    let mut candidates = Vec::with_capacity(15);
+    candidates.extend(basis);
+    candidates.extend(axes);
+    for a in basis { for b in axes { candidates.push(cross(a, b)); } }
+    let (mut enter, mut leave) = (0.0f64, 1.0f64);
+    for axis in candidates {
+        let radius = (0..3).map(|i| other_half[i] * axis[i].abs() + half[i] * dot(axes[i], axis).abs()).sum::<f64>();
+        let start = dot(offset, axis);
+        let speed = dot(delta, axis);
+        if speed == 0. {
+            if start.abs() > radius { return false; }
+        } else {
+            let a = (-radius - start) / speed;
+            let b = (radius - start) / speed;
+            enter = enter.max(a.min(b));
+            leave = leave.min(a.max(b));
+            if enter > leave { return false; }
+        }
+    }
+    true
 }
 
 /// Whether the segment from `a` to `b` meets the box (edges count; a
@@ -321,12 +375,12 @@ mod tests {
     /// stepped there from a spot right by it.
     fn at<'a>(name: &'a str, x: f32, balls: &'a BallStack) -> Visitor<'a> {
         let p = [x, 20_000.0, 500.0];
-        Visitor { name, collision_type: CONNOR_TYPE, from: p, position: p, min: MIN, max: MAX, balls }
+        Visitor { name, collision_type: CONNOR_TYPE, from: p, position: p, min: MIN, max: MAX, shape: crate::trap::VisitorShape::Balls(balls) }
     }
 
     /// Connor moving from x0 to x1 in one update.
     fn moving<'a>(x0: f32, x1: f32, balls: &'a BallStack) -> Visitor<'a> {
-        Visitor { name: "Connor", collision_type: CONNOR_TYPE, from: [x0, 20_000.0, 500.0], position: [x1, 20_000.0, 500.0], min: MIN, max: MAX, balls }
+        Visitor { name: "Connor", collision_type: CONNOR_TYPE, from: [x0, 20_000.0, 500.0], position: [x1, 20_000.0, 500.0], min: MIN, max: MAX, shape: crate::trap::VisitorShape::Balls(balls) }
     }
 
     fn call(c: &Check) -> Option<String> {
@@ -358,7 +412,7 @@ mod tests {
         // 500–1,500.
         let balls = BallStack { radius: 10.0, heights: vec![10.0] };
         let mut t = trap(0, None);
-        let v = |z: f32| Visitor { name: "Connor", collision_type: CONNOR_TYPE, from: [10_000.0, 20_000.0, z], position: [10_000.0, 20_000.0, z], min: MIN, max: MAX, balls: &balls };
+        let v = |z: f32| Visitor { name: "Connor", collision_type: CONNOR_TYPE, from: [10_000.0, 20_000.0, z], position: [10_000.0, 20_000.0, z], min: MIN, max: MAX, shape: crate::trap::VisitorShape::Balls(&balls) };
         assert_eq!(call(&t.check(&v(500.0))).as_deref(), Some("On Connor"));
         // Feet at 0: the ball (z 10) is far below the box, the centre
         // (z 650) is in it: still inside.

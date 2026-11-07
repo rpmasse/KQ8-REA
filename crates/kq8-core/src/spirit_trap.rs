@@ -328,7 +328,7 @@ mod active_checks {
                 position: [0.0; 3],
                 min: [-200.0, -200.0, 0.0],
                 max: [200.0, 200.0, 1300.0],
-                balls: &balls,
+                shape: crate::trap::VisitorShape::Balls(&balls),
             };
             assert_eq!(active.connor_moved(&visitor), ["spirtp1 On Connor"]);
             assert_eq!(

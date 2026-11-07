@@ -3119,11 +3119,16 @@ impl WorldState {
             Some(self.chests[i].chest.player.base)
         } else if let Some(i) = self.door_index(who) {
             Some(self.doors[i].door.player.base)
+        } else if let Some(t) = self.traps.iter().find(|t| !t.gone && t.settings.name.eq_ignore_ascii_case(who)) {
+            // Original booktrap/girltrap/bouldtrp callbacks name their own
+            // trigger in checkDistance. Its loaded height is already resolved.
+            Some(Placement::at(t.settings.position))
         } else if who.eq_ignore_ascii_case("Connor") {
             self.connor_at.map(|p| Placement { rotation: kq8_data::objects::rotation([0.0, 0.0, self.connor_heading]), position: p })
         } else {
             // A box object (a barrel; M5 5c fix 5).
             self.clickables.iter().find(|c| !c.gone && c.name.eq_ignore_ascii_case(who)).map(|c| c.placement)
+                .or_else(|| self.prop_placements.get(&who.to_ascii_lowercase()).copied().flatten())
         }
     }
 
@@ -5222,6 +5227,34 @@ impl Active {
         self.traps_check(v, false, true)
     }
 
+    /// Accepted physical push, with the same shape/path used by its mover.
+    /// Traps see the updated logical placement before running their scripts
+    /// (traps.md rules 4-9; pushing.md rule 4).
+    pub fn prop_moved(&mut self, before: &crate::collide::BoxCollider, movement: &crate::connor_mover::PropMove) -> Vec<String> {
+        if movement.delta == [0.; 3] || self.world.deleted.contains(&before.name.to_ascii_lowercase()) { return Vec::new(); }
+        let name = &before.name;
+        let from = before.placement.position;
+        let position = std::array::from_fn(|i| from[i] + movement.delta[i]);
+        let placement = Placement { position, rotation: before.placement.rotation };
+        self.world.record_prop_placement(name, placement);
+        if let Some(c) = self.world.clickables.iter_mut().find(|c| !c.gone && c.name.eq_ignore_ascii_case(name)) {
+            c.placement = placement;
+        }
+        if let Some(i) = self.world.object_index(name) { self.world.objects[i].player.base = placement; }
+        if let Some(i) = self.world.anim_index(name) { self.world.anims[i].player.base = placement; }
+        let balls = crate::collide::BallStack::from_box(before.min, before.max);
+        let shape = if before.kind.ball_stack { crate::trap::VisitorShape::Balls(&balls) }
+            else { crate::trap::VisitorShape::Box(placement.rotation) };
+        let collision_type = self.world.collision_type_of(name).unwrap_or(before.kind.collision_type);
+        let v = Visitor { name, collision_type, from, position,
+            min: before.min, max: before.max, shape };
+        let path: Vec<_> = movement.path.iter().map(|(a, b)|
+            (std::array::from_fn(|i| from[i] + a[i]), std::array::from_fn(|i| from[i] + b[i]))).collect();
+        let calls = self.traps_check_path(&v, false, false, Some(&path));
+        self.character_placements();
+        calls
+    }
+
     /// Tossed loot moves through ordinary traps (traps.md rules 4-9;
     /// thrown-items.md rules 7/11). Dispatch each item's touch before the
     /// next flight, so scripts can affect subsequent visitors. Placement
@@ -5244,7 +5277,7 @@ impl Active {
             let point = [(step.position, step.position)];
             let path = if step.path.is_empty() { &point[..] } else { &step.path[..] };
             let visitor = Visitor { name: &name, collision_type: crate::item::ITEM_TYPE,
-                from: before.position, position: step.position, min, max, balls: &balls };
+                from: before.position, position: step.position, min, max, shape: crate::trap::VisitorShape::Balls(&balls) };
             self.traps_check_path(&visitor, false, false, Some(path));
             self.character_placements();
         }
@@ -5279,7 +5312,7 @@ impl Active {
         if !eligible { return; }
         let Some(mover) = c.mover.as_ref() else { return };
         let (name, balls) = (name.clone(), mover.balls.clone());
-        let visitor = Visitor { name: &name, collision_type: c.collision_type, from, position, min, max, balls: &balls };
+        let visitor = Visitor { name: &name, collision_type: c.collision_type, from, position, min, max, shape: crate::trap::VisitorShape::Balls(&balls) };
         self.traps_check(&visitor, placed, false);
     }
 
@@ -7246,7 +7279,7 @@ endif
     fn connor_at(a: &mut Active, x: f32) -> Vec<String> {
         let balls = crate::collide::BallStack::from_box([-200.0, -200.0, 0.0], [200.0, 200.0, 1300.0]);
         let p = [x, 0.0, 0.0];
-        let v = Visitor { name: "Connor", collision_type: CONNOR_TYPE, from: p, position: p, min: [-200.0, -200.0, 0.0], max: [200.0, 200.0, 1300.0], balls: &balls };
+        let v = Visitor { name: "Connor", collision_type: CONNOR_TYPE, from: p, position: p, min: [-200.0, -200.0, 0.0], max: [200.0, 200.0, 1300.0], shape: crate::trap::VisitorShape::Balls(&balls) };
         a.connor_moved(&v)
     }
 
@@ -7319,7 +7352,7 @@ endif
         assert_eq!(connor_at(&mut a, 0.0), ["clifTrap On Connor"]);
         let balls = crate::collide::BallStack::from_box([-200.0, -200.0, 0.0], [200.0, 200.0, 1300.0]);
         let far = [20_000.0, 0.0, 0.0];
-        let v = Visitor { name: "Connor", collision_type: CONNOR_TYPE, from: far, position: far, min: [-200.0, -200.0, 0.0], max: [200.0, 200.0, 1300.0], balls: &balls };
+        let v = Visitor { name: "Connor", collision_type: CONNOR_TYPE, from: far, position: far, min: [-200.0, -200.0, 0.0], max: [200.0, 200.0, 1300.0], shape: crate::trap::VisitorShape::Balls(&balls) };
         assert_eq!(a.connor_placed(&v), ["clifTrap Off Connor"]);
         assert_eq!(a.scripts.vars.get("T::Out"), Some("Connor"));
         // Put back inside by a script: not entered until he moves.
