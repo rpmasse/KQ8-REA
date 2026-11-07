@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-07 Original interface sizing and credits rules studied
+
+Study A supplies reusable Graphics/menu behavior: device eligibility,
+live resize and restart exceptions, parent-relative integer geometry,
+unscaled text and native-size pictures, background alternatives and
+the centered Save/Load control families. The implementation plan now
+replaces the shared layout stand-ins as one grouped batch.
+
+The credits note establishes numeric case order, line-based real-time
+durations, Escape-only exit, interleaved font rows, final photograph,
+active-game scoring from level/current experience and palette setup.
+Original-data/numeric checks find 25 cases, 134 lines and a nominal
+129-second sequence. This is study evidence, not completed Rust behavior
+or an original-runtime/manual comparison. Q108/Q198/Q199/Q207 and the
+milestone table now distinguish established rules from pending work.
+[Display rules](docs/behaviour/graphics-modes.md) ·
+[Credits rules](docs/behaviour/credits-completion.md)
+
 ## 2026-11-07 Ordinary terrain-liquid attacks
 
 The ordinary poison/fast-poison/swamp path now follows the studied

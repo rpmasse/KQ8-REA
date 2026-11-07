@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-07 Next shared interface batch has original reference rules
+
+Graphics and credits studies now replace earlier assumptions. Interface
+work can use original parent-relative rectangles, fixed glyph sizes,
+picture rules, 640/800 art and the Save/Load centering exception.
+Credits must use the original line-count timing, mixed fonts, final
+photo and level/current-experience score. The authored 25-card sequence
+has 134 lines and a nominal duration of 129 seconds. These are reference
+findings; the Rust presentation changes are still pending.
+
+The refreshed script audit identifies genuine remaining preSpecial,
+reduceHealth, trap membership/removal and Tile2/Tile3 behavior. The
+incorrectly capitalized clearstateChangeNotify is an original-script
+spelling issue, not permission to invent an alias. Study continues on
+shared combat/control commands. M4 about 80%, M5 60%, M6 about 25%.
+No manual tests, and no completed milestone is claimed.
+
 ## 2026-11-07 Ordinary liquid damage completed; display rules established
 
 Poison, fast poison and swamp now share the original amount, clock,
