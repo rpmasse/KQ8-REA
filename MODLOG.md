@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-07 Earned western skull archer survives save and reload
+
+The campaign test now uses the earned Small Crossbow and the original
+river-bank block as cover to defeat skeleton17. Its 400-XP death award,
+unchanged inventory/quest state, held Rock plate and surviving 52 health
+persist in a fresh process without another award. The two-process test
+passes once in 48.14 seconds. Skeleton16 and the river crossing remain.
+
+The first skull route died at a river-wall trigger. Two subsequent
+combat attempts failed: one exposed Connor to both archers; the next
+had a clear camera ray but blocked crossbow bolts. Both are retained.
+After those failures, a numerical sweep of original oriented boxes and
+live projectile offsets/radii identified the clear firing lane used by
+the passing route. The initial 100-health/200-XP reading was corrected
+to account for additive monster stats: 160 health and 400 XP.
+
+Only campaign test code and documentation changed. The abandoned skull
+route is preserved as a local prototype. No successful test was repeated,
+no unrelated core suite was rerun, and no manual testing was performed.
+[Evidence and next steps](docs/skull-river-access.md)
+
 ## 2026-11-07 Earned western portal crossing reaches the northwest chamber
 
 The automated campaign route now walks back with the earned Rock still
