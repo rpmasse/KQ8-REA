@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-07 Shared continuation audit and portal prerequisite
+
+Record the passing Swamp/Barren native mid-jump continuations and their
+remaining pending-effect/Portal gaps. The earned skull/statue attempt
+fails before teleporting: its route omitted pressure plate four, whose
+original On/Off callbacks enable/disable both portal triggers separately
+from FourOn. Preserve the failure and original save unchanged; route
+planning now includes the plate rather than changing engine flags.
+
+Study A completes Q208's original saved-world contract. DESIGN records
+the shared disk/regional clock, queue, target binding and listener work,
+alongside the smaller pending tile-effect snapshot fix. Neither is
+claimed complete here. M4 about 86%, M5 about 63%, M6 about 27%.
+
 ## 2026-11-07 Ending edge clarification and next chapter preparation
 
 Study A establishes the post-ending/death New warning predicate and

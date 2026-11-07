@@ -1,5 +1,31 @@
 # STATUS
 
+## 2026-11-07 Tile continuation checks and eastern portal prerequisite
+
+The grouped Swamp/Barren data and material checks pass. Their unattended
+Windows mid-jump save/restore fixtures also pass once: Swamp 24.32s and
+Barren 22.84s. These isolated setups are not earned campaign completion.
+Final audit found pending controller effects can be lost between the
+controller and script updates; the ordered snapshot/dispatch fix is in
+progress. Portal requests still need the shared state-refusal path.
+
+The first earned skull/statue chapter attempt stops at the central
+portal on update 238, before the bridge or statue. Original triptrp4.cs
+shows the prerequisite that the route missed: pressure plate four must
+remain occupied to enable portrap4/portrp4b. The earned save correctly
+has FourOn=true with both masks zero. No engine mismatch is established
+by that failure, and no quest flag or save has been changed. The attempt
+is retained under earned-skull-statue-chapter/1794057001439. The next
+route must first earn the held plate; it also encounters the known
+last-carried-Rock lifecycle gap, now being audited as a shared item rule.
+
+Study A's saved-world-events.md establishes the shared clock, selected
+event queue, merge/order, receiver and deferred-listener rules. DESIGN
+now specifies the disk and regional integration with the Q201 loader
+work. Implementation and full save fidelity are not yet complete.
+Current estimates: M4 about 86%, M5 about 63%, M6 about 27%.
+No manual testing; successful earlier routes are not repeated.
+
 ## 2026-11-07 Ending edge study and eastern-chamber preparation
 
 Study A confirms New's existing-game warning requires both a started
