@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-07 Resume the letter tiles and earn Death’s key
+
+Saving and loading in Death's hall now retains Connor's tile
+controller, letter progress, jump or teleport pose, and camera state.
+The original stone table is rebuilt on load. A route can request a
+neighboring tile using the bound turn and Jump keys. The Windows
+campaign replay uses the earned Paddle on the four pedestals, solves
+the tiles across fresh processes and reloads Death’s key. Older saves
+at the original puzzle start can recover their initial tile state.
+[Behavior and automated checks](docs/dead-city-progression.md)
+
 ## 2026-11-07 The Dead City entrance and Paddle
 
 The campaign test now continues from the earned Dead City arrival.

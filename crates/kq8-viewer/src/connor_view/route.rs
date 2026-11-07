@@ -25,6 +25,9 @@ struct Landmark {
     until_var: Option<ScriptValue>,
     /// At this landmark, turn in place and press the bound Jump key.
     jump_toward: Option<[f32; 2]>,
+    /// Turn toward the neighboring tile at xy and press the bound Jump key.
+    #[serde(default)]
+    tile_jump: bool,
     /// Stop here and use ordinary hand-weapon attacks against this character.
     fight: Option<String>,
     /// Use the same normal weapon input against a breakable's live health.
@@ -107,6 +110,10 @@ impl Replay {
                     || !l.xy.iter().all(|v| v.is_finite())
                     || l.jump_toward
                         .is_some_and(|point| !point.iter().all(|v| v.is_finite()))
+                    || (l.tile_jump && (l.jump_toward.is_some() || l.scene.is_some() || l.until_var.is_some()
+                        || l.fight.is_some() || l.break_object.is_some() || l.aim.is_some() || l.click.is_some()
+                        || l.inventory_slot.is_some() || l.run.is_some() || l.direction.is_some()
+                        || !matches!(kq8_core::tile_puzzle::where_is(l.xy[0], l.xy[1]), kq8_core::tile_puzzle::Where::Spot(_))))
                     || !l.radius.is_finite()
                     || l.radius <= 0.
             })
@@ -238,6 +245,14 @@ pub fn steer(
     if sim.hands_off {
         replay.progress = None;
         replay.keys(&mut keys, &[]);
+        return;
+    }
+    if replay.landmarks.front().is_some_and(|l| l.tile_jump) {
+        if let Err(problem) = steer_tile(&mut replay, &sim, &mut keys, &shared) {
+            replay.keys(&mut keys, &[]);
+            shared.log.lock().unwrap().summary(format!("walk-route: {problem}"));
+            exit.write(AppExit::error());
+        }
         return;
     }
     let landmark = replay.landmarks.front().unwrap();
@@ -421,6 +436,55 @@ pub fn steer(
         replay.progress = Some((distance, sim.updates));
     }
     replay.keys(&mut keys, &wanted);
+}
+
+fn steer_tile(
+    replay: &mut Replay,
+    sim: &ConnorSim,
+    keys: &mut ButtonInput<KeyCode>,
+    shared: &Shared,
+) -> Result<(), String> {
+    use kq8_core::tile_puzzle::{jump_target, where_is, Where};
+    let point = replay.landmarks.front().unwrap();
+    let xy = point.xy;
+    let Where::Spot(target) = where_is(xy[0], xy[1]) else {
+        return Err("tile route target outside the floor".into());
+    };
+    let tile = sim
+        .tile
+        .as_ref()
+        .ok_or_else(|| format!("Tile state missing at {}", point.name))?;
+    if tile.jumping_to() == Some(target) {
+        let point = replay.landmarks.pop_front().unwrap();
+        replay.keys(keys, &[]);
+        shared.log.lock().unwrap().summary(format!(
+            "walk-route: Tile accepted {} toward {target} on update {}",
+            point.name, sim.updates
+        ));
+        return Ok(());
+    }
+    if !tile.accepts_jump_key() {
+        replay.keys(keys, &[]);
+        return Ok(());
+    }
+    let pos = sim.mover.position;
+    let Where::Spot(from) = where_is(pos[0], pos[1]) else {
+        return Err(format!("outside the tile floor at {}", point.name));
+    };
+    if from == target || (from.row - target.row).abs() > 1 || (from.col - target.col).abs() > 1 {
+        return Err(format!(
+            "{} requests {target} from {from}, which is not a neighboring tile",
+            point.name
+        ));
+    }
+    let key = if jump_target(from, sim.walker.heading, false) == Some(target) {
+        sim.controls.jump.ok_or("Jump has no key binding")?
+    } else {
+        let error = wrap(heading_towards(pos, xy) - sim.walker.heading);
+        turn_key(sim, error).ok_or("no bound turn toward the requested tile")?
+    };
+    replay.keys(keys, &[key]);
+    Ok(())
 }
 
 struct GuardInput {

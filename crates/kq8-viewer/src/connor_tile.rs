@@ -17,6 +17,10 @@ use kq8_core::weapons::WeaponMode;
 
 use super::ConnorSim;
 
+#[path = "tile_checkpoint.rs"]
+mod checkpoint;
+pub use checkpoint::SavedTile;
+
 /// The door the start strip's back row clicks (rule 12).
 pub const DOOR: &str = "ltddoor4";
 /// What the state asks of the world.
@@ -35,7 +39,7 @@ pub enum TileCall {
     FollowAfterFlight(bool),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 enum Stage {
     /// The keys: turning on the spot, a jump on a press (rule 8).
     Keys,
@@ -66,6 +70,20 @@ pub struct TileRun {
     remembered: i8,
 }
 
+impl TileRun {
+    fn start(stones: Stones) -> Self {
+        Self {stones, expected:0, can_exit:false, lines:Lines::default(), stage:Stage::Keys, lit:None, remembered:0}
+    }
+    pub(super) fn accepts_jump_key(&self) -> bool { self.stage == Stage::Keys }
+
+    pub(super) fn jumping_to(&self) -> Option<Cell> {
+        match self.stage {
+            Stage::Turning { to, .. } | Stage::Jumping { to, .. } => Some(to),
+            _ => None,
+        }
+    }
+}
+
 impl ConnorSim {
     /// Rule 7: into the `Tile` state. `place_of` finds a stone by name.
     pub fn enter_tile(&mut self, place_of: &dyn Fn(&str) -> Option<[f32; 3]>, at: &str) -> String {
@@ -81,7 +99,7 @@ impl ConnorSim {
             self.walker.stand_now();
             "stop".to_string()
         };
-        self.tile = Some(TileRun { stones, expected: 0, can_exit: false, lines: Lines::default(), stage: Stage::Keys, lit: None, remembered: 0 });
+        self.tile = Some(TileRun::start(stones));
         self.tile_calls.push(TileCall::Hold(true));
         let spot = self.tile_where();
         let line = format!("enters the Tile state: {found} of 64 stones{missing}; at {}; expects D (tile07); exit switch off; {start} (tile-puzzle.md rules 2, 7)", show(spot));
