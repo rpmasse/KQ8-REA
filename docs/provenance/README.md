@@ -3,6 +3,16 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Healed portal revisit and eastern archer.** The installed portrap5
+script's FirstFive guard supplies the no-repeat XP rule. The original
+monster/type tables supply skeleton16's 160 health and 400-XP award.
+Recorded original static geometry and the live bolt's dimensions plan
+the route and firing lane; the native test verifies actual traversal,
+projectile hits, death reward and saved aftermath. The preceding archer
+and healing saves are consumed as earned checkpoints, not recreated.
+No runtime rule changes or executable study by B.
+[Evidence](../skull-river-access.md#healed-return-and-eastern-archer).
+
 **Northwest return portal and healing.** The installed DeadCity/patch/
 PORTRAP6.CS supplies the return destination, paired view changes and
 portal flags/masks. The archive's SYLPHWEL.CS supplies five health per

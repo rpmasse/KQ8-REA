@@ -3262,3 +3262,97 @@ fn skull_return_portal_and_sylph_healing_preserve_the_earned_victory() {
         .contains("KQStatsChangeRequestEvent 5 0 0 0 0 to Connor"));
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and genuine KQ8_SKULL_RETURN_WELL_SLOT"]
+fn healed_return_defeats_the_eastern_skull_archer_and_reloads() {
+    let play = Play::new("earned-skull-eastern-archer");
+    let source = earned_slot("KQ8_SKULL_RETURN_WELL_SLOT")
+        .expect("set KQ8_SKULL_RETURN_WELL_SLOT to a genuine SkullReturnWellReload save");
+    let start: Value = serde_json::from_slice(&fs::read(&source).unwrap()).unwrap();
+    assert_eq!(start["label"], "SkullReturnWellReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"], json!({"stats":[120,85,27,11,2074],"level":12}));
+    assert!(region_flag(&start, "DeadCity::Portal::FirstFive", "true"));
+    assert!(region_flag(&start, "DeadCity::Portal::FiveOn", "true"));
+    assert!(region_flag(&start, "DeadCity::Portal::SixOn", "false"));
+    let (returned, chamber_slot) = if let Some(checkpoint) = earned_slot("KQ8_HEALED_SKULL_CHAMBER_SLOT") {
+        let saved = prepare(&play, &checkpoint);
+        assert_eq!(saved["label"], "HealedSkullChamber");
+        (saved, 1)
+    } else {
+        prepare(&play, &source);
+        let mut points = Vec::new();
+        let mut from = [66544_f32,104638_f32];
+        for to in [[66000_f32,104750_f32],[64000.,107000.],[64000.,110000.],[62500.,110436.]] {
+            let steps = ((to[0]-from[0]).hypot(to[1]-from[1])/1800.).ceil().max(1.) as u32;
+            for i in 1..=steps {
+                let t = i as f32/steps as f32;
+                points.push(json!({"name":format!("Return healed to the skull portal {}",points.len()+1),
+                    "xy":[from[0]+t*(to[0]-from[0]),from[1]+t*(to[1]-from[1])],"radius":120,"run":false}));
+            }
+            from = to;
+        }
+        points.push(json!({"name":"Revisit the skull chamber without another portal award",
+            "xy":[61253,110436],"radius":100,"run":false,
+            "until_var":{"name":"DeadCity::Portal::SixOn","value":"true"}}));
+        let path = play.root.join("healed-skull-return.json");
+        fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":points})).unwrap()).unwrap();
+        let (saved, viewer) = leg(&play, 1, "HealedSkullChamber", 500,
+            &["--walk-route",path.to_str().unwrap()]);
+        assert!(viewer.contains("walk-route at Revisit the skull chamber without another portal award"));
+        assert!(log(&play, "HealedSkullChamber", "traps.log").contains("trap portrap5: On Connor"));
+        assert!(!log(&play, "HealedSkullChamber", "doors.log")
+            .contains("KQStatsChangeRequestEvent 0 0 0 0 4000 to Connor"));
+        (saved, 2)
+    };
+    assert_eq!(returned["journey"]["stats"], start["journey"]["stats"]);
+    assert!((returned["position"][0].as_f64().unwrap()-29021.).abs()<100.);
+    assert!((returned["position"][1].as_f64().unwrap()-192412.).abs()<100.);
+    assert_eq!(returned["view_flags"]["active"], false);
+    let route = json!({"start":25,"landmarks":[
+        {"name":"Cross the cleared south bank 1","xy":[31000,192650],"radius":100,"run":true},
+        {"name":"Cross the cleared south bank 2","xy":[33300,192800],"radius":100,"run":true},
+        {"name":"Cross the cleared south bank 3","xy":[35000,193100],"radius":100,"run":true},
+        {"name":"Defeat the eastern skull-river archer","xy":[36250,193250],"radius":60,"run":false,
+            "fight":"skeleton16","ranged":true}
+    ]});
+    let path = play.root.join("skull-eastern-archer.json");
+    fs::write(&path, serde_json::to_vec(&route).unwrap()).unwrap();
+    let (won, viewer) = leg(&play, chamber_slot, "SkullEasternArcher", 450,
+        &["--walk-route",path.to_str().unwrap(),"--key","physical:F2,3","--key","left:IDCTL_INVBAR_LONG,4"]);
+    assert!(viewer.contains("walk-route at Defeat the eastern skull-river archer"));
+    assert!(viewer.lines().any(|line| line.contains("test --aim skeleton16 (camera through gameplay pixel")
+        && line.contains("the aim pick meets character skeleton16")));
+    let combat = log(&play, "SkullEasternArcher", "fight.log");
+    assert!(combat.contains("skeleton16: hit by Connor, Projectile"));
+    assert_eq!(combat.matches("skeleton16: its death ended (rule 32)").count(), 1);
+    assert!(!combat.contains("test --swing skeleton16"));
+    assert!(!combat.contains("skeleton17: its death ended (rule 32)"));
+    let (restored, _) = leg(&play, chamber_slot+1, "SkullEasternArcherReload", 45, &[]);
+    for saved in [&returned,&won,&restored] {
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        for (flag,value) in [("FirstFive","true"),("FiveOn","false"),("SixOn","true")] {
+            assert!(region_flag(saved, &format!("DeadCity::Portal::{flag}"), value));
+        }
+        let plate = |save: &Value| save["traps"]["states"].as_array().unwrap().iter()
+            .find(|trap| trap["name"] == "triptrp5").unwrap()["inside"].clone();
+        assert_eq!(plate(saved), plate(&start));
+    }
+    for saved in [&won,&restored] {
+        assert_eq!(saved["journey"]["stats"]["level"], 12);
+        let stats = saved["journey"]["stats"]["stats"].as_array().unwrap();
+        assert!((1..=120).contains(&stats[0].as_i64().unwrap()));
+        assert_eq!(&stats[1..], json!([85,27,11,2474]).as_array().unwrap());
+        for name in ["skeleton16","skeleton17"] {
+            assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap().iter().any(|gone| gone == name));
+        }
+    }
+    assert_eq!(won["journey"]["stats"], restored["journey"]["stats"]);
+    let reload_combat = log(&play, "SkullEasternArcherReload", "fight.log");
+    for name in ["skeleton16","skeleton17"] {
+        assert!(!reload_combat.contains(&format!("{name}: its death ended (rule 32)")));
+    }
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}

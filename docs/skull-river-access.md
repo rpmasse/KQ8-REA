@@ -1,9 +1,9 @@
-# Skull chamber: river access and western archer
+# Skull chamber: river access and archers
 
-The earned western-archer encounter and a fresh-process reload pass
-once in **48.14 seconds**. This advances the genuine Dead City campaign
-from WesternPortalCrossedReload. The eastern archer, river crossing and
-good skull remain incomplete.
+Both archers are now defeated in the earned campaign. The western
+encounter/reload passed once in 48.14 seconds; after an earned healing
+visit, the portal revisit, eastern encounter and reload passed once in
+87.51 seconds. The river crossing and good skull remain incomplete.
 
 ## Original data and route
 
@@ -124,10 +124,52 @@ also runs the portal leg. That corrected combined entry point compiled;
 the recorded native evidence uses the successful portal checkpoint and
 the passing continuation, rather than repeating the completed leg.
 
+## Healed return and eastern archer
+
+The continuation uses SkullReturnWellReload and follows the original
+static terrain/building route west out of the well area, through
+(66000,104750), (64000,107000), (64000,110000) and (62500,110436).
+Normal movement enters portal5. FirstFive remains true, so the script
+returns Connor to the skull chamber without another 4,000-XP award.
+The genuine HealedSkullChamber checkpoint preserves all 120 health.
+
+From that save, normal F2 and the ranged HUD slot select the earned
+Small Crossbow in first person. The south-bank route reaches roughly
+(36250,193250), where the complete static bolt sweep found a clear lane
+to skeleton16. Actual camera rays and bolts hit that archer; its death
+completes once at update 218 and awards 400 XP. An already flying arrow
+hits Connor afterwards, leaving 39 health. The western archer is not
+recreated or fought again.
+
+The three-process test **passes once in 87.51 seconds**, after a
+12.15-second compilation. Both deaths, carried items, quest flags,
+portal flags and the held Rock persist; the fresh reload repeats
+neither death award. Original Options.cs stays unchanged. Evidence:
+skull-eastern-archer-native.log.
+
+Newest genuine continuation:
+
+`kq8-artifacts/earned-skull-eastern-archer/1794046057966712000/slots/slot-4.json`
+
+The label is SkullEasternArcherReload, at (36280,193254,864), in first
+person with the weapon stowed. Level-12 stats are [39,85,27,11,2474].
+Slot-2 is HealedSkullChamber and slot-3 is SkullEasternArcher.
+
+```powershell
+$env:KQ8_GAME_DIR=(Resolve-Path -LiteralPath "../King's Quest 8 GOG").Path
+$env:KQ8_SKULL_RETURN_WELL_SLOT=(Resolve-Path -LiteralPath 'kq8-artifacts/earned-skull-return-well/1794045759136946000/slots/slot-3.json').Path
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::healed_return_defeats_the_eastern_skull_archer_and_reloads -- --ignored --exact --nocapture
+```
+
+Expected: one passing test with no repeat portal XP, one eastern-archer
+award, both deaths retained and matching saved/restored stats. If a
+genuine HealedSkullChamber save exists, KQ8_HEALED_SKULL_CHAMBER_SLOT
+can skip the completed portal leg. Continue from slot-4 for subsequent
+work rather than repeating the successful encounter.
+
 ## Remaining work
 
-Return through portal5 with full health, then complete the second archer,
-the original block/jump crossing, good-skull pickup and
+Complete the original block/jump crossing, good-skull pickup and
 replacement clicker, statue/feather/scales and the remaining campaign.
 The jumping route and skull pickup are **not tested successfully**.
 No runtime source changed in this step; unrelated core tests were not

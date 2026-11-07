@@ -13,6 +13,30 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5–M6 healed return and eastern skull archer (2026-11-07).** Continue
+from SkullReturnWellReload with 120 health. The current static segment
+plan leaves the well westward via (66000,104750), (64000,107000) and
+(64000,110000), then enters portal5. Require its original control
+sequence and destination with FirstFive still true and no new portal
+XP. Save the earned chamber return before attempting the next encounter.
+
+Use the earned Small Crossbow through its HUD slot and normal first-
+person camera rays from the dry bank near (36250,193250). The complete
+static bolt sweep has no block between this firing point and skeleton16;
+skeleton17 is already dead in the genuine source. Require skeleton16's
+projectile hits, one completed death and 400 XP, both deaths retained,
+unchanged carried inventory/quest state and the held Rock, then one
+fresh-process reload without another reward. Preserve the real portal
+checkpoint if the encounter fails. River crossing and skull pickup
+remain required after this encounter.
+
+This three-process continuation now passes once in 87.51 seconds. The
+portal revisit awards nothing again; skeleton16's death awards 400 XP
+once. Both deaths persist with level-12 stats [39,85,27,11,2474] after
+the final incoming arrow. Continue from SkullEasternArcherReload for
+the original block/jump crossing, without repeating either encounter.
+[Evidence](skull-river-access.md#healed-return-and-eastern-archer)
+
 **M6 skull-chamber return portal and earned healing (2026-11-07).**
 Continue from SkullWesternArcherReload, preserving skeleton17's death
 and 400-XP award. Walk through portrap6 with normal input. The installed
