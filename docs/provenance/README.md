@@ -3,6 +3,15 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Earned good skull and shelf clicker.** Original Dead City GSKULL.CS
+supplies the no-skull branch, SkullMsg increment, dynamic clicker and
+0.4-second inventory/deletion cue. Original placement data supplies
+skull.22's shelf location. The native continuation uses an earned
+crossing save, normal walking and a camera-selected click, then checks
+one item and the same replacement identity after reload. No game rule
+changes or executable study by B.
+[Evidence](../skull-river-access.md#earned-good-skull-and-shelf-replacement).
+
 **Original skull-river jumps.** Installed GAME/Common/C_jump.kqs and
 C_rnjmp.kqs, GAME/Kq/Conner.anm, the Dead City terrain/materials and
 loaded original block placements supply the route's distances and

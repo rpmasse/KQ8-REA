@@ -61,9 +61,11 @@ the first hall with the key. The eight-process regression from
 `FirstHallReload` completed in 740.44 seconds. The final fresh
 load recorded one key, 80 health and 1,197 experience at level eight.
 
-The good skull, the statue that produces the feather and the scales
-still need verification in this campaign. The existing focused scales
-test starts with a supplied feather.
+The earned good skull and its shelf replacement now survive reload
+after the original two-block river crossing. The statue that produces
+the feather and the scales still need verification in this campaign.
+The existing focused scales test starts with a supplied feather.
+[Earned skull evidence](skull-river-access.md#earned-good-skull-and-shelf-replacement)
 
 ## Crossing the spike gate
 

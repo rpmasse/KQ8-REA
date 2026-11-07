@@ -3454,3 +3454,71 @@ fn healed_return_defeats_the_eastern_skull_archer_and_reloads() {
     }
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and genuine KQ8_SKULL_RIVER_CROSSED_SLOT"]
+fn earned_good_skull_and_its_shelf_replacement_survive_reload() {
+    let play = Play::new("earned-good-skull");
+    let source = earned_slot("KQ8_SKULL_RIVER_CROSSED_SLOT")
+        .expect("set KQ8_SKULL_RIVER_CROSSED_SLOT to a genuine SkullRiverCrossedReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "SkullRiverCrossedReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert!(start["journey"]["hand"].is_null());
+    assert!(region_flag(&start, "DeadCity::Reaper::metConnor", "4"));
+    assert!(region_flag(&start, "DeadCity::Skulls::SkullMsg", "0"));
+    assert!(region_flag(&start, "DeadCity::Skulls::StatHasGoodSkull", "false"));
+    assert!(!start["journey"]["items"].as_array().unwrap().iter()
+        .any(|item| item["kind"] == "INVITEM_GoodSkull" || item["kind"] == "INVITEM_BadSkull"));
+    let points = json!([
+        {"name":"Walk up the north bank slope","xy":[34000,202800],"radius":100,"run":false},
+        {"name":"Follow the cleared north bank","xy":[32750,203250],"radius":100,"run":false},
+        {"name":"Take the original good skull from the shelf",
+            "xy":[31500,204500],"radius":140,"run":false,"aim":"skull.22"}
+    ]);
+    let path = play.root.join("good-skull.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":points})).unwrap()).unwrap();
+    let (taken, viewer) = leg(&play, 1, "GoodSkull", 300,
+        &["--walk-route",path.to_str().unwrap()]);
+    assert!(viewer.lines().any(|line| line.contains("test --aim skull.22 (camera through gameplay pixel")
+        && line.contains("hits skull.22 first")));
+    let events = log(&play, "GoodSkull", "doors.log").to_ascii_lowercase();
+    assert!(events.contains("script gskull.cs skull.22 connoraction do do"));
+    assert_eq!(events.matches("script gskull.cs skull.22 cue 1 0").count(), 1);
+    let (restored, _) = leg(&play, 2, "GoodSkullReload", 45, &[]);
+    let other_items = |saved: &Value| saved["journey"]["items"].as_array().unwrap().iter()
+        .filter(|item| item["kind"] != "INVITEM_GoodSkull").cloned().collect::<Vec<_>>();
+    let mut clicker_copy = None;
+    for saved in [&taken, &restored] {
+        assert!(carries_one(saved, "INVITEM_GoodSkull"));
+        assert!(!saved["journey"]["items"].as_array().unwrap().iter()
+            .any(|item| item["kind"] == "INVITEM_BadSkull"));
+        assert_eq!(other_items(saved), start["journey"]["items"].as_array().unwrap().clone());
+        for name in ["skeleton16","skeleton17"] {
+            assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap().iter().any(|gone| gone == name));
+        }
+        for (flag,value) in [("FirstFive","true"),("FiveOn","false"),("SixOn","true")] {
+            assert!(region_flag(saved, &format!("DeadCity::Portal::{flag}"), value));
+        }
+        assert_eq!(saved["journey"]["stats"], start["journey"]["stats"]);
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        assert!(region_flag(saved, "DeadCity::Skulls::SkullMsg", "1"));
+        assert!(region_flag(saved, "DeadCity::Skulls::StatHasGoodSkull", "false"));
+        assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap().iter().any(|name| name == "skull.22"));
+        let vars = saved["kept"]["deadcity"]["vars"].as_array().unwrap();
+        let clicker = vars.iter().find(|pair| pair[0] == "DeadCity::Skulls::ClickerName").unwrap()[1].as_str().unwrap();
+        let copy = saved["kept"]["deadcity"]["object_copies"].as_array().unwrap().iter()
+            .find(|copy| copy["name"] == clicker).unwrap();
+        assert_eq!(copy["file"], "clicker.kq");
+        assert_eq!(copy["placement"]["position"], json!([31583.,206637.,994.]));
+        if let Some(first) = &clicker_copy { assert_eq!(copy, first); }
+        else { clicker_copy = Some(copy.clone()); }
+        let plate = |save: &Value| save["traps"]["states"].as_array().unwrap().iter()
+            .find(|trap| trap["name"] == "triptrp5").unwrap()["inside"].clone();
+        assert_eq!(plate(saved), plate(&start));
+    }
+    assert_eq!(taken["journey"]["items"], restored["journey"]["items"]);
+    assert!(!log(&play, "GoodSkullReload", "doors.log").to_ascii_lowercase()
+        .contains("script gskull.cs skull.22 cue 1 0"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}

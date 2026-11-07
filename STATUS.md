@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-07 Earned good skull and shelf replacement survive reload
+
+The native route from SkullRiverCrossedReload passes once in 37.41
+seconds, following a 14.86-second compilation. At update 104 the
+ordinary camera ray hits skull.22 first. Its original GSKULL.CS cue
+runs once at update 110, removes the shelf skull and grants one
+GoodSkull. SkullMsg advances to 1. The dynamically created clicker
+NoName100 stays at (31583,206637,994), with identical identity and
+placement after the fresh-process reload. No BadSkull is carried.
+
+Newest earned save: earned-good-skull/1794047529603851200/slots/
+slot-3.json, GoodSkullReload at (31469,204559,864). Level-12 stats
+[39,85,27,11,2474], other inventory, both archer deaths, portal flags
+and the Rock-held plate are preserved. Original Options.cs is unchanged.
+Evidence: good-skull-earned-native.log. The successful river jumps and
+archer fights were not repeated. Next establish the return route and
+reach the statue with this earned skull. No manual testing. Estimates
+remain M4 about 80%, M5 60%, M6 about 25%.
+[Commands and limits](docs/skull-river-access.md#earned-good-skull-and-shelf-replacement)
+
 ## 2026-11-07 Original skull-river jumps and saved crossing verified
 
 Normal standing jumps reach block.32 at update 149, feet 1779, and
