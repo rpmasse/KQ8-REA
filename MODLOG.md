@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-07 Earned healed return and remaining controller references
+
+The corrected return crosses the river, uses the northwest portal and
+heals to 120, preserving inventory in an earned central-room save.
+The final eastern-room assertion fails because an already-true NineOn
+flag prematurely completes the diagnostic waypoint; recorded position
+and XP disprove arrival. Keep this save for continuation rather than
+repeat the successful river/well legs. Original files remain unchanged.
+
+Study A supplies Tile2/Tile3 save/event details and generic Cue500 launch
+ordering, geometry, damage and persistence limits. Its credits correction
+establishes retained game-started/Connor lifetime after killGame despite
+disabled Back to Game. DESIGN records the required ending-lifetime fix
+and parallel static/animated tile bitmap adapter. These studies are
+static evidence, not original-runtime comparisons or completed Rust work.
+
 ## 2026-11-07 Original credits timing, layout and score
 
 Replaced fixed-duration/key-skipping credits with original line-count

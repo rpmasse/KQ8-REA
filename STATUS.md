@@ -1,5 +1,29 @@
 # STATUS
 
+## 2026-11-07 Earned return and healing saved; ending lifetime corrected by study
+
+The eastern portal approach clears the pillar. The integrated native run
+returns through por trap 6, heals at the well, and writes a genuine save
+with level-12 stats [120,85,27,11,2474] and unchanged carried inventory.
+The viewer passes, but the wrapper's expected eastern-room award fails:
+NineOn was already true in the source, so the diagnostic route accepts its
+final waypoint before actually entering portal 4. The saved position is
+(77701,110158,1584), still in the central chamber. Its generated label
+SkullReturnMetalRoom is inaccurate; do not use it as proof of arrival.
+Continue from earned-skull-return-chapter/1794054386566/slots/slot-2.json,
+not by replaying the successful crossing and healing. FirstFour is still
+false, providing a distinct first-use condition for the next continuation.
+Original Options and source hashes remain unchanged; god/AI modifiers
+are off. [Evidence](docs/skull-river-access.md#return-route-diagnostics)
+
+Study A corrects the ending lifetime: original killGame disables resume
+but retains the separate game-started flag and Connor through movie and
+credits. Current immediate teardown is therefore incorrect. The next M4
+implementation preserves those resources and keeps the late score read.
+Tile persistence and generic Cue500 projectile rules are also documented;
+tile object/controller/save and render adapters are being implemented.
+Estimates remain M4 about 85%, M5 60%, M6 about 25%. No manual testing.
+
 ## 2026-11-07 Original credits presentation completed
 
 Credits now uses all 25 original cards, authored mixed-font rows and

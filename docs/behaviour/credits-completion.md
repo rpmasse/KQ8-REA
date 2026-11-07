@@ -130,13 +130,17 @@ photograph and Connor's score. The menu's Credits choice and the ending's
     levels and add the remaining amount. No quest-completion percentage,
     health, gold, inventory count, elapsed play time, or difficulty bonus
     is included by the credits calculation.
-16. **A fresh title session shows zero, traced.** If no game is running,
-    the final card still appears but substitutes zero for the score. The
-    active-game test is the same state that governs the main menu's Back
-    to Game availability. Opening Credits through menus while a game is
-    active uses that Connor's level and experience; merely choosing the
-    menu entry does not force zero. The ending's `doCredits` uses the
-    same active-game calculation.
+16. **A fresh title session shows zero, traced; eligibility correction
+    2026-11-07.** The score tests whether a game has been started, not
+    whether the player may currently return to gameplay. Before a game
+    has started, the final card substitutes zero. Once one has started,
+    it reads the retained Connor's level and current experience.
+    Opening Credits through menus does not force zero. Back to Game
+    requires both a started game and the absence of the separate
+    unavailable/dead condition. The earlier version of this rule
+    incorrectly equated these tests; that was a study error. In
+    particular, `killGame` disables Back to Game without making the
+    credits score zero. See the ending lifecycle below.
 17. **The authored denominator is fixed, data and traced.** The English
     score message contains the fixed possible total **6,631,364** and a
     single signed decimal integer substitution for the player's score.
@@ -158,6 +162,53 @@ photograph and Connor's score. The menu's Credits choice and the ending's
     the general GUI text catalogue is restored to message file 500 and
     the next screen applies its own presentation rules.
 
+## Ending lifecycle: killGame, movie and credits
+
+20. **Installed ending sequence, data.** The original
+    `Temple4/kq.vol:vortrap.cs`, on the completion callback for
+    `c_imdone.kqs`, executes `killGame`, `playAvi w32ndg_1.dll`, then
+    `doCredits`. This installation has no loose override for that
+    script. The original command spelling is `killGame`; an internal
+    recreation request named EndGame must still implement these
+    original effects.
+21. **killGame makes play unavailable; it does not destroy the game,
+    traced.** The command immediately marks the session unavailable
+    for returning to gameplay, selects the main menu and pauses world
+    simulation. It retains the world, Connor and the fact that a game
+    has started. In particular it does not reset Connor's experience
+    or level, destroy him, replace him with a fresh Connor, or take a
+    zero-score snapshot. Back to Game is therefore unavailable from
+    this point even though credits can still read Connor. The same
+    unavailable condition also prevents the ordinary Back to Game
+    action from resuming the completed session.
+22. **Movie return preserves that retained game, traced.** The movie
+    command is synchronous with respect to the calling script: after
+    playback returns, execution proceeds to `doCredits`. Its playback
+    setup and cleanup manage the movie window, display and sound
+    resources; they do not remove Connor or clear the game-started
+    condition. A missing movie file returns from the movie command,
+    allowing the following `doCredits` to execute. Exact movie input
+    and audio synchronization remain outside this bounded study.
+23. **Credits still reads the ending Connor, traced.** `doCredits`
+    selects the same credits viewer used by the menu. It does not
+    undo the completed-session restriction and does not dispose of
+    Connor. When card 25 is constructed, use the retained level and
+    current experience under rules 15–18. A successful ending must
+    not acquire score zero merely because ordinary gameplay has ended.
+    This is a late read at card construction, not a total copied when
+    `killGame` or the movie began.
+24. **Leaving ending credits, traced.** Escape or natural completion
+    returns to Main under the normal credits exit rule. That screen
+    change does not make the completed game playable again and does
+    not discard the retained Connor. Reopening Credits in this same
+    completed session still has access to his score. Destruction or
+    replacement during a later new game, load, quit or application
+    shutdown is a separate lifecycle operation, not an effect of
+    `killGame`, movie completion or credits exit.
+
+The lifecycle findings above are static evidence, **not tested** by
+running the original ending.
+
 ## Data used
 
 - `GAME/Kq/credits.KQ`: screen class, GUI, volume path, initial palette,
@@ -168,6 +219,8 @@ photograph and Connor's score. The menu's Credits choice and the ending's
 - `GAME/Resource/kqGuiTag.TTAG`: font and photograph asset-name mappings.
 - `GAME/ENGLISH/400.MSG`: card cases, line breaks, style markers, final
   score format, and fixed possible total.
+- `Temple4/kq.vol:vortrap.cs`: the ending's command sequence after
+  `c_imdone.kqs` finishes.
 - GUI resources `20sl.pft`, `27sl.pft`, `kqteam08.pbm`, and `saveload.ppl`
   through the original resource search. Keep these user-supplied assets
   outside the source repository.
@@ -207,11 +260,19 @@ families and numeric checks rather than a separate test for each card:
    to the main menu. Reentering begins at card 1 with the photo hidden.
 4. Compare score arithmetic at the level boundary: L=1/E=7 gives 7;
    L=2/E=3 gives 13; L=15/E=7 gives 163837; L=16/E=7 gives 313837;
-   L=17/E=0 gives 463830. An inactive game gives 0 regardless of any
-   leftover Connor object. A level-only change must affect the score.
+   L=17/E=0 gives 463830. A session in which no game has started gives
+   0 regardless of any leftover Connor object. A level-only change
+   must affect the score.
 5. At both original resolutions, check the two font selections,
    interleaved row order, unchanged glyph scale, photograph bounds,
    spacer rows, final score formatting, and cleanup when reopening.
+6. Starting from a retained Connor with a nonzero score, process the
+   ending's `killGame`, movie return and `doCredits` in order. Back to
+   Game becomes unavailable at `killGame`; Connor remains available;
+   card 25 uses his nonzero score. After credits returns to Main, Back
+   to Game remains unavailable and reopening Credits retains that
+   score. Also exercise a missing movie file without discarding the
+   pending credits command.
 
 ## Open questions
 

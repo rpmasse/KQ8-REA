@@ -36,6 +36,38 @@ required behavior and the uninterrupted New Game-to-ending path; this
 changes the verification strategy, not the fidelity or completion target.
 Manual testing remains deferred until the Rust recreation is complete.
 
+**M4 ending lifetime and credits score (2026-11-07).** Study A corrected
+credits-completion.md rule 16 and established rules 20–24: killGame
+disables gameplay and Back to Game but retains the separate game-started
+state, world and Connor through playAvi and doCredits. Replace immediate
+viewer teardown with an ended/paused session that remains owned until
+normal new-game/load/quit cleanup. Main and movie return consult gameplay
+availability; credits card 25 samples the retained live Connor when a game
+has started. Missing movie still continues to credits. Preserve the
+established late score calculation, with no early stats snapshot.
+
+Scope is startup_menu presentation/credits/movie bridges, narrow
+world_build lifetime/reset hooks and core credits eligibility naming and
+checks. Use one grouped retained-state/queue/movie-return matrix, checking
+disabled resume, late stats changes, zero for a fresh title and no new
+simulation updates while paused. Exercise actual killGame/playAvi/doCredits
+order without replaying successful movies or the Options/no-skip native
+route. Record any native seam that still needs representative evidence.
+
+**M5–M6 tile texture substitutions (2026-11-07).** Extend the current
+single-pair animated changeBmp adapter to consume the shared
+WorldState::tile_bitmap_pairs result: two simultaneous scripted Swamp
+Reveal replacements, one marked Lava top replacement, or the ordinary
+bmp_swaps fallback. Static Swamp tile materials need the same update and
+restore behavior; preserve each instance's normal texture and isolate
+material changes from other copies. Asset dimensions/quality stay original.
+Use existing indexed palette image recipes and preloaded swap_looks.
+The render adapter owns anim_view and a narrow terrain_view static-material
+binding seam; core class decisions and asset discovery stay with the tile
+implementation. A grouped material-state matrix covers both pairs, shared-
+model independence, no-op repeats, ordinary fallback and restoration;
+reuse existing palette checks and integrate with the controller fixture.
+
 **M5–M6 Swamp and Barren tile families (2026-11-07).** Implement
 secondary-tile-puzzles.md as two distinct controllers sharing the
 established jump/mover and event mechanisms. Death Hall's teleport,
@@ -68,6 +100,11 @@ named_anim change is limited to a required live speed/phase operation.
 Viewer ownership is new connor_secondary_tiles/secondary_tile_checkpoint
 modules and narrow Connor, tile highlight, door, load, animation and save
 adapters. It does not change the separate Q201 loading-phase design.
+The shared ScriptHost may gain a default variable-change notification so
+class handlers observe Swamp power/switch changes during nested synchronous
+callbacks. Cover initialization/restoration and host-returned variable
+updates as well as ordinary assignments; a once-per-frame mirror is too
+late. Verify this with script-order cases in the grouped Swamp matrix.
 
 Use four grouped matrices: shared grid/input/state rules; Swamp
 contact/stat/attack/Reveal/throw behavior; Lava cycling/reversal/prime
@@ -123,6 +160,12 @@ verified higher-bank corridor and jump matrix, then resume one integrated
 return/healing/portal route after the credits native lease is released.
 Do not change real movement, collision, damage or the earned checkpoint.
 Record the executable hash because the credits build may replace it.
+The corrected native launch subsequently succeeds; the next failure is
+the direct approach into the portal's solid rotated pillar. Original
+bounds and a Walker/Mover probe establish an eastern approach through
+three additional ordinary waypoints. Reuse the passed crossing evidence
+and continue one integrated portal/healing/chapter route; replaying the
+crossing is necessary because the failed run created no saved checkpoint.
 
 **M4 original credits completion (2026-11-07).** Replace the credits
 stand-ins from credits-completion.md: numeric cases 1–25, authored line
