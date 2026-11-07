@@ -16,7 +16,7 @@ What the game's scripts (`.cs`) and object files (`.kq`) ask of the program, fro
 | Daventry | 174 | 92 | 6 (7) | 1 (1) | — |
 | CastleD | 17 | 29 | 3 (5) | 0 (0) | — |
 | DeadCity | 281 | 97 | 5 (5) | 1 (1) | — |
-| Swamp | 93 | 82 | 8 (9) | 0 (0) | Tile2 |
+| Swamp | 93 | 82 | 7 (8) | 0 (0) | Tile2 |
 | Gnome | 111 | 79 | 6 (9) | 1 (1) | — |
 | Barren | 118 | 88 | 7 (8) | 0 (0) | Tile3 |
 | IceWorld | 78 | 86 | 10 (14) | 1 (29) | — |
@@ -54,7 +54,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `checkSave` | **missing** | 2 (0) | Daventry 1, Common 1 | `Daventry/savegmh.cs` |
 | `mouseAction` | **missing** | 2 (0) | Daventry 2 | `Daventry/AX.CS` |
 | `KQCamera::setHeight2` | **missing** | 1 (0) | temple4 1 | `temple4/archon.cs` |
-| `KQConner::addImmunity` | **missing** | 1 (0) | Swamp 1 | `Swamp/WHISP.CS` |
 | `KQMonster::clearstateChangeNotify` | **missing** | 1 (0) | DeadCity 1 | `DeadCity/SKELKING.CS` |
 | `beep` | **missing** | 1 (0) | Swamp 1 | `Swamp/BOILOIL.CS` |
 | `cls` | **missing** | 1 (0) | Gnome 1 | `Gnome/EMPTYLOC.CS` |
@@ -172,6 +171,7 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `pauseAnim` | built | 2 (0) | Daventry 2 | `Daventry/OUTDOOR.CS` |
 | `playAvi` | built | 2 (0) | Snowexit 1, temple4 1 | `Snowexit/PORTAL4.CS` |
 | `KQConner::JumpDir` | built | 1 (0) | Daventry 1 | `Daventry/miltrap1.cs` |
+| `KQConner::addImmunity` | built | 1 (0) | Swamp 1 | `Swamp/WHISP.CS` |
 | `KQConner::checkInvisible` | built | 1 (0) | DeadCity 1 | `DeadCity/SKINGTP.CS` |
 | `doCredits` | built | 1 (0) | temple4 1 | `temple4/vortrap.cs` |
 | `invClick` | built | 1 (0) | DeadCity 1 | `DeadCity/REAPER.CS` |

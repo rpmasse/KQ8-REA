@@ -71,6 +71,7 @@ pub mod spirit_trap;
 pub mod tile_puzzle;
 pub mod turn_keys;
 pub mod water;
+pub mod terrain_hazards;
 pub mod weapons;
 pub mod weeper;
 pub mod tower_skeleton;

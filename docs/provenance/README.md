@@ -3,6 +3,14 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Ordinary terrain-liquid attacks.** Study A's terrain-hazards rules
+1–13 supply source priority, configured amount, world phase, depth,
+immunity, ordinary hit dispatch and world-hit sounds. Original WORLD.CS
+files and their installed overrides supply regional settings. Shared
+core matrices and one native Dead City fixture cover integration;
+original save behavior and exceptional hazards remain unverified.
+[Evidence](../terrain-liquid-damage.md).
+
 **Quest-item application.** Study A's inventory rules 14–17 supply
 application, unapplication and replacement behavior. The shared core
 reuses the existing timer/statistic/icon removal path; synthetic item

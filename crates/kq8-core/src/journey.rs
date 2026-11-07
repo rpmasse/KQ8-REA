@@ -47,6 +47,9 @@ pub struct Journey {
     /// Missing from older records: no prior hit, so Normal on a stats death.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_hit_kind: Option<crate::fight::HitKind>,
+    /// Rust continuation only; native immunity/audio persistence is untested.
+    #[serde(default)]
+    pub terrain_hazards: crate::terrain_hazards::Saved,
     /// His item objects, as they were (place `Carried("Connor")`).
     pub items: Vec<ItemObject>,
     pub hand: Option<String>,
@@ -104,6 +107,7 @@ impl Journey {
             from: from.to_string(),
             stats: w.connor_stats,
             last_hit_kind: w.connor_last_hit,
+            terrain_hazards: w.terrain_hazards.checkpoint(w.now()),
             items: w.items.objects.iter().filter(|o| o.carried_by(CONNOR)).cloned().collect(),
             hand: w.hand.clone(),
             weapon_ready: w.weapon_ready.clone(),
@@ -173,6 +177,7 @@ impl Journey {
         }
         w.connor_stats = self.stats;
         w.connor_last_hit = self.last_hit_kind;
+        w.terrain_hazards = self.terrain_hazards.restore(w.now());
         // The bottom bar takes the numbers after a stats event
         // (`interface.md` rule 24).
         w.connor_stats_events += 1;
