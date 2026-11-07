@@ -190,3 +190,154 @@ fn nested_fresh_rock_drops_keep_each_commands_post_callback_new_inv_item() {
     assert_eq!(a.world.traps[0].inside, [outer]);
     assert_eq!(a.world.traps[1].inside, [inner]);
 }
+
+#[test]
+fn carried_item_drop_identity_activation_and_continuation_matrix() {
+    use crate::item::{Place, RegionItems, StoredPose};
+    let empty = || std::iter::empty::<String>();
+    for rock in [false, true] {
+        for quantity in [1, 3] {
+            for old_near in [false, true] {
+                let mut a = world(&[
+                    ("old.cs", "if test $2 == On\n set T::oldVisitor $3\n set T::oldBefore $NewInvItem\nendif\nif test $2 == Off\n set T::left $3\nendif\n"),
+                    ("landing.cs", "if test $2 == On\n set T::landingVisitor $3\n set T::landingBefore $NewInvItem\n set T::landings $T::landings one\nendif\n"),
+                    ("drop.cs", "set NewInvItem sentinel\n KQMonster::dropItem Connor Crystal 1000 0 0 0 0 0\n set T::after $NewInvItem\n"),
+                ]);
+                a.world.items.types.types[0].stats = [0; 5];
+                if rock { a.world.items.types.types[0].category = "Rock".into(); }
+                let reference = if old_near { [0.; 3] } else { [1000., 0., 0.] };
+                let visible = if old_near { 30000. } else { 500. };
+                a.sync_item_activity(reference, visible, empty());
+                plate(&mut a, "old", [0.; 3], 20., 512, "old.cs");
+                plate(&mut a, "landing", [1000., 0., 0.], 20., 512, "landing.cs");
+                a.console_command(&format!("give Crystal {quantity}"), "setup");
+                let selected = a.world.items.find("Connor", "Crystal").unwrap().name.clone();
+                assert!(a.run_script("drop.cs", &[]));
+                let after = a.scripts.vars.get("T::after").unwrap().to_string();
+                let old = a.world.items.get(&selected).unwrap();
+                assert_eq!(old.quantity, if quantity == 1 { 1 } else { quantity - 1 });
+                assert_eq!(old.carried_by("Connor"), quantity > 1);
+                assert_eq!(a.scripts.vars.get("T::oldVisitor"), (quantity == 1 && old_near).then_some(selected.as_str()));
+                assert_eq!(a.scripts.vars.get("T::oldBefore"), (quantity == 1 && old_near).then_some("sentinel"));
+                if rock {
+                    assert_ne!(after, selected, "Rock always creates a fresh landing identity");
+                    assert_eq!(a.world.items.objects.len(), 2);
+                    assert_eq!(a.world.items.get(&after).unwrap().quantity, 1);
+                    assert_eq!(a.world.items.get(&after).unwrap().placement().unwrap().position, [1000., 0., 0.]);
+                    assert_eq!(a.scripts.vars.get("T::landingVisitor"), Some(after.as_str()));
+                    assert_eq!(a.scripts.vars.get("T::landingBefore"), Some(selected.as_str()));
+                    if quantity == 1 {
+                        assert_eq!(old.placement().unwrap().position, [0.; 3]);
+                        assert_eq!(a.world.traps[0].inside, if old_near { vec![selected.clone()] } else { vec![] });
+                    }
+                } else {
+                    assert_eq!(after, selected);
+                    assert_eq!(a.world.items.objects.len(), 1, "non-Rock never splits a new world object");
+                    assert_eq!(old.stored_pose().position, [1000., 0., 0.]);
+                    assert_eq!(a.world.place_of(&selected).unwrap().position, [1000., 0., 0.]);
+                    assert_eq!(a.scripts.vars.get("T::landingVisitor"), None, "zero-time destination placement is not new registration");
+                    assert!(a.world.traps[0].inside.is_empty());
+                    assert_eq!(a.scripts.vars.get("T::left"), (quantity == 1 && old_near).then_some(selected.as_str()));
+                    // The old inactive object can activate at its destination
+                    // on the next ordinary frame, but a carried stack cannot.
+                    a.sync_item_activity(reference, visible, empty());
+                    let entered = quantity == 1 && !old_near;
+                    assert_eq!(a.scripts.vars.get("T::landingVisitor"), entered.then_some(selected.as_str()));
+                    a.sync_item_activity(reference, visible, empty());
+                    assert_eq!(a.scripts.vars.get("T::landings"), entered.then_some("one"));
+                }
+                assert!(a.world.flights.is_empty());
+                println!("drop matrix: Rock={rock} quantity={quantity} old_near={old_near} passed");
+            }
+        }
+    }
+
+    // A nested callback during old-identity registration finishes before the
+    // outer removal publishes its selected name, then a fresh Rock registers.
+    let mut a = world(&[
+        ("old.cs", "if test $2 == On\n set T::oldBefore $NewInvItem\n KQMonster::inventory world SilverCoins 1 3000 0 0\n set T::nested $NewInvItem\nendif\n"),
+        ("landing.cs", "if test $2 == On\n set T::landingBefore $NewInvItem\n move $3 0 2000 0 0\nendif\n"),
+        ("later.cs", "if test $2 == On\n set T::wrongLater $3\nendif\n"),
+        ("drop.cs", "set NewInvItem sentinel\n KQMonster::dropItem Connor Crystal 1000 0 0 0 0 0\n set T::after $NewInvItem\n"),
+    ]);
+    a.world.items.types.types[0].category = "Rock".into();
+    a.world.items.types.types[0].stats = [0; 5];
+    plate(&mut a, "old", [0.; 3], 20., 512, "old.cs");
+    plate(&mut a, "landing", [1000., 0., 0.], 20., 512, "landing.cs");
+    plate(&mut a, "later", [1000., 0., 0.], 20., 512, "later.cs");
+    a.console_command("give Crystal 1", "setup");
+    let selected = a.world.items.find("Connor", "Crystal").unwrap().name.clone();
+    a.run_script("drop.cs", &[]);
+    assert_eq!(a.scripts.vars.get("T::oldBefore"), Some("sentinel"));
+    assert_eq!(a.scripts.vars.get("T::landingBefore"), Some(selected.as_str()));
+    let fresh = a.scripts.vars.get("T::after").unwrap();
+    assert_ne!(Some(fresh), a.scripts.vars.get("T::nested"));
+    assert_eq!(a.world.items.get(fresh).unwrap().placement().unwrap().position, [2000., 0., 0.]);
+    assert_eq!(a.scripts.vars.get("T::wrongLater"), None);
+
+    // Carried pose survives disk item/journey serialization and a departed
+    // region's non-Connor inventory. Missing legacy pose means origin only.
+    let mut a = world(&[("stored.cs", "if test $2 == On\n set T::storedVisitor $3\nendif\n")]);
+    a.console_command("give Crystal 3", "setup");
+    a.console_command("KQMonster::dropItem Connor Crystal 100 200 300 0.1 0.2 0.3", "first non-Rock drop");
+    let selected = a.world.items.find("Connor", "Crystal").unwrap().clone();
+    let pose = StoredPose { position: [100., 200., 300.], angles: [0.1, 0.2, 0.3] };
+    assert_eq!(selected.carried_pose, pose);
+    let disk: ItemObject = serde_json::from_slice(&serde_json::to_vec(&selected).unwrap()).unwrap();
+    assert_eq!(disk, selected);
+    let journey = crate::journey::Journey::take(&a.world, &a.scripts.vars, "Daventry");
+    let journey: crate::journey::Journey = serde_json::from_slice(&serde_json::to_vec(&journey).unwrap()).unwrap();
+    assert_eq!(journey.items[0].carried_pose, pose);
+    let mut legacy = serde_json::to_value(&selected).unwrap();
+    legacy.as_object_mut().unwrap().remove("carried_pose");
+    assert_eq!(serde_json::from_value::<ItemObject>(legacy).unwrap().carried_pose, StoredPose::default());
+    let owner = a.world.items.make("SilverCoins", 2, Place::Carried("Wizard".into())).unwrap();
+    owner.carried_pose = pose;
+    let owner_name = owner.name.clone();
+    let region = RegionItems::capture(&a.world.items, &Default::default());
+    let region: RegionItems = serde_json::from_slice(&serde_json::to_vec(&region).unwrap()).unwrap();
+    assert!(region.valid(a.world.items.no_name_counter()));
+    let mut rebuilt = crate::item::tests::items();
+    region.restore(&mut rebuilt);
+    assert_eq!(rebuilt.get(&owner_name).unwrap().carried_pose, pose);
+    a.console_command("KQMonster::dropItem Connor Crystal 400 500 600 0 0 0", "second non-Rock drop");
+    assert_eq!(a.world.items.get(&selected.name).unwrap().quantity, 1);
+    assert_eq!(a.world.items.get(&selected.name).unwrap().carried_pose.position, [400., 500., 600.]);
+    plate(&mut a, "stored", [400., 500., 600.], 20., 512, "stored.cs");
+    a.console_command("KQMonster::dropItem Connor Crystal 800 900 1000 0 0 0", "last non-Rock drop");
+    assert_eq!(a.scripts.vars.get("T::storedVisitor"), Some(selected.name.as_str()));
+    assert_eq!(a.world.items.get(&selected.name).unwrap().placement().unwrap().position, [800., 900., 1000.]);
+    a.world.carry_item(&selected.name);
+    assert_eq!(a.world.items.get(&selected.name).unwrap().carried_pose, StoredPose::default());
+
+    let mut a = world(&[("plate.cs", "if test $2 == On\n set T::entered $T::entered once\nendif\n")]);
+    a.initialize_item_activity([0.; 3], 500.);
+    plate(&mut a, "far", [1000., 0., 0.], 20., 512, "plate.cs");
+    a.console_command("KQMonster::inventory world Crystal 1 1000 0 0", "far creation");
+    let name = a.scripts.vars.get("NewInvItem").unwrap().to_string();
+    assert_eq!(a.scripts.vars.get("T::entered"), None);
+    a.console_command(&format!("makeActive {name} 1"), "pending next frame");
+    a.console_command("setActiveCamera 1", "pending camera reference");
+    assert_eq!(a.world.item_activity(&name).unwrap().0, kq8_data::objects::Activity::Off);
+    a.console_command(&format!("KQObject::setHidden {name} 1"), "hidden before activation");
+    a.sync_item_activity([0.; 3], 500., [name.clone()]);
+    assert_eq!(a.scripts.vars.get("T::entered"), None, "hidden wins over forced near");
+    a.console_command(&format!("KQObject::setHidden {name} 0"), "show again");
+    a.sync_item_activity([1000., 0., 0.], 500., empty());
+    assert_eq!(a.scripts.vars.get("T::entered"), Some("once"), "the published camera reference permits stationary activation");
+    a.sync_item_activity([1000., 0., 0.], 500., empty());
+    assert_eq!(a.scripts.vars.get("T::entered"), Some("once"));
+    assert!(a.world.flights.is_empty());
+
+    // Exact near/far/off boundaries use the BOUNDS sphere, not table radius.
+    let mut a = world(&[]);
+    a.world.items = Items::new(crate::item::tests::types(), [("crystl.kqs".into(), [-3., -4., 0.], [3., 4., 0.])]);
+    let item = a.world.items.make("Crystal", 1, StoredPose::default().world()).unwrap().name.clone();
+    for (distance, expected) in [(88., kq8_data::objects::Activity::Near), (88.01, kq8_data::objects::Activity::Far), (105., kq8_data::objects::Activity::Off)] {
+        a.initialize_item_activity([distance, 0., 0.], 100.);
+        assert_eq!(a.world.item_activity(&item).unwrap().0, expected);
+    }
+    a.sync_item_activity([10000., 0., 0.], 100., [item.clone()]);
+    assert_eq!(a.world.item_activity(&item).unwrap().0, kq8_data::objects::Activity::Near);
+    println!("drop matrix: nested callbacks, late pose, disk/journey/region and legacy pose passed");
+}

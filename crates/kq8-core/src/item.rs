@@ -94,6 +94,20 @@ pub enum Place {
     Gone,
 }
 
+/// A carried object still has a stored transform (items.md rule 11).
+/// Older Rust saves omitted it; their explicit fallback is the origin.
+#[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct StoredPose {
+    pub position: [f32; 3],
+    pub angles: [f32; 3],
+}
+
+impl StoredPose {
+    pub fn is_origin(&self) -> bool { *self == Self::default() }
+    pub fn valid(&self) -> bool { self.position.iter().chain(&self.angles).all(|n| n.is_finite()) }
+    pub fn world(self) -> Place { Place::World { position: self.position, angles: self.angles } }
+}
+
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ItemObject {
     pub name: String,
@@ -103,6 +117,8 @@ pub struct ItemObject {
     /// Rule 3: default −1, meaning not traced (M4).
     pub third: i64,
     pub place: Place,
+    #[serde(default, skip_serializing_if = "StoredPose::is_origin")]
+    pub carried_pose: StoredPose,
     /// Requested for destruction at the event boundary. Keep the old place
     /// available to trap departure callbacks until destruction completes.
     #[serde(skip)]
@@ -156,6 +172,7 @@ impl RegionItems {
                 && item.name.to_ascii_lowercase().strip_prefix("noname")
                     .and_then(|n| n.parse::<usize>().ok()).is_none_or(|n| n < next_no_name)
                 && !item.permanent_startup && item.added <= self.order
+                && item.carried_pose.valid()
                 && match &item.place {
                     Place::World { position, angles } => position.iter().chain(angles).all(|n| n.is_finite()),
                     Place::Carried(owner) => !owner.is_empty() && !owner.eq_ignore_ascii_case("Connor"),
@@ -174,6 +191,13 @@ impl RegionItems {
 }
 
 impl ItemObject {
+    pub fn stored_pose(&self) -> StoredPose {
+        match self.place {
+            Place::World { position, angles } => StoredPose { position, angles },
+            _ => self.carried_pose,
+        }
+    }
+
     /// Where it lies, if in the world.
     pub fn placement(&self) -> Option<Placement> {
         match &self.place {
@@ -369,7 +393,7 @@ impl Items {
         let name = format!("NoName{}", self.next_no_name);
         self.next_no_name += 1;
         let added = self.next_added(&place);
-        self.objects.push(ItemObject { name, kind, quantity, third: -1, place, pending_delete: false, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
+        self.objects.push(ItemObject { name, kind, quantity, third: -1, place, carried_pose: StoredPose::default(), pending_delete: false, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
         Ok(self.objects.last_mut().expect("just pushed"))
     }
 
@@ -383,7 +407,7 @@ impl Items {
             return Err(format!("an item named '{name}' exists already"));
         }
         let added = self.next_added(&place);
-        self.objects.push(ItemObject { name: name.to_string(), kind, quantity, third, place, pending_delete: false, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
+        self.objects.push(ItemObject { name: name.to_string(), kind, quantity, third, place, carried_pose: StoredPose::default(), pending_delete: false, hidden: false, script: None, do_not_point_at: true, added, permanent_startup: false });
         Ok(self.objects.last().expect("just pushed"))
     }
 

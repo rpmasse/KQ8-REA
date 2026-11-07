@@ -269,7 +269,7 @@ impl Snapshot {
             || !self.heading.is_finite()
             || self.actor_tilt.is_some_and(|tilt| tilt.iter().any(|v| !v.is_finite()))
             || self.inventory_order >= u64::MAX / 2
-            || self.items.iter().any(|o| o.added >= u64::MAX / 2)
+            || self.items.iter().chain(&self.journey.items).any(|o| o.added >= u64::MAX / 2 || !o.carried_pose.valid())
             || self.journey.next_no_name >= usize::MAX / 2
             || self.world_name_start > self.journey.next_no_name
             || self.journey.potions.iter().any(|(p, t)| {
@@ -1212,6 +1212,7 @@ mod tests {
             quantity: 2,
             third: -1,
             place: Place::Carried("Connor".into()),
+            carried_pose: Default::default(),
             pending_delete: false,
             hidden: false,
             script: None,

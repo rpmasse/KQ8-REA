@@ -948,6 +948,9 @@ pub fn spawn_doors(
     }
     // DESIGN "Connor's levels checked" (L-1): what `conStart.cs` gives
     // him (items put on, his level, a stats event), in script order.
+    let initial_item_reference = objects.connor.as_ref().map(|(p, _)| p.position)
+        .or(objects.camera_start).unwrap_or([0.; 3]);
+    active.initialize_item_activity(initial_item_reference, light.haze.visible);
     let start = std::mem::take(&mut objects.connor_start);
     for line in kq8_core::connor_start::run(&mut active.world, &start) {
         main_log.summary(format!("connor start: {line}"));
