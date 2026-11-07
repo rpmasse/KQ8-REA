@@ -3,6 +3,18 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Installed world patches.** The models-and-textures note's "Which
+one wins" section establishes priority for regional loose patch
+files and records that other loose copies match their archives in
+this installation. The viewer now selects these overrides for
+named reads and script/object enumeration. The CLI coverage scanner
+uses the same folder index, including the existing shared patch
+precedence for its Common inventory. The original GOG patch files
+supply the test bytes; Dead City's installed PORTRAP6.CS supplies
+the four reactivated outward portal flags. No executable or
+decompiled material was read by this implementation session.
+[Source and automated checks](../world-file-selection.md)
+
 **Ferryman topics and inventory-description names.** The installed
 Dead City reaper.cs supplies the four conversation tuples, final
 sequence numbers, 2000/3000 experience awards and KnowAboutFeather.

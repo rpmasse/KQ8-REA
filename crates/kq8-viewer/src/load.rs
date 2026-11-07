@@ -2,7 +2,7 @@
 //! turning them into plain triangle lists and RGBA images. No Bevy here.
 
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use kq8_data::game_dir::{VOLUMES, WORLDS};
@@ -12,13 +12,14 @@ use kq8_data::{Bitmap, GameDir, Lighting, MaterialKind, Palette, Shape, VolArchi
 
 use crate::log::Log;
 
-/// The archives of one world, opened once.
+/// The archives and installed loose patches of one world, opened once.
 pub struct World {
     pub name: String,
     /// Initial decode value; live image recipes retain their source inputs.
     brightness: u8,
     palette_output: kq8_data::palette::Output,
     vols: Vec<(String, std::sync::Arc<VolArchive>)>,
+    patches: BTreeMap<String, PathBuf>,
     /// Textures already read and converted, by name and palette (2,855
     /// loads were 264 textures in Daventry; the user asked for faster
     /// loading, 2026-10-23).
@@ -60,17 +61,28 @@ impl World {
                 vols.push((v.to_string(), std::sync::Arc::new(a)));
             }
         }
-        Ok(World { name: canonical.to_string(), brightness: crate::option_settings::brightness(game), palette_output: crate::option_settings::palette_output(game), vols, textures: Default::default(), shapes: Default::default(), unpacked: Default::default(), palettes: Default::default() })
+        let patches = game.patch_files(canonical).map_err(|e| format!("{canonical}/patch: {e}"))?;
+        Ok(World { name: canonical.to_string(), brightness: crate::option_settings::brightness(game), palette_output: crate::option_settings::palette_output(game), vols, patches, textures: Default::default(), shapes: Default::default(), unpacked: Default::default(), palettes: Default::default() })
     }
 
-    /// Unpacks the first entry called `name` (any case) from any archive.
-    /// Returns the archive it came from as `vol:<World>/<volume>/<NAME>`.
+    /// Reads the installed patch first, then the first archive entry (any case).
+    /// A patch read error must not silently select the older archive copy.
     pub fn load(&self, name: &str) -> Option<Result<(String, Vec<u8>), String>> {
+        if let Some(path) = self.patches.get(&name.to_ascii_lowercase()) {
+            let label = self.patch_label(path);
+            return Some(std::fs::read(path)
+                .map_err(|e| format!("{label}: {e}"))
+                .map(|data| (label, data)));
+        }
         self.vols.iter().find_map(|(v, a)| {
             let e = a.find(name)?;
             let label = format!("vol:{}/{v}/{}", self.name, e.name);
             Some(self.unpack(a, e, &label).map(|data| (label, data)))
         })
+    }
+
+    fn patch_label(&self, path: &Path) -> String {
+        format!("{}/patch/{}", self.name, path.file_name().unwrap().to_string_lossy())
     }
 
     /// Keep only the panel archive alive for the gameplay HUD.
@@ -96,19 +108,28 @@ impl World {
     }
 
     /// Every entry whose name ends with `ext` (any case), unpacked, with
-    /// its file name and archive label.
+    /// its file name and source label. Patches replace all archive copies
+    /// of the same name and can also introduce new names.
     pub fn entries_ending(&self, ext: &str) -> Vec<(String, String, Result<Vec<u8>, String>)> {
         let ext = ext.to_ascii_lowercase();
-        self.vols
+        let patches = self.patches.iter().filter(|(name, _)| name.ends_with(&ext)).map(|(_, path)| {
+            let label = self.patch_label(path);
+            let data = std::fs::read(path).map_err(|e| format!("{label}: {e}"));
+            (path.file_name().unwrap().to_string_lossy().into_owned(), label, data)
+        });
+        let archives = self.vols
             .iter()
             .flat_map(|(v, a)| {
-                a.entries().iter().filter(|e| e.name.to_ascii_lowercase().ends_with(&ext)).map(move |e| {
+                a.entries().iter().filter(|e| {
+                    let name = e.name.to_ascii_lowercase();
+                    name.ends_with(&ext) && !self.patches.contains_key(&name)
+                }).map(move |e| {
                     let label = format!("vol:{}/{v}/{}", self.name, e.name);
                     let data = self.unpack(a, e, &label);
                     (e.name.clone(), label, data)
                 })
-            })
-            .collect()
+            });
+        patches.chain(archives).collect()
     }
 }
 
@@ -5808,6 +5829,59 @@ mod campaign_tests {
 
     fn game_install() -> GameDir {
         GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap()
+    }
+
+    #[test]
+    #[ignore = "requires the original GOG installation"]
+    fn original_world_patches_override_archives() {
+        let game = game_install();
+        let mut checked = 0;
+        let mut differences = Vec::new();
+        let mut failures = Vec::new();
+        for region in ["Barren", "DeadCity", "IceWorld", "temple4"] {
+            let world = World::open(&game, region).unwrap();
+            let folder = game.find(&format!("{region}/patch")).unwrap();
+            let entries: Vec<_> = world.entries_ending(".cs").into_iter()
+                .chain(world.entries_ending(".kq")).collect();
+            for entry in std::fs::read_dir(folder).unwrap() {
+                let path = entry.unwrap().path();
+                if !path.is_file() { continue; }
+                let name = path.file_name().unwrap().to_str().unwrap();
+                let wanted = std::fs::read(&path).unwrap();
+                checked += 1;
+                let old = world.vols.iter().find_map(|(_, a)| a.find(name).map(|e| a.unpack(e).unwrap().data));
+                if old.as_deref() != Some(wanted.as_slice()) {
+                    differences.push(format!("{region}/{name}"));
+                }
+                match world.load(&name.to_ascii_lowercase()) {
+                    Some(Ok((label, bytes))) if label.contains("/patch/") && bytes == wanted => {},
+                    other => failures.push(format!("{region}/{name}: named lookup selected {}", other.as_ref().and_then(|r|r.as_ref().ok()).map_or("missing/error", |(label,_)|label.as_str()))),
+                }
+                let matches: Vec<_> = entries.iter().filter(|(n, _, _)| n.eq_ignore_ascii_case(name)).collect();
+                if matches.len() != 1 || !matches[0].1.contains("/patch/")
+                    || matches[0].2.as_ref().ok() != Some(&wanted) {
+                    failures.push(format!("{region}/{name}: enumeration did not select the patch once"));
+                }
+            }
+            assert!(world.load("newworld.cs").unwrap().unwrap().0.starts_with("vol:"), "archive fallback in {region}");
+        }
+        println!("checked {checked} installed patches; archive differences: {differences:?}");
+        assert_eq!(checked, 22);
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
+
+        // The installed return script rearms all four outward portals.
+        let world = World::open(&game, "DeadCity").unwrap();
+        let scripts = world.entries_ending(".cs").into_iter()
+            .map(|(name, _, bytes)| (name, bytes.unwrap())).collect::<Vec<_>>();
+        let mut vars = kq8_data::world_script::Vars::default();
+        for name in ["TwoOn", "ThreeOn", "FourOn", "FiveOn"] {
+            vars.set(&format!("DeadCity::Portal::{name}"), "false".into());
+        }
+        let mut active = kq8_core::active::Active::new(vars, vec![], vec![], ["Connor".into(), "portrap6".into()], scripts);
+        assert!(active.run_script("portrap6.cs", &["portrap6".into(), "Cue".into(), "5".into(), "0".into()]));
+        for name in ["TwoOn", "ThreeOn", "FourOn", "FiveOn"] {
+            assert_eq!(active.scripts.vars.get(&format!("DeadCity::Portal::{name}")), Some("true"), "{name}");
+        }
     }
 
     #[test]
