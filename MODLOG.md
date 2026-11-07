@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-07 Original interface geometry and art
+
+Shared GUI resolution now derives integer child rectangles from immutable
+authored parents, keeps fonts at native scale, and distinguishes native
+from stretched pictures. Six menu families render at their selected
+logical size; Save/Load centers its original controls and thumbnails.
+The separate Main warning dialog now honors its authored picture flags.
+Seven geometry/raster checks and the original-data menu and modal matrices
+pass. Viewer release compilation passes; no successful check is repeated.
+This does not complete live display switching or credits.
+[Exact commands and evidence](docs/original-interface-resolutions.md)
+
 ## 2026-11-07 Original interface sizing and credits rules studied
 
 Study A supplies reusable Graphics/menu behavior: device eligibility,

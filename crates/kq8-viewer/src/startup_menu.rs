@@ -461,6 +461,7 @@ impl Menu {
     ) -> Result<Self, String> {
         let graphics = Preferences::load(path).settings.graphics;
         let mut art = Art::open(path)?;
+        art.resize(graphics.high_resolution);
         art.set_palette(graphics.brightness,kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D));
         Ok(Self {
             art,
@@ -938,7 +939,8 @@ fn keyboard_key(world: &mut World, key: Key) {
 fn open_slots(world: &mut World, mode: Mode) -> Result<(), String> {
     let slots = crate::world_build::list_slots()?;
     let path = &world.resource::<Source>().game;
-    let art = save_menu::Art::open(path, mode)?;
+    let mut art = save_menu::Art::open(path, mode)?;
+    art.resize(world.resource::<Menu>().art.size());
     let mut state = save_menu::Screen::new(mode, slots);
     let preview = match (mode, state.selected_slot()) {
         (Mode::Save, _) => world.resource::<Menu>().current_thumbnail.clone(),
@@ -1058,20 +1060,27 @@ pub fn step(world: &mut World) {
         return;
     };
     let size = Vec2::new(win.width(), win.height());
-    let scale = (size.x / 640.).min(size.y / 480.);
+    // Use the current canvas dimensions. Credits and movies retain their
+    // independent canvas until their own presentation rules are applied.
+    let menu = world.resource::<Menu>();
+    let dimensions = world.resource::<Assets<Image>>().get(&menu.image)
+        .map(|image| [image.texture_descriptor.size.width, image.texture_descriptor.size.height])
+        .unwrap_or(menu.art.size());
+    let logical = Vec2::new(dimensions[0] as f32, dimensions[1] as f32);
+    let scale = (size.x / logical.x).min(size.y / logical.y);
     if scale <= 0. {
         return;
     }
     let pos = win
         .cursor_position()
-        .map(|p| (p - (size - Vec2::new(640., 480.) * scale) * 0.5) / scale);
+        .map(|p| (p - (size - logical * scale) * 0.5) / scale);
     for mut node in world
         .query_filtered::<&mut Node, With<MenuPicture>>()
         .iter_mut(world)
     {
-        if node.width != Val::Px(scale * 640.) || node.height != Val::Px(scale * 480.) {
-            node.width = Val::Px(scale * 640.);
-            node.height = Val::Px(scale * 480.);
+        if node.width != Val::Px(scale * logical.x) || node.height != Val::Px(scale * logical.y) {
+            node.width = Val::Px(scale * logical.x);
+            node.height = Val::Px(scale * logical.y);
         }
     }
     if world.resource::<Menu>().movie.is_some() {
@@ -1218,6 +1227,7 @@ pub fn step(world: &mut World) {
             let mut menu = world.resource_mut::<Menu>();
             let rows = menu.art.rows;
             let old = menu.state.clone();
+            let key = menu.art.input_key(&old, key);
             let cue = old.sound(key, &rows);
             if let Some(name) = cue {
                 menu.audio.play(name);
@@ -1225,10 +1235,10 @@ pub fn step(world: &mut World) {
             let action = menu.state.input(key, &rows);
             let pointer =
                 if live && old.key_pointer().is_none() && menu.state.key_pointer().is_some() {
-                    let origin = (size - Vec2::new(640., 480.) * scale) * 0.5;
+                    let origin = (size - logical * scale) * 0.5;
                     menu.return_pointer = pos.map(|p| p * scale + origin);
-                    menu.state
-                        .key_pointer()
+                    menu.art
+                        .key_pointer(&menu.state)
                         .map(|[x, y]| origin + Vec2::new(x as f32, y as f32) * scale)
                 } else if old.key_pointer().is_some() && menu.state.key_pointer().is_none() {
                     menu.return_pointer.take()

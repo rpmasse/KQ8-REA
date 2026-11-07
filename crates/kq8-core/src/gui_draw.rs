@@ -21,12 +21,10 @@
 //! attribute's drawing kind is 1 (rule 20a); pictures not from a layout
 //! control keep their own flags' bit 1 (the community notes
 //! `kq8pbmp.txt`: "transparent").
-//! STAND-INS (Q108 a, c): rectangles are scaled with the screen (× 1.25 at
-//! 800 × 600) and rounded; fonts at their own size.
-//! 4c-9: every edge is rounded where it stands on the screen (the panel's
-//! place plus the child's), as the panel's own edges are, so a picture
-//! is exactly as many pixels as its place: the meters are 14 layout
-//! pixels at 466, 582.5 to 600 on the screen, 17 rows (not 18).
+//! `graphics-modes.md` rules 11–15: authored controls are normalized
+//! against their own parent, converted with +0.1 then truncation, and
+//! composed as integer rectangles. Fonts and unstretched pictures keep
+//! their own pixel size. Callers draw resolved rectangles at scale 1.
 
 use kq8_data::font::Font;
 use kq8_data::palette::Rgb;
@@ -69,12 +67,69 @@ pub enum Piece<'a> {
     /// picture drawn at `view` (left, top, right, bottom in layout pixels
     /// from the centre of `rect`), nearest pixel, cut to `rect`; the arrow
     /// on top with its top-left at `arrow.1` (from the centre), cut too.
-    Map { rect: [i32; 4], pixels: &'a [u8], view: [f64; 4], arrow: Option<(Pic<'a>, [f64; 2])> },
+    Map { rect: [i32; 4], pixels: &'a [u8], view: [f64; 4], arrow: Option<(Pic<'a>, [f64; 2])>, content_scale: f32 },
 }
 
-/// Layout pixels → screen pixels, rounded.
+/// A legacy root-layout conversion. Resolved pixel rectangles pass scale
+/// 1; normalization and rounding then belong only to `resolve_layout`.
 pub fn scaled(v: i32, scale: f32) -> i32 {
-    (v as f32 * scale).round() as i32
+    if scale == 1.0 { v } else { (v as f32 * scale + 0.1) as i32 }
+}
+
+/// Normalize immutable authored edges against their containing dimensions,
+/// then convert using that parent's new integer size (Q207, rule 12).
+pub fn resolve_rect(rect: [i32; 4], original_parent: [i32; 2], parent: [i32; 2]) -> [i32; 4] {
+    std::array::from_fn(|i| {
+        let axis = i % 2;
+        (rect[i] as f32 / original_parent[axis].max(1) as f32 * parent[axis] as f32 + 0.1) as i32
+    })
+}
+
+/// Each rectangle remains relative to its parent. Do not resize the
+/// returned tree again: always start from the authored tree.
+pub fn resolve_layout(authored: &kq8_data::gui::Control, screen: [u32; 2]) -> kq8_data::gui::Control {
+    fn convert(source: &kq8_data::gui::Control, original: [i32; 2], parent: [i32; 2]) -> kq8_data::gui::Control {
+        let mut result = source.clone();
+        result.rect = resolve_rect(source.rect, original, parent);
+        let old_size = [source.rect[2] - source.rect[0], source.rect[3] - source.rect[1]];
+        let size = [result.rect[2] - result.rect[0], result.rect[3] - result.rect[1]];
+        result.dialogs = source.dialogs.iter().map(|c| convert(c, old_size, size)).collect();
+        result.controls = source.controls.iter().map(|c| convert(c, old_size, size)).collect();
+        result
+    }
+    convert(authored, [640, 480], screen.map(|v| v as i32))
+}
+
+/// Compose converted integer origins; no subsequent floating-point scale.
+pub fn absolute_rects(root: &kq8_data::gui::Control) -> std::collections::BTreeMap<u32, [i32; 4]> {
+    fn walk(c: &kq8_data::gui::Control, origin: [i32; 2], out: &mut std::collections::BTreeMap<u32, [i32; 4]>) {
+        let r = std::array::from_fn(|i| c.rect[i] + origin[i % 2]);
+        out.insert(c.id, r);
+        for child in c.dialogs.iter().chain(&c.controls) {
+            walk(child, [r[0], r[1]], out);
+        }
+    }
+    let mut result = std::collections::BTreeMap::new();
+    walk(root, [0, 0], &mut result);
+    result
+}
+
+/// Shared GUI text overwrites the PFT scale fields, not its glyph data.
+pub fn gui_font(mut font: Font) -> Font {
+    font.h_scale = 1.0;
+    font.v_scale = 1.0;
+    font
+}
+
+/// Select an original resolution-specific bitmap without renaming files.
+pub fn resolution_picture(game: &kq8_data::GameDir, names: &[&str], screen: [u32; 2]) -> Result<kq8_data::Bitmap, String> {
+    for name in names {
+        let Some(path) = game.find(&format!("GAME/8Gui/{name}")) else { continue };
+        let bytes = std::fs::read(path).map_err(|e| format!("{name}: {e}"))?;
+        let bitmap = kq8_data::Bitmap::parse(&bytes)?;
+        if [bitmap.width, bitmap.height] == screen && bitmap.bit_count == 8 { return Ok(bitmap); }
+    }
+    Err(format!("no original {}x{} bitmap among {names:?}", screen[0], screen[1]))
 }
 
 fn code(c: char) -> u8 {
@@ -145,7 +200,7 @@ impl Canvas {
     }
 
     /// Draws `pic` in the layout rectangle `rect` (rule 20a): stretched
-    /// to it, or once at its own size (× `scale`) from its top-left, cut
+    /// to it, or once at its own pixel size from its top-left, cut
     /// to the rectangle; never tiled.
     pub fn picture(&mut self, rect: [i32; 4], pic: Pic, stretch: bool, scale: f32, palette: &[Rgb; 256]) {
         let [l, t, r, b] = rect.map(|v| scaled(v, scale));
@@ -153,7 +208,7 @@ impl Canvas {
             self.stretched([l, t, r, b], t, pic, palette);
             return;
         }
-        let (w, h) = (scaled(pic.width as i32, scale), scaled(pic.height as i32, scale));
+        let (w, h) = (pic.width as i32, pic.height as i32);
         let (right, bottom) = (l + w, t + h);
         for y in t..bottom.min(b) {
             for x in l..right.min(r) {
@@ -211,21 +266,21 @@ impl Canvas {
 
     /// Draws the magic map (see [`Piece::Map`]); `rect` in layout pixels
     /// where the panel stands.
-    pub fn map(&mut self, rect: [i32; 4], pixels: &[u8], view: [f64; 4], arrow: Option<(Pic, [f64; 2])>, scale: f32, palette: &[Rgb; 256]) {
+    pub fn map(&mut self, rect: [i32; 4], pixels: &[u8], view: [f64; 4], arrow: Option<(Pic, [f64; 2])>, scale: f32, content_scale: f32, palette: &[Rgb; 256]) {
         let size = kq8_data::magic_map::MAP_SIZE;
         let [l, t, r, b] = rect.map(|v| scaled(v, scale));
-        let s = scale as f64;
-        let (cx, cy) = ((rect[0] + rect[2]) as f64 / 2.0, (rect[1] + rect[3]) as f64 / 2.0);
+        let s = (scale * content_scale) as f64;
+        let (cx, cy) = ((l + r) as f64 / 2.0, (t + b) as f64 / 2.0);
         let (w, h) = (view[2] - view[0], view[3] - view[1]);
         if pixels.len() == size * size && w > 0.0 && h > 0.0 {
             for y in t..b {
-                let uy = (y as f64 + 0.5) / s - cy;
+                let uy = (y as f64 + 0.5 - cy) / s;
                 let my = ((uy - view[1]) / h * size as f64).floor();
                 if my < 0.0 || my >= size as f64 {
                     continue;
                 }
                 for x in l..r {
-                    let ux = (x as f64 + 0.5) / s - cx;
+                    let ux = (x as f64 + 0.5 - cx) / s;
                     let mx = ((ux - view[0]) / w * size as f64).floor();
                     if mx < 0.0 || mx >= size as f64 {
                         continue;
@@ -235,7 +290,7 @@ impl Canvas {
             }
         }
         if let Some((pic, at)) = arrow {
-            let (ax, ay) = (((cx + at[0]) * s).round() as i32, ((cy + at[1]) * s).round() as i32);
+            let (ax, ay) = ((cx + at[0] * s).round() as i32, (cy + at[1] * s).round() as i32);
             let (aw, ah) = ((pic.width as f64 * s).round() as i32, (pic.height as f64 * s).round() as i32);
             for y in ay.max(t)..(ay + ah).min(b) {
                 for x in ax.max(l)..(ax + aw).min(r) {
@@ -287,7 +342,7 @@ pub fn draw(origin: [i32; 2], size: [i32; 2], scale: f32, pieces: &[Piece], pale
             Piece::Lower { rect, pic, rows } => c.picture_lower(at(rect), *pic, *rows, scale, palette),
             Piece::Text { rect, font, justification, text } => c.text(at(rect), font, *justification, text, scale, palette),
             Piece::Fill { rect, rgb } => c.fill(at(rect), *rgb, scale),
-            Piece::Map { rect, pixels, view, arrow } => c.map(at(rect), pixels, *view, *arrow, scale, palette),
+            Piece::Map { rect, pixels, view, arrow, content_scale } => c.map(at(rect), pixels, *view, *arrow, scale, *content_scale, palette),
         }
     }
     c
@@ -296,6 +351,60 @@ pub fn draw(origin: [i32; 2], size: [i32; 2], scale: f32, pieces: &[Piece], pale
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn original_interface_geometry_raster_matrix() {
+        use kq8_data::gui::{Control, Kind};
+        let node = |id, rect| Control { tag: "UIDL".into(), version: 1, id, flags: 0,
+            rect, kind: Kind::Dialog { caption: None, picture: None }, dialogs: vec![], controls: vec![] };
+        let mut source = node(1, [0, 0, 640, 480]);
+        let mut parent = node(2, [1, 1, 15, 15]);
+        parent.controls.push(node(3, [3, 3, 7, 7]));
+        source.dialogs.push(parent);
+        let original = source.clone();
+        let mut font = crate::caption::tests::font();
+        font.h_scale = 2.0;
+        font.v_scale = 3.0;
+        let font = gui_font(font);
+        assert_eq!((font.h_scale, font.v_scale, text_width(&font, "ab")), (1.0, 1.0, 20));
+        let mut palette = [[0; 3]; 256];
+        palette[7] = [20, 30, 40];
+        let pixels = [7; 4];
+        let pic = Pic { width: 2, height: 2, pixels: &pixels, see_through: false };
+        let mut first = None;
+        for high in [false, true, false] {
+            let size = crate::caption::screen(high);
+            let resolved = resolve_layout(&source, size);
+            let rectangles = absolute_rects(&resolved);
+            assert_eq!(rectangles[&1], [0, 0, size[0] as i32, size[1] as i32]);
+            assert_eq!(rectangles[&2], if high { [1, 1, 18, 18] } else { [1, 1, 15, 15] });
+            assert_eq!(rectangles[&3], if high { [4, 4, 9, 9] } else { [4, 4, 8, 8] }, "parent and local edges are converted separately");
+            assert_eq!(resolve_rect([102, -2, 106, 2], [640, 480], size.map(|v| v as i32)),
+                if high { [127, -2, 132, 2] } else { [102, -1, 106, 2] });
+            let mut canvas = Canvas::new(size[0], size[1]);
+            let box_at = |r| resolve_rect(r, [640, 480], size.map(|v| v as i32));
+            let once = box_at([20, 20, 30, 30]);
+            canvas.picture(once, pic, false, 1.0, &palette);
+            assert_eq!(canvas.at((once[0] + 1) as u32, (once[1] + 1) as u32), [20, 30, 40, 255]);
+            assert_eq!(canvas.at((once[0] + 2) as u32, once[1] as u32), [0; 4], "native picture width remains two pixels");
+            let stretch = box_at([40, 20, 50, 30]);
+            canvas.picture(stretch, pic, true, 1.0, &palette);
+            assert_eq!(canvas.at((stretch[2] - 1) as u32, (stretch[3] - 1) as u32), [20, 30, 40, 255]);
+            let label = box_at([80, 20, 120, 40]);
+            canvas.text(label, &font, 0x11, "ab", 1.0, &palette);
+            assert_eq!(canvas.at((label[0] + 19) as u32, (label[1] + 1) as u32), [20, 30, 40, 255]);
+            assert_eq!(canvas.at((label[0] + 20) as u32, label[1] as u32), [0; 4]);
+            let caption = crate::caption::Box { width: size[0] / 2, row_height: 15, text_y: 2, scale: crate::caption::scale(size) };
+            let rows = crate::caption::wrap(&font, &"a".repeat(35), caption.width as f32);
+            assert_eq!(rows.len(), if high { 1 } else { 2 });
+            assert_eq!(caption.height(rows.len()), if high { 19 } else { 34 });
+            if !high {
+                if let Some(pixels) = &first { assert_eq!(&canvas.rgba, pixels, "640 return has no accumulated rounding"); }
+                else { first = Some(canvas.rgba); }
+            }
+        }
+        assert_eq!(source, original, "authored tree stays immutable");
+    }
 
     #[test]
     fn numbers_anchored_at_a_point_or_aligned_in_their_box() {
@@ -375,11 +484,10 @@ mod tests {
         // An empty bar is all black; a full one all picture.
         let empty = draw([0, 0], [10, 2], 1.0, &[Piece::Bar { rect: [0, 0, 10, 2], pic: Pic { width: 2, height: 2, pixels: &red, see_through: false }, black: Pic { width: 2, height: 2, pixels: &black, see_through: false }, shown: 0 }], &pal);
         assert_eq!((empty.at(0, 0), empty.at(9, 1)), ([0, 0, 9, 255], [0, 0, 9, 255]));
-        // 4c-9: the meters, 14 layout pixels high at 466, × 1.25: 582.5
-        // to 600 on the screen, so 17 rows, and a piece filling them all.
-        assert_eq!(screen_size([192, 466], [256, 14], 1.25), [320, 17]);
+        // Q207: 582.5 + 0.1 truncates to 582, leaving 18 rows.
+        assert_eq!(screen_size([192, 466], [256, 14], 1.25), [320, 18]);
         let full = draw([192, 466], [2, 14], 1.25, &[Piece::Fill { rect: [0, 0, 2, 14], rgb: [9, 9, 9] }], &pal);
-        assert_eq!((full.height, full.at(0, 0), full.at(1, 16)), (17, [9, 9, 9, 255], [9, 9, 9, 255]));
+        assert_eq!((full.height, full.at(0, 0), full.at(1, 17)), (18, [9, 9, 9, 255], [9, 9, 9, 255]));
     }
 
     #[test]
@@ -398,13 +506,13 @@ mod tests {
         // the area's centre, 460 map pixels over 46 layout pixels.
         let arrow = [3u8; 4];
         let pic = Pic { width: 2, height: 2, pixels: &arrow, see_through: true };
-        let c = draw([0, 0], [10, 10], 1.0, &[Piece::Map { rect: [0, 0, 10, 10], pixels: &pixels, view: [0.0, 0.0, 46.0, 46.0], arrow: Some((pic, [3.0, 3.0])) }], &pal);
+        let c = draw([0, 0], [10, 10], 1.0, &[Piece::Map { rect: [0, 0, 10, 10], pixels: &pixels, view: [0.0, 0.0, 46.0, 46.0], arrow: Some((pic, [3.0, 3.0])), content_scale: 1.0 }], &pal);
         assert_eq!(c.at(4, 4), [0, 0, 0, 0], "left of and above the picture: nothing");
         assert_eq!(c.at(5, 5), [20, 0, 0, 255], "the picture's first pixel at the centre");
         assert_eq!(c.at(6, 6), [10, 0, 0, 255]);
         assert_eq!((c.at(8, 8), c.at(9, 9)), ([30, 0, 0, 255], [30, 0, 0, 255]), "the arrow at centre + 3");
         // Cut at the area's edge: the arrow's second column would be x 10.
-        let c = draw([0, 0], [11, 10], 1.0, &[Piece::Map { rect: [0, 0, 10, 10], pixels: &pixels, view: [0.0, 0.0, 46.0, 46.0], arrow: Some((pic, [4.0, 0.0])) }], &pal);
+        let c = draw([0, 0], [11, 10], 1.0, &[Piece::Map { rect: [0, 0, 10, 10], pixels: &pixels, view: [0.0, 0.0, 46.0, 46.0], arrow: Some((pic, [4.0, 0.0])), content_scale: 1.0 }], &pal);
         assert_eq!((c.at(9, 5), c.at(10, 5)), ([30, 0, 0, 255], [0, 0, 0, 0]));
     }
 

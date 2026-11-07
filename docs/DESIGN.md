@@ -36,6 +36,45 @@ required behavior and the uninterrupted New Game-to-ending path; this
 changes the verification strategy, not the fidelity or completion target.
 Manual testing remains deferred until the Rust recreation is complete.
 
+**M4 original credits completion (2026-11-07).** Replace the credits
+stand-ins from credits-completion.md: numeric cases 1–25, authored line
+breaks and mixed font order, real-time line-count deadlines with one
+advance per late update, final photograph on card 25, and Escape/final
+expiry returning to Main. Enter/Space/arrows/pointer do not skip cards.
+Compute the displayed score when the final card is prepared from the
+active Connor's level and remaining experience; no active game yields
+zero, and doCredits has no score argument or alternate formula. Use the
+documented palette, fixed glyph sizes and output-pixel line/photo
+geometry at both original resolutions, including clearing old rows/photo
+on reentry and the normal menu-theme fade on exit. Use one controlled-
+clock/input/score matrix and one original-data layout/order matrix,
+reusing verified movie decoding and presentation ordering. Coordinate
+the narrow credits request/bridge seam with the scripted-character
+agent if it touches Active; avoid unrelated changes. Native integration
+should be one representative abbreviated route only if needed to prove
+viewer scheduling/exit, not one run per card or repetition of movies.
+No manual testing; the complete campaign ending remains a separate M6
+requirement.
+
+**M5 scripted character preparation and health (2026-11-07).** Implement
+preSpecial and reduceHealth from scripted-controller-commands.md rules
+1–4 through the existing character/motion and queued-stat paths.
+Preparation makes only the current motion interruptible and remembers
+Stop; it must preserve the actual pose, phase, list, position and owning
+controller until ordinary subsequent commands act. Apply it to Connor
+and ordinary monsters through their shared motion rules. Health reduction
+uses maximum health, the documented double/single precision distinction,
+truncation and an immediately due stats delta; preserve queued sampling,
+strict-negative death and existing stats receiver behavior. Use one
+grouped matrix for target/argument errors, state/motion eligibility,
+following Special requests, repeated queued reductions, protection and
+zero/negative health, with representative original Henchman/altar script
+callers. Coordinate core/viewer builds with the interface batch; reuse
+unaffected combat/death checks. Original transient save persistence stays
+open where A has not established it. This does not close the separate
+Q201 logical-load/trap-restoration family, which requires a coherent
+loading-phase design before its integration is changed.
+
 **M4 original interface resolutions (2026-11-07).** Replace the shared
 geometry stand-ins using graphics-modes.md rules 11–18 and its clarified
 parent/font rules. Retain immutable authored rectangles. Resolve each
@@ -111,6 +150,23 @@ position and heading error. Native normal-input traversal must then
 preserve the skull and earned state through a save before returning
 through portrap6. Keep original jump distances, damage and collision.
 Use intermediate saves instead of repeating completed crossings.
+
+**Integrated return and next chamber (2026-11-07).** The expanded
+numerical check adds matched original building BSP and the actual
+rivrtrap.01 swept-ball test. The earlier y=202000 example clears that
+trap but only 18/27 perturbed launches avoid deep liquid. Moving the
+launch to (27000,201550) gives 27/27 clear cases at +/-40 position and
+0.13-radian heading variation. This is planning evidence, not native
+success. Continue from SkullChamberPotionReload with normal movement:
+cross south, use the northwest return portal, recover health at the
+already reached well, then take the eastern portal into the metal
+room. Check the retained skull/potion/Rock-held plate, portal flags,
+ordinary first-use award and living saved state in one integrated run.
+Reuse the earlier combat/pickup evidence. The bone bridge, statue,
+feather and scales follow from that checkpoint; the floor-only planner
+cannot prove a bridge route because it omits support on the raised BSP.
+Do not walk through low lethal river traps merely because a floor path
+exists. Preserve successful checkpoints if later campaign work fails.
 
 The central original-motion search finds no return candidate without
 brief deep-liquid exposure. A wider search finds a western-edge route

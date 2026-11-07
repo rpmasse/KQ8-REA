@@ -257,6 +257,10 @@ pub struct Art {
 }
 
 impl Art {
+    pub fn resize(&mut self, size: [u32; 2]) {
+        self.layout.resize(size, true);
+    }
+
     pub fn open(path: &Path, mode: Mode) -> Result<Self, String> {
         let (file, prefix) = match mode {
             Mode::Save => ("Savegame.gui", "IDCTL_SAVE_"),
@@ -308,7 +312,8 @@ impl Art {
     }
 
     pub fn render(&self, state: &Screen, menu: &MenuArt) -> Canvas {
-        let mut canvas = Canvas::new(640, 480);
+        let [width, height] = self.layout.size;
+        let mut canvas = Canvas::new(width, height);
         let draw = |canvas: &mut Canvas,
                     key: &str,
                     picture: &str,
@@ -338,13 +343,13 @@ impl Art {
             let [x, y, right, bottom] = self.layout.controls["THUMBNAIL"].rect;
             if x >= 0
                 && y >= 0
-                && right <= 640
-                && bottom <= 480
+                && right <= width as i32
+                && bottom <= height as i32
                 && right - x == 160
                 && bottom - y == 120
             {
                 for (i, row) in rgba.chunks_exact(160 * 4).enumerate() {
-                    let start = ((y as usize + i) * 640 + x as usize) * 4;
+                    let start = ((y as usize + i) * width as usize + x as usize) * 4;
                     canvas.rgba[start..start + row.len()].copy_from_slice(row);
                 }
             }

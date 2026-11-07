@@ -11,7 +11,7 @@
 //! script commands). The status icons show the spinning mask during
 //! handsOff. Every change goes to `kq8-artifacts/logs/gui.log`.
 //!
-//! The screen is 800 × 600 (`set800mode 1`) (STAND-IN, Q108), drawn on
+//! The screen follows `set800mode` (640 × 480 or 800 × 600), drawn on
 //! the largest 4:3 rectangle centred in the window ([`ScreenFrame`], 4c-6,
 //! the user's choice); the panels' timers count real time.
 
@@ -364,6 +364,7 @@ pub struct Gui {
     game: GameDir,
     gui_files: crate::load::GuiFiles,
     tags: Tags,
+    authored_root: Control,
     root: Control,
     screen: [u32; 2],
     scale: f32,
@@ -524,6 +525,8 @@ pub fn load_gui(game: &GameDir, region: &crate::load::World, main: &mut Log) -> 
     let wide = crate::talk_view::set800mode(game);
     let screen = kq8_core::caption::screen(wide);
     let scale = kq8_core::caption::scale(screen);
+    let authored_root = root;
+    let root = gui_draw::resolve_layout(&authored_root, screen);
     // Rule 10: the bottom-bar key is row 12 of movekeys.kq, the map key
     // row 8 (M6 6d-3).
     let keys_file = first_found(game, &["movekeys.kq".into()]).map(|(_, b)| kq8_data::kq_text::parse(&b));
@@ -547,7 +550,7 @@ pub fn load_gui(game: &GameDir, region: &crate::load::World, main: &mut Log) -> 
         }
     };
     let head = format!(
-        "gui: Gplayscr.gui read; screen {}x{} (set800mode {wide}, layout x {scale}; stand-in Q108); palette {pal_path} (world.cs: {pal_note}; interface.md rule 1c); the bottom-bar key: {key_line}; the map key: {map_key_line} (interface.md rule 10)",
+        "gui: Gplayscr.gui read; screen {}x{} (set800mode {wide}; parent-relative integer geometry, Q207); palette {pal_path} (world.cs: {pal_note}; interface.md rule 1c); the bottom-bar key: {key_line}; the map key: {map_key_line} (interface.md rule 10)",
         screen[0], screen[1]
     );
     main.summary(&head);
@@ -564,6 +567,7 @@ pub fn load_gui(game: &GameDir, region: &crate::load::World, main: &mut Log) -> 
         game: game.clone(),
         gui_files: region.gui_files(),
         tags,
+        authored_root,
         root,
         screen,
         scale,
@@ -642,7 +646,7 @@ impl Gui {
         let font = self.gui_files.read(&self.game, name).and_then(|(path, b)| match Font::parse(&b) {
             Ok(f) => {
                 self.note(format!("font {path}: height {}", f.char_height));
-                Some(f)
+                Some(gui_draw::gui_font(f))
             }
             Err(e) => {
                 self.note(format!("font {path}: {e}; its texts not drawn"));
@@ -660,6 +664,17 @@ impl Gui {
     /// The control named `name` in the layout.
     fn control(&self, name: &str) -> Option<&Control> {
         self.tags.id_of(name).and_then(|id| self.root.find(id as u32))
+    }
+
+    fn authored_control(&self, name: &str) -> Option<&Control> {
+        self.tags.id_of(name).and_then(|id| self.authored_root.find(id as u32))
+    }
+
+    fn popup_rect(&self, rect: [i32; 4]) -> [i32; 4] {
+        let name = Panel::Popup.layout_id();
+        let (Some(old), Some(new)) = (self.authored_control(name), self.control(name)) else { return rect };
+        gui_draw::resolve_rect(rect, [old.rect[2] - old.rect[0], old.rect[3] - old.rect[1]],
+            [new.rect[2] - new.rect[0], new.rect[3] - new.rect[1]])
     }
 
     fn name_of(&self, c: &Control) -> String {
@@ -819,7 +834,7 @@ impl Gui {
                     }
                     .or(default);
                     // Rule 20: the meters' bars cut to a width.
-                    let full = (gui_draw::scaled(rect[2], self.scale) - gui_draw::scaled(rect[0], self.scale)).max(0) as u32;
+                    let full = (rect[2] - rect[0]).max(0) as u32;
                     let cut = match name.as_str() {
                         "IDCTL_METERS_HEALTH" => Some(meters::bar_width(full, self.meters.health_percent)),
                         "IDCTL_METERS_EXP" => Some(meters::bar_width(full, self.meters.experience_percent)),
@@ -947,7 +962,7 @@ impl Gui {
                 let mut buttons = Vec::new();
                 for (k, label) in p.labels.iter().enumerate() {
                     if label.is_empty() { continue; }
-                    let rect = p.button_box(k);
+                    let rect = self.popup_rect(p.button_box(k));
                     let down = p.pressed == Some(k);
                     if let Some(font) = &popup_font {
                         let [dx, dy] = if down { POPUP_PRESSED_SHIFT } else { [0, 0] };
@@ -965,7 +980,7 @@ impl Gui {
                 // The lines (Q151 d), each centred in its box.
                 if let Some(font) = popup_text_font.clone().or_else(|| popup_font.clone()) {
                     for (k, line) in p.lines.iter().enumerate() {
-                        buttons.push(Spec::Text { rect: popup_line_box(p.lines.len(), k), font: font.clone(), justification: 0xC, text: line.clone() });
+                        buttons.push(Spec::Text { rect: self.popup_rect(popup_line_box(p.lines.len(), k)), font: font.clone(), justification: 0xC, text: line.clone() });
                     }
                 }
                 out.splice(0..0, buttons);
@@ -991,7 +1006,7 @@ impl Gui {
             .enumerate()
             .map(|(k, line)| {
                 let w = gui_draw::text_width(f, line);
-                let (x, ty) = gui_draw::text_origin(popup_line_box(p.lines.len(), k), 0xC, w, f.char_height, 1.0);
+                let (x, ty) = gui_draw::text_origin(self.popup_rect(popup_line_box(p.lines.len(), k)), 0xC, w, f.char_height, 1.0);
                 (x, ty, w)
             })
             .collect()
@@ -1002,12 +1017,12 @@ impl Gui {
         let dialog = self.control(Panel::Popup.layout_id())?;
         let [fl, ft, fw, _] = frame;
         let k = fw / self.screen[0] as f32;
-        // Window pixels -> layout pixels from the panel's top-left.
-        let x = ((at.x - fl) / k) / self.scale - dialog.rect[0] as f32;
-        let y = ((at.y - ft) / k) / self.scale - dialog.rect[1] as f32;
+        // Window pixels -> resolved GUI pixels from the panel's top-left.
+        let x = (at.x - fl) / k - dialog.rect[0] as f32;
+        let y = (at.y - ft) / k - dialog.rect[1] as f32;
         let popup = self.popup.as_ref()?;
         let inside = |r: [i32; 4]| x >= r[0] as f32 && x < r[2] as f32 && y >= r[1] as f32 && y < r[3] as f32;
-        if let Some(k)=(0..popup.labels.len()).find(|&k| inside(popup.button_box(k))) {return Some(k);}
+        if let Some(k)=(0..popup.labels.len()).find(|&k| inside(self.popup_rect(popup.button_box(k)))) {return Some(k);}
         let checkbox=popup.help.as_ref().is_some_and(|h|h.page.checkbox()) &&
             self.controls(dialog).into_iter().any(|(c,r)|self.name_of(c).starts_with("IDCTL_POPUP_CHECKBOX") && inside(r));
         checkbox.then_some(3)
@@ -1021,9 +1036,9 @@ impl Gui {
         let (px, py) = (x - left, y - top);
         self.controls(dialog)
             .into_iter()
-            .filter(|(c, r)| r[2] > r[0] && r[3] > r[1] && r[1] < 480 && !matches!(c.kind, Kind::Text { pictures: None, .. }))
+            .filter(|(c, r)| r[2] > r[0] && r[3] > r[1] && r[1] < self.screen[1] as i32 && !matches!(c.kind, Kind::Text { pictures: None, .. }))
             .find(|(_, r)| {
-                let [l, t, r, b] = r.map(|v| gui_draw::scaled(v, self.scale) as f32);
+                let [l, t, r, b] = r.map(|v| v as f32);
                 px >= l && px < r && py >= t && py < b
             })
             .map(|(c, _)| self.name_of(c))
@@ -1078,7 +1093,7 @@ impl Gui {
                         let frames = self.files.get(&file.to_ascii_lowercase())?.as_ref()?;
                         frames.get(*frame % frames.len().max(1)).and_then(Pic::of).map(|p| (p, *at))
                     });
-                    pieces.push(Piece::Map { rect: *rect, pixels, view: *view, arrow });
+                    pieces.push(Piece::Map { rect: *rect, pixels, view: *view, arrow, content_scale: self.scale });
                 }
             }
         }
@@ -1099,7 +1114,7 @@ impl Gui {
         let mut out = Vec::new();
         for (k, shown) in self.status.iter().enumerate() {
             let Some(shown) = shown else { continue };
-            let Some(c) = self.control(&format!("IDCTL_TIMER_{}", k + 1)) else { continue };
+            let Some(c) = self.authored_control(&format!("IDCTL_TIMER_{}", k + 1)) else { continue };
             let [l, t, r, b] = c.rect;
             let tall = b - t;
             match shown {
@@ -1168,7 +1183,7 @@ impl Gui {
 
     /// The shown rectangle of a drawn picture on the screen, pixels.
     fn rect(&self, d: Drawn) -> Option<[f32; 4]> {
-        self.control(d.layout_id()).map(|c| c.rect.map(|v| gui_draw::scaled(v, self.scale) as f32))
+        self.control(d.layout_id()).map(|c| c.rect.map(|v| v as f32))
     }
 }
 
@@ -1550,7 +1565,7 @@ pub fn gui_step(
     let old_level = gui.meters.level;
     let sent = gui.meters.send(&stats, sim.active.world.connor_death_entered, red);
     let width = |name: &str| {
-        gui.control(name).map_or(0, |c| (gui_draw::scaled(c.rect[2], gui.scale) - gui_draw::scaled(c.rect[0], gui.scale)).max(0) as u32)
+        gui.control(name).map_or(0, |c| (c.rect[2] - c.rect[0]).max(0) as u32)
     };
     let (hw, ew) = (width("IDCTL_METERS_HEALTH"), width("IDCTL_METERS_EXP"));
     let exp = match sent.experience_percent {
@@ -1775,7 +1790,7 @@ pub fn gui_draw(
         if gui.last.get(d.layout_id()) == Some(&specs) {
             continue;
         }
-        let scale = if panel.is_some() { gui.scale } else { 1.0 };
+        let scale = 1.0;
         // 4c-9: drawn where it stands, so its rows match its place.
         let origin = match panel {
             Some(_) => gui.control(d.layout_id()).map_or([0, 0], |c| [c.rect[0], c.rect[1]]),
@@ -2262,9 +2277,9 @@ pub fn popup_step(
     let over = cursor.and_then(|at| gui.popup_button_at(frame.0, at));
     let accept = [KeyCode::Enter, KeyCode::NumpadEnter, KeyCode::F1];
     let target = gui.control(Panel::Popup.layout_id()).map(|panel| {
-        let r = page.button_box(page.highlight);
+        let r = gui.popup_rect(page.button_box(page.highlight));
         let [left, top, width, _] = frame.0;
-        let k = width / gui.screen[0] as f32 * gui.scale;
+        let k = width / gui.screen[0] as f32;
         Vec2::new(
             left + (panel.rect[0] + (r[0] + r[2]) / 2) as f32 * k,
             top + (panel.rect[1] + (r[1] + r[3]) / 2) as f32 * k,

@@ -83,7 +83,8 @@ pub enum Action {
 
 impl Screen {
     pub fn open(game: &Path, art: &Art) -> Result<Self, String> {
-        let layout = Layout::read(game, "Graphics.gui", "IDCTL_GRA_")?;
+        let mut layout = Layout::read(game, "Graphics.gui", "IDCTL_GRA_")?;
+        layout.resize(art.size(), false);
         for key in [
             "BACKGROUND",
             "TITLE",
@@ -108,7 +109,7 @@ impl Screen {
     }
 
     fn backdrop(layout: &Layout, art: &Art) -> Canvas {
-        let mut background = Canvas::new(640, 480);
+        let mut background = Canvas::new(layout.size[0], layout.size[1]);
         for key in [
             "BACKGROUND",
             "TITLE",
@@ -167,7 +168,7 @@ impl Screen {
 
     fn hit(&self, key: &str, x: i32, y: i32) -> bool {
         let [l, t, r, b] = self.layout.controls[key].rect;
-        (l..r).contains(&x) && (t..b).contains(&y)
+        (l..r).contains(&x) && (t..=b).contains(&y)
     }
 
     fn brightness_at(&self, x: i32, settings: &mut Graphics) {
