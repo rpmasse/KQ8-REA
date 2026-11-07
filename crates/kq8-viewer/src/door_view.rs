@@ -31,13 +31,11 @@
 
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use kq8_core::active::{Active, ActiveChest, ActiveDoor, ActiveObject, Item, Pick, Request};
+use kq8_core::active::{Active, Item, Pick, Request};
 use kq8_core::connor::Mode;
-use kq8_core::named_anim::NamedAnimPlayer;
-use kq8_core::chest::Chest;
 use kq8_core::trap::Visitor;
 use kq8_core::collide::{BoxCollider, Placement};
-use kq8_core::door::{turn_degrees, Cue, Door, DoorMovement};
+use kq8_core::door::turn_degrees;
 
 use crate::connor_view::ConnorSim;
 use crate::game_camera::GameCam;
@@ -616,45 +614,13 @@ pub fn spawn_doors(
     let sources = std::mem::take(&mut objects.scripts);
     for d in std::mem::take(&mut objects.doors) {
         let p = &d.placement;
-        let base = Placement { rotation: kq8_data::objects::rotation(p.angles), position: p.position };
-        let movements: Vec<DoorMovement> = d
-            .movements
-            .iter()
-            .map(|(name, l, a)| DoorMovement {
-                name: name.clone(),
-                start: l.start,
-                speed: l.speed,
-                repeat: l.repeat,
-                // anim-scripts.md rule 4: the 6th field.
-                cut_short: l.unknown != 0,
-                play_time: timing[*a].0,
-                frame_steps: timing[*a].1.clone(),
-                // Doors never use the frame rule's wrap step (characters only).
-                first_in_file: true,
-                frame_parts: Vec::new(),
-                cues: l.cues.iter().map(|(phase, action)| Cue { phase: *phase, action: action.clone() }).collect(),
-                transitions: l.transitions.clone(),
-            })
-            .collect();
+        let movements = crate::actor_recipes::movements(&d.movements, |i| crate::actor_recipes::AnimationMotion {
+            duration: timing[i].0, steps: &timing[i].1, first_in_file: true, parts: &[],
+        });
         let animations: Vec<usize> = d.movements.iter().map(|(_, _, a)| *a).collect();
-        let names = (d.anim_names.0.as_deref(), d.anim_names.1.as_deref());
         if d.object {
             // A scripted object (3e-5).
-            let o = ActiveObject {
-                // anim-scripts.md rule 3 corrected (M4 4d-8).
-                player: NamedAnimPlayer::new(&p.name, movements, d.current, base).with_stop_names(names.0, names.1).with_anim_pos(d.anim_pos),
-                script: d.script.clone(),
-                bounds: d.bounds,
-                collision_type: d.collider_type,
-                collision_mask: d.collider_mask,
-                accepts_inventory: d.accepts_inventory.clone(),
-                accept_all_items: d.accept_all_items,
-                too_far_away_action: d.too_far_away_action,
-                do_not_point_at: d.do_not_point_at,
-                hidden: !p.drawn(),
-                gone: false,
-                delete_when_done: false,
-            };
+            let o = crate::actor_recipes::scripted_object(&d, movements);
             main_log.summary(format!(
                 "objects: [{}] scripted at ({:.0}, {:.0}, {:.0}), type {:#x}, script {:?}, box {}, shows '{}', movements {:?}",
                 p.name,
@@ -679,20 +645,8 @@ pub fn spawn_doors(
         }
         if let Some(settings) = d.chest.clone() {
             // A chest (3e-4).
-            let mut chest = Chest::new(&p.name, settings, movements, d.current, base);
-            chest.player = chest.player.with_names_at_load(names.0, names.1);
-            let open_turn = chest.player.movements.iter().find(|m| m.name.eq_ignore_ascii_case("open")).map(|m| turn_degrees(&m.turn_at_frame(m.frames() - 1)));
-            let mut c = ActiveChest {
-                bounds: d.bounds,
-                collision_type: d.collider_type,
-                collision_mask: d.collider_mask,
-                // objects.md "Hidden objects".
-                hidden: !p.drawn(),
-                do_not_point_at: d.do_not_point_at,
-                script: d.script.clone(),
-                chest,
-                gone: false,
-            };
+            let mut c = crate::actor_recipes::chest(&d, settings, movements);
+            let open_turn = c.chest.player.movements.iter().find(|m| m.name.eq_ignore_ascii_case("open")).map(|m| turn_degrees(&m.turn_at_frame(m.frames() - 1)));
             objects.kept_interactions.restore_chest(&mut c, &mut objects.items);
             let at = c.chest.player.base.position;
             main_log.summary(format!(
@@ -723,22 +677,9 @@ pub fn spawn_doors(
             active_chests.push(c);
             continue;
         }
-        let mut door = Door::new(&p.name, movements, d.current, base);
-        door.player = door.player.with_names_at_load(names.0, names.1);
+        let mut active = crate::actor_recipes::door(&d, movements);
         let DrawnDoor { body, frames, slots, .. } =
-            spawn_body(commands, &door.placement(), &animations, &built, materials, (p.haze_solid, p.haze_multiplier), balls.test_shape(p, &d.shape), &anim_lights, p.turn_off_dyn_lighting, gpu, &p.name);
-        let mut active = ActiveDoor {
-            door,
-            script: d.script.clone(),
-            bounds: d.bounds,
-            collision_type: d.collider_type,
-            collision_mask: d.collider_mask,
-            accepts_inventory: d.accepts_inventory.clone(),
-            accept_all_items: d.accept_all_items,
-            too_far_away_action: d.too_far_away_action,
-            do_not_point_at: d.do_not_point_at,
-            gone: false,
-        };
+            spawn_body(commands, &active.door.placement(), &animations, &built, materials, (p.haze_solid, p.haze_multiplier), balls.test_shape(p, &d.shape), &anim_lights, p.turn_off_dyn_lighting, gpu, &p.name);
         objects.kept_interactions.restore_door(&mut active);
         // The door's script, read through the block counter (DESIGN 3a-1).
         let balance = active.script.as_ref().map(|name| {

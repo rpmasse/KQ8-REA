@@ -25,7 +25,7 @@ use bevy::prelude::*;
 use kq8_core::active::AnimObject;
 use kq8_core::anim::pose_at_frame;
 use kq8_core::collide::Placement;
-use kq8_core::door::{Cue, DoorMovement};
+use kq8_core::door::DoorMovement;
 use kq8_core::emitter::Rng;
 use kq8_core::named_anim::NamedAnimPlayer;
 use kq8_data::shape::Transform as GameTransform;
@@ -620,24 +620,10 @@ pub fn spawn_animated(
         let opacity = p.opacity();
         let rotation = kq8_data::objects::rotation(p.angles);
         // The movements as core plays them (anim-scripts.md rules 1–10).
-        let movements: Vec<DoorMovement> = a
-            .movements
-            .iter()
-            .map(|(name, l, i)| DoorMovement {
-                name: name.clone(),
-                start: l.start,
-                speed: l.speed,
-                repeat: l.repeat,
-                cut_short: l.unknown != 0,
-                play_time: built[*i].duration,
-                frame_steps: built[*i].steps.clone(),
-                first_in_file: built[*i].first_in_file,
-                frame_parts: built[*i].parts.clone(),
-                cues: l.cues.iter().map(|(phase, action)| Cue { phase: *phase, action: action.clone() }).collect(),
-                // characters.md rule 20 (M4 4d-11).
-                transitions: l.transitions.clone(),
-            })
-            .collect();
+        let movements = crate::actor_recipes::movements(&a.movements, |i| crate::actor_recipes::AnimationMotion {
+            duration: built[i].duration, steps: &built[i].steps,
+            first_in_file: built[i].first_in_file, parts: &built[i].parts,
+        });
         // ranged-weapons.md rule 24 (M5 5f-2): where a bolt would start, per
         // frame of each movement that has an `arrow` part (for the checks).
         for m in &movements {
@@ -651,25 +637,12 @@ pub fn spawn_animated(
                 log.detail(format!("[{}] '{}' ({} frames) part arrow by frame: {}", p.name, m.name, m.frames(), arrow.join(", ")));
             }
         }
-        let names = (a.anim_names.0.as_deref(), a.anim_names.1.as_deref());
-        // anim-scripts.md rule 3 as corrected 2026-10-19 (M4 4d-8): both
-        // names start as `Stop`, the keys replace them.
-        let mut player = NamedAnimPlayer::new(&p.name, movements, a.current, Placement { rotation, position: p.position });
-        if let Some(file) = a.character.as_ref().and_then(|c| c.keys.anim_file.as_deref()) {
-            player.set_lists(file, ranges);
-        }
-        player = player.with_stop_names(names.0, names.1).with_anim_pos(a.anim_pos);
-        // anim-scripts.md rule 11 (M5 5d-1).
-        player.once = a.once;
-        if player.current != a.current {
+        let crate::actor_recipes::AnimatedPlayer { player, selected_at_load } =
+            crate::actor_recipes::animated_player(&p.name, Placement { rotation, position: p.position }, &a, movements, ranges, &mut rng);
+        if selected_at_load != a.current {
             let was = player.movements.get(a.current).map_or("none", |m| m.name.as_str()).to_string();
-            stop_starts.push(format!("{} starts on '{}' (movement {}), not '{was}' (movement {}): no currAnimName, so the name Stop (anim-scripts.md rule 3 corrected)", p.name, player.movement().map_or("none", |m| m.name.as_str()), player.current, a.current));
+            stop_starts.push(format!("{} starts on '{}' (movement {}), not '{was}' (movement {}): no currAnimName, so the name Stop (anim-scripts.md rule 3 corrected)", p.name, player.movements.get(selected_at_load).map_or("none", |m| m.name.as_str()), selected_at_load, a.current));
         }
-        if a.random {
-            player = player.with_random_start(&mut rng);
-        }
-        // character-movement.md rule 1 (M5 5a-2).
-        if let Some(c) = &a.character { player.character_steps(c.keys.class); }
         // Q164: its walk and run speeds by `objects.md` "Loops" rule 6a.
         if player.loops_move_base {
             let speeds: Vec<String> = player
@@ -692,64 +665,9 @@ pub fn spawn_animated(
         // Draw distance (M1 6h); unused objects are only shown with H.
         // A character's ball is its rule-9 box.
         // A character's states (M4 4d-3).
-        let mut character = a.character.as_ref().map(|c| {
-            let has_birth = player.available().iter().any(|m| m.name.eq_ignore_ascii_case("Birth"));
-            Box::new(kq8_core::character::Character::new(
-                c.keys.class == kq8_data::characters::Class::GeometryTalker,
-                c.keys.flags,
-                c.birth_delay,
-                has_birth,
-                c.keys.no_turn,
-                c.keys.gravity,
-                kq8_core::character::Character::seed_for(&p.name),
-            ))
-        });
-        // characters.md rule 8 (M4 4d-6b-2): its mover.
-        if let (Some(ch), Some(c)) = (character.as_deref_mut(), &a.character) {
-            let k = &c.keys;
-            if k.class == kq8_data::characters::Class::Lucreto { ch.lucreto_react_pause = k.react_pause; }
-            ch.lucreto_change_dist = k.lucreto_change_dist;
-            ch.flying = k.flying;
-            ch.mouth_moves = k.class == kq8_data::characters::Class::Death;
-            ch.hits_buildings = k.collider_mask & 0x8 != 0;
-            // M4 4d-12-3: what Connor's scene needs to make it solid.
-            (ch.collision_type, ch.collision_mask) = (k.collider_type, k.collider_mask);
-            ch.bounds = balls.character_box(&p.name, c.box_type.as_deref());
-            // character-movement.md (M5 5a-4): its rules; home = where it
-            // was placed; the eye at the top of its box (rule 20).
-            let eye = ch.bounds.map_or(1000.0, |(_, max)| max[2]);
-            let has_hide = player.available().iter().any(|m| m.name.eq_ignore_ascii_case("hide"));
-            ch.unborn = c.unborn;
-            let mut ai = kq8_core::character_ai::Ai::new(c.ai.clone(), p.position, eye, has_hide);
-            if let Some(keys) = k.tower {
-                ch.tower = Some(kq8_core::tower_skeleton::Tower::new(keys));
-            }
-            // fighting.md rule 2 (M5 5c-1): its stats.
-            ch.fight = c.fight.clone().map(|s| {
-                let mut f = kq8_core::fight::Fight::new(s);
-                f.combat_scaled = c.combat_scaled;
-                f
-            });
-            ai.has_birth = player.available().iter().any(|m| m.name.eq_ignore_ascii_case("Birth"));
-            ch.ai = Some(ai);
-            if let Some((min, max)) = ch.bounds {
-                let keep = match p.keep_on_ground {
-                    kq8_data::objects::KeepOnGround::Floor => -1,
-                    kq8_data::objects::KeepOnGround::Surface => 1,
-                    kq8_data::objects::KeepOnGround::Off => 0,
-                };
-                let step = kq8_core::connor_mover::STEP;
-                ch.mover = Some(Box::new(kq8_core::connor_mover::Mover::character(
-                    p.position,
-                    k.gravity,
-                    min,
-                    max,
-                    (k.collider_type, k.collider_mask),
-                    (k.step_up.unwrap_or(step), k.step_down.unwrap_or(step)),
-                    keep,
-                )));
-            }
-        }
+        let mut character = a.character.as_ref().map(|c| crate::actor_recipes::character(
+            p, c, &player, balls.character_box(&p.name, c.box_type.as_deref()),
+        ));
         let mut prepared_test = None;
         if *unused {
             if let Some(c) = &a.character {

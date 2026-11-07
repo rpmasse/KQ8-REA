@@ -46,6 +46,7 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+mod actor_recipes;
 mod anim_gpu;
 mod anim_view;
 mod building_light;

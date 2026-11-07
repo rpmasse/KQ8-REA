@@ -5991,23 +5991,14 @@ mod campaign_tests {
     }
 
     fn world_player(actor: &mut AnimatedAssets, models: &[Animation], name: &str, at: kq8_core::collide::Placement) -> kq8_core::named_anim::NamedAnimPlayer {
-        use kq8_core::{door::{Cue, DoorMovement}, named_anim::NamedAnimPlayer};
+        use crate::actor_recipes::{animated_player, movements, AnimationMotion};
         let ranges = actor.append_alternate_lists();
-        let movements = actor.movements.iter().map(|(name, l, i)| {
-            let model = &models[*i];
-            DoorMovement {
-                name: name.clone(), start: l.start, speed: l.speed, repeat: l.repeat, cut_short: l.unknown != 0,
-                play_time: model.duration, frame_steps: model.frame_transforms.clone(), first_in_file: model.first_in_file,
-                frame_parts: model.frame_parts.clone(), transitions: l.transitions.clone(),
-                cues: l.cues.iter().map(|(phase, action)| Cue { phase: *phase, action: action.clone() }).collect(),
-            }
-        }).collect();
-        let mut player = NamedAnimPlayer::new(name, movements, actor.current, at);
-        if let Some(c) = &actor.character {
-            if let Some(file) = &c.keys.anim_file { player.set_lists(file, ranges); }
-            player.character_steps(c.keys.class);
-        }
-        player.with_stop_names(actor.anim_names.0.as_deref(), actor.anim_names.1.as_deref()).with_anim_pos(actor.anim_pos)
+        let movements = movements(&actor.movements, |i| AnimationMotion {
+            duration: models[i].duration, steps: &models[i].frame_transforms,
+            first_in_file: models[i].first_in_file, parts: &models[i].frame_parts,
+        });
+        let mut rng = kq8_core::emitter::Rng::new(0x0A11_3C00_5EED_0001);
+        animated_player(name, at, actor, movements, ranges, &mut rng).player
     }
 
     #[test]
@@ -6220,37 +6211,24 @@ mod campaign_tests {
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn dead_city_tower_melee_stagger_falls_and_releases_the_chain_mail() {
         use kq8_core::{
-            active::{Active, AnimObject}, character::Character, character_ai::Ai,
-            collide::{BallStack, Placement}, door::{Cue, DoorMovement}, fight::Fight,
-            named_anim::NamedAnimPlayer, stats::{ConnorStats, Stats}, tower_skeleton::Tower,
+            active::{Active, AnimObject}, collide::{BallStack, Placement}, stats::{ConnorStats, Stats},
         };
         let game = game_install();
         let world = World::open(&game, "DeadCity").unwrap();
         let mut log = Log::create("deadcity-tower-test").unwrap();
         let ground = load_ground(&game, &world, &mut log).unwrap();
-        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
-        let actor = objects.animated.iter().find(|a| objects.placed[a.placed].0.name == "Skeltowr").expect("animated tower actor");
+        let mut objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let actor = objects.animated.iter_mut().find(|a| objects.placed[a.placed].0.name == "Skeltowr").expect("animated tower actor");
         let (p, _, unused) = &objects.placed[actor.placed];
         assert!(!unused);
-        let assets = actor.character.as_ref().unwrap();
-        let keys = assets.keys.tower.unwrap();
+        let keys = actor.character.as_ref().unwrap().keys.tower.unwrap();
         assert_eq!((keys.real_alarm, keys.stun_pause, keys.react_pause), (5000., 1.5, 1.2));
-        let movements = actor.movements.iter().map(|(name, l, i)| {
-            let model = &objects.object_animations[*i];
-            DoorMovement {
-                name: name.clone(), start: l.start, speed: l.speed, repeat: l.repeat, cut_short: l.unknown != 0,
-                play_time: model.duration, frame_steps: model.frame_transforms.clone(), first_in_file: model.first_in_file,
-                frame_parts: model.frame_parts.clone(), transitions: l.transitions.clone(),
-                cues: l.cues.iter().map(|(phase, action)| Cue { phase: *phase, action: action.clone() }).collect(),
-            }
-        }).collect::<Vec<_>>();
-        assert_eq!(movements.len(), 11);
+        assert_eq!(actor.movements.len(), 11);
         let origin = Placement { position: p.position, rotation: kq8_data::objects::rotation(p.angles) };
-        let mut player = NamedAnimPlayer::new(&p.name, movements, 0, origin);
-        let mut character = Character::new(false, assets.keys.flags, assets.birth_delay, true, false, true, 1);
-        character.tower = Some(Tower::new(keys));
-        character.ai = Some(Ai::new(assets.ai.clone(), p.position, 1300., false));
-        character.fight = Some(Fight::new(assets.fight.clone().unwrap()));
+        let mut player = world_player(actor, &objects.object_animations, &p.name, origin);
+        let assets = actor.character.as_ref().unwrap();
+        let bounds = crate::draw_distance::ShapeBalls::new(objects.game_bounds.clone(), std::iter::empty());
+        let mut character = crate::actor_recipes::character(p, assets, &player, bounds.character_box(&p.name, assets.box_type.as_deref()));
         character.set_state(&mut player, "Wait", &[], 0.);
         player.start("stop");
         let tower = objects.buildings.iter().find(|b| b.name.eq_ignore_ascii_case("Tower2")).unwrap();
@@ -6262,12 +6240,15 @@ mod campaign_tests {
         let edge = (0..100).map(|step| Placement { position: origin.to_world([0., step as f32 * 50., 0.]), ..origin })
             .find(|p| supported(p.position) && !supported(p.to_world([0., 400., 0.]))).expect("back edge on Tower2's real collider");
         player.base = edge;
+        // The production recipe includes the physical mover; move the test
+        // placement and mover together when arranging the platform-edge case.
+        if let Some(mover) = character.mover.as_mut() { mover.position = edge.position; }
         let mut active = Active::new(objects.vars, vec![], vec![], objects.known, objects.scripts);
         active.world.talk = crate::talk_view::load_talk(&game, "DeadCity", &mut log).0;
         active.world.items = objects.items;
         let items_before = active.world.items.objects.len();
         active.set_connor_stats(ConnorStats { level: 1, stats: Stats([10, 1, 0, 0, 0]) });
-        active.add_anims([AnimObject { player, character: Some(Box::new(character)), script: None, gone: false, translucency: None }]);
+        active.add_anims([AnimObject { player, character: Some(character), script: None, gone: false, translucency: None }]);
         active.world.characters_in_range.insert("skeltowr".into());
         let from = edge.to_world([0., -500., 0.]);
         active.world.connor_at = Some(from);
