@@ -466,6 +466,73 @@ earned-passage-weeper/1794029563826960700 and
 earned-second-rock/1794029819717808900. This has **not** yet reached
 the graveyard or enabled its four portals. Those sections remain open.
 
+## Central passage combat and the Sylph well
+
+The route beyond SecondRockReload is **not complete**. Two native
+combat attempts failed, and further variations of that route have
+stopped pending a better-supported approach:
+
+| Attempt | Observed result | Native duration |
+| --- | --- | --- |
+| Walk, then use the Small Crossbow | skeleton2 defeated; skeleton3 kills Connor on update 790; skeleton1 also joins and interrupts shots | 56.40 s |
+| Run and use the earned Mace | skeleton1 defeated on update 796, its 200 experience awarded on 811; Connor dies approaching skeleton2 on 877 | 62.19 s |
+
+The source has 61 of 110 maximum health, no carried healing items,
+and the earned Mace and Small Crossbow. The movement trace shows
+running interrupted by incoming arrows; these failures do not prove
+an engine defect. No damage, enemy AI or inventory rules were changed.
+Evidence is under kq8-artifacts/earned-central-archers/1794030315905121300
+and earned-central-guards/1794030484043099000, with corresponding
+central-archers-native.log and central-guards-native.log.
+
+The retained test currently reproduces the second failure. With the
+original `KQ8_GAME_DIR` and genuine `KQ8_SECOND_ROCK_SLOT` configured:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::central_passage_guards_with_earned_mace_survive_reload -- --ignored --exact --test-threads=1
+```
+
+A read-only proximity audit also lists BowGuys1/2 near the eastern
+bend, MaceBoy1/2 near the later northern turn, skeleton52 on the
+western approach, and zombie5 near the graveyard destination.
+It uses original saved placements and alarm distances, with a
+300-unit allowance; it does not simulate visibility, team alarms,
+births or movement. Being listed does not establish an encounter.
+Evidence: central-guards-threat-audit.log and graveyard-route-threat-audit.log.
+The first diagnostic draft mishandled characters without a mover;
+the corrected audit uses their saved animation placement and fails
+if neither position is available. This was a diagnostic error, not
+another native combat attempt.
+
+Original sylphwel.cs heals five points for each ordinary ConnorAction.
+Its canDrink flag controls the sound delay rather than the health
+event. The independent well check returns from SecondRockReload
+through the cleared route and uses visible clicks on well2, retaining
+both Rocks and the existing quest state. It does not retry the stopped
+central combat route.
+
+The well check and fresh-process reload **passed in 169.75 seconds**.
+Ten visible clicks on updates 1176-1184 heal Connor from 61 to 110;
+the final event clamps at the original level-eleven maximum.
+SylphWellReload retains stats [110,80,25,10,6612], both Rocks, all
+other items, quest flags and moved blocks. The defeated Weeper stays
+gone, no healing repeats on reload, and GOG Options.cs is unchanged.
+Final position is (66725.86,104720.02,1584). Evidence:
+kq8-artifacts/earned-sylph-well/1794030725771876400/slots/slot-3.json
+and sylph-well-native.log. The discarded offline approach target
+was unreachable; only its western approach was replayed.
+
+With the same original `KQ8_GAME_DIR` and genuine `KQ8_SECOND_ROCK_SLOT`,
+this command should pass the return, healing and reload assertions:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::earned_return_to_sylph_well_heals_through_visible_clicks_and_reloads -- --ignored --exact --test-threads=1
+```
+
+The central encounter has **not** been retried from this healed save.
+The standard workspace suite was not rerun for these ignored native
+route additions; no game-engine implementation changed.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -507,6 +574,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::sylph_to_southern_passage_preserves_campaign_and_reloads` | Required genuine `KQ8_SYLPH_KNOWLEDGE_SLOT` (`SylphKnowledgeReload`) | `SouthernPassageReload` |
 | `dead_city::passage_weeper_with_earned_crossbow_survives_reload` | Required genuine `KQ8_SOUTHERN_PASSAGE_SLOT` (`SouthernPassageReload`) | `PassageWeeperReload` |
 | `dead_city::second_placed_rock_is_picked_up_and_reloaded` | Required genuine `KQ8_PASSAGE_WEEPER_SLOT` (`PassageWeeperReload`) | `SecondRockReload` |
+| `dead_city::earned_return_to_sylph_well_heals_through_visible_clicks_and_reloads` | Required genuine `KQ8_SECOND_ROCK_SLOT` (`SecondRockReload`) | `SylphWellReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

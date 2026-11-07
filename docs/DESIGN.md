@@ -13,6 +13,63 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 central passage archers (2026-11-07).** Continue from the genuine
+SecondRockReload through the already cleared southern corridor and
+the winding eastern passage. The original placed skeleton2 and
+skeleton3 guard its northward bend; the earned save retains their
+50 health, 150 experience and 12000-unit alarm/attack distances.
+Use shorter ordinary movement marks through the bends, switch to
+first person while standing, and use the earned Small Crossbow from
+the straight approach. Check visible aim rays, both completed deaths,
+their combined 300-point reward, two retained Rocks and unchanged
+quest state, then save beyond the archers and reload in a fresh
+process. Preserve any ordinary damage taken. The offline building
+sweep route is only planning evidence; it does not establish live
+traversal, combat or the remaining graveyard approach. Do not change
+engine rules or supply inventory to make this test pass.
+
+The first native attempt failed in 56.40 seconds: ordinary walking
+reached the bend, but Connor died to skeleton3 on update 790 after
+defeating skeleton2. The previously omitted same-team skeleton1 also
+joined and caused flinches despite its authored zero damage. Retain
+that trace. For the second attempt, equip the earned Mace (80 hand
+damage versus 25 ranged), run through the exposed approach, defeat
+skeleton1 at the bend, then close on both archers. Their starting
+health is 60/50/50 and combined experience 500. Check all three deaths
+and preserve damage taken. A second failure requires a written
+handoff and new evidence before any further route variation.
+
+The second attempt failed in 62.19 seconds after killing skeleton1
+with the earned Mace: Connor died on update 877 while running toward
+skeleton2. Stop this route after two failures and retain both logs.
+The movement trace shows normal running interrupted by incoming
+arrows, not proof of an engine defect. The source save has 61/110
+health and no carried healing. Independently verify the original
+Sylph well's five-health ConnorAction through visible clicks and
+save/reload; do not inject health or retry the guard route unchanged.
+
+**M6 earned Sylph well healing (2026-11-07).** Return from the unchanged
+SecondRockReload through the cleared corridor to Sylph's area, using
+the reversed verified route with short movement marks. An offline
+building sweep reaches (67000,105000); its attempted target farther
+east is excluded, so do not use that target. From the western approach,
+click well2 through the visible gameplay camera ten times. Original
+sylphwel.cs sends +5 health for each ConnorAction; canDrink controls
+the sound delay, not the healing. Verify the original script dispatch,
+health clamped to the earned level's maximum, unchanged items/quests,
+and a fresh-process reload. Do not bypass visibility, grant health or
+change the original GOG files. This is independent of the stopped
+central combat route and does not claim that encounter is solved.
+
+The well check and fresh-process reload pass in 169.75 seconds.
+Ten visible clicks on updates 1176-1184 restore 61 health to 110;
+SylphWellReload retains both Rocks, all other items, quest flags and
+moved blocks. No health event repeats after reload. This is now the
+latest earned save, at (66725.86,104720.02,1584). Keep the central
+guard route stopped until its next approach is reviewed using the
+full nearby-enemy audit and the changed earned health state. Neither
+healing nor the static proximity audit establishes combat success.
+
 **M6 graveyard bridge access audit (2026-11-07).** Continue from the
 earned SylphKnowledgeReload. The original Dedtower has floor contacts
 along its western span, but the offline terrain planner excludes the

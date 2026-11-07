@@ -2213,3 +2213,149 @@ fn second_placed_rock_is_picked_up_and_reloaded() {
     assert_eq!(earned["journey"]["items"], restored["journey"]["items"]);
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "known campaign failure: central guard route dies; requires GOG assets and KQ8_SECOND_ROCK_SLOT"]
+fn central_passage_guards_with_earned_mace_survive_reload() {
+    let play = Play::new("earned-central-guards");
+    let source = earned_slot("KQ8_SECOND_ROCK_SLOT")
+        .expect("set KQ8_SECOND_ROCK_SLOT to an earned SecondRockReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "SecondRockReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["view_flags"]["active"], false);
+    assert_eq!(start["journey"]["stats"]["level"], 11);
+    assert_eq!(start["journey"]["stats"]["stats"][4], 6612);
+    assert!(carries_one(&start, "INVITEM_Mace"));
+    let mut points = Vec::new();
+    let mut from = [112862_f32, 70939_f32];
+    for to in [
+        [112250., 71750.], [111000., 77750.], [107250., 81500.],
+        [106250., 81750.], [106250., 87000.], [107250., 87750.],
+        [121000., 87750.], [129250., 87750.],
+    ] {
+        let steps = ((to[0] - from[0]).hypot(to[1] - from[1]) / 2500.).ceil() as u32;
+        for i in 1..=steps {
+            let t = i as f32 / steps as f32;
+            let xy = [from[0] + t * (to[0] - from[0]), from[1] + t * (to[1] - from[1])];
+            points.push(json!({"name":format!("Central passage approach {}",points.len()+1),
+                "xy":xy,"radius":140,"run":from[0]>=121000.}));
+        }
+        from = to;
+    }
+    for (index, (name, xy, radius)) in [
+        ("skeleton1", [129250,88750], 180),
+        ("skeleton2", [129379,98863], 1000),
+        ("skeleton3", [130629,98515], 1000),
+    ].into_iter().enumerate() {
+        points.push(json!({"name":format!("Defeat central guard {name}"),
+            "xy":xy,"radius":radius,"run":true,"fight":name,"big_swing":true,
+            "keep_weapon":index<2}));
+    }
+    for y in [96000, 99000, 102000, 104000] {
+        points.push(json!({"name":format!("Beyond the central archers {y}"),
+            "xy":[129500,y],"radius":160,"run":false}));
+    }
+    let path = play.root.join("central-guards.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":points})).unwrap()).unwrap();
+    let (won, viewer) = leg(&play, 1, "CentralGuards", 1400, &[
+        "--walk-route",path.to_str().unwrap(),"--key","left:IDCTL_INVBAR_SHORT,8"
+    ]);
+    assert!(viewer.contains("walk-route at Beyond the central archers 104000"));
+    let combat = log(&play, "CentralGuards", "fight.log");
+    for name in ["skeleton1", "skeleton2", "skeleton3"] {
+        assert!(combat.contains(&format!("{name}: hit by Connor")));
+        assert_eq!(combat.matches(&format!("{name}: its death ended (rule 32)")).count(), 1);
+    }
+    let mut expected = start["journey"]["stats"].clone();
+    expected["stats"][0] = won["journey"]["stats"]["stats"][0].clone();
+    expected["stats"][4] = json!(7112);
+    assert!(expected["stats"][0].as_i64().unwrap() <= start["journey"]["stats"]["stats"][0].as_i64().unwrap());
+    let (restored, _) = leg(&play, 2, "CentralGuardsReload", 45, &[]);
+    for saved in [&won, &restored] {
+        assert!((saved["position"][0].as_f64().unwrap() - 129500.).abs() < 900.);
+        assert!((saved["position"][1].as_f64().unwrap() - 104000.).abs() < 900.);
+        assert_eq!(saved["journey"]["stats"], expected);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        for name in ["skeleton1", "skeleton2", "skeleton3", "weeper16"] {
+            assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap()
+                .iter().any(|gone| gone == name));
+        }
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "3"));
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        assert_eq!(saved["view_flags"]["active"], false);
+    }
+    let reload = log(&play, "CentralGuardsReload", "fight.log");
+    for name in ["skeleton1", "skeleton2", "skeleton3"] {
+        assert!(!reload.contains(&format!("{name}: its death ended (rule 32)")));
+    }
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_SECOND_ROCK_SLOT"]
+fn earned_return_to_sylph_well_heals_through_visible_clicks_and_reloads() {
+    let play = Play::new("earned-sylph-well");
+    let source = earned_slot("KQ8_SECOND_ROCK_SLOT")
+        .expect("set KQ8_SECOND_ROCK_SLOT to an earned SecondRockReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "SecondRockReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["view_flags"]["active"], false);
+    assert_eq!(start["journey"]["stats"]["level"], 11);
+    assert_eq!(start["journey"]["stats"]["stats"][0], 61);
+    let mut points = Vec::new();
+    let mut from = [112862_f32, 70939_f32];
+    for (to, run) in [
+        ([112250.,71750.],false), ([111750.,74500.],false),
+        ([111000.,77750.],false), ([108500.,80250.],false),
+        ([106250.,78000.],false), ([105000.,74000.],false),
+        ([104750.,71500.],false), ([102500.,69250.],false),
+        ([100000.,71500.],false), ([98750.,77750.],false),
+        ([96250.,80250.],false), ([95500.,80250.],false),
+        ([91750.,82000.],false), ([90000.,93250.],false),
+        ([80250.,103000.],true), ([75250.,107250.],true),
+        ([70000.,108000.],false), ([67000.,105000.],false),
+    ] {
+        let steps = ((to[0] - from[0]).hypot(to[1] - from[1]) / 2500.).ceil() as u32;
+        for i in 1..=steps {
+            let t = i as f32 / steps as f32;
+            let xy = [from[0] + t * (to[0] - from[0]), from[1] + t * (to[1] - from[1])];
+            points.push(json!({"name":format!("Return to the Sylph well {}",points.len()+1),
+                "xy":xy,"radius":140,"run":run}));
+        }
+        from = to;
+    }
+    for drink in 1..=10 {
+        points.push(json!({"name":format!("Drink from the Sylph well {drink}"),
+            "xy":from,"radius":900,"run":false,"aim":"well2"}));
+    }
+    let path = play.root.join("sylph-well.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap()).unwrap();
+    let (healed, viewer) = leg(&play, 1, "SylphWellHealed", 2300,
+        &["--walk-route",path.to_str().unwrap()]);
+    assert!(viewer.contains("walk-route at Drink from the Sylph well 10"));
+    assert_eq!(viewer.lines().filter(|line| line
+        .contains("test --aim well2 (camera through gameplay pixel")
+        && line.contains("hits well2 first")
+        && !line.contains("walk-route turns the camera")).count(), 10);
+    let doors = log(&play, "SylphWellHealed", "doors.log");
+    assert_eq!(doors.matches("KQStatsChangeRequestEvent 5 0 0 0 0 to Connor").count(), 10);
+    let mut expected = start["journey"]["stats"].clone();
+    expected["stats"][0] = json!(110);
+    let (restored, _) = leg(&play, 2, "SylphWellReload", 45, &[]);
+    for saved in [&healed, &restored] {
+        assert_eq!(saved["journey"]["stats"], expected);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "3"));
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        assert_eq!(saved["kept"]["deadcity"]["prop_placements"],
+            start["kept"]["deadcity"]["prop_placements"]);
+        assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap()
+            .iter().any(|name| name == "weeper16"));
+    }
+    assert!(!log(&play, "SylphWellReload", "doors.log")
+        .contains("KQStatsChangeRequestEvent 5 0 0 0 0 to Connor"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}

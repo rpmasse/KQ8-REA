@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-07 Verify earned well healing; retain central guard failures
+
+Added an ordinary-input return from the second Rock checkpoint to
+the Sylph well. Ten visible clicks run the original script and heal
+Connor from 61 to 110 without changing his two Rocks, other items,
+quest flags or block placements. The check and fresh-process reload
+passed in 169.75 seconds; the GOG options remain unchanged.
+
+Two earlier central passage attempts failed: the ranged route killed
+one archer before Connor died, and the Mace route killed their melee
+teammate before Connor died approaching the archers. Those traces
+and the currently failing ignored Mace test are retained. The route
+was stopped after two real failures; the well check is independent.
+No game-engine rules changed and no new campaign section beyond the
+guards is claimed. A corrected read-only proximity audit identifies
+additional possible threats but does not establish line of sight.
+[Results, failure evidence and commands](docs/dead-city-progression.md#central-passage-combat-and-the-sylph-well)
+
 ## 2026-11-07 Verify the southern approach and second Rock
 
 Added three ordinary-input continuations from the Sylph checkpoint:
