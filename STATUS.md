@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-07 Northern maze junction
+
+The next group is a mace skeleton and two archers. The exploratory
+run defeated them with 36 health left. The first canonical replay
+died after circling outside an archer waypoint under fire. Its log
+records repeated distances of 323–329 units against a 235-unit
+arrival radius. Raising the three combat radii to 400 units allows
+the player to start attacking earlier.
+
+That two-process check passed in 66.44 seconds. It consumed the two
+earned Mushrooms, awarded the group’s 650 experience once, and
+reloaded all three enemies as defeated. The final save has 12 health
+and 1,367 experience toward level ten. The Mace and three Mushrooms
+they dropped are available for the western route. All 877 standard
+workspace tests passed. [Route and command](docs/dead-city-progression.md#the-northern-junction)
+
 ## 2026-11-07 The three guards beyond Death’s gate
 
 Two Windows processes verified that taking the first hall’s dropped

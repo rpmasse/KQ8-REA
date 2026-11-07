@@ -31,6 +31,17 @@ After restoring the corner, draw the earned blade, fight that group
 with ordinary attacks and the collected Mushrooms, then checkpoint
 their actual death awards before proceeding west.
 
+**M5–M6 through the northern maze.** Use the defeated junction’s
+actual Mace and Mushroom drops. Verify the weapon exchange and
+normal health-item use, then follow the original maze corridor toward
+the isolated Weeper to the west. Check its attack, death award and
+saved state before approaching the next group or the river.
+The first canonical northern fight died despite the exploratory
+victory. Its log shows the unattended player circling 323–329 units
+from a 235-unit waypoint while the archer kept firing. Increase the
+three combat arrival radii to 400 units, still within normal weapon
+reach, so the driver stops navigating and starts the intended attack.
+
 **M6 enter the maze with Death’s key.** Load the earned key, approach
 the closed spike gate and offer it through the quest strip. Verify
 that the opening finishes and the key is consumed. Load the opened

@@ -745,6 +745,10 @@ fn earn_gate_victory() -> PathBuf {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_MAZE_GUARDS_SLOT"]
 fn gate_drops_and_northwest_passage_reload() {
+    reach_north_corner();
+}
+
+fn reach_north_corner() -> PathBuf {
     let play = Play::new("earned-north-maze-corner");
     let source = earned_slot("KQ8_MAZE_GUARDS_SLOT").unwrap_or_else(earn_gate_victory);
     let start = prepare(&play, &source);
@@ -820,4 +824,86 @@ fn gate_drops_and_northwest_passage_reload() {
         fs::read(play.game.join("Options.cs")).unwrap(),
         play.options
     );
+    play.slots.join("slot-3.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_NORTH_MAZE_CORNER_SLOT"]
+fn northern_mace_guard_and_archers_reload() {
+    earn_north_junction();
+}
+
+fn earn_north_junction() -> PathBuf {
+    use kq8_core::keyboard_menu::{keyword, Bindings};
+    use kq8_data::GameDir;
+    let play = Play::new("earned-north-maze-guards");
+    let source = earned_slot("KQ8_NORTH_MAZE_CORNER_SLOT").unwrap_or_else(reach_north_corner);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "NorthCornerReload");
+    assert!(carries_one(&start, "INVITEM_BroadSword"));
+    let bindings = GameDir::open(&play.game)
+        .unwrap()
+        .find("movekeys.kq")
+        .unwrap();
+    let bindings = Bindings::read(&fs::read(bindings).unwrap()).unwrap();
+    let draw = format!("physical:{},8", keyword(bindings.0[6]).unwrap());
+    let path = play.root.join("junction.json");
+    let points = json!([
+        {"name":"Fight the mace guard","xy":[162250,122500],"radius":400,"run":true,
+            "fight":"skeleton29","keep_weapon":true},
+        {"name":"Fight the east junction archer","xy":[163480,126700],"radius":400,"run":true,
+            "fight":"skeleton28","keep_weapon":true},
+        {"name":"Fight the west junction archer","xy":[162240,126800],"radius":400,"run":true,
+            "fight":"skeleton27"}
+    ]);
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (cleared, _) = leg(
+        &play,
+        1,
+        "NorthMazeGuards",
+        760,
+        &["--key", &draw, "--walk-route", path.to_str().unwrap()],
+    );
+    let combat = log(&play, "NorthMazeGuards", "fight.log");
+    for name in ["skeleton29", "skeleton28", "skeleton27"] {
+        assert!(combat.contains(&format!("{name}: hit by Connor")));
+        assert_eq!(
+            combat
+                .matches(&format!("{name}: its death ended (rule 32)"))
+                .count(),
+            1
+        );
+    }
+    assert_eq!(
+        log(&play, "NorthMazeGuards", "items.log")
+            .matches("INVITEM_Mushroom, slot used")
+            .count(),
+        2
+    );
+    assert_eq!(
+        cleared["journey"]["stats"]["level"],
+        start["journey"]["stats"]["level"]
+    );
+    assert_eq!(
+        cleared["journey"]["stats"]["stats"][4].as_i64().unwrap(),
+        start["journey"]["stats"]["stats"][4].as_i64().unwrap() + 650
+    );
+    let (restored, _) = leg(&play, 2, "NorthJunctionReload", 45, &[]);
+    assert_eq!(restored["journey"]["stats"], cleared["journey"]["stats"]);
+    for name in ["skeleton29", "skeleton28", "skeleton27"] {
+        assert!(restored["kept"]["deadcity"]["gone"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v == name));
+    }
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+    play.slots.join("slot-3.json")
 }
