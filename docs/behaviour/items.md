@@ -118,8 +118,9 @@ chests (`chests.md`), world scripts, and things that drop or throw them.
      - **The name stays with the object** when it is carried, moved
        between inventories, thrown by `tossItems` (the same object flies),
        or put down by `dropItem` (the same object is moved). Exception,
-       traced but not tied to a type: for one item category `dropItem`
-       makes a **new** item object instead (new name).
+       identified 2026-11-07 (Q203): the **Rock** category always makes
+       a **new** world item object instead, with a new name, even when
+       dropping the last carried Rock (rule 11).
      - For us: `NoName<n>` with one game-wide counter starting at 0, saved
        with the game (M6). B's stand-in works until saving exists; switch
        when convenient.
@@ -140,6 +141,49 @@ chests (`chests.md`), world scripts, and things that drop or throw them.
     there. Errors if `<who>` doesn't carry one (usage text; not traced
     further). Used by `GAME/Kq/rockHit.cs` (`dropItem Connor
     INVITEM_Rock $KQObject::loc`).
+    **Rock exception (Q203, static study 2026-11-07):** deducts one
+    carried Rock, then creates a fresh world Rock of quantity 1 at the
+    supplied position and angles. The branch depends on the requested
+    type's **Rock category**, not its stack count: it also creates a
+    fresh identity when that was the last carried Rock. Non-Rock
+    categories follow the same-item placement branch; do not apply
+    fresh creation to all dropped items.
+
+    **Common removal order and the last-item edge:** when the carried
+    quantity is greater than 1, removal only reduces it by 1. When it
+    is exactly 1, the same quantity-1 object leaves the carried list
+    and enters world ownership at its **old stored placement**, normally
+    the origin from the carry-add operation, before either category's
+    destination action. Its count is not changed to zero.
+
+    For **non-Rock**, the following destination change is a zero-time
+    move of that same object. If world activation already registered
+    its collider at the old placement, the destination move performs
+    no new contact probe. If it stayed inactive there, later activation
+    can instead register it at the destination. A larger non-Rock stack
+    takes the count-reduction branch and is not split into a new world
+    object by this command; the same selected object's placement is
+    changed. Do not infer a generic fresh-item split from the Rock case.
+
+    For the **last Rock**, the old quantity-1 identity is therefore
+    world-owned at its old placement as well as the new quantity-1
+    landing Rock being created. No deletion of that old identity was
+    found in the command chain; the inventory UI updates only clear
+    their references. This original edge and any contact at its old
+    placement must not be hidden by describing the operation as a pure
+    replacement. Its runtime consequences are **not tested**.
+
+    After common removal, `NewInvItem` is set to the selected carried
+    object's name. Any registration callback for the old last-item
+    identity occurs before that assignment.
+    The fresh Rock's active collider registration can synchronously
+    enter an accepting trap, whose callback receives the **fresh
+    object's name**. Only after that insertion and callback return is
+    `NewInvItem` set to the fresh name. No projectile-to-item occupancy
+    transfer takes place. See `traps.md`, "Recoverable Rock,
+    registration and removal", for the collision-detail gate,
+    registration versus zero-time placement, pickup/deletion and save
+    rules. Original runtime and native save/reload **not tested**.
 12. **`KQObject::tossItems <object> <offsetZ> <type1,type2,...>`**:
     makes one item (quantity 1) per listed type (comma separated,
     `INVITEM_` prefix optional) and **throws** them all out of the

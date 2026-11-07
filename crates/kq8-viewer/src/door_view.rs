@@ -2196,7 +2196,7 @@ pub fn door_step(
     let (due, later): (Vec<_>, Vec<_>) = std::mem::take(&mut command_at.0).into_iter().partition(|(_, n)| updates >= *n);
     command_at.0 = later;
     for (line, _) in due {
-        let result = sim.active.test_command(&line, "test --command");
+        let result = sim.active.console_command(&line, "test --command");
         shared.log.lock().unwrap().summary(format!("update {updates}: test --command {line}: {result:?}"));
     }
     // characters.md rule 11: which characters update now.

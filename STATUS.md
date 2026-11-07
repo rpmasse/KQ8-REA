@@ -1,5 +1,51 @@
 # STATUS
 
+## 2026-11-07 Earned Rock holds the western plate through save and reload
+
+The previously failed earned-Rock route passes once in 46.00 seconds.
+The ordinary throw consumes one of the two carried Rocks. Recoverable
+world Rock NoName98 occupies triptrp5, enabling both portal masks to 4,
+and a fresh Windows process restores that same membership and state.
+Other carried items, stats and quest flags remain unchanged. Checkpoint:
+earned-western-plate-rock/1794039587261976800/slots/slot-3.json,
+WesternPlateRockReload. Earlier failure evidence is retained.
+
+Fresh item registration now uses its oriented ball stack and invokes
+eligible trap callbacks synchronously, preserving command-local final
+NewInvItem values through nested creation. Existing item moves remain
+stay-only. Nine registration cases pass, plus one chest-event-boundary
+case. The remaining core suite passes once (697 passed, 17 ignored),
+before the chest-only correction; successful cases were not repeated.
+Final release viewer check passes. [Commands and limits](docs/item-registration-traps.md)
+
+Q203 is partly implemented: pickup/deletion, last-unit/non-Rock identity
+rules and broader registration/restore paths remain. Q202 aim/arc is
+still open. No manual testing. Engineering completion estimates remain
+M4 about 80%, M5 60%, M6 about 25%; these are not measured checklist ratios.
+
+## 2026-11-07 Q203 studied; recoverable Rock implementation still pending
+
+The original projectile does not occupy the plate: its collision-detail
+pair with a trap is excluded. Rock-category dropItem always creates a
+fresh quantity-1 world item, even for the last carried Rock. Registering
+that active item's collision shape checks stationary overlaps and runs
+ordinary trap entry synchronously. Existing-collider script placement
+still has no destination entry probe. Callback/NewInvItem ordering,
+pickup/deletion release and silent saved-name reattachment are now in
+[traps.md](docs/behaviour/traps.md#recoverable-rock-registration-and-removal-q203-2026-11-07)
+and [items.md](docs/behaviour/items.md). Q203 is answered, not implemented.
+The last carried Rock has an additional original edge: the old identity
+also enters world ownership at its stored carried placement before the
+fresh landing Rock is created, with no cleanup found in this command
+chain. Do not simplify that case into a pure replacement. Registration
+rotates the local ball centres by the item's full orientation.
+
+Static original study and installed-data arithmetic only; original
+runtime/native save tests **not tested**. No Rust or campaign result
+changed. The earned Rock check below remains a real failure. Next work
+must implement the eligible-registration distinction and lifecycle from
+the notes, then recheck that failure. Original aim/arc remains Q202.
+
 ## 2026-11-07 Script-moved props notify occupied traps after the event
 
 Script placement now updates the prop's logical position immediately and
@@ -56,7 +102,8 @@ and the incorrect zero-test module filter are retained and not counted
 as passing evidence. The original-data check is an isolated push with
 other obstacles omitted, not a campaign route. Exact mid-pass callbacks,
 script-placement/removal occupancy and the asymmetric-box centre rule
-(Q204) remain incomplete. The Rock handoff remains Q203; M4-M6 are not done.
+(Q204) remain incomplete. Q203 is now studied above, but its
+implementation remains pending; M4-M6 are not done.
 [Commands and evidence](docs/pushed-object-traps.md)
 
 ## 2026-11-07 Tossed-item movement reaches the trap dispatcher
@@ -66,7 +113,8 @@ the real mover path, wall clipping, masks, callback order, multiple
 occupants and settled serialized occupancy. Ordinary placed items
 still do not enter. The initial compile-only failure was a private
 test import; the public import fixed it. The native earned Rock
-puzzle remains the failure below, pending Q202/Q203. Pickup/deletion
+puzzle remains the failure below, pending Q202 and implementation of
+the now-studied Q203. Pickup/deletion
 release and native campaign use of this new integration are not tested.
 [Commands and limits](docs/tossed-item-traps.md)
 
@@ -90,11 +138,12 @@ failed attempt, not a successful puzzle check.
 
 The new route diagnostic aims through an on-screen gameplay pixel,
 rejects nearer aimable objects and checks the drawn-ground hit.
-No projectile or trap rules changed. Existing notes say dropItem
-places an item without flight and placement alone does not enter a
-trap. The original projectile-to-item trap handoff is unresolved
-(Q203); Rock aim and flight fidelity remain Q202. Do not force On
-at item creation or alter the pressure box to make this test pass.
+No projectile or trap rules changed in that attempt. Q203 is now
+answered by the study above: a fresh eligible collider's registration
+can enter without flight, unlike placement of an existing collider.
+Its implementation remains pending; Rock aim and flight fidelity remain
+Q202. Do not bypass the contact/mask/detail conditions with forced On,
+or alter the pressure box to make this test pass.
 The earlier passing campaign checkpoint remains WesternPlateReleasedReload.
 [Command and limits](docs/dead-city-progression.md#earned-rock-placement-failure)
 

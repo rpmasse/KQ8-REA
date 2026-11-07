@@ -99,6 +99,8 @@ pub struct Visitor<'a> {
 #[derive(Debug, Clone, Copy)]
 pub enum VisitorShape<'a> {
     Balls(&'a BallStack),
+    /// Fresh world-item registration uses the full item transform (Q203).
+    OrientedBalls(&'a BallStack, [[f32; 3]; 3]),
     /// Own-space axes expressed in world space; translation is in Visitor.
     Box([[f32; 3]; 3]),
 }
@@ -169,11 +171,15 @@ impl Trap {
         // Rule 6: sweep the visitor's own collision shape, not its origin.
         let own_centre: [f32; 3] = std::array::from_fn(|i| (v.min[i] + v.max[i]) / 2.0);
         let (touching, centre): (bool, [f32; 3]) = match v.shape {
-            VisitorShape::Balls(balls) => {
+            VisitorShape::Balls(balls) | VisitorShape::OrientedBalls(balls, _) => {
+                let axis = match v.shape {
+                    VisitorShape::OrientedBalls(_, rotation) => rotation[2],
+                    _ => [0., 0., 1.],
+                };
                 let (wide_min, wide_max) = (min.map(|m| m - balls.radius), max.map(|m| m + balls.radius));
                 let touching = path.iter().any(|(from, to)| balls.heights.iter().any(|h| {
-                    let a = [from[0], from[1], from[2] + h];
-                    let b = [to[0], to[1], to[2] + h];
+                    let a = std::array::from_fn(|i| from[i] + axis[i] * h);
+                    let b = std::array::from_fn(|i| to[i] + axis[i] * h);
                     segment_meets_box(a, b, wide_min, wide_max)
                 }));
                 (touching, std::array::from_fn(|i| v.position[i] + own_centre[i]))

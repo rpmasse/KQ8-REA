@@ -1,5 +1,46 @@
 # MODLOG
 
+## 2026-11-07 Fresh item registration fixes earned Rock pressure
+
+Command-owned continuations now run fresh-item overlap callbacks before
+the originating command finishes, preserving nested NewInvItem timing.
+Registration uses rotated BOUNDS-derived ball centres and current item
+position/deletion and trap masks between callbacks. Item getLoc and
+script placement are connected; chest opening finishes pending notices
+at the click boundary. The viewer diagnostic command uses that complete
+script command path.
+
+Nine registration checks and the new chest boundary check pass once.
+The remaining core suite passes once (697 passed, 17 ignored) before
+the chest correction. The earned Rock route and fresh process reload
+pass once in 46.00 seconds; the final release viewer check also passes.
+The first nested test's count-alias assertion failure is retained.
+No successful native test was repeated and no manual testing was used.
+Full Q203 item lifecycle and Q202 trajectory fidelity remain open.
+[Evidence and remaining work](docs/item-registration-traps.md)
+
+## 2026-11-07 Study Q203: stationary recoverable Rock registration
+
+Original executable study and installed game data identify the missing
+distinction: fresh active collision registration can enter a trap while
+stationary; zero-time placement of an existing collider does not probe
+new contacts. The authored projectile/trap collision-detail pair is
+excluded. Rock-category dropItem creates a fresh world identity even for
+the last carried Rock, with synchronous trap entry before the final
+NewInvItem update and later projectile deletion. Pickup/deletion release,
+live callback ordering and silent saved-name reattachment are documented
+in [traps.md](docs/behaviour/traps.md) and [items.md](docs/behaviour/items.md).
+Follow-up distinguishes last-unit removal: the old last Rock also enters
+world ownership at its stored carried placement, with no cleanup found
+in this command chain. Non-Rock reactivation precedes its destination
+move. Stationary ball-stack contact applies the item's full orientation.
+
+Q203 is answered from static evidence with an unrotated numeric overlap
+fixture. Original runtime, native save/reload and manual play **not
+tested**. No Rust changed or game test rerun; the earned Rock attempt
+still fails, and Q202 aim/arc remains open. Earlier Q102's blanket
+loadKQ/no-entry statement is corrected only for eligible registration.
+
 ## 2026-11-07 Scripted prop moves release occupied triggers
 
 Installed prop collider metadata is available to the core on fresh load,

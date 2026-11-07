@@ -3,6 +3,16 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Fresh world-item registration.** A's Q203 study in `traps.md` and
+`items.md` supplies stationary overlap, rotated ball centres, sequential
+callbacks and NewInvItem timing. `script.rs` adds command-owned resumable
+effects; `active.rs` supplies item registration and live position queries;
+`trap.rs` supplies oriented ball-stack contact. Synthetic checks and the
+existing earned Dead City route validate this partial implementation.
+Singleton/non-Rock removal, pickup/deletion and broader saved-contact
+reattachment remain separate. Implementation B did not read the original
+executable, decompilation or disassembly. [Evidence](../item-registration-traps.md)
+
 **Scripted prop placement and trigger departure.** `traps.md` rule 5(b),
 Q102, supplies the end-of-script stay-only rule; rules 7-9 supply shape,
 mask and departure semantics. `active.rs` retains loaded prop shapes,
