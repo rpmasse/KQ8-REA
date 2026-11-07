@@ -133,6 +133,14 @@ not run.
 
 ## Useful original-behaviour facts noticed so far
 
+Navigation lead only (2026-11-07): G. K. Ison's
+[Mask of Eternity walkthrough](https://adventuregamers.com/walkthroughs/kings-quest-8-mask-of-eternity)
+describes approaching the central tower through a winding passage,
+then climbing it and crossing west. This redirected the graveyard
+route investigation away from the inaccessible western plateau.
+It is not an authority for engine rules; verify routes against the
+installed assets and automated Rust gameplay logs.
+
 - `console.cs` sets `KQGame::FPSLimit 15` and `KQGame::BitDepth 8`.
 - `mask.cs` builds the world's search volumes from `KQWorld::Name`,
   `KQGame::BitDepth` and `KQGame::Language` (e.g. `Daventry/8 Bit`).

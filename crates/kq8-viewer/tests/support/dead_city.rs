@@ -2062,3 +2062,154 @@ fn three_sylph_topics_award_experience_once_and_reload() {
     assert!(!reload.contains("KQStatsChangeRequestEvent 0 0 0 0 3000 to Connor"));
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_SYLPH_KNOWLEDGE_SLOT"]
+fn sylph_to_southern_passage_preserves_campaign_and_reloads() {
+    let play = Play::new("earned-southern-passage");
+    let source = earned_slot("KQ8_SYLPH_KNOWLEDGE_SLOT")
+        .expect("set KQ8_SYLPH_KNOWLEDGE_SLOT to an earned SylphKnowledgeReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "SylphKnowledgeReload");
+    assert_eq!(start["world"], "DeadCity");
+    let mut points = vec![json!({"name":"Leave Sylph's talking area",
+        "xy":[70000,108000],"radius":140,"run":false})];
+    let mut from = [70000_f32, 108000_f32];
+    for (to, run) in [
+        ([75250_f32, 107250_f32], false),
+        ([80250., 103000.], true),
+        ([90000., 93250.], true),
+        ([91750., 82000.], false),
+        ([95500., 80250.], false),
+        ([96250., 80250.], false),
+        ([98750., 77750.], false),
+        ([100000., 71500.], false),
+    ] {
+        let steps = ((to[0] - from[0]).hypot(to[1] - from[1]) / 3000.).ceil() as u32;
+        for i in 1..=steps {
+            let t = i as f32 / steps as f32;
+            let xy = [from[0] + t * (to[0] - from[0]), from[1] + t * (to[1] - from[1])];
+            points.push(json!({"name":format!("Southern approach {}",points.len()),
+                "xy":xy,"radius":140,"run":run}));
+        }
+        from = to;
+    }
+    points.push(json!({"name":"Southern passage reached","xy":from,"radius":300,"run":false}));
+    let path = play.root.join("approach.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap()).unwrap();
+    let (arrived, viewer) = leg(&play, 1, "SouthernPassage", 1800,
+        &["--walk-route",path.to_str().unwrap()]);
+    assert!(viewer.contains("walk-route at Southern passage reached"));
+    let (restored, _) = leg(&play, 2, "SouthernPassageReload", 45, &[]);
+    for saved in [&arrived, &restored] {
+        assert!((saved["position"][0].as_f64().unwrap() - 100000.).abs() < 800.);
+        assert!((saved["position"][1].as_f64().unwrap() - 71500.).abs() < 800.);
+        assert_eq!(saved["journey"]["stats"], start["journey"]["stats"]);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "3"));
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        for id in [12,13,14,15] {
+            assert!(region_flag(saved, &format!("DeadCity::Sylph::B{id}"), "up"));
+        }
+        assert_eq!(saved["kept"]["deadcity"]["prop_placements"],
+            start["kept"]["deadcity"]["prop_placements"]);
+    }
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_SOUTHERN_PASSAGE_SLOT"]
+fn passage_weeper_with_earned_crossbow_survives_reload() {
+    let play = Play::new("earned-passage-weeper");
+    let source = earned_slot("KQ8_SOUTHERN_PASSAGE_SLOT")
+        .expect("set KQ8_SOUTHERN_PASSAGE_SLOT to an earned SouthernPassageReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "SouthernPassageReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["view_flags"]["active"], false);
+    assert_eq!(start["journey"]["stats"]["level"], 11);
+    assert_eq!(start["journey"]["stats"]["stats"][4], 6112);
+    assert!(carries_one(&start, "INVITEM_SmCrossbow"));
+    let path = play.root.join("passage-weeper.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":[
+        {"name":"Round the southern bend","xy":[102500,69250],"radius":150,"run":false},
+        {"name":"Face the Weeper corridor","xy":[104750,71500],"radius":150,"run":false},
+        {"name":"Shoot the passage Weeper with the earned crossbow","xy":[105000,74000],
+            "radius":150,"run":false,"fight":"weeper16","ranged":true}
+    ]})).unwrap()).unwrap();
+    let (won, viewer) = leg(&play, 1, "PassageWeeper", 800, &[
+        "--walk-route",path.to_str().unwrap(),"--key","physical:F2,3"
+    ]);
+    assert!(viewer.contains("walk-route at Shoot the passage Weeper with the earned crossbow"));
+    assert!(viewer.contains("walk-route selects the ranged weapon slot for weeper16"));
+    assert!(viewer.lines().any(|line| line
+        .contains("test --aim weeper16 (camera through gameplay pixel")
+        && line.contains("the aim pick meets character weeper16")));
+    let combat = log(&play, "PassageWeeper", "fight.log");
+    assert!(combat.contains("weeper16: hit by Connor, Projectile"));
+    assert_eq!(combat.matches("weeper16: its death ended (rule 32)").count(), 1);
+    assert!(!combat.contains("test --swing weeper16"));
+    let mut expected = start["journey"]["stats"].clone();
+    expected["stats"][0] = won["journey"]["stats"]["stats"][0].clone();
+    expected["stats"][4] = json!(6612);
+    assert!(expected["stats"][0].as_i64().unwrap() <= start["journey"]["stats"]["stats"][0].as_i64().unwrap());
+    let (restored, _) = leg(&play, 2, "PassageWeeperReload", 45, &[]);
+    for saved in [&won, &restored] {
+        assert_eq!(saved["journey"]["stats"], expected);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap()
+            .iter().any(|name| name == "weeper16"));
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "3"));
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        assert_eq!(saved["view_flags"]["active"], true);
+    }
+    assert!(!log(&play, "PassageWeeperReload", "fight.log")
+        .contains("weeper16: its death ended (rule 32)"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_PASSAGE_WEEPER_SLOT"]
+fn second_placed_rock_is_picked_up_and_reloaded() {
+    let play = Play::new("earned-second-rock");
+    let source = earned_slot("KQ8_PASSAGE_WEEPER_SLOT")
+        .expect("set KQ8_PASSAGE_WEEPER_SLOT to an earned PassageWeeperReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "PassageWeeperReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["view_flags"]["active"], true);
+    assert!(carries_one(&start, "INVITEM_Rock"));
+    let path = play.root.join("second-rock.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":[
+        {"name":"Pass the defeated Weeper","xy":[106250,78000],"radius":140,"run":false},
+        {"name":"Round the eastern bend","xy":[108500,80250],"radius":140,"run":false},
+        {"name":"Enter the rock corridor","xy":[111000,77750],"radius":140,"run":false},
+        {"name":"Approach the second Rock","xy":[111750,74500],"radius":140,"run":false},
+        {"name":"Pick up the second placed Rock","xy":[112595,71500],
+            "radius":120,"run":false,"aim":"NoName44"}
+    ]})).unwrap()).unwrap();
+    let (earned, viewer) = leg(&play, 1, "SecondRock", 700, &[
+        "--walk-route",path.to_str().unwrap(),"--key","physical:F2,3"
+    ]);
+    assert!(viewer.lines().any(|line| line
+        .contains("test --aim NoName44 (camera through gameplay pixel")
+        && line.contains("hits NoName44 first")));
+    let others = |saved: &Value| saved["journey"]["items"].as_array().unwrap().iter()
+        .filter(|item| item["kind"] != "INVITEM_Rock").cloned().collect::<Vec<_>>();
+    let (restored, _) = leg(&play, 2, "SecondRockReload", 45, &[]);
+    for saved in [&earned, &restored] {
+        let rocks: i64 = saved["journey"]["items"].as_array().unwrap().iter()
+            .filter(|item| item["kind"] == "INVITEM_Rock")
+            .map(|item| item["quantity"].as_i64().unwrap()).sum();
+        assert_eq!(rocks, 2);
+        assert_eq!(others(saved), others(&start));
+        assert_eq!(saved["journey"]["stats"], start["journey"]["stats"]);
+        assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap()
+            .iter().any(|name| name == "weeper16"));
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "3"));
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        assert_eq!(saved["view_flags"]["active"], false);
+    }
+    assert_eq!(earned["journey"]["items"], restored["journey"]["items"]);
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
