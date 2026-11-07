@@ -13,6 +13,53 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M4–M6 re-press a turn after a scripted turn ends (2026-11-07).**
+The second boatman run stayed at his talking spot. The log shows
+Right pressed on 1084, followed by a camera-line automatic turn that
+ended on 1087 and reset turn intent to zero. The replay kept holding
+Right and never generated another key-down event. Movement study
+Turning rule 2 explicitly requires release and re-press in this
+case. When a route still wants its held turn key but Connor's turn
+intent is zero, release that turn key for one update; the following
+update presses it again. Preserve other requested keys and all engine
+turn rules. Check this with the original Ferryman conversation in a
+focused fixture, then retry the earned campaign route only after
+that input behavior is established.
+
+The focused input check passed. The subsequent campaign run died
+before Ferryman: two swordsman hits followed by two Weeper drains
+exhausted the 47 earned health. Stop further running-route variations.
+Audit an ordinary combat plan using the carried Small Crossbow or
+Mace and the original attack studies. The verified supply checkpoint
+remains the input to that work; the full river encounter is open.
+
+**M6 continue beyond the boathouse approach (2026-11-07).** The
+supplied route reached its final waypoint on update 1044 with 11
+health. Its fixed save was scheduled for 1500; while it waited,
+skeleton38 caught up and killed Connor on 1108. The low-health route
+itself reached the entrance approach, but that idle checkpoint is
+unsafe. The original boathous.dig collision permits an entrance
+through (55900,185500) to Ferryman's conversation area near
+(57000,192460), confirmed by Feryinfo.kq. Continue running into the
+ordinary visible Ferryman click without waiting outside. reaper.cs
+awards its first 2,000 experience immediately, which passes the
+level-nine threshold and restores health under the existing original
+stats rule. Leave the conversation area normally to face the pursuing
+skeleton38, then return to the boatman. Verify the award happens once,
+the normal Mace fight completes, the original first topic finishes,
+and the resulting save reloads. This is a different encounter from
+the stopped western-patrol duel. Do not alter damage, collision or
+quest state, or treat the boat as usable transport: boat02.cs only
+provides dialogue directing Connor toward the Bridge of Life.
+
+The first continuous run reached Ferryman and received the exact
+level-ten award. Its guard step timed out because skeleton38 had
+not followed in that run: the combat log still places him at his
+authored (57613,168526), 16,341 units from the waiting waypoint.
+Return to his actual road at (57500,170000) after the first award,
+then resume the boatman conversation. Do not assume the guard always
+pursues to the boathouse.
+
 **M6 recover the first hall's remaining supplies (2026-11-07).**
 The earned outer-guard slot contains four uncollected Mushroom drops
 from the cleared entrance fights. Walk back through the open spike

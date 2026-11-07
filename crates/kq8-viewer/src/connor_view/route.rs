@@ -435,8 +435,18 @@ pub fn steer(
         shared.log.lock().unwrap().summary(format!("walk-route toward {} on update {}: ({:.0}, {:.0}, {:.0}), distance {distance:.0}, heading error {error:.3}", landmark.name, sim.updates, pos[0], pos[1], pos[2]));
     }
     let turn = turn_key(&sim, error);
+    // Scripted turns can finish with turn intent zero while this key is
+    // still held. Original Turning rule 2 needs a fresh key-down event.
+    let rearm_turn = sim.intent.turn == 0
+        && turn.is_some_and(|key| replay.held.contains(&key));
+    if rearm_turn {
+        shared.log.lock().unwrap().summary(format!(
+            "walk-route releases a held turn key after its turn intent was cleared on update {}",
+            sim.updates
+        ));
+    }
     let forward = sim.controls.forward.filter(|_| error.abs() < 0.55);
-    let mut wanted: Vec<_> = [turn, forward].into_iter().flatten().collect();
+    let mut wanted: Vec<_> = [turn.filter(|_| !rearm_turn), forward].into_iter().flatten().collect();
     if landmark.run.is_some_and(|run| run != sim.intent.run) && !sim.hands_off {
         if let Some(key) = sim.controls.run {
             if !replay.held.contains(&key) {
