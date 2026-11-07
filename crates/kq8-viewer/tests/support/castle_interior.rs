@@ -34,6 +34,10 @@ fn save_route(play: &Play, name: &str, points: Vec<Value>) -> PathBuf {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_ENTERED_CASTLE_SLOT"]
 fn fireplace_passage_to_ashes_and_fresh_reload() {
+    earn_ashes();
+}
+
+fn earn_ashes() -> PathBuf {
     let play = Play::new("castle-ashes-campaign");
     let source = earned_slot("KQ8_ENTERED_CASTLE_SLOT").unwrap_or_else(enter_castle);
     let arrival = prepare(&play, &source);
@@ -124,4 +128,70 @@ fn fireplace_passage_to_ashes_and_fresh_reload() {
         fs::read(play.game.join("Options.cs")).unwrap(),
         play.options
     );
+    play.slots.join("slot-4.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_ASHES_RELOAD_SLOT"]
+fn castle_return_portal_with_ashes() {
+    return_with_ashes();
+}
+
+pub(super) fn return_with_ashes() -> PathBuf {
+    let play = Play::new("castle-return-campaign");
+    let source = earned_slot("KQ8_ASHES_RELOAD_SLOT").unwrap_or_else(earn_ashes);
+    let before = prepare(&play, &source);
+    assert_eq!(before["label"], "AshesReload");
+    assert_eq!(before["world"], "CastleD");
+    assert!(carries_one(&before, "INVITEM_Ashes"));
+    let route = corridor(&[
+        [19100, 95520],
+        [18260, 96360],
+        [16160, 97340],
+        [15880, 97620],
+        [14060, 100560],
+        [14060, 101820],
+        [14060, 102940],
+        [13780, 103220],
+        [13780, 105040],
+        [13640, 105180],
+        [10140, 106580],
+        [9860, 106860],
+        [8180, 108540],
+        [8180, 110640],
+        [8040, 110780],
+        [7680, 111600],
+        [7070, 111600],
+    ]);
+    let path = save_route(&play, "return.json", route);
+    let (exit, viewer) = leg(
+        &play,
+        1,
+        "CastleExit",
+        690,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    assert!(viewer.contains("walk-route at Passage 17 on update"));
+    assert_eq!(exit["world"], "CastleD");
+    let (saved, viewer) = leg(
+        &play,
+        2,
+        "ReturnedWithAshes",
+        300,
+        &["--hold", "1,0,0,3,42", "--key", "popup:yes,2"],
+    );
+    assert_eq!(viewer.matches("trap portalt2: On Connor at").count(), 1);
+    assert!(viewer.contains("portal2 gets Accept"));
+    assert_eq!(saved["world"], "Daventry");
+    assert!(carries_one(&saved, "INVITEM_Ashes"));
+    assert!(hero_flag(&saved, "Daventry::bricks", "down"));
+    for flag in ["Daventry::Wizard::hasCandle", "Daventry::Wizard::hasRing"] {
+        assert!(hero_flag(&saved, flag, "true"));
+    }
+    assert!(hero_flag(&saved, "Daventry::Wizard::hasTorch", "false"));
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+    play.slots.join("slot-3.json")
 }

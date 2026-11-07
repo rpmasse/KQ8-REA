@@ -161,6 +161,51 @@ checkpoint variables unset to earn the earlier saves from New Game.
 The full run log is `kq8-artifacts/fresh-normal-to-church-candle.log`.
 Its final slot is under `kq8-artifacts/church-candle-campaign/1794001160345836400/slots/`.
 
+### Return the Ashes and earn the Ring of Light
+
+The return route crosses the raised fireplace door and leaves room
+for the wall light projecting into the corridor. An earlier path
+struck that light. Crossing `portalt2` opens CastleD's return prompt.
+One attempt stopped at that prompt. Accepting it sends Connor back
+to Daventry carrying his single Ashes, with the waterfall still
+changed and his previous ingredient deliveries remembered.
+
+Connor leaves the cave, crosses the bridge, returns along the
+village road and offers the Ashes from his quest strip. Daventry’s
+`wizard.cs` consumes them and sets `hasTorch`. Connor's four
+`castring` movements notify the Wizard in order. The last grants
+the Ring of Light, awards 50 experience and starts the final
+conversation. The resulting `RingOfLight` save recorded 60 health,
+257 experience and one ring. The five-process check from `AshesReload`
+passed in 396.95 seconds. It includes a fresh Castle exit approach,
+the return portal, the village road, the casting and a fresh ring
+reload. An earlier regression stopped short of the return trigger
+because it relied on Connor coasting. The checked route now saves on
+approach and walks him across the trigger after reloading.
+
+| Test in `daventry_cottage_shield` | Optional input | Output |
+| --- | --- | --- |
+| `castle_interior::castle_return_portal_with_ashes` | `KQ8_ASHES_RELOAD_SLOT` (`AshesReload`) | `ReturnedWithAshes` |
+| `wizard_ring::wizard_casts_ring_of_light` | `KQ8_RETURNED_ASHES_SLOT` (`ReturnedWithAshes`) | `RingReload` |
+| `wizard_ring::ring_opens_dead_city_and_arrival_survives_reload` | `KQ8_RING_OF_LIGHT_SLOT` (`RingReload`) | `DeadCityReload` |
+
+```powershell
+cargo test --locked -p kq8-viewer --test daventry_cottage_shield wizard_ring::wizard_casts_ring_of_light -- --ignored --exact --test-threads=1
+```
+
+With the ring in his inventory, Connor runs back through the graveyard,
+enters the open tomb, and approaches its gate again. The original
+`sdwtrap1.cs` checks for the ring and sets `Daventry::BeenThere::DoneThat`.
+Accepting `davgate4`'s prompt takes him to Dead City. The destination
+archive’s `ShadBat.cs` finds the earned ring and consumes it on his
+first arrival. It also records that the Shadow is no longer alive.
+The three-process tomb, crossing and new-process load passed in
+214.44 seconds. `DeadCityReload` has 60 health and 257 experience,
+the saved gate flag and Shadow flag, the rope and the crossbow. That
+establishes entry into the next region. Earning the good skull, obtaining the feather from the statue
+and solving the scales in this campaign remain ahead. The existing
+scales tests supply their own starting items.
+
 ### Enter Castle Daventry and collect the Ashes
 
 After solving the waterfall puzzle, Connor descends his rope and

@@ -3,6 +3,13 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**The Ring of Light.** CastleD’s `portalt2.cs` and `portal2.kq`
+describe the return to Daventry. The third ingredient, four animation
+callbacks, awarded ring and updated story state come from the installed
+Daventry `wizard.cs`. The tomb's `sdwtrap1.cs` tests for the ring.
+The destination DeadCity archive supplies `ShadBat.cs`, whose Exit
+handler finds and deletes it on the first crossing. [Campaign checks](../daventry-progression.md#return-the-ashes-and-earn-the-ring-of-light)
+
 **The cave portal and CastleD.** Daventry’s `portaltp.cs` and
 `portal1.kq` supply the discovery event and the CastleD destination.
 The castle archive supplies its interior, the wall light's `cdlight.cs`,

@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-07 Ring of Light and Dead City arrival
+
+Five Windows launches from `AshesReload` verified the return portal,
+the road back to the Wizard, the four casting movements and a
+freshly reloaded Ring of Light in 396.95 seconds. The castle exit
+first stopped short when its route relied on coasting into the
+trigger. The passing regression crosses it with the normal forward
+control. With the ring, the original tomb script sets its travel flag
+and offers the Dead City portal. Dead City's `ShadBat.cs` removes the
+earned ring and records the Shadow's defeat. The initial test wrongly
+expected the ring to remain in Connor's inventory. The tomb approach,
+gate crossing and fresh Dead City load passed in 214.44 seconds across three
+Windows launches. The reloaded save has 60 health and 257 experience.
+All 876 standard workspace tests passed. A single invocation from
+New Game through Dead City remains untested. The campaign evidence combines a fresh Normal
+start with its earned disk saves.
+
+Dead City's good skull, the statue that produces the feather, and
+the scales are the next campaign checks. The optional Daventry and
+castle branches, later regions and complete ending remain open.
+[Commands and evidence](docs/daventry-progression.md#return-the-ashes-and-earn-the-ring-of-light)
+
 ## 2026-11-07 Earned Castle Daventry entry and Ashes
 
 The waterfall save now continues into CastleD through the cave and
