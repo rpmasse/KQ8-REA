@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-07 Northwest return portal and earned well healing
+
+The campaign continuation uses the installed portrap6 patch to return
+from the skull chamber, then normal well interactions restore health
+from 52 to 120. A fresh-process reload preserves that health, the first
+archer's victory and XP, inventory, quest flags, the held Rock and
+portal masks/flags. The resumed two-process well check passes once in
+40.30 seconds. The separate portal viewer already passed and saved;
+its test then failed because Cue 5 was asserted in doors.log rather
+than traps.log. The corrected assertion was verified in the existing
+log without repeating the portal traversal.
+
+The first well continuation reached its destination but could not aim
+at well2 from the restored first-person view. The passing continuation
+uses ordinary F2 while standing, as the prior well checks did. Both
+failures are retained. Only campaign tests and documentation changed;
+no successful native case or unrelated core suite was repeated, and
+no manual testing was used. [Evidence](docs/skull-river-access.md#return-portal-and-earned-healing)
+
 ## 2026-11-07 Earned western skull archer survives save and reload
 
 The campaign test now uses the earned Small Crossbow and the original

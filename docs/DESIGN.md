@@ -13,6 +13,34 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 skull-chamber return portal and earned healing (2026-11-07).**
+Continue from SkullWesternArcherReload, preserving skeleton17's death
+and 400-XP award. Walk through portrap6 with normal input. The installed
+PORTRAP6.CS override returns Connor to the Sylph area, restores portal
+flags TwoOn through FiveOn and gives control back without another XP
+award. Save that genuine return before continuing to the well.
+
+Use the original static terrain/building segment plan from the return
+destination via (67250,105750) to the previously reached well approach
+(67000,105000). Click well2 through its normal camera ray enough times
+to heal the actual saved health to level 12's maximum 120; SYLPHWEL.CS
+gives five health per action. Check the original return trigger/cues,
+portal flags/masks, unchanged inventory, XP and quest flags, the held
+Rock and defeated archer, then reload the healed state in a fresh
+process. Do not repeat the completed archer encounter, grant healing,
+or bypass the return-portal sequence. A failed leg keeps the earned
+earlier checkpoint for continuation. Skeleton16 and the river crossing
+remain the next required campaign steps.
+
+The portal leg returned and saved successfully; a wrong-log assertion
+then failed and was corrected against the existing trap log. The first
+well attempt reached its destination but failed to aim from first
+person. With normal F2 selecting third person while standing, the well
+continuation and fresh-process reload pass once in 40.30 seconds.
+Fourteen original five-health events restore 52 to 120. Continue from
+SkullReturnWellReload; the portal/archer work is not repeated merely
+for verification. [Evidence](skull-river-access.md#return-portal-and-earned-healing)
+
 **M5–M6 skull-chamber river prerequisites (2026-11-07).** The first
 skull route reached rivrtrap.01 and died. Preserve that failure. Original
 NEWWORLD.CS calls these river-wall death traps; the local terrain materials
@@ -57,9 +85,9 @@ inspect an earned healing route before the second encounter. The failed
 floor-only skull prototype is kept locally rather than as a working
 campaign test. [Evidence and limits](skull-river-access.md)
 
-**M6 earned good skull and shelf replacement (2026-11-07).** Continue
-from WesternPortalCrossedReload with normal walking around the chamber's
-deep-water strip and a visible aim/click on skull.22. The installed
+**M6 earned good skull and shelf replacement (2026-11-07).** Complete
+the remaining archer and original block/jump crossing, then use a visible
+aim/click on skull.22 from a genuinely earned far-bank save. The installed
 NEWWORLD.CS places this good skull on skshelf.1; GSKULL.CS creates a
 clicker at the skull's placement and, after 0.4 seconds, gives GoodSkull
 and deletes the original shelf skull. The original item has no stat or

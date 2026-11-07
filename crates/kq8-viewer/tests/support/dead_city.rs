@@ -3158,3 +3158,107 @@ fn earned_crossbow_defeats_the_western_skull_archer_and_reloads() {
     }
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
+
+#[test]
+#[ignore = "requires GOG assets, graphics and genuine KQ8_SKULL_WESTERN_ARCHER_SLOT"]
+fn skull_return_portal_and_sylph_healing_preserve_the_earned_victory() {
+    let play = Play::new("earned-skull-return-well");
+    let source = earned_slot("KQ8_SKULL_WESTERN_ARCHER_SLOT")
+        .expect("set KQ8_SKULL_WESTERN_ARCHER_SLOT to a genuine SkullWesternArcherReload save");
+    let start: Value = serde_json::from_slice(&fs::read(&source).unwrap()).unwrap();
+    assert_eq!(start["label"], "SkullWesternArcherReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["level"], 12);
+    assert_eq!(start["journey"]["stats"]["stats"], json!([52,85,27,11,2074]));
+    assert!(region_flag(&start, "DeadCity::Portal::SixOn", "true"));
+    assert!(region_flag(&start, "DeadCity::Portal::FiveOn", "false"));
+    let (returned, return_slot) = if let Some(checkpoint) = earned_slot("KQ8_SKULL_RETURN_PORTAL_SLOT") {
+        let saved = prepare(&play, &checkpoint);
+        assert_eq!(saved["label"], "SkullReturnPortal");
+        (saved, 1)
+    } else {
+        prepare(&play, &source);
+        let path = play.root.join("skull-return-portal.json");
+        let route = json!({"start":25,"landmarks":[
+            {"name":"Leave the cleared archer firing lane","xy":[31000,192650],"radius":100,"run":true},
+            {"name":"Approach the northwest return portal","xy":[29021,192412],"radius":100,"run":true},
+            {"name":"Return through the original northwest portal","xy":[27003,192412],"radius":80,"run":false,
+                "until_var":{"name":"DeadCity::Portal::FiveOn","value":"true"}}
+        ]});
+        fs::write(&path, serde_json::to_vec(&route).unwrap()).unwrap();
+        let (saved, viewer) = leg(&play, 1, "SkullReturnPortal", 450,
+            &["--walk-route",path.to_str().unwrap()]);
+        assert!(viewer.contains("walk-route at Return through the original northwest portal"));
+        let traps = log(&play, "SkullReturnPortal", "traps.log");
+        assert!(traps.contains("trap portrap6: On Connor"));
+        let events = log(&play, "SkullReturnPortal", "doors.log");
+        assert!(!events.contains("KQStatsChangeRequestEvent 0 0 0 0 4000 to Connor"));
+        assert_eq!(traps.to_ascii_lowercase().matches("script portrap6.cs portrap6 cue 5 0").count(), 1);
+        (saved, 2)
+    };
+    assert!((returned["position"][0].as_f64().unwrap()-63691.).abs()<100.);
+    assert!((returned["position"][1].as_f64().unwrap()-110436.).abs()<100.);
+    let health = returned["journey"]["stats"]["stats"][0].as_i64().unwrap();
+    assert!((1..=52).contains(&health));
+    let drinks = (120-health+4)/5;
+    let mut points = Vec::new();
+    let from = [63691_f32,110436_f32];
+    let to = [67250_f32,105750_f32];
+    for i in 1..=3 {
+        let t = i as f32/3.;
+        points.push(json!({"name":format!("Return from the portal toward the well {i}"),
+            "xy":[from[0]+t*(to[0]-from[0]),from[1]+t*(to[1]-from[1])],"radius":120,"run":false}));
+    }
+    points.push(json!({"name":"Reach the original well approach","xy":[67000,105000],"radius":120,"run":false}));
+    for i in 1..=drinks {
+        points.push(json!({"name":format!("Recover health after the skull archer {i}"),
+            "xy":[67000,105000],"radius":900,"run":false,"aim":"well2"}));
+    }
+    let path = play.root.join("skull-return-well.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":points})).unwrap()).unwrap();
+    let mut inputs = vec!["--walk-route",path.to_str().unwrap()];
+    // The paired original setThirdPerson calls restore the preceding view.
+    // Select the third-person view used by the already reached well approach.
+    if returned["view_flags"]["active"] == true {
+        inputs.extend(["--key","physical:F2,3"]);
+    }
+    let (healed, viewer) = leg(&play, return_slot, "SkullReturnWell", 350,
+        &inputs);
+    assert!(viewer.contains(&format!("walk-route at Recover health after the skull archer {drinks}")));
+    assert_eq!(viewer.lines().filter(|line| line.contains("test --aim well2 (camera through gameplay pixel")
+        && line.contains("hits well2 first") && !line.contains("walk-route turns the camera")).count(), drinks as usize);
+    assert_eq!(log(&play, "SkullReturnWell", "doors.log")
+        .matches("KQStatsChangeRequestEvent 5 0 0 0 0 to Connor").count(), drinks as usize);
+    let (restored, _) = leg(&play, return_slot+1, "SkullReturnWellReload", 45, &[]);
+    for saved in [&returned,&healed,&restored] {
+        assert_eq!(saved["journey"]["stats"]["level"], 12);
+        assert_eq!(&saved["journey"]["stats"]["stats"].as_array().unwrap()[1..],
+            &start["journey"]["stats"]["stats"].as_array().unwrap()[1..]);
+        assert_eq!(saved["journey"]["items"], start["journey"]["items"]);
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        assert!(region_flag(saved, "DeadCity::Portal::FirstFive", "true"));
+        assert!(region_flag(saved, "DeadCity::Portal::SixOn", "false"));
+        for flag in ["TwoOn","ThreeOn","FourOn","FiveOn"] {
+            assert!(region_flag(saved, &format!("DeadCity::Portal::{flag}"), "true"));
+        }
+        assert!(region_flag(saved, "DeadCity::Skulls::SkullMsg", "0"));
+        let gone = saved["kept"]["deadcity"]["gone"].as_array().unwrap();
+        assert!(gone.iter().any(|name| name == "skeleton17"));
+        assert!(!gone.iter().any(|name| name == "skeleton16"));
+        let states = saved["traps"]["states"].as_array().unwrap();
+        let initial_plate = start["traps"]["states"].as_array().unwrap().iter()
+            .find(|trap| trap["name"] == "triptrp5").unwrap();
+        assert_eq!(states.iter().find(|trap| trap["name"] == "triptrp5").unwrap()["inside"], initial_plate["inside"]);
+        for portal in ["portrap5","portrp5b","portrap6"] {
+            assert_eq!(states.iter().find(|trap| trap["name"] == portal).unwrap()["mask"], 4);
+        }
+    }
+    let expected = json!({"stats":[120,85,27,11,2074],"level":12});
+    assert_eq!(healed["journey"]["stats"], expected);
+    assert_eq!(restored["journey"]["stats"], expected);
+    assert_eq!(healed["view_flags"]["active"], false);
+    assert_eq!(restored["view_flags"]["active"], false);
+    assert!(!log(&play, "SkullReturnWellReload", "doors.log")
+        .contains("KQStatsChangeRequestEvent 5 0 0 0 0 to Connor"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}

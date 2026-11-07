@@ -3,6 +3,15 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Northwest return portal and healing.** The installed DeadCity/patch/
+PORTRAP6.CS supplies the return destination, paired view changes and
+portal flags/masks. The archive's SYLPHWEL.CS supplies five health per
+action; `camera.md` rule 7 explains why the paired portal calls restore
+first person. The continuation uses normal F2 and visible well clicks,
+then saves/reloads the earned state. Only test code and documentation
+change; B reads original data and A's prose, never the executable.
+[Failures, commands and result](../skull-river-access.md#return-portal-and-earned-healing).
+
 **Skull-river access and western archer.** The installed Dead City
 NEWWORLD.CS, monster/type tables, terrain grids/material flags and authored
 block placements supply the hazards, additive guard stats and geometry.
