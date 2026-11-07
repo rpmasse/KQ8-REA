@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-07 Arrival-driver cause isolated; tile implementation started
+
+The original-list Walker/Mover probe reproduces the small-radius orbit:
+radius 25 never becomes jump-ready in 360 updates and comes no closer
+than 30.86 units. Radius 40 becomes ready after 29 updates, inside the
+earlier launch matrix's position/heading ranges, without dangerous depth.
+Only the diagnostic radius changes for the next integrated native run;
+that corrected run is not tested yet. The successful jump and corridor
+matrices are reused. [Evidence](docs/skull-river-access.md#return-route-diagnostics)
+
+The two distinct Swamp/Barren tile controllers are planned together with
+their object hazards, platform lifecycle and Rust save continuation.
+Implementation has started; Cue500 and remaining original persistence
+details stay assigned to study A. Q201's separate loading-order audit
+identifies why name-only trap handlers cannot finish saved elevator
+recovery. Credits core matrices now pass after correcting two test/data
+assumptions; its representative native check remains pending.
+Estimates remain M4 about 83%, M5 60%, M6 about 25%.
+
 ## 2026-11-07 Earned skull return: two failed approaches; native retries stopped
 
 The original SkullChamberPotionReload checkpoint remains unchanged.
@@ -57,8 +76,10 @@ work can use original parent-relative rectangles, fixed glyph sizes,
 picture rules, 640/800 art and the Save/Load centering exception.
 Credits must use the original line-count timing, mixed fonts, final
 photo and level/current-experience score. The authored 25-card sequence
-has 134 lines and a nominal duration of 129 seconds. These are reference
-findings; the Rust presentation changes are still pending.
+was initially counted as 134 lines/129 seconds. Study A subsequently
+corrected the terminal-newline counting error to 132 lines/128 seconds;
+see the credits evidence. At this entry's date the Rust presentation
+changes were still pending.
 
 The refreshed script audit identifies genuine remaining preSpecial,
 reduceHealth, trap membership/removal and Tile2/Tile3 behavior. The
