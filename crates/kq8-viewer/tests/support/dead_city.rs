@@ -287,26 +287,35 @@ fn saved_tile_jump_finishes_once_and_returns_to_the_strip() {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional pre-checkpoint KQ8_LEGACY_TILE_ENTRY_SLOT"]
 fn old_tile_entrance_recovers_the_original_first_jump() {
-    let play=Play::new("legacy-tile-entrance");
-    let old=earned_slot("KQ8_LEGACY_TILE_ENTRY_SLOT");
-    let source=old.clone().unwrap_or_else(||earned_slot("KQ8_TILE_ENTRY_SLOT").unwrap_or_else(reach_tiles));
-    let mut entrance=prepare(&play,&source);
-    assert_eq!(entrance["label"],"TileEntry");
+    let play = Play::new("legacy-tile-entrance");
+    let old = earned_slot("KQ8_LEGACY_TILE_ENTRY_SLOT");
+    let source = old
+        .clone()
+        .unwrap_or_else(|| earned_slot("KQ8_TILE_ENTRY_SLOT").unwrap_or_else(reach_tiles));
+    let mut entrance = prepare(&play, &source);
+    assert_eq!(entrance["label"], "TileEntry");
     if old.is_none() {
         // Isolate the prior on-disk representation without changing the
         // player's position, stats, camera, scripts or installed files.
-        assert_eq!(entrance["tile"]["expected"],0);
+        assert_eq!(entrance["tile"]["expected"], 0);
         entrance.as_object_mut().unwrap().remove("tile");
-        fs::write(play.slots.join("slot-1.json"),serde_json::to_vec(&entrance).unwrap()).unwrap();
+        fs::write(
+            play.slots.join("slot-1.json"),
+            serde_json::to_vec(&entrance).unwrap(),
+        )
+        .unwrap();
     }
     assert!(entrance.get("tile").is_none());
-    let (saved,_)=leg(&play,1,"RecoveredTile",165,&["--hold","1,0,0,15,18"]);
-    let connor=log(&play,"RecoveredTile","connor.log");
+    let (saved, _) = leg(&play, 1, "RecoveredTile", 165, &["--hold", "1,0,0,15,18"]);
+    let connor = log(&play, "RecoveredTile", "connor.log");
     assert!(connor.contains("restored Tile from the original hall entrance in an older save"));
-    assert_eq!(connor.matches("expected D tile07: WRONG").count(),1);
-    assert_eq!(saved["tile"]["expected"],0);
-    assert_eq!(saved["tile"]["stage"],"Keys");
-    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(),play.options);
+    assert_eq!(connor.matches("expected D tile07: WRONG").count(), 1);
+    assert_eq!(saved["tile"]["expected"], 0);
+    assert_eq!(saved["tile"]["stage"], "Keys");
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
 }
 
 fn tile_route(play: &Play, file: &str, cells: &[(i32, i32)]) -> PathBuf {
@@ -333,29 +342,48 @@ fn tile_route(play: &Play, file: &str, cells: &[(i32, i32)]) -> PathBuf {
 #[test]
 #[ignore = "requires GOG assets and graphics; optional earned KQ8_TILE_ENTRY_SLOT"]
 fn tile_teleport_resumes_its_flight_and_speaks_once() {
-    let play=Play::new("earned-tile-teleport");
-    let source=earned_slot("KQ8_TILE_ENTRY_SLOT").unwrap_or_else(reach_tiles);
-    let start=prepare(&play,&source);
-    assert_eq!(start["label"],"TileEntry");
-    let path=tile_route(&play,"d.json",&[(-1,5),(-1,6),(0,7)]);
-    let (down,_)=leg(&play,1,"TileDescending",132,&["--walk-route",path.to_str().unwrap()]);
-    assert_eq!(down["tile"]["stage"]["Down"]["right"],true);
-    assert_eq!(down["tile"]["expected"],1);
-    assert_eq!(down["special"]["movement"],"teleportdown");
-    let (up,_)=leg(&play,2,"TileRising",19,&[]);
-    assert_eq!(up["tile"]["stage"]["Up"]["right"],true);
-    assert_eq!(up["special"]["movement"],"teleportup");
+    let play = Play::new("earned-tile-teleport");
+    let source = earned_slot("KQ8_TILE_ENTRY_SLOT").unwrap_or_else(reach_tiles);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "TileEntry");
+    let path = tile_route(&play, "d.json", &[(-1, 5), (-1, 6), (0, 7)]);
+    let (down, _) = leg(
+        &play,
+        1,
+        "TileDescending",
+        132,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    assert_eq!(down["tile"]["stage"]["Down"]["right"], true);
+    assert_eq!(down["tile"]["expected"], 1);
+    assert_eq!(down["special"]["movement"], "teleportdown");
+    let (up, _) = leg(&play, 2, "TileRising", 19, &[]);
+    assert_eq!(up["tile"]["stage"]["Up"]["right"], true);
+    assert_eq!(up["special"]["movement"], "teleportup");
     assert!(up["camera"]["flight"].is_object());
-    let (idle,_)=leg(&play,3,"TileTeleportReload",155,&[]);
-    assert_eq!(idle["tile"]["stage"],"Keys");
-    assert_eq!(idle["tile"]["expected"],1);
-    assert_eq!(idle["tile"]["lines"]["had_right"],true);
-    assert_eq!(idle["camera"]["cam"]["hold"],true);
-    assert_eq!(log(&play,"TileRising","connor.log").matches("Tile: teleportdown ended: put at").count(),1);
-    let final_log=log(&play,"TileTeleportReload","connor.log");
-    assert_eq!(final_log.matches("Tile: teleportup ended: says 2000/2/0/3").count(),1);
+    let (idle, _) = leg(&play, 3, "TileTeleportReload", 155, &[]);
+    assert_eq!(idle["tile"]["stage"], "Keys");
+    assert_eq!(idle["tile"]["expected"], 1);
+    assert_eq!(idle["tile"]["lines"]["had_right"], true);
+    assert_eq!(idle["camera"]["cam"]["hold"], true);
+    assert_eq!(
+        log(&play, "TileRising", "connor.log")
+            .matches("Tile: teleportdown ended: put at")
+            .count(),
+        1
+    );
+    let final_log = log(&play, "TileTeleportReload", "connor.log");
+    assert_eq!(
+        final_log
+            .matches("Tile: teleportup ended: says 2000/2/0/3")
+            .count(),
+        1
+    );
     assert!(!final_log.contains("Tile: teleportdown ended:"));
-    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(),play.options);
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
 }
 
 #[test]
@@ -416,4 +444,100 @@ fn earn_maze_key() -> PathBuf {
         play.options
     );
     play.slots.join("slot-4.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets and graphics; optional earned KQ8_DEATH_KEY_SLOT"]
+fn death_key_opens_the_spike_gate() {
+    let play = Play::new("earned-spike-gate");
+    let source = earned_slot("KQ8_DEATH_KEY_SLOT").unwrap_or_else(earn_maze_key);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "MazeKeyReload");
+    assert!(carries_one(&start, "INVITEM_KeyToDeathMaze"));
+    let item = start["journey"]["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| {
+            item["kind"] == "INVITEM_KeyToDeathMaze" && item["place"]["Carried"] == "Connor"
+        })
+        .unwrap();
+    let key_name = item["name"].as_str().unwrap();
+    let mut points = Vec::new();
+    for xy in [
+        [177500, 70250],
+        [177500, 84000],
+        [178750, 88250],
+        [180500, 90000],
+    ] {
+        points.push(json!({"name":format!("Approach the gate {}",points.len()+1),"xy":xy,"radius":235,"run":true}));
+    }
+    points.push(json!({"name":"Use Death's key","xy":[181750,100700],"radius":150,"run":true,"aim":"spmove"}));
+    let path = play.root.join("unlock.json");
+    fs::write(
+        &path,
+        serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap(),
+    )
+    .unwrap();
+    let (opened, viewer) = leg(
+        &play,
+        1,
+        "MazeGateOpen",
+        397,
+        &[
+            "--key",
+            "left:IDCTL_INVBAR_QUEST2,8",
+            "--walk-route",
+            path.to_str().unwrap(),
+        ],
+    );
+    assert!(viewer.lines().any(
+        |l| l.contains("test --aim spmove (camera through gameplay pixel")
+            && l.contains("hits spmove first")
+    ));
+    let doors = log(&play, "MazeGateOpen", "doors.log");
+    assert_eq!(
+        doors
+            .matches(&format!(
+                "spmove.cs line 20: deleteObject {key_name}: item gone"
+            ))
+            .count(),
+        1
+    );
+    assert_eq!(
+        doors
+            .matches("door spmove: movement 'open' finished; state opened")
+            .count(),
+        1
+    );
+    assert!(doors.contains("spmove.cs line 22: addMapIcon dc_gate1.bmp"));
+    assert_eq!(
+        opened["kept"]["deadcity"]["interactions"]["doors"]["spmove"]["state"],
+        "Opened"
+    );
+    let path = play.root.join("cross.json");
+    let route = json!({"start":3,"landmarks":[{"name":"Cross the lowered gate","xy":[181750,104750],"radius":240,"run":true}]});
+    fs::write(&path, serde_json::to_vec(&route).unwrap()).unwrap();
+    let (crossed, viewer) = leg(
+        &play,
+        2,
+        "AcrossMazeGate",
+        54,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    assert!(viewer.contains("walk-route at Cross the lowered gate"));
+    assert!(crossed["position"][1].as_f64().unwrap() > 104000.0);
+    assert_eq!(
+        crossed["kept"]["deadcity"]["interactions"]["doors"]["spmove"]["state"],
+        "Opened"
+    );
+    assert!(!crossed["journey"]["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item["kind"] == "INVITEM_KeyToDeathMaze"));
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
 }

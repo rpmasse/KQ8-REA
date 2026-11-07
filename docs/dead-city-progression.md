@@ -65,6 +65,21 @@ The good skull, the statue that produces the feather and the scales
 still need verification in this campaign. The existing focused scales
 test starts with a supplied feather.
 
+## Crossing the spike gate
+
+From `MazeKeyReload`, Connor uses the earned key on `spmove` through
+the gameplay camera. Its original script consumes the key, adds the
+gate to the map and lowers the spikes. A second process loads the open
+gate and walks across its collision plane. The 90.29-second regression
+ended on the far side at y 105245 with 40 health.
+
+The longer route to the north corridor is still open. One attempt
+defeated the archer but died with two skeletons pursuing Connor. A
+second attempt tried to fight them immediately and died near the gate.
+Both runs used ordinary combat from an earned save. The entrance
+battle also left a health crystal and a broadsword in the first hall.
+Those pickups can be investigated from the maze-key save.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -87,6 +102,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::tile_teleport_resumes_its_flight_and_speaks_once` | `KQ8_TILE_ENTRY_SLOT` (`TileEntry`) | `TileTeleportReload` |
 | `dead_city::old_tile_entrance_recovers_the_original_first_jump` | `KQ8_LEGACY_TILE_ENTRY_SLOT` (older `TileEntry`) | `RecoveredTile` |
 | `dead_city::restored_letter_sequence_earns_deaths_key` | `KQ8_TILE_ENTRY_SLOT` (`TileEntry`) | `MazeKeyReload` |
+| `dead_city::death_key_opens_the_spike_gate` | `KQ8_DEATH_KEY_SLOT` (`MazeKeyReload`) | `AcrossMazeGate` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1

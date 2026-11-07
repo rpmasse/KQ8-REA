@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-07 Beyond the spike gate
+
+From the earned maze key, the two-process spike gate regression
+passed in 90.29 seconds. `AcrossMazeGate` saves Connor on the far
+side at y 105245 with 40 health. Two longer attempts to reach the
+northern junction ended in combat, so that stretch remains unverified.
+In the first, Connor killed the archer but was caught farther north.
+In the second, the two melee skeletons and archer killed him near
+the gate. The earlier hall fights left a healing crystal and a
+broadsword available in the earned key save. [Test and route](docs/dead-city-progression.md#crossing-the-spike-gate)
+
 ## 2026-11-07 Death's hall saves and maze key
 
 The first hall’s four pedestals open the doors to the letter tiles.
