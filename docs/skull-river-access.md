@@ -62,8 +62,54 @@ does not reproduce native keyboard timing or execute live callbacks.
 The next integrated route changes only the diagnostic arrival radius
 to 40, preserving the higher-bank path and actual game movement rules.
 This is an evidence-based correction after the two failures, not another
-unexamined native variation. The corrected native route is **not tested**
-yet; its preceding successful jump/corridor matrices are not repeated.
+unexamined native variation. Its preceding successful jump/corridor
+matrices are not repeated.
+
+The corrected native run, `earned-skull-return-chapter/1794053708504`,
+requests the running jump at update 167, starts it at 168 and lands safely
+at 189. It reaches the south-bank landmark at update 201, then hits the
+solid `portsb6` pillar and stops at update 382, 1740 units from the portal
+trigger. The crossing succeeds, but the integrated route fails before
+saving; there is no new earned checkpoint. Original Options and source
+save hashes remain unchanged. This run uses the credits/preparation
+viewer SHA-256 `46404DA159BBCFDD4CB269180A3DDCE9E7AA2F3249DD39030751506809ABA818`.
+
+The recorded portal bounds explain the collision; approaching directly
+from the north crosses a rotated pillar. West-side terrain is too steep
+for the ordinary walking rule. `skull-return-portal-east-route.log`
+finds an eastern approach with the static planner. A separate actual-
+movement probe, `skull-portal-controller.log`, follows
+(27000,194500) → (30000,194500) → (30000,192412) → (27003,192412),
+reaching all four waypoints in 163 updates with maximum liquid depth
+11.89. It uses the same scoped collision scene as the launch probe and
+does not execute the live portal callback. The next native continuation
+uses this approach; its callback/healing/eastern-room result remains
+**not tested**. Repeating the crossing is necessary to reach that next
+unresolved integration because the failed run produced no saved state.
+
+The next run, `earned-skull-return-chapter/1794054386566`, clears the
+pillar, returns through the northwest portal and completes the well
+healing. It saves normally and exits with viewer RESULT PASS. The wrapper
+then fails its expected eastern-room stats: it assumed NineOn meant a
+completed transfer, but that flag was already true in the input save.
+The route therefore stops before portal 4. This is a failed integrated
+completion assertion with a useful genuine intermediate save, not a
+completed eastern-room visit.
+
+The earned continuation is that run's `slots/slot-2.json`: actual position
+(77701.13,110158.16,1584), level 12, stats [120,85,27,11,2474]. Its label
+`SkullReturnMetalRoom` came from the intended destination and is inaccurate;
+the JSON has not been relabeled or moved artificially. Comparison against
+the input confirms identical carried inventory, god mode false and AI off
+false. Both original Options and source-save hash assertions pass before
+the failed stats check. FirstFour remains false; future completion must
+observe its first-use transition and the actual destination position.
+
+Use this earned save for the remaining portal/statue/feather route. The
+successful river crossing, return portal and seventeen well interactions
+do not need to be replayed. Logs are `skull-return-portal-corrected-native.log`
+and the run's native log directory. This save has not yet been reloaded
+in a fresh process.
 
 ## Original data and route
 

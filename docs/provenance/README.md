@@ -3,6 +3,15 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Tile, projectile and ending follow-up studies.** Study A's
+secondary-tile-puzzles.md describes the distinct Swamp/Barren controllers,
+object hazards and save/event lifecycle; object-projectile-cues.md supplies
+generic Cue500 launch ordering, transform, damage and pending-event rules.
+Its corrected credits-completion.md distinguishes game-started from
+gameplay availability and retains Connor after killGame. These are prose
+references for ongoing implementation, not completed runtime parity;
+mid-flight projectile save continuation remains open.
+
 **Original credits presentation.** Study A's credits-completion.md and
 original GUI/font/palette/message data supply card cadence, mixed row
 layout, photo placement, no-skip input, late score and exit fade. The
