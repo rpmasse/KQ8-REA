@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-07 Open and cross the maze gate
+
+The campaign uses Death’s earned key on the original spike gate,
+verifies that the key is consumed and the map icon added, and loads
+the open gate in a fresh process before walking across it. The
+two-process test passed in 90.29 seconds. Two longer routes ended in
+combat beyond the gate. [Commands and evidence](docs/dead-city-progression.md#crossing-the-spike-gate)
+
 ## 2026-11-07 Resume the letter tiles and earn Death’s key
 
 Saving and loading in Death's hall now retains Connor's tile

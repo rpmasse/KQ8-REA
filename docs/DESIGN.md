@@ -13,6 +13,13 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 enter the maze with Death’s key.** Load the earned key, approach
+the closed spike gate and offer it through the quest strip. Verify
+that the opening finishes and the key is consumed. Load the opened
+gate, cross its original collision plane and save on the far side
+with the guards active. Track the subsequent group fight separately
+from this gate check.
+
 **M6 save and resume Death’s tile puzzle.** The original tile study
 records that loading rebuilds the stone table from the world.
 The current Rust disk save omits Connor’s active tile controller.
@@ -686,7 +693,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
 | M4 · Interface and dialogue | Partial. The title and pause menus, named saves, Options, Keyboard, opening replay, HUD, captions, pickup help, the Wizard conversation and the F2 view have Windows checks. Credits displays the original cards. | Finish graphics modes and resolution switching, software palette output, remaining help, inventory and dialogue branches. Establish the original credits timing and score. |
 | M5 · Combat | Partial. Tests cover the first-person axe and Small Crossbow, weapon draws and saves during combat and death. The Weeper, Tower Skeleton, Henchman, Lucreto and several script-created enemies have focused coverage. | Finish the other weapon and damage paths, enemy decisions, bosses and specialised deaths. Exercise each full encounter in campaign play. |
-| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. Continued saves cover Castle Daventry, the Ring of Light, Dead City's pedestals, the letter tiles and Death’s key. The scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Open the spike gate, continue to the skull and feather, then complete the scales and later regions. Verify one Normal New Game through the ending and credits. |
+| M6 · The whole game | Partial. A fresh Normal New Game reaches the church Candle. Continued saves cover Castle Daventry, the Ring of Light, Dead City's pedestals, the letter tiles and the opened spike gate. The scales, interrupted encounters and both Temple 4 outcomes have focused checks. | Clear the maze guards, reach the skull and feather, then complete the scales and later regions. Verify one Normal New Game through the ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
 
 **Starting revision.** This fork incorporates the [October 31 upstream changes](https://github.com/Eric-lz/KQ8R/compare/b6658de39c87b51c41a62f765f08dbf1ee54980c...5ea5a46f791a637b2d2e231e56195726050e57cb), including world persistence and Dead City puzzle work. The remaining implementation starts from those systems and the verified Windows scenarios below.
