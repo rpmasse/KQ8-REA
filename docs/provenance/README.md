@@ -3,6 +3,20 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Prepared central and western passage.** Original well healing
+supplies the genuine 110-health starting save. MONSTERS.KQ lines
+14-16 define the central team and its original drops: four Mushrooms,
+7+18 coins and one Strength potion. GAME/Kq/Invinfo.itl supplies
+Mushroom health +5, the inventory categories and Strength's 20-second
+duration. Inventory and potions notes define the ordinary slot
+actions, stacking, temporary hand-stat increase and expiry. The
+western skeleton52 placement and 400 reward come from MONSTERS.KQ
+line 117 and its unchanged earned state. Existing fighting and
+character-movement notes define its reach and the retreat input
+checks. The sight diagnostic uses only original terrain/buildings
+and saved eye heights; it does not replace live verification.
+[Results and failure traces](../dead-city-progression.md#prepared-central-and-western-passage)
+
 **Central passage combat and Sylph well.** Original MONSTERS.KQ
 lines 14-16 define skeleton1/2/3 and their shared team. The earned
 SecondRockReload supplies the unchanged health, equipment and enemy

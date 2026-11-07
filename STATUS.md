@@ -1,5 +1,46 @@
 # STATUS
 
+## 2026-11-07 Central and western passages verified
+
+The independently healed SylphWellReload supports the central
+encounter. The cleared approach, three guard deaths and fresh-process
+reload pass in 179.31 seconds. CentralGuardsReload retains 23 health,
+the original combined 500 experience once (7112 total), both Rocks
+and unchanged inventory/quest state. The seven actual guard drops,
+four Mushroom uses and another reload pass in 96.07 seconds.
+CentralSuppliesReload retains [43,80,25,10,7112], 25 coins, one unused
+Strength potion and both Rocks. Evidence: prepared-central-guards-native.log,
+central-supplies-native.log, earned-prepared-central-guards/1794031235820492500
+and earned-central-supplies/1794031529033744000 under kq8-artifacts.
+
+Fourteen terrain sight-line samples block MaceBoy1/2 from the northern
+bend. Native traversal reaches the western guard approach without
+their damage. The first skeleton52 attempt fails in 45.22 seconds:
+the potion correctly raises hand damage 80 to 120 on update 430,
+but stationary charged attacks allow five ordinary hits. Health
+drops below zero on 598; the final charged hit kills skeleton52 on
+614, and pending Die starts on 622. No successful continuation or
+reward/reload is claimed from that run. Evidence:
+earned-western-passage-guard/1794031852408072000 and
+western-passage-guard-native.log.
+
+The retreat/counterattack attempt passes with a fresh-process reload
+in 89.47 seconds. The guard misses at distances 1430 and 1370 against
+his 1300 reach; three normal Mace hits defeat him, with only four
+health lost by Connor. The original 400 experience is awarded once
+on update 590. Strength starts on 430 and expires on 730, exactly
+20 seconds later; hand damage returns from 120 to 80 and its empty
+item leaves the inventory. No combat rules or source save values were edited.
+
+Latest checkpoint: WesternPassageReload at
+(107494.71,117003.98,192), level eleven [39,80,25,10,7512], with both
+Rocks and 25 coins. Evidence:
+earned-western-passage-guard/1794031981737135600/slots/slot-3.json
+and western-passage-retreat-native.log under kq8-artifacts.
+The graveyard floor, zombies, portal plates, skull and later quests
+remain ahead. M4–M6 remain incomplete.
+[Commands and limits](docs/dead-city-progression.md#prepared-central-and-western-passage)
+
 ## 2026-11-07 Earned return to the Sylph well and healing verified
 
 The independent ordinary-input return from SecondRockReload passed
@@ -10,7 +51,7 @@ other inventory, quest flags and moved blocks remain unchanged.
 The defeated Weeper stays gone; no healing event repeats on reload.
 GOG Options.cs is unchanged and AI/damage cheats remain disabled.
 
-Latest checkpoint: SylphWellReload at (66725.86,104720.02,1584),
+The healed checkpoint is SylphWellReload at (66725.86,104720.02,1584),
 level eleven stats [110,80,25,10,6612], in
 earned-sylph-well/1794030725771876400/slots/slot-3.json under
 kq8-artifacts. Evidence: sylph-well-native.log. The offline approach
@@ -35,8 +76,8 @@ on update 796 (the heavy swing dealt 207 actual damage); its original
 200-point reward completed on 811. Connor then died to an archer on
 877 while still approaching skeleton2. Evidence:
 earned-central-guards/1794030484043099000 and central-guards-native.log.
-The route is stopped after these two real failures. The new ignored
-native test currently fails and is retained as a reproducible case;
+The route was stopped after these two real failures. That failing
+test revision remains in commit 8fff486; the healed update passes above.
 SecondRockReload remains the last verified checkpoint before these
 attempts; the later independent well continuation is recorded above.
 
@@ -46,7 +87,7 @@ defect. MONSTERS.KQ lines 14-16 and the earned save identify all three
 team members. Connor entered with only 61 of 110 maximum health and
 no carried healing items. Original sylphwel.cs supplies five health
 per ordinary ConnorAction, which prompted the independent healing
-check above. The central encounter has not been retried with healing.
+check above, followed by the successful healed continuation.
 No combat rule or saved state was changed to alter either outcome.
 
 ## 2026-11-07 Southern approach, passage Weeper and second Rock verified

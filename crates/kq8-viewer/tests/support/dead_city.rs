@@ -2215,33 +2215,56 @@ fn second_placed_rock_is_picked_up_and_reloaded() {
 }
 
 #[test]
-#[ignore = "known campaign failure: central guard route dies; requires GOG assets and KQ8_SECOND_ROCK_SLOT"]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_SYLPH_WELL_SLOT"]
 fn central_passage_guards_with_earned_mace_survive_reload() {
-    let play = Play::new("earned-central-guards");
-    let source = earned_slot("KQ8_SECOND_ROCK_SLOT")
-        .expect("set KQ8_SECOND_ROCK_SLOT to an earned SecondRockReload save");
+    let play = Play::new("earned-prepared-central-guards");
+    let source = earned_slot("KQ8_SYLPH_WELL_SLOT")
+        .expect("set KQ8_SYLPH_WELL_SLOT to an earned SylphWellReload save");
     let start = prepare(&play, &source);
-    assert_eq!(start["label"], "SecondRockReload");
+    assert_eq!(start["label"], "SylphWellReload");
     assert_eq!(start["world"], "DeadCity");
     assert_eq!(start["view_flags"]["active"], false);
     assert_eq!(start["journey"]["stats"]["level"], 11);
+    assert_eq!(start["journey"]["stats"]["stats"][0], 110);
     assert_eq!(start["journey"]["stats"]["stats"][4], 6612);
     assert!(carries_one(&start, "INVITEM_Mace"));
     let mut points = Vec::new();
-    let mut from = [112862_f32, 70939_f32];
-    for to in [
-        [112250., 71750.], [111000., 77750.], [107250., 81500.],
-        [106250., 81750.], [106250., 87000.], [107250., 87750.],
-        [121000., 87750.], [129250., 87750.],
+    let mut from = [66725.86_f32, 104720.02_f32];
+    for (to, run) in [
+        ([67000.,105000.],false), ([70000.,108000.],false),
+        ([75250.,107250.],false), ([80250.,103000.],true),
+        ([90000.,93250.],true), ([91750.,82000.],false),
+        ([95500.,80250.],false), ([96250.,80250.],false),
+        ([98750.,77750.],false), ([100000.,71500.],false),
+        ([102500.,69250.],false), ([104750.,71500.],false),
+        ([105000.,74000.],false), ([106250.,78000.],false),
+        ([108500.,80250.],false), ([107250.,81500.],false),
+        ([106250.,81750.],false), ([106250.,87000.],false),
+        ([107250.,87750.],false), ([121000.,87750.],false),
     ] {
         let steps = ((to[0] - from[0]).hypot(to[1] - from[1]) / 2500.).ceil() as u32;
         for i in 1..=steps {
             let t = i as f32 / steps as f32;
             let xy = [from[0] + t * (to[0] - from[0]), from[1] + t * (to[1] - from[1])];
-            points.push(json!({"name":format!("Central passage approach {}",points.len()+1),
-                "xy":xy,"radius":140,"run":from[0]>=121000.}));
+            points.push(json!({"name":format!("Healed central approach {}",points.len()+1),
+                "xy":xy,"radius":140,"run":run}));
         }
         from = to;
+    }
+    points.push(json!({"name":"Prepared before the central team","xy":from,"radius":900}));
+    let approach = play.root.join("healed-approach.json");
+    fs::write(&approach, serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap()).unwrap();
+    let (prepared, walked) = leg(&play, 1, "CentralPrepared", 1650,
+        &["--walk-route",approach.to_str().unwrap()]);
+    assert!(walked.contains("walk-route at Prepared before the central team"));
+    assert_eq!(prepared["journey"]["stats"], start["journey"]["stats"]);
+    assert_eq!(prepared["journey"]["items"], start["journey"]["items"]);
+    assert!((prepared["position"][0].as_f64().unwrap() - 121000.).abs() < 900.);
+    assert!((prepared["position"][1].as_f64().unwrap() - 87750.).abs() < 900.);
+    let mut points = Vec::new();
+    for x in [123062.5,125125.,127187.5,129250.] {
+        points.push(json!({"name":format!("Central exposed approach {x}"),
+            "xy":[x,87750.],"radius":140,"run":true}));
     }
     for (index, (name, xy, radius)) in [
         ("skeleton1", [129250,88750], 180),
@@ -2258,7 +2281,7 @@ fn central_passage_guards_with_earned_mace_survive_reload() {
     }
     let path = play.root.join("central-guards.json");
     fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":points})).unwrap()).unwrap();
-    let (won, viewer) = leg(&play, 1, "CentralGuards", 1400, &[
+    let (won, viewer) = leg(&play, 2, "CentralGuards", 700, &[
         "--walk-route",path.to_str().unwrap(),"--key","left:IDCTL_INVBAR_SHORT,8"
     ]);
     assert!(viewer.contains("walk-route at Beyond the central archers 104000"));
@@ -2271,7 +2294,7 @@ fn central_passage_guards_with_earned_mace_survive_reload() {
     expected["stats"][0] = won["journey"]["stats"]["stats"][0].clone();
     expected["stats"][4] = json!(7112);
     assert!(expected["stats"][0].as_i64().unwrap() <= start["journey"]["stats"]["stats"][0].as_i64().unwrap());
-    let (restored, _) = leg(&play, 2, "CentralGuardsReload", 45, &[]);
+    let (restored, _) = leg(&play, 3, "CentralGuardsReload", 45, &[]);
     for saved in [&won, &restored] {
         assert!((saved["position"][0].as_f64().unwrap() - 129500.).abs() < 900.);
         assert!((saved["position"][1].as_f64().unwrap() - 104000.).abs() < 900.);
@@ -2357,5 +2380,151 @@ fn earned_return_to_sylph_well_heals_through_visible_clicks_and_reloads() {
     }
     assert!(!log(&play, "SylphWellReload", "doors.log")
         .contains("KQStatsChangeRequestEvent 5 0 0 0 0 to Connor"));
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_CENTRAL_GUARDS_SLOT"]
+fn central_guard_drops_heal_and_preserve_supplies_after_reload() {
+    let play = Play::new("earned-central-supplies");
+    let source = earned_slot("KQ8_CENTRAL_GUARDS_SLOT")
+        .expect("set KQ8_CENTRAL_GUARDS_SLOT to an earned CentralGuardsReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "CentralGuardsReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["stats"][4], 7112);
+    let drops: Vec<_> = start["items"].as_array().unwrap().iter().filter(|item| {
+        let p = &item["place"]["World"]["position"];
+        p[0].as_f64().is_some_and(|x| (127000.0..135000.0).contains(&x))
+            && p[1].as_f64().is_some_and(|y| (85000.0..105000.0).contains(&y))
+            && matches!(item["kind"].as_str(),
+                Some("INVITEM_Mushroom" | "INVITEM_SilverCoins" | "INVITEM_Strength"))
+    }).collect();
+    assert_eq!(drops.len(), 7);
+    assert_eq!(drops.iter().filter(|d| d["kind"]=="INVITEM_Mushroom").count(), 4);
+    assert_eq!(drops.iter().filter(|d| d["kind"]=="INVITEM_SilverCoins")
+        .map(|d| d["quantity"].as_i64().unwrap()).sum::<i64>(), 25);
+    assert_eq!(drops.iter().filter(|d| d["kind"]=="INVITEM_Strength").count(), 1);
+    let mut points = Vec::new();
+    for y in [102000,100000,98000] {
+        points.push(json!({"name":format!("Return to the archer drops {y}"),
+            "xy":[129500,y],"radius":140,"run":false}));
+    }
+    for item in drops.iter().filter(|d| d["place"]["World"]["position"][1].as_f64().unwrap() > 95000.) {
+        points.push(json!({"name":format!("Collect central drop {}",item["name"]),
+            "xy":[129500,98000],"radius":900,"aim":item["name"]}));
+    }
+    for y in [95000,92500,90500] {
+        points.push(json!({"name":format!("Return to the melee guard drops {y}"),
+            "xy":[129500,y],"radius":140,"run":false}));
+    }
+    for item in drops.iter().filter(|d| d["place"]["World"]["position"][1].as_f64().unwrap() < 95000.) {
+        points.push(json!({"name":format!("Collect central drop {}",item["name"]),
+            "xy":[129500,90500],"radius":900,"aim":item["name"]}));
+    }
+    for (index,y) in [93000,95500,98000,100500,103000,104000].into_iter().enumerate() {
+        let mut point = json!({"name":format!("Return with central supplies {y}"),
+            "xy":[129500,y],"radius":140,"run":false});
+        if index < 4 { point["inventory_slot"] = json!(1); }
+        points.push(point);
+    }
+    let path = play.root.join("central-supplies.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":3,"landmarks":points})).unwrap()).unwrap();
+    let (supplied, viewer) = leg(&play, 1, "CentralSupplies", 1200,
+        &["--walk-route",path.to_str().unwrap()]);
+    assert!(viewer.contains("walk-route at Return with central supplies 104000"));
+    for item in &drops {
+        let name = item["name"].as_str().unwrap();
+        assert!(viewer.lines().any(|line| line
+            .contains(&format!("test --aim {name} (camera through gameplay pixel"))
+            && line.contains(&format!("hits {name} first"))));
+    }
+    assert_eq!(log(&play, "CentralSupplies", "items.log")
+        .matches("INVITEM_Mushroom, slot used").count(), 4);
+    let mut expected = start["journey"]["stats"].clone();
+    expected["stats"][0] = json!(start["journey"]["stats"]["stats"][0].as_i64().unwrap()+20);
+    let (restored, _) = leg(&play, 2, "CentralSuppliesReload", 45, &[]);
+    for saved in [&supplied, &restored] {
+        assert_eq!(saved["journey"]["stats"], expected);
+        let items = saved["journey"]["items"].as_array().unwrap();
+        for original in start["journey"]["items"].as_array().unwrap() { assert!(items.contains(original)); }
+        assert!(items.iter().any(|i| i["kind"]=="INVITEM_SilverCoins" && i["quantity"]==25));
+        assert!(items.iter().any(|i| i["kind"]=="INVITEM_Strength" && i["quantity"]==1));
+        assert!(!items.iter().any(|i| i["kind"]=="INVITEM_Mushroom"));
+        assert_eq!(items.len(), start["journey"]["items"].as_array().unwrap().len()+2);
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "3"));
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        for name in ["skeleton1","skeleton2","skeleton3"] {
+            assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap()
+                .iter().any(|gone| gone==name));
+        }
+    }
+    assert_eq!(supplied["journey"]["items"], restored["journey"]["items"]);
+    assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
+}
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_CENTRAL_SUPPLIES_SLOT"]
+fn western_passage_guard_uses_earned_strength_and_reloads_after_expiry() {
+    let play = Play::new("earned-western-passage-guard");
+    let source = earned_slot("KQ8_CENTRAL_SUPPLIES_SLOT")
+        .expect("set KQ8_CENTRAL_SUPPLIES_SLOT to an earned CentralSuppliesReload save");
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "CentralSuppliesReload");
+    assert_eq!(start["world"], "DeadCity");
+    assert_eq!(start["journey"]["stats"]["stats"], json!([43,80,25,10,7112]));
+    assert!(carries_one(&start, "INVITEM_Strength"));
+    assert!(carries_one(&start, "INVITEM_Mace"));
+    let mut points = Vec::new();
+    for xy in [
+        [129500,107000],[129500,110000],[129500,112500],
+        [129250,115000],[129250,117000],[126500,117000],
+        [124000,117000],[121500,117000],
+    ] {
+        points.push(json!({"name":format!("Northern passage {}",points.len()+1),
+            "xy":xy,"radius":140,"run":false}));
+    }
+    points.push(json!({"name":"Use the earned Strength before the western guard",
+        "xy":[120000,117000],"radius":140,"run":false,"inventory_slot":6}));
+    points.push(json!({"name":"Fight the western passage guard",
+        "xy":[118000,117000],"radius":140,"run":false,"fight":"skeleton52","retreat":true}));
+    for x in [115500,113000,110500,108250] {
+        points.push(json!({"name":format!("Western passage cleared {x}"),
+            "xy":[x,117000],"radius":140,"run":false}));
+    }
+    let path = play.root.join("western-guard.json");
+    fs::write(&path, serde_json::to_vec(&json!({"start":25,"landmarks":points})).unwrap()).unwrap();
+    let (won, viewer) = leg(&play, 1, "WesternPassageGuard", 1100, &[
+        "--walk-route",path.to_str().unwrap(),"--key","left:IDCTL_INVBAR_SHORT,8"
+    ]);
+    assert!(viewer.contains("walk-route at Western passage cleared 108250"));
+    let combat = log(&play, "WesternPassageGuard", "fight.log");
+    assert!(combat.contains("skeleton52 missing Connor, too far away"));
+    assert!(combat.contains("skeleton52: hit by Connor"));
+    assert_eq!(combat.matches("skeleton52: its death ended (rule 32)").count(), 1);
+    let items = log(&play, "WesternPassageGuard", "items.log");
+    assert!(items.contains("INVITEM_Strength, slot used"));
+    assert_eq!(items.matches("strength: hand number 80 -> 120").count(), 1);
+    let mut expected = start["journey"]["stats"].clone();
+    expected["stats"][0] = won["journey"]["stats"]["stats"][0].clone();
+    expected["stats"][4] = json!(7512);
+    assert!(expected["stats"][0].as_i64().unwrap() <= 43);
+    let remaining: Vec<_> = start["journey"]["items"].as_array().unwrap().iter()
+        .filter(|item| item["kind"]!="INVITEM_Strength").cloned().collect();
+    let (restored, _) = leg(&play, 2, "WesternPassageReload", 45, &[]);
+    for saved in [&won,&restored] {
+        assert_eq!(saved["journey"]["stats"], expected);
+        assert_eq!(saved["journey"]["items"], json!(remaining));
+        assert!(saved["kept"]["deadcity"]["gone"].as_array().unwrap()
+            .iter().any(|name| name=="skeleton52"));
+        assert_eq!(saved["journey"]["flags"], start["journey"]["flags"]);
+        assert!(region_flag(saved, "DeadCity::Sylph::metConnor", "3"));
+        assert!(region_flag(saved, "DeadCity::Sylph::isIn", "true"));
+        assert!((saved["position"][0].as_f64().unwrap()-108250.).abs()<900.);
+        assert!((saved["position"][1].as_f64().unwrap()-117000.).abs()<900.);
+    }
+    assert!(!log(&play, "WesternPassageReload", "fight.log")
+        .contains("skeleton52: its death ended (rule 32)"));
     assert_eq!(fs::read(play.game.join("Options.cs")).unwrap(), play.options);
 }
