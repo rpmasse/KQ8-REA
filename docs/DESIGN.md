@@ -13,6 +13,31 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 northern corridor to the boatman (2026-11-07).** Close the two
+failed western patrol duels without another combat variation. The
+latest verified outer-guard save has 27 health. Follow the original
+open northern corridor using Run past the western patrol and toward
+the boathouse, keeping ordinary AI, damage and collision. The data
+places a Weeper near (68904, 155027) and another skeleton near
+(57613, 168526); check the native movement and damage logs before
+claiming the route. The offline planner includes closed doors but
+uses conservative building bounds, so it cannot prove passage through
+the boathouse itself. First checkpoint its approach. Then resolve
+the real entrance and interact with Ferryman through the normal
+visible click. The original reaper.cs awards 2,000 experience once
+on the first conversation; its four successive topics establish the
+Feather quest. Verify each completed dialogue and a fresh save/load
+without granting items, flags or health. This route leaves the western
+patrol encounter unresolved.
+
+The first run failed before the boathouse: two swordsman hits left
+2 health, then the Weeper's drain killed Connor. The untouched source
+save still has four Mushroom drops in the cleared first hall. Audit
+and recover ordinary supplies before another river attempt; do not
+repeat the failed duel. The proposed north-of-patrol waypoint is
+outside the offline planner's reachable area. The approach, entrance
+and dialogue objectives above remain open.
+
 **M5–M6 retreat input audit (2026-11-07).** The second outer-guard
 log records `run=true` throughout its intended walking approach.
 The prior road enables Run, and the retreat controller sends Forward
