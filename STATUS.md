@@ -1,5 +1,42 @@
 # STATUS
 
+## 2026-11-07 Earned Sylph conversations verified
+
+The three original introductory conversations and final fresh-process
+reload passed in 252.41 seconds, starting from SylphSummonedReload.
+The route walks around the portal structures and clicks Sylph through
+the gameplay camera. Her original final TalkComplete callbacks run
+once per topic: cases 10/11/12, sequences 2/5/3, on updates 593/320/150.
+The second topic awards 3000 experience once; the third and reload
+repeat neither that award nor the appearance award.
+
+SylphKnowledgeReload retains metConnor 3, isIn true, all four plates
+up, unchanged moved blocks and inventory, and level eleven stats
+[61,80,25,10,6112]. Connor is at (70721.22,107156.445,1351.8123).
+God mode and AI-off remain false; GOG Options.cs is unchanged.
+Evidence: earned-sylph-topics/1794028407978349500 and
+sylph-topics-native.log under kq8-artifacts.
+
+The first offline approach band had 86 excluded samples out of 1197;
+it was not replayed. The subsequent search used a 1000-unit obstacle
+margin and found the western detour used by the passing native test.
+No game-engine rules changed. Her item quest remains **not tested**:
+the original scale.cs spawns Mold only during the scales completion.
+[Automated command and result](docs/dead-city-progression.md#the-sylph-conversations)
+
+Next, investigate actual building floors on the graveyard approach.
+An archive audit finds 856 distinct Dead City script/object names,
+all in kq.vol, with no duplicates in the other three volumes; an
+alternate archive copy does not explain the unresolved access route.
+The original Dedtower model gives upward floor contacts along its
+long western span, rising to Z5170, which the terrain-only planner
+excluded as one large obstacle. This is geometry evidence, **not a
+verified traversal**. The wider terrain search toward the bridge
+still stops near (93750,102500), 5251 units short. Audit that approach
+and the building collision surface before a native route. Evidence:
+deadcity-text-copy-audit.log, dead-tower-floor-audit.log and
+sylph-to-tower-plan.log. M4–M6 remain incomplete.
+
 ## 2026-11-07 All four Sylph plates and the appearance reward verified
 
 The route clearance audit resolved the final-block approach without
@@ -22,9 +59,9 @@ are unchanged. No reward is repeated on reload.
 Evidence: earned-sylph-summoned/1794027970800884800,
 sylph-summoned-audited-native.log and sylph-corridor-audit.log under
 kq8-artifacts. The two earlier failed routes remain documented below.
-SylphSummonedReload is the latest verified campaign save. Her
-conversations and item quest are **not tested** on this earned route;
-the remaining Dead City campaign and M4–M6 remain incomplete.
+SylphSummonedReload was the verified campaign boundary for this
+step; the subsequent conversation check is recorded above. Her item
+quest and the remaining Dead City campaign are still incomplete.
 [Automated command and checkpoint](docs/dead-city-progression.md#the-sylph-pressure-blocks)
 
 ## 2026-11-07 First Sylph plate verified; full route remains open

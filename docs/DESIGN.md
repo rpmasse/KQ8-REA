@@ -13,6 +13,41 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M6 earned Sylph conversations (2026-11-07).** Continue from
+SylphSummonedReload with all four plates up and metConnor 0. The
+original sylph.cs selects message cases 10, 11 and 12 for three
+ordinary interactions; final TalkComplete sequences 2, 5 and 3
+advance metConnor to 1, 2 and 3. The second topic awards 3000
+experience. Use bound movement keys to approach her original well
+position and visible world-click rays to start each conversation.
+Check each original final callback, one reward, unchanged inventory
+and all plate flags, then reload the final save in a fresh process.
+No quest items or flags may be supplied by the test. Use the
+existing conversation behavior notes; unresolved engine semantics
+remain for the separate study session.
+
+First audit a wider approach corridor against the original terrain
+and static bounds. The initial 1197-sample band has 86 excluded
+positions, including the eastern edge against portsa2; do not run
+that unreviewed corridor. Select clearance from the actual bounds
+before native replay and retain any failed gameplay evidence.
+
+The offline search with a 1000-unit static-obstacle margin finds a
+western detour around both portal structures, ending at (70000,108000).
+SylphInfo's original start and stay boxes include that approach;
+the authored talking spot is (70673,107222,1328). The test uses this
+wider route, then three ordinary clicks with each topic in a fresh
+process and a final reload. Offline planning does not establish live
+movement, click visibility or conversation completion.
+
+The four-process native check passes in 252.41 seconds. Each final
+TalkComplete advances the topic once; the second supplies the original
+3000-point reward. SylphKnowledgeReload preserves topic 3, all four
+raised plates, unchanged inventory and blocks, and level eleven stats
+[61,80,25,10,6112]. The appearance and dialogue rewards do not repeat
+on reload. The item quest remains open: original scale.cs creates
+the Mold item as part of the scales completion.
+
 **M6 Sylph route clearance audit (2026-11-07).** The retained failed
 trace identifies the first torch.dt4 collision at update864, position
 (69210.9,80755.5). From update848 onward the route holds heading
@@ -36,8 +71,8 @@ This is an offline planning check, not a gameplay result. The
 route uses closer marks through the crossing. The subsequent native
 check passes in 125.28 seconds, including all remaining pushes, the
 original one-time 2000-point appearance award and a fresh-process
-reload. SylphSummonedReload is now the verified campaign boundary;
-her conversations and item quest still need an earned continuation.
+reload. This establishes SylphSummonedReload; the subsequent earned
+conversations are recorded above, and the item quest remains open.
 
 **M6 Sylph pressure blocks (2026-11-07).** Continue from the earned
 WesternRockReload at (56559,126163), with empty hands. The original

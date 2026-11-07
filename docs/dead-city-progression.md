@@ -391,8 +391,37 @@ remaining pushes, appearance award and fresh-process reload:
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::all_four_sylph_plates_summon_her_once_and_reload -- --ignored --exact --test-threads=1
 ```
 
-This verifies the pressure-plate puzzle. The Sylph conversations and
-item quest are **not tested** on this earned campaign route.
+This verifies the pressure-plate puzzle. The subsequent conversation
+check is below; the item quest remains **not tested** on this route.
+
+## The Sylph conversations
+
+The earned SylphSummonedReload continues around the western portal
+structures into the original SylphInfo conversation area. Ordinary
+visible clicks start all three introductory topics. The original
+sylph.cs final callbacks advance metConnor to 1, 2 and 3; the second
+topic supplies the one-time 3000 experience award. Each topic uses a
+fresh viewer process and the final result is loaded once more.
+
+The check passed in 252.41 seconds. SylphKnowledgeReload retains
+topic 3, the summoned Sylph, all four raised plates, unchanged block
+placements and inventory, and level eleven stats [61,80,25,10,6112].
+Neither the appearance award nor the conversation award repeats on
+reload. GOG options, damage and AI settings remain unchanged. Evidence:
+earned-sylph-topics/1794028407978349500 and sylph-topics-native.log.
+
+Set `KQ8_GAME_DIR` to the GOG installation and `KQ8_SYLPH_SUMMONED_SLOT`
+to a genuine SylphSummonedReload. This should pass after the three
+conversations and final reload:
+
+```powershell
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::three_sylph_topics_award_experience_once_and_reload -- --ignored --exact --test-threads=1
+```
+
+The initial offline corridor had excluded samples beside the portal
+structures and was not run. A wider obstacle-margin search supplied
+the successful detour. Her item quest remains **not tested**: the
+original scale.cs creates Mold during the later scales completion.
 
 ## Repeat the automated route
 
@@ -431,6 +460,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::western_archers_and_rock_survive_reload` | Required genuine `KQ8_FERRYMAN_KNOWLEDGE_SLOT` (`FerrymanKnowledgeReload`) | `WesternRockReload` |
 | `dead_city::first_sylph_block_lights_its_tower_and_reloads` | Required genuine `KQ8_WESTERN_ROCK_SLOT` (`WesternRockReload`) | `FirstSylphBlockReload` |
 | `dead_city::all_four_sylph_plates_summon_her_once_and_reload` | Required genuine `KQ8_FIRST_SYLPH_BLOCK_SLOT` (`FirstSylphBlockReload`) | `SylphSummonedReload` |
+| `dead_city::three_sylph_topics_award_experience_once_and_reload` | Required genuine `KQ8_SYLPH_SUMMONED_SLOT` (`SylphSummonedReload`) | `SylphKnowledgeReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
