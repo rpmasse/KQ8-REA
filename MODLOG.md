@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-07 Resolve original Rock and saved-trap loading contracts
+
+Study A documents Rock aiming, authored flight progression, full part
+transform, collision/fall branches and recovery in rock-projectiles.md.
+Its saved-world follow-up establishes handler clock observation, script
+deadline precision and canonical queue families. A bounded trap follow-up
+corrects Lookup to unconditional post-Init posting with optional script-only
+delivery, and establishes retained unresolved names and the original
+duplicate-accumulation defect. DESIGN records the ordered-loader and
+safe pending-name implementation sequence. Static study only; no original
+runtime or manual comparison claimed. M4 about88%, M5 about64%, M6 about28%.
+
 ## 2026-11-07 Apply original 640/800 presentation changes live
 
 Coordinate requested and acknowledged window/camera dimensions before

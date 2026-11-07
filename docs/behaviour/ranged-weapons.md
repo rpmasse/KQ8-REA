@@ -7,8 +7,9 @@ and the characters shoot. Answers `fighting.md` open questions 1 (the
 input side, for the ranged weapon and the parts shared with hand
 weapons) and 2 (the bolt's flight), and parts of `QUESTIONS.md` Q138
 (readying, the pointer) and Q139 (how an attack click finds its target).
-Rocks (`prrock.kq`, thrown with the same projectile class, `parabola=1`)
-and the Azriel Hammer (its own state) are **not** covered.
+Rocks have their state summary in section 8 and their aiming, authored arc,
+collision and recovery contract in [rock-projectiles.md](rock-projectiles.md)
+(Q202, static study 2026-11-07). The Azriel Hammer is in `azriel-hammer.md`.
 
 ## Purpose
 
@@ -308,7 +309,8 @@ Words used here:
       either), then **led** for Connor's movement (`fighting.md` rule
       36). So B's "3/4 of Connor's height" is right; the start (B: 3/4 of
       the shooter's height) is rule 24's part instead.
-    - In a rock-throw (not covered) the bolt's kind becomes 4.
+    - In the ordinary ThrowRock state the projectile's kind becomes 4;
+      its separate aiming and arc rules are in `rock-projectiles.md`.
 
 ### 6. The bolt's flight
 
@@ -428,21 +430,27 @@ Scripts set it (`KQMonster::setState Connor ThrowRock`; Dead City
   (`prrock.kq`) for now.
 - After `away` he plays **`throw`** (`Conner.anm` movement 41,
   `c_rktoss`, 36 frames). Its cue at phase 0.7778 is `do`, which
-  launches the projectile by the ordinary ranged "do" path (section 6;
-  aim not traced, probably the same as a bow shot at the clicked
-  object).
+  launches the projectile by the ordinary ranged "do" path. The Rock
+  click's aim selection is separate from a bow's; see
+  [rock-projectiles.md](rock-projectiles.md) rules 1–6.
 - After `throw`: his own projectile file is put back; if a weapon was
   out, the old mode returns and `out` plays; then `Stop`, he may use
   first person again, and he goes to `Wait`.
 - He cannot leave the state before that; afterwards only to Wait, Move,
   Special or Die.
 - **The rock** (data, `prrock.kq`): speed 2,500, maximum distance 2,500,
-  a parabola with `peakHeightOffset` 500 and `upVelocity` 2,500. A rock
+  `parabola=1` with `peakHeightOffset` 500 and `upVelocity` 2,500. The
+  flag selects the authored curve in `rock-projectiles.md`, not a
+  gravity-driven parabola. A rock
   hitting a character counts as kind 4, so a target it kills reports
-  `Die` with `Normal` (traced). Its damage: not traced.
+  `Die` with `Normal` (traced). The ordinary ThrowRock launch carries
+  Connor's current ranged damage value (Q202).
 - **When it lands** (data): `rockHit.cs` runs on `Die` and drops
   `INVITEM_Rock` at the landing spot (`KQMonster::dropItem Connor
-  INVITEM_Rock`), so the rock can be picked up again. Dead City's
+  INVITEM_Rock`), taking one from the carried stack at **Die**, not at
+  launch, and preserving the final projectile position and angles.
+  Item identity and trap registration are in `traps.md`'s Q203 section.
+  Dead City's
   targets are the pressure plates `trip2`–`trip15`
   (`acceptsInventory=INVITEM_Rock`, script `rockme.cs`).
 
@@ -628,6 +636,8 @@ pretty much as described.
    projectiles never touch each other).
 4. The number-to-name step for the pointers (rule 11) is inferred from
    their order; the three-way choice is traced.
-5. Rocks (`prrock.kq`: the same class with `parabola=1`,
-   `peakHeightOffset`, `upVelocity`, a script) are not covered; the
+5. Rock aiming, authored arc, collision branches and recovery are now
+   traced in [rock-projectiles.md](rock-projectiles.md) (Q202).
+   Its open questions retain the original undefined falling displacement,
+   unmeasured cue-frame part values and exceptional recovery cases. The
    Azriel Hammer is in `azriel-hammer.md`.
