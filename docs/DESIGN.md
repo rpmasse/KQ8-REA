@@ -113,6 +113,108 @@ making the known resolution transition internally consistent. This batch
 can complete the transition mechanism without claiming those groups are
 complete.
 
+**M5–M6 carried-item removal and drop continuation (2026-11-07).**
+Complete the shared items.md rule11/Q203 lifecycle before using the last
+earned Rock on another pressure plate. The current quantity-based split
+creates fresh non-Rock stack items but reuses the last Rock, contrary to
+the original category-specific behavior. It also cannot retain a carried
+item's stored transform or run old-item activation before NewInvItem.
+
+1. Retain the item's stored pose separately from carried/world ownership
+   and serialize it through disk and regional paths. Carry-add follows
+   the documented pose reset. Old slots use the explicit origin fallback
+   because the omitted historical pose cannot be reconstructed.
+2. Reuse command-owned registration continuations for common removal,
+   old last-item activation/callbacks, NewInvItem=old, then the category's
+   destination operation. Rock always creates a fresh quantity-one world
+   identity and publishes it after its registration callbacks. The old
+   last-Rock identity remains world-owned at its stored pose, as studied.
+   A non-Rock retains its identity; a larger stack only loses one count
+   and changes that selected item's stored pose. An already-active
+   object's zero-time destination move must not invent an entry probe.
+3. Supply item registration with the same current distance reference,
+   visible limit and forced-near state used by the normal distance test
+   (items.md rule3; object-lighting.md rules34–43). Inactive old-origin
+   items must not gain contacts across the map. Later stationary
+   activation must register the collider and dispatch ordinary contacts.
+   Keep this narrow to shared item activation and existing continuation
+   seams; no pressure-plate-specific mask changes or forced callbacks.
+4. Replace the incorrect generic Crystal-splitting expectation with one
+   grouped matrix across Rock/non-Rock and one/many quantities, active
+   and inactive old placement, later activation, nested callback mutation,
+   exact NewInvItem ordering and saved-pose roundtrip. Reuse successful
+   native multiple-Rock evidence; rerun the registration matrix only if
+   its shared implementation path changes. Original Rock aiming/flight
+   remains the independent Q202 study rather than a puzzle-specific tune.
+
+Coordinate core item/active/registration tests and narrow viewer
+draw-distance/startup/save-test seams after the tile batch is published.
+No new user-facing inventory flow or manual test is required.
+
+**M6 shared saved-world continuation (2026-11-07, Q208).**
+Implement saved-world-events.md together with the existing Q201 startup
+plan. The current queue replacement and payload deduplication are wrong:
+disk and regional saves select the same persistent event family and
+restore it alongside live initialization work. Region snapshots currently
+omit both time and queue, so the fix must cover disk and travel paths.
+
+1. Represent saved simulation time and absolute event deadlines, with
+   the original single-precision/six-decimal persistence boundary. Keep
+   local diagnostic update counters separate. Retain an explicit reader
+   for old slots containing relative deadlines and no historical clock;
+   do not invent lost time or claim those old slots have full fidelity.
+2. Apply the documented event-family filter, preserve deadline/FIFO
+   order, and merge without payload deduplication. Clock reassignment
+   shifts already-live deadlines before saved events are inserted.
+   Resolve saved targets once after object loading; absent receivers
+   cannot attach to a later object with the same name, and removal of a
+   resolved identity cancels its queued work. The Rust loader's held
+   deliveries need an explicit mapping to this rule, not blanket saving
+   of every internal continuation or indefinite target retry.
+3. Thread one restoration context through disk load and kept-region
+   load. Restore clock and saved listener names before object Init;
+   insert saved events after restored objects exist and before remaining
+   world Load statements. Successful Init listener enable leaves the
+   saved name pending, successful disable clears it, and deferred lookup
+   consumes it once. Follow Q201's ordered logical loading rather than
+   adding another class-grouped late callback pass.
+4. Finish startup by servicing all work due through the documented
+   0.0667-second interval, including zero-delay work posted by handlers,
+   before resuming play. Keep loading/away wall time outside simulation
+   time. First-drawn Begin remains separate. Preserve the original
+   ordering of world Init, generated startup, object registration/Init,
+   WorldState insertion and remaining world Load statements.
+5. Use one grouped matrix across disk and regional paths: eligible and
+   transient messages, equal/deadline ordering and duplicates, clock
+   shift and frozen time away, missing/recreated/deleted receivers,
+   listener enable/disable/missing/late-target lookup, and the full
+   startup-order journal. Rare event payloads require their own evidence
+   if this implementation needs unsupported object/resource references.
+   Do not rerun unrelated successful campaign, tile or menu checks.
+
+The core queue/clock contract and ordered loader integration can be
+implemented as reviewable steps, but this group stays incomplete until
+both production entry paths use them and the ordering matrix passes.
+No native original-runtime comparison is claimed by this static study.
+
+**M5–M6 pending tile effects at save boundaries (2026-11-07).**
+The viewer currently hands tile-controller effects to the script bridge
+on the next door update. A save between those updates can lose the
+completion reward, bridge cues, exit script or music/projectile cleanup.
+Persist that ordered pending output separately from the optional active
+controller, since leaving a controller can itself produce cleanup work.
+Use owned serializable values and a default empty list for older saves.
+Validate the bounded list against the operations, names and values that
+the tile controllers can actually emit; a saved line is not a general
+script-command input. Restore the list after controller rebinding and
+drain it once through the existing production dispatcher. One grouped
+headless snapshot/dispatch matrix covers completion and bridge effects,
+exit/music/projectile cleanup after the controller has left, rejected
+invalid outputs and old slots. Retain the successful native mid-jump
+checks without replaying them. This preserves the Rust bridge across
+save boundaries; Q208 separately establishes original clock/event-queue
+semantics, and the Portal state-refusal gap remains a separate change.
+
 **Automated chapter route waits (2026-11-07).** Timed puzzle sequences
 need ordinary idle time after an interaction and before a later camera
 click. Add an optional bounded wait_updates to a diagnostic landmark.
