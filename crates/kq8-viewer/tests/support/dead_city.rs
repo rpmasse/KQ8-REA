@@ -1253,3 +1253,104 @@ fn earn_corridor_supplies() -> PathBuf {
     );
     play.slots.join("slot-4.json")
 }
+
+#[test]
+#[ignore = "known failing combat route; requires GOG assets and graphics; optional earned KQ8_CORRIDOR_SUPPLIES_SLOT"]
+fn supplied_western_patrol_victory_and_award_reload() {
+    earn_western_patrol();
+}
+
+fn earn_western_patrol() -> PathBuf {
+    let play = Play::new("earned-western-patrol");
+    let source = earned_slot("KQ8_CORRIDOR_SUPPLIES_SLOT").unwrap_or_else(earn_corridor_supplies);
+    let start = prepare(&play, &source);
+    assert_eq!(start["label"], "CorridorSuppliesReload");
+    assert!(carries_one(&start, "INVITEM_Mace"));
+    assert!(carries_one(&start, "INVITEM_SmCrossbow"));
+    let path = play.root.join("western-patrol.json");
+    let route = json!({"start":3,"landmarks":[
+        {"name":"Follow the northern corridor 1","xy":[146000,152000],"radius":300,"run":true},
+        {"name":"Follow the northern corridor 2","xy":[132250,152000],"radius":300,"run":true},
+        {"name":"Follow the northern corridor 3","xy":[118500,153250],"radius":300,"run":true},
+        {"name":"Follow the northern corridor 4","xy":[104750,153250],"radius":300,"run":true},
+        {"name":"Fight the western swordsman","xy":[101500,153250],"radius":500,"run":true,
+            "fight":"skeleton55","big_swing":true}
+    ]});
+    fs::write(&path, serde_json::to_vec(&route).unwrap()).unwrap();
+    let (won, viewer) = leg(
+        &play,
+        1,
+        "WesternPatrol",
+        1050,
+        &["--walk-route", path.to_str().unwrap()],
+    );
+    assert!(viewer.contains("walk-route at Fight the western swordsman"));
+    let combat = log(&play, "WesternPatrol", "fight.log");
+    assert!(combat.contains("skeleton55: hit by Connor"));
+    assert!(combat.contains("conmace.anm/attack2"));
+    assert_eq!(
+        combat
+            .matches("skeleton55: its death ended (rule 32)")
+            .count(),
+        1
+    );
+    let mut expected = start["journey"]["stats"].clone();
+    // The damage rolls vary. Every other stat and the exact award must match.
+    expected["stats"][0] = won["journey"]["stats"]["stats"][0].clone();
+    expected["stats"][4] = json!(expected["stats"][4].as_i64().unwrap() + 500);
+    assert_eq!(won["journey"]["stats"], expected);
+    let (restored, _) = leg(&play, 2, "WesternPatrolReload", 45, &[]);
+    assert_eq!(restored["journey"]["stats"], expected);
+    assert!(!log(&play, "WesternPatrolReload", "fight.log")
+        .contains("skeleton55: its death ended (rule 32)"));
+    for saved in [&won, &restored] {
+        let gone = saved["kept"]["deadcity"]["gone"].as_array().unwrap();
+        assert!(gone.iter().any(|name| name == "skeleton55"));
+        assert!(!gone.iter().any(|name| name == "weeper15"));
+        assert!(carries_one(saved, "INVITEM_Mace"));
+        assert!(carries_one(saved, "INVITEM_SmCrossbow"));
+        assert_eq!(
+            saved["kept"]["deadcity"]["interactions"]["doors"]["cell04"]["state"],
+            "Closed"
+        );
+    }
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+    play.slots.join("slot-3.json")
+}
+
+#[test]
+#[ignore = "requires GOG assets, graphics and a genuine KQ8_WESTERN_PATROL_SLOT victory"]
+fn saved_western_patrol_victory_reloads_without_another_award() {
+    let play = Play::new("western-patrol-victory-reload");
+    let source = earned_slot("KQ8_WESTERN_PATROL_SLOT")
+        .expect("set KQ8_WESTERN_PATROL_SLOT to an earned WesternPatrol save");
+    let won = prepare(&play, &source);
+    assert_eq!(won["label"], "WesternPatrol");
+    assert_eq!(won["world"], "DeadCity");
+    assert_eq!(won["journey"]["god_mode"], false);
+    assert_eq!(won["journey"]["ai_off"], false);
+    assert!(won["kept"]["deadcity"]["gone"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|name| name == "skeleton55"));
+    let (restored, _) = leg(&play, 1, "WesternPatrolReload", 45, &[]);
+    assert_eq!(restored["journey"]["stats"], won["journey"]["stats"]);
+    assert_eq!(restored["journey"]["items"], won["journey"]["items"]);
+    assert!(restored["kept"]["deadcity"]["gone"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|name| name == "skeleton55"));
+    assert!(carries_one(&restored, "INVITEM_Mace"));
+    assert!(carries_one(&restored, "INVITEM_SmCrossbow"));
+    assert!(!log(&play, "WesternPatrolReload", "fight.log")
+        .contains("skeleton55: its death ended (rule 32)"));
+    assert_eq!(
+        fs::read(play.game.join("Options.cs")).unwrap(),
+        play.options
+    );
+}
