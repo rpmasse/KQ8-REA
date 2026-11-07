@@ -1398,14 +1398,8 @@ impl crate::active::WorldState {
     /// 11); not characters, Connor or other items. Its land sound plays at
     /// its first touch (rule 12.2). Picked up (or gone) in the air: the
     /// flight ends.
-    pub fn flights_step(&mut self, ground: &dyn crate::connor_mover::GroundLookup, buildings: &[crate::collide::BuildingCollider], objects: &[crate::collide::BoxCollider]) {
-        if self.flights.is_empty() {
-            return;
-        }
+    pub(crate) fn flight_step(&mut self, f: &mut crate::item::Flight, shaped: &crate::connor_mover::Scene<'_>, bare: &crate::connor_mover::Scene<'_>) -> Option<crate::item::FlightStep> {
         let dt = (1.0 / crate::UPDATES_PER_SECOND) as f32;
-        let blocking: Vec<crate::collide::BoxCollider> = objects.iter().filter(|o| o.kind.collision_type & crate::item::ITEM_OBSTACLE_BITS != 0).cloned().collect();
-        let shaped = crate::connor_mover::Scene::new(ground, buildings, &blocking);
-        let bare = crate::connor_mover::Scene::new(ground, &[], &[]);
         // Rule 12.3: what throws it again: anything with a script, and any
         // animated object (doors, chests and the rest, `anim-scripts.md`
         // rule 8; the play-once ones too), lower case.
@@ -1417,60 +1411,56 @@ impl crate::active::WorldState {
         again.extend(self.clickables.iter().filter(|c| c.script.is_some()).map(|c| c.name.to_ascii_lowercase()));
         again.extend(self.buildings.iter().filter(|b| b.script.is_some()).map(|b| b.name.to_ascii_lowercase()));
         let throws_again = |name: &str| again.contains(&name.to_ascii_lowercase());
-        let mut flights = std::mem::take(&mut self.flights);
-        flights.retain_mut(|f| {
-            let Some(i) = self.items.index(&f.item) else { return false };
-            let crate::item::Place::World { position, .. } = self.items.objects[i].place.clone() else {
-                self.item_log.push(format!("update {}: {}: no longer in the world: its flight ends", self.updates, f.item));
-                return false;
-            };
-            let rng = &mut self.fight_rng;
-            let s = f.update(position, dt, if f.shaped { &shaped } else { &bare }, &throws_again, &mut || rng.fraction());
-            let p = s.position;
-            let kind = self.items.objects[i].kind.clone();
-            let mut line = match s.wanted {
-                Some(w) => format!("t {:.3} wanted ({:.0}, {:.0}, {:.0}) at ({:.0}, {:.0}, {:.0})", f.clock, w[0], w[1], w[2], p[0], p[1], p[2]),
-                None => format!("t {:.3} settling at ({:.0}, {:.0}, {:.0})", f.clock, p[0], p[1], p[2]),
-            };
-            if f.coming_down {
-                line += ", coming down";
+        let Some(i) = self.items.index(&f.item) else { return None };
+        let crate::item::Place::World { position, .. } = self.items.objects[i].place.clone() else {
+            self.item_log.push(format!("update {}: {}: no longer in the world: its flight ends", self.updates, f.item));
+            return None;
+        };
+        let rng = &mut self.fight_rng;
+        let s = f.update(position, dt, if f.shaped { shaped } else { bare }, &throws_again, &mut || rng.fraction());
+        let p = s.position;
+        let kind = self.items.objects[i].kind.clone();
+        let mut line = match s.wanted {
+            Some(w) => format!("t {:.3} wanted ({:.0}, {:.0}, {:.0}) at ({:.0}, {:.0}, {:.0})", f.clock, w[0], w[1], w[2], p[0], p[1], p[2]),
+            None => format!("t {:.3} settling at ({:.0}, {:.0}, {:.0})", f.clock, p[0], p[1], p[2]),
+        };
+        if f.coming_down {
+            line += ", coming down";
+        }
+        if !s.touches.is_empty() {
+            line += &format!("; touches: {}", s.touches.join(", "));
+        }
+        if let Some(what) = &s.first_touch {
+            let sound = self.items.kind(&kind).and_then(|t| t.land_sound.clone());
+            if let Some(snd) = &sound {
+                self.sounds.push(crate::sound::Start::placed_one_shot(snd, p, format!("{} touched {what} (thrown-items.md rule 12.2)", f.item)));
             }
-            if !s.touches.is_empty() {
-                line += &format!("; touches: {}", s.touches.join(", "));
-            }
-            if let Some(what) = &s.first_touch {
-                let sound = self.items.kind(&kind).and_then(|t| t.land_sound.clone());
-                if let Some(snd) = &sound {
-                    self.sounds.push(crate::sound::Start::placed_one_shot(snd, p, format!("{} touched {what} (thrown-items.md rule 12.2)", f.item)));
-                }
-                line += &format!("; first touch: land sound {}", sound.as_deref().unwrap_or("none"));
-            }
-            for t in &s.thrown_again {
-                line += &format!("; thrown again (rule 12.3) by {t}");
-            }
-            if let Some(why) = &s.arc_ended {
-                line += &format!("; the arc ends: {why}, ordinary gravity on");
-            }
-            // Rules 9, 10: the tumble about its own x axis; no turn once
-            // the flight has ended.
-            if s.ended.is_none() {
-                line += &format!(", turned {:.2} rad", s.angles[0]);
-            }
-            self.items.objects[i].place = crate::item::Place::World { position: p, angles: s.angles };
-            if let Some(why) = s.ended {
-                let flat = ((p[0] - f.from[0]).powi(2) + (p[1] - f.from[1]).powi(2)).sqrt();
-                let line = format!(
-                    "update {}: {} ({kind}) flight ends ({why}, rule 16) at ({:.0}, {:.0}, {:.0}) after {} updates, {flat:.0} from where it was last thrown",
-                    self.updates, f.item, p[0], p[1], p[2], f.updates
-                );
-                self.item_log.push(line.clone());
-                self.fight_log.push(line);
-                return false;
-            }
-            self.item_log.push(format!("update {}: {} flight {}: {line}", self.updates, f.item, f.updates));
-            true
-        });
-        self.flights.extend(flights);
+            line += &format!("; first touch: land sound {}", sound.as_deref().unwrap_or("none"));
+        }
+        for t in &s.thrown_again {
+            line += &format!("; thrown again (rule 12.3) by {t}");
+        }
+        if let Some(why) = &s.arc_ended {
+            line += &format!("; the arc ends: {why}, ordinary gravity on");
+        }
+        // Rules 9, 10: the tumble about its own x axis; no turn once
+        // the flight has ended.
+        if s.ended.is_none() {
+            line += &format!(", turned {:.2} rad", s.angles[0]);
+        }
+        self.items.objects[i].place = crate::item::Place::World { position: p, angles: s.angles };
+        if let Some(why) = s.ended {
+            let flat = ((p[0] - f.from[0]).powi(2) + (p[1] - f.from[1]).powi(2)).sqrt();
+            let line = format!(
+                "update {}: {} ({kind}) flight ends ({why}, rule 16) at ({:.0}, {:.0}, {:.0}) after {} updates, {flat:.0} from where it was last thrown",
+                self.updates, f.item, p[0], p[1], p[2], f.updates
+            );
+            self.item_log.push(line.clone());
+            self.fight_log.push(line);
+            return Some(s);
+        }
+        self.item_log.push(format!("update {}: {} flight {}: {line}", self.updates, f.item, f.updates));
+        Some(s)
     }
 
     /// Rule 32: its die movement ended (or `Die now`): Connor gets its

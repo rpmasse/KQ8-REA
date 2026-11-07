@@ -5222,6 +5222,34 @@ impl Active {
         self.traps_check(v, false, true)
     }
 
+    /// Tossed loot moves through ordinary traps (traps.md rules 4-9;
+    /// thrown-items.md rules 7/11). Dispatch each item's touch before the
+    /// next flight, so scripts can affect subsequent visitors. Placement
+    /// alone and unshaped items do not enter.
+    pub fn flights_step(&mut self, ground: &dyn crate::connor_mover::GroundLookup, buildings: &[crate::collide::BuildingCollider], objects: &[crate::collide::BoxCollider]) {
+        if self.world.flights.is_empty() { return; }
+        let blocking: Vec<_> = objects.iter().filter(|o| o.kind.collision_type & crate::item::ITEM_OBSTACLE_BITS != 0).cloned().collect();
+        let shaped = crate::connor_mover::Scene::new(ground, buildings, &blocking);
+        let bare = crate::connor_mover::Scene::new(ground, &[], &[]);
+        for mut flight in std::mem::take(&mut self.world.flights) {
+            let before = self.world.items.get(&flight.item).and_then(|o| o.placement());
+            let Some(step) = self.world.flight_step(&mut flight, &shaped, &bare) else { continue };
+            let shape = self.world.items.get(&flight.item).and_then(|o| self.world.items.click_box(o));
+            let visitor_shape = shape.filter(|_| flight.shaped).map(|(min, max)| (min, max, flight.mover.balls.clone()));
+            let name = flight.item.clone();
+            if step.ended.is_none() { self.world.flights.push(flight); }
+            let (Some(before), Some((min, max, balls))) = (before, visitor_shape) else { continue };
+            let turned = before.rotation != kq8_data::objects::rotation(step.angles);
+            if step.path.is_empty() && !turned { continue; }
+            let point = [(step.position, step.position)];
+            let path = if step.path.is_empty() { &point[..] } else { &step.path[..] };
+            let visitor = Visitor { name: &name, collision_type: crate::item::ITEM_TYPE,
+                from: before.position, position: step.position, min, max, balls: &balls };
+            self.traps_check_path(&visitor, false, false, Some(path));
+            self.character_placements();
+        }
+    }
+
     /// Move each character through the world, dispatching its trap touches before
     /// moving the next character. A trap can reposition either one from its script.
     pub fn characters_gravity(&mut self, ground: &dyn crate::connor_mover::GroundLookup, buildings: &[crate::collide::BuildingCollider], objects: &[crate::collide::BoxCollider]) {
@@ -5272,6 +5300,10 @@ impl Active {
     }
 
     fn traps_check(&mut self, v: &Visitor, placed: bool, is_connor: bool) -> Vec<String> {
+        self.traps_check_path(v, placed, is_connor, None)
+    }
+
+    fn traps_check_path(&mut self, v: &Visitor, placed: bool, is_connor: bool, path: Option<&[([f32; 3], [f32; 3])]>) -> Vec<String> {
         let mut calls = Vec::new();
         for i in 0..self.world.traps.len() {
             let t = &self.world.traps[i];
@@ -5279,7 +5311,9 @@ impl Active {
                 continue;
             }
             let shrunk_before = self.world.traps[i].shrunk;
-            let c = if placed { self.world.traps[i].stay_check(v) } else { self.world.traps[i].check(v) };
+            let c = if placed { self.world.traps[i].stay_check(v) }
+                else if let Some(path) = path { self.world.traps[i].check_path(v, path) }
+                else { self.world.traps[i].check(v) };
             let Some(args) = c.call else { continue };
             let t = &self.world.traps[i];
             let (name, gone) = (t.settings.name.clone(), t.gone);
@@ -6350,7 +6384,7 @@ impl Active {
         // characters.md rule 15 (Q156): state changes, handled below.
         self.world.state_changes();
         // Thrown items fly after the characters' movers (M5 5e-1:
-        // `World::flights_step`, called with the buildings and objects).
+        // `Active::flights_step`, called with the buildings and objects).
         // Q119: nothing sent with delay 0 waits for the next update.
         let late = self.handle_due(now);
         if late > 0 {

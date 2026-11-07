@@ -1862,7 +1862,7 @@ pub fn character_gravity(
     // death this update, then thrown-items.md (M5 5e-1): thrown items,
     // with the same buildings and objects.
     sim.active.world.laid_checks_step(&lookup.0, b, o);
-    sim.active.world.flights_step(&lookup.0, b, o);
+    sim.active.flights_step(&lookup.0, b, o);
     // M4 4d-12-3: the characters solid for Connor where they stand now,
     // for his scene; his hits on them since the last update to the log.
     solid.list = sim.active.world.character_colliders.clone();

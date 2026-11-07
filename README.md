@@ -20,6 +20,8 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 
 The loader now gives the installed regional patch files priority over archive copies, with an automated check of all 22 overrides and the patched portal callback. [File selection](docs/world-file-selection.md)
 
+Tossed loot now activates matching trigger boxes along its actual movement path; focused checks pass, while pickup release and the Rock projectile handoff remain unresolved. [Item triggers](docs/tossed-item-traps.md)
+
 Press **F2** during play to switch between first and third person. The
 viewer selects Connor’s arm and weapon animations from the tables in
 your installed `GAME/Kq/Connor.kq`. Drawing a weapon, using a rope and

@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-07 Tossed loot notifies matching traps along its actual path
+
+The viewer now dispatches trigger callbacks after each tossed item's
+move. Recorded mover passes stop at physical contacts, preventing
+entry along an imaginary diagonal or beyond a wall. Placement alone
+and unshaped items do not enter. Seven focused checks pass, including
+mask handling, script order, multi-occupant cues and settled saved
+membership. An initial private test import failed compilation and
+was corrected; no gameplay failure was concealed. Rock handoff and
+pickup/deletion remain Q203; the earned Rock puzzle is not fixed.
+[Commands, sources and limits](docs/tossed-item-traps.md)
+
+The wall-slide test's first final-position expectation omitted the
+documented 25-unit contact pull-back; correcting only that expectation
+passes the additional case. The six earlier successes were not rerun.
+The remaining core checks pass once (671 passed, 17 ignored), and
+the viewer release check passes. No native campaign test was repeated.
+
 ## 2026-11-07 Visible ground aiming and failed earned Rock placement
 
 The unattended route can aim at visible ground through a gameplay
