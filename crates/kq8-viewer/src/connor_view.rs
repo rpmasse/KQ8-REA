@@ -2061,7 +2061,7 @@ impl ConnorSim {
         if !(w.keys_choose() || swinging) || w.playing.is_some() {
             return false;
         }
-        self.movement_loop(w.movement).is_none_or(|l| kq8_core::fight::cut_short_at(l.cut_short, &l.cues, w.phase))
+        self.movement_loop(w.movement).is_none_or(|l| w.current_interruptible(l))
     }
 
     /// `ranged-weapons.md` rule 32 (M5 5f-7; `fighting.md` rules 39-40): a
@@ -2537,7 +2537,7 @@ impl ConnorSim {
         let can = {
             let w = &self.walker;
             let shooting = self.shot.as_ref().is_some_and(|s| s.started && w.mode == Mode::Special && w.movement == s.movement);
-            !shooting && w.keys_choose() && w.playing.is_none() && self.movement_loop(w.movement).is_none_or(|l| kq8_core::fight::cut_short_at(l.cut_short, &l.cues, w.phase))
+            !shooting && w.keys_choose() && w.playing.is_none() && self.movement_loop(w.movement).is_none_or(|l| w.current_interruptible(l))
         };
         if !can {
             if !self.shot.as_ref().is_some_and(|s| s.started) {
@@ -2624,10 +2624,19 @@ impl ConnorSim {
     }
 
     pub fn wait_retains_stop(&self) -> bool {
+        if self.walker.pre_special_stop { return true; }
         !self.readying && self.swing.as_ref().is_none_or(|s| s.waiting)
             && self.shot.as_ref().is_none_or(|s| !s.started)
             && self.walker.reaction.is_none()
             && self.walker.state_wanted.is_none_or(|m| m.eq_ignore_ascii_case("stop"))
+    }
+
+    pub fn pre_special(&mut self, at: &str) -> String {
+        self.walker.pre_special();
+        let line = format!("preSpecial: current {} phase {:.6}, owner {} retained; interruptible, remembers Stop",
+            self.walker.movement, self.walker.phase, self.walker.mode.name());
+        self.log.detail(format!("connor update {}: {line} ({at})", self.updates));
+        line
     }
 
     /// Admit the waiting state during the real end handler, before a new

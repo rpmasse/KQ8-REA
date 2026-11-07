@@ -1512,6 +1512,10 @@ pub fn trap_step(
                 let line = connor.start_special(&items, &at);
                 format!("{at}: applied{again}: Connor {line}")
             }
+            Request::ConnorPreSpecial { at } => {
+                let line = connor.pre_special(&at);
+                format!("{at}: applied: Connor {line}")
+            }
             Request::ConnorAnim { movement, at } => {
                 let line = connor.script_anim(&movement, &at);
                 format!("{at}: applied: Connor {line}")

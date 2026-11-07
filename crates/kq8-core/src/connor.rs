@@ -532,6 +532,12 @@ pub struct Walker {
     /// `animSetHandsOff`, independent of scripted handsOff and playback.
     /// A lip request clears it even when its movement must wait.
     pub animation_input_lock: bool,
+    /// preSpecial changes the retained controller name to Stop without
+    /// changing either actual or waiting animation identity.
+    pub pre_special_stop: bool,
+    /// A live current-motion override, replaced by later interruptable
+    /// cues and discarded when new playback starts; never asset metadata.
+    pub interrupt_override: Option<bool>,
     /// The mover's `submerged` from the end of the last update's move
     /// (water.md "Wading animations" rule 3).
     pub submerged: bool,
@@ -647,6 +653,8 @@ impl Walker {
             reaction: None,
             reaction_playing: None,
             animation_input_lock: false,
+            pre_special_stop: false,
+            interrupt_override: None,
             waiting: None,
             playing: None,
             choice: "stop",
@@ -677,10 +685,23 @@ impl Walker {
         self.clear_transitions();
         self.mode = Mode::Rope;
         self.movement = movement;
+        self.interrupt_override = None;
         self.phase = 0.0;
         self.fresh = true;
         self.rope_hang = false;
         self.climb_dir = 0;
+    }
+
+    /// scripted-controller-commands.md rule 2: this changes live flags,
+    /// not playback, input ownership, queued movements or completion names.
+    pub fn pre_special(&mut self) {
+        self.pre_special_stop = true;
+        self.interrupt_override = Some(true);
+    }
+
+    pub fn current_interruptible(&self, movement: &MovementLoop) -> bool {
+        self.phase >= 1.0 || self.interrupt_override.unwrap_or_else(||
+            crate::fight::cut_short_at(movement.cut_short, &movement.cues, self.phase))
     }
 
     /// Rules 19, 21: he hangs on the rope, the climb `movement` at `phase`
@@ -697,6 +718,7 @@ impl Walker {
         self.clear_transitions();
         self.mode = Mode::Throw;
         self.movement = movement;
+        self.interrupt_override = None;
         self.phase = 0.0;
         self.fresh = true;
     }
@@ -842,6 +864,7 @@ impl Walker {
     pub fn stop_at_once(&mut self) {
         self.clear_transitions();
         self.movement = "stop";
+        self.interrupt_override = None;
         self.phase = 0.0;
         self.fresh = true;
     }
@@ -859,8 +882,10 @@ impl Walker {
     /// check 2026-10-22: after No at a walking exit he must not finish a
     /// walk's stop and step back into the trap).
     pub fn stand_now(&mut self) {
+        self.pre_special_stop = false;
         self.mode = Mode::Free;
         self.movement = "stop";
+        self.interrupt_override = None;
         self.phase = 0.0;
         self.fresh = true;
         self.wanted = None;
@@ -949,8 +974,10 @@ impl Walker {
         while let Some(step) = self.special.get(self.special_at).cloned() {
             match step {
                 SpecialStep::Play(name, written) => {
+                    self.pre_special_stop = false;
                     notes.push(format!("special: plays {written} ({name})"));
                     self.movement = name;
+                    self.interrupt_override = None;
                     self.phase = 0.0;
                     self.fresh = true;
                     return;
@@ -1036,6 +1063,7 @@ impl Walker {
         self.jump_finished = false;
         self.mode = Mode::Jump;
         self.movement = kind.jump();
+        self.interrupt_override = None;
         self.phase = 0.0;
         self.fresh = true;
     }
@@ -1054,6 +1082,7 @@ impl Walker {
         self.clear_transitions();
         if mode == Mode::Free {
             self.movement = "stop";
+            self.interrupt_override = None;
             self.phase = 0.0;
             self.fresh = true;
         }
@@ -1061,6 +1090,7 @@ impl Walker {
     }
 
     fn clear_transitions(&mut self) {
+        self.pre_special_stop = false;
         self.wanted = None;
         self.state_wanted = None;
         self.reaction = None;
@@ -1099,9 +1129,10 @@ impl Walker {
             self.waiting = Some(t);
             return;
         }
-        if current.is_none_or(|l| l.cut_short || self.phase >= 1.0) {
+        if current.is_none_or(|l| self.interrupt_override.unwrap_or(l.cut_short) || self.phase >= 1.0) {
             notes.push(format!("no transition {} -> {wanted}: switched at once from phase 0", self.movement));
             self.movement = wanted;
+            self.interrupt_override = None;
             self.reaction_playing = None;
             self.phase = 0.0;
             self.fresh = true;
@@ -1149,13 +1180,19 @@ impl Walker {
     /// calls this method.
     pub fn request_reaction<'a>(&mut self, wanted: &'static str, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) -> Vec<String> {
         let mut notes=Vec::new();
-        if self.reaction == Some(wanted) {
+        let prepared = self.pre_special_stop;
+        if !self.pre_special_stop && self.reaction == Some(wanted) {
             notes.push(format!("retained state request {wanted}: no duplicate request or lock change (Q195)"));
             return notes;
         }
         self.reaction=Some(wanted);
+        self.pre_special_stop=false;
         self.animation_input_lock=true;
-        self.ask(wanted,loops,&mut notes);
+        if prepared {
+            notes.extend(self.animation_request(wanted,loops));
+        } else {
+            self.ask(wanted,loops,&mut notes);
+        }
         self.reaction_started();
         notes
     }
@@ -1163,6 +1200,7 @@ impl Walker {
     /// A Die movement is an ordinary locked request. Changing owner does
     /// not rewind the previous animation when its normal end must run first.
     pub fn request_die_movement<'a>(&mut self, wanted: &'static str, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) -> Vec<String> {
+        self.pre_special_stop = false;
         self.mode = Mode::CombatDie;
         self.auto = None;
         self.special.clear();
@@ -1177,6 +1215,7 @@ impl Walker {
 
     fn reaction_started(&mut self) {
         if self.state_wanted == Some(self.movement) {
+            self.pre_special_stop = false;
             self.reaction = None;
             self.state_wanted = None;
         }
@@ -1196,6 +1235,7 @@ impl Walker {
         self.animation_input_lock = false;
         self.ask(wanted, loops, notes);
         if self.movement == wanted {
+            self.pre_special_stop = false;
             self.reaction = None;
         } else {
             self.state_wanted = Some(wanted);
@@ -1225,9 +1265,10 @@ impl Walker {
         self.state_wanted = None;
         let mut notes = Vec::new();
         if wanted == self.movement && self.playing.is_none() && self.waiting.is_none() {
-            if loops(self.movement).is_none_or(|l| l.cut_short || self.phase >= 1.0) {
+            if loops(self.movement).is_none_or(|l| self.interrupt_override.unwrap_or(l.cut_short) || self.phase >= 1.0) {
                 notes.push(format!("{wanted} again: afresh from phase 0 (rule 5)"));
                 self.phase = 0.0;
+                self.interrupt_override = None;
                 self.fresh = true;
                 self.wanted = None;
                 self.reaction_started();
@@ -1282,6 +1323,7 @@ impl Walker {
     fn end_transition<'a>(&mut self, t: Transition, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>, notes: &mut Vec<String>) {
         self.playing = None;
         self.movement = t.to;
+        self.interrupt_override = None;
         self.reaction_playing = None;
         self.reaction_started();
         // A repeating loop's phase 1 is its phase 0 (the frame shown
@@ -1374,6 +1416,7 @@ impl Walker {
         }
         self.clear_transitions();
         self.movement = "stop";
+        self.interrupt_override = None;
         self.phase = 0.0;
         self.fresh = true;
         Some((from, "stop"))
@@ -1442,6 +1485,7 @@ impl Walker {
         if let Some(m) = (!self.animation_input_lock).then(|| self.mode_movement()).flatten() {
             if m != self.movement && !self.retains_view_for(m) {
                 self.movement = m;
+                self.interrupt_override = None;
                 self.phase = 0.0;
                 self.fresh = true;
             }
@@ -1568,6 +1612,7 @@ impl Walker {
             notes.push(format!("{played} reached phase {:.4}: {} starts", self.phase, t.via));
             self.playing = Some(t);
             self.movement = t.via;
+            self.interrupt_override = None;
             self.reaction_playing = None;
             self.phase = 0.0;
             own
@@ -1606,6 +1651,7 @@ impl Walker {
                         if let Some(w) = self.wanted.take() {
                             notes.push(format!("{played} ended: {w} from phase 0"));
                             self.movement = w;
+                            self.interrupt_override = None;
                             self.reaction_playing = None;
                             self.phase = 0.0;
                             self.fresh = true;
@@ -1640,6 +1686,17 @@ impl Walker {
             own
         };
         step.own_step = own;
+        // The preparation writes a live flag. Later cues may replace it,
+        // including across a repeating loop; starting another motion has
+        // already cleared the override. Other cue effects remain unchanged.
+        if self.interrupt_override.is_some() && self.movement == step.played {
+            for cue in l.cues_between(step.played_from, step.played_to) {
+                let mut words = cue.split_whitespace();
+                if words.next().is_some_and(|w| w.eq_ignore_ascii_case("interruptable")) {
+                    self.interrupt_override = Some(words.next().is_some_and(|w| crate::script::number_value(w) != 0.0));
+                }
+            }
+        }
         let [x, y, z] = own;
         // Turn the model-space step by the heading (positive = left, CCW).
         let (s, c) = self.heading.sin_cos();
@@ -2024,6 +2081,58 @@ mod tests {
     /// `jumpend` in the data).
     fn once() -> MovementLoop {
         MovementLoop { duration: 10.0 / 15.0, step_sum: [0.0; 3], speed: 1.0, repeat: false, frames: 11, ..Default::default() }
+    }
+
+    #[test]
+    fn scripted_character_grouped_live_preparation_preserves_motion_and_transitions() {
+        let mut list=stop_list();
+        list.push(("old",once())); list.push(("next",once()));
+        let loops=lookup(&list);
+        let mut w=Walker::new(0.0);
+        w.movement="old"; w.phase=0.4; w.reaction=Some("old");
+        w.reaction_playing=Some("old"); w.animation_input_lock=true;
+        w.wanted=Some("next"); w.state_wanted=Some("next");
+        w.pre_special();
+        assert_eq!((w.movement,w.phase,w.mode,w.wanted,w.state_wanted),("old",0.4,Mode::Free,Some("next"),Some("next")));
+        assert_eq!(w.reaction_playing,Some("old"));
+        assert!(w.animation_input_lock && w.pre_special_stop && w.current_interruptible(loops("old").unwrap()));
+        for owner in [Mode::Jump,Mode::Rope,Mode::Special] {
+            let mut controlled=w.clone(); controlled.mode=owner; controlled.pre_special();
+            assert_eq!((controlled.mode,controlled.movement,controlled.phase),(owner,"old",0.4));
+            assert!(!controlled.jump_finished,"preparation does not finish a jump or install a controller");
+        }
+        let mut reaction=w.clone();
+        reaction.request_reaction("old",&loops);
+        assert_eq!((reaction.movement,reaction.phase),("old",0.0),"prepared Stop prevents stale reaction-name deduplication");
+        assert!(!reaction.pre_special_stop);
+        w.animation_request("next",&loops);
+        assert_eq!((w.movement,w.phase),("next",0.0));
+        assert_eq!(w.interrupt_override,None,"override belongs only to the previous playback");
+        assert!(w.pre_special_stop,"common animation does not rewrite controller memory");
+        w.start_special(vec![SpecialStep::Play("old","old".into())]);
+        assert_eq!((w.mode,w.movement,w.phase),(Mode::Special,"old",0.0));
+        assert!(!w.pre_special_stop && w.interrupt_override.is_none(),"the subsequent ordinary state request owns new playback");
+
+        let mut end=Walker::new(0.0); end.movement="old"; end.phase=0.99;
+        end.mode=Mode::Talk; end.animation_input_lock=true; end.pre_special();
+        assert_eq!(end.update(intent(0,0,false),&loops).ended,Some("old"),"EndLoop keeps actual identity");
+
+        let mut transition_list=stop_list();
+        transition_list.push(("old",MovementLoop { transitions:vec![Transition { from:0.8,to:"next",to_phase:0.2,via:"bridge" }],..once() }));
+        transition_list.push(("next",once())); transition_list.push(("bridge",once()));
+        let transitions=lookup(&transition_list);
+        let mut t=Walker::new(0.0); t.movement="old"; t.phase=0.4; t.pre_special();
+        t.animation_request("next",&transitions);
+        assert_eq!((t.movement,t.phase),("old",0.4));
+        assert_eq!(t.waiting.unwrap().via,"bridge","authored transition still takes precedence");
+
+        let cues=MovementLoop { cues:vec![(0.5,"interruptable 0".into())],..once() };
+        let cue_loops=|name:&str| (name=="old").then_some(&cues);
+        let mut c=Walker::new(0.0); c.movement="old"; c.phase=0.49; c.mode=Mode::Talk;
+        c.animation_input_lock=true; c.pre_special();
+        c.update(intent(0,0,false),&cue_loops);
+        assert_eq!(c.interrupt_override,Some(false),"later live cue replaces preparation");
+        assert!(!c.current_interruptible(&cues));
     }
 
     #[test]

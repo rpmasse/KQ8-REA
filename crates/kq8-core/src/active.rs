@@ -141,6 +141,8 @@ pub enum Request {
     /// `KQMonster::setState Connor special <list>` (`anim-scripts.md`
     /// rule 16): the comma-separated items as written.
     ConnorSpecial { items: String, at: String },
+    /// Prepare live playback without changing its owner, name or phase.
+    ConnorPreSpecial { at: String },
     ConnorThrowRock { aim: Option<[f32; 3]> },
     /// `setHaze <n>` (`object-lighting.md` rule 33a, Q161): the caller
     /// sets `hazeDistance` n and `visibleDistance` 1.5 n at once.
@@ -4541,6 +4543,8 @@ impl ScriptHost for WorldState {
             "KQObject::collision" => Some(self.collision_mask(words, at)),
             "KQConner::setRun" => Some(self.set_run(words, at)),
             "KQConner::setLevel" => Some(self.set_level(words, at)),
+            "KQConner::reduceHealth" => Some(self.reduce_health(words, at)),
+            "KQMonster::preSpecial" => Some(self.pre_special(words, at)),
             "KQConner::setRelDamage" => {
                 let fraction = words.get(1).filter(|s| looks_like_number(s)).map(|s| number_value(s));
                 let (Some(fraction), Some(connor)) = (fraction, self.connor_stats) else {
@@ -8899,6 +8903,31 @@ endif
         let ai = c.ai.as_mut().unwrap();
         (ai.settings.alarm_radius, ai.settings.attack_dist, ai.settings.home_radius, ai.settings.chase_radius) = (4000.0, 1500.0, 3000.0, 6000.0);
         a
+    }
+
+    #[test]
+    fn scripted_character_grouped_preparation_dispatch_and_ordinary_monster() {
+        let mut a=fighter();
+        a.world.anims[0].player.start("attack");
+        a.world.anims[0].player.phase=0.4;
+        a.world.anims[0].player.cut_short=false;
+        let state=a.world.anims[0].character.as_ref().unwrap().state;
+        for command in ["KQMonster::preSpecial", "KQMonster::preSpecial gob extra", "KQMonster::preSpecial GOB", "KQMonster::preSpecial absent", "KQMonster::preSpecial 123"] {
+            assert_eq!(a.test_command(command,"matrix"),Some("0".into()));
+            assert!(!a.world.anims[0].player.cut_short);
+        }
+        assert_eq!(a.test_command("KQMonster::preSpecial gob","matrix"),Some("0".into()));
+        let actor=&a.world.anims[0];
+        assert_eq!((actor.player.movement_name(),actor.player.phase),("attack",0.4));
+        assert!(actor.player.cut_short && actor.character.as_ref().unwrap().pre_special_stop);
+        assert_eq!(actor.character.as_ref().unwrap().state,state);
+        assert!(a.world.requests.is_empty());
+        a.world.connor_wait_retains_stop=false;
+        a.test_command("KQMonster::preSpecial connor","matrix");
+        assert!(!a.world.connor_wait_retains_stop,"exact-case object lookup");
+        a.test_command("KQMonster::preSpecial Connor","matrix");
+        assert!(a.world.connor_wait_retains_stop);
+        assert!(matches!(a.world.requests.last(),Some(Request::ConnorPreSpecial { .. })));
     }
 
     #[test]

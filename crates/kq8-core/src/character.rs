@@ -142,6 +142,10 @@ pub struct Character {
     /// Gravity on (rule 8; used from 4d-6).
     pub gravity: bool,
     pub state: State,
+    /// preSpecial's remembered Stop, separate from actual/waiting playback
+    /// and the Special list's completion identity. No new state gate implied.
+    pub pre_special_stop: bool,
+    prepared_next: Option<String>,
     /// Near or far now (rule 11), set by the caller before each update.
     pub in_range: bool,
     /// The update number of its first update (rule 12), once it happened.
@@ -288,6 +292,8 @@ impl Character {
             random_pending: false,
             special: VecDeque::new(),
             special_playing: None,
+            pre_special_stop: false,
+            prepared_next: None,
             rng: Rng::new(seed),
             turn_to: None,
             mouth: 0,
@@ -533,15 +539,31 @@ impl Character {
         }
     }
 
-    /// Asks for `walk` or `run` (rule 3) the ordinary way. Returns what
-    /// happened, for the log.
+    /// Scripted preparation preserves playback and its eventual EndLoop.
+    pub fn pre_special(&mut self, player: &mut NamedAnimPlayer) {
+        player.cut_short = true;
+        self.pre_special_stop = true;
+    }
+
+    fn request_state_motion(&mut self, player: &mut NamedAnimPlayer, name: &str) -> Request {
+        let result = player.request(name);
+        if matches!(result, Request::AtOnce(_)) {
+            self.pre_special_stop = false;
+            self.prepared_next = None;
+        } else {
+            self.prepared_next = Some(name.into());
+        }
+        result
+    }
+
+    /// Asks for walk/run through the ordinary transition rules.
     pub fn set_moving(&mut self, player: &mut NamedAnimPlayer, run: bool) -> String {
         self.walk.run = run;
         let name = Self::moving_name(player, run);
         if player.movement_name().eq_ignore_ascii_case(name) && player.waiting.is_none() {
             return format!("'{name}' already playing");
         }
-        match player.request(name) {
+        match self.request_state_motion(player, name) {
             Request::AtOnce(st) => format!("'{name}' starts at once{}", if st.unknown { " (not in its list: movement 0)" } else { "" }),
             Request::Waiting => format!("'{name}' waits for '{}' to end", player.movement_name()),
             Request::WaitingForever => format!("'{name}' waits for '{}', which never ends", player.movement_name()),
@@ -649,6 +671,10 @@ impl Character {
             notes.push(format!("'{f}' ended: '{}' starts at phase {:.4}", st.name, st.start));
         }
         if let Some(st) = &played.started {
+            if self.prepared_next.as_ref().is_some_and(|n| n.eq_ignore_ascii_case(&st.name)) {
+                self.pre_special_stop = false;
+                self.prepared_next = None;
+            }
             if self.random_pending && st.name.eq_ignore_ascii_case(STOP) {
                 self.random_pending = false;
                 let (frame, speed) = player.randomize(&mut self.rng);
@@ -724,6 +750,7 @@ impl Character {
         if !(player.cut_short || player.has_ended()) {
             return format!("code {code}: '{gesture}' not played: '{}' can't be cut short and hasn't ended (rule 28)", player.movement_name());
         }
+        self.prepared_next = None;
         match player.request(gesture) {
             Request::AtOnce(_) => format!("code {code}: gesture '{gesture}' starts (rule 28)"),
             _ => format!("code {code}: gesture '{gesture}' waits (rule 28)"),
@@ -772,7 +799,7 @@ impl Character {
         let mut first = Vec::new();
         self.start_up_in_state(player, &mut first);
         player.cut_short = true;
-        let stop = match player.request(STOP) {
+        let stop = match self.request_state_motion(player, STOP) {
             Request::AtOnce(st) => format!("Stop starts at once{}", if st.unknown { " (no Stop in its list: movement 0)" } else { "" }),
             _ => format!("Stop waits for '{}'", player.movement_name()),
         };
@@ -903,7 +930,7 @@ impl Character {
 
     /// Asks for `Stop` the ordinary way (`anim-scripts.md` rule 4).
     fn ask_stop(&mut self, player: &mut NamedAnimPlayer, random: bool) -> String {
-        match player.request(STOP) {
+        match self.request_state_motion(player, STOP) {
             Request::AtOnce(st) => {
                 let unknown = if st.unknown { " (no Stop in its list: movement 0)" } else { "" };
                 if random {
@@ -1027,6 +1054,8 @@ impl Character {
                 continue;
             }
             let st = player.start(&item);
+            self.pre_special_stop = false;
+            self.prepared_next = None;
             let unknown = if st.unknown { " (not in its list: movement 0 plays under that name, anim-scripts.md rule 5)" } else { "" };
             notes.push(format!("Special: '{item}' starts at once{unknown}; waits for its end"));
             self.special_playing = Some(item);
@@ -1044,7 +1073,7 @@ impl Character {
     /// moving one's stuck check is off until its `walk` / `run` plays
     /// again. Returns what happened, for the log.
     pub fn start_attack(&mut self, player: &mut NamedAnimPlayer, now: f64) -> String {
-        let how = match player.request(crate::fight::ATTACK) {
+        let how = match self.request_state_motion(player, crate::fight::ATTACK) {
             Request::AtOnce(st) => format!("'{}' starts at once{}", crate::fight::ATTACK, if st.unknown { " (not in its list: movement 0)" } else { "" }),
             _ => format!("'{}' waits for '{}' (should not happen: it can be cut short)", crate::fight::ATTACK, player.movement_name()),
         };

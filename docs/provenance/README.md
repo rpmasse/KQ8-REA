@@ -3,6 +3,13 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Scripted preparation and health.** Study A's scripted-controller-
+commands.md rules 1–4 supply preSpecial and reduceHealth semantics.
+Implementation uses this prose, existing shared animation/stat paths and
+original Henchman/altar scripts read from the installation. Grouped core
+checks establish the implemented behavior; numeric IDs and transient
+preparation persistence remain open. [Evidence](../scripted-character-preparation.md).
+
 **Interface resolution and credits studies.** Study A's
 graphics-modes.md and credits-completion.md describe the original
 device/menu rules, nested rectangle conversion, fixed font scaling,
