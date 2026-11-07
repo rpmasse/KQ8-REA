@@ -13,6 +13,39 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+**M5–M6 retreat input audit (2026-11-07).** The second outer-guard
+log records `run=true` throughout its intended walking approach.
+The prior road enables Run, and the retreat controller sends Forward
+without switching it off. The regular waypoint path handles Run
+changes after arrival checks, so entering combat bypasses that step.
+Make the retreat controller press the bound Run key once while Run
+is enabled, then resume its existing movement inputs after the toggle.
+Verify actual walking in the movement log and the same earned
+27-health encounter. Record this as an input-driver correction.
+
+The corrected distant approach switched Run off at update 62 but
+timed out while following the guard. The installed MONSTERS.KQ gives
+skeleton56 a patrol between (157871, 152500) and (128395, 152500).
+Its logged walking speed exceeds Connor's. Use the earlier close
+approach to intercept that patrol before the retreat controller
+switches to walking. This is the second encounter check after the
+input audit.
+
+After the outer guard is verified and restored, follow the original
+northern corridor toward the western patrol, skeleton55. Its authored
+route runs between (90763, 152500) and (118707, 152500). Use the same
+ordinary walking retreat once the route reaches that encounter and
+checkpoint its award before proceeding toward the river.
+
+The western patrol exposed an early counterattack. At updates 493–494,
+Connor started his swing before the enemy's hit cue, while still
+inside its reach. The retreat controller treated halfway through
+every attack as the end of its wind-up. Read the actual pending
+`Do` cue from that enemy's loaded movement and wait until its phase
+has passed before returning. The fighting study places hit testing
+at that cue. Repeat the outer guard regression and the western
+encounter after this input correction.
+
 **M4–M6 equipment for the maze guards.** The earned maze-key save
 contains a Crystal from the entrance fight and the broadsword left by
 the skeleton near the pedestal. Recover both through real world

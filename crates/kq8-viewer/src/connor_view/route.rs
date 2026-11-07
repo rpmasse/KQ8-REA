@@ -512,17 +512,29 @@ struct GuardInput {
 }
 
 impl Replay {
-    /// Read the guard's visible spear animation, then use the same movement
-    /// keys and normal swing that a player can use. The guard stands still.
+    /// Read the enemy's attack animation, then use ordinary movement
+    /// keys to retreat and return for a normal swing.
     fn guard_input(&mut self, sim: &ConnorSim, enemy: &kq8_core::named_anim::NamedAnimPlayer,
         reach: f32, armed: bool) -> GuardInput {
         let mut input = GuardInput { movement: Vec::new(), swing: false };
+        // Run is a persistent toggle. A preceding road can leave it on
+        // even when combat begins at an already-reached waypoint.
+        if sim.intent.run {
+            input.movement.extend(sim.controls.run);
+            return input;
+        }
         let pos = sim.mover.position;
         let target = enemy.base.position;
         let distance = ((pos[0] - target[0]).powi(2) + (pos[1] - target[1]).powi(2) + (pos[2] - target[2]).powi(2)).sqrt();
         let error = wrap(heading_towards(pos, [target[0], target[1]]) - sim.walker.heading);
         let attack = enemy.movement_name().eq_ignore_ascii_case("Attack");
-        let windup = attack && enemy.phase < 0.5;
+        // The hit fires when the animation crosses Do. At exactly the
+        // cue phase it still belongs to the following update.
+        let windup = attack && enemy.movement().is_some_and(|movement| {
+            movement.cues.iter().any(|cue| {
+                cue.action.eq_ignore_ascii_case("do") && enemy.phase <= cue.phase
+            })
+        });
         if !armed {
             if sim.updates % 20 == 0 { input.movement.extend(sim.controls.draw); }
             return input;

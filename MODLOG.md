@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-07 Correct retreat replay movement and counterattack timing
+
+The retreat controller now presses the bound Run key when an earlier
+waypoint left Run enabled. The audited movement trace showed that
+this toggle made the earlier walking approaches rush into the guard.
+The replay also waits for each enemy's loaded `Do` cue instead of
+assuming every hit occurs halfway through the animation. The native
+Mace fight and fresh reload passed in 66.89 seconds, retaining all
+27 health and one 450-point death award. The earlier Run-only check
+passed in 66.37 seconds at 16 health. Two subsequent western patrol
+attempts from that earlier save ended in death and are documented in
+STATUS.md. Neither correction changes engine combat rules.
+All 877 standard workspace tests passed.
+[Command and evidence](docs/dead-city-progression.md#the-outer-mace-guard)
+
 ## 2026-11-07 Equip the dropped Mace and recover health
 
 The northern campaign now clicks its Mace and three Mushroom drops,

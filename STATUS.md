@@ -1,5 +1,40 @@
 # STATUS
 
+## 2026-11-07 Outer guard input audit and victory
+
+The failed retreat approaches inherited the road’s enabled Run
+toggle. The movement log shows running throughout the intended
+walking approach. The replay now presses the configured Run key to
+switch to walking before retreat input begins.
+
+The distant approach then timed out following the guard. MONSTERS.KQ
+assigns it a patrol, and its walking speed exceeds Connor’s. The
+closer approach intercepts that patrol. The corrected exploratory
+run defeated skeleton56 with all 27 starting health. The subsequent
+two-process regression passed in 66.37 seconds and restored the
+victory at 16 health, level nine and 1,817 experience. It verifies
+missed enemy attacks, the Mace hits, one 450-point award and a fresh
+reload. The original failed runs remain documented below.
+[Check and route](docs/dead-city-progression.md#the-outer-mace-guard)
+
+The next audit found that retreat input assumed every enemy hit at
+halfway through its attack. It now waits for the actual `Do` cue in
+the loaded animation. With both input corrections, the outer guard
+regression passed in 66.89 seconds and restored all 27 starting health,
+level nine and 1,817 experience. These changes affect the unattended
+player, not the engine's damage or animation timing.
+
+Two western patrol attempts from the earlier 16-health
+`OuterGuardReload` ended in death. The first counterattacked before
+skeleton55's actual hit cue and died on update 511, with the enemy
+at 127 health. After the cue correction, more enemy attacks missed,
+but two hits still killed Connor on update 616; the enemy had 28
+health left. Stop variations of this encounter. Its original-runtime
+comparison is **not tested**; these failures do not establish an
+engine defect. Local `dead-road-westernpatrol` logs preserve both
+attempts. The campaign boundary remains `OuterGuardReload`.
+All 877 standard workspace tests passed after both input corrections.
+
 ## 2026-11-07 Junction equipment and the closed cells
 
 The two-process equipment check passed in 36.12 seconds. Connor

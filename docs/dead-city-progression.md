@@ -149,6 +149,35 @@ remains `NorthSuppliesReload`, before this encounter. The guard has
 225 health and a half-second attack delay. Its pursuing movement needs
 an input and combat audit before another route attempt.
 
+## The outer mace guard
+
+The audit found that the retreat replay inherited the road’s enabled
+Run toggle. Its Forward input therefore continued running into the
+guard. The controller now presses the configured Run key to switch
+to walking before its retreat and counterattack inputs.
+
+The distant approach then timed out following the patrol. The original
+MONSTERS.KQ sends skeleton56 between (157871, 152500) and
+(128395, 152500), and its walking speed exceeds Connor’s. The closer
+approach intercepts the patrol before switching to walking.
+
+The replay now also waits for the enemy's actual `Do` hit cue before
+counterattacking, replacing its assumed halfway point.
+
+The two-process regression passed in 66.89 seconds. It observes
+ordinary enemy attacks miss, Mace strikes damage skeleton56, and
+one death award of 450 experience. The fresh process retains the
+defeated guard, the Mace, 27 health and 1,817 experience at level nine.
+Cell04 stays closed throughout this outer route. The check starts
+from the earned `NorthSuppliesReload` save.
+
+The earlier Run-only check passed at 16 health in 66.37 seconds.
+Two western patrol attempts from that save ended in Connor's death.
+The cue correction left skeleton55 at 28 health, but did not complete
+that fight. Those logs are retained in local `dead-road-westernpatrol`
+artifacts. Further encounter variations are stopped under the project
+handoff rule. Original-runtime comparison is **not tested**.
+
 ## Repeat the automated route
 
 Set `KQ8_GAME_DIR` to the GOG installation. To resume directly at
@@ -177,6 +206,7 @@ invocation from New Game through this hall has not been run.
 | `dead_city::gate_drops_and_northwest_passage_reload` | `KQ8_MAZE_GUARDS_SLOT` (`MazeGuardsReload`) | `NorthCornerReload` |
 | `dead_city::northern_mace_guard_and_archers_reload` | `KQ8_NORTH_MAZE_CORNER_SLOT` (`NorthCornerReload`) | `NorthJunctionReload` |
 | `dead_city::northern_drops_equip_mace_and_heal_before_the_cell_gate` | `KQ8_NORTH_JUNCTION_SLOT` (`NorthJunctionReload`) | `NorthSuppliesReload` |
+| `dead_city::outer_mace_guard_retreats_after_running_and_reloads` | `KQ8_NORTH_SUPPLIES_SLOT` (`NorthSuppliesReload`) | `OuterGuardReload` |
 
 ```powershell
 cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
@@ -185,4 +215,5 @@ cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::gate_drops_and_northwest_passage_reload -- --ignored --exact --test-threads=1
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::northern_mace_guard_and_archers_reload -- --ignored --exact --test-threads=1
 cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::northern_drops_equip_mace_and_heal_before_the_cell_gate -- --ignored --exact --test-threads=1
+cargo test --locked --release -p kq8-viewer --test daventry_cottage_shield dead_city::outer_mace_guard_retreats_after_running_and_reloads -- --ignored --exact --test-threads=1
 ```
