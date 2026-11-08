@@ -76,6 +76,50 @@ is shown or hidden.
    caption code sets its own value 0x14 (centred, from the top of each
    line's slot) [traced].
 
+### Pointer position and picture size (Q110 c, 2026-11-08)
+
+6a. **The click point is the picture's top-left, traced.** The normal
+    play pointer (`IDBMA_CURS04`), a held item's `cursor` picture, and
+    the attack/rope pointer pictures use the same screen-pointer
+    drawing path. Mouse movement places the picture's top-left at the
+    supplied display-pixel mouse position. Changing the selected
+    picture does not subtract half its width or height, inspect its
+    transparent border, or apply a picture-specific offset. No hotspot
+    from the `.pba` header is used by this path. Consequently the
+    visible tip or centre of artwork is not necessarily its click point.
+    Menu pointer artwork uses this same rule; the separate menu-row
+    selection decorations are not the mouse pointer.
+
+6b. **Pointer pictures scale with the screen, traced.** A frame's width
+    and height are measured against the screen layout's original width
+    and height. Those fractions are converted using the current parent
+    dimensions, with the shared addition of 0.1 and truncation toward
+    zero described in `graphics-modes.md` rules 11–12. Thus a 32 × 32
+    cursor frame on a 640 × 480 layout occupies 40 × 40 display pixels
+    at 800 × 600. The scale is 1.25, not a whole-number enlargement
+    factor. Its top-left still follows the supplied display-pixel
+    mouse position: the mouse coordinate is divided by the current
+    screen size before the shared coordinate conversion, rather than
+    being multiplied by 1.25 a second time. Normal, held-item and attack
+    pictures have no separate scaling policy.
+
+6c. **Frame content, traced.** The selected animation frame supplies
+    its own bitmap dimensions and drawing flag. Pointer drawing does
+    not overwrite that flag from a layout attribute; colour 0 therefore
+    stays see-through for the shipped flag-9 cursor frames. Frame
+    selection loops at one frame per 100 milliseconds of the real-time
+    clock. This does not establish a new selection rule for which
+    attack or held-item tag is chosen; those rules remain in their
+    respective interaction notes.
+
+Evidence is static original study of screen-pointer creation, pointer
+movement, picture selection, frame drawing and shared GUI coordinate
+conversion, together with the authored cursor fields. Original runtime
+and visual comparison: **not tested**. Rule 12's later follow-up traces
+the normal Windows desktop-to-client conversion. Windows DPI, pointer
+capture outside the client area and 3D picking projection remain outside
+this result; a supplied GUI mouse position is the input to the rules above.
+
 ### The world palette (answers Q118)
 
 There is **one display palette** at a time for the whole window: the
@@ -239,16 +283,32 @@ uses whatever the window holds [traced].
     (Exactly: only if the current map is active; nothing else is
     checked, not even `handsOff`: `magic-map.md` rules 2, 30.)
 12. **The top bar follows the mouse** [traced]:
-    - It slides down when the pointer reaches the **very top row** of
-      the screen (y = 0).
-    - It slides up again when the pointer goes **below y 60** (in the
-      640 × 480 layout), unless it is in its "popped" time (rule 13).
+    - It slides down when the pointer reaches **y = 0 in the game's
+      client area**, the drawable area inside the window. It does not
+      require physical desktop row 0 (Q109 f, traced 2026-11-08).
+    - It slides up again when the pointer goes **below client y 60**,
+      unless it is in its "popped" time (rule 13). The comparison uses
+      **the integer mouse-event coordinate before GUI normalization**:
+      this is a fixed 60 pixels, also at 800 × 600, not 60 × 1.25.
+      Exactly y 60 neither opens nor closes it by this test.
     - It does not come down while the right mouse button is held (camera
       drag), while it is already moving, in the demo version, or while
       the pointer is one of the attack, rope or similar cursors (four
       cursors: `IDBMA_CURS03`, `CURS05`, `CURS06` (rope), `CURS07`); only
       the play pointer and item pointers bring it down. The manual says
       the attack cursors don't open it [manual].
+    **Windows coordinate provenance (static follow-up 2026-11-08):**
+    the original Windows mouse provider obtains the desktop pointer,
+    converts it to the registered game window's client coordinates, and
+    sends those integer coordinates through the GUI input path unchanged.
+    The gameplay handler tests that y value before the cursor drawing path
+    divides it by the GUI's current height. The provider clamps negative
+    client coordinates to zero, so a delivered sample above the client
+    can also become y 0; this is not a separate desktop-top trigger.
+    Its upper clamp uses the outer window's width and height, an original
+    oddity distinct from the client's origin conversion. Native window
+    capture, title-bar interaction, modern Windows DPI virtualization and
+    the resulting original runtime behavior are **not tested**.
 13. **Popping for news.** When a quest item or a mask piece goes into
     the inventory, the top bar slides down by itself and slides up after
     **1.5 s** [traced]. When health or experience changes while the
@@ -347,8 +407,9 @@ uses whatever the window holds [traced].
       Solid (flag 8): the magic map's buttons (`maplft`, `maprit`,
       `goon`, `gooff`), the yes / buy buttons and their highlights,
       `sl_hilite`, `slider`, `savebar`. So **"use each file's own
-      flag" is right for every picture**. How the mouse and item
-      cursors are drawn was not traced (their files are all flag 9).
+      flag" is right for every picture**. Mouse and item cursors also
+      preserve their frame's own drawing flag (rule 6c, traced
+      2026-11-08; their files are all flag 9).
       If a still control and an animation shared one loaded picture,
       the still's attribute could overwrite the file's kind (inferred;
       no data case seen).
@@ -733,7 +794,7 @@ counter values remains outside this bounded study.
 | --- | --- | --- |
 | slide time | 0.2 s (real time) | traced |
 | pop-up time (top bar on news, meters on change) | 1.5 s (real time) | traced |
-| top bar appears / hides | pointer at y 0 / below y 60 (of 480) | traced |
+| top bar appears / hides | client y 0 / client y > 60; fixed pixels at 640 and 800 | traced |
 | blink | shared 0.25 s phases; ordinary new-item result is four empty/normal cycles | traced; Q109 follow-up above |
 | meter width | width × percent / 100, ≥ 1 px if percent ≠ 0 | traced |
 | health percent | health × 100 / (10 × level) | traced |

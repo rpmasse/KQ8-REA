@@ -92,6 +92,16 @@ weapons, health/potion slots, rope, rocks), see `interface.md`.
      added to Connor's (rule 13). Example: wearing the full suit and
      picking up gloves takes the whole suit off (it drops) and puts the
      gloves on; the manual says the same [manual].
+     **Scripted replacement (Q109 e, traced 2026-11-08):** a plain
+     `give <type> [quantity]` creates its new item at **world position
+     (0, 0, 0)** with zero angles before adding it. Therefore real old
+     equipment displaced by that give goes to **(0, 0, 0), not Connor's
+     feet**. The longer `KQMonster::inventory Connor` command accepts
+     explicit position and angles after the quantity; those set the
+     replacement item's placement before the same exchange. No implicit
+     floor-height substitution occurs for the omitted, zero position.
+     This establishes the initial world placement; subsequent physics
+     and whether the item is reachable at that location are **not tested**.
    - Then, for every add: all panels are refreshed (`interface.md`); a
      ranged weapon sets Connor's ranged weapon mode; a hand or ranged
      weapon re-readies his weapon if one is drawn [inferred]; the type's
@@ -108,19 +118,26 @@ weapons, health/potion slots, rope, rocks), see `interface.md`.
    - **Quest item or money**:
      - if it is the item already held: it is **put back** (pointer back
        to the play pointer, the item reappears in the strip);
-     - `INVITEM_Scroll` can't be taken: Connor says the line `0.MSG`
-       (0, 92, 14, 0) instead, at most once every 3 s and not while he
-       talks;
+     - `INVITEM_Scroll` can't be taken: it first clears the previous
+       held selection and restores the ordinary pointer, then Connor
+       says **file 0, noun 92, verb 14, case 0, sequence 1**, at most
+       once every 3 s and not while he talks. The four-number form in
+       the earlier note meant file/noun/verb/case, not
+       noun/verb/case/sequence (Q110 a, traced 2026-11-08);
      - otherwise, if the type has a cursor, it becomes **the item in
        hand**: the pointer turns into the type's cursor picture
        (`cursor` column, e.g. `INVITEM_Candle` → `candlcur.pba`,
        coins → `goldcurs.pba`) and the item leaves the strip (rule 7);
        a type with cursor `none` (`INVITEM_AntiPoisonFlower`) does
        nothing.
-   - **Rock**: held like a quest item, except in three special states
-     (puzzle states; **not** the rope, corrected 2026-10-21,
-     `ropeandhook.md` rule 38), where Connor says "I have no
-     time to trifle with that." (`0.MSG` 0, 0, 0, 0, seq 3).
+   - **Rock**: held like a quest item, except in the **Tile, Tile3 and
+     Scales** states, where Connor says "I have no time to trifle with
+     that." The exact message is **file 0, noun 0, verb 0, case 0,
+     sequence 3**. These are the state names accepted by
+     `KQMonster::setState`; **Tile2 is not excluded** by this bar-selection
+     rule. The refusal leaves the previous held selection unchanged.
+     This restriction belongs to Rock, not Rope (`ropeandhook.md`
+     rule 38; identities and tuple traced 2026-11-08, Q110 a).
    - **Rope**: if Connor isn't at a rope place, he says `0.MSG` file 0,
      noun 0, verb 58, case 37 "I am not near anything to climb." and the
      rope is **not** held; at a rope place it is held like a quest item and
@@ -134,7 +151,9 @@ weapons, health/potion slots, rope, rocks), see `interface.md`.
      the slot's weapon mode is asked for (`SwordMode`; `INVITEM_Fists`
      also has `SwordMode`, so Connor readies his fists). The ranged slot
      does the same with `BowMode`, but only when a bow is carried
-     (`INVITEM_NoRanged` has `NoModeChange`, so nothing happens). Fighting is M5 [traced the request;
+     (`INVITEM_NoRanged` has `NoModeChange`, so no weapon-mode request
+     follows; the preceding item-application step still clears a held
+     selection). Fighting is M5 [traced the request;
      what it does is M5].
    - The mask button opens the main menu instead (`interface.md` rule 41).
    **Bar clicks while holding an item (Q110 d/e, traced 2026-11-08):**
@@ -151,6 +170,16 @@ weapons, health/potion slots, rope, rocks), see `interface.md`.
    every bar click must successfully swap an item. The coins button
    retains its count-based picture and full count while held, including
    no subtraction of one coin (`interface.md` rules 43–45 and follow-up).
+   **Rope-to-item replacement (traced 2026-11-08):** choosing a different
+   holdable quest item, coins or an eligible Rock replaces the selection
+   without performing the rope's put-back action. In particular, the
+   first-person-view lock created when selecting the rope at a Top place
+   is not released by this swap; its ordinary later release on Connor's
+   first move still applies (`ropeandhook.md` rule 9). This is a view
+   lock, not a general prohibition on movement. Clicking the held rope
+   itself does perform the rope put-back action and restores first-person
+   availability. Empty slots, immediately applied items and the scroll
+   also clear selection without performing that rope-specific action.
    These are static original findings; native/manual behavior is **not
    tested**, and this follow-up does not settle mixed clicks during
    `handsOff`, cutscenes or a world change.
@@ -188,11 +217,73 @@ weapons, health/potion slots, rope, rocks), see `interface.md`.
       puts it back (rule 9).
     - `goldCoinPersists 0` also empties the hand at once and resets the
       pointer [traced].
-    Not traced: whether moving, a cutscene or a world change empties the
-    hand. **The user (2026-10-18):** if the hand is emptied, the item
-    only goes back to its bar slot; **no item is ever lost** that way.
+    Selection lifetime across ordinary control changes and world loading
+    is described in rule 12a. **The user (2026-10-18):** if the hand is
+    emptied, the item only goes back to its bar slot; **no item is ever
+    lost** that way.
     Items leave the inventory only when used (a puzzle or quest takes
     them, or a bottom-bar item is consumed).
+
+12a. **Selection lifetime (static follow-up 2026-11-08).** A held item
+    is separate from the weapon mode and remains an inventory object.
+    - **`handsOff` alone preserves it.** Turning control off hides or
+      disables the relevant interface and stops the active input actions;
+      it does not put the held item back. Turning control on again does
+      not create a new selection. A cutscene can still clear or consume
+      the item through its own commands or an accepted item hand-over;
+      do not attribute that to `handsOff` itself.
+    - **Ordinary death entry does not itself clear it.** The common
+      death entry, including the immediate-death branch, has no item
+      put-back action. Bar selection is then refused by the dying/dead
+      state check in rule 9. This is a statement about entering death;
+      it is not a claim that loading a saved game preserves the item
+      selected in the abandoned, dead game.
+    - **A region change carries the selection with Connor.** His saved
+      `itemInHand` value is the selected inventory object's name. The
+      ordinary Portal hand-over preserves it; on arrival, resolving that
+      carried object restores the selected item and its cursor. This
+      agrees with `world-change.md` rule 17. Loading a save restores that
+      save's selection in the same way. A script that separately changes
+      or consumes the item still takes effect before the snapshot.
+    - **An ordinary weapon-mode assignment clears it, not the request
+      itself.** For Delete/Alt and an accepted script `setDoMode`, this
+      happens at the mode/list change within `SwapWeapons`, at the
+      animation boundary in `ranged-weapons.md` rule 6. A request ignored
+      during `handsOff`, refused by the current controller (including
+      Rope), or stopped by the Delete key's `NoRanged` check does not
+      reach that assignment and does not clear the held item. Alt while
+      already in mode none likewise does nothing.
+    - **There is no universal same-mode rule.** A script `setDoMode` for
+      the current mode returns before requesting standing or a swap, so
+      it preserves selection. A normal controller request for its
+      already-current hand/ranged mode instead asks to put the weapon
+      away. Its eventual ordinary assignment clears selection. The
+      assignment itself also clears selection when explicitly used to
+      refresh the current mode's pointer; it does not require a changed
+      numeric mode.
+    - **Equipment-slot clicks clear earlier.** After the bar-selection
+      `handsOff` and dying/dead checks, applying a weapon or another
+      immediately applied item clears the old held item and refreshes
+      the current mode's pointer. Only then does the slot separately ask
+      for `SwordMode`, `BowMode` or `HandMode`. Thus selection is already
+      cleared even if that later request is refused by Rope or another
+      controller, or if `NoModeChange` means no request is sent. This
+      does not run the rope-specific put-back/view-unlock action.
+    - **Scripts do not use a general selection-preserving variant.**
+      `setDoMode` has no `handsOff` gate of its own. For a different mode
+      it tries to put Connor into standing, then sends the request to
+      whichever controller is current; only a resulting assignment
+      clears selection. The optional movement argument still uses the
+      ordinary clearing assignment. The preserving variant is positively
+      traced to **ThrowRock's temporary weapon-away step**, where the
+      selected rock and its pointer must survive until the throw. It is
+      not used by ordinary `SwapWeapons` or the traced script requests;
+      unrelated internal callers have not all been classified. See
+      `ranged-weapons.md` rules 8–9 for the lower-level ranged and
+      unadvertised numeric-mode cases.
+    Original runtime/manual behavior for these lifetime cases is **not
+    tested**. No claim is made here about a deleted selected object,
+    malformed saved item names or every bespoke death/cutscene script.
 
 ### Applying an item (equipment, potions, health items)
 
@@ -335,10 +426,10 @@ scripts.
 
 - A type with `cursor` none in a stacking or quest category can't be
   held: clicking it does nothing (rule 9).
-- Two items of one place picked up at once (a script `give` of a suit
-  while wearing gloves): the gloves drop at the suit's position, which
-  for a `give` (no position) is wherever the new item object stands
-  [inferred; not seen in data].
+- A script `give` of a suit while wearing gloves drops the old gloves
+  at the new suit's initial world placement: **(0, 0, 0)** when the
+  command omits a position (rule 8; traced 2026-11-08). This can be
+  far from Connor; do not substitute his feet as an original rule.
 - `NoArmor` gets a special mark when a non-body armour piece is put on
   while it is worn [traced; meaning not traced, probably so the empty
   armour picture is kept]. No visible effect known.
@@ -383,8 +474,10 @@ item closes the gap in the strip (not checked with 8 or more items).
 
 ## Open questions
 
-1. Whether a held item goes back to its slot on world change, cutscene
-   or death (rule 12). Either way it stays in the inventory (the user).
+1. Rule 12a settles the ordinary `handsOff`, death-entry and region/save
+   restoration paths. Deleted selected objects, malformed saved item
+   names and bespoke scripted overrides are not covered; original
+   runtime/manual checks remain **not tested**.
 2. ~~What applying a quest item does beyond the stats (the candle)~~:
    the bars never apply one; the candle's experience: `potions.md`
    rule 40.

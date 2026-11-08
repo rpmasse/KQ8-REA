@@ -205,12 +205,37 @@ because Q148 needed it.
   is dropped and the new one taken instead) when the new one is one of
   the "strong" states and the waiting one is not. Strong states:
   weapon swap, Special list, talk, rock throw, hammer throw.
-- A waiting request is also tried again whenever a movement ends while
-  Connor is standing (and in one other place not identified). Nothing
-  else retries it, so in
-  the hammer throw it is applied at the catch's end (rule 3).
+- **Standing retry, corrected 2026-11-08:** after a movement other than
+  `Stop` or a name beginning with `gesture` ends, the standing state
+  tries to select `Stop`. Only successful selection, followed by
+  recording that movement name, reaches its pending-only retry. The
+  name checks ignore case. An admitted waiting request is cleared; a
+  refused one remains waiting. The older "whenever a movement ends"
+  wording was too broad. This is not a retry on every update.
+- **Catch order, clarified 2026-11-08:** the hammer state opens its exit
+  gate and clears `handsOff`, then asks for Wait through the ordinary
+  request path while it still owns Connor. A waiting request is tested
+  against the opened **hammer** gate, before any Wait entry. Special
+  or Die can take ownership directly, leaving the newly proposed Wait
+  pending. Talk is still refused by the hammer gate, so Wait replaces
+  it and takes ownership; entering Wait first and then retrying Talk
+  would produce a conversation the original does not start here.
 - A Choice state set by a script overrides all of this (Q155,
   `characters.md`).
+
+The strong classification is ordinary priority, not forced admission.
+Incoming strong requests skip an older non-strong pending request, but
+still need the current state's permission to enter; a refusal retains
+the incoming request. Already-pending Talk is strong, so it receives
+the first admission test even when new Special arrives. Automatic
+Wait/Move/Fall/Die requests are non-strong, and Special remains strong
+regardless of caller. The start-conversation message uses ordinary
+strong Talk. `conversation.md`, "Admission during another action",
+gives the exact pending-first, forced Choice and `handsOff` boundaries.
+
+This clarification uses static original request, standing-end and
+hammer-catch traces. Original runtime comparison: **not tested**. It
+does not claim an exhaustive inventory of retry sites in other states.
 
 ## Data used
 

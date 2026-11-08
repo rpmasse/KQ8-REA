@@ -64,14 +64,38 @@ implementing unusual coexisting armor or held-item swaps. Coordinate this
 source batch with the shared build lease; do not rerun successful ordinary
 inventory application routes solely for picture/count changes.
 
+**Inventory selection edges (2026-11-08, implemented and checked).**
+Use the new inventory.md rule 8/9 study to clear selection before Scroll's
+speech gate and retain the rope's separate view lock during generic clearing.
+Only selecting the held rope itself performs its put-back unlock. Reject
+Rock selection in the actual Tile, Tile3 and Scales controllers while retaining
+the previous selection and issuing the exact refusal tuple; Tile2 remains
+eligible. Route controller identity from the existing viewer ownership at the
+ordinary bar-selection boundary rather than inferring it from the region.
+For scripted equipment replacement, an omitted placement is the original
+zero position/angles, not Connor's feet; explicit placement is applied before
+exchange. Group these category/controller/placement boundaries in one core
+matrix and one representative viewer dispatch check. Retain other successful
+inventory routes; do not rebuild the campaign to test these shared rules.
+
+**Top-bar client threshold (2026-11-08, implemented and checked).** Apply interface.md rule 12's
+client integer mouse coordinates before GUI normalization. Use the host
+Window's physical client cursor sample: open at row 0, close only beyond
+row 60 at both original sizes, with no dependency on the viewport inset or
+desktop window origin. Retain existing cursor/slide/news eligibility. One
+grouped Window/panel check covers 640/800, 100%/150% scale and the 60/61
+boundary. Native capture outside the client and original DPI virtualization
+remain unverified; the Bevy getter exposes only in-client samples.
+
 **Conversation admission and tutorial events (2026-11-08, next shared
 families).** The new conversation.md admission study replaces the blanket
 per-update Talk retry. Preserve one pending state request and arbitrate it
 at existing request/completion boundaries, before Jump/Fall/landing/weapon
 ownership changes commit. Prepare the start message once (speech clear,
 current partner position, Stop and interruptibility); actual Talk entry
-owns its movement/camera/approach work. Hide panels only for immediate
-start-message admission. Pending admission/replacement follows the study's
+owns its movement/camera/approach work. Hide panels when the start-message
+request succeeds and handsOff is clear, including an older strong request
+winning while Talk remains pending. Pending admission/replacement follows the study's
 exact order, including Talk exit with retained Fall/Wait. Use narrow hooks
 in existing core/viewer boundaries rather than rewriting unrelated actor
 controllers. Group Jump, landing, Swap, Special and immediate/deferred
@@ -89,6 +113,75 @@ gates. One grouped source/clock matrix covers positive and negative gates,
 paused-time behavior and once-only consumption; successful pickup/help
 routes are retained. Coordinate the standing-jump boundary with the Talk
 owner so both effects preserve the original completion order.
+
+**Software surface palette (2026-11-08).** Keep fullscreen Software's
+independent-channel conversion and distinguish the original 8-bit window
+DIB path explicitly. Supply its twenty Windows system colors as data;
+replace source entries 0–9 and 246–255 before brightness conversion while
+retaining immutable source palettes. Query Windows through a small read-only
+adapter. Modern non-palette desktops may reject GetSystemPaletteEntries;
+in that case extract the documented twenty static system colors from a
+Windows-created halftone palette and record that adapter choice. Do not
+invent colors from the game palette or claim the swapchain itself is 8-bit.
+Use the actual window/fullscreen state when refreshing live Software output.
+Group boundary, repeated-refresh, fullscreen/window and provider checks;
+retain successful hardware palette conversion tests unless changed.
+
+**Cursor and map coordinates (2026-11-08).** Apply Study A's completed
+Q110(c) and map follow/drag study as one coordinate family. Cursor hotspot
+is the bitmap top-left; size follows the authored-to-current display ratio
+with the original edge rounding, and frames use the existing real-time
+100 ms picture clock. Map pan, zoom delta, stored image size and ten-pixel
+arrow remain surface-pixel values; only its GUI window scales. Follow uses
+the literal absolute display limits x=20..280/y=20..340 at both resolutions.
+Remove the inherited inset-margin repair because the current goal is original
+behavior without improvements. Group 640/800 layout offsets, cursor frame/
+transparency, drag, zoom and follow boundaries; preserve map content and
+cross-region/save work. No new visual inspection or campaign replay.
+
+**Graphics screen runtime lifecycle (2026-11-08).** Retain the existing
+Graphics screen across Back/Options and menu reopening so its studied focus
+and resolved targets survive. Refresh its art/size from current presentation
+on reentry. Route its own sound contract and physical pointer press/release
+through the viewer, rather than substituting ordinary menu sounds. These
+hooks precede the remaining explicit device-provider/action/fullscreen work;
+they alone do not complete runtime device switching. Group real frontend
+entry/exit, pointer and retained-focus checks once.
+
+**Graphics runtime completion (2026-11-08).** Supply an explicit recreation
+display profile, separate from the host WGPU API and the saved original mode
+name. A Direct3D-compatible profile supplies Software and `D3D-display`;
+a Glide-compatible profile supplies Software and a declared emulated Glide
+board with the original 800-mode capability. Never derive legacy board type
+or memory from the host GPU or silently expose both profiles' inventories.
+The development default is the Direct3D-compatible profile to support the
+installed GOG preference; this is our backend policy, not an original default
+(the original compiled mode-name default remains Software). Keep the existing
+unspecialized 800-capable path available only to old component fixtures;
+normal profile selection uses its original availability rules.
+
+Validate the saved fullscreen name/resolution through the existing inventory
+policy. Preserve unresolved names as visible errors instead of converting
+them silently to Direct3D. Keep the original window device Software separately
+from the selected fullscreen device and from the host presentation mode.
+Wire accepted live device changes to palette refresh, screen target/capability
+refresh and preference acknowledgement without rebuilding the world. The
+Direct3D-to-Software confirmation must save the accepted original name and
+exit only after a successful local preference write; failure stays usable and
+reports the error. Previously tested modal sounds/pointer and display resize
+acknowledgements are reused.
+
+Add explicit launch configuration for the compatibility profile and windowed
+versus fullscreen presentation. Fullscreen must select an actual supported
+host mode at the original 640/800 dimensions and preserve 4:3 geometry. Do not
+pretend a borderless desktop-sized surface proves exclusive 640/800 acceptance.
+The windowed diagnostic path applies the original Software window palette;
+its saved fullscreen device remains available for later fullscreen entry.
+Check profile/default/name handling, live/restart routing, retained state and
+failure decisions as one frontend matrix, then one unattended native
+fullscreen/resolution route using actual reported sizes. Shared rasterizer
+and final legacy-driver pixel differences remain explicit M7 fidelity work;
+menu/device behavior and requested output geometry are M4 requirements.
 
 **M4 live shadow controls (2026-11-06).** Apply the menu's shadow mask to the active renderer. Keep each character's original mask independently of the world mask, so enabling a category after loading can create its shadow. Gate Connor with bit 1. Hide existing character and object shadows when disabled; invalidate an object's cached projection so re-enabling restores it. Use unattended Windows menu routes and renderer state logs to check off/on transitions, then verify preference persistence in a fresh process. The scripted `allowShadows` step below supplies the independent global switch.
 
@@ -6609,3 +6702,31 @@ skeleton's own states) is a new feature, left for its own step.
   rule 4b: C `atof` (`-.6`, `5.`, a word with no number = 0); exact
   word counts for the roll (cut 4, fly 5); `addCamLoc`'s list word as a
   whole number.
+
+### M4 shared popup navigation sound (2026-11-08)
+
+`behaviour/world-change.md` rule 26, Details (lines 397–402), says each
+successful Left/Right highlight swap in the Portal Yes/No popup plays a
+click sound. `behaviour/in-game-help.md`, Pausing, input and sounds, gives
+the same successful-highlight rule and names `button1.aud`. The shared
+viewer popup path currently emits this cue only for help. Remove that
+help-only condition, retaining silence when focus cannot move past an end.
+Extend the existing original-data help/Main/Return matrix with Portal and
+F1 navigation through the production input path: changed focus queues one
+cue; boundary presses queue none; help navigation does not change its page.
+This narrow fix does not change popup geometry, cursor/map behavior or
+Portal travel. Root owns the shared build; no separate native run is planned.
+
+### M4 shared popup geometry (2026-11-08)
+
+Implement `behaviour/world-change.md` rule 26's dynamic layout precedence:
+derive button centres from the converted popup parent width, retain fixed
+88-pixel button widths and original heights, and apply the 800-mode
+44-pixel button offset and text base 36/pitch 22 as final local pixels.
+Preserve each converted authored text control's horizontal edges. Use the
+same resolved rectangles for drawing, pointer hit tests and keyboard pointer
+placement across Portal, tutorial, catalog and map-help popups. Add one
+headless original-data 640/800 matrix covering all row counts, button layouts,
+highlight/pressed states and hit boundaries. Root owns the shared build;
+no native run or previously passed unrelated check is repeated. Original
+live resize while a popup is open remains unverified.
