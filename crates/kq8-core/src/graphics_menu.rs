@@ -1,6 +1,6 @@
 //! Original Graphics.gui layout and explicitly supplied device policy.
 use crate::{
-    graphics_devices::{Device, Family, Inventory, Selection},
+    graphics_devices::{Device, Family, Inventory, Selection, Targets},
     gui_draw::Canvas,
     main_menu::{Art, Key},
     menu_layout::Layout,
@@ -103,6 +103,7 @@ pub struct Screen {
     pub dragging: bool,
     high_available: bool,
     devices: Option<(Inventory, Device)>,
+    targets: Targets,
     selection: Option<DeviceAction>,
     restart: Option<Restart>,
 }
@@ -113,6 +114,8 @@ pub struct Screen {
 pub enum DeviceAction {
     Live(Device),
     RestartSoftware,
+    /// Safe rejection of the original's undefined missing-target access.
+    MissingTarget(Family),
 }
 
 struct Restart {
@@ -173,38 +176,39 @@ impl Screen {
             }
         }
         let background = Self::backdrop(&layout,art);
-        Ok(Self { layout, background, row: Row::Low, dragging: false, high_available: true,
-            devices: None, selection: None, restart: None })
+        Ok(Self { layout, background, row: Row::DirectDraw, dragging: false, high_available: true,
+            devices: None, targets: Targets::default(), selection: None, restart: None })
     }
 
     pub fn resize(&mut self, art: &Art) {
         self.layout.resize(art.size(), false);
         self.background = Self::backdrop(&self.layout, art);
+        if let Some((inventory,_)) = &self.devices { self.targets.refresh(inventory,art.size()[0] == 800); }
     }
 
     /// Explicit capability input. This does not identify a host GPU as Glide.
     pub fn set_high_resolution_available(&mut self, available: bool) {
         self.high_available = available;
-        if !available && self.row == Row::High { self.row = Row::Low; }
     }
 
     /// The presentation owner supplies actual logical device facts. Existing
     /// callers without a profile retain their independently supplied 640/800
     /// capability; no legacy inventory is inferred from the host GPU.
-    pub fn set_device_inventory(&mut self, inventory: Inventory, active: Device) {
+    pub fn set_device_inventory(&mut self, inventory: Inventory, active: Device, high_resolution: bool) {
         self.set_high_resolution_available(active.supports_800());
+        self.targets.refresh(&inventory,high_resolution);
         self.devices = Some((inventory, active));
         self.selection = None;
         self.restart = None;
-        self.row = Row::Low;
     }
 
     /// Acknowledge a successful live presentation change. Choosing a row
     /// alone never changes the active-device marker or saved mode name.
-    pub fn set_active_device(&mut self, active: Device) {
+    pub fn set_active_device(&mut self, active: Device, high_resolution: bool) {
         if self.devices.is_none() { return; }
         self.set_high_resolution_available(active.supports_800());
         self.devices.as_mut().unwrap().1 = active;
+        self.targets.refresh(&self.devices.as_ref().unwrap().0,high_resolution);
         self.selection = None;
     }
 
@@ -357,23 +361,26 @@ impl Screen {
 
     fn choose(&mut self, settings: &mut Graphics) -> Action {
         if let Some(family) = self.row.family() {
-            if let Some((inventory, active)) = &self.devices {
-                match inventory.select(active, family, settings.high_resolution) {
-                    Some(Selection::Live(device)) => self.selection = Some(DeviceAction::Live(device)),
-                    Some(Selection::ConfirmSoftwareRestart) => {
+            if let Some((_, active)) = &self.devices {
+                match self.targets.activate(active, family) {
+                    Ok(Some(Selection::Live(device))) => self.selection = Some(DeviceAction::Live(device)),
+                    Ok(Some(Selection::ConfirmSoftwareRestart)) => {
                         self.selection = None;
                         self.dragging = false;
                         self.restart = Some(Restart { answer: 1, key_pressed: false, mouse_pressed: None, pointer: None });
                     }
-                    None => {},
+                    Ok(None) => {},
+                    Err(family) => self.selection = Some(DeviceAction::MissingTarget(family)),
                 }
             }
             return Action::Stay;
         }
         match self.row {
             Row::Low => settings.high_resolution = false,
-            Row::High if self.high_available => settings.high_resolution = true,
-            Row::High => {}
+            // Q207: Enter dispatches retained focus without rechecking row
+            // availability. Pointer/navigation filtering is separate, and
+            // the presentation owner decides whether this request can apply.
+            Row::High => settings.high_resolution = true,
             Row::Lights => settings.dynamic_lighting = !settings.dynamic_lighting,
             Row::Brightness => {}
             Row::Back => return Action::Back,
@@ -420,9 +427,6 @@ impl Screen {
                 } else {
                     settings.brightness.saturating_add(1).min(100)
                 };
-            }
-            Key::Left | Key::Right if self.row == Row::Low || self.row == Row::High => {
-                if key == Key::Left || self.high_available { settings.high_resolution = key == Key::Right; }
             }
             Key::Left | Key::Right => return self.choose(settings),
             Key::Enter => return self.choose(settings),
@@ -569,7 +573,7 @@ mod tests {
             }
             let mut settings = Graphics { mode: "Software".into(), brightness: 37, shadow_mask: 13,
                 dynamic_lighting: false, high_resolution: false };
-            screen.set_device_inventory(Inventory::new(vec![software.clone(), d3d.clone()]), software.clone());
+            screen.set_device_inventory(Inventory::new(vec![software.clone(), d3d.clone()]), software.clone(),settings.high_resolution);
             let initial = screen.render(&settings, &art, 0);
             let palette_sample = screen.palette_sample(&initial.rgba, initial.width, initial.height).unwrap();
             assert_row(&screen, &settings, &art, Row::DirectDraw, "> DirectDraw <", true);
@@ -581,16 +585,16 @@ mod tests {
             assert_eq!(screen.take_device_selection(), None, "request is delivered once");
             assert_eq!(settings, before, "selection alone cannot commit preferences");
             assert_row(&screen, &settings, &art, Row::DirectDraw, "> DirectDraw <", true);
-            screen.set_active_device(d3d.clone());
+            screen.set_active_device(d3d.clone(),settings.high_resolution);
             settings.mode = d3d.name.clone(); // presentation-owner acknowledgement
             assert_row(&screen, &settings, &art, Row::Direct3D, "> Direct3D <", true);
             screen.input(center(&screen, Row::Direct3D), &mut settings);
             assert_eq!(screen.take_device_selection(), None, "same active device is a no-op");
-            screen.set_active_device(Device::direct3d("another-driver",true));
+            screen.set_active_device(Device::direct3d("another-driver",true),settings.high_resolution);
             assert_row(&screen, &settings, &art, Row::Direct3D, "> Direct3D <", true);
             screen.input(center(&screen, Row::Direct3D), &mut settings);
             assert_eq!(screen.take_device_selection(), None, "same family with another retained driver is also a no-op");
-            screen.set_active_device(d3d.clone());
+            screen.set_active_device(d3d.clone(),settings.high_resolution);
             if !high_art {
                 // Only the established 640 modal path: DirectDraw is disabled
                 // at800, so forced800 popup geometry is not inferred here.
@@ -687,7 +691,7 @@ mod tests {
             screen.input(center(&screen, Row::Glide), &mut settings);
             assert_eq!(screen.take_device_selection(), None, "disabled row cannot request a device");
 
-            screen.set_device_inventory(Inventory::new(vec![software.clone(), d3d.clone(), glide.clone()]), glide.clone());
+            screen.set_device_inventory(Inventory::new(vec![software.clone(), d3d.clone(), glide.clone()]), glide.clone(),settings.high_resolution);
             settings.mode = "Glide".into();
             screen.input(center(&screen, Row::High), &mut settings);
             assert!(settings.high_resolution);
@@ -709,13 +713,178 @@ mod tests {
             assert_eq!(screen.palette_sample(&changed.rgba,changed.width,changed.height).unwrap(), palette_sample,
                 "dynamic device text is excluded from retained brightness evidence");
 
-            screen.set_device_inventory(Inventory::new(vec![software.clone(),d3d.clone(),Device::glide(false,None)]),software.clone());
+            screen.set_device_inventory(Inventory::new(vec![software.clone(),d3d.clone(),Device::glide(false,None)]),software.clone(),settings.high_resolution);
             settings.mode = "Software".into();
             assert_row(&screen, &settings, &art, Row::Direct3D, "Direct3D", false);
+            assert_eq!(screen.row, Row::DirectDraw, "refresh retains the previously selected row");
             screen.input(Key::Up, &mut settings);
-            assert_eq!(screen.row, Row::DirectDraw, "unavailable Glide still suppresses Direct3D");
+            assert_eq!(screen.row, Row::Back, "navigation steps backward from retained DirectDraw");
         }
         println!("device GUI matrix: original captions, markers/checker, supplied availability, navigation, request/acknowledgement, restart decision and unchanged settings at640/800");
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR; headless original Graphics focus lifecycle"]
+    fn graphics_focus_grouped_original_order_refresh_and_reentry() {
+        use crate::graphics_devices::GlideBoard;
+        let path = std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR");
+        let game = Path::new(&path);
+        let mut art = Art::open(game).unwrap();
+        let software = Device::software(true);
+        let d3d = Device::direct3d("display",true);
+        let glide = Device::glide(true,Some(GlideBoard { board_type:0,framebuffer_mb:4 }));
+        let d3d_inventory = Inventory::new(vec![software.clone(),d3d.clone()]);
+        let glide_inventory = Inventory::new(vec![software.clone(),glide.clone()]);
+        let mut screen = Screen::open(game,&art).unwrap();
+        let mut settings = Graphics::default();
+        assert_eq!(screen.row,Row::DirectDraw,"fresh focus is independent of the active marker");
+        screen.set_device_inventory(d3d_inventory.clone(),d3d.clone(),settings.high_resolution);
+        assert_eq!(screen.row,Row::DirectDraw);
+        let d3d_rows = [Row::DirectDraw,Row::Direct3D,Row::Low,Row::Lights,Row::Connor,Row::Monster,
+            Row::Character,Row::Object,Row::Brightness,Row::Back];
+        let glide_rows = [Row::DirectDraw,Row::Glide,Row::Low,Row::High,Row::Lights,Row::Connor,Row::Monster,
+            Row::Character,Row::Object,Row::Brightness,Row::Back];
+        for (inventory,active,rows) in [
+            (d3d_inventory.clone(),d3d.clone(),d3d_rows.as_slice()),
+            (glide_inventory.clone(),glide.clone(),glide_rows.as_slice()),
+        ] {
+            screen.set_device_inventory(inventory,active,settings.high_resolution);
+            assert_eq!(screen.row,Row::DirectDraw);
+            for &row in rows.iter().skip(1).chain(rows.iter().take(1)) {
+                screen.input(Key::Down,&mut settings);
+                assert_eq!(screen.row,row,"forward order and wrap skip unavailable rows");
+            }
+            for &row in rows.iter().skip(1).rev().chain(rows.iter().take(1)) {
+                screen.input(Key::Up,&mut settings);
+                assert_eq!(screen.row,row,"backward order and wrap skip unavailable rows");
+            }
+        }
+        let click = |screen: &Screen,row: Row| {
+            let [l,t,r,b] = screen.layout.controls[row.key()].rect;
+            Key::Click((l+r)/2,(t+b)/2)
+        };
+        screen.set_device_inventory(d3d_inventory.clone(),d3d.clone(),settings.high_resolution);
+        screen.input(click(&screen,Row::DirectDraw),&mut settings);
+        assert!(screen.modal_open());
+        screen.input(Key::Enter,&mut settings);
+        screen.input(Key::Release,&mut settings);
+        assert!(!screen.modal_open());
+        assert_eq!(screen.row,Row::DirectDraw,"Cancel restores the opening row");
+        assert_eq!(screen.take_device_selection(),None);
+
+        screen.set_device_inventory(glide_inventory.clone(),software,settings.high_resolution);
+        screen.input(click(&screen,Row::Glide),&mut settings);
+        assert_eq!(screen.take_device_selection(),Some(DeviceAction::Live(glide.clone())));
+        screen.set_active_device(glide.clone(),settings.high_resolution);
+        settings.mode = "Glide".into();
+        screen.palette_changed(&art);
+        assert_eq!(screen.row,Row::Glide,"live device and palette acknowledgement retain focus");
+        assert_eq!(screen.input(Key::Escape,&mut settings),Action::Back);
+        screen.set_device_inventory(glide_inventory,glide,settings.high_resolution);
+        assert_eq!(screen.row,Row::Glide,"same-screen activation retains focus");
+        assert_eq!(Screen::open(game,&art).unwrap().row,Row::DirectDraw,"a different new screen starts afresh");
+
+        screen.input(click(&screen,Row::High),&mut settings);
+        assert!(settings.high_resolution);
+        art.resize(true);
+        screen.resize(&art);
+        screen.palette_changed(&art);
+        assert_eq!(screen.row,Row::High,"resolution/palette refresh does not select the first row");
+        screen.set_high_resolution_available(false);
+        assert_eq!(screen.row,Row::High,"capability loss retains even a disabled focus");
+        screen.set_active_device(d3d.clone(),settings.high_resolution);
+        screen.set_device_inventory(d3d_inventory,d3d,settings.high_resolution);
+        assert_eq!(screen.row,Row::High,"device/capability refresh preserves the same stored index");
+        // The presentation owner has restored/confirmed640, but the retained
+        // keyboard row remains800. A pointer click still cannot activate it.
+        settings.mode = "D3D-display".into();
+        settings.high_resolution = false;
+        art.resize(false);
+        screen.resize(&art);
+        screen.input(click(&screen,Row::High),&mut settings);
+        assert!(!settings.high_resolution,"disabled pointer activation is rejected");
+        for key in [Key::Enter,Key::Left,Key::Right] {
+            assert_eq!(screen.input(key,&mut settings),Action::Stay);
+            assert!(settings.high_resolution,"retained-disabled {key:?} reaches the800 request");
+            settings.high_resolution = false;
+        }
+        assert_eq!(settings.mode,"D3D-display","the request does not invent a different device");
+        screen.input(Key::Up,&mut settings);
+        assert_eq!(screen.row,Row::Low,"Up steps away before seeking an enabled row");
+        screen.input(Key::Right,&mut settings);
+        assert!(!settings.high_resolution,"Right activates640; it does not toggle to800");
+        screen.input(Key::Down,&mut settings);
+        assert_eq!(screen.row,Row::Lights,"Down skips the disabled800 row");
+        screen.input(click(&screen,Row::Brightness),&mut settings);
+        let brightness = settings.brightness;
+        screen.input(Key::Left,&mut settings);
+        assert_eq!(settings.brightness,brightness-1);
+        screen.input(Key::Right,&mut settings);
+        assert_eq!(settings.brightness,brightness,"Brightness remains the Left/Right exception");
+
+        // Remembered targets outlive current row eligibility. These requests
+        // stop at the core boundary; native target lifetime/failure is separate.
+        let software = Device::software(true);
+        let d3d = Device::direct3d("retained",true);
+        let glide = Device::glide(true,Some(GlideBoard { board_type:0,framebuffer_mb:4 }));
+        let mut retained = Screen::open(game,&art).unwrap();
+        retained.set_device_inventory(Inventory::new(vec![software.clone(),d3d.clone()]),software.clone(),false);
+        retained.input(Key::Down,&mut settings);
+        assert_eq!(retained.row,Row::Direct3D);
+        for (inventory, active) in [
+            (Inventory::new(vec![software.clone(),d3d.clone(),glide.clone()]),glide.clone()),
+            (Inventory::new(vec![software.clone(),Device::direct3d("dd3dfx",true)]),software.clone()),
+            (Inventory::new(vec![software.clone(),Device::direct3d("other",false)]),software.clone()),
+        ] {
+            retained.set_device_inventory(inventory,active,false);
+            assert_eq!(retained.row,Row::Direct3D);
+            assert!(!retained.available(Row::Direct3D,false));
+            retained.input(click(&retained,Row::Direct3D),&mut settings);
+            assert_eq!(retained.take_device_selection(),None);
+            retained.input(Key::Left,&mut settings);
+            assert_eq!(retained.take_device_selection(),Some(DeviceAction::Live(d3d.clone())),
+                "suppressed/excluded/unavailable refresh cannot replace a previous target");
+        }
+        retained.set_active_device(Device::direct3d("active-other",true),false);
+        retained.input(Key::Right,&mut settings);
+        assert_eq!(retained.take_device_selection(),None,"retained disabled target still uses family no-op");
+
+        let mut retained_glide = Screen::open(game,&art).unwrap();
+        retained_glide.set_device_inventory(Inventory::new(vec![software.clone(),glide.clone()]),software.clone(),false);
+        retained_glide.input(Key::Down,&mut settings);
+        assert_eq!(retained_glide.row,Row::Glide);
+        retained_glide.set_device_inventory(Inventory::new(vec![software.clone()]),software.clone(),false);
+        retained_glide.input(Key::Right,&mut settings);
+        assert_eq!(retained_glide.take_device_selection(),Some(DeviceAction::Live(glide.clone())));
+
+        let mut retained_software = Screen::open(game,&art).unwrap();
+        let inventory = Inventory::new(vec![software.clone(),glide.clone()]);
+        retained_software.set_device_inventory(inventory.clone(),glide.clone(),false);
+        settings.high_resolution = true;
+        retained_software.set_device_inventory(inventory,glide.clone(),true);
+        assert!(!retained_software.available(Row::DirectDraw,true));
+        retained_software.input(Key::Enter,&mut settings);
+        assert_eq!(retained_software.take_device_selection(),Some(DeviceAction::Live(software.clone())),
+            "DirectDraw at800 retains its previously eligible Software target");
+
+        // Retained D3D takes precedence even when Software has never resolved.
+        let mut confirmation = Screen::open(game,&art).unwrap();
+        confirmation.set_device_inventory(Inventory::new(vec![software.clone(),d3d.clone()]),d3d.clone(),true);
+        confirmation.input(Key::Enter,&mut settings);
+        assert!(confirmation.modal_open());
+        confirmation.input(Key::Enter,&mut settings);
+        confirmation.input(Key::Release,&mut settings);
+        confirmation.set_device_inventory(Inventory::new(vec![glide.clone()]),d3d,true);
+        confirmation.input(Key::Right,&mut settings);
+        assert!(confirmation.modal_open(),"disabled retained D3D target still opens the DirectDraw confirmation");
+        assert_eq!(confirmation.take_device_selection(),None);
+
+        let mut missing = Screen::open(game,&art).unwrap();
+        missing.set_device_inventory(Inventory::new(vec![glide.clone()]),glide,true);
+        missing.input(Key::Enter,&mut settings);
+        assert_eq!(missing.take_device_selection(),Some(DeviceAction::MissingTarget(Family::Software)),
+            "safe explicit failure for original undefined missing-target access; no invented device");
+        println!("Graphics focus lifecycle: original12-row order, wrap, focus retention, pointer eligibility versus Enter/Left/Right, remembered device targets and explicit never-resolved failure");
     }
 
     #[test]
