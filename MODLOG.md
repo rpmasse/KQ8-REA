@@ -1,5 +1,39 @@
 # MODLOG
 
+## 2026-11-08 Complete M4 with verified Windows fullscreen presentation
+
+The existing DX12 Visual presentation path passed the original-size route
+where Vulkan reset the mode and DX12 HWND failed surface initialization.
+Use DX12/Visual as the Windows game defaults, preserving explicit overrides
+and model/non-Windows behavior. Add actual submitted-frame acknowledgements
+with fresh request/restoration epochs; retain native dimensions, camera and
+palette checks. The harness now finishes through ordinary Quit instead of
+an insufficient frame cap, and requires all three matching submissions.
+
+Final shared release build PASS 2m47s; new policy/presentation checks PASS
+3/3 in 0.01s; affected frontend PASS 1/1 in 0.41s. Production-default native
+640/800/640 route PASS 3.68s (child route 3.23s), with no renderer overrides,
+ordinary Quit, correct isolated preferences and original Options unchanged.
+Evidence/commands: docs/graphics-runtime-completion.md; artifact
+`live-display-native/1794119657462978500`. M4 is **100%**; M5/M6 stay paused.
+Retain the failed Vulkan/HWND/serial experiments and untested exceptional
+driver recovery limits. The temporary serial switch was removed. No manual
+gameplay or unrelated successful check was repeated.
+
+## 2026-11-08 Diagnose the supported-display fullscreen transition
+
+The connected VG27A in console session 2 exposes both original modes.
+The first console fixture stopped at its 180-frame cap after confirming
+640 but before the pending 800 request's deadline. Replace that cap with
+ordinary Main/Quit/Yes completion while retaining the 45-second parent
+limit and all exact-mode/integrity assertions (fixture build PASS, 1.96s).
+The full-deadline run FAILED in 11.89s: actual window and monitor returned
+to desktop 2560x1440 despite Exclusive800, and restoration to 640 failed
+acknowledgement too. STATUS records both attempts. Add changed-state-only
+transition diagnostics for native dimensions/focus, Bevy state and cameras;
+their build and diagnostic run are pending. No manual inspection, relaxed
+acceptance or repeated unrelated tests. M4 remains approximately 98%.
+
 ## 2026-11-08 Finish grouped controller exits and weapon-list corrections
 
 Use actual equipped-item lookup for view/list refresh and pending assignment,

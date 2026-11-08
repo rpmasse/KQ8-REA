@@ -5,9 +5,12 @@ changes, not on every commit.
 
 ## Goal
 
-**M4 completion batches (2026-11-08).** M4 is the active objective; the
-unfinished ordered world loader stays preserved in the original checkout.
-Use this isolated worktree for interface completion. Retain prior successful
+**M4 completion batches complete (2026-11-08).** M4 is 100% against the
+planned implementation and automated checks; the final production-default
+fullscreen route passes with actual 640/800/640 and submitted-frame evidence.
+See graphics-runtime-completion.md and m4-completion-audit.md. M5/M6 remain
+paused, and the unfinished ordered world loader stays preserved in the
+original checkout. Retain prior successful
 movie-clock, Credits, original-resolution, inventory-use and Choice checks;
 run only the new or affected behavior families below. Manual testing remains
 deferred until the recreation is feature-complete.
@@ -2653,7 +2656,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 
 **Deliverable.** A Windows executable and corresponding Rust source that recreate the original GOG game from its main menu through the ending and credits, using the player's original assets. Match the controls, 4:3 framing, animation cadence, sound and gameplay rules. Development and milestone verification use automated checks. Manual testing starts only after the entire Rust recreation is implemented.
 
-**Current position.** Implementation is focused on completing M4; unfinished M5/M6 work is preserved. The Windows build opens at the original title menu, reads the GOG assets, and has rendered all 12 regions in automated runs. Most campaign evidence covers selected interactions in Daventry and Dead City. The [README](../README.md) tracks the current Windows checks and outstanding work.
+**Current position.** M4 is complete against its planned automated checks; unfinished M5/M6 work is preserved and paused. The Windows build opens at the original title menu, reads the GOG assets, and has rendered all 12 regions in automated runs. Most campaign evidence covers selected interactions in Daventry and Dead City. The [README](../README.md) tracks the current Windows checks and outstanding work.
 
 | Stage | State recorded in the fork | What must happen next |
 | --- | --- | --- |
@@ -2661,7 +2664,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M1 · Render the world | All 12 regions opened and rendered in bounded Windows runs. | Check terrain, models and textures in reachable scenes and assign gaps to their regions in M6. |
 | M2 · Move Connor | Implemented in Daventry. Walking, running, jumping, slopes and collision exist. | Replay input at fixed ticks and check position, facing, jump timing and collision against the original rules. |
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
-| M4 · Interface and dialogue | Approximately 98%. Menus, HUD, captions, credits, inventory, conversation, weapon requests, controller exits, TempleArmor mappings and graphics controls have grouped checks and representative Windows evidence. | Verify exclusive fullscreen on a display with the original modes. |
+| M4 · Interface and dialogue | Complete (100%). Grouped interface/dialogue/inventory/graphics checks and the production-default Windows 640/800/640 fullscreen route pass, including submitted-frame acknowledgement. | Retain this evidence during M5/M6 integration; final original-raster and campaign-wide comparison remain M7. |
 | M5 · Combat | Partial. Axe/crossbow attacks, weapon draws, combat/death saves and representative enemy families have checks. Ordinary liquid damage now reaches armor, sounds and death through the shared attack path. | Finish other weapon/damage and enemy-decision families, distinct bosses, specialised deaths and exceptional terrain behavior; integrate them into campaign routes. |
 | M6 · The whole game | Partial. Earned saves cover Daventry, Castle Daventry and Dead City through the northwest archers, river crossing and GoodSkull. Scales, interrupted encounters and Temple 4 outcomes have focused checks. | Return with the skull, complete the statue/feather/scales and remaining regional quests in integrated routes; finish missing controller/persistence families and verify one Normal New Game through ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
@@ -6849,3 +6852,109 @@ or manual test was run; unrelated successes were retained. Arbitrary reentrant
 callbacks and later projectile-return consequences after ownership changes
 remain unestablished by the static study; the authored required-mode calls
 and that limit's scope are recorded in m4-completion-audit.md.
+
+### M4 native fullscreen fixture completion (2026-11-08)
+
+The first supported-console run acknowledged exact 640x480, then requested
+800x600 but hit the fixture's 180-frame exit before the backend's five-second
+failure deadline. The first evidence is retained at
+`kq8-artifacts/live-display-native/1794117975439690400`. End this fixture
+through the ordinary Main-menu Quit/Yes input after the existing graphics
+route, instead of a frame count that can truncate acknowledgement. Keep the
+45-second parent deadline and every exact 640/800/640, duplicate-selection,
+preference and original-installation assertion. Require the Quit action too.
+This corrects the fixture's completion criterion; it does not establish why
+the pending 800 request was not acknowledged. The next bounded run must
+either finish the route or expose the driver's existing timeout diagnostics.
+
+The corrected route failed in 11.89s: the requested Exclusive/800 token
+coexisted with actual window/monitor 2560x1440; restoration to 640 also
+failed actual-size acknowledgement. Preserve this second console result at
+`kq8-artifacts/live-display-native/1794118345306277000`. Before further
+native attempts, instrument pending/restoring transitions with a snapshot
+only when its state changes: actual host, native focus/minimized status,
+Bevy window size/mode/focus and camera target sizes, with elapsed time.
+Keep the five-second backend and 45-second harness deadlines unchanged.
+This diagnostic distinguishes focus/activation and native mode failures
+from Bevy/camera synchronization; it must not promote a cached mode token
+to acceptance or force a different fullscreen sequence without evidence.
+
+The diagnostic build passed in 2m16s. Its bounded run failed in 12.07s
+(`1794118605829582400`): 800x600 is actually reached at +262ms while the
+camera still reports 640; by +575ms the camera reports 800 but the monitor
+and window are desktop-sized again. Native and Bevy focus remain true,
+and the native window is not minimized in every captured state. Restoration
+shows the same sequence. Next isolate the rendering backend with the same
+binary, route and assertions using its existing WGPU_BACKEND=dx12 override
+for one process. This is a renderer comparison prompted by observed state,
+not a changed mode requirement or a production default decision. Preserve
+the previous environment value and confirm the selected API in the log.
+
+The DX12 comparison failed in 1.46s (`1794118672782384000`): native640 was
+acknowledged, then initial swapchain creation returned 0x887A0001 before any
+800 request. This does not supply a working alternate backend. Locked Bevy
+0.20 pipelined_rendering.rs documents rendering frame N concurrently with
+frame N+1's native event/main schedule. The mode owner runs in First and
+Bevy applies its window request in Last, so previous-size rendering can
+overlap a native change. Add a temporary explicit
+KQ8_SERIAL_RENDER_DIAGNOSTIC switch that disables only that plugin, log it,
+and repeat the unchanged Vulkan route once. Do not manipulate render-app
+channels or change normal defaults without the result. Camera readiness is
+not render-surface readiness (the DX12 failure demonstrates that limitation).
+
+The serial diagnostic built in1m55s and FAILED in12.09s
+(`1794118992710145600`). Retain it as a failed isolation, not a production
+fix: CPU render overlap alone does not explain the Vulkan reset. Remove
+the temporary switch rather than impose a performance change. Next add a
+small render acknowledgement to the native driver: each issued request and
+restoration gets a new epoch/window/size snapshot extracted into RenderApp.
+Capture an actual acquired surface texture of that size before render_system,
+then acknowledge only after render_system consumes it for presentation.
+The main driver requires matching epoch/window/size plus existing native
+host, Bevy window and camera checks. Keep supplied-host model fixtures
+explicitly separate. Group checks for stale epochs, wrong sizes/windows,
+absence of presentation and restoration invalidation. This establishes
+frame submission, not scanout or original raster fidelity. It prevents the
+observed premature startup acknowledgement but does not itself fix Vulkan's
+mode restoration; that remains under investigation. Do not change deadlines.
+
+Locked WGPU30 exposes no application-level Vulkan fullscreen-policy option.
+It does expose DX12 presentation systems: the earlier DX12 failure used
+CreateSwapChainForHwnd; the existing `WGPU_DX12_PRESENTATION_SYSTEM=Visual`
+selects DirectComposition/CreateSwapChainForComposition instead. Run one
+same-binary, same-route comparison with `WGPU_BACKEND=dx12` and that Visual
+override, restoring both environment values afterward. Winit must still
+acknowledge actual exclusive640/800/640, so this is not permission to accept
+desktop-sized output. No new driver or library installation is required.
+
+The DX12 Visual comparison PASSED in3.22s
+(`1794119188155204600`): exactly640/800/640 native confirmations, duplicate
+800 no-op, ordinary Quit, saved isolatedGlide640 and unchanged original
+Options bytes. Integrate that existing path as the Windows game/ground
+frontend default: Auto without WGPU_BACKEND selects DX12; explicit API and
+environment backend choices retain precedence. Leave the model viewer and
+other platforms unchanged. Immediately after argument parsing, before
+asset/audio/Bevy workers, supply Visual only if
+WGPU_DX12_PRESENTATION_SYSTEM is absent. Bevy0.20 exposes that choice only
+through its environment reader; never replace an inherited override.
+Group precedence checks as a pure policy test, then compile once with the
+render-submission bridge and rerun the exact native harness with all three
+diagnostic/renderer environment overrides absent. Require three matching
+submitted-frame acknowledgements as well as existing exact host assertions.
+This is DX12 composition presentation inside a Winit-owned physical display
+mode, not a claim of DXGI swapchain-exclusive ownership or legacy raster
+fidelity. The unresolved Vulkan/native-HWND paths remain explicit overrides
+with recorded host-specific failures; the default must not silently fall
+back to a different resolution.
+
+Final outcome: release build PASS in 2m47s; the two submission matrices and
+renderer-precedence matrix PASS 3/3 in 0.01s; affected original-data frontend
+PASS 1/1 in 0.41s. With all renderer/temporary diagnostic overrides absent,
+the final native harness PASS in 3.68s (child route 3.23s), artifact
+`1794119657462978500`. The log confirms normal DX12/Visual defaults, actual
+640/800/640 and submitted epochs 1/2/3, repeated 800 no-op, Options/Main/Quit,
+isolated Glide640 preferences and unchanged original Options bytes. Desktop
+2560x1440 was restored and no viewer remained. M4 is complete (100%); M5/M6
+stay paused. Preserve prior failed paths and all successful unrelated checks;
+no manual gameplay was used. Exact commands/evidence are in
+graphics-runtime-completion.md.

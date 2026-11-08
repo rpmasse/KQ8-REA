@@ -17,8 +17,24 @@ documents the read-only Windows palette adapter. [Palette scope/evidence](../sof
 graphics-modes.md supplies persistent screen focus, modal sound/pointer
 rules, compiled Software default and driver-name normalization. No original
 executable or disassembly was read by B. Runtime device integration passes
-model/frontend checks; actual exclusive fullscreen remains unverified because
-the current RDP display advertises no original-size mode.
+model/frontend checks. The final console VG27A route passes in 3.68 seconds
+using the production Windows DX12/Visual defaults with no backend/presentation
+environment overrides. Native exclusive mode, window/monitor/camera sizes and
+submitted-frame epochs agree at 640×480 → 800×600 → 640×480. Ordinary Quit,
+isolated preferences and unchanged original Options also pass. This closes
+M4's final acceptance gate: M4 is complete against its defined checks.
+
+The submission bridge follows the locked Bevy 0.20 render-system and window
+presentation lifecycle; the DX12/DirectComposition startup choice is a
+recreation backend policy, not an original-game rule. Explicit API and
+environment choices are preserved. The final shared release build passes in
+2m47s, its three new unit checks pass in 0.01s, and the affected frontend check
+passes in 0.41s. Earlier explicit Vulkan and DX12 Hwnd fullscreen failures
+remain unresolved and neither path is the default. Actual live mismatch
+restoration was attempted and failed; Winit internal-panic recovery remains
+not tested. Frame submission does not establish GPU completion, scanout or
+original-driver raster equivalence.
+[Native evidence and limits](../graphics-runtime-completion.md).
 
 **Selection and popup follow-up (2026-11-08).** A's inventory.md8/9 and
 interface.md12 settle replacement placement, Scroll/Rock selection, rope-view
@@ -801,7 +817,8 @@ come from `kq8 shape-verify` on the GOG 1.03 install
 
 | Fact or choice | Source | Checked how |
 | --- | --- | --- |
-| `--renderer auto\|vulkan\|dx12`, default `auto` (wgpu chooses; `WGPU_BACKEND` still read) | Our choice, asked for by the user; nothing from the original game | `viewer.log` 2026-10-16: auto → Vulkan, vulkan → Vulkan, dx12 → Dx12, auto with `WGPU_BACKEND=dx12` → Dx12, vulkan with `WGPU_BACKEND=dx12` → Vulkan. Checked by the user 2026-10-16 (one NVIDIA card, Windows only) |
+| Original `--renderer auto\|vulkan\|dx12` policy before the 2026-11-08 Windows default change: `auto` let wgpu choose and read `WGPU_BACKEND` | Our choice, asked for by the user; nothing from the original game | Historical `viewer.log` 2026-10-16: auto → Vulkan, vulkan → Vulkan, dx12 → Dx12, auto with `WGPU_BACKEND=dx12` → Dx12, vulkan with `WGPU_BACKEND=dx12` → Vulkan. Checked by the user 2026-10-16 (one NVIDIA card, Windows only) |
+| Windows game `auto` without `WGPU_BACKEND` selects DX12; Windows games supply the Visual presentation default only when its environment setting is absent; explicit choices remain intact | Recreation compatibility policy, based on the locked Bevy/wgpu presentation path and the bounded console backend comparison | 2026-11-08 policy matrix and final native 640/800/640 route pass; [evidence and limitations](../graphics-runtime-completion.md) |
 | OpenGL refused | Our choice: Bevy built without `gles`; `WGPU_BACKEND=gl` crashed with "Unable to find a GPU" | Run 2026-10-16 |
 
 ## Terrain — `crates/kq8-data/src/{kq_text,terrain}.rs`

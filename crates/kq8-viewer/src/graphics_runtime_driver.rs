@@ -16,6 +16,7 @@ const HOST_DEADLINE: Duration = Duration::from_secs(5);
 #[derive(Debug)]
 struct HostRequest {
     serial: u64,
+    frame: present::Ticket,
     window: Entity,
     previous_mode: WindowMode,
     previous_pixels: [u32; 2],
@@ -27,6 +28,7 @@ struct HostRequest {
 struct Restoration {
     window: Entity,
     surface: Surface,
+    frame: present::Ticket,
     issued: Instant,
 }
 
@@ -35,9 +37,11 @@ struct Driver {
     waiting_since: Option<(u64, Instant)>,
     issued: Option<HostRequest>,
     restoring: Option<Restoration>,
+    last_observation: Option<String>,
 }
 
 pub(crate) fn register(app: &mut App, runtime: Runtime) {
+    present::register(app);
     app.insert_resource(runtime)
         .init_resource::<Driver>()
         // Exclusive systems run on the main thread, where WINIT_WINDOWS lives.
@@ -134,6 +138,8 @@ fn cameras_match(world: &mut World, pixels: [u32; 2]) -> bool {
 
 /// This shared acceptance boundary is also exercised by headless fixtures.
 /// Their supplied HostState is model evidence, never a native-mode claim.
+/// The production driver additionally requires the issued render epoch to
+/// have submitted an acquired surface texture before calling this boundary.
 pub(crate) fn accept_host(world: &mut World, serial: u64, host: HostState) -> Result<bool, String> {
     let request = world
         .resource::<Runtime>()
@@ -184,6 +190,27 @@ fn note(world: &World, text: impl AsRef<str>) {
     }
 }
 
+/// Log only changed transition states, never one line per rendered frame.
+/// A fullscreen token can survive native loss of the requested dimensions.
+fn observe_transition(world: &mut World, window: Entity, phase: &str, since: Instant) {
+    let host = observe_host(window);
+    let native = bevy::winit::WINIT_WINDOWS.with_borrow(|windows| {
+        windows.get_window(window).map(|window| (window.has_focus(), window.is_minimized()))
+    });
+    let bevy = world.get::<Window>(window).map(|window| (
+        [window.physical_width(), window.physical_height()], window.mode, window.focused,
+    ));
+    let cameras: Vec<_> = world.query::<(Entity, &Camera)>().iter(world)
+        .map(|(entity, camera)| (entity, camera.physical_target_size()))
+        .collect();
+    let submitted = present::observed(world);
+    let observation = format!("{phase}: host {host:?}; native (focused, minimized) {native:?}; Bevy (pixels, mode, focused) {bevy:?}; cameras {cameras:?}; submitted frame {submitted:?}");
+    if world.resource::<Driver>().last_observation.as_ref() != Some(&observation) {
+        note(world, format!("transition +{} ms {observation}", since.elapsed().as_millis()));
+        world.resource_mut::<Driver>().last_observation = Some(observation);
+    }
+}
+
 fn fail(world: &mut World, serial: u64, error: String) {
     let initial = world.resource::<Runtime>().active().is_none();
     if !world
@@ -198,6 +225,9 @@ fn fail(world: &mut World, serial: u64, error: String) {
     );
     let issued = world.resource_mut::<Driver>().issued.take();
     world.resource_mut::<Driver>().waiting_since = None;
+    if let Some(issued) = &issued {
+        present::complete(world, issued.frame);
+    }
     if initial {
         note(
             world,
@@ -215,9 +245,11 @@ fn fail(world: &mut World, serial: u64, error: String) {
             window
                 .resolution
                 .set_physical_resolution(issued.previous_pixels[0], issued.previous_pixels[1]);
+            let frame = present::issue(world, issued.window, surface.pixels());
             world.resource_mut::<Driver>().restoring = Some(Restoration {
                 window: issued.window,
                 surface,
+                frame,
                 issued: Instant::now(),
             });
             note(world,"requested restoration of the preceding host presentation; input waits for acknowledgement");
@@ -236,14 +268,22 @@ fn drive(world: &mut World) {
         .resource::<Driver>()
         .restoring
         .as_ref()
-        .map(|restore| (restore.window, restore.surface.clone(), restore.issued));
-    if let Some((window, surface, issued)) = restoration {
+        .map(|restore| (restore.window, restore.surface.clone(), restore.frame, restore.issued));
+    if let Some((window, surface, frame, issued)) = restoration {
+        observe_transition(world, window, "restoring", issued);
         let host = observe_host(window);
-        if host.is_some_and(|host| host.accepts(&surface)) && cameras_match(world, surface.pixels())
+        if present::acknowledged(world, frame)
+            && host.is_some_and(|host| host.accepts(&surface))
+            && world.get::<Window>(window).is_some_and(|window| {
+                [window.physical_width(), window.physical_height()] == surface.pixels()
+            })
+            && cameras_match(world, surface.pixels())
         {
+            present::complete(world, frame);
             world.resource_mut::<Driver>().restoring = None;
-            note(world,"preceding host presentation restored; active device, palette and preferences retained");
+            note(world,format!("preceding host presentation restored after frame submission epoch {} {:?}; active device, palette and preferences retained", frame.epoch, frame.pixels));
         } else if issued.elapsed() >= HOST_DEADLINE {
+            present::complete(world, frame);
             world.resource_mut::<Driver>().restoring = None;
             note(
                 world,
@@ -260,8 +300,8 @@ fn drive(world: &mut World) {
         .resource::<Driver>()
         .issued
         .as_ref()
-        .map(|issued| (issued.serial, issued.window, issued.issued));
-    if let Some((serial, window, since)) = issued {
+        .map(|issued| (issued.serial, issued.window, issued.frame, issued.issued));
+    if let Some((serial, window, frame, since)) = issued {
         if serial != request.serial {
             fail(
                 world,
@@ -270,10 +310,13 @@ fn drive(world: &mut World) {
             );
             return;
         }
+        observe_transition(world, window, "pending", since);
         let host = observe_host(window);
-        if let Some(host) = host {
+        if let Some(host) = host.filter(|_| present::acknowledged(world, frame)) {
             match accept_host(world, serial, host) {
                 Ok(true) => {
+                    note(world, format!("accepted frame submission epoch {} window {:?} {:?} pixels; native host, Bevy window, camera and palette also acknowledged", frame.epoch, frame.window, frame.pixels));
+                    present::complete(world, frame);
                     world.resource_mut::<Driver>().issued = None;
                     world.resource_mut::<Driver>().waiting_since = None;
                     return;
@@ -352,13 +395,15 @@ fn drive(world: &mut World) {
     window.mode = mode;
     let [width, height] = request.surface.pixels();
     window.resolution.set_physical_resolution(width, height);
+    let frame = present::issue(world, entity, [width, height]);
     world.resource_mut::<Driver>().issued = Some(HostRequest {
         serial: request.serial,
+        frame,
         window: entity,
         previous_mode,
         previous_pixels,
         previous_surface,
         issued: Instant::now(),
     });
-    note(world,format!("requested exact host {mode:?}, {:?} pixels for {:?}; awaiting actual Winit, camera and palette acceptance",request.surface.pixels(),request.surface.device.name));
+    note(world,format!("requested exact host {mode:?}, {:?} pixels for {:?}; render epoch {}; awaiting frame submission and actual Winit, camera and palette acceptance",request.surface.pixels(),request.surface.device.name,frame.epoch));
 }

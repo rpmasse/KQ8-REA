@@ -553,6 +553,13 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    let renderer_policy = args.renderer.startup_policy(
+        cfg!(windows),
+        args.model.is_none(),
+        std::env::var_os("WGPU_BACKEND").as_deref(),
+        std::env::var_os("WGPU_DX12_PRESENTATION_SYSTEM").as_deref(),
+    );
+    renderer_policy.apply_presentation_default_before_workers();
     if let Some(on) = args.dynamic {
         load::override_dynamic_lighting(on);
     }
@@ -566,6 +573,7 @@ fn main() -> ExitCode {
     };
     let started = Instant::now();
     log.summary(format!("log file: {}", log.path().display()));
+    log.summary(renderer_policy.summary());
     log.summary(smooth_line);
     timeline::mark(&mut log, "the program runs, its log is open (cargo's own checks come before this)");
     // Made once at start-up, so the size difference between the two
@@ -665,7 +673,7 @@ fn main() -> ExitCode {
                 primary_window: Some(primary_window),
                 ..default()
             })
-            .set(args.renderer.plugin()),
+            .set(renderer_policy.plugin()),
     )
     .insert_resource(renderer::RendererChoice(args.renderer))
     .add_systems(Update, renderer::report_renderer)
