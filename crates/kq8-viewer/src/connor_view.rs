@@ -66,6 +66,10 @@ pub mod route;
 mod requests;
 pub use requests::SavedPendingState;
 
+#[cfg(test)]
+#[path = "weapon_selection_tests.rs"]
+mod weapon_selection_tests;
+
 /// Keys from `Connor.sae`, and which of them are held, oldest first.
 pub struct Controls {
     forward: Option<KeyCode>,
@@ -252,6 +256,7 @@ pub struct ConnorSim {
     pub weapon_target: Option<String>,
     pub first_person: bool,
     pending_set: Option<(Option<String>, WeaponMode, usize)>,
+    weapon_selection: WeaponSelection,
     readying: bool,
     /// The mode and item of `weapon_target`, and the mode of `weapon_set`,
     /// for the pointer (`ranged-weapons.md` rules 6, 11; M5 5f-3).
@@ -447,6 +452,15 @@ pub struct SavedSpecial {
     death: Option<String>,
 }
 
+/// Inventory selection is cleared only by an actual ordinary assignment.
+/// Internal list changes do not manufacture that side effect. Legacy Rust
+/// slots lack this provenance and retain their previous no-clear behavior.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+struct WeaponSelection {
+    pending_ordinary: bool,
+    assigned_ordinary: bool,
+}
+
 /// The movement list already in use and the list selected by the player.
 /// They differ while an `away` / `out` swap is still playing.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -462,6 +476,8 @@ pub struct SavedWeaponState {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     first_person_banks: Vec<String>,
     pending_set: Option<(Option<String>, WeaponMode, usize)>,
+    #[serde(default)]
+    selection: WeaponSelection,
     readying: bool,
     target_mode: WeaponMode,
     ready_item: Option<String>,
@@ -525,6 +541,9 @@ impl SavedWeaponState {
             return false;
         }
         if self.held_walk.is_some() && !self.readying {
+            return false;
+        }
+        if self.selection.pending_ordinary && self.pending_set.is_none() {
             return false;
         }
         if let Some((set, mode, at)) = &self.pending_set {
@@ -728,6 +747,7 @@ impl ConnorSim {
             actor_first_person: Some(self.first_person),
             first_person_banks: first_person_banks.into_iter().map(str::to_owned).collect(),
             pending_set: self.pending_set.clone(), readying: self.readying,
+            selection: self.weapon_selection,
             target_mode: self.target_mode, ready_item: self.ready_item.clone(),
             set_mode: self.set_mode, held_walk: self.held_walk.clone(),
         };
@@ -745,6 +765,7 @@ impl ConnorSim {
         self.weapon_set.clone_from(&saved.weapon_set);
         self.weapon_target.clone_from(&saved.weapon_target);
         self.pending_set.clone_from(&saved.pending_set);
+        self.weapon_selection = saved.selection;
         self.readying = saved.readying;
         self.target_mode = saved.target_mode;
         self.ready_item.clone_from(&saved.ready_item);
@@ -1602,6 +1623,7 @@ pub fn spawn_connor(
         weapon_target: None,
         first_person: false,
         pending_set: None,
+        weapon_selection: WeaponSelection::default(),
         readying: false,
         target_mode: WeaponMode::None,
         ready_item: None,
@@ -2159,6 +2181,29 @@ impl ConnorSim {
     /// otherwise the set switches at once. Returns the line for `fight.log`.
     #[allow(clippy::too_many_arguments)]
     pub fn ready_set(&mut self, list: Option<String>, mode: WeaponMode, item: Option<String>, at_once: bool, shift: bool, script: bool) -> String {
+        self.ready_set_with_origin(list, mode, item, at_once, shift, script, false)
+    }
+
+    /// The accepted ordinary request path owns selection clearing. The
+    /// shared ready_set callers (Rope/Tile/Scales/list synchronization)
+    /// do not inherit that side effect (inventory.md rule 12a).
+    pub(crate) fn ready_weapon_request(&mut self, world: &mut kq8_core::active::WorldState,
+        list: Option<String>, change: &kq8_core::weapons::Change, shift: bool) -> String {
+        let line = self.ready_set_with_origin(list, change.to, change.to_item.clone(), false, shift, change.script, true);
+        self.apply_weapon_assignment(world);
+        line
+    }
+
+    /// Drain an actual assignment, including a saved undrained notice,
+    /// once. Restoring a movement list does not create another notice.
+    pub(crate) fn apply_weapon_assignment(&mut self, world: &mut kq8_core::active::WorldState) -> bool {
+        if !std::mem::take(&mut self.weapon_selection.assigned_ordinary) { return false; }
+        kq8_core::connor_inventory::weapon_mode_assigned(world);
+        true
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn ready_set_with_origin(&mut self, list: Option<String>, mode: WeaponMode, item: Option<String>, at_once: bool, shift: bool, script: bool, ordinary: bool) -> String {
         use kq8_core::connor::SpecialStep;
         let old = self.weapon_target.clone();
         let old_mode = self.target_mode;
@@ -2169,9 +2214,10 @@ impl ConnorSim {
         self.weapon_target = list.clone();
         self.target_mode = mode;
         self.ready_item = item.clone();
+        self.weapon_selection.pending_ordinary = false;
         if at_once {
             self.pending_set = None;
-            self.switch_set(list.clone(), mode);
+            self.assign_swap_set(list.clone(), mode, ordinary);
             return format!("picked up while another was ready: {list:?} at once, nothing plays (the user's check)");
         }
         let named = |file: &str, w: &str| {
@@ -2231,14 +2277,15 @@ impl ConnorSim {
         };
         if !plays || steps.is_empty() {
             self.pending_set = None;
-            self.switch_set(list, mode);
+            self.assign_swap_set(list, mode, ordinary);
             return format!("rule 6 case {case}; {set} at once; mode {}: {played:?} not played", self.walker.mode.name());
         }
         if switch_at == 0 {
             self.pending_set = None;
-            self.switch_set(list, mode);
+            self.assign_swap_set(list, mode, ordinary);
         } else {
             self.pending_set = Some((list, mode, switch_at));
+            self.weapon_selection.pending_ordinary = ordinary;
         }
         self.walker.auto = None;
         self.readying = true;
@@ -2258,6 +2305,12 @@ impl ConnorSim {
         self.set_mode = mode;
     }
 
+    fn assign_swap_set(&mut self, list: Option<String>, mode: WeaponMode, ordinary: bool) {
+        self.switch_set(list, mode);
+        self.weapon_selection.pending_ordinary = false;
+        self.weapon_selection.assigned_ordinary |= ordinary;
+    }
+
     /// After his own update: the waiting set switch when its list item
     /// starts (or the list ended or was replaced); the swap is over when
     /// the Special state is.
@@ -2265,7 +2318,8 @@ impl ConnorSim {
         if let Some((set, mode, at)) = self.pending_set.clone() {
             if self.walker.mode != Mode::Special || self.walker.special_at >= at {
                 self.pending_set = None;
-                self.switch_set(set, mode);
+                let ordinary = self.weapon_selection.pending_ordinary;
+                self.assign_swap_set(set, mode, ordinary);
                 let n = self.updates;
                 self.log.detail(format!("connor update {n}: weapon: the set switches now ({:?}, {})", self.weapon_set, mode.name()));
             }
@@ -2285,6 +2339,13 @@ impl ConnorSim {
                 self.log.detail(format!("connor update {}: weapon: the swap is over: {line} (Q141)", self.updates));
             }
         }
+    }
+
+    /// Keep the assignment and its inventory side effect at the same
+    /// production completion boundary; no later frame-based retry.
+    fn finish_weapon_step(&mut self, world: Option<&mut kq8_core::active::WorldState>) {
+        self.weapon_step();
+        if let Some(world) = world { self.apply_weapon_assignment(world); }
     }
 
     /// `ranged-weapons.md` rule 5 (M5 5f-3): a request is taken only while
@@ -2667,7 +2728,7 @@ impl ConnorSim {
 
     /// Admit the waiting state during the real end handler, before a new
     /// update spends a tick standing in the replay's temporary Special.
-    pub fn release_pending_die_after_end(&mut self, ended: &str) -> bool {
+    pub fn release_pending_die_after_end(&mut self, ended: &str, world: &mut kq8_core::active::WorldState) -> bool {
         let w = &self.walker;
         if w.mode != Mode::Special || w.special_at + 1 != w.special.len()
             || !(self.readying || self.swing.is_some() || self.shot.is_some())
@@ -2678,7 +2739,7 @@ impl ConnorSim {
         let movements = &self.movements;
         let loops = |n: &str| find(movements, bank, n).map(|m| &m.movement_loop);
         self.walker.enter_wait(&loops);
-        self.weapon_step();
+        self.finish_weapon_step(Some(world));
         self.swing_step();
         self.shot_step();
         true
@@ -3249,7 +3310,7 @@ pub fn connor_step(
     let animation_was_locked = sim.walker.animation_input_lock;
     let tick = sim.tick_with_state_requests(doors.as_mut().map(|d| &mut d.active), intent, jump, &scene);
     // 5d fix 10: the weapon set switch waiting for its list item.
-    sim.weapon_step();
+    sim.finish_weapon_step(doors.as_mut().map(|doors| &mut doors.active.world));
     if sim.walker.mode == Mode::Jump && sim.jump_start_z.is_none() {
         sim.jump_start_z = Some(z_before);
     }

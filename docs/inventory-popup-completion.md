@@ -69,5 +69,5 @@ matrix uses actual controller entry and the ordinary GUI dispatch with empty
 render assets; the popup matrix loads original artwork and exercises CPU
 drawing and hits. Neither is a native rendering or full campaign claim.
 Original resizing while a popup is already open remains unverified.
-The newly studied weapon-assignment selection clear is a separate pending
-step, so this batch does not close every held-item lifetime rule.
+The separate [weapon-assignment selection batch](weapon-selection-completion.md)
+now passes; shared controller admission remains separate work.

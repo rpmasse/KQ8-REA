@@ -2661,7 +2661,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M1 · Render the world | All 12 regions opened and rendered in bounded Windows runs. | Check terrain, models and textures in reachable scenes and assign gaps to their regions in M6. |
 | M2 · Move Connor | Implemented in Daventry. Walking, running, jumping, slopes and collision exist. | Replay input at fixed ticks and check position, facing, jump timing and collision against the original rules. |
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
-| M4 · Interface and dialogue | Partial. Menus, HUD, captions, inventory and conversation have representative Windows checks; quest-item application and the shared 640/800 interface geometry/art have grouped matrices. | Finish credits integration, device switching, software palette output and the remaining dialogue/inventory behavior families. |
+| M4 · Interface and dialogue | Partial. Menus, HUD, captions, credits, inventory selection, conversation and graphics controls have grouped checks and representative Windows evidence. | Finish shared weapon-controller admission and TempleArmor's animation-set change; verify exclusive fullscreen on a display with the original modes. |
 | M5 · Combat | Partial. Axe/crossbow attacks, weapon draws, combat/death saves and representative enemy families have checks. Ordinary liquid damage now reaches armor, sounds and death through the shared attack path. | Finish other weapon/damage and enemy-decision families, distinct bosses, specialised deaths and exceptional terrain behavior; integrate them into campaign routes. |
 | M6 · The whole game | Partial. Earned saves cover Daventry, Castle Daventry and Dead City through the northwest archers, river crossing and GoodSkull. Scales, interrupted encounters and Temple 4 outcomes have focused checks. | Return with the skull, complete the statue/feather/scales and remaining regional quests in integrated routes; finish missing controller/persistence families and verify one Normal New Game through ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
@@ -6730,3 +6730,35 @@ headless original-data 640/800 matrix covering all row counts, button layouts,
 highlight/pressed states and hit boundaries. Root owns the shared build;
 no native run or previously passed unrelated check is repeated. Original
 live resize while a popup is open remains unverified.
+
+### M4 held selection at ordinary weapon assignment (2026-11-08)
+
+`behaviour/inventory.md` rule 12a and `ranged-weapons.md` rules 6–9
+clear a held item at an ordinary weapon mode/list assignment, not when
+the request is queued or accepted. Mark the accepted ordinary-request
+path separately from shared list refreshes used by Rope, Tile, Scales,
+F2 and ThrowRock. An immediate assignment or the pending animation
+boundary emits one selection-clear notice, drained at the existing
+production boundary before later callbacks, GUI refresh or saving. Reuse
+the generic inventory selection clear without releasing the rope view lock.
+Persist the pending origin and any unconsumed notice in the existing
+weapon checkpoint; restoration itself emits nothing. An older Rust slot
+has no recorded origin and retains its previous no-clear behavior rather
+than guessing from partial controller ownership. This is recreation save
+continuity, not original save-file parity.
+
+One grouped headless matrix will use the production Connor constructor,
+timed movement clips and original inventory data to cover immediate and
+delayed assignments, refusal/no-op preservation, internal list changes,
+one-shot draining and save/reload on both sides of the boundary. Existing
+successful native weapon and F2 checks remain evidence; no native replay
+is planned. Root owns the shared build. The older script-request bypass
+of controller admission is audited separately and is not closed merely
+by adding the selection side effect.
+
+This assignment step now passes: shared release compilation in 4m02s and
+two grouped/affected checks in 0.04s. See `weapon-selection-completion.md`.
+The separate bounded M4 audit also confirms inventory.md8's TempleArmor
+animation-set change is still a production stub; the loader does not apply
+it implicitly. A is studying its exact mappings and lifetime before B adds
+the missing side effect. This remains M4 inventory work.
