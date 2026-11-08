@@ -20,6 +20,9 @@ use std::{collections::VecDeque, path::Path};
 #[cfg(test)]
 #[path = "ending_lifetime.rs"]
 mod ending_lifetime;
+#[cfg(all(test, windows))]
+#[path = "movie_failure_tests.rs"]
+mod movie_failure_tests;
 #[cfg(test)]
 #[path = "display_transition_tests.rs"]
 mod display_transition_tests;

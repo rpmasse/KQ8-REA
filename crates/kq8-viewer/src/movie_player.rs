@@ -47,7 +47,6 @@ impl Playback {
     pub fn open(path: &Path) -> Result<Self, String> {
         let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let movie = Movie::read(&bytes)?;
-        let frame_bytes = movie.width as usize * movie.height as usize * 4;
         let mut command = Command::new(decoder());
         // Skip only the short repeat records validated by the AVI reader.
         // Rust presents those at their original positions. Other decoding
@@ -87,9 +86,16 @@ impl Playback {
             use std::os::windows::process::CommandExt;
             command.creation_flags(0x08000000); // CREATE_NO_WINDOW
         }
-        let mut child = command
+        let child = command
             .spawn()
             .map_err(|e| format!("opening FFmpeg for {}: {e}", path.display()))?;
+        Ok(Self::from_decoder(movie, child))
+    }
+
+    /// The same bounded reader serves the live decoder and controlled child
+    /// processes used to verify media failure cleanup without replaying films.
+    pub(crate) fn from_decoder(movie: Movie, mut child: Child) -> Self {
+        let frame_bytes = movie.width as usize * movie.height as usize * 4;
         let mut output = child.stdout.take().expect("piped FFmpeg stdout");
         let (send, recv) = sync_channel(2);
         std::thread::spawn(move || loop {
@@ -116,7 +122,7 @@ impl Playback {
                 }
             }
         });
-        Ok(Self {
+        Self {
             child,
             video: Mutex::new(recv),
             audio: Arc::new(movie.audio),
@@ -126,7 +132,7 @@ impl Playback {
             holds: movie.holds,
             frame_seconds: f64::from(movie.scale) / f64::from(movie.rate),
             started: None,
-        })
+        }
     }
 
     pub fn hold_count(&self) -> usize {
