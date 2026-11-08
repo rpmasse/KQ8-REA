@@ -46,6 +46,30 @@ success logs: `kq8-artifacts/logs/m4-graphics-device.log` and
 Windows build also succeeds in 2m33s, retaining two existing unused-method
 warnings.
 
+## Focus and retained targets, 2026-11-08
+
+A fresh screen focuses DirectDraw. Its original twelve-row navigation order,
+wrap, disabled-row skipping and retained focus now survive same-instance
+refresh and reentry. Enter and ordinary Left/Right activate stored focus;
+brightness adjusts its value instead. Pointer eligibility is still checked.
+Previously eligible device targets survive a disabled refresh independently
+of row availability. Activation of a target that never existed returns an
+explicit safe failure rather than inventing a device.
+
+The grouped focus matrix and affected original-data Graphics matrix pass
+first attempt, together with the inventory checks: **5/5 in 0.40s** after
+the **2m37s** shared build. The already successful pure policy check was
+retained. Logs: `kq8-artifacts/logs/m4-hud-focus-build.log` and
+`m4-hud-focus-core.log`.
+
+```powershell
+cargo test --locked --release -p kq8-core graphics_focus_grouped_original_order_refresh_and_reentry -- --include-ignored --nocapture
+```
+
+Source: the separated Q207 focus, activation and remembered-target follow-up
+in `behaviour/graphics-modes.md`. This proves the screen component; the viewer
+must still retain that instance instead of recreating it on every entry.
+
 ## Open production gates
 
 This is a tested core/frontend component, **not completed device switching

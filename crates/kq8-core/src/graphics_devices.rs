@@ -62,6 +62,46 @@ pub enum Selection {
     ConfirmSoftwareRestart,
 }
 
+/// Q207: refresh updates eligible targets but retains a family's previous
+/// target when that row becomes unavailable. Availability is not this store.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Targets {
+    software: Option<Device>,
+    direct3d: Option<Device>,
+    glide: Option<Device>,
+}
+
+impl Targets {
+    pub fn refresh(&mut self, inventory: &Inventory, high_resolution: bool) {
+        for family in [Family::Software,Family::Direct3D,Family::Glide] {
+            if let Some(device) = inventory.choice(family,high_resolution) {
+                let target = match family {
+                    Family::Software => &mut self.software,
+                    Family::Direct3D => &mut self.direct3d,
+                    Family::Glide => &mut self.glide,
+                };
+                *target = Some(device.clone());
+            }
+        }
+    }
+
+    /// Stored-focus activation is allowed even while the row is disabled.
+    /// Err identifies a never-resolved target: original unchecked access has
+    /// no defined result, so callers report a safe failure without a fallback.
+    pub fn activate(&self, active: &Device, family: Family) -> Result<Option<Selection>,Family> {
+        if family == Family::Software && self.direct3d.as_ref().is_some_and(|d| d.family == active.family) {
+            return Ok(Some(Selection::ConfirmSoftwareRestart));
+        }
+        let target = match family {
+            Family::Software => self.software.as_ref(),
+            Family::Direct3D => self.direct3d.as_ref(),
+            Family::Glide => self.glide.as_ref(),
+        }.ok_or(family)?;
+        if target.family == active.family { Ok(None) }
+        else { Ok(Some(Selection::Live(target.clone()))) }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StartupGap {
     EmptyInventory,
@@ -93,6 +133,8 @@ impl Inventory {
             && (family != Family::Direct3D || d.name != "D3D-dd3dfx"))
     }
 
+    /// A fresh eligible-row selection. A persistent Graphics screen uses
+    /// Targets::activate instead, after retaining targets across refreshes.
     pub fn select(&self, active: &Device, family: Family, high_resolution: bool) -> Option<Selection> {
         let target = self.choice(family, high_resolution)?;
         // Q207 follow-up: the selected row and no-op compare renderer
