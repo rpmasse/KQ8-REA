@@ -401,6 +401,22 @@ pub enum BarResult {
     Nothing,
 }
 
+/// An ordinary empty inventory cell is a selection, not a world-use
+/// target. Its left click returns the previous held item (Q110 e).
+pub fn empty_bar_click(w: &mut WorldState, hands_off: bool, how: &str) -> BarResult {
+    if hands_off || w.connor_dying { return BarResult::Ignored; }
+    if clear_bar_selection(w, how) { BarResult::PutBack } else { BarResult::Nothing }
+}
+
+fn clear_bar_selection(w: &mut WorldState, why: &str) -> bool {
+    let Some(name) = w.hand.take() else { return false };
+    let rope = w.items.get(&name).and_then(|o| w.items.kind(&o.kind))
+        .is_some_and(|t| t.category == crate::rope::ROPE_CATEGORY);
+    let extra = if rope { rope_lock(w, false, "held rope returned by inventory selection") } else { String::new() };
+    w.item_note(format!("bar selection ({why}): {name} returns to its inventory slot; hand cleared{extra} (inventory.md rule 9, Q110)"));
+    true
+}
+
 /// Rules 9–10: a click on the slot of item `name`; `left` or right;
 /// `hands_off`: Connor's handsOff. Logged to `items.log`.
 pub fn bar_click(w: &mut WorldState, name: &str, left: bool, hands_off: bool, how: &str) -> BarResult {
@@ -442,6 +458,10 @@ pub fn bar_click(w: &mut WorldState, name: &str, left: bool, hands_off: bool, ho
             BarResult::Menu
         }
         _ => {
+            // Applying a bar item uses its own category, never the held
+            // item's world accept-list path. Even an already-running potion
+            // clears the prior selection before its ordinary no-op.
+            clear_bar_selection(w, how);
             let was = o.third != -1;
             if was && t.category == "HealthItem" {
                 // potions.md rule 7: the same potion while it runs: no
@@ -1033,6 +1053,65 @@ mod tests {
         // The same again: put back.
         assert_eq!(bar_click(&mut a.world, &coins, true, false, "click"), BarResult::PutBack);
         assert_eq!(a.world.hand, None);
+    }
+
+    #[test]
+    fn ordinary_bar_selection_held_category_and_empty_matrix() {
+        let mut a = active();
+        let candle = carry(&mut a, "Candle", 1);
+        let money = carry(&mut a, "SilverCoins", 50);
+        let mushroom = carry(&mut a, "Mushroom", 2);
+        let strength = carry(&mut a, "Strength", 2);
+        let weapon = carry(&mut a, "Dagger", 1);
+        let rope = carry(&mut a, "RopeAndHook", 1);
+        let mut cursorless = a.world.items.types.find("Candle").unwrap().clone();
+        cursorless.name = "INVITEM_AntiPoisonFlower".into();
+        cursorless.cursor = None;
+        a.world.items.types.types.push(cursorless);
+        let flower = carry(&mut a, "AntiPoisonFlower", 1);
+
+        assert_eq!(bar_click(&mut a.world, &candle, true, false, "quest"), BarResult::Hold);
+        assert_eq!(bar_click(&mut a.world, &money, true, false, "coins"), BarResult::Hold);
+        assert_eq!(a.world.hand.as_deref(), Some(money.as_str()));
+        assert!(a.world.items.get(&candle).unwrap().carried_by("Connor"));
+        for item in [&flower, &rope] {
+            assert_eq!(bar_click(&mut a.world, item, true, false, "category refused"), BarResult::Nothing);
+            assert_eq!(a.world.hand.as_deref(), Some(money.as_str()), "failed category path retains selection");
+        }
+        assert_eq!(bar_click(&mut a.world, &candle, false, false, "describe"), BarResult::Described);
+        assert_eq!(a.world.hand.as_deref(), Some(money.as_str()));
+        a.world.connor_stats.as_mut().unwrap().stats.0[0] = 3;
+        assert_eq!(bar_click(&mut a.world, &mushroom, true, false, "heal"), BarResult::Applied);
+        assert_eq!(a.world.hand, None);
+        assert_eq!(stats(&a)[0], 8);
+        assert_eq!(a.world.items.get(&mushroom).unwrap().quantity, 1);
+        assert_eq!(a.world.items.get(&money).unwrap().quantity, 50);
+
+        bar_click(&mut a.world, &money, true, false, "hold money");
+        assert_eq!(bar_click(&mut a.world, &weapon, true, false, "weapon"), BarResult::Applied);
+        assert!(a.world.hand.is_none());
+        assert!(a.world.items.get(&money).unwrap().carried_by("Connor"));
+        assert_eq!(bar_click(&mut a.world, &strength, true, false, "potion"), BarResult::Applied);
+        let running = (a.world.potions.clone(), a.world.items.get(&strength).unwrap().quantity);
+        bar_click(&mut a.world, &candle, true, false, "hold quest");
+        assert_eq!(bar_click(&mut a.world, &strength, true, false, "already running"), BarResult::Nothing);
+        assert!(a.world.hand.is_none());
+        assert_eq!((a.world.potions.clone(), a.world.items.get(&strength).unwrap().quantity), running);
+
+        for held in [&candle, &money] {
+            bar_click(&mut a.world, held, true, false, "hold");
+            assert_eq!(empty_bar_click(&mut a.world, true, "handsOff"), BarResult::Ignored);
+            assert_eq!(a.world.hand.as_deref(), Some(held.as_str()));
+            a.world.connor_dying = true;
+            assert_eq!(empty_bar_click(&mut a.world, false, "dead"), BarResult::Ignored);
+            assert_eq!(a.world.hand.as_deref(), Some(held.as_str()));
+            a.world.connor_dying = false;
+            assert_eq!(empty_bar_click(&mut a.world, false, "empty cell"), BarResult::PutBack);
+            assert!(a.world.hand.is_none());
+            assert!(a.world.items.get(held).unwrap().carried_by("Connor"));
+            assert_eq!(empty_bar_click(&mut a.world, false, "empty cell again"), BarResult::Nothing);
+        }
+        assert_eq!(a.world.items.get(&money).unwrap().quantity, 50);
     }
 
     #[test]
