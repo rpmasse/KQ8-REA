@@ -76,6 +76,121 @@ const SWORD_POINTER: &str = "IDBMA_CURS03";
 /// the pointers' order, open question 4).
 const BOW_POINTER: &str = "IDBMA_CURS05";
 
+/// interface.md rule 12: only pointer-triggered opening has the cursor
+/// exclusion. Authored news uses Panels::pop_top independently (rule 13).
+fn follow_top_bar_pointer(panels: &mut Panels, pointer: &str, at_top_row: bool, below_bar: bool, right_held: bool) {
+    let moving = panels.moving(Panel::Top);
+    let blocked_cursor = [SWORD_POINTER, BOW_POINTER, "IDBMA_CURS06", "IDBMA_CURS07"]
+        .iter().any(|name| pointer.eq_ignore_ascii_case(name));
+    if at_top_row && !panels.shown(Panel::Top) && !moving && !right_held && !blocked_cursor {
+        panels.set(kq8_core::panels::Group::Top, true, "the pointer at the top row (rule 12)");
+    } else if below_bar && panels.shown(Panel::Top) && !moving && !panels.top_popped() {
+        panels.set(kq8_core::panels::Group::Top, false, "the pointer below y 60 (rule 12)");
+    }
+}
+
+/// The Mask is a menu control even before a mask item is carried. Its
+/// handsOff-only guard is shared by physical and named clicks; ordinary
+/// death animation/input locks do not block it (main-menu.md rule 7).
+fn mask_control_result(control: &str, left: bool, hands_off: bool) -> Option<kq8_core::connor_inventory::BarResult> {
+    use kq8_core::connor_inventory::BarResult;
+    (control == "IDCTL_INVBAR_MASK" && left).then_some(if hands_off { BarResult::Ignored } else { BarResult::Menu })
+}
+
+/// Consuming other item results must not clear an already requested menu.
+fn apply_bar_result(menu: &mut crate::startup_menu::MenuRequest, result: kq8_core::connor_inventory::BarResult) {
+    if result == kq8_core::connor_inventory::BarResult::Menu {
+        menu.0 = true;
+    }
+}
+
+#[cfg(test)]
+mod top_bar_input_tests {
+    use super::*;
+    use kq8_core::connor_inventory::BarResult;
+    use kq8_core::panels::{Group, POP_MS, SLIDE_MS};
+
+    #[test]
+    fn top_bar_pointer_eligibility_and_mask_dispatch_matrix() {
+        // Drive the production pointer-follow operation and panel state,
+        // including its sounds; these are not tests of a copied predicate.
+        for (pointer, eligible) in [
+            (PLAY_POINTER, true), ("IDBMA_CANDLE", true),
+            (SWORD_POINTER, false), (BOW_POINTER, false),
+            ("IDBMA_CURS06", false), ("IDBMA_CURS07", false),
+        ] {
+            for right_held in [false, true] {
+                let mut panels = Panels::new(&[]);
+                follow_top_bar_pointer(&mut panels, pointer, false, false, right_held);
+                assert!(!panels.shown(Panel::Top), "away from top: {pointer}");
+                follow_top_bar_pointer(&mut panels, pointer, true, false, right_held);
+                let opens = eligible && !right_held;
+                assert_eq!(panels.shown(Panel::Top), opens, "{pointer}, right={right_held}");
+                assert_eq!(panels.sounds.len(), usize::from(opens));
+                if opens {
+                    assert_eq!(panels.sounds, ["intrup.aud"]);
+                    panels.update(SLIDE_MS / 2.0);
+                    follow_top_bar_pointer(&mut panels, pointer, false, true, right_held);
+                    assert!(panels.shown(Panel::Top), "do not reverse a moving bar");
+                    panels.update(SLIDE_MS / 2.0);
+                    follow_top_bar_pointer(&mut panels, pointer, true, false, right_held);
+                    assert_eq!(panels.sounds.len(), 1, "shown is not reopened");
+                }
+            }
+
+            // A hiding bar must finish before any cursor may reopen it.
+            let mut sliding = Panels::new(&[Panel::Top]);
+            sliding.set(Group::Top, false, "test hide");
+            sliding.update(SLIDE_MS / 2.0);
+            follow_top_bar_pointer(&mut sliding, pointer, true, false, false);
+            assert!(!sliding.shown(Panel::Top));
+            assert_eq!(sliding.sounds, ["intrdown.aud"]);
+
+            // Cursor exclusions/right-drag affect opening only, not closing.
+            let mut shown = Panels::new(&[Panel::Top]);
+            follow_top_bar_pointer(&mut shown, pointer, false, true, true);
+            assert!(!shown.shown(Panel::Top));
+            assert_eq!(shown.sounds, ["intrdown.aud"]);
+
+            // News remains eligible for every cursor, and keeps its timer
+            // even at the top edge or after the pointer moves below the bar.
+            let mut news = Panels::new(&[]);
+            news.pop_top("quest item received");
+            news.update(SLIDE_MS);
+            follow_top_bar_pointer(&mut news, pointer, true, false, false);
+            follow_top_bar_pointer(&mut news, pointer, false, true, true);
+            assert!(news.shown(Panel::Top) && news.top_popped());
+            news.update(POP_MS - SLIDE_MS - 1.0);
+            assert!(news.shown(Panel::Top));
+            news.update(1.0);
+            assert!(!news.shown(Panel::Top) && !news.top_popped());
+            assert_eq!(news.sounds, ["intrup.aud", "intrdown.aud"]);
+        }
+
+        // Both input paths call this same control result and consumer before
+        // inventory lookup: a missing mask item/death lock adds no new gate.
+        for hands_off in [false, true] {
+            let mut menu = crate::startup_menu::MenuRequest::default();
+            let result = mask_control_result("IDCTL_INVBAR_MASK", true, hands_off).unwrap();
+            assert_eq!(result, if hands_off { BarResult::Ignored } else { BarResult::Menu });
+            apply_bar_result(&mut menu, result);
+            assert_eq!(menu.0, !hands_off);
+            assert_eq!(mask_control_result("IDCTL_INVBAR_MASK", false, hands_off), None,
+                "right click stays with the ordinary description/empty-cell path");
+            assert_eq!(mask_control_result("IDCTL_INVBAR_QUEST1", true, hands_off), None);
+        }
+        for result in [BarResult::Ignored, BarResult::Hold, BarResult::PutBack,
+            BarResult::Applied, BarResult::Described, BarResult::Nothing] {
+            let mut menu = crate::startup_menu::MenuRequest::default();
+            apply_bar_result(&mut menu, result.clone());
+            assert!(!menu.0, "non-menu item result: {result:?}");
+            apply_bar_result(&mut menu, BarResult::Menu);
+            apply_bar_result(&mut menu, result);
+            assert!(menu.0, "a later item result preserves a pending menu request");
+        }
+    }
+}
+
 /// Rule 44: a blink changes the picture every 0.25 s, 5 times.
 const BLINK_MS: f64 = 250.0;
 const BLINKS: u32 = 5;
@@ -1323,6 +1438,10 @@ pub fn gui_step(
                 let (button, control) = name.split_once(':').unwrap_or_default();
                 let control = control.to_ascii_uppercase();
                 let left = button.eq_ignore_ascii_case("left");
+                if let Some(result) = mask_control_result(&control, left, gui.hands_off) {
+                    apply_bar_result(&mut menu, result);
+                    continue;
+                }
                 match (control.as_str(), gui.item_at(&control, left)) {
                     ("IDCTL_INVBAR_QUESTL", _) if left => actions.0.push(BarAction::Scroll { by: -1, how }),
                     ("IDCTL_INVBAR_QUESTR", _) if left => actions.0.push(BarAction::Scroll { by: 1, how }),
@@ -1361,7 +1480,8 @@ pub fn gui_step(
             }
             BarAction::Key { slot, how } => match kq8_core::connor_inventory::slot_item(w, slot) {
                 Some(name) => {
-                    kq8_core::connor_inventory::bar_click(w, &name, true, gui.hands_off, &how);
+                    let result = kq8_core::connor_inventory::bar_click(w, &name, true, gui.hands_off, &how);
+                    apply_bar_result(&mut menu, result);
                 }
                 _ => {
                     let line = format!("update {updates}: {how}: slot {} is empty; nothing (interface.md rule 40)", slot + 1);
@@ -1369,7 +1489,8 @@ pub fn gui_step(
                 }
             },
             BarAction::Item { item, left, how } => {
-                kq8_core::connor_inventory::bar_click(w, &item, left, gui.hands_off, &how);
+                let result = kq8_core::connor_inventory::bar_click(w, &item, left, gui.hands_off, &how);
+                apply_bar_result(&mut menu, result);
             }
         }
     }
@@ -1860,12 +1981,7 @@ pub fn gui_draw(
         // interface.md rule 12: the top bar follows the pointer: down at
         // the very top row, up below y 60 of 480, not while the right
         // button is held or it is moving, not up in its popped time.
-        let moving = gui.panels.moving(Panel::Top);
-        if c.y < ft + 1.0 && !gui.panels.shown(Panel::Top) && !moving && !buttons.pressed(MouseButton::Right) {
-            gui.panels.set(kq8_core::panels::Group::Top, true, "the pointer at the top row (rule 12)");
-        } else if y > 60.0 / 480.0 * sh && gui.panels.shown(Panel::Top) && !moving && !gui.panels.top_popped() {
-            gui.panels.set(kq8_core::panels::Group::Top, false, "the pointer below y 60 (rule 12)");
-        }
+        follow_top_bar_pointer(&mut gui.panels, &gui.pointer, c.y < ft + 1.0, y > 60.0 / 480.0 * sh, buttons.pressed(MouseButton::Right));
         // inventory.md rules 6, 9, 10: clicks on the bars.
         for (button, left) in [(MouseButton::Left, true), (MouseButton::Right, false)] {
             if !buttons.just_pressed(button) {
@@ -1884,8 +2000,11 @@ pub fn gui_draw(
                 }
                 continue;
             }
+            if let Some(result) = mask_control_result(&control, left, gui.hands_off) {
+                apply_bar_result(&mut menu, result);
+                continue;
+            }
             match (control.as_str(), gui.item_at(&control, left)) {
-                ("IDCTL_INVBAR_MASK", _) if left && !gui.hands_off => menu.0 = true,
                 ("IDCTL_INVBAR_QUESTL", _) if left => actions.0.push(BarAction::Scroll { by: -1, how }),
                 ("IDCTL_INVBAR_QUESTR", _) if left => actions.0.push(BarAction::Scroll { by: 1, how }),
                 (MINIMAP, _) if left => gui.toggle_map(&how),
