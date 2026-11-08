@@ -125,6 +125,12 @@ const PADDLE_QUARTER: f32 = 1.5708;
 /// (M3 step 3d-3). `at` is where in which script.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Request {
+    /// The original conversation start message; preparation happens once.
+    ConnorConversationStart,
+    /// An already prepared Talk request, retained in the common state slot.
+    ConnorTalk,
+    /// Internal ordinary state proposals at completion boundaries.
+    ConnorTransition(crate::conversation::StateRequest),
     /// `KQConner::setRun 0|1` (connor-movement.md rule 4).
     SetRun { run: bool, at: String },
     /// `KQCamera::setRange <min> <max>` (camera.md "Distance" rule 2),
@@ -1919,7 +1925,12 @@ impl WorldState {
                     self.note(format!("{at}: ERROR {}: unknown character '{}'; nothing made", words.join(" "), m.who));
                     return "1".into();
                 }
-                let made = self.items.make(&m.kind, m.quantity, Place::Carried(m.who.clone())).map(|o| o.name.clone());
+                let made = self.items.make(&m.kind, m.quantity, Place::Carried(m.who.clone())).map(|o| {
+                    // inventory.md rule 8, Q109 e: placement is established
+                    // before Connor's equipment exchange, including omitted zero.
+                    o.carried_pose = crate::item::StoredPose { position: m.position.unwrap_or([0.0; 3]), angles: m.angles };
+                    o.name.clone()
+                });
                 if let Ok(name) = &made {
                     self.register_event_receiver(name);
                     self.known.insert(name.to_ascii_lowercase());
@@ -4654,7 +4665,8 @@ impl ScriptHost for WorldState {
                     self.note(format!("{at}: doPopup requires a message case"));
                     return Some("1".into());
                 };
-                self.help_prompts.script(self.updates, case);
+                let now = self.now() as f32;
+                self.help_prompts.script_at(now, case);
                 self.note(format!("{at}: requested starting help, 500.MSG case {case}"));
                 Some("0".into())
             }
@@ -6676,6 +6688,7 @@ impl Active {
         let now = self.world.now();
         self.world.terrain_hazards.rearm(now);
         self.handle_due(now);
+        self.world.help_prompts.service_at(now as f32, false);
         self.world.characters_due(now);
         self.talk_step(now);
         // M5 5g-2: the potions' whole seconds (potions.md rule 33).

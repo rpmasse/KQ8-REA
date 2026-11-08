@@ -24,6 +24,8 @@ pub struct SavedConversation {
 }
 
 impl SavedConversation {
+    /// Legacy recreation slots used Asked itself as an implicit frame retry.
+    pub fn awaiting_admission(&self) -> bool { self.active.as_ref().is_some_and(|c| c.stage == Stage::Asked) }
     pub fn beginning_bare_hand_out(&self) -> bool {
         self.active.as_ref().is_some_and(|c| c.stage == Stage::Out && c.approach_updates == 0)
     }

@@ -44,6 +44,37 @@ pub struct SavedTalkPose {
 pub type SavedControllerPose = SavedTalkPose;
 
 impl SavedTalkPose {
+    /// Shared CPU restoration used by existing owner poses and pending airborne
+    /// continuation. Resolved movement names still come from the loaded assets.
+    pub(super) fn restore_into(&self, walker: &mut Walker, mover: &mut Mover, hands_off: &mut bool, mode: Mode, resolve: &dyn Fn(&str) -> Result<&'static str, String>) -> Result<(), String> {
+        if !self.valid() { return Err("invalid controller pose".into()); }
+        let saved = self;
+        let movement = resolve(&saved.movement)?;
+        let talk_play = saved.talk_play.as_deref().map(&resolve).transpose()?;
+        let wanted = saved.wanted.as_deref().map(&resolve).transpose()?;
+        let state_wanted = saved.state_wanted.as_deref().map(&resolve).transpose()?;
+        let reaction = saved.reaction.as_deref().map(&resolve).transpose()?;
+        let reaction_playing = saved.reaction_playing.as_deref().map(&resolve).transpose()?;
+        let transition = |t: &SavedSwingTransition| -> Result<kq8_core::connor::Transition, String> {
+            Ok(kq8_core::connor::Transition { from: t.from, to: resolve(&t.to)?, to_phase: t.to_phase, via: resolve(&t.via)? })
+        };
+        let waiting = saved.waiting.as_ref().map(&transition).transpose()?;
+        let playing = saved.playing.as_ref().map(&transition).transpose()?;
+        walker.mode = mode; walker.movement = movement; walker.phase = saved.phase;
+        walker.bank = saved.bank; walker.fresh = saved.fresh; walker.talk_play = talk_play;
+        walker.wanted = wanted; walker.reaction = reaction; walker.auto = saved.auto.clone(); walker.waiting = waiting; walker.playing = playing;
+        walker.state_wanted = state_wanted;
+        walker.reaction_playing = reaction_playing; walker.animation_input_lock = saved.animation_input_lock;
+        walker.hand_mode = saved.hand_mode; *hands_off = saved.hands_off;
+        walker.turn_by_script = saved.turn_by_script; walker.turn_press = saved.turn_press;
+        walker.blocked_forward = saved.blocked[0]; walker.blocked_back = saved.blocked[1];
+        walker.submerged = saved.moving.submerged;
+        mover.state = saved.moving.state; mover.on_ground = saved.moving.on_ground;
+        mover.use_gravity = saved.moving.use_gravity; mover.keep_on_ground = saved.moving.keep_on_ground;
+        mover.fall_timer = saved.moving.fall_timer; mover.air_updates = saved.moving.air_updates;
+        mover.pull = saved.moving.pull; mover.submerged = saved.moving.submerged;
+        Ok(())
+    }
     pub(super) fn movement(&self) -> &str { &self.movement }
     pub(super) fn reaction(&self) -> Option<&str> { self.reaction.as_deref() }
     pub(super) fn reaction_playing(&self) -> Option<&str> { self.reaction_playing.as_deref() }
@@ -93,34 +124,14 @@ impl ConnorSim {
 
     pub(super) fn restore_controller_pose(&mut self, saved: &SavedControllerPose, mode: Mode, label: &str) -> Result<(), String> {
         if !saved.valid() { return Err(format!("invalid {label} pose")); }
-        let resolve = |name: &str| self.saved_movement_name(name)
+        let movements = &self.movements;
+        let bank = self.weapon_set.as_deref();
+        let resolve = |name: &str| find(movements, bank, name)
+            .map(|m| if name.contains('/') { m.qualified } else { kq8_core::connor::plain_movement_name(m.name) })
             .ok_or_else(|| format!("saved {label} movement '{name}' is absent"));
-        let movement = resolve(&saved.movement)?;
-        let talk_play = saved.talk_play.as_deref().map(&resolve).transpose()?;
-        let wanted = saved.wanted.as_deref().map(&resolve).transpose()?;
-        let state_wanted = saved.state_wanted.as_deref().map(&resolve).transpose()?;
-        let reaction = saved.reaction.as_deref().map(&resolve).transpose()?;
-        let reaction_playing = saved.reaction_playing.as_deref().map(&resolve).transpose()?;
-        let transition = |t: &SavedSwingTransition| -> Result<kq8_core::connor::Transition, String> {
-            Ok(kq8_core::connor::Transition { from: t.from, to: resolve(&t.to)?, to_phase: t.to_phase, via: resolve(&t.via)? })
-        };
-        let waiting = saved.waiting.as_ref().map(&transition).transpose()?;
-        let playing = saved.playing.as_ref().map(&transition).transpose()?;
-        self.walker.mode = mode; self.walker.movement = movement; self.walker.phase = saved.phase;
-        self.walker.bank = saved.bank; self.walker.fresh = saved.fresh; self.walker.talk_play = talk_play;
-        self.walker.wanted = wanted; self.walker.reaction = reaction; self.walker.auto = saved.auto.clone(); self.walker.waiting = waiting; self.walker.playing = playing;
-        self.walker.state_wanted = state_wanted;
-        self.walker.reaction_playing = reaction_playing; self.walker.animation_input_lock = saved.animation_input_lock;
-        self.walker.hand_mode = saved.hand_mode; self.hands_off = saved.hands_off;
-        self.walker.turn_by_script = saved.turn_by_script; self.walker.turn_press = saved.turn_press;
-        self.walker.blocked_forward = saved.blocked[0]; self.walker.blocked_back = saved.blocked[1];
-        self.walker.submerged = saved.moving.submerged;
-        self.mover.state = saved.moving.state; self.mover.on_ground = saved.moving.on_ground;
-        self.mover.use_gravity = saved.moving.use_gravity; self.mover.keep_on_ground = saved.moving.keep_on_ground;
-        self.mover.fall_timer = saved.moving.fall_timer; self.mover.air_updates = saved.moving.air_updates;
-        self.mover.pull = saved.moving.pull; self.mover.submerged = saved.moving.submerged;
+        saved.restore_into(&mut self.walker, &mut self.mover, &mut self.hands_off, mode, &resolve)?;
         self.redraw_from_walker();
-        self.log.detail(format!("{label} pose restored: {movement} phase {:.6}, talk_play {:?}, auto {:?}", saved.phase, talk_play, saved.auto));
+        self.log.detail(format!("{label} pose restored: {} phase {:.6}, talk_play {:?}, auto {:?}", self.walker.movement, saved.phase, self.walker.talk_play, saved.auto));
         Ok(())
     }
 }

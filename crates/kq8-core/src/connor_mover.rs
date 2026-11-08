@@ -1022,6 +1022,17 @@ impl Mover {
         world: &dyn MoverWorld,
         wanted: impl FnOnce(&Mover, Option<FallEvent>) -> W,
     ) -> Report {
+        self.update_with_mut(world, |mover, fall| Some(wanted(mover, fall)))
+    }
+
+    /// The state owner may change synchronously at the animation boundary,
+    /// before the movement passes. None stops the remaining passes when an
+    /// admitted owner holds physics, without changing the mover's state.
+    pub fn update_with_mut<W: Into<Wish>>(
+        &mut self,
+        world: &dyn MoverWorld,
+        wanted: impl FnOnce(&mut Mover, Option<FallEvent>) -> Option<W>,
+    ) -> Report {
         let mut report = Report { check: "none", across: "none", ..Default::default() };
         if self.state == State::Dead {
             self.support_normal = None;
@@ -1052,7 +1063,11 @@ impl Mover {
             }
         }
 
-        let wish: Wish = wanted(self, report.fall).into();
+        let Some(wish) = wanted(self, report.fall) else {
+            report.ground = world.ground(self.position[0], self.position[1]);
+            return report;
+        };
+        let wish: Wish = wish.into();
         let wanted = wish.step;
         // Head-on only acts in the Move state (Fall is not Move).
         // Head-on also acts while jumping (state Jump), where a steep

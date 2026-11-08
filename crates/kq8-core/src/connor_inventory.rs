@@ -42,9 +42,9 @@
 //! out of reach → it stays.
 //!
 //! STAND-INS: "applied" is kept in the item's `userId` (rule 13) as 0 for
-//! Connor (the original keeps an object id there); an old piece taken off
-//! by a `give` (no place where the new one lay) drops at Connor's feet
-//! ("Edge cases" infers the new object's own position). The potions'
+//! Connor (the original keeps an object id there). An old piece taken off
+//! by `give` drops at the new item's stored position: zero when omitted
+//! (`inventory.md` rule 8, Q109 e). The potions'
 //! timers: `crate::potions` (M5 5g-2).
 
 use crate::active::WorldState;
@@ -167,10 +167,9 @@ pub fn receive(w: &mut WorldState, name: &str, lay_at: Option<[f32; 3]>, why: &s
                 w.request_item_deletion(&old, "placeholder replaced");
                 line.push_str(&format!("; placeholder {old} ({kind}) deleted"));
             } else {
-                let (at, whence) = match (lay_at, w.connor_at) {
-                    (Some(p), _) => (p, "where the new one lay"),
-                    (None, Some(c)) => (c, "at Connor's feet (stand-in: a give has no place)"),
-                    (None, None) => ([0.0; 3], "at (0, 0, 0): no place known"),
+                let (at, whence) = match lay_at {
+                    Some(p) => (p, "where the new one lay"),
+                    None => (o.stored_pose().position, "at the new item's stored position (zero when omitted)"),
                 };
                 w.items.objects[k].place = Place::World { position: at, angles: [0.0; 3] };
                 line.push_str(&format!("; {old} ({kind}) taken off and put into the world at ({:.0}, {:.0}, {:.0}) {whence}{undone}", at[0], at[1], at[2]));
@@ -232,10 +231,9 @@ fn added_extras(w: &mut WorldState, kind: &str, category: &str) {
     if !w.help_prompts.consume(bit) {
         return;
     }
-    let delay_updates = (delay * crate::UPDATES_PER_SECOND).ceil() as u64;
-    let first_update = w.updates + delay_updates;
-    w.help_prompts.schedule(first_update, case);
-    w.item_note(format!("{kind} added: inventory help case {case}, first eligible update {first_update}"));
+    let deadline = w.now() as f32 + delay;
+    w.help_prompts.schedule_at(deadline, case);
+    w.item_note(format!("{kind} added: inventory help case {case}, first eligible game time {deadline:.6}"));
 }
 
 /// Rules 14, 16: applies item `name` to Connor, replacing an applied
@@ -354,11 +352,10 @@ pub fn timers(w: &mut WorldState) {
     }
 }
 
-/// The scroll that can't be taken, and its remark (rule 9 writes
-/// `0.MSG` (0, 92, 14, 0); read as file 0, noun 92, verb 14, case 0,
-/// sequence 1: the reading that names a line in `0.MSG`, Q110).
+/// The scroll's exact refusal tuple (`inventory.md` rule 9, Q110 a).
 const SCROLL: &str = "INVITEM_Scroll";
 const SCROLL_REMARK: kq8_data::msg::Tuple = kq8_data::msg::Tuple { file: 0, noun: 92, verb: 14, case: 0, seq: 1 };
+const ROCK_REMARK: kq8_data::msg::Tuple = kq8_data::msg::Tuple { file: 0, noun: 0, verb: 0, case: 0, seq: 3 };
 /// The rope away from a rope place (rule 9 writes (0, 0, 58, 37); read the
 /// same way, Q110).
 const ROPE_REMARK: kq8_data::msg::Tuple = kq8_data::msg::Tuple { file: 0, noun: 0, verb: 58, case: 37, seq: 1 };
@@ -401,6 +398,18 @@ pub enum BarResult {
     Nothing,
 }
 
+/// Live controller ownership supplied by the bar frontend. This is not a
+/// region inference or persistent state (`inventory.md` rule 9, Q110 a).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum BarOwner {
+    #[default]
+    Ordinary,
+    Tile,
+    Tile2,
+    Tile3,
+    Scales,
+}
+
 /// An ordinary empty inventory cell is a selection, not a world-use
 /// target. Its left click returns the previous held item (Q110 e).
 pub fn empty_bar_click(w: &mut WorldState, hands_off: bool, how: &str) -> BarResult {
@@ -410,16 +419,20 @@ pub fn empty_bar_click(w: &mut WorldState, hands_off: bool, how: &str) -> BarRes
 
 fn clear_bar_selection(w: &mut WorldState, why: &str) -> bool {
     let Some(name) = w.hand.take() else { return false };
-    let rope = w.items.get(&name).and_then(|o| w.items.kind(&o.kind))
-        .is_some_and(|t| t.category == crate::rope::ROPE_CATEGORY);
-    let extra = if rope { rope_lock(w, false, "held rope returned by inventory selection") } else { String::new() };
-    w.item_note(format!("bar selection ({why}): {name} returns to its inventory slot; hand cleared{extra} (inventory.md rule 9, Q110)"));
+    // Generic clearing does not perform the rope's own put-back action.
+    // Its independent Top view lock survives until the ordinary release.
+    w.item_note(format!("bar selection ({why}): {name} returns to its inventory slot; hand cleared (inventory.md rule 9, Q110)"));
     true
 }
 
 /// Rules 9–10: a click on the slot of item `name`; `left` or right;
 /// `hands_off`: Connor's handsOff. Logged to `items.log`.
 pub fn bar_click(w: &mut WorldState, name: &str, left: bool, hands_off: bool, how: &str) -> BarResult {
+    bar_click_with_owner(w, name, left, hands_off, BarOwner::Ordinary, how)
+}
+
+/// The normal bar path with the actual viewer controller's ownership.
+pub fn bar_click_with_owner(w: &mut WorldState, name: &str, left: bool, hands_off: bool, owner: BarOwner, how: &str) -> BarResult {
     let Some(o) = w.items.get(name).cloned() else {
         w.item_note(format!("bar click on {name} ({how}): no such item; nothing"));
         return BarResult::Nothing;
@@ -452,7 +465,7 @@ pub fn bar_click(w: &mut WorldState, name: &str, left: bool, hands_off: bool, ho
         return BarResult::Ignored;
     }
     match t.category.as_str() {
-        "QuestItem" | "Money" | "Rock" | "Rope" => hold(w, name, &t, &head),
+        "QuestItem" | "Money" | "Rock" | "Rope" => hold(w, name, &t, owner, &head),
         "MaskPiece" => {
             w.item_note(format!("{head}: the mask button requests the main menu (interface.md rule 41)"));
             BarResult::Menu
@@ -515,11 +528,16 @@ pub fn hand_weapon(w: &WorldState) -> Option<String> {
 }
 
 /// Rule 9: a left click on a quest item, coins, rocks or the rope.
-fn hold(w: &mut WorldState, name: &str, t: &kq8_data::items::ItemType, head: &str) -> BarResult {
+fn hold(w: &mut WorldState, name: &str, t: &kq8_data::items::ItemType, owner: BarOwner, head: &str) -> BarResult {
     if t.category == crate::rope::ROPE_CATEGORY && w.connor_roping {
         // ropeandhook.md rule 8: ignored in the rope state.
         w.item_note(format!("{head}: Connor is in the rope state: ignored (ropeandhook.md rule 8)"));
         return BarResult::Ignored;
+    }
+    if t.category == "Rock" && matches!(owner, BarOwner::Tile | BarOwner::Tile3 | BarOwner::Scales) {
+        let said = w.connor_remark(ROCK_REMARK, "no time to trifle with that");
+        w.item_note(format!("{head}: refused by {owner:?}; previous held selection retained; {said} (inventory.md rule 9, Q110 a)"));
+        return BarResult::Nothing;
     }
     if w.hand.as_deref().is_some_and(|h| h.eq_ignore_ascii_case(name)) {
         w.hand = None;
@@ -535,6 +553,7 @@ fn hold(w: &mut WorldState, name: &str, t: &kq8_data::items::ItemType, head: &st
         return BarResult::PutBack;
     }
     if t.name.eq_ignore_ascii_case(SCROLL) {
+        clear_bar_selection(w, "scroll selected");
         let now = w.now();
         let recent = w.scroll_remark_at.is_some_and(|t| now - t < SCROLL_GAP);
         let line = if recent {
@@ -580,8 +599,6 @@ fn hold(w: &mut WorldState, name: &str, t: &kq8_data::items::ItemType, head: &st
                 extra = format!("; at the top of a rope: {camera} (ropeandhook.md rule 9)");
             }
         }
-    } else if t.category == "Rock" {
-        extra = "; none of the three states that refuse it exists yet".into();
     }
     let before = w.hand.replace(name.to_string());
     let back = before.map_or(String::new(), |b| format!("; {b} goes back to its slot"));
@@ -816,6 +833,7 @@ mod tests {
     fn native_item_receipts_consume_their_bits_before_delivery() {
         let mut a = active();
         a.world.updates = 300;
+        a.world.advance_clock_for_test(20.);
         // Installation of an existing carried stack is not a fresh receipt.
         a.world
             .items
@@ -845,6 +863,7 @@ mod tests {
     fn quest_and_rope_have_separate_delays_and_ignore_the_current_preference_at_receipt() {
         let mut a = active();
         a.world.updates = 300;
+        a.world.advance_clock_for_test(20.);
         carry(&mut a, "Candle", 1);
         assert_eq!(a.world.help_prompts.history(300).start_help, 2);
         assert_eq!(a.world.help_prompts.due(344, true, false, false), None);
@@ -853,6 +872,7 @@ mod tests {
         carry(&mut a, "Candle", 1);
         assert_eq!(a.world.help_prompts.due(445, true, false, false), None);
         a.world.updates = 500;
+        a.world.advance_clock_for_test(500f32 / 15.);
         carry(&mut a, "RopeAndHook", 1);
         assert_eq!(a.world.help_prompts.due(567, true, false, false), None);
         assert_eq!(a.world.help_prompts.due(568, true, true, false), None);
@@ -872,6 +892,7 @@ mod tests {
         carry(&mut a, "RopeAndHook", 1);
         assert_eq!(a.world.help_prompts.due(60, true, false, false), Some(132));
         a.world.updates = 200;
+        a.world.advance_clock_for_test(200f32 / 15.);
         assert_eq!(a.test_command("doPopup 127", "test"), Some("0".into()));
         assert_eq!(a.world.help_prompts.due(245, true, false, false), Some(127));
         assert_eq!(a.world.help_prompts.due(300, true, false, false), None);
@@ -915,10 +936,10 @@ mod tests {
         receive(&mut a.world, &suit, Some([7.0, 8.0, 9.0]), "picked up");
         assert_eq!(a.world.items.get(&gloves).map(|o| o.place.clone()), Some(Place::World { position: [7.0, 8.0, 9.0], angles: [0.0; 3] }));
         assert_eq!(stats(&a)[3], 20);
-        // Gloves again (a give: no place): the suit drops at Connor's feet.
+        // Gloves again (a give: omitted place): the suit drops at the origin.
         let g2 = a.world.items.make("LeatherGloves", 1, Place::Carried("Connor".into())).unwrap().name.clone();
         receive(&mut a.world, &g2, None, "give");
-        assert_eq!(a.world.items.get(&suit).map(|o| o.place.clone()), Some(Place::World { position: [1.0, 2.0, 3.0], angles: [0.0; 3] }));
+        assert_eq!(a.world.items.get(&suit).map(|o| o.place.clone()), Some(Place::World { position: [0.0; 3], angles: [0.0; 3] }));
         assert_eq!(stats(&a)[3], 1);
         assert!(a.world.items.get(&dagger).unwrap().carried_by("Connor"));
     }
@@ -1112,6 +1133,136 @@ mod tests {
             assert_eq!(empty_bar_click(&mut a.world, false, "empty cell again"), BarResult::Nothing);
         }
         assert_eq!(a.world.items.get(&money).unwrap().quantity, 50);
+    }
+
+    #[test]
+    fn inventory_selection_scroll_rock_owner_and_rope_lock_matrix() {
+        fn extras(a: &mut Active) {
+            for (name, category) in [("INVITEM_Scroll", "QuestItem"), ("INVITEM_Rock", "Rock")] {
+                let mut kind = a.world.items.types.find("Candle").unwrap().clone();
+                kind.name = name.into();
+                kind.category = category.into();
+                a.world.items.types.types.push(kind);
+            }
+        }
+        fn queued(w: &WorldState) -> serde_json::Value {
+            serde_json::to_value(w.talk.saved(w.now())).unwrap()["queues"][0]["lines"][0]["tuple"].clone()
+        }
+        for owner in [BarOwner::Ordinary, BarOwner::Tile, BarOwner::Tile2, BarOwner::Tile3, BarOwner::Scales] {
+            let restricted = matches!(owner, BarOwner::Tile | BarOwner::Tile3 | BarOwner::Scales);
+            for previous in [None, Some("Candle"), Some("Rock")] {
+                let mut a = active();
+                extras(&mut a);
+                let rock = carry(&mut a, "Rock", 2);
+                let candle = carry(&mut a, "Candle", 1);
+                a.world.hand = previous.map(|kind| if kind == "Rock" { rock.clone() } else { candle.clone() });
+                let before = a.world.hand.clone();
+                let result = bar_click_with_owner(&mut a.world, &rock, true, false, owner, "owner matrix");
+                if restricted {
+                    assert_eq!(result, BarResult::Nothing, "{owner:?}");
+                    assert_eq!(a.world.hand, before, "{owner:?}: even an already-held rock is retained");
+                    assert_eq!(queued(&a.world), serde_json::json!({"file":0,"noun":0,"verb":0,"case":0,"seq":3}));
+                } else if previous == Some("Rock") {
+                    assert_eq!(result, BarResult::PutBack);
+                    assert!(a.world.hand.is_none());
+                } else {
+                    assert_eq!(result, BarResult::Hold);
+                    assert_eq!(a.world.hand.as_deref(), Some(rock.as_str()));
+                }
+                assert_eq!(a.world.items.get(&rock).unwrap().quantity, 2);
+                assert!(a.world.items.get(&candle).unwrap().carried_by("Connor"));
+            }
+        }
+        for (elapsed, recent, busy, remark) in [(0.0_f32, None, false, true),
+            (f32::from_bits(3.0_f32.to_bits() - 1), Some(0.0), false, false),
+            (3.0, Some(0.0), false, true), (4.0, None, true, false)] {
+            for held in ["Candle", "RopeAndHook"] {
+                let mut a = active();
+                extras(&mut a);
+                let scroll = carry(&mut a, "Scroll", 1);
+                let prior = carry(&mut a, held, 1);
+                a.world.rope.status = crate::rope::Status::Top;
+                a.world.first_person = true;
+                assert_eq!(bar_click(&mut a.world, &prior, true, false, "prior selection"), BarResult::Hold);
+                // Remarks use the simulation clock, not the diagnostic
+                // update counter. Cover the adjacent f32 value below 3 s.
+                a.world.advance_clock_for_test(elapsed);
+                a.world.scroll_remark_at = recent;
+                if busy { a.world.connor_remark(kq8_data::msg::Tuple::new(0, 1, 1, 1, 1), "already talking"); }
+                let talk_before = serde_json::to_value(a.world.talk.saved(a.world.now())).unwrap();
+                assert_eq!(bar_click(&mut a.world, &scroll, true, false, "scroll gate"), BarResult::Nothing);
+                assert!(a.world.hand.is_none(), "selection clears before every speech gate");
+                assert!(a.world.items.get(&prior).unwrap().carried_by("Connor"));
+                assert_eq!(a.world.rope_first_person_lock, held == "RopeAndHook");
+                if remark {
+                    assert_eq!(queued(&a.world), serde_json::json!({"file":0,"noun":92,"verb":14,"case":0,"seq":1}),
+                        "held={held}, time={elapsed}, prior={recent:?}, busy={busy}; {:?}", a.world.item_log);
+                    assert_eq!(a.world.scroll_remark_at, Some(a.world.now()));
+                } else {
+                    assert_eq!(serde_json::to_value(a.world.talk.saved(a.world.now())).unwrap(), talk_before);
+                    assert_eq!(a.world.scroll_remark_at, recent);
+                }
+            }
+        }
+        for target in [None, Some("Mushroom"), Some("Scroll"), Some("Candle"), Some("SilverCoins"), Some("Rock"), Some("RopeAndHook")] {
+            let mut a = active();
+            extras(&mut a);
+            let rope = carry(&mut a, "RopeAndHook", 1);
+            let item = target.map(|kind| if kind == "RopeAndHook" { rope.clone() } else { carry(&mut a, kind, 2) });
+            a.world.rope.status = crate::rope::Status::Top;
+            a.world.first_person = true;
+            bar_click(&mut a.world, &rope, true, false, "hold rope at Top");
+            match item {
+                Some(item) => { bar_click(&mut a.world, &item, true, false, "replace rope"); }
+                None => { empty_bar_click(&mut a.world, false, "empty cell"); }
+            }
+            let put_back_rope = target == Some("RopeAndHook");
+            assert_eq!(a.world.rope_first_person_lock, !put_back_rope, "{target:?}");
+            assert_eq!(a.world.first_person, put_back_rope, "{target:?}");
+            assert!(a.world.items.get(&rope).unwrap().carried_by("Connor"));
+        }
+        // Existing outer guards still win over Scroll clearing and Rock remarks.
+        for kind in ["Scroll", "Rock"] {
+            for dying in [false, true] {
+                let mut a = active();
+                extras(&mut a);
+                let item = carry(&mut a, kind, 1);
+                let candle = carry(&mut a, "Candle", 1);
+                a.world.hand = Some(candle.clone());
+                a.world.connor_dying = dying;
+                assert_eq!(bar_click_with_owner(&mut a.world, &item, true, !dying, BarOwner::Tile, "outer guard"), BarResult::Ignored);
+                assert_eq!(a.world.hand.as_deref(), Some(candle.as_str()));
+                assert!(!a.world.talk.is_talking("Connor"));
+            }
+        }
+    }
+
+    #[test]
+    fn inventory_scripted_equipment_replacement_placement_matrix() {
+        for (command, position) in [
+            ("give Dagger", [0.0; 3]),
+            ("KQMonster::inventory Connor Dagger 1", [0.0; 3]),
+            ("KQMonster::inventory Connor Dagger 1 700 -800 -1 0.1 0.2 0.3", [700.0, -800.0, -1.0]),
+        ] {
+            let mut a = active();
+            a.world.connor_at = Some([9000.0, 8000.0, 7000.0]);
+            let old = carry(&mut a, "Dagger", 1);
+            assert_eq!(a.test_command(command, "scripted replacement").as_deref(), Some("0"));
+            assert_eq!(a.world.items.get(&old).unwrap().place, Place::World { position, angles: [0.0; 3] });
+            assert_eq!(a.world.items.get(&old).unwrap().third, -1);
+            let new = a.world.items.find("Connor", "Dagger").unwrap();
+            assert_ne!(new.name, old);
+            assert_eq!(new.stored_pose(), crate::item::StoredPose::default(),
+                "placement precedes exchange; the established carry-add rule then resets it");
+            assert_eq!(new.third, CONNOR_USER_ID);
+        }
+        // Ordinary world pickup still exchanges at the pickup, not either origin or Connor.
+        let mut a = active();
+        let old = carry(&mut a, "Dagger", 1);
+        let position = [123.0, 456.0, 789.0];
+        let new = a.world.items.make("Dagger", 1, Place::World { position, angles: [0.4, 0.5, 0.6] }).unwrap().name.clone();
+        receive(&mut a.world, &new, Some(position), "world pickup");
+        assert_eq!(a.world.items.get(&old).unwrap().place, Place::World { position, angles: [0.0; 3] });
     }
 
     #[test]

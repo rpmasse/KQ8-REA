@@ -32,7 +32,6 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use kq8_core::active::{Active, Item, Pick, Request};
-use kq8_core::connor::Mode;
 use kq8_core::trap::Visitor;
 use kq8_core::collide::{BoxCollider, Placement};
 use kq8_core::door::turn_degrees;
@@ -1026,7 +1025,8 @@ pub fn spawn_doors(
     }
     active.world.terrain_changes = std::mem::take(&mut objects.terrain_changes);
     if let Some(help) = objects.arriving_help.take() {
-        active.world.help_prompts.restore_history(&help, active.world.updates);
+        let now = active.world.now() as f32;
+        active.world.help_prompts.restore_history_at(&help, now);
     }
     active.start();
     objects.kept_interactions.restore_special_actors(&mut active.world);
@@ -1191,16 +1191,7 @@ pub fn trap_step(
     // 6-15), after his move and this update's scripts; what it asks of him
     // and the camera joins the requests below.
     if sim.active.world.conversation.is_some() || sim.active.world.connor_leave.is_some() {
-        let asked = sim.active.world.conversation.as_ref().is_some_and(|c| !c.entered());
-        let may_enter = if !asked {
-            Ok(())
-        } else if matches!(connor.walker.mode, Mode::Dead | Mode::Dying) {
-            Err(format!("he is {}", connor.walker.mode.name()))
-        } else if connor.state_request("talk state", "conversation") {
-            Ok(())
-        } else {
-            Err("his jump is not finished".to_string())
-        };
+        connor.finish_talk_request(&mut sim.active);
         let position = connor.mover.position;
         // conversation.md rule 14: the camera-move button (not during
         // handsOff, which ignores the mouse look); `--right` for tests.
@@ -1208,7 +1199,8 @@ pub fn trap_step(
         let test = right_at.0.is_some_and(|n| sim.active.world.updates >= n);
         let right_held = (button || test) && !connor.hands_off;
         let ConnorSim { walker, .. } = &mut *connor;
-        sim.active.conversation_tick(walker, position, may_enter, right_held);
+        sim.active.conversation_tick(walker, position, right_held);
+        connor.finish_talk_request(&mut sim.active);
         sim.flush_conversation(&shared);
     }
     // M4 4e-7: Connor's gesture codes (conversation.md rule 18).
@@ -1231,9 +1223,9 @@ pub fn trap_step(
         connor.log.detail(format!("connor update {n}: lip-sync {line}"));
         shared.log.lock().unwrap().detail(format!("connor update {n}: lip-sync {line}"));
     }
-    // State requests a jump refused at an earlier update go first (3m-1).
-    let retried = connor.refused.len();
-    let inside = inside_from + retried..sim.active.world.requests.len() + retried;
+    // A pending state is not a frame queue: it is considered only when a
+    // new ordinary request reaches the synchronous dispatcher below.
+    let inside = inside_from..sim.active.world.requests.len();
     sim.flush_traps(&shared);
     sim.flush_items(&shared);
     sim.flush_rope(&shared);
@@ -1293,13 +1285,12 @@ pub fn trap_step(
         }
     }
     let requests: std::collections::VecDeque<(usize, Request)> =
-        std::mem::take(&mut connor.refused).into_iter().chain(std::mem::take(&mut sim.active.world.requests)).enumerate().collect();
+        std::mem::take(&mut sim.active.world.requests).into_iter().enumerate().collect();
     let mut requests = requests;
     // clicking.md rule 35 (Q105 b): a state a script asked for (and got)
     // before a click's turn decides it; otherwise his state at the click.
     let mut asked = false;
     while let Some((i, r)) = requests.pop_front() {
-        let again = if i < retried { " (tried again)" } else { "" };
         if matches!(r, Request::ConnorDies { .. } | Request::ConnorDieNow { .. }) && !sim.active.world.connor_death_entered {
             let state = connor.state_number();
             use kq8_core::character::state_number::{WAIT, SWAP_WEAPONS};
@@ -1307,8 +1298,7 @@ pub fn trap_step(
                 let line = format!("connor update {}: Die pending behind state {state}, movement {}", connor.updates, connor.walker.movement);
                 connor.log.detail(line);
                 if matches!(r, Request::ConnorDieNow { .. }) {
-                    connor.refused.clear();
-                    connor.refused.push(r);
+                    connor.pending_state = Some(r);
                 }
                 continue;
             }
@@ -1331,59 +1321,29 @@ pub fn trap_step(
             }
             continue;
         }
-        // anim-scripts.md rule 28: during an unfinished jump a state
-        // request finishes it first (handsOff on) or is refused.
-        let state = match &r {
-            Request::ConnorSpecial { at, .. } => Some(("setState special", at.clone())),
-            Request::ConnorWait { at } => Some(("setState Wait", at.clone())),
-            Request::ConnorChoice {at,..}|Request::ConnorTile {at}|Request::ConnorSecondaryTile {at,..}|Request::ConnorScales {at}
-                if connor.secondary_tile.is_some()=>Some(("setState puzzle",at.clone())),
-            // fighting.md rule 29 (M5 5c-4): his dying state is a state
-            // change too (**ours**: during a jump the same rule 28 applies).
-            Request::ConnorDies { at, .. } | Request::ConnorDieNow { at } => Some(("dying state", at.clone())),
-            Request::ConnorAuto { auto, at } if matches!(auto.kind, kq8_core::connor_auto::AutoKind::Walk { .. }) => Some(("scripted walk (Wait)", at.clone())),
-            _ => None,
-        };
-        if let Some((what, at)) = state {
-            // tile-puzzle.md rule 20 (D-4): refused and dropped while the
-            // exit switch is off.
-            if connor.tile_holds() || connor.scales.is_some() || (connor.secondary_holds() && !matches!(r,Request::ConnorDies {..}|Request::ConnorDieNow {..})) {
-                if matches!(r, Request::ConnorDies { .. }) { sim.active.world.pending_combat_death = None; }
-                connor.state_request(what, &at);
-                if let Some(log) = &mut sim.trap_log {
-                    log.detail(format!("update {}: {at}: {what}{again}: refused while Connor is in a puzzle state", sim.active.world.updates));
-                }
-                continue;
-            }
-            // ropeandhook.md rule 28 (M6 6a-6): refused and dropped.
-            if connor.roping() {
-                if matches!(r, Request::ConnorDies { .. }) { sim.active.world.pending_combat_death = None; }
-                connor.state_request(what, &at);
-                let line = format!("{at}: {what}{again}: refused, Connor is in the rope state; dropped (ropeandhook.md rule 28)");
-                sim.active.world.rope_note(line.clone());
-                if let Some(log) = &mut sim.trap_log {
-                    log.detail(format!("update {}: {line}", sim.active.world.updates));
-                }
-                continue;
-            }
-            if !connor.state_request(what, &at) {
-                let why = if connor.throw.is_some() { "Connor's hammer throw goes on, azriel-hammer.md rule 3; stand-in, Q148 d" } else { "Connor's jump is not finished" };
-                // azriel-hammer.md "Connor's waiting request" (Q148 d): one
-                // slot; a later refused request replaces it (the "strong
-                // states" exception not done).
-                let replaced = if connor.refused.is_empty() { "" } else { "; replaces the one waiting" };
-                let line = format!("update {}: {at}: {what}{again}: refused ({why}); kept as his waiting request{replaced}, tried again next update", sim.active.world.updates);
-                if let Some(log) = &mut sim.trap_log {
-                    log.detail(line);
-                }
-                connor.refused.clear();
-                connor.refused.push(r);
-                continue;
-            }
+        // Dedicated puzzle/rope controllers retain their established drop
+        // policy. Ordinary requests use the one slot, only when requested.
+        let ordinary = connor.ordinary_state_request(&r);
+        if ordinary && (connor.tile_holds() || connor.scales.is_some()
+            || (connor.secondary_holds() && !matches!(r, Request::ConnorDies {..} | Request::ConnorDieNow {..}))
+            || connor.roping()) {
+            if matches!(r, Request::ConnorDies {..}) { sim.active.world.pending_combat_death = None; }
+            continue;
+        }
+        if ordinary {
+            let from = sim.active.world.requests.len();
+            let line = connor.dispatch_state(&mut sim.active, r).expect("classified state request");
             asked = true;
+            shared.log.lock().unwrap().summary(format!("state: {line}"));
+            for request in sim.active.world.requests.drain(from..).rev() {
+                requests.push_front((usize::MAX, request));
+            }
+            continue;
         }
         let callback_from = sim.active.world.requests.len();
         let line = match r {
+            Request::ConnorConversationStart | Request::ConnorTalk | Request::ConnorTransition(_)
+                | Request::ConnorDieNow { .. } | Request::ConnorDies { .. } | Request::ConnorSpecial { .. } | Request::ConnorWait { .. } => unreachable!("ordinary state dispatch above"),
             Request::ConnorThrowRock { aim } => {
                 let w = &mut sim.active.world;
                 let p = connor.mover.position;
@@ -1417,31 +1377,9 @@ pub fn trap_step(
                 sim.active.world.fight_note("Connor", format!("{at}: {line}"));
                 format!("{at}: applied: Connor {line}")
             }
-            Request::ConnorDieNow { at } => {
-                connor.complete_death(&mut sim.active, true);
-                if let kq8_core::connor::ScriptedDeath::HoldUntil(due) = sim.active.world.scripted_death {
-                    if !connor.hands_off {
-                        requests.push_front((usize::MAX, Request::HandsOff { on: true, at: at.clone() }));
-                    }
-                    format!("{at}: Connor Die Now, hold until update {due}; camera {:?}, pose '{}'", camera.as_ref().map(|c| c.position()), connor.walker.movement)
-                } else {
-                    format!("{at}: Connor reincarnates into Wait with full health")
-                }
-            }
             Request::ConnorGravity { on, at } => {
                 connor.mover.use_gravity = on;
                 format!("{at}: Connor gravity {on}")
-            }
-            Request::ConnorDies { kind, at } => {
-                let kind = sim.active.world.connor_last_hit.unwrap_or(kind);
-                sim.active.world.first_person = false;
-                if let Some(line) = connor.refresh_perspective(&sim.active.world) {
-                    sim.active.world.fight_note("Connor", line);
-                }
-                sim.active.world.enter_connor_death();
-                let line = connor.die_from_hit(kind);
-                sim.active.world.fight_note("Connor", format!("{at}: {line}"));
-                format!("{at}: applied: Connor {line}")
             }
             Request::EndJump { at } => format!("{at}: applied: {}", connor.end_jump(&at)),
             Request::ConnorChoice { list, at } => {
@@ -1483,10 +1421,6 @@ pub fn trap_step(
                     rules.always_near.remove(&name.to_ascii_lowercase());
                 }
                 format!("{at}: applied: [{name}] {}", if on { "always near" } else { "back to the distance test" })
-            }
-            Request::ConnorSpecial { items, at } => {
-                let line = connor.start_special(&items, &at);
-                format!("{at}: applied{again}: Connor {line}")
             }
             Request::ConnorPreSpecial { at } => {
                 let line = connor.pre_special(&at);
@@ -1569,10 +1503,6 @@ pub fn trap_step(
                     }
                     (a, _) => format!("{at}: DeadHallTeleport:  cannot find object {}; nothing (rule 22)", if a.is_none() { &from } else { &to }),
                 }
-            }
-            Request::ConnorWait { at } => {
-                let line = connor.enter_wait(&at);
-                format!("{at}: applied{again}: Connor {line}")
             }
             Request::Move { who, flags, position, turn, at } if who.eq_ignore_ascii_case("Connor") => {
                 // The scene his update used; the objects he pushed this
@@ -2400,9 +2330,15 @@ pub fn door_step(
             let line = if who.eq_ignore_ascii_case(kq8_core::talk::CONNOR) { c.throw_caught(&how) } else { format!("{how}: thrown by {who}, not Connor: nothing") };
             sim.active.world.fight_note("Connor", line);
         }
+        let rock_before = c.rock.is_some();
         if let Some(projectile) = c.rock_step() { sim.active.world.connor_projectile = projectile; }
-        if let Some(line) = c.throw_step() {
+        if let Some(line) = c.throw_step(&mut sim.active) {
             sim.active.world.fight_note("Connor", line);
+        }
+        if rock_before && c.rock.is_none() && c.throw.is_none() {
+            // The existing Rock out completion has released its controller.
+            // This is the actual completion boundary, not a frame retry.
+            c.retry_pending_state(&mut sim.active);
         }
         let aim_now = c.shot.as_ref().map(|s| s.aim);
         for (m, phase, moving) in std::mem::take(&mut c.shot_cues) {

@@ -34,6 +34,55 @@
 
 use kq8_data::conv_info::ConvInfo;
 
+/// State identity for the ordinary request gate. Payloads remain with the host.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StateRequest {
+    Talk, Wait, Move, Fall, Special, Die,
+    /// A standing movement ended; retry the old slot without a new request.
+    RetryPending,
+}
+impl StateRequest {
+    pub fn strong(self) -> bool { matches!(self, Self::Talk | Self::Special) }
+}
+
+/// One replaceable pending request. A successful old request owns this call;
+/// the incoming request is retained without testing the newly entered state.
+pub fn select_request<T>(pending: &mut Option<T>, incoming: T, mut accepts: impl FnMut(&T) -> bool, strong: impl Fn(&T) -> bool) -> Option<(T, bool)> {
+    if let Some(old) = pending.take() {
+        if !(strong(&incoming) && !strong(&old)) && accepts(&old) {
+            *pending = Some(incoming);
+            return Some((old, false));
+        }
+    }
+    if accepts(&incoming) { Some((incoming, true)) }
+    else { *pending = Some(incoming); None }
+}
+
+pub fn admits(walker: &Walker, swap: bool, next: StateRequest) -> bool {
+    use crate::connor::Mode;
+    if next == StateRequest::RetryPending || swap && next == StateRequest::Talk { return false; }
+    match walker.mode {
+        Mode::Jump => walker.jump_finished,
+        Mode::Fall | Mode::Land => walker.fall_finished,
+        Mode::Special => walker.special_at + 1 >= walker.special.len(),
+        Mode::Talk => walker.talk_exit_open && matches!(next, StateRequest::Wait | StateRequest::Move | StateRequest::Special | StateRequest::Die),
+        // The host holds requests until catch opens this owner's gate.
+        Mode::Throw => matches!(next, StateRequest::Wait | StateRequest::Move | StateRequest::Special | StateRequest::Die),
+        Mode::Dying | Mode::CombatDie | Mode::ScriptedDie | Mode::Dead => false,
+        Mode::Free => true,
+        // Other dedicated controllers retain their existing host gates.
+        _ => next != StateRequest::Talk,
+    }
+}
+
+/// Ignore a late conversation-end notification if another controller already
+/// owns Connor. An ordinary Talk exit opens its gate before proposing a state.
+pub fn exit_request(walker: &mut Walker) -> Option<StateRequest> {
+    if walker.mode != crate::connor::Mode::Talk { return None; }
+    walker.talk_exit_open = true;
+    Some(if walker.moving() { StateRequest::Move } else { StateRequest::Wait })
+}
+
 use crate::active::{Active, GuiOrder, Request, WorldState};
 use crate::connor::{Walker, EMPTY_HANDS};
 use crate::connor_auto::{heading_towards, AutoKind, AutoMove};
@@ -84,7 +133,7 @@ pub enum Stage {
 pub struct Conversation {
     /// The partner's name as the world writes it.
     pub partner: String,
-    /// The partner's position when the command was given (rule 2).
+    /// The partner's position when Connor receives the start message (rule 2).
     pub partner_at: [f32; 3],
     /// Its info object (`None`: Do not reproduce, treated as "there").
     pub info: Option<ConvInfo>,
@@ -268,10 +317,12 @@ impl WorldState {
             Some(old) => {
                 notes.push(format!("replaces the conversation with {} not entered yet", old.partner));
                 self.conversation = Some(c);
+                self.requests.push(Request::ConnorConversationStart);
             }
             None => {
                 notes.push(format!("Connor is sent the start message (handled after the scripts); the partner at ({:.0}, {:.0}, {:.0})", partner_at[0], partner_at[1], partner_at[2]));
                 self.conversation = Some(c);
+                self.requests.push(Request::ConnorConversationStart);
             }
         }
         let line = notes.join("; ");
@@ -281,23 +332,34 @@ impl WorldState {
 }
 
 impl Active {
+    /// Preparation occurs once at the start message, including on refusal.
+    pub fn conversation_prepare(&mut self, walker: &mut Walker) -> bool {
+        let Some(partner) = self.world.conversation.as_ref().filter(|c| !c.entered()).map(|c| c.partner.clone()) else { return false; };
+        let now = self.world.now();
+        let clear = self.world.talk.clear(CONNOR, now);
+        let position = self.world.object_point(&partner).unwrap_or([0.; 3]);
+        self.world.conversation.as_mut().unwrap().partner_at = position;
+        walker.pre_special();
+        self.world.conversation_note(format!("start message: Connor speech {clear}; partner position {position:?}; Stop requested, current movement cuttable"));
+        true
+    }
+
+    pub fn conversation_admitted<'a>(&mut self, walker: &mut Walker, position: [f32; 3], loops: &dyn Fn(&str) -> Option<&'a crate::connor::MovementLoop>) {
+        if !self.world.conversation.as_ref().is_some_and(|c| !c.entered()) { return; }
+        walker.enter_talk();
+        walker.request_talk_stop(loops);
+        self.conversation_enter(walker, position);
+    }
+
     /// Connor's side of a conversation, once per update after his move
-    /// (the caller: the viewer, before it applies the requests). `may_enter`:
-    /// his state lets him into the talk state now (an unfinished jump
-    /// doesn't, `anim-scripts.md` rule 28: tried again next update).
+    /// (the caller: the viewer, before it applies requests). Asked is inert:
+    /// admission is driven only by the explicit state-request dispatcher.
     /// `right_held`: the camera-move (right) button is held now (rule 14).
     /// Returns nothing; lines go to `conversation_log`.
-    pub fn conversation_tick(&mut self, walker: &mut Walker, position: [f32; 3], may_enter: Result<(), String>, right_held: bool) {
-        if let Some(why) = self.world.connor_leave.take() {
-            let to = walker.leave_talk();
-            self.world.conversation_note(format!("Connor leaves his talk state ({why}): {to} (rule 15)"));
-        }
+    pub fn conversation_tick(&mut self, walker: &mut Walker, position: [f32; 3], right_held: bool) {
         let Some(stage) = self.world.conversation.as_ref().map(|c| c.stage) else { return };
         match stage {
-            Stage::Asked => match may_enter {
-                Ok(()) => self.conversation_enter(walker, position),
-                Err(why) => self.world.conversation_note(format!("Connor can't go into his talk state now ({why}); tried again next update")),
-            },
+            Stage::Asked => {},
             Stage::Away | Stage::Out => self.weapon_away(walker, position, stage),
             Stage::StopWalk | Stage::WalkStopRight => self.approach(walker, position, stage),
             Stage::Talking => {
@@ -371,16 +433,9 @@ impl Active {
         ));
     }
 
-    /// Rule 2's start message and rule 6: Connor goes into his talk state.
+    /// Rule 6: ownership has been admitted; perform Talk's approach/camera work.
     fn conversation_enter(&mut self, walker: &mut Walker, position: [f32; 3]) {
-        let now = self.world.now();
         let mut notes = Vec::new();
-        notes.push(format!("Connor's speak queue: {}", self.world.talk.clear(CONNOR, now)));
-        notes.push(walker.enter_talk());
-        // interface.md rule 16: the bottom bar's panels away (not during
-        // handsOff: the panels decide).
-        self.world.gui_orders.push(GuiOrder::Conversation { start: true, at: "conversation starts".into() });
-        notes.push("the bottom bar is put away (unless handsOff; remembered for the end)".into());
         let w = &mut self.world;
         let c = w.conversation.as_mut().expect("asked");
         c.resume_first_person = std::mem::replace(&mut w.first_person, false);
@@ -530,7 +585,7 @@ impl Active {
     }
 
     /// Rule 13: every update, outside the stay area ends the conversation.
-    fn stay_test(&mut self, walker: &mut Walker, position: [f32; 3]) {
+    fn stay_test(&mut self, _walker: &mut Walker, position: [f32; 3]) {
         let c = self.world.conversation.as_ref().expect("talking");
         let Some(info) = &c.info else { return };
         if info.in_area(1, [position[0], position[1]]) {
@@ -551,10 +606,6 @@ impl Active {
         };
         self.world.conversation_note(format!("stay test: Connor at ({:.0}, {:.0}) is outside the stay area: walked away (rule 13); {what}", position[0], position[1]));
         self.conversation_leave("walked out of the stay area", talk_exit);
-        if let Some(why) = self.world.connor_leave.take() {
-            let to = walker.leave_talk();
-            self.world.conversation_note(format!("Connor leaves his talk state ({why}): {to} (rule 15)"));
-        }
     }
 
     /// Rule 15: the conversation ends. Connor's own state changes at the
@@ -619,6 +670,74 @@ impl Active {
 mod tests {
     use super::*;
 
+    impl Active {
+        // Existing approach/speech fixtures explicitly deliver the command's
+        // one start message. Ordinary refused-state arbitration is exercised
+        // by the shared admission matrix and the real viewer dispatcher.
+        fn conversation_test_tick(&mut self, walker: &mut Walker, position: [f32; 3], may_enter: Result<(), String>, right: bool) {
+            if let Some(i) = self.world.requests.iter().position(|r| matches!(r, Request::ConnorConversationStart)) {
+                self.world.requests.remove(i);
+                self.conversation_prepare(walker);
+                if may_enter.is_ok() {
+                    self.conversation_admitted(walker, position, &|_| None);
+                    self.world.gui_orders.push(GuiOrder::Conversation { start: true, at: "fixture start-message accepted".into() });
+                }
+                return;
+            }
+            self.conversation_tick(walker, position, right);
+            if self.world.connor_leave.take().is_some() { walker.talk_exit_open = true; walker.leave_talk(); }
+        }
+    }
+
+    #[test]
+    fn conversation_admission_grouped_gate_slot_and_start_preparation() {
+        use crate::connor::{Mode, SpecialStep};
+        use StateRequest::*;
+        let mut walker = Walker::new(0.);
+        walker.mode = Mode::Special;
+        assert_eq!(exit_request(&mut walker), None);
+        assert_eq!(walker.mode, Mode::Special, "obsolete Talk end must not manufacture Wait");
+        walker.enter_talk();
+        assert_eq!(exit_request(&mut walker), Some(Wait));
+        assert!(walker.talk_exit_open);
+        for mode in [Mode::Free, Mode::Jump, Mode::Fall, Mode::Land, Mode::Special, Mode::Talk, Mode::CombatDie] {
+            walker.mode = mode;
+            walker.jump_finished = false; walker.fall_finished = false; walker.talk_exit_open = false;
+            walker.special = vec![SpecialStep::Play("one", "one".into()), SpecialStep::Play("two", "two".into())]; walker.special_at = 0;
+            assert_eq!(admits(&walker, false, Talk), mode == Mode::Free, "{mode:?}");
+        }
+        walker.mode = Mode::Special; walker.special_at = 1;
+        assert!(admits(&walker, false, Talk), "last clip still plays but no later words remain");
+        assert!(!admits(&walker, true, Talk), "Swap is distinct from ordinary Special");
+        walker.mode = Mode::Jump; walker.jump_finished = true;
+        let mut slot = Some(Talk);
+        assert_eq!(select_request(&mut slot, Fall, |r| admits(&walker, false, *r), |r| r.strong()), Some((Talk, false)));
+        assert_eq!(slot, Some(Fall));
+        walker.mode = Mode::Talk; walker.talk_exit_open = true;
+        assert_eq!(select_request(&mut slot, Wait, |r| admits(&walker, false, *r), |r| r.strong()), Some((Wait, true)), "Talk never admits the retained Fall");
+        slot = Some(Wait);
+        assert_eq!(select_request(&mut slot, Move, |r| admits(&walker, false, *r), |r| r.strong()), Some((Wait, false)));
+        assert_eq!(slot, Some(Move));
+        walker.mode = Mode::Jump; walker.jump_finished = false; slot = Some(Talk);
+        assert_eq!(select_request(&mut slot, Special, |r| admits(&walker, false, *r), |r| r.strong()), None);
+        assert_eq!(slot, Some(Special), "new refusal replaces Talk rather than guaranteeing a later conversation");
+
+        let mut active = world();
+        active.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "admission matrix");
+        active.world.monsters[0].position = [1111., 2222., 3333.];
+        walker.movement = "jump"; walker.phase = 0.4;
+        assert!(active.conversation_prepare(&mut walker));
+        assert_eq!(active.world.conversation.as_ref().unwrap().partner_at, [1111., 2222., 3333.]);
+        assert_eq!((walker.mode, walker.movement, walker.phase), (Mode::Jump, "jump", 0.4));
+        assert!(walker.pre_special_stop && walker.interrupt_override == Some(true));
+        assert!(active.world.gui_orders.is_empty());
+        active.conversation_tick(&mut walker, [1000., 1000., 100.], false);
+        assert!(!active.world.conversation.as_ref().unwrap().entered(), "no frame retry");
+        active.conversation_admitted(&mut walker, [1000., 1000., 100.], &|_| None);
+        assert!(active.world.conversation.as_ref().unwrap().entered());
+        assert!(!active.world.gui_orders.iter().any(|r| matches!(r, GuiOrder::Conversation { start: true, .. })), "deferred entry does not repeat panel hiding");
+    }
+
     fn info() -> ConvInfo {
         // The Wizard's file, as Daventry has it (numbers from the data
         // are not written into the repo: made-up ones in the same shape).
@@ -657,18 +776,18 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         let mut a = world();
         a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
         let mut walker = Walker::new(0.0);
-        a.conversation_tick(&mut walker, [3000.0, 1000.0, 100.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [3000.0, 1000.0, 100.0], Ok(()), false);
         walker.movement = STOP_WALK; walker.phase = 0.5;
         a.world.conversation.as_mut().unwrap().approach_updates = 5;
         let saved: SavedConversation = serde_json::from_slice(&serde_json::to_vec(&a.world.saved_conversation()).unwrap()).unwrap();
         let mut fresh = world();
         fresh.world.restore_conversation(&saved).unwrap();
         assert_eq!(fresh.world.conversation.as_ref().map(|c| (c.stage, c.approach_updates)), Some((Stage::StopWalk, 5)));
-        fresh.conversation_tick(&mut walker, [3000.0, 1000.0, 100.0], Ok(()), false);
+        fresh.conversation_test_tick(&mut walker, [3000.0, 1000.0, 100.0], Ok(()), false);
         assert_eq!(fresh.world.conversation.as_ref().unwrap().approach_updates, 6);
         assert!(fresh.world.gui_orders.is_empty(), "entry must not put the bar away twice");
         walker.phase = 1.0;
-        fresh.conversation_tick(&mut walker, [3000.0, 1000.0, 100.0], Ok(()), false);
+        fresh.conversation_test_tick(&mut walker, [3000.0, 1000.0, 100.0], Ok(()), false);
         assert_eq!(fresh.world.conversation.as_ref().unwrap().stage, Stage::WalkStopRight);
         assert_eq!(walker.talk_play, Some(WALK_STOP_RIGHT));
         assert_eq!(fresh.world.requests.iter().filter(|r| matches!(r, Request::Move { who, .. } if who == CONNOR)).count(), 1);
@@ -680,7 +799,7 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         a.world.connor_at = Some([3000., 1000., 100.]);
         a.world.first_person = true;
         a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
-        a.conversation_tick(&mut Walker::new(0.), [3000., 1000., 100.], Ok(()), false);
+        a.conversation_test_tick(&mut Walker::new(0.), [3000., 1000., 100.], Ok(()), false);
         assert!(!a.world.first_person);
         assert!(!a.world.first_person_key(false));
         let saved = serde_json::to_vec(&a.world.saved_conversation()).unwrap();
@@ -696,7 +815,7 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         let mut a = world();
         a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
         let mut walker = Walker::new(0.0);
-        a.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
         for _ in 0..5 { a.update(); }
         a.world.conversation.as_mut().unwrap().cuts_stopped = true;
         let saved: SavedConversation = serde_json::from_slice(&serde_json::to_vec(&a.world.saved_conversation()).unwrap()).unwrap();
@@ -707,7 +826,7 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         assert!(fresh.world.conversation.as_ref().unwrap().cuts_stopped);
         for _ in 0..40 {
             fresh.update();
-            fresh.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+            fresh.conversation_test_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
         }
         assert!(fresh.world.conversation.is_none());
         assert_eq!(walker.mode, crate::connor::Mode::Free);
@@ -722,7 +841,7 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         a.test_command("KQConner::conversation Bob 1000 60 0 0 1 0 0", "test");
         assert_eq!(a.world.conversation.as_ref().map(|c| (c.stage, c.lines.last)), Some((Stage::Asked, 2)), "<last> 0: the run");
         let mut walker = Walker::new(0.0);
-        a.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
         assert_eq!(a.world.conversation.as_ref().map(|c| (c.case, c.stage)), Some((Some(Case::There), Stage::Talking)));
         assert_eq!(walker.mode, crate::connor::Mode::Talk);
         assert!(a.world.speak_ignored("Connor") && a.world.speak_ignored("bob") && !a.world.speak_ignored("Wizard"));
@@ -737,7 +856,7 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         let last = log.find("Bob: TalkComplete 1000 60 0 0 2").expect(&log);
         assert!(log.contains("Bob: TalkComplete 1000 60 0 0 1") && exit < last, "TalkExit before the last line's TalkComplete: {log}");
         assert!(a.world.conversation.is_none());
-        a.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
         assert_eq!(walker.mode, crate::connor::Mode::Free, "Wait");
         assert!(a.world.gui_orders.iter().filter(|o| matches!(o, GuiOrder::Conversation { .. })).count() == 2, "the bar away and back");
     }
@@ -750,14 +869,14 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         let mut walker = Walker::new(0.0);
         walker.hand_mode = crate::connor::SWORD_MODE;
         let at = [1000.0, 1000.0, 100.0];
-        a.conversation_tick(&mut walker, at, Ok(()), false);
+        a.conversation_test_tick(&mut walker, at, Ok(()), false);
         assert_eq!(a.world.conversation.as_ref().map(|c| c.stage), Some(Stage::Away));
         assert_eq!((walker.mode, walker.talk_play), (crate::connor::Mode::Talk, Some(WEAPON_AWAY)));
         (walker.movement, walker.phase) = (WEAPON_AWAY, 1.0);
-        a.conversation_tick(&mut walker, at, Ok(()), false);
+        a.conversation_test_tick(&mut walker, at, Ok(()), false);
         assert_eq!((walker.hand_mode, walker.talk_play, a.world.weapon_ready.clone()), (EMPTY_HANDS, Some(WEAPON_OUT), None), "bare hands");
         (walker.movement, walker.phase) = (WEAPON_OUT, 1.0);
-        a.conversation_tick(&mut walker, at, Ok(()), false);
+        a.conversation_test_tick(&mut walker, at, Ok(()), false);
         assert_eq!((a.world.conversation.as_ref().map(|c| c.stage), walker.talk_play), (Some(Stage::Talking), None), "then case there");
     }
 
@@ -766,12 +885,12 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         let mut a = world();
         a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
         let mut walker = Walker::new(0.0);
-        a.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
         a.update();
-        a.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
         assert!(a.world.conversation.is_some(), "still inside");
         a.take_log();
-        a.conversation_tick(&mut walker, [2000.0, 1000.0, 100.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [2000.0, 1000.0, 100.0], Ok(()), false);
         assert!(a.world.conversation.is_none() && walker.mode == crate::connor::Mode::Free);
         let log = a.take_log().join("\n");
         assert!(log.contains("no goodbye") && log.contains("script bob.cs Bob TalkExit"), "Do not reproduce: TalkExit anyway: {log}");
@@ -783,14 +902,16 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         a.world.conv_infos.clear();
         a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
         let mut walker = Walker::new(0.0);
-        a.conversation_tick(&mut walker, [9000.0, 9000.0, 0.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [9000.0, 9000.0, 0.0], Ok(()), false);
         assert_eq!(a.world.conversation.as_ref().map(|c| c.case), Some(Some(Case::There)));
         let mut a = world();
         a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
-        a.conversation_tick(&mut walker, [9000.0, 9000.0, 0.0], Err("jumping".into()), false);
-        assert_eq!(a.world.conversation.as_ref().map(|c| c.stage), Some(Stage::Asked), "tried again later");
+        a.conversation_test_tick(&mut walker, [9000.0, 9000.0, 0.0], Err("jumping".into()), false);
+        assert_eq!(a.world.conversation.as_ref().map(|c| c.stage), Some(Stage::Asked), "prepared but refused");
         let mut w2 = Walker::new(0.0);
-        a.conversation_tick(&mut w2, [9000.0, 9000.0, 0.0], Ok(()), false);
+        a.conversation_test_tick(&mut w2, [9000.0, 9000.0, 0.0], Ok(()), false);
+        assert_eq!(a.world.conversation.as_ref().map(|c| c.stage), Some(Stage::Asked), "another frame does not retry");
+        a.conversation_admitted(&mut w2, [9000.0, 9000.0, 0.0], &|_| None);
         assert_eq!(a.world.conversation.as_ref().map(|c| c.case), Some(Some(Case::There)), "no case: there");
         // Bad commands.
         let mut a = world();
@@ -831,7 +952,7 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         let mut a = clickable_world();
         a.test_command("KQConner::conversation Bob 1000 60 0 0 1 2 0", "test");
         let mut walker = Walker::new(0.0);
-        a.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
         assert_eq!(a.click("Bob", [1000.0, 1000.0, 0.0], 100.0, None), ClickResult::Nothing);
         assert!(a.world.connor_in_talk());
         let horn = Item { object: "horn.1".into(), kind: "INVITEM_UniHorn".into() };
@@ -855,7 +976,7 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         a.world.talk.book.add("x", MessageFile { kind: 0x0F, version: 5010, last_id: 0, lines: vec![line(1, "([0]) A."), line(2, "([1]) B."), line(3, "([0]) C.")] }, 1001);
         a.test_command("KQConner::conversation Bob 1001 1 0 0 1 3 0", "test");
         let mut walker = Walker::new(0.0);
-        a.conversation_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
+        a.conversation_test_tick(&mut walker, [1000.0, 1000.0, 100.0], Ok(()), false);
         a.world.requests.clear();
         a.update();
         let cut = |r: &[Request]| r.iter().any(|r| matches!(r, Request::Move { who, position, .. } if who == "KQCamera" && *position == [0.0, 0.0, 500.0]));
@@ -871,7 +992,7 @@ box0=0 0 4000 0 4000 4000 0 4000\nbox1=500 500 1500 500 1500 1500 500 1500\nnCam
         // the swing around it, and no more cuts.
         // Connor walked 200 east of his spot: the swing's centre is still
         // half-way between Bob and the talking spot (Q126), not him.
-        a.conversation_tick(&mut walker, [1200.0, 1000.0, 100.0], Ok(()), true);
+        a.conversation_test_tick(&mut walker, [1200.0, 1000.0, 100.0], Ok(()), true);
         let spot = a.world.conversation.as_ref().and_then(|c| c.info.as_ref()).map(|i| i.spot).unwrap();
         let partner = a.world.conversation.as_ref().map(|c| c.partner_at).unwrap();
         let half = std::array::from_fn::<f32, 3, _>(|k| 0.5 * (spot[k] + partner[k]));

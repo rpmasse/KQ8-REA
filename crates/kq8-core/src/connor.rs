@@ -557,6 +557,9 @@ pub struct Walker {
     /// request with `handsOff` on; `anim-scripts.md` rule 28): the Jump
     /// state now lets another state replace it.
     pub jump_finished: bool,
+    /// Conversation admission gates, distinct from physical ground contact.
+    pub fall_finished: bool,
+    pub talk_exit_open: bool,
     /// The lean into a turn while running, radians about his forward axis;
     /// positive = leaning to his left (turning left). Drawing only.
     pub bank: f32,
@@ -664,6 +667,8 @@ impl Walker {
             choice: "stop",
             kind: JumpKind::Stand,
             jump_finished: false,
+            fall_finished: false,
+            talk_exit_open: false,
             submerged: false,
             bank: 0.0,
             lean_allowed: false,
@@ -751,6 +756,7 @@ impl Walker {
     pub fn enter_talk(&mut self) -> String {
         let from = self.mode.name();
         self.mode = Mode::Talk;
+        self.talk_exit_open = false;
         self.talk_play = None;
         self.wanted = None;
         self.waiting = None;
@@ -759,6 +765,28 @@ impl Walker {
         // request, made the ordinary way.
         self.choice = "";
         format!("talk state (from {from}): asks for Stop the ordinary way; {} playing", self.movement)
+    }
+
+    pub fn request_talk_stop<'a>(&mut self, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) {
+        self.choice = "stop";
+        self.state_movement("stop", loops, &mut Vec::new());
+    }
+
+    /// Ownership has already passed the common gate; preserve current playback
+    /// so Stop uses its authored transition rather than restarting it.
+    pub fn accepted_wait<'a>(&mut self, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) {
+        self.mode = Mode::Free;
+        self.talk_play = None;
+        self.special.clear();
+        self.special_at = 0;
+        self.choice = "stop";
+        self.state_movement("stop", loops, &mut Vec::new());
+    }
+
+    pub fn accepted_move(&mut self) {
+        self.mode = Mode::Free;
+        self.talk_play = None;
+        self.choice = "";
     }
 
     /// A lip-sync gesture code for Connor (`conversation.md` rule 18, M4
@@ -975,6 +1003,10 @@ impl Walker {
     /// Handles items from `special_at` on until one is a movement (it
     /// starts from phase 0) or the list is used up (back to standing).
     fn special_items(&mut self, notes: &mut Vec<String>) {
+        self.special_items_with(notes, &mut |walker, _| walker.set_mode(Mode::Free));
+    }
+
+    fn special_items_with(&mut self, notes: &mut Vec<String>, request: &mut dyn FnMut(&mut Walker, crate::conversation::StateRequest)) {
         while let Some(step) = self.special.get(self.special_at).cloned() {
             match step {
                 SpecialStep::Play(name, written) => {
@@ -1008,7 +1040,7 @@ impl Walker {
         }
         notes.push("special: list used up: back to standing".into());
         self.special.clear();
-        self.set_mode(Mode::Free);
+        request(self, crate::conversation::StateRequest::Wait);
     }
 
     /// Which jump the Jump key would start now, or why none: only in the
@@ -1040,6 +1072,7 @@ impl Walker {
     /// (measured in the original: `jumprun` 3 updates then `run`;
     /// `jumpstop` 13 updates then standing).
     pub fn land(&mut self) {
+        self.fall_finished = true;
         if self.kind.end().is_some() {
             self.set_mode(Mode::Land);
             return;
@@ -1084,6 +1117,7 @@ impl Walker {
             return;
         }
         self.clear_transitions();
+        if mode == Mode::Fall { self.fall_finished = false; }
         if mode == Mode::Free {
             self.movement = "stop";
             self.interrupt_override = None;
@@ -1447,10 +1481,17 @@ impl Walker {
 
     /// One update (1/15 s). `loops` gives a movement's loop by name.
     pub fn update<'a>(&mut self, intent: Intent, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>) -> Step {
+        self.update_with_requests(intent, loops, &mut |walker, next| {
+            if next != crate::conversation::StateRequest::RetryPending { walker.set_mode(Mode::Free); }
+        })
+    }
+
+    pub fn update_with_requests<'a>(&mut self, intent: Intent, loops: &dyn Fn(&str) -> Option<&'a MovementLoop>, request: &mut dyn FnMut(&mut Walker, crate::conversation::StateRequest)) -> Step {
         let dt = (1.0 / UPDATES_PER_SECOND) as f32;
         let mut mode_changed = None;
         let mut notes = Vec::new();
         let start = self.movement;
+        let mut retry_pending = false;
         // pushing.md rule 7: the counter, every update in Push.
         if self.mode == Mode::Push {
             let key = intent.forward != 0 || intent.turn != 0;
@@ -1469,7 +1510,7 @@ impl Walker {
                 self.wanted = None;
             }
             self.special_at += 1;
-            self.special_items(&mut notes);
+            self.special_items_with(&mut notes, request);
             if self.mode != Mode::Special {
                 mode_changed = Some((Mode::Special, self.mode));
             }
@@ -1482,8 +1523,11 @@ impl Walker {
                 _ => None,
             };
             if let Some(next) = next {
-                mode_changed = Some((self.mode, next));
-                self.set_mode(next);
+                let before = self.mode;
+                if self.mode == Mode::Land {
+                    request(self, if intent.forward != 0 { crate::conversation::StateRequest::Move } else { crate::conversation::StateRequest::Wait });
+                } else { self.set_mode(next); }
+                mode_changed = (before != self.mode).then_some((before, self.mode));
             }
         }
         if let Some(m) = (!self.animation_input_lock).then(|| self.mode_movement()).flatten() {
@@ -1660,12 +1704,15 @@ impl Walker {
                             self.phase = 0.0;
                             self.fresh = true;
                             self.reaction_started();
-                        } else if self.mode == Mode::Free && self.choice == "stop" && played != "stop" && !played.starts_with("gesture") {
+                        } else if self.mode == Mode::Free && self.choice == "stop"
+                            && !plain_movement_name(played).eq_ignore_ascii_case("stop")
+                            && !plain_movement_name(played).get(..7).is_some_and(|s| s.eq_ignore_ascii_case("gesture")) {
                             // characters.md rule 22 (Q160): in Wait, a
                             // movement other than Stop or a gesture that
                             // ends asks for Stop (a script's `portalx`).
                             notes.push(format!("{played} ended in Wait: asks for stop (characters.md rule 22)"));
                             self.state_movement("stop", loops, &mut notes);
+                            retry_pending = loops("stop").is_some();
                         }
                     }
                 }
@@ -1691,6 +1738,11 @@ impl Walker {
             own
         };
         step.own_step = own;
+        if retry_pending && step.ended.is_some() && self.mode == Mode::Free && !self.moving() {
+            // Common animation completion has run; the standing state now
+            // retries its one waiting request before the mover uses the step.
+            request(self, crate::conversation::StateRequest::RetryPending);
+        }
         // The preparation writes a live flag. Later cues may replace it,
         // including across a repeating loop; starting another motion has
         // already cleared the override. Other cue effects remain unchanged.

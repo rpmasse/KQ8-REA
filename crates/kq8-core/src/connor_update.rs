@@ -27,6 +27,8 @@ pub struct Tick {
     /// caller sets the key turn direction to 0, so a held turn key does
     /// not take over (`connor-movement.md` "Turning" rule 2, Q104 a).
     pub auto_turn_ended: bool,
+    /// Ordinary jump-clip completion only, for the original tutorial timer.
+    pub jump_completed: Option<&'static str>,
 }
 
 /// Whether a jump can start now, and which (connor-physics.md "Jumping"
@@ -98,6 +100,11 @@ pub fn finish_jump(mover: &mut Mover, walker: &mut Walker) -> Option<String> {
 /// - otherwise refused: the Jump state refuses every other state while
 ///   the jump is not finished (`Err(why)`).
 pub fn state_request(mover: &mut Mover, walker: &mut Walker, hands_off: bool) -> Result<Option<String>, String> {
+    if hands_off { walker.interrupt_override = Some(true); }
+    if hands_off && matches!(walker.mode, Mode::Fall | Mode::Land) {
+        walker.fall_finished = true;
+        walker.interrupt_override = Some(true);
+    }
     if walker.mode != Mode::Jump || walker.jump_finished {
         return Ok(None);
     }
@@ -118,17 +125,43 @@ pub fn tick<'a>(
     loops: &dyn Fn(&str) -> Option<&'a MovementLoop>,
     world: &dyn MoverWorld,
 ) -> Tick {
+    tick_with_requests(mover, walker, intent, jump, loops, world, &mut |_, walker, next| {
+        match next {
+            crate::conversation::StateRequest::RetryPending => {},
+            crate::conversation::StateRequest::Fall => walker.set_mode(Mode::Fall),
+            crate::conversation::StateRequest::Move => walker.accepted_move(),
+            crate::conversation::StateRequest::Wait if walker.mode == Mode::Fall && walker.kind == JumpKind::Run => walker.land(),
+            _ => walker.set_mode(Mode::Free),
+        }
+    })
+}
+
+/// Completion requests execute at the original sites, before further physics
+/// or ownership changes; the host retains and dispatches full request payloads.
+pub fn tick_with_requests<'a>(
+    mover: &mut Mover, walker: &mut Walker, intent: Intent, jump: bool,
+    loops: &dyn Fn(&str) -> Option<&'a MovementLoop>, world: &dyn MoverWorld,
+    request: &mut dyn FnMut(&mut Mover, &mut Walker, crate::conversation::StateRequest),
+) -> Tick {
     let mut notes = Vec::new();
+    let mut jump_completed = None;
     // The jump animation ended last update: gravity on, Fall (rule 4).
     if walker.mode == Mode::Jump && walker.phase >= 1.0 {
         mover.end_jump();
-        walker.set_mode(Mode::Fall);
+        walker.jump_finished = true;
+        walker.interrupt_override = Some(true);
+        jump_completed = Some(walker.kind.jump());
+        request(mover, walker, crate::conversation::StateRequest::Fall);
         notes.push(format!(
-            "{} ended at z={:.0}: gravity on, steps 325, Fall (death limit from z={:.0}, fall timer 0.36 after 0.30)",
+            "{} ended at z={:.0}: gravity on, steps 325, Fall requested (death limit from z={:.0}, fall timer 0.36 after 0.30)",
             walker.kind.jump(),
             mover.position[2],
             mover.position[2] - crate::connor_mover::JUMP_DEATH_OFFSET
         ));
+    }
+    if walker.mode == Mode::ScriptedDie {
+        return Tick { step: None, report: Report::default(), wall_stop: None, notes,
+            auto_end: None, auto_turn_ended: false, jump_completed };
     }
     if jump {
         match can_jump(mover, walker, intent, world, loops) {
@@ -226,7 +259,7 @@ pub fn tick<'a>(
         step = Some(walker.update(intent, loops));
         mover.update([0.0; 3], world)
     } else {
-        mover.update_with(world, |_, fall| {
+        mover.update_with_mut(world, |mover, fall| {
             // Fall replaces the walk at once, so its first update already
             // uses the hold animation's step. A walk-off falls as `Stand`.
             // A crash too (the user's check in the original, 2026-10-17:
@@ -234,19 +267,23 @@ pub fn tick<'a>(
             // when he starts falling; Q82 b).
             // ropeandhook.md rule 28 (M6 6a-3): not in the rope state;
             // azriel-hammer.md rule 3 (M6 6b-3): nor in the throw state.
-            if fall == Some(FallEvent::Started) && !walker.controller_owned_input && !matches!(walker.mode, Mode::Rope | Mode::Throw | Mode::CombatDie) {
+            if fall == Some(FallEvent::Started) && !walker.controller_owned_input && !matches!(walker.mode, Mode::Rope | Mode::Throw | Mode::CombatDie | Mode::Talk) {
                 walker.kind = crate::connor::JumpKind::Stand;
-                walker.set_mode(Mode::Fall);
+                request(mover, walker, crate::conversation::StateRequest::Fall);
             }
-            let s = walker.update(intent, loops);
+            if walker.mode == Mode::ScriptedDie { return None; }
+            let s = walker.update_with_requests(intent, loops, &mut |walker, next| request(mover, walker, next));
             // Head-on acts while jumping too, steep surfaces counting, but
             // never during `backJump` ("Walls").
             let jumping = walker.mode == Mode::Jump && walker.kind != JumpKind::Back;
             let wish = Wish { step: s.wanted, moving: walker.moving() || jumping, steep_head_on: jumping, push: walker.push_ability() };
             step = Some(s);
-            wish
+            (walker.mode != Mode::ScriptedDie).then_some(wish)
         })
     };
+    if walker.mode == Mode::ScriptedDie {
+        return Tick { step, report, wall_stop: None, notes, auto_end, auto_turn_ended, jump_completed };
+    }
     // The water test after the move (water.md "The water test").
     let [x, y, z] = mover.position;
     let water = world.water(x, y);
@@ -271,7 +308,12 @@ pub fn tick<'a>(
             notes.push(format!("{e:?} in the hammer-throw state: no state change (azriel-hammer.md rule 3)"));
         }
         Some(FallEvent::Landed(_) | FallEvent::Died(_)) if walker.mode == Mode::CombatDie => {}
-        Some(FallEvent::Landed(_)) => walker.land(),
+        Some(FallEvent::Landed(_)) if walker.mode == Mode::Talk => {},
+        Some(FallEvent::Landed(_)) => {
+            walker.fall_finished = true;
+            if walker.kind.end().is_some() { walker.land(); }
+            else { request(mover, walker, if intent.forward != 0 { crate::conversation::StateRequest::Move } else { crate::conversation::StateRequest::Wait }); }
+        },
         Some(FallEvent::Died(_)) => walker.set_mode(Mode::Dying),
         _ => {}
     }
@@ -333,7 +375,7 @@ pub fn tick<'a>(
     if auto_turn_ended {
         notes.push("automatic turn ended: turn direction set to 0 (a held turn key does not take over)".into());
     }
-    Tick { step, report, wall_stop, notes, auto_end, auto_turn_ended }
+    Tick { step, report, wall_stop, notes, auto_end, auto_turn_ended, jump_completed }
 }
 
 /// What a steep hit during a jump does (connor-physics.md "Jumping" rule
@@ -431,6 +473,84 @@ mod tests {
     }
 
     const STAND: Intent = Intent { forward: 0, turn: 0, run: false };
+
+    #[test]
+    fn conversation_admission_grouped_completion_phases_and_jump_notice() {
+        use crate::conversation::{admits, select_request, StateRequest};
+        let list = list(); let loops = lookup(&list);
+        let mut mover = Mover::new([0., 0., 5000.], false);
+        mover.start_jump();
+        // The fixture starts after the flight updates, at the clip's end.
+        // Mover::new's boolean controls gravity; it always begins grounded.
+        mover.on_ground = false;
+        let mut walker = Walker::new(0.);
+        walker.start_jump(JumpKind::Stand); walker.phase = 1.;
+        let mut pending = Some(StateRequest::Talk);
+        let mut observed = Vec::new();
+        let result = tick_with_requests(&mut mover, &mut walker, STAND, false, &loops, &Plane(0.), &mut |m, w, incoming| {
+            observed.push((w.mode, m.on_ground, m.use_gravity, w.jump_finished, incoming));
+            let (next, _) = select_request(&mut pending, incoming, |r| admits(w, false, *r), |r| r.strong()).unwrap();
+            assert_eq!(next, StateRequest::Talk);
+            w.enter_talk(); w.request_talk_stop(&loops);
+        });
+        assert_eq!(observed.len(), 1);
+        assert_eq!(observed[0], (Mode::Jump, false, true, true, StateRequest::Fall));
+        assert_eq!(result.jump_completed, Some("jump"));
+        assert_eq!(walker.mode, Mode::Talk);
+        assert_eq!(pending, Some(StateRequest::Fall));
+        assert!(!mover.on_ground, "Talk took ownership before ground contact");
+
+        // Explicit endJump opens admission but is neither a new request nor
+        // the tutorial's ordinary clip-end notice.
+        let mut mover = Mover::new([0., 0., 5000.], false); mover.start_jump();
+        mover.on_ground = false; // This fixture likewise skips the earlier airborne frames.
+        let mut walker = Walker::new(0.); walker.start_jump(JumpKind::Stand); walker.phase = 0.2;
+        finish_jump(&mut mover, &mut walker);
+        let mut calls = 0;
+        let result = tick_with_requests(&mut mover, &mut walker, STAND, false, &loops, &Plane(0.), &mut |_, _, _| calls += 1);
+        assert_eq!((calls, result.jump_completed), (0, None));
+
+        // HandsOff-Fall only opens the gate; no landing or gravity rewrite.
+        walker.mode = Mode::Fall; walker.fall_finished = false;
+        mover.use_gravity = false; mover.step_up = 17.; mover.on_ground = false;
+        state_request(&mut mover, &mut walker, true).unwrap();
+        assert!(walker.fall_finished);
+        assert_eq!((walker.mode, mover.use_gravity, mover.step_up, mover.on_ground), (Mode::Fall, false, 17., false));
+
+        // A standing landing opens the gate without retrying. Its end emits
+        // the request while Land still owns the walker.
+        walker.kind = JumpKind::Stand; walker.land(); walker.phase = 0.3;
+        let mut seen = Vec::new();
+        walker.update_with_requests(STAND, &loops, &mut |w, r| seen.push((w.mode, r)));
+        assert!(seen.is_empty()); assert!(walker.fall_finished);
+        walker.phase = 1.;
+        walker.update_with_requests(STAND, &loops, &mut |w, r| { seen.push((w.mode, r)); w.accepted_wait(&loops); });
+        assert_eq!(seen, [(Mode::Land, StateRequest::Wait)]);
+
+        // The Special/Swap completion callback runs before Free owns it.
+        walker.start_special(vec![crate::connor::SpecialStep::Play("jumpend", "jumpend".into())]);
+        walker.phase = 1.; pending = Some(StateRequest::Talk);
+        walker.update_with_requests(STAND, &loops, &mut |w, incoming| {
+            assert_eq!(w.mode, Mode::Special);
+            let (next, immediate) = select_request(&mut pending, incoming, |r| admits(w, true, *r), |r| r.strong()).unwrap();
+            assert_eq!((next, immediate), (StateRequest::Wait, true));
+            w.accepted_wait(&loops);
+        });
+        assert!(pending.is_none(), "Swap discards refused Talk when it requests Wait");
+
+        // Wait retries only after an ended non-Stop, non-gesture movement
+        // successfully asks for Stop. Gesture/Stop ends have no retry event.
+        for (name, expected) in [("stop", 0), ("gesturea", 0), ("GeStUrEa", 0), ("scriptclip", 1)] {
+            let clips = [("stop", one_shot(vec![[0.; 3]; 1])), ("gesturea", one_shot(vec![[0.; 3]; 1])), ("GeStUrEa", one_shot(vec![[0.; 3]; 1])), ("scriptclip", one_shot(vec![[0.; 3]; 1]))];
+            let loops = lookup(&clips);
+            let mut walker = Walker::new(0.); walker.movement = name; walker.phase = 0.5;
+            let mut retries = 0;
+            walker.update_with_requests(STAND, &loops, &mut |w, r| {
+                if r == StateRequest::RetryPending { retries += 1; assert_eq!(w.movement, "stop"); }
+            });
+            assert_eq!(retries, expected, "{name}");
+        }
+    }
 
     #[test]
     fn secondary_tile_entry_flags_and_withdrawn_support_matrix() {
