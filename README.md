@@ -14,7 +14,7 @@ KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The en
 | M6 · Campaign and saves | Using earned campaign saves, Connor completes the Wizard’s Ring of Light quest, travels through Castle Daventry and enters Dead City. Focused checks cover the scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete remaining quests, branches and bosses; integrate original save/region clock and event ordering into world loading. Verify one continuous New Game through the ending and credits. |
 | M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
 
-**Current focus: M4, approximately 89%.** The [F2 transition fix](docs/f2-transition-completion.md), [inventory-bar input](docs/interface-input-completion.md) and [movie-error returns](docs/movie-failure-completion.md) are verified; the [graphics-device controls](docs/graphics-device-controls.md) pass component checks and still need runtime integration.
+**Current focus: M4, approximately 90%.** [Inventory display and held-item selection](docs/inventory-hud-completion.md), [F2 recovery](docs/f2-transition-completion.md), [movie-error returns](docs/movie-failure-completion.md) and [graphics focus](docs/graphics-device-controls.md) have automated checks; runtime graphics integration and remaining tutorial/conversation rules are unfinished.
 
 Shared save-event and trigger rules pass core checks; unfinished [ordered world loader](docs/ordered-world-loading.md) work is preserved while M4 is completed.
 

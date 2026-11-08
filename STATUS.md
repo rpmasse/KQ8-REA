@@ -1,12 +1,28 @@
 # STATUS
 
+## 2026-11-08 M4 inventory and Graphics-focus families verified
+
+M4 is approximately 90%. The shared release test build passes in 2m37s;
+five core checks pass first attempt in 0.40s, and the original-data HUD
+render/dispatch matrix passes first attempt in 0.05s. Armor/weapon identity,
+count text, picture thresholds, observed blink phases and held-item category
+selection now use the separated original study. Graphics focus, disabled
+targets and keyboard activation pass the affected component checks.
+See docs/inventory-hud-completion.md and docs/graphics-device-controls.md.
+
+Next: integrate device controls and software palette behavior into the viewer,
+replace per-update Talk retry with original request arbitration, and deliver
+the remaining tutorial triggers. Those sources are being developed separately;
+they are not included in the successful HUD/focus build. No new native or
+manual test, and no successful pickup/film/credits route was repeated.
+
 ## 2026-11-08 M4 input, movie failures and F2 recovery verified
 
-The active objective is M4 only, approximately89%. Work is isolated in
+The active objective is M4 only, approximately 89%. Work is isolated in
 `target/m4-completion`; unfinished loader changes in the original checkout
-are preserved. Original-data Q200 check passes1/1, six affected movement
-checks pass6/6, and the shared top-bar/movie-error matrices pass2/2 first
-attempt. One native40-update F2 run proves transition/replay/held-run recovery;
+are preserved. Original-data Q200 check passes 1/1, six affected movement
+checks pass 6/6, and the shared top-bar/movie-error matrices pass 2/2 first
+attempt. One native 40-update F2 run proves transition/replay/held-run recovery;
 its endpoint-distance assertion was corrected offline from retained logs,
 with the original FAIL preserved and no native repeat. See
 docs/f2-transition-completion.md, docs/interface-input-completion.md and
