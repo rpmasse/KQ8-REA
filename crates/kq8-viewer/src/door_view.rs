@@ -1153,7 +1153,7 @@ pub fn trap_step(
     // His play-once movements that ended (3i-7): getEndLoop listeners.
     for m in std::mem::take(&mut connor.ended) {
         sim.active.connor_movement_ended(&m);
-        if sim.active.world.pending_combat_death.is_some() && connor.release_pending_die_after_end(&m) {
+        if sim.active.world.pending_combat_death.is_some() && connor.release_pending_die_after_end(&m, &mut sim.active.world) {
             let tick = sim.active.world.updates;
             connor.log.detail(format!("update {tick}: {m} end admitted pending Die"));
         }
@@ -2117,7 +2117,7 @@ pub(crate) fn weapon_list(w: &kq8_core::active::WorldState) -> Option<String> {
 /// events, door movements; then the door colliders are moved.
 pub fn door_step(
     sim: Option<ResMut<DoorSim>>,
-    connor: Option<ResMut<ConnorSim>>,
+    mut connor: Option<ResMut<ConnorSim>>,
     colliders: Option<ResMut<ObjectColliders>>,
     mut click_at: ResMut<ClickAt>,
     shared: Res<Shared>,
@@ -2126,6 +2126,9 @@ pub fn door_step(
 ) {
     let Some(mut sim) = sim else { return };
     let sim = &mut *sim;
+    // A new Rust slot can retain a completed, undrained assignment.
+    // Consume it before commands or clicks, never merely on restore.
+    if let Some(c) = connor.as_mut() { c.apply_weapon_assignment(&mut sim.active.world); }
     // `--command`: one script command, as if a script ran it now.
     let updates = sim.active.world.updates;
     let (due, later): (Vec<_>, Vec<_>) = std::mem::take(&mut command_at.0).into_iter().partition(|(_, n)| updates >= *n);
@@ -2158,7 +2161,6 @@ pub fn door_step(
     // talking.md rule 16 (M4 4a-5): presses and clicks since the last
     // update cut Connor's line short unless it has '#'; handsOff
     // swallows them (anim-scripts.md rule 21).
-    let mut connor = connor;
     let presses = connor.as_mut().map(|c| std::mem::take(&mut c.cut_presses)).unwrap_or_default();
     let clicks: Vec<String> = std::mem::take(&mut sim.world_clicks).into_iter().chain(due.iter().map(|(n, _)| format!("test --click {n}"))).collect();
     let hands_off = connor.as_ref().is_some_and(|c| c.hands_off);
@@ -2250,7 +2252,7 @@ pub fn door_step(
             if let Some(ch) = w.take_weapon_request(&r, c.may_ready(), c.hands_off) {
                 let list = weapon_list(w);
                 let shift = c.shift_held;
-                let line = c.ready_set(list, ch.to, ch.to_item.clone(), false, shift, ch.script);
+                let line = c.ready_weapon_request(w, list, &ch, shift);
                 w.fight_note("Connor", format!("swap ({} -> {}): {line}", ch.from.name(), ch.to.name()));
             }
         }

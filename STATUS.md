@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-08 Weapon-assignment selection and checkpoints pass
+
+M4 remains approximately 95%. The shared release build passes in 4m02s;
+the grouped assignment lifecycle and affected legacy conversation-slot
+check pass 2/2 in 0.04s. Held items clear once at actual ordinary assignment,
+including delayed swaps and saved continuation. Internal list refreshes
+retain selection. Evidence: docs/weapon-selection-completion.md. No manual
+or native replay was run and unrelated passing checks were retained.
+
+The bounded completion audit found another concrete inventory omission:
+TempleArmor's animation-set change still logs "not done". The ordinary
+loader does not supply that missing change. Separate A study is settling
+the complete pickup/mapping/restore rules before implementation. Shared
+weapon-controller admission, including scripted preparation and pending
+Swap payloads, is the next implementation batch. Original-size exclusive
+fullscreen remains blocked by the current RDP display's advertised modes;
+no identical native attempt is planned. M5/M6 remain paused.
+
 ## 2026-11-08 Inventory, popup and client-edge checks pass
 
 M4 is approximately 95%. The corrected shared build passes in 1m21s;

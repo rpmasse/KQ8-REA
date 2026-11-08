@@ -28,7 +28,9 @@ Grouped original-data dispatch/CPU draw checks pass;
 [evidence and limits](../inventory-popup-completion.md). The physical client
 getter is documented in the linked Bevy 0.20 API there. A's inventory.md12a
 and ranged-weapons.md8/9 further clarify actual weapon-assignment clearing;
-that next implementation step remains open.
+that implementation and its grouped checkpoint checks now pass
+([evidence](../weapon-selection-completion.md)). Original save-file parity
+is not claimed; shared weapon-controller admission remains open.
 
 **Inventory display and held-item selection (2026-11-08).** Study A's
 interface.md rules 35, 39, 43–45 and Q109/Q110 follow-up establish carried

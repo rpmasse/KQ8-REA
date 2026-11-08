@@ -425,6 +425,13 @@ fn clear_bar_selection(w: &mut WorldState, why: &str) -> bool {
     true
 }
 
+/// An ordinary SwapWeapons assignment has happened, rather than merely
+/// being requested (inventory.md 12a; ranged-weapons.md 6–8). Like item
+/// application, this does not release the rope's independent view lock.
+pub fn weapon_mode_assigned(w: &mut WorldState) -> bool {
+    clear_bar_selection(w, "ordinary weapon mode/list assignment")
+}
+
 /// Rules 9–10: a click on the slot of item `name`; `left` or right;
 /// `hands_off`: Connor's handsOff. Logged to `items.log`.
 pub fn bar_click(w: &mut WorldState, name: &str, left: bool, hands_off: bool, how: &str) -> BarResult {

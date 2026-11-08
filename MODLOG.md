@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-08 Clear held selection at actual ordinary weapon assignment
+
+Track ordinary assignment origin separately from internal animation-list
+changes. Clear selection at immediate or delayed assignment and preserve
+pending/undrained origin in new Rust checkpoints without replaying it on
+restore. Legacy slots retain their prior no-clear behavior. Shared release
+build passes in 4m02s; grouped original-data assignment/checkpoint and the
+affected legacy conversation-slot check pass 2/2 in 0.04s. No native or
+manual replay; successful unrelated checks retained. Evidence and exact
+commands: docs/weapon-selection-completion.md. M4 remains about 95%; the
+audit additionally confirmed the TempleArmor animation-set stub.
+
 ## 2026-11-08 Complete grouped inventory selection and popup geometry
 
 Implement exact Scroll/Rock selection rules, rope view-lock lifetime,
