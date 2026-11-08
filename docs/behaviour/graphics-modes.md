@@ -148,6 +148,16 @@ tested**.
   selection. A recreation may represent the same displayed answer and
   highlight directly, but must not make the right-hand answer Yes after
   a Left press or bind an answer permanently to the highlighted ID.
+- **Pressed picture and caption, traced/data.** These two popup
+  pictures each contain two frames, numbered 0 and 1. The ordinary
+  unpressed picture is frame 0; the held-down picture is frame 1 of
+  that button's own picture, including `g_yhibtn.pba` when Enter holds
+  the highlighted answer. The caption moves one pixel right and one
+  pixel down while pressed. Both installed pictures are 88 × 36;
+  their GUI drawing mode stretches them to the current button box
+  (88 × 25 in the ordinary popup layout). This follows the shared
+  bitmap-button appearance path used by this Graphics popup, without
+  substituting another menu's button artwork.
 
 The exact installed content identifiers are:
 
