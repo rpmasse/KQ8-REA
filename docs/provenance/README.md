@@ -3,6 +3,14 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**Inventory display and held-item selection (2026-11-08).** Study A's
+interface.md rules 35, 39, 43–45 and Q109/Q110 follow-up establish carried
+equipment order, count/picture rules and shared observed blink timing.
+inventory.md rule 9 supplies hand/category selection. Installed GUI, picture
+and font data feed the production-render matrix. [Evidence and limits](../inventory-hud-completion.md).
+The Q207 follow-up in graphics-modes.md supplies persistent focus, unchecked
+keyboard activation and remembered disabled targets; [component evidence](../graphics-device-controls.md).
+
 **M4 movement and interface completion (2026-11-08).** Q200's separated
 camera.md / connor-movement.md notes establish the Move-state follow-up
 after ordinary animation completion. Original ANM/KQS data supplies the

@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-08 Match inventory display, hand selection and Graphics focus
+
+Use original added-order equipment selection, empty-count rules, money/Rock
+picture thresholds and four observed shared-clock blink returns. Ordinary
+category application and empty cells return the previous held item. Retain
+Graphics focus and previously eligible device targets across refreshes;
+preserve original keyboard activation separately from pointer eligibility.
+Shared release build passes in 2m37s; grouped core 5/5 in 0.40s and
+original-data HUD render/dispatch 1/1 in 0.05s, all first attempt. Runtime
+graphics wiring remains open. Evidence: docs/inventory-hud-completion.md and
+docs/graphics-device-controls.md. No new native/manual test. M4 about 90%.
+
 ## 2026-11-08 Implement original Graphics device policy and confirmation
 
 Add explicit device inventories, original eligibility/capability/startup
@@ -8,23 +20,23 @@ The Cancel-default DirectDraw confirmation follows the separated Q207
 input/artwork study. Policy passes first attempt; GUI matrix passes on its
 targeted retry after correcting the fixture's placeholder-warning text.
 The correct renderer already resolved the installed message. Pressed
-picture/caption pixels, modal input and original640/800 rows are checked.
+picture/caption pixels, modal input and original 640/800 rows are checked.
 Runtime device provider, action routing and actual backend parity are
 still unimplemented; this is a verified component, not live switching.
-Evidence: docs/graphics-device-controls.md. M4 approximately89%.
+Evidence: docs/graphics-device-controls.md. M4 approximately 89%.
 
 ## 2026-11-08 Resume held movement after F2 transition completion
 
 Apply Q200's separated original study: after common animation completion,
 ordinary Move requests its current input selection even when the key choice
 has not changed. Do not replace F2's playing-name request with a guessed
-destination. Original ANM/KQS matrix passes1/1, six affected checks pass6/6.
-One40-update native run confirms old-transition completion at16, new replay
-and held-run recovery at17, then actual movement. The native fixture's
+destination. Original ANM/KQS matrix passes 1/1, six affected checks pass 6/6.
+One 40-update native run confirms old-transition completion at 16, new replay
+and held-run recovery at 17, then actual movement. The native fixture's
 endpoint metric initially failed at a tree; an offline per-step check of
-that same retained run passes513.1 units, excluding crash motion. Original
+that same retained run passes with 513.1 units, excluding crash motion. Original
 FAIL retained; no native repeat. Evidence: docs/f2-transition-completion.md.
-No manual testing. M4 approximately89%; device integration/HUD remain open.
+No manual testing. M4 approximately 89%; device integration/HUD remain open.
 
 ## 2026-11-08 Verify existing-file movie error continuation
 

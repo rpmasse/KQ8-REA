@@ -1,5 +1,12 @@
 # What works, in detail
 
+## Inventory display and selection (2026-11-08)
+
+The inventory bar follows original equipment order, count/picture thresholds
+and shared blink phases; ordinary item categories and empty cells return a
+previously held item. Grouped core and original-data rendering/dispatch checks
+pass. [Evidence and remaining limits](inventory-hud-completion.md).
+
 ## Earned broadsword and gate combat
 
 The campaign recovers the first hall’s actual crystal and broadsword
