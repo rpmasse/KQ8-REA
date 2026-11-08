@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-08 Settle remaining inventory and weapon-request rules
+
+Separate study A documents TempleArmor's persistent third-person base and
+currently equipped weapon mappings, the helmetize command and unchanged
+first-person maps. It also settles optional setDoMode movement, raw numeric
+mode assignment and the original NoRanged lower gate. The older recommendation
+to substitute a hand weapon for NoRanged is withdrawn for the user's exact
+recreation goal. Source: behaviour/inventory.md8 and ranged-weapons.md9.
+Static study only; original runtime scenarios not tested. B implementation
+continues in grouped families. M4 remains about 95%.
+
 ## 2026-11-08 Clear held selection at actual ordinary weapon assignment
 
 Track ordinary assignment origin separately from internal animation-list

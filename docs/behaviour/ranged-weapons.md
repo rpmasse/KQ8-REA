@@ -64,7 +64,8 @@ Words used here:
 4. **The request** (traced): if the mode asked for is **the one already
    ready, it becomes none** (that is why a second click on the ready
    slot puts the weapon away). A request for ranged needs a `LongWeapon`
-   item in the inventory (`NoRanged` counts; see Do not reproduce).
+   item in the inventory (`NoRanged` counts, including in the faithful
+   recreation; see the policy correction below).
 5. **Only standing or moving** (traced): the request is taken **only
    while Connor is in his standing (Wait) or moving (Move) state**. In any
    other state it is **dropped, not kept for later**: jumping, falling
@@ -129,10 +130,11 @@ Words used here:
    `SwapWeapons`. This distinction was traced statically, not tested in
    the original runtime.
 9. **Scripts** (`KQConner::setDoMode <0|1|4> [movement]`, traced): if the
-   mode differs, a jump is ended, his standing movement becomes `Stop`,
-   he is put into standing and the same request is made (so the full
-   swap of rule 6 plays). The optional second word names a movement to
-   play instead of `away` / `out` / `draw` (no Daventry script uses it).
+   mode differs, a jump is ended and standing is requested before asking
+   the controller that remains current. Without the optional movement,
+   his standing movement is also prepared as `Stop` and the ordinary
+   swap of rule 6 is requested. With the optional movement, that extra
+   `Stop` preparation is absent; see the detailed continuation below.
    Daventry scripts that put the weapon away this way: `ax.cs`,
    `girl.cs`, `knight.cs` (data). `KQConner::setRequiredWeaponMode`
    makes a swap that ends in another mode tell a script `WrongWeapon`
@@ -165,6 +167,43 @@ Words used here:
    clears selection, if the caller and controller allow it through.
    This unadvertised case and the distinctions above have not been
    tested in the original runtime.
+
+   **Optional movement and raw numeric modes (static follow-up
+   2026-11-08).** Both command forms return immediately when the numeric
+   mode already matches, before ending a jump, requesting Wait or clearing
+   selection. Both end an active Jump and request Wait; only the form
+   without a movement additionally makes the current movement cuttable
+   and prepares the standing movement as `Stop` before that request.
+   Wait may be refused or an older pending request may win. The weapon
+   request goes to the controller that actually owns Connor afterward.
+
+   For an accepted ordinary swap with a supplied movement, the movement
+   text is retained with the pending request and copied again on entry
+   to SwapWeapons. On that entry, the new mode and movement list are
+   assigned immediately, clearing selection, and the supplied movement
+   is requested in the new list. It does not first play the usual
+   `away`/`draw` sequence. A distinct supplied movement's completion uses
+   the same required-mode check and return to Wait as `out`. Movement
+   names still have their ordinary meaning in this controller: a supplied
+   name equal to `away` or `away2` takes their completion path (assign the
+   requested mode/list and play `out`); `draw` returns to Wait, and
+   `undraw` assigns the requested mode/list then returns to Wait. These
+   name comparisons ignore case. Missing movement assets and empty names
+   have not been traced to a complete runtime outcome.
+
+   When the shared standing/moving weapon handler accepts a numeric
+   value outside 0, 1 and 4, it assigns that exact numeric mode immediately
+   and clears selection. It neither enters SwapWeapons nor refreshes
+   the movement list; the previously active list remains. The ordinary
+   neutral/use pointer is requested. When the temporary weapon-use
+   modifier is not active, the remembered last-ranged flag becomes true
+   only if the previous mode was 1, as on an ordinary put-away; while
+   that modifier is active, the existing remembered flag is retained.
+   The optional movement is not played by this direct branch.
+   A later explicit list refresh has no mode-specific list to select for
+   such a value and keeps the active list. A controller that refuses
+   weapon requests still refuses this case. These are static behavior
+   findings, not a recommendation for authored scripts to use raw modes.
 
 ### 3. The ranged movement list and pointer
 
@@ -558,7 +597,8 @@ projectile keys: `duration`, `suckFile`, `suckEnd`, `suckSound`,
   Delete from the hand weapon does nothing, Delete with nothing ready
   draws the hand weapon. If he put a bow away with Alt and then lost it,
   Delete with nothing ready would ready the "ranged" mode with
-  `NoRanged` (his own list, no bolt): see Do not reproduce.
+  `NoRanged` (his own list, no bolt). This behavior is retained for the
+  original-game recreation.
 - **Picking up a new ranged weapon while the ranged mode is ready**: the
   new item's projectile and shoot offset are taken at once, and the
   movement list is refreshed to the new weapon's list straight away
@@ -578,10 +618,12 @@ projectile keys: `duration`, `suckFile`, `suckEnd`, `suckSound`,
 
 ## Do not reproduce
 
-- **`NoRanged` counts as a ranged weapon** for the request (rule 4), so
-  the edge case above can ready an empty ranged mode. Do instead: a
-  request for ranged needs a real ranged item (not `NoRanged`); else
-  ask for the hand weapon.
+- **Policy correction for the original-game recreation, 2026-11-08:**
+  the earlier advice to replace `NoRanged` requests with a hand-weapon
+  fallback is withdrawn. `NoRanged` satisfies the lower `LongWeapon`
+  requirement, so scripts and the remembered-last-ranged draw path can
+  ready the empty ranged mode. Keep Delete's separate hand-to-ranged
+  rejection of `NoRanged`; do not apply that guard to every caller.
 - **The shot that waits for a turn is lost** when another turn order
   replaces the turn (rule 20). Harmless; keep it or not.
 - **A moving shot makes him walk** and the run comes back about 1 s

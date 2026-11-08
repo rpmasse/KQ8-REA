@@ -110,6 +110,49 @@ weapons, health/potion slots, rope, rocks), see `interface.md`.
    - A new quest item or mask piece pops the top bar down for 1.5 s and
      its slot blinks (`interface.md` rules 13, 44).
 
+   **Temple armour animation changes (static follow-up 2026-11-08).**
+   A successful addition of `INVITEM_TempleArmor` selects its skin and
+   changes three third-person animation mappings before its pickup
+   sound and the subsequent general item-added notification:
+   - the unarmed list becomes `conner2.anm`;
+   - the mapping for the currently carried `ShortWeapon` becomes
+     `contpsd2.anm`;
+   - the mapping for the currently carried `LongWeapon` becomes
+     `conicbw2.anm`.
+
+   The latter two changes use the actual equipped item types at the time
+   of addition. They are not hardcoded changes to the Temple Sword and
+   Ice Crossbow entries, although those are the expected late-game
+   weapons. Other third-person item mappings remain as they were. The
+   first-person unarmed, short-weapon and long-weapon mappings are not
+   changed. The active list is refreshed for the current mode and view,
+   and the current movement is requested again by name through the
+   existing movement machinery. This is immediate list refresh, not a
+   weapon draw/put-away sequence; it does not itself assign a weapon
+   mode or clear a held item.
+
+   These mapping changes are persistent changes to Connor's animation
+   lists, rather than a conditional choice made on every frame while
+   armour is present. Ordinary inventory removal does not restore the
+   old list names. The animation-list objects participate in Connor's
+   persistence, and their saved entries include item names and the
+   current list filenames. Preserve the changed mappings across a save
+   or world hand-over, rather than rebuilding only from the original
+   `Connor.kq` defaults or replaying the pickup sound. The separate
+   portal-arrival substitution of `conner.anm` with `conner2.anm` remains
+   as described in `world-change.md` rule 5.
+
+   The script command `KQConner::helmetize <newshortlist> <newlonglist>`
+   performs the same list-mapping operation with the supplied filenames
+   and the fixed unarmed `conner2.anm`; it does not itself select the
+   Temple Armour skin. Repeated additions or calls replace mappings for
+   whichever two weapons are equipped at that later time. Missing
+   equipped-item/mapping cases are not established as safe original
+   behavior. Original live equip, removal, first-person and save/reload
+   scenarios were **not tested**; these findings come from the original
+   item-add, list-selection, removal and serialization paths plus the
+   installed `Connor.kq` data.
+
 ### Clicking an item in the bars (left button)
 
 9. A left click on a slot sends "this item was chosen" to Connor. It is

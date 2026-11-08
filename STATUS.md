@@ -11,8 +11,9 @@ or native replay was run and unrelated passing checks were retained.
 
 The bounded completion audit found another concrete inventory omission:
 TempleArmor's animation-set change still logs "not done". The ordinary
-loader does not supply that missing change. Separate A study is settling
-the complete pickup/mapping/restore rules before implementation. Shared
+loader does not supply that missing change. Separate A study has now
+documented its persistent third-person mappings, immediate refresh and
+unchanged first-person mappings in inventory.md8. Implementation is pending. Shared
 weapon-controller admission, including scripted preparation and pending
 Swap payloads, is the next implementation batch. Original-size exclusive
 fullscreen remains blocked by the current RDP display's advertised modes;
