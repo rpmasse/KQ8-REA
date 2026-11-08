@@ -149,6 +149,38 @@ the result, even when the same palette and slider value are used.
     The resulting edge colours depend on Windows' palette, and are not
     established solely by reading a `.ppl` file.
 
+12a. **Which Software surfaces the game selects, traced 2026-11-08.**
+     The ordinary Software device explicitly selects **8 bits per
+     pixel** in both of its output paths:
+
+     | Software presentation | Original requested surface | Palette behavior |
+     | --- | --- | --- |
+     | Fullscreen DirectDraw | 8-bit indexed display mode and DirectDraw drawing surfaces | Rule 11's independent channel clipping |
+     | Window output | 8-bit indexed Windows DIB, including the retry at the previous size | Rules 11–12, including the Windows system-color replacement |
+
+     The Software fullscreen mode list also admits only 8-bit display
+     modes. Changing its size or rebuilding its surfaces does not select
+     16, 24 or 32 bits per pixel. The normal Windows DIB creation stores
+     the requested 8-bit depth explicitly; it does not substitute the
+     desktop's pixel depth. A modern 32-bit desktop therefore does not
+     establish a 32-bit game drawing surface or bypass rule 12.
+
+     The shared DIB constructor contains support for a caller-supplied
+     non-8-bit format, but the studied Software creation and retry paths
+     supply 8. No ordinary startup, Graphics selection or Software live
+     resize path studied here selects a 16-, 24- or 32-bit Software
+     surface. This is a bounded call-path result, not a claim that every
+     unrelated bitmap, film or hardware-renderer destination is indexed.
+     An unsupported 8-bit display request does not establish a fallback
+     to one of those higher depths.
+
+     These are original surface choices, independent of the host API
+     used to present a recreation. A modern backend's texture or
+     swapchain depth does not identify which original palette rule to
+     apply. Device selection and the separate fullscreen/window slots
+     are described in `graphics-modes.md`. Original runtime and actual
+     Windows/driver conversion to the desktop: **not tested**.
+
 ### Display gamma and other drawing paths
 
 13. **Correction: the brightness gain is not sent to Glide display

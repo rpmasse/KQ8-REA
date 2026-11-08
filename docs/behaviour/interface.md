@@ -548,7 +548,22 @@ uses whatever the window holds [traced].
     number. When both a chain-mail suit (under-armour) and body armour
     are worn, the picture is the suit's if the body armour is leather
     or the chain shirt, and the body armour's if it is plate or bronze
-    plate [traced].
+    plate [traced]. **Clarified 2026-11-08:** this comparison uses those
+    item types, not their protection numbers. Adding a full suit or
+    `GodArmor` directly makes that item the represented armour picture.
+    There is no general highest-protection or fixed `GodArmor`-first
+    sorting rule. A full panel rebuild processes carried items in their
+    inventory order, applying the same body/under-armour rules to each.
+    Thus unusual coexisting armour combinations can depend on that
+    order; the normal chain-mail/body-armour combinations above do not.
+    More precisely, a body-armour update gives an existing under-armour
+    suit the picture only for `INVITEM_LeatherArmor` or
+    `INVITEM_ChainMailShirt`; other body types represent themselves.
+    An under-armour update gives an existing body item the picture only
+    for `INVITEM_PlateMail` or `INVITEM_BronzePlate`; otherwise it
+    represents the under-armour suit. This also states the limits for
+    placeholders or unusual item combinations without inventing a
+    general armour rank.
 36. Numbers: `IDCTL_INVBAR_ARMORTEXT` etc., font `14shdw.pft`,
     right/top at (56, 5), (120, 5), (184, 5) inside the dialog [data].
 37. Clicking a slot: `inventory.md` rule 9 (clicking the hand weapon
@@ -565,7 +580,8 @@ uses whatever the window holds [traced].
     health; the manual's order "least to most powerful" [manual].)
 39. Each slot shows its count with `14.pft` at its top right
     (`_1TEXT` … `_8TEXT`); a stack whose count reaches 0 empties the slot
-    [traced, data].
+    [traced, data]. Its zero count text is empty, unlike gold and rocks
+    (Q109 follow-up below).
 40. Keys **1–8** (and keypad 1–8) use the matching slot, as a click on it
     would [traced; key-to-slot order inferred and matching the manual].
 
@@ -581,21 +597,87 @@ uses whatever the window holds [traced].
 43. **Gold** `IDCTL_INVBAR_GOLD`: the coins picture depends on how many
     silver coins Connor has: none `2gold0`, 1–24 `2gold1`, 25–49
     `2gold2`, 50 or more `2gold3` [traced]. The count is the text
-    `IDCTL_INVBAR_GOLDTEXT` (right/top at (632, 5)).
-44. A slot whose item is new, or whose count went **up**, **blinks**:
-    it switches between the item picture and the empty picture every
-    0.25 s (real time), 5 times [traced].
+    `IDCTL_INVBAR_GOLDTEXT` (right/top at (632, 5)). With no coins it
+    explicitly displays `0`. Holding the coins retains the normal
+    count-based picture and the full count; it does not subtract a coin
+    or replace the gold picture with `2gold0` [traced 2026-11-08].
+44. **Blink, corrected 2026-11-08:** assigning a new represented item
+    starts the shared picture blink. Armour and both weapon slots take
+    part, as do the ordinary inventory picture slots. The normal and
+    empty pictures alternate on shared 0.25-second real-time phases;
+    the exact start, completion and count-change limits are described
+    below. The earlier wording "5 changes" and the blanket claim that
+    a count increase starts it were inaccurate.
     **Except the mini-map slot** (Q150 d, traced 2026-10-22): it never
     blinks; it goes straight to the live map (`magic-map.md` rule 27).
 
 ## The bottom-right panel
 
 45. `IDCTL_INVBAR_ROPE` (rope and hook, `2rope0` empty / `2rope1`
-    carried), `IDCTL_INVBAR_ROCKS` (`2rocks0` … `3`) with the rock count,
-    `IDCTL_INVBAR_MINIMAP` (`2mapblnk.pbm` while the map is not active;
+    carried), `IDCTL_INVBAR_ROCKS` with the rock count: `2rocks0` for
+    0, `2rocks1` for 1–4, `2rocks2` for 5–14 and `2rocks3` for 15 or
+    more. The empty rock slot explicitly displays count `0`
+    [traced/data, clarified 2026-11-08].
+    `IDCTL_INVBAR_MINIMAP`
+    (`2mapblnk.pbm` while the map is not active;
     once it is, the slot shows a live mini-map centred on Connor with his
-    arrow: `magic-map.md` rule 27) [traced which item goes where; the
-    rocks picture levels were not traced].
+    arrow: `magic-map.md` rule 27) [traced].
+
+### Inventory display follow-up (Q109/Q110, 2026-11-08)
+
+Evidence for this bounded follow-up is static study of the original
+inventory-bar setup, assignment, drawing and selection paths, plus
+`Invinfo.itl` and `kqGuiTag.TTAG`. Original execution, animation capture
+and native/manual comparison are **not tested**.
+
+The gold and rock thresholds are configured by their bar, rather than
+taken from the item's single `GUIBitmap`. The installed rock pictures
+are `IDBMP_2ROCKS0` through `IDBMP_2ROCKS3`, IDs 526–529; gold uses
+`IDBMP_2GOLD0` through `IDBMP_2GOLD3`, IDs 522–525. Both count labels
+explicitly allow zero. The eight health/potion labels suppress zero,
+including a retained zero-dose potion whose effect is still running.
+
+The original blink does not start a private timer at pickup. Its phase
+comes from the shared real-time tick clock in 250 ms bands: even bands
+choose the empty picture and odd bands choose the normal picture.
+Assignment initially installs the normal picture, but the first draw
+can immediately choose empty if that is the current clock phase. There
+is therefore no guaranteed first visible 250 ms of the item picture.
+
+For a newly assigned item whose normal picture differs from its empty
+picture, with draws in every band and no intervening item changes or
+held-item refresh, the ordinary result is **four empty phases, each
+followed by a return to the normal picture**, then the normal picture
+remains. Each empty phase is normally 250 ms; the first may be partial.
+The original's blink setting of five does not mean five total image
+changes or five complete empty/normal cycles. If a draw misses a clock
+band, that unseen change is not caught up; completion can consequently
+take longer. Count labels are drawn separately and do not disappear
+with the blinking picture.
+
+An armour or weapon acquisition starts this same behavior when it
+changes the item represented by that slot. Adding gloves, boots or a
+helmet does not independently change or blink the armour picture.
+Replacing a represented item with another item that uses the same
+picture can still blink against the empty picture. A placeholder whose
+normal and empty pictures are identical has no visible alternation.
+The mini-map exception in rule 44 remains in force.
+
+**Count-only limitation, traced:** updating the count of the same item
+already bound to the slot updates the label and threshold picture, but
+does not itself start a fresh blink in the original shared assignment
+path. A rebuild that first empties the slot and then assigns the item
+again is a new assignment and can blink. Do not turn this observation
+into a claim that every inventory refresh is such a rebuild. Holding
+money also refreshes its normal picture during drawing, so the held
+gold slot does not visibly alternate to the empty picture.
+
+The count-only trigger failure and the original internal blink setting
+that never reaches its nominal finished value need not be copied as
+internal defects. Preserve the supported visible rules above; do not
+describe a different five-step schedule as an observation of the
+original. Timing under hidden panels, simultaneous changes and unusual
+counter values remains outside this bounded study.
 
 ## The caption strip (answers `talking.md` open question 4 and Q107 a)
 
@@ -652,7 +734,7 @@ uses whatever the window holds [traced].
 | slide time | 0.2 s (real time) | traced |
 | pop-up time (top bar on news, meters on change) | 1.5 s (real time) | traced |
 | top bar appears / hides | pointer at y 0 / below y 60 (of 480) | traced |
-| blink | 0.25 s per change, 5 changes | traced |
+| blink | shared 0.25 s phases; ordinary new-item result is four empty/normal cycles | traced; Q109 follow-up above |
 | meter width | width × percent / 100, ≥ 1 px if percent ≠ 0 | traced |
 | health percent | health × 100 / (10 × level) | traced |
 | experience percent | exp × 100 / (10 × 2^(level−1)), 150,000 from level 15 | traced |
@@ -770,7 +852,8 @@ uses whatever the window holds [traced].
    hook-up / hook-down mean~~: answered in `ropeandhook.md` rule 7:
    `HookUp` at the foot of a rope, `HookDown` at the top, only with the
    rope carried and not while on the rope.)
-4. The rocks picture steps (rule 45). (~~The minimap icon~~: a live
+4. ~~The rocks picture steps~~: answered 2026-11-08, rule 45 and the
+   Q109 follow-up. (~~The minimap icon~~: a live
    mini-map, `magic-map.md` rule 27.)
 5. Font flag bit 6 (0x41) and the `sl`, `black`, `shdw`, `gshdw`, `red`
    font variants beyond their use in the layouts (Q106): not traced.
