@@ -61,6 +61,16 @@ Words used here:
 3. **Alt** (traced) puts away whatever is ready (asks for none) and
    remembers whether it was the ranged one (for Delete, rule 2). With
    nothing ready it does nothing.
+   **Raw numeric modes, clarified by static study 2026-11-08:** when
+   the stored mode is neither 0, 1 nor 4, Delete makes no weapon request
+   and leaves the mode unchanged. Alt does ask the current controller
+   for mode 4 (none); it does not assign mode 4 directly or bypass that
+   controller's admission. The Alt key handler itself changes the
+   remembered-last-ranged flag only for modes 0 and 1, so it does not
+   change that flag before the raw-mode request; a later ordinary mode
+   assignment still has its usual effects. Both keys remain blocked by
+   `handsOff`. These raw-mode key cases are **not tested** in the
+   running original.
 4. **The request** (traced): if the mode asked for is **the one already
    ready, it becomes none** (that is why a second click on the ready
    slot puts the weapon away). A request for ranged needs a `LongWeapon`
@@ -139,13 +149,14 @@ Words used here:
    `girl.cs`, `knight.cs` (data). `KQConner::setRequiredWeaponMode`
    makes a swap that ends in another mode tell a script `WrongWeapon`
    and swap again to the required one (no Daventry script uses it).
-   **Details (traced 2026-10-28, batch 2):** `KQConner::setRequiredWeaponMode
-   <mode> [script]`: if `mode` is not −1 and differs from his current
-   mode, he **swaps to it at once** (the same swap as `setDoMode`); then
-   the mode is remembered (−1 = no requirement). The optional second word
-   is a **script name**: when a later swap ends in another mode (not
-   mode 4, empty hands), that script runs with `Connor WrongWeapon` and
-   he swaps back (the swap-back's details were not traced). Data: Dead
+   **Required mode (corrected static follow-up 2026-11-08):**
+   `KQConner::setRequiredWeaponMode <mode> [script]` asks the current
+   controller for the mode when it is not −1 and differs from the current
+   mode, then remembers the requirement even if that controller refused
+   the request. Unlike `setDoMode`, it does **not** end a jump, prepare
+   `Stop`, or request Wait first. It does not bypass the current
+   controller's weapon-request behavior. The optional second word is a
+   **script name**, not a movement. Data: Dead
    City's tower (`towSklTp.cs`) uses `0` (sword) on `On` and `-1` on
    `Off`, with no script, so on the tower he is made to hold his hand
    weapon and no script is told.
@@ -167,6 +178,57 @@ Words used here:
    clears selection, if the caller and controller allow it through.
    This unadvertised case and the distinctions above have not been
    tested in the original runtime.
+
+   **Required-mode lifetime and completion (static follow-up
+   2026-11-08).** The initial requirement is −1 (disabled), with no
+   callback script. A supplied script replaces the stored script only
+   when the command is requesting a different current mode and that mode
+   is not −1. Omitting the script retains the old one; same-current-mode
+   and −1 calls also retain it even if a new script argument was supplied.
+   Setting −1 stores the disabled requirement without making a weapon
+   request or assigning raw mode −1. The requirement and callback name
+   are both included in Connor's saved state and travel with his saved
+   object between worlds (`world-change.md` rule 17).
+
+   The automatic correction is checked on completion of `out` or a
+   distinct optional swap movement. It is not checked on `draw` or
+   `undraw` completion; names matching those built-ins take their earlier
+   completion branches. `away`/`away2` first assign the requested mode
+   and play `out`, so their correction check occurs at that later end.
+   The check does nothing when the requirement is disabled, the current
+   mode is 4 (empty hands), or the current mode matches the requirement.
+
+   If a different nonempty mode requires correction, the stored script,
+   when present, runs synchronously with arguments `Connor WrongWeapon`
+   **before** the corrective animation begins. Absence of a script only
+   skips that notification; it does not suppress correction. The
+   requirement is read again after the callback. For required mode 0 or
+   4, and for mode 1 when a `LongWeapon` exists (`NoRanged` counts), the
+   same SwapWeapons controller changes its pending target and begins
+   ordinary `away` in the current list. Its end assigns the required mode
+   and list with the ordinary selection clear, then plays the new list's
+   `out`. This is a continuation within the same swap, not a new ordinary
+   state request: the exit gate stays closed and the common pending
+   request is not retried merely because correction began. It uses
+   `away`, not the fists-only `draw`/`undraw` entry choices or Shift's
+   `away2`. A required ranged mode with no `LongWeapon` skips correction
+   and finishes normally.
+
+   A different required raw numeric value is assigned immediately with
+   the ordinary selection clear and no list refresh, then the swap
+   finishes. The original does not repeat its disabled/equal/empty-hand
+   check after calling `WrongWeapon`; consequently a callback that sets
+   the requirement to −1 during this already-started correction reaches
+   that raw assignment branch. This differs from calling the disabling
+   command outside a correction. Reentrant callbacks that forcibly
+   replace or destroy the active controller are not established here.
+
+   Normal completion opens the swap's exit gate and requests Wait
+   through the common pending-request path while SwapWeapons still owns
+   Connor. An older admissible pending request can therefore win; there
+   is no unconditional forced Wait or automatic replay of a rejected
+   pending Talk. Original runtime, callback reentrancy, and native
+   save/reload scenarios were **not tested**.
 
    **Optional movement and raw numeric modes (static follow-up
    2026-11-08).** Both command forms return immediately when the numeric

@@ -924,6 +924,78 @@ directions by pressing forward or back while facing one of them.
     the keys still held again, so a key held from before can make the
     choice at once [inferred].
 
+#### Forced replacement and the previous action (static follow-up, 2026-11-08)
+
+**Forcing bypasses admission, not leaving the old state.** Before a
+fresh Choice starts, the previous state's ordinary exit effects run,
+then that state is discarded. The old controller no longer receives
+updates, movement ends or later notices as the current controller.
+Choice then performs its entry in rules 4–6. The usual `StateChange`
+notification is queued after the new entry, including `StartChoice`,
+has run (rule 15). This is the same exit-and-replacement sequence used
+by an admitted ordinary change.
+
+An interrupted action is **not completed successfully**. Do not run its
+landing, teleport, climb-off, catch, or weapon-swap completion merely
+to remove the old controller. In particular, do not use its normal
+completion's request for Wait as an extra step before Choice. The
+explicit unfinished-Jump handling in rule 3 remains a separate command
+preparation; it does not turn every other interrupted action into a
+finished jump.
+
+The following old-state exit effects were checked in the original:
+
+| Previous state | Effects when it is replaced |
+| --- | --- |
+| `Tile` | Re-enable leaning and turn off this puzzle's camera height/tilt hold (`tile-puzzle.md` rule 7a). No synthetic landing, teleport, door click or puzzle success. |
+| `Tile2` | Re-enable leaning. Discard any saved old projectile name held for its rock throw; discarding that name does **not** restore Connor's projectile setting. No tile landing or exit jump is completed. |
+| `Tile3` | Run its leaving rule (`secondary-tile-puzzles.md` rule 35): schedule `mlava.aud` to stop after 0.2 seconds when the music service exists; if Connor has not solved the puzzle, send Cue 2402 to each existing tile in the five-column, seven-row grid. Then re-enable leaning. This does not perform a successful landing or exit jump. |
+| `Scales` | Release the controller's retained `conscale.anm` resource and re-enable leaning. No `onscale`/`offscale` end, step away, camera placement, or puzzle success is synthesized. |
+| Rope climb | Release the controller's retained `conrope.anm` resource. There is no climb-off, saved-step-height restoration, gravity restoration, camera-follow restoration, view restoration, weapon restoration, or `handsOff 0` in this exit. See `ropeandhook.md` for the normal animation ends that perform those actions. |
+| Rock throw | Discard its saved old projectile name, without restoring the projectile setting or previous weapon/view. No throw completion or request for Wait. See `rock-projectiles.md`. |
+| Hammer throw | Discard the controller; no catch, `handsOff 0`, or request for Wait is generated. See `azriel-hammer.md`. |
+| `SwapWeapons` | Discard its pending swap progression and optional movement text. Do not finish the remaining `away`/`out`, assign a mode that has not yet been reached, or run the required-mode/`WrongWeapon` completion check. A mode/list change already made remains made; a change awaiting an old movement end is lost. See `ranged-weapons.md` rule 9. |
+| Connor's Talk | Run the actual Talk exit even if its normal completion gate was closed: put the camera at the usual `cam0` exit placement; synchronously send the partner `TalkExit` unless its goodbye path already suppresses that message; resume camera following of Connor, release the first-person restriction and restore the remembered first-person view when applicable; ask the partner for Wait. This does not manufacture a final spoken line, goodbye or `TalkComplete`, and does not itself empty the conversation queue. See `conversation.md` rule 15. |
+
+**Controller lifetime and actor settings are different.** Saved progress,
+completion gates, requested movement names and other records belonging
+only to the discarded controller disappear. Restrictions that are
+queries of the *current state*, such as being in the rope state, cease
+to apply once Choice owns Connor. In contrast, gravity, keep-on-ground,
+step heights, existing collision settings, `handsOff`, camera following,
+the first-person restriction, hand mode and projectile setting are not
+generically reset by state replacement. Except for the explicit exit
+effects above, they remain as already set until another actual operation
+changes them. This describes the original's interruption behavior, not
+an assertion that every unusual interrupted position is safe to play.
+
+Choice's own key reset and immediate `Stop` do not call `handsOff 0`
+or supply a general physics, view or weapon restoration. Its
+`StartChoice` script can make further changes. **Talk exit does not
+itself restore the hidden bottom-bar panels or clear `handsOff`.**
+The normal conversation-finish processing restores panels separately,
+under the conditions in `conversation.md` rule 15; forced replacement
+does not invoke that whole finish procedure. A later explicit
+`handsOff 0` or script UI command has its own effects.
+
+**Already created world objects are separate.** The brief rope model
+created at the end of `btoss` (`ropeandhook.md` rule 15) is a separate
+animated world object, with its own deletion at animation end. Discarding
+the rope controller does not delete it. Likewise, the Rock and Hammer
+controller exits do not remove already launched world projectiles or
+force a returning hammer to be caught. Retained animation resources are
+not those world objects. Once Choice replaces the old controller, a
+later notice does not revive the discarded controller's continuation.
+
+**Scope and remaining limits:** this establishes ordinary forced
+replacement and the listed exit effects by static study. It does not
+establish arbitrary reentrant state changes made inside `TalkExit` or
+`StartChoice`, nor every later consequence of a projectile returning
+after its throw controller has been replaced. Those cases must not be
+filled in by inventing a successful old-action completion. These
+interruptions are **not tested** in the running original; no manual
+test is required by this study note.
+
 ### `StateChange` messages (traced 2026-10-22, Q156)
 
 14. **`KQMonster::stateChangeNotify <recipient> <character>`** (exactly
