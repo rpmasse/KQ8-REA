@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-08 Complete top-bar cursor eligibility and Mask dispatch
+
+Apply the original four-cursor exclusion to pointer-triggered top-bar
+opening. Share physical/named Mask-menu delivery and consume item menu
+results, retaining handsOff, news timers and ordinary item behavior.
+The grouped production-helper check passes first attempt, alongside the
+movie failure matrix: 2/2 in 1.53s after a successful 2m56s shared build.
+No existing inventory or pickup route was repeated. A new physical-pointer
+native route is not tested. Evidence: docs/interface-input-completion.md.
+M4 is approximately 89%; graphics backend, HUD and other interface gates
+remain open.
+
 ## 2026-11-07 Recreate authored Rock aim, flight and recovery
 
 Replace the approximate gravity arc with the original two-segment height
