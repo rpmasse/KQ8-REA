@@ -26,6 +26,23 @@ mod movie_failure_tests;
 #[cfg(test)]
 #[path = "display_transition_tests.rs"]
 mod display_transition_tests;
+#[cfg(test)]
+#[path = "help_menu_tests.rs"]
+mod help_menu_tests;
+#[cfg(all(test, windows))]
+#[path = "software_surface_tests.rs"]
+mod software_surface_tests;
+#[cfg(test)]
+#[path = "graphics_lifecycle_tests.rs"]
+mod graphics_lifecycle_tests;
+#[cfg(all(test, windows))]
+#[path = "graphics_profile_frontend_tests.rs"]
+mod graphics_profile_frontend_tests;
+
+/// The original screen object survives leaving Options and opening Main
+/// again. Active ownership moves into Menu; Back returns it here.
+#[derive(Resource)]
+struct RetainedGraphics(graphics_menu::Screen);
 
 #[derive(Resource, Default)]
 pub struct MenuRequest(pub bool, pub Vec<Key>);
@@ -58,11 +75,13 @@ pub fn return_to_title(world: &mut World) -> Result<(), String> {
 }
 
 pub fn register(app: &mut App, game: &Path, sound: bool) {
+    if !app.world().contains_resource::<Preferences>() {
+        app.insert_resource(Preferences::load(game));
+    }
     app.insert_resource(Source {
         game: game.to_path_buf(),
         sound,
     })
-    .insert_resource(Preferences::load(game))
     .add_systems(First, crate::option_settings::apply_to_world)
     .init_resource::<MenuRequest>()
     .init_resource::<PresentationQueue>()
@@ -413,10 +432,10 @@ pub fn ordinary_launch(args: &[String]) -> bool {
     while let Some(flag) = iter.next() {
         match flag {
             "--game" | "--renderer" | "--sound" | "--light" | "--haze" | "--dynamic"
-            | "--corners" | "--palette" => {
+            | "--corners" | "--palette" | "--display-profile" => {
                 iter.next();
             }
-            "--smooth" => {}
+            "--smooth" | "--windowed" | "--fullscreen" => {}
             _ => return false,
         }
     }
@@ -511,6 +530,7 @@ pub struct Menu {
     option_clock: std::time::Instant,
     child_clock: std::time::Instant,
     mask_frame: usize,
+    cursor_frame: usize,
     typed: Vec<char>,
     capture: Option<(Entity, std::time::Instant)>,
     current_thumbnail: Option<Vec<u8>>,
@@ -563,6 +583,7 @@ impl Menu {
             option_clock: std::time::Instant::now(),
             child_clock: std::time::Instant::now(),
             mask_frame: 0,
+            cursor_frame: 0,
             typed: Vec::new(),
             capture: None,
             current_thumbnail: None,
@@ -666,9 +687,31 @@ pub fn show(
     shared: Res<crate::Shared>,
     preferences: Res<Preferences>,
     camera: Query<(), With<Camera3d>>,
-    window: Query<(Entity, Option<&CursorIcon>), With<PrimaryWindow>>,
+    window: Query<(Entity, &Window, Option<&CursorIcon>), With<PrimaryWindow>>,
     sim: Option<Res<crate::door_view::DoorSim>>,
+    time: Option<Res<Time<Real>>>,
+    runtime: Option<Res<crate::graphics_runtime::Runtime>>,
 ) {
+    menu.art.resize(preferences.settings.graphics.high_resolution);
+    if let Some(runtime) = runtime {
+        match crate::graphics_runtime::runtime_output(&runtime) {
+            Ok(output) => menu.art.set_palette(preferences.settings.graphics.brightness, output),
+            Err(error) => shared.log.lock().unwrap().summary(format!("palette: menu retained previous colors; {error}")),
+        }
+    } else if let Ok((_, window, _)) = window.single() {
+        let graphics = &preferences.settings.graphics;
+        if let Some(output) = kq8_data::palette::Output::from_mode(&graphics.mode) {
+            match crate::system_palette::for_software_surface(output, window.mode == bevy::window::WindowMode::Windowed) {
+                Ok((output, source)) => {
+                    menu.art.set_palette(graphics.brightness, output);
+                    if let Some(source) = source {
+                        shared.log.lock().unwrap().summary(format!("palette: menu Software window uses Windows static colors via {source:?}"));
+                    }
+                }
+                Err(error) => shared.log.lock().unwrap().summary(format!("palette: menu retained previous colors; {error}")),
+            }
+        }
+    }
     match crate::world_build::scan_slots() {
         Ok((slots, corrupt)) => {
             menu.state.set_saves(!slots.is_empty());
@@ -705,9 +748,10 @@ pub fn show(
     } else {
         "ending credits"
     };
-    if let Ok((window, cursor)) = window.single() {
+    if let Ok((window, _, cursor)) = window.single() {
         menu.old_cursor = cursor.cloned();
-        let handle = images.add(canvas_image(menu.art.cursor()));
+        menu.cursor_frame = crate::gui_view::picture_tick(time.as_ref().map_or(0.0,|t|t.elapsed().as_millis() as f64)) % menu.art.cursor_frames().max(1);
+        let handle = images.add(canvas_image(menu.art.cursor_frame(menu.cursor_frame)));
         commands
             .entity(window)
             .insert(CursorIcon::Custom(CustomCursor::Image(CustomCursorImage {
@@ -829,12 +873,51 @@ pub(crate) fn resize_presentation(world: &mut World, size: [u32; 2]) {
     let menu = &mut *menu;
     if let Some(page) = &mut menu.options { page.resize(&menu.art); }
     if let Some(page) = &mut menu.graphics {
-        page.set_high_resolution_available(high_available);
+        if !page.has_device_inventory() { page.set_high_resolution_available(high_available); }
         page.resize(&menu.art);
     }
     if let Some(page) = &mut menu.keyboard { page.resize(&menu.art); }
     if let Some((_, art)) = &mut menu.slot_page { art.resize(size); }
     redraw(world);
+    refresh_cursor(world, true);
+}
+
+/// Refresh the existing screen after accepted presentation, preserving its
+/// focus and remembered targets. The saved fullscreen name is not active
+/// renderer identity when the original Software window device is in use.
+pub(crate) fn refresh_graphics_device(world: &mut World) {
+    let Some((inventory, active)) = world.get_resource::<crate::graphics_runtime::Runtime>()
+        .and_then(|runtime|runtime.active().map(|surface|(runtime.inventory(),surface.clone()))) else { return };
+    if let Some(mut menu) = world.get_resource_mut::<Menu>() {
+        if let Some(screen) = &mut menu.graphics {
+            if screen.has_device_inventory() { screen.set_active_device(active.device,active.high); }
+            else { screen.set_device_inventory(inventory,active.device,active.high); }
+        }
+        redraw(world);
+    }
+}
+
+fn restore_palette(world: &mut World, why: &str) {
+    if let Err(error) = crate::graphics_runtime::apply_palette(world,why) {
+        world.resource::<crate::Shared>().log.lock().unwrap().summary(format!(
+            "palette: retained previous surface; {error} ({why})"));
+    }
+}
+
+fn refresh_cursor(world: &mut World, force: bool) {
+    let Some(menu) = world.get_resource::<Menu>() else { return };
+    if menu.movie.is_some() { return; }
+    let real_ms = world.get_resource::<Time<Real>>().map_or(0.0,|t|t.elapsed().as_millis() as f64);
+    let frame = crate::gui_view::picture_tick(real_ms) % menu.art.cursor_frames().max(1);
+    if !force && frame == menu.cursor_frame { return; }
+    let image = canvas_image(menu.art.cursor_frame(frame));
+    world.resource_mut::<Menu>().cursor_frame = frame;
+    let handle = world.resource_mut::<Assets<Image>>().add(image);
+    if let Ok(window) = world.query_filtered::<Entity,With<PrimaryWindow>>().single(world) {
+        world.entity_mut(window).insert(CursorIcon::Custom(CustomCursor::Image(CustomCursorImage {
+            handle, hotspot:(0,0), ..default()
+        })));
+    }
 }
 
 /// The slider applies to the active menu surface immediately (Q186).
@@ -847,7 +930,7 @@ pub fn palette_changed(world: &mut World, values: crate::live_palette::Values, w
         art.set_palette(values.brightness,values.output);
         if let Some(page) = graphics { page.palette_changed(art); }
         if let Some(page) = options { page.palette_changed(art); }
-        (menu.image.clone(),canvas_image(menu.art.cursor()))
+        (menu.image.clone(),canvas_image(menu.art.cursor_frame(menu.cursor_frame)))
     };
     let sample = |world:&World| {
         let menu = world.resource::<Menu>();
@@ -909,18 +992,25 @@ fn option_key(world: &mut World, key: Key) {
             Err(e) => log.lock().unwrap().summary(format!("credits: {e}")),
         }
     } else if back == options_menu::Destination::Graphics {
-        let source = &world.resource::<Source>().game;
-        match graphics_menu::Screen::open(source, &world.resource::<Menu>().art) {
+        let screen = match world.remove_resource::<RetainedGraphics>() {
+            Some(RetainedGraphics(screen)) => Ok(screen),
+            None => graphics_menu::Screen::open(&world.resource::<Source>().game, &world.resource::<Menu>().art),
+        };
+        match screen {
             Ok(mut screen) => {
-                screen.set_high_resolution_available(crate::display_mode::high_available(world));
+                if let Some(runtime) = world.get_resource::<crate::graphics_runtime::Runtime>() {
+                    if let Some(active) = runtime.active() {
+                        screen.set_device_inventory(runtime.inventory(),active.device.clone(),active.high);
+                    }
+                } else if !screen.has_device_inventory() { screen.set_high_resolution_available(crate::display_mode::high_available(world)); }
+                screen.resize(&world.resource::<Menu>().art);
+                screen.palette_changed(&world.resource::<Menu>().art);
                 let mut menu = world.resource_mut::<Menu>();
                 menu.child_clock = std::time::Instant::now();
                 menu.mask_frame = 0;
                 menu.graphics = Some(screen);
                 log.lock().unwrap().summary("graphics: opened original Graphics.gui");
-                let graphics = world.resource::<Preferences>().settings.graphics.clone();
-                let output = kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D);
-                crate::live_palette::apply_to_surface(world,crate::live_palette::Values {brightness:graphics.brightness,output},"Graphics setup");
+                restore_palette(world,"Graphics setup");
             }
             Err(e) => log.lock().unwrap().summary(format!("graphics: could not open: {e}")),
         }
@@ -961,15 +1051,14 @@ fn graphics_key(world: &mut World, key: Key) {
     let log = world.resource::<crate::Shared>().log.clone();
     let old = world.resource::<Preferences>().settings.graphics.clone();
     let mut graphics = old.clone();
-    let action = {
+    let profile = world.contains_resource::<crate::graphics_runtime::Runtime>();
+    let (action, device) = {
         let mut menu = world.resource_mut::<Menu>();
+        let cue = menu.graphics.as_ref().unwrap().sound(key);
         let action = menu.graphics.as_mut().unwrap().input(key, &mut graphics);
-        match key {
-            Key::Up | Key::Down | Key::Left | Key::Right | Key::Tab => menu.audio.play("click.aud"),
-            Key::Click(_, _) | Key::Enter => menu.audio.play("intrface.aud"),
-            _ => {},
-        }
-        action
+        let device = profile.then(||menu.graphics.as_mut().unwrap().take_device_selection()).flatten();
+        if let Some(cue) = cue { menu.audio.play(cue); }
+        (action, device)
     };
     if graphics.high_resolution != old.high_resolution {
         let requested = crate::display_mode::Size::from_high(graphics.high_resolution);
@@ -988,17 +1077,24 @@ fn graphics_key(world: &mut World, key: Key) {
             crate::shadow_view::apply_menu_mask(world, graphics.shadow_mask);
         }
         if graphics.brightness != old.brightness {
-            let output = kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D);
-            crate::live_palette::apply_to_surface(world,crate::live_palette::Values { brightness:graphics.brightness,output },"Graphics slider");
+            restore_palette(world,"Graphics slider");
         }
         log.lock().unwrap().summary(format!("graphics: {key:?} -> {graphics:?}"));
+    }
+    if let Some(device) = device {
+        if let Err(error) = crate::graphics_runtime::device_action(world,device) {
+            log.lock().unwrap().summary(format!("graphics runtime: {error}"));
+        }
     }
     if action == graphics_menu::Action::Back {
         match world.resource_mut::<Preferences>().store() {
             Ok(()) => log.lock().unwrap().summary("graphics: returned to Options; saved local preferences"),
             Err(e) => log.lock().unwrap().summary(format!("graphics: could not save preferences: {e}")),
         }
-        world.resource_mut::<Menu>().graphics = None;
+        let screen = world.resource_mut::<Menu>().graphics.take();
+        if let Some(screen) = screen {
+            world.insert_resource(RetainedGraphics(screen));
+        }
     }
     redraw(world);
 }
@@ -1204,6 +1300,7 @@ pub fn step(world: &mut World) {
             redraw(world);
         }
     }
+    refresh_cursor(world, false);
     let mut input = Vec::new();
     let keys = world.resource::<ButtonInput<KeyCode>>();
     let capturing = world
@@ -1289,7 +1386,23 @@ pub fn step(world: &mut World) {
             continue;
         }
         if world.resource::<Menu>().graphics.is_some() {
+            let before = world.resource::<Menu>().graphics.as_ref().and_then(|page| page.key_pointer());
+            if let Some(p) = pos {
+                world.resource_mut::<Menu>().graphics.as_mut().unwrap().pointer_moved([p.x.floor() as i32,p.y.floor() as i32]);
+            }
             graphics_key(world, key);
+            let after = world.resource::<Menu>().graphics.as_ref().and_then(|page| page.key_pointer());
+            let pointer = if live && before.is_none() && after.is_some() {
+                world.resource_mut::<Menu>().return_pointer = pos.map(|p| origin + p * scale);
+                after.map(|[x,y]| origin + Vec2::new(x as f32,y as f32) * scale)
+            } else if before.is_some() && after.is_none() {
+                world.resource_mut::<Menu>().return_pointer.take()
+            } else { None };
+            if let Some(pointer) = pointer {
+                if let Ok(mut window) = world.query_filtered::<&mut Window,With<PrimaryWindow>>().single_mut(world) {
+                    window.set_cursor_position(Some(pointer));
+                }
+            }
             continue;
         }
         if world.resource::<Menu>().keyboard.is_some() {
@@ -1585,9 +1698,7 @@ fn leave_movie(world: &mut World, reason: &str) {
             "movie: {} {reason}{counts}, returning to {:?}, elapsed ms {elapsed:?}",
             page.name, page.after
         ));
-    let graphics = world.resource::<Preferences>().settings.graphics.clone();
-    let output = kq8_data::palette::Output::from_mode(&graphics.mode).unwrap_or(kq8_data::palette::Output::Direct3D);
-    crate::live_palette::apply_to_surface(world,crate::live_palette::Values {brightness:graphics.brightness,output},"return from film");
+    restore_palette(world,"return from film");
     if !world.resource::<PresentationQueue>().0.is_empty() {
         if let Some(sound) = world.get_resource::<crate::sound_view::SoundSim>() { sound.end_movie(true); }
         if let Some(out) = &world.resource::<Menu>().audio.output { out.send([Command::Resume { id: THEME_ID }]); }

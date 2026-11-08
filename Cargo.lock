@@ -3519,6 +3519,7 @@ dependencies = [
  "mimalloc",
  "serde",
  "serde_json",
+ "winit",
 ]
 
 [[package]]

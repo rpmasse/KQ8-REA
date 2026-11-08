@@ -12,10 +12,17 @@ pub type Rgb = [u8; 3];
 pub enum Output {
     Direct3D,
     Glide,
+    /// Original fullscreen 8-bit DirectDraw surface.
     Software,
+    /// Original 8-bit window DIB: Windows entries 0..9, then 246..255.
+    SoftwareWindow { system: [Rgb; 20] },
 }
 
 impl Output {
+    pub fn is_software(self) -> bool {
+        matches!(self, Self::Software | Self::SoftwareWindow { .. })
+    }
+
     /// Original assignGModeName names (brightness.md rule 5a).
     pub fn from_mode(name: &str) -> Option<Self> {
         if name == "Glide" {
@@ -47,7 +54,7 @@ pub fn brightness_color(rgb: Rgb, value: u8) -> Rgb {
 
 fn convert_color(rgb: Rgb, gain: f32, output: Output) -> Rgb {
     let largest = f64::from(*rgb.iter().max().unwrap());
-    let gain = if output != Output::Software && largest * f64::from(gain) > 255.0 {
+    let gain = if !output.is_software() && largest * f64::from(gain) > 255.0 {
         (255.0 / largest) as f32
     } else {
         gain
@@ -61,7 +68,7 @@ fn convert_color(rgb: Rgb, gain: f32, output: Output) -> Rgb {
         let stored = match output {
             Output::Glide => axis == 1,
             Output::Direct3D => axis != 1,
-            Output::Software => false,
+            Output::Software | Output::SoftwareWindow { .. } => false,
         };
         if stored {
             (product as f32) as u8
@@ -74,7 +81,12 @@ fn convert_color(rgb: Rgb, gain: f32, output: Output) -> Rgb {
 pub fn for_output(colors: [Rgb; 256], value: u8, output: Output) -> [Rgb; 256] {
     let gain = brightness_gain(value);
     std::array::from_fn(|index| {
-        let rgb = convert_color(colors[index], gain, output);
+        let source = match output {
+            Output::SoftwareWindow { system } if index < 10 => system[index],
+            Output::SoftwareWindow { system } if index >= 246 => system[index - 236],
+            _ => colors[index],
+        };
+        let rgb = convert_color(source, gain, output);
         if output == Output::Glide
             && rgb == [0; 3]
             && ((1..=9).contains(&index) || (246..=254).contains(&index))
@@ -311,6 +323,30 @@ mod tests {
         assert_eq!(Output::from_mode("Software"), Some(Output::Software));
         assert_eq!(Output::from_mode("software"), None, "the original software-name distinction is case-sensitive");
         assert_eq!(Output::from_mode("other"), None);
+    }
+
+    #[test]
+    fn software_window_palette_edges_gain_and_source_restoration_matrix() {
+        let source = [[100, 200, 250]; 256];
+        let system = std::array::from_fn(|i| [i as u8 * 12, 96, 200]);
+        let output = Output::SoftwareWindow { system };
+        let identity = for_output(source, 50, output);
+        assert_eq!(&identity[..10], &system[..10]);
+        assert_eq!(&identity[246..], &system[10..]);
+        assert!(identity[10..246].iter().all(|&c| c == [100, 200, 250]));
+        let bright = for_output(source, 100, output);
+        assert_eq!(bright[0], [0, 163, 255]);
+        assert_eq!(bright[9], [183, 163, 255]);
+        assert_eq!(bright[10], [170, 255, 255]);
+        assert_eq!(bright[245], [170, 255, 255]);
+        assert_eq!(bright[246], [204, 163, 255]);
+        assert_eq!(bright[255], [255, 163, 255]);
+        assert_eq!(for_output(source, 0, output)[0], [0, 28, 60]);
+        assert_eq!(for_output(source, 50, output), identity, "refresh starts from immutable source");
+        assert_eq!(for_output(source, 50, Output::Software), source, "fullscreen restores all source entries");
+        assert_eq!(for_output(source, 50, Output::Direct3D), source, "hardware does not receive Windows substitution");
+        assert_eq!(for_output([[0;3];256], 100, Output::SoftwareWindow { system: [[0;3];20] }), [[0;3];256], "software has no Glide magenta exception");
+        assert_eq!(source, [[100, 200, 250];256]);
     }
 
     use super::*;

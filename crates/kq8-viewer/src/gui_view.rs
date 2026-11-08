@@ -69,6 +69,18 @@ mod animation_tests {
 #[path = "inventory_hud_tests.rs"]
 mod inventory_hud_tests;
 
+#[cfg(test)]
+#[path = "inventory_selection_tests.rs"]
+mod inventory_selection_tests;
+
+#[cfg(test)]
+#[path = "cursor_map_tests.rs"]
+mod cursor_map_tests;
+
+#[cfg(test)]
+#[path = "popup_geometry_tests.rs"]
+mod popup_geometry_tests;
+
 /// The play pointer (`Gplayscr.kq` `cursor=`, `interface.md` rule 1).
 const PLAY_POINTER: &str = "IDBMA_CURS04";
 /// The sword pointer while a hand weapon is ready (`fighting.md` rule 39,
@@ -93,6 +105,15 @@ fn follow_top_bar_pointer(panels: &mut Panels, pointer: &str, at_top_row: bool, 
     }
 }
 
+/// Q109(f): the original handler tests client pixels before GUI scaling.
+/// Physical samples avoid making the fixed 60-pixel boundary depend on DPI.
+fn follow_top_bar_window(panels: &mut Panels, pointer: &str, window: &Window, right_held: bool) {
+    if let Some(position) = window.physical_cursor_position() {
+        let row = position.y.max(0.0) as i32;
+        follow_top_bar_pointer(panels, pointer, row == 0, row > 60, right_held);
+    }
+}
+
 /// The Mask is a menu control even before a mask item is carried. Its
 /// handsOff-only guard is shared by physical and named clicks; ordinary
 /// death animation/input locks do not block it (main-menu.md rule 7).
@@ -113,6 +134,33 @@ mod top_bar_input_tests {
     use super::*;
     use kq8_core::connor_inventory::BarResult;
     use kq8_core::panels::{Group, POP_MS, SLIDE_MS};
+
+    #[test]
+    fn top_bar_original_client_pixel_threshold_matrix() {
+        for size in [[640, 480], [800, 600]] {
+            for scale in [1.0, 1.5] {
+                let mut window = Window {
+                    resolution: bevy::window::WindowResolution::new(size[0], size[1])
+                        .with_scale_factor_override(scale),
+                    position: bevy::window::WindowPosition::At(IVec2::new(180, 120)),
+                    ..default()
+                };
+                let mut closed = Panels::new(&[]);
+                follow_top_bar_window(&mut closed, PLAY_POINTER, &window, false);
+                assert!(!closed.shown(Panel::Top));
+                window.set_physical_cursor_position(Some(bevy::math::DVec2::new(12.0, 0.0)));
+                follow_top_bar_window(&mut closed, PLAY_POINTER, &window, false);
+                assert!(closed.shown(Panel::Top), "client origin, not desktop origin");
+                for row in [1, 59, 60, 61, 74, 75] {
+                    let mut panels = Panels::new(&[Panel::Top]);
+                    window.set_physical_cursor_position(Some(bevy::math::DVec2::new(12.0, f64::from(row))));
+                    follow_top_bar_window(&mut panels, PLAY_POINTER, &window, false);
+                    assert_eq!(panels.shown(Panel::Top), row <= 60, "{size:?} scale={scale}, row={row}");
+                    assert_eq!(panels.sounds.len(), usize::from(row > 60));
+                }
+            }
+        }
+    }
 
     #[test]
     fn top_bar_pointer_eligibility_and_mask_dispatch_matrix() {
@@ -275,42 +323,24 @@ const DRAWN: [Drawn; 8] = [
     Drawn::Panel(Panel::Popup),
 ];
 
-/// The popup's buttons in the layout (their places and pictures are not
-/// used: see `POPUP_YES`, `POPUP_BUTTON_PICTURE`).
+/// The popup's buttons in the layout (their dynamic places and pictures
+/// are assigned by world-change.md rule 26).
 const POPUP_BUTTONS: [&str; 3] = ["IDCTL_POPUP_BTN1", "IDCTL_POPUP_BTN2", "IDCTL_POPUP_BTN3"];
 
-/// `world-change.md` rule 26: Yes left, No right, 88 wide, centred at a
-/// third and two thirds of the panel's width (ours: of the 360-wide
-/// background, so they stand even on it; A inferred W = 370, Q151 c).
-/// Rows (Q151 c, traced): the highlighted button (the layout's BTN1)
-/// 145-183, the other 146-182. Panel coordinates: left, right; top,
-/// bottom.
-const POPUP_YES: [i32; 2] = [76, 164];
-const POPUP_NO: [i32; 2] = [196, 284];
+/// Final local pixels, not another input to generic GUI conversion.
+/// The highlighted control keeps its taller box when focus changes.
 const POPUP_ROWS_HIGHLIGHTED: [i32; 2] = [145, 183];
 const POPUP_ROWS_OTHER: [i32; 2] = [146, 182];
 
-/// The question's lines (Q151 d, traced): 7 line boxes 360 wide, centred;
-/// line k of n has its top at base + k × pitch + `POPUP_LINE_OFFSETS`[n −
-/// 1][k] and is one pitch high (640 x 480: base 12, pitch 18).
-const POPUP_TEXT_WIDTH: i32 = 360;
-const POPUP_LINE_BASE: i32 = 12;
-const POPUP_LINE_PITCH: i32 = 18;
+/// The seven shared text rows (world-change.md rule 26): dynamic y
+/// overwrites the converted control; its authored horizontal edges stay.
 const POPUP_LINE_OFFSETS: [&[i32]; 7] = [&[52], &[36, 44], &[20, 28, 36], &[4, 12, 20, 28], &[4, 8, 12, 16, 20], &[2, 4, 6, 8, 10, 12], &[0; 7]];
 
-/// Line `k` of `n`: its box (left, top, right, bottom) in panel
-/// coordinates (Q151 d).
-fn popup_line_box(n: usize, k: usize) -> [i32; 4] {
+fn popup_line_box(converted: [i32; 4], n: usize, k: usize, high: bool) -> [i32; 4] {
+    let (base, pitch) = if high { (36, 22) } else { (12, 18) };
     let offset = POPUP_LINE_OFFSETS.get(n.clamp(1, 7) - 1).and_then(|t| t.get(k)).copied().unwrap_or(0);
-    let top = POPUP_LINE_BASE + k as i32 * POPUP_LINE_PITCH + offset;
-    [0, top, POPUP_TEXT_WIDTH, top + POPUP_LINE_PITCH]
-}
-
-/// Button `k`'s box (0 Yes, 1 No) with `highlight` highlighted.
-fn popup_button_box(k: usize, highlight: usize) -> [i32; 4] {
-    let [l, r] = if k == 0 { POPUP_YES } else { POPUP_NO };
-    let [t, b] = if k == highlight { POPUP_ROWS_HIGHLIGHTED } else { POPUP_ROWS_OTHER };
-    [l, t, r, b]
+    let top = base + k as i32 * pitch + offset;
+    [converted[0], top, converted[2], top + pitch]
 }
 
 /// The popup's buttons' looks (Q151 e, traced): plain `yesbtn.pba` frame
@@ -370,24 +400,16 @@ struct HelpNotice {
 }
 
 impl PopupShown {
-    fn button_box(&self, k: usize) -> [i32; 4] {
-        let Some(h) = &self.help else {
-            return popup_button_box(k, self.highlight);
-        };
-        if h.page.checkbox() {
-            return [141, 142, 229, 167];
-        }
-        let x = if matches!(h.page, HelpPage::Catalog(_)) {
-            48 + 92 * k as i32
-        } else {
-            141
-        };
-        let [t, b] = if k == self.highlight {
-            POPUP_ROWS_HIGHLIGHTED
-        } else {
-            POPUP_ROWS_OTHER
-        };
-        [x, t, x + 88, b]
+    fn button_box(&self, k: usize, parent_width: i32, high: bool) -> [i32; 4] {
+        // Divide first, then multiply the integer spacing: W=370 gives
+        // three-button left edges 48/140/232 (world-change.md rule 26).
+        let spacing = parent_width / (self.labels.len() as i32 + 1);
+        let left = spacing * (k as i32 + 1) - 44;
+        let [top, bottom] = if self.help.as_ref().is_some_and(|h| h.page.checkbox()) {
+            [142, 167]
+        } else if k == self.highlight { POPUP_ROWS_HIGHLIGHTED } else { POPUP_ROWS_OTHER };
+        let shift = if high { 44 } else { 0 };
+        [left, top + shift, left + 88, bottom + shift]
     }
 }
 
@@ -422,7 +444,7 @@ struct MapShown {
     name_number: Option<u32>,
     /// Rule 38: the "Go" button is lit.
     go_lit: bool,
-    /// Rule 22 (layout pixels from the area's centre).
+    /// Rule 22 (display pixels from the area's centre).
     view: [f64; 4],
     /// Rule 27: the mini-map's own view (its size is used).
     mini_view: [f64; 4],
@@ -480,7 +502,7 @@ enum Spec {
     /// The magic map (M6 6d-3): the picture's version, the view, the
     /// arrow (file, frame, top-left from the area's centre); `own`: this
     /// world's map (the mini-map), else the one shown (6d-6).
-    Map { rect: [i32; 4], version: u64, view: [f64; 4], arrow: Option<(String, usize, [f64; 2])>, own: bool },
+    Map { rect: [i32; 4], version: u64, view: [f64; 4], arrow: Option<(String, usize, [i32; 2])>, own: bool },
 }
 
 /// The panels and what they show.
@@ -556,6 +578,14 @@ pub struct Gui {
 pub struct GuiCover(pub Vec<(&'static str, [f32; 4])>);
 
 impl Gui {
+    #[cfg(test)]
+    pub(crate) fn help_snapshot(&self) -> Option<(u8, Option<usize>, usize)> {
+        let popup = self.popup.as_ref()?;
+        let help = popup.help.as_ref()?;
+        let catalog = match help.page { HelpPage::Catalog(index) => Some(index), _ => None };
+        Some((help.page.case(), catalog, popup.highlight))
+    }
+
     /// Q207: resolve again from authored edges without replacing panel,
     /// inventory, map, animation or palette state.
     pub(crate) fn resize(&mut self, screen: [u32; 2]) {
@@ -811,11 +841,31 @@ impl Gui {
         self.tags.id_of(name).and_then(|id| self.authored_root.find(id as u32))
     }
 
-    fn popup_rect(&self, rect: [i32; 4]) -> [i32; 4] {
-        let name = Panel::Popup.layout_id();
-        let (Some(old), Some(new)) = (self.authored_control(name), self.control(name)) else { return rect };
-        gui_draw::resolve_rect(rect, [old.rect[2] - old.rect[0], old.rect[3] - old.rect[1]],
-            [new.rect[2] - new.rect[0], new.rect[3] - new.rect[1]])
+    /// Dynamic popup geometry overwrites already converted local controls
+    /// (world-change.md rule 26); drawing adds the parent origin once.
+    fn popup_line_rect(&self, lines: usize, k: usize) -> Option<[i32; 4]> {
+        let dialog = self.control(Panel::Popup.layout_id())?;
+        let name = format!("IDCTL_POPUP_TEXT{}", k + 1);
+        let (_, rect) = self.controls(dialog).into_iter().find(|(c, _)| self.name_of(c) == name)?;
+        Some(popup_line_box(rect, lines, k, self.screen == [800, 600]))
+    }
+
+    fn popup_button_rect(&self, popup: &PopupShown, k: usize) -> Option<[i32; 4]> {
+        let dialog = self.control(Panel::Popup.layout_id())?;
+        Some(popup.button_box(k, dialog.rect[2] - dialog.rect[0], self.screen == [800, 600]))
+    }
+
+    fn popup_key_target(&self, popup: &PopupShown, frame: [f32; 4]) -> Option<Vec2> {
+        let dialog = self.control(Panel::Popup.layout_id())?;
+        let rect = self.popup_button_rect(popup, popup.highlight)?;
+        let [left, top, width, _] = frame;
+        let scale = width / self.screen[0] as f32;
+        // The 16-pixel y offset follows the midpoint/origin addition at
+        // both original resolutions (world-change.md rule 26).
+        Some(Vec2::new(
+            left + (dialog.rect[0] + (rect[0] + rect[2]) / 2) as f32 * scale,
+            top + (dialog.rect[1] + (rect[1] + rect[3]) / 2 + 16) as f32 * scale,
+        ))
     }
 
     fn name_of(&self, c: &Control) -> String {
@@ -1013,19 +1063,16 @@ impl Gui {
                             let (w, h) = (m.mini_view[2] - m.mini_view[0], m.mini_view[3] - m.mini_view[1]);
                             let (left, top) = (-(p.0 as f64) * w / kq8_data::magic_map::MAP_SIZE as f64, -(p.1 as f64) * h / kq8_data::magic_map::MAP_SIZE as f64);
                             let view = kq8_core::magic_map::View { left, top, right: left + w, bottom: top + h };
-                            let (ax, ay) = view.arrow_at(p);
-                            out.push(Spec::Map { rect, version: m.version.unwrap_or(0), view: view.as_array(), arrow: Some((m.arrow_file.clone(), m.frame, [ax, ay])), own: true });
+                            out.push(Spec::Map { rect, version: m.version.unwrap_or(0), view: view.as_array(), arrow: Some((m.arrow_file.clone(), m.frame, [p.0, p.1])), own: true });
                         }
                     }
                     // M6 6d-3 (magic-map.md rules 6, 18): the map over the
                     // black area, the arrow when Connor's pixel is known.
                     if name == MAP_AREA {
                         if let Some(m) = self.map.as_ref().filter(|m| m.version.is_some()) {
-                            let view = kq8_core::magic_map::View { left: m.view[0], top: m.view[1], right: m.view[2], bottom: m.view[3] };
                             // Rule 34: no arrow on another world's map.
                             let arrow = m.pixel.filter(|_| !m.other).map(|p| {
-                                let (x, y) = view.arrow_at(p);
-                                (m.arrow_file.clone(), m.frame, [x, y])
+                                (m.arrow_file.clone(), m.frame, [p.0, p.1])
                             });
                             out.push(Spec::Map { rect, version: m.version.unwrap_or(0), view: m.view, arrow, own: false });
                         }
@@ -1125,7 +1172,7 @@ impl Gui {
                 let mut buttons = Vec::new();
                 for (k, label) in p.labels.iter().enumerate() {
                     if label.is_empty() { continue; }
-                    let rect = self.popup_rect(p.button_box(k));
+                    let Some(rect) = self.popup_button_rect(p, k) else { continue };
                     let down = p.pressed == Some(k);
                     if let Some(font) = &popup_font {
                         let [dx, dy] = if down { POPUP_PRESSED_SHIFT } else { [0, 0] };
@@ -1143,7 +1190,8 @@ impl Gui {
                 // The lines (Q151 d), each centred in its box.
                 if let Some(font) = popup_text_font.clone().or_else(|| popup_font.clone()) {
                     for (k, line) in p.lines.iter().enumerate() {
-                        buttons.push(Spec::Text { rect: self.popup_rect(popup_line_box(p.lines.len(), k)), font: font.clone(), justification: 0xC, text: line.clone() });
+                        let Some(rect) = self.popup_line_rect(p.lines.len(), k) else { continue };
+                        buttons.push(Spec::Text { rect, font: font.clone(), justification: 0xC, text: line.clone() });
                     }
                 }
                 out.splice(0..0, buttons);
@@ -1167,10 +1215,10 @@ impl Gui {
         p.lines
             .iter()
             .enumerate()
-            .map(|(k, line)| {
+            .filter_map(|(k, line)| {
                 let w = gui_draw::text_width(f, line);
-                let (x, ty) = gui_draw::text_origin(self.popup_rect(popup_line_box(p.lines.len(), k)), 0xC, w, f.char_height, 1.0);
-                (x, ty, w)
+                let (x, ty) = gui_draw::text_origin(self.popup_line_rect(p.lines.len(), k)?, 0xC, w, f.char_height, 1.0);
+                Some((x, ty, w))
             })
             .collect()
     }
@@ -1185,7 +1233,7 @@ impl Gui {
         let y = (at.y - ft) / k - dialog.rect[1] as f32;
         let popup = self.popup.as_ref()?;
         let inside = |r: [i32; 4]| x >= r[0] as f32 && x < r[2] as f32 && y >= r[1] as f32 && y < r[3] as f32;
-        if let Some(k)=(0..popup.labels.len()).find(|&k| inside(self.popup_rect(popup.button_box(k)))) {return Some(k);}
+        if let Some(k)=(0..popup.labels.len()).find(|&k| self.popup_button_rect(popup, k).is_some_and(inside)) {return Some(k);}
         let checkbox=popup.help.as_ref().is_some_and(|h|h.page.checkbox()) &&
             self.controls(dialog).into_iter().any(|(c,r)|self.name_of(c).starts_with("IDCTL_POPUP_CHECKBOX") && inside(r));
         checkbox.then_some(3)
@@ -1256,7 +1304,7 @@ impl Gui {
                         let frames = self.files.get(&file.to_ascii_lowercase())?.as_ref()?;
                         frames.get(*frame % frames.len().max(1)).and_then(Pic::of).map(|p| (p, *at))
                     });
-                    pieces.push(Piece::Map { rect: *rect, pixels, view: *view, arrow, content_scale: self.scale });
+                    pieces.push(Piece::Map { rect: *rect, pixels, view: *view, arrow, content_scale: 1.0 });
                 }
             }
         }
@@ -1348,6 +1396,35 @@ impl Gui {
     fn rect(&self, d: Drawn) -> Option<[f32; 4]> {
         self.control(d.layout_id()).map(|c| c.rect.map(|v| v as f32))
     }
+
+    /// Map follow uses the same converted, sliding parent origin as drawing,
+    /// then the map-area control's local rectangle (magic-map.md25–25a).
+    fn map_area_rect(&self) -> Option<[f64; 4]> {
+        let dialog = self.control(Panel::Map.layout_id())?;
+        let rect = self.controls(dialog).into_iter()
+            .find(|(control, _)| self.name_of(control) == MAP_AREA)?.1;
+        let (left, top) = kq8_core::panels::place(Panel::Map,
+            dialog.rect.map(|v| v as f32), self.screen.map(|v| v as f32), self.panels.away(Panel::Map));
+        Some([f64::from(left) + f64::from(rect[0]), f64::from(top) + f64::from(rect[1]),
+            f64::from(left) + f64::from(rect[2]), f64::from(top) + f64::from(rect[3])])
+    }
+
+    fn map_arrow_size(&mut self) -> Option<[u32; 2]> {
+        let map = self.map.as_ref()?;
+        let (file,frame) = (map.arrow_file.clone(),map.frame);
+        self.load_file(&file);
+        let frames = self.files.get(&file.to_ascii_lowercase())?.as_ref()?;
+        let pic = frames.get(frame % frames.len().max(1)).and_then(Pic::of)?;
+        Some([pic.width,pic.height])
+    }
+}
+
+/// Supplied surface-pixel mouse motion is not divided by GUI or map zoom.
+fn map_drag_motion(view: &mut kq8_core::magic_map::View, left: bool, previous: [f32; 2], current: [f32; 2]) -> bool {
+    let [dx, dy] = [f64::from(current[0] - previous[0]), f64::from(current[1] - previous[1])];
+    if dx == 0.0 && dy == 0.0 { return false; }
+    if left { view.pan(dx, dy); } else { view.zoom(dx); }
+    true
 }
 
 /// What Connor carries, for the bars (4c-3).
@@ -1408,6 +1485,21 @@ static LAST_EXPERIENCE_PERCENT: std::sync::atomic::AtomicI64 = std::sync::atomic
 /// One game update (15 per second), after the scripts and Connor: the
 /// stats events, handsOff, the script commands, `--key`, and what the
 /// slots show.
+/// Rock's selection restriction belongs to the live puzzle controller,
+/// not the world's name or a general movement lock (inventory.md rule 9).
+fn inventory_bar_owner(connor: Option<&ConnorSim>) -> kq8_core::connor_inventory::BarOwner {
+    use kq8_core::connor_inventory::BarOwner;
+    let Some(connor) = connor else { return BarOwner::Ordinary };
+    if connor.tile.is_some() { return BarOwner::Tile; }
+    if let Some(tile) = &connor.secondary_tile {
+        return match tile.kind {
+            kq8_core::secondary_tiles::Kind::Swamp => BarOwner::Tile2,
+            kq8_core::secondary_tiles::Kind::Barren => BarOwner::Tile3,
+        };
+    }
+    if connor.scales.is_some() { BarOwner::Scales } else { BarOwner::Ordinary }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn gui_step(
     gui: Option<ResMut<Gui>>,
@@ -1502,6 +1594,7 @@ pub fn gui_step(
     }
     // inventory.md rules 6, 9-11, interface.md rule 40: the bars' clicks
     // and keys since the last update.
+    let owner = inventory_bar_owner(connor.as_deref());
     for action in std::mem::take(&mut actions.0) {
         let w = &mut sim.active.world;
         match action {
@@ -1516,7 +1609,7 @@ pub fn gui_step(
             }
             BarAction::Key { slot, how } => match kq8_core::connor_inventory::slot_item(w, slot) {
                 Some(name) => {
-                    let result = kq8_core::connor_inventory::bar_click(w, &name, true, gui.hands_off, &how);
+                    let result = kq8_core::connor_inventory::bar_click_with_owner(w, &name, true, gui.hands_off, owner, &how);
                     apply_bar_result(&mut menu, result);
                 }
                 _ => {
@@ -1527,7 +1620,7 @@ pub fn gui_step(
                 }
             },
             BarAction::Item { item, left, how } => {
-                let result = kq8_core::connor_inventory::bar_click(w, &item, left, gui.hands_off, &how);
+                let result = kq8_core::connor_inventory::bar_click_with_owner(w, &item, left, gui.hands_off, owner, &how);
                 apply_bar_result(&mut menu, result);
             }
             BarAction::Empty { how } => {
@@ -2001,7 +2094,7 @@ pub fn gui_draw(
         // M6 6d-3: each redraw of the map with its view and arrow.
         for s in &specs {
             if let Spec::Map { version, view, arrow, .. } = s {
-                let arrow = arrow.as_ref().map_or("no arrow (another world's map, or Connor's pixel not known yet)".to_string(), |(_, frame, at)| format!("arrow frame {frame}, top-left ({:.1}, {:.1}) from the area's centre", at[0], at[1]));
+                let arrow = arrow.as_ref().map_or("no arrow (another world's map, or Connor's pixel not known yet)".to_string(), |(_, frame, at)| format!("arrow frame {frame}, map pixel ({}, {}), integer placement shared with follow", at[0], at[1]));
                 let line = format!("{} drawn at {:.0} ms: picture version {version}, view ({:.2}, {:.2})-({:.2}, {:.2}) from the area's centre, shown {:.1} x {:.1} layout px; {arrow} (magic-map.md rules 6, 18, 22)", d.layout_id(), gui.panels.now_ms, view[0], view[1], view[2], view[3], view[2] - view[0], view[3] - view[1]);
                 gui.note(line);
             }
@@ -2010,13 +2103,12 @@ pub fn gui_draw(
     }
     cover.0 = covered;
     // The pointer: on the screen's 800 x 600 (or 640 x 480).
+    if let Ok(window) = window.single() {
+        follow_top_bar_window(&mut gui.panels, &gui.pointer, window, buttons.pressed(MouseButton::Right));
+    }
     let pointer = window.single().ok().and_then(|w| w.cursor_position());
     if let Some(c) = pointer {
         let (x, y) = ((c.x - fl) / k, (c.y - ft) / k);
-        // interface.md rule 12: the top bar follows the pointer: down at
-        // the very top row, up below y 60 of 480, not while the right
-        // button is held or it is moving, not up in its popped time.
-        follow_top_bar_pointer(&mut gui.panels, &gui.pointer, c.y < ft + 1.0, y > 60.0 / 480.0 * sh, buttons.pressed(MouseButton::Right));
         // inventory.md rules 6, 9, 10: clicks on the bars.
         for (button, left) in [(MouseButton::Left, true), (MouseButton::Right, false)] {
             if !buttons.just_pressed(button) {
@@ -2074,16 +2166,7 @@ pub fn gui_draw(
         let map = sim.as_mut().and_then(|s| s.active.world.map.as_mut());
         match (map, at) {
             (Some(m), Some(at)) if buttons.pressed(button) => {
-                // STAND-IN (open question 6): screen pixels to layout pixels.
-                let (dx, dy) = (((at[0] - last[0]) / gui.scale) as f64, ((at[1] - last[1]) / gui.scale) as f64);
-                let moved = dx != 0.0 || dy != 0.0;
-                if moved {
-                    if left {
-                        m.view.pan(dx, dy);
-                    } else {
-                        m.view.zoom(dx);
-                    }
-                }
+                let moved = map_drag_motion(&mut m.view, left, last, at);
                 drag.0 = Some((left, at, moves + u32::from(moved)));
             }
             _ => {
@@ -2094,7 +2177,7 @@ pub fn gui_draw(
                         w.map_view = view;
                         let v = view.as_array();
                         w.map_log.push(format!(
-                            "{} drag ends after {moves} movements: view ({:.2}, {:.2})-({:.2}, {:.2}), shown {:.1} x {:.1} layout px (magic-map.md rules 22-24)",
+                            "{} drag ends after {moves} movements: view ({:.2}, {:.2})-({:.2}, {:.2}), shown {:.1} x {:.1} display px (magic-map.md rules 22-24)",
                             if left { "pan" } else { "zoom" },
                             v[0],
                             v[1],
@@ -2109,26 +2192,31 @@ pub fn gui_draw(
         }
     }
     if gui.panels.away(Panel::Map) < 1.0 {
-        if let Some(w) = sim.as_mut().map(|s| &mut s.active.world) {
+        if let (Some(area), Some(arrow_size), Some(w)) = (gui.map_area_rect(), gui.map_arrow_size(), sim.as_mut().map(|s| &mut s.active.world)) {
             if let Some(m) = w.map.as_mut() {
-                let steps = m.follow_step();
+                let steps = m.follow_step_with_arrow(area, arrow_size);
                 if steps > 0 {
                     let v = m.view;
                     w.map_view = v;
-                    let (ax, ay) = m.last_pixel.map_or((0.0, 0.0), |p| v.arrow_at(p));
+                    let [ax, ay] = m.last_pixel.map_or([0,0], |p| v.arrow_position(p, area.map(|v|v as i32), arrow_size));
                     w.map_log.push(format!(
-                        "follow: {steps} step(s); view ({:.2}, {:.2})-({:.2}, {:.2}); the arrow's top-left at ({:.1}, {:.1}) in the area{} (rule 25; margin 20: stand-in)",
+                        "follow: {steps} step(s); view ({:.2}, {:.2})-({:.2}, {:.2}); the arrow's top-left at ({}, {}) on the display{} (rule 25; fixed x20..280/y20..340)",
                         v.left,
                         v.top,
                         v.right,
                         v.bottom,
-                        ax + kq8_core::magic_map::AREA_SIZE / 2.0,
-                        ay + kq8_core::magic_map::AREA_SIZE / 2.0,
+                        ax,
+                        ay,
                         if m.follow { ", still outside" } else { "" }
                     ));
                 }
             }
         }
+    }
+    // Input/follow run on rendered frames, so the next picture must not
+    // wait for a simulation update to copy the changed view into the HUD.
+    if let (Some(shown), Some(map)) = (gui.map.as_mut(), sim.as_ref().and_then(|s| s.active.world.map.as_ref())) {
+        shown.view = map.view.as_array();
     }
     *caption = CaptionPlace { bottom: Some(bottom), map_right: Some(kq8_core::caption::map_away_right(sw)) };
     // The panels' sounds (rule 9): plain one-shots in group 0.
@@ -2144,29 +2232,38 @@ pub fn gui_draw(
     }
 }
 
-/// 4c-4: the mouse pointer is the game's: the play pointer `curs04.pba`,
-/// or the held item's cursor picture (`inventory.md` rule 9), as a
-/// cursor image scaled like the screen (whole steps, nearest pixel).
-/// STAND-IN (Q110): the click point is the picture's top-left corner.
+/// Q110c: scale a selected frame from the authored screen dimensions,
+/// retaining its own transparency. The top-left remains the click point.
+fn cursor_canvas(pic: Pic, screen: [u32; 2], palette: &[Rgb; 256]) -> gui_draw::Canvas {
+    let rect = gui_draw::resolve_rect([0, 0, pic.width as i32, pic.height as i32],
+        [640, 480], screen.map(|v| v as i32));
+    let mut canvas = gui_draw::Canvas::new(rect[2].max(1) as u32, rect[3].max(1) as u32);
+    canvas.picture(rect, pic, true, 1.0, palette);
+    canvas
+}
+
+/// Interface rules 6a–6c: normal, held-item and attack cursors share
+/// top-left anchoring, fractional screen scaling and the 100ms real clock.
 pub fn pointer_draw(
     gui: Option<ResMut<Gui>>,
     window: Query<(Entity, &Window), With<bevy::window::PrimaryWindow>>,
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
-    mut shown: Local<Option<(String, u32, u64)>>,
+    mut shown: Local<Option<(String, [u32; 2], u64, usize)>>,
     frame: Res<ScreenFrame>,
+    time: Res<Time<Real>>,
 ) {
     use bevy::window::{CursorIcon, CustomCursor, CustomCursorImage};
     let Some(mut gui) = gui else { return };
+    let fresh = gui.is_added();
     let Ok((entity, _)) = window.single() else { return };
-    let step = ((frame.0[3] / gui.screen[1] as f32).round() as u32).max(1);
-    let wanted = (gui.pointer.clone(), step, gui.palette_revision);
-    if shown.as_ref() == Some(&wanted) {
-        return;
-    }
+    let screen = [frame.0[2], frame.0[3]].map(|n| n.round().max(1.0) as u32);
+    let mut wanted = (gui.pointer.clone(), screen, gui.palette_revision, 0);
     let Some(file) = gui.file_of(&gui.pointer.clone()) else {
-        let line = format!("pointer {}: no file in the tag file; the system pointer stays", gui.pointer);
-        gui.note(line);
+        if shown.as_ref() != Some(&wanted) {
+            let line = format!("pointer {}: no file in the tag file; the system pointer stays", gui.pointer);
+            gui.note(line);
+        }
         *shown = Some(wanted);
         return;
     };
@@ -2175,28 +2272,23 @@ pub fn pointer_draw(
         *shown = Some(wanted);
         return;
     };
-    let Some(pic) = frames.first().and_then(Pic::of) else {
+    let frame_index = picture_tick(time.elapsed().as_millis() as f64) % frames.len().max(1);
+    wanted.3 = frame_index;
+    if shown.as_ref() == Some(&wanted) && !fresh { return; }
+    let Some(pic) = frames.get(frame_index).and_then(Pic::of) else {
         *shown = Some(wanted);
         return;
     };
-    let (pw, ph) = (pic.width * step, pic.height * step);
-    let mut rgba = vec![0u8; (pw * ph * 4) as usize];
-    for y in 0..ph {
-        for x in 0..pw {
-            let index = pic.pixels[((y / step) * pic.width + x / step) as usize];
-            if pic.see_through && index == 0 {
-                continue;
-            }
-            let [r, g, b] = gui.palette[index as usize];
-            let at = ((y * pw + x) * 4) as usize;
-            rgba[at..at + 4].copy_from_slice(&[r, g, b, 255]);
-        }
-    }
-    let image = Image::new(Extent3d { width: pw, height: ph, depth_or_array_layers: 1 }, TextureDimension::D2, rgba, TextureFormat::Rgba8UnormSrgb, RenderAssetUsages::default());
+    let canvas = cursor_canvas(pic, screen, &gui.palette);
+    let dimensions = [canvas.width, canvas.height];
+    let mut image = Image::new(Extent3d { width: canvas.width, height: canvas.height, depth_or_array_layers: 1 }, TextureDimension::D2, canvas.rgba, TextureFormat::Rgba8UnormSrgb, RenderAssetUsages::default());
+    image.sampler = ImageSampler::nearest();
     let handle = images.add(image);
     commands.entity(entity).insert(CursorIcon::Custom(CustomCursor::Image(CustomCursorImage { handle, hotspot: (0, 0), ..default() })));
-    let line = format!("pointer: {} ({file}, {}x{} drawn x{step}; click point at its top-left, stand-in Q110)", gui.pointer, pic.width, pic.height);
-    gui.note(line);
+    if shown.as_ref().is_none_or(|old| old.0 != wanted.0 || old.1 != wanted.1 || old.2 != wanted.2) {
+        let line = format!("pointer: {} ({file}, frame {frame_index}, {dimensions:?} display pixels; top-left hotspot, 100ms clock; interface 6a–6c)", gui.pointer);
+        gui.note(line);
+    }
     *shown = Some(wanted);
 }
 
@@ -2347,8 +2439,9 @@ pub fn popup_step(
     let busy = w.connor_hands_off
         || !matches!(w.connor_state, Some(WAIT | MOVE))
         || w.talk.is_talking("Connor");
-    let due = w.help_prompts.due(
-        updates,
+    let now = w.now() as f32;
+    let due = w.help_prompts.due_at(
+        now,
         preferences.settings.help,
         busy,
         gui.popup.is_some() || asking,
@@ -2444,15 +2537,7 @@ pub fn popup_step(
     let cursor = win.as_ref().and_then(|w| w.cursor_position());
     let over = cursor.and_then(|at| gui.popup_button_at(frame.0, at));
     let accept = [KeyCode::Enter, KeyCode::NumpadEnter, KeyCode::F1];
-    let target = gui.control(Panel::Popup.layout_id()).map(|panel| {
-        let r = gui.popup_rect(page.button_box(page.highlight));
-        let [left, top, width, _] = frame.0;
-        let k = width / gui.screen[0] as f32;
-        Vec2::new(
-            left + (panel.rect[0] + (r[0] + r[2]) / 2) as f32 * k,
-            top + (panel.rect[1] + (r[1] + r[3]) / 2) as f32 * k,
-        )
-    });
+    let target = gui.popup_key_target(page, frame.0);
     let p = gui.popup.as_mut().unwrap();
     if keys.any_just_pressed(accept) {
         p.pressed = Some(p.highlight);
@@ -2493,7 +2578,9 @@ pub fn popup_step(
             } else {
                 (p.highlight + 1).min(p.labels.len() - 1)
             };
-            if p.highlight != before && p.help.is_some() {
+            // Shared popup control: Portal swaps and help focus changes
+            // both click; a press past either end does nothing (rule 26).
+            if p.highlight != before {
                 gui.panels.sounds.push("button1.aud".into());
             }
             let line = format!("popup: {how}: {} highlighted", p.labels[p.highlight]);

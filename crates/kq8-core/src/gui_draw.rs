@@ -66,8 +66,9 @@ pub enum Piece<'a> {
     /// The magic map (M6 6d-3, `magic-map.md` rules 6, 18): a 460 × 460
     /// picture drawn at `view` (left, top, right, bottom in layout pixels
     /// from the centre of `rect`), nearest pixel, cut to `rect`; the arrow
-    /// on top with its top-left at `arrow.1` (from the centre), cut too.
-    Map { rect: [i32; 4], pixels: &'a [u8], view: [f64; 4], arrow: Option<(Pic<'a>, [f64; 2])>, content_scale: f32 },
+    /// on top at map pixel `arrow.1`, using the same integer position as
+    /// follow and the selected bitmap's own dimensions, cut too.
+    Map { rect: [i32; 4], pixels: &'a [u8], view: [f64; 4], arrow: Option<(Pic<'a>, [i32; 2])>, content_scale: f32 },
 }
 
 /// A legacy root-layout conversion. Resolved pixel rectangles pass scale
@@ -266,22 +267,21 @@ impl Canvas {
 
     /// Draws the magic map (see [`Piece::Map`]); `rect` in layout pixels
     /// where the panel stands.
-    pub fn map(&mut self, rect: [i32; 4], pixels: &[u8], view: [f64; 4], arrow: Option<(Pic, [f64; 2])>, scale: f32, content_scale: f32, palette: &[Rgb; 256]) {
+    pub fn map(&mut self, rect: [i32; 4], pixels: &[u8], view: [f64; 4], arrow: Option<(Pic, [i32; 2])>, scale: f32, content_scale: f32, palette: &[Rgb; 256]) {
         let size = kq8_data::magic_map::MAP_SIZE;
         let [l, t, r, b] = rect.map(|v| scaled(v, scale));
         let s = (scale * content_scale) as f64;
-        let (cx, cy) = ((l + r) as f64 / 2.0, (t + b) as f64 / 2.0);
-        let (w, h) = (view[2] - view[0], view[3] - view[1]);
-        if pixels.len() == size * size && w > 0.0 && h > 0.0 {
+        let view = crate::magic_map::View { left: view[0] * s, top: view[1] * s, right: view[2] * s, bottom: view[3] * s };
+        let [left, top, right, bottom] = view.picture_rect([l,t,r,b]);
+        let (w, h) = (right-left, bottom-top);
+        if pixels.len() == size * size && w > 0 && h > 0 {
             for y in t..b {
-                let uy = (y as f64 + 0.5 - cy) / s;
-                let my = ((uy - view[1]) / h * size as f64).floor();
+                let my = ((f64::from(y - top) + 0.5) / f64::from(h) * size as f64).floor();
                 if my < 0.0 || my >= size as f64 {
                     continue;
                 }
                 for x in l..r {
-                    let ux = (x as f64 + 0.5 - cx) / s;
-                    let mx = ((ux - view[0]) / w * size as f64).floor();
+                    let mx = ((f64::from(x - left) + 0.5) / f64::from(w) * size as f64).floor();
                     if mx < 0.0 || mx >= size as f64 {
                         continue;
                     }
@@ -289,9 +289,10 @@ impl Canvas {
                 }
             }
         }
-        if let Some((pic, at)) = arrow {
-            let (ax, ay) = ((cx + at[0] * s).round() as i32, (cy + at[1] * s).round() as i32);
-            let (aw, ah) = ((pic.width as f64 * s).round() as i32, (pic.height as f64 * s).round() as i32);
+        if let Some((pic, pixel)) = arrow {
+            let [aw, ah] = [pic.width,pic.height].map(|v| (f64::from(v) * s) as u32);
+            let [ax,ay] = view.arrow_position((pixel[0],pixel[1]), [l,t,r,b], [aw,ah]);
+            let (aw,ah) = (aw as i32,ah as i32);
             for y in ay.max(t)..(ay + ah).min(b) {
                 for x in ax.max(l)..(ax + aw).min(r) {
                     let sx = (((x - ax) as f64 / s) as u32).min(pic.width - 1);
@@ -506,14 +507,25 @@ mod tests {
         // the area's centre, 460 map pixels over 46 layout pixels.
         let arrow = [3u8; 4];
         let pic = Pic { width: 2, height: 2, pixels: &arrow, see_through: true };
-        let c = draw([0, 0], [10, 10], 1.0, &[Piece::Map { rect: [0, 0, 10, 10], pixels: &pixels, view: [0.0, 0.0, 46.0, 46.0], arrow: Some((pic, [3.0, 3.0])), content_scale: 1.0 }], &pal);
+        let c = draw([0, 0], [10, 10], 1.0, &[Piece::Map { rect: [0, 0, 10, 10], pixels: &pixels, view: [0.0, 0.0, 46.0, 46.0], arrow: Some((pic, [40, 40])), content_scale: 1.0 }], &pal);
         assert_eq!(c.at(4, 4), [0, 0, 0, 0], "left of and above the picture: nothing");
         assert_eq!(c.at(5, 5), [20, 0, 0, 255], "the picture's first pixel at the centre");
         assert_eq!(c.at(6, 6), [10, 0, 0, 255]);
         assert_eq!((c.at(8, 8), c.at(9, 9)), ([30, 0, 0, 255], [30, 0, 0, 255]), "the arrow at centre + 3");
         // Cut at the area's edge: the arrow's second column would be x 10.
-        let c = draw([0, 0], [11, 10], 1.0, &[Piece::Map { rect: [0, 0, 10, 10], pixels: &pixels, view: [0.0, 0.0, 46.0, 46.0], arrow: Some((pic, [4.0, 0.0])), content_scale: 1.0 }], &pal);
+        let c = draw([0, 0], [11, 10], 1.0, &[Piece::Map { rect: [0, 0, 10, 10], pixels: &pixels, view: [0.0, 0.0, 46.0, 46.0], arrow: Some((pic, [50, 10])), content_scale: 1.0 }], &pal);
         assert_eq!((c.at(9, 5), c.at(10, 5)), ([30, 0, 0, 255], [0, 0, 0, 0]));
+        // Odd area and frame dimensions plus fractional negative offset:
+        // origin = 0 + 11/2 + trunc(-2.9) = 3; extent = trunc(46.9)=46;
+        // arrow = origin + 20*46/460 - 3/2 = 4, not rounded float 3.
+        let odd_arrow = [3;9];
+        let odd_pic = Pic { width:3,height:3,pixels:&odd_arrow,see_through:true };
+        let c = draw([0,0],[11,11],1.0,&[Piece::Map { rect:[0,0,11,11],pixels:&pixels,
+            view:[-2.9,-2.9,44.0,44.0],arrow:Some((odd_pic,[20,20])),content_scale:1.0 }],&pal);
+        assert_eq!(c.at(3,3),[20,0,0,255],"fractional picture origin truncates separately");
+        assert_eq!(c.at(4,4),[30,0,0,255]);
+        assert_eq!(c.at(6,6),[30,0,0,255]);
+        assert_eq!(c.at(7,7),[10,0,0,255]);
     }
 
     #[test]

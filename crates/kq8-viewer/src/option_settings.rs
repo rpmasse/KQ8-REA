@@ -19,6 +19,19 @@ pub struct Preferences {
 }
 
 impl Preferences {
+    #[cfg(test)]
+    pub(crate) fn isolated_path(&self) -> &Path { &self.path }
+
+    #[cfg(test)]
+    pub(crate) fn isolated_for_test(game: &Path, settings: Settings) -> Self {
+        let mut preferences = Self::load(game);
+        let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        preferences.path = PathBuf::from("kq8-artifacts/scratch/preferences").join(nonce.to_string()).join("Options.cs");
+        preferences.settings = settings.clone();
+        preferences.saved = settings;
+        preferences
+    }
+
     pub fn load(game: &Path) -> Self {
         let path = PathBuf::from("kq8-artifacts/Options.cs");
         let original = GameDir::open(game)

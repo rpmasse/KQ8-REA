@@ -16,6 +16,7 @@ kq8-data.workspace = true
 kq8-core.workspace = true
 kq8-audio.workspace = true
 bevy.workspace = true
+winit = { version = "=0.30.13", default-features = false }
 crossterm.workspace = true
 mimalloc.workspace = true
 libmimalloc-sys.workspace = true

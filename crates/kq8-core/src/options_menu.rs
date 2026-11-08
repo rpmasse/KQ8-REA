@@ -32,7 +32,7 @@ pub struct Graphics {
 
 impl Default for Graphics {
     fn default() -> Self {
-        Self { mode: "D3D-display".into(), high_resolution: false, brightness: 50, shadow_mask: 1, dynamic_lighting: false }
+        Self { mode: "Software".into(), high_resolution: false, brightness: 50, shadow_mask: 1, dynamic_lighting: false }
     }
 }
 

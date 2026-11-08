@@ -37,7 +37,7 @@ impl Device {
     }
 
     pub fn direct3d(driver: &str, fullscreen: bool) -> Self {
-        Self { name: format!("D3D-{driver}"), family: Family::Direct3D, fullscreen, first_glide_board: None }
+        Self { name: format!("D3D-{}", driver.replace(' ', "-")), family: Family::Direct3D, fullscreen, first_glide_board: None }
     }
 
     pub fn glide(fullscreen: bool, first_board: Option<GlideBoard>) -> Self {
@@ -173,6 +173,16 @@ impl Inventory {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn original_graphics_compiled_default_saved_override_and_driver_names() {
+        use crate::options_menu::{Graphics,Settings};
+        assert_eq!(Graphics::default().mode,"Software");
+        assert_eq!(Settings::from_script(b"").graphics.mode,"Software");
+        assert_eq!(Settings::from_script(b"assignGModeName D3D-display\n").graphics.mode,"D3D-display");
+        assert_eq!(Device::direct3d("Primary Display Driver",true).name,"D3D-Primary-Display-Driver");
+        assert_eq!(Device::direct3d("dd3dfx",true).name,"D3D-dd3dfx");
+    }
 
     #[test]
     fn graphics_device_policy_grouped_inventory_capability_selection_and_startup() {

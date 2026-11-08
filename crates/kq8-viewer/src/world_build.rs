@@ -277,8 +277,9 @@ pub fn playing(change: Res<WorldChange>, menu: Option<Res<crate::startup_menu::M
 /// follows them (M6 6e-6): a world is in and the Portal state's question
 /// is not open (`world-change.md` rule 26: the game pauses; the panels
 /// and the sounds go on).
-pub fn running(change: Res<WorldChange>, sim: Option<Res<crate::door_view::DoorSim>>, menu: Option<Res<crate::startup_menu::Menu>>, gui: Option<Res<crate::gui_view::Gui>>) -> bool {
-    !change.asked.as_ref().is_some_and(|r| r.portal.is_some()) && playing(change, menu)
+pub fn running(change: Res<WorldChange>, sim: Option<Res<crate::door_view::DoorSim>>, menu: Option<Res<crate::startup_menu::Menu>>, gui: Option<Res<crate::gui_view::Gui>>, graphics: Option<Res<crate::graphics_runtime::Runtime>>) -> bool {
+    graphics.is_none_or(|runtime|runtime.active().is_some() && runtime.pending().is_none())
+        && !change.asked.as_ref().is_some_and(|r| r.portal.is_some()) && playing(change, menu)
         && !sim.is_some_and(|s| s.active.world.portal_asking())
         && !gui.is_some_and(|g| g.popup.is_some())
 }
