@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-08 Verify existing-file movie error continuation
+
+Share the real bounded decoder reader with controlled child processes and
+exercise early exit, truncated data, premature EOF and terminal nonzero
+exit through production error-page, acknowledgement and return handling.
+Title/Main/Gameplay and retained ending-to-Credits paths pass; New's ended
+versus playable warning predicate is checked through normal input actions.
+This and the top-bar matrix pass first attempt, 2/2 in 1.53s. Successful
+film timing and Credits checks were not rerun. Decoder creation/parsing,
+audible output and exact original MCI failures are outside this matrix.
+Evidence: docs/movie-failure-completion.md. M4 approximately 89%.
+
 ## 2026-11-08 Complete top-bar cursor eligibility and Mask dispatch
 
 Apply the original four-cursor exclusion to pointer-triggered top-bar
