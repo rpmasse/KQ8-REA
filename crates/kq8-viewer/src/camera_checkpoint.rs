@@ -74,6 +74,7 @@ impl GameCam {
         if saved.pending_start { self.pending.push("start (stand-in)"); }
         if saved.pending_follow { self.pending.push("disk follow continuation"); }
         self.mouse = Vec2::ZERO; self.mouse_was_held = saved.mouse_was_held; self.pressed_mode = false; self.pressed_reset = false;
+        self.reset_keys.clear(); self.reset_mouse = false;
         self.script_moves.clear();
         self.log.detail(format!("camera checkpoint restored at ({:.3}, {:.3}, {:.3}), following {}, around {:?}, flight {:?}, {} destination spots",
             self.cam.position[0], self.cam.position[1], self.cam.position[2], self.following, self.around, self.flight.as_ref().map(|f| (f.k, f.n)), self.spots.0.len()));
@@ -94,10 +95,40 @@ mod tests {
             glide_from: None, roll_before: 0.0,
             keys: Keys { first_person: None, change_mode: None, tilt_up: None, tilt_down: None, reset: None, shift: None, mouse: None },
             mouse: Vec2::ZERO, mouse_was_held: false, pressed_mode: false, pressed_reset: false, updates: 0,
+            reset_keys: vec![], reset_mouse: false,
             log: Log::create("camera-checkpoint-unit").unwrap(), following: false, spots: Spots::default(),
             flight: None, flight_fresh: false, view: View { tilt: 0.0, heading: 0.0, roll: 0.0, locked: false },
             places: false, aims: false, last_connor: None, pending: vec![], script_moves: vec![], around: None,
             skip_next_move: false, move_skipped: false, after_flight: None, follow_due: None, shake:Default::default() }
+    }
+
+    #[test]
+    fn forced_choice_camera_input_reset_matrix() {
+        let mut camera = camera();
+        camera.keys.tilt_up = Some(KeyCode::PageUp);
+        camera.keys.change_mode = Some(KeyCode::F11);
+        camera.keys.mouse = Some(MouseButton::Right);
+        let mut keys = ButtonInput::default();
+        let mut buttons = ButtonInput::default();
+        keys.press(KeyCode::PageUp); keys.press(KeyCode::F11); buttons.press(MouseButton::Right);
+        camera.mouse = Vec2::new(0.3, 0.4);
+        camera.pressed_mode = true; camera.pressed_reset = true; camera.mouse_was_held = true;
+        let pose = (camera.current, camera.following, camera.cam.hold);
+        camera.reset_input(&keys, &buttons);
+        assert_eq!((camera.mouse, camera.pressed_mode, camera.pressed_reset, camera.mouse_was_held), (Vec2::ZERO,false,false,false));
+        camera.update_input_reset(&keys, &buttons);
+        assert!(!camera.key_held(camera.keys.tilt_up, &keys));
+        assert!(!camera.key_pressed(camera.keys.change_mode, &keys));
+        assert!(!camera.mouse_held(&buttons));
+        assert_eq!((camera.current, camera.following, camera.cam.hold), pose, "input reset does not change view/follow/hold");
+        keys.release(KeyCode::PageUp); keys.release(KeyCode::F11); buttons.release(MouseButton::Right);
+        camera.update_input_reset(&keys, &buttons);
+        keys.press(KeyCode::PageUp); keys.press(KeyCode::F11); buttons.press(MouseButton::Right);
+        assert!(camera.key_held(camera.keys.tilt_up, &keys) && camera.key_pressed(camera.keys.change_mode, &keys) && camera.mouse_held(&buttons));
+        camera.reset_input(&keys, &buttons);
+        let saved = camera.saved();
+        camera.restore(&saved).unwrap();
+        assert!(camera.reset_keys.is_empty() && !camera.reset_mouse, "load resets transient controls, never restores stale physical key latches");
     }
 
     #[test]

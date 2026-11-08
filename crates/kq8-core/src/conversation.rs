@@ -21,7 +21,7 @@
 //! - The stay test (rule 13): from then on, every update, outside the stay
 //!   area ends the conversation ("walked away"; the goodbye, 4e-6).
 //! - The end (rules 15–16): Move if he is moving, else `Stop` and Wait; the
-//!   camera put at `cam0` looking at the partner, then following Connor;
+//!   camera put at `cam0` looking above the conversation midpoint, then following Connor;
 //!   `TalkExit` to the partner's script (unless a goodbye plays: then at
 //!   its end); the partner to Wait; the bottom bar back.
 //!
@@ -37,12 +37,12 @@ use kq8_data::conv_info::ConvInfo;
 /// State identity for the ordinary request gate. Payloads remain with the host.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StateRequest {
-    Talk, Wait, Move, Fall, Special, Die,
+    Talk, Wait, Move, Fall, Special, Die, Swap, Choice,
     /// A standing movement ended; retry the old slot without a new request.
     RetryPending,
 }
 impl StateRequest {
-    pub fn strong(self) -> bool { matches!(self, Self::Talk | Self::Special) }
+    pub fn strong(self) -> bool { matches!(self, Self::Talk | Self::Special | Self::Swap) }
 }
 
 /// One replaceable pending request. A successful old request owns this call;
@@ -60,7 +60,11 @@ pub fn select_request<T>(pending: &mut Option<T>, incoming: T, mut accepts: impl
 
 pub fn admits(walker: &Walker, swap: bool, next: StateRequest) -> bool {
     use crate::connor::Mode;
-    if next == StateRequest::RetryPending || swap && next == StateRequest::Talk { return false; }
+    if next == StateRequest::RetryPending { return false; }
+    if swap {
+        return walker.special_at >= walker.special.len()
+            && matches!(next, StateRequest::Wait | StateRequest::Move | StateRequest::Special | StateRequest::Die);
+    }
     match walker.mode {
         Mode::Jump => walker.jump_finished,
         Mode::Fall | Mode::Land => walker.fall_finished,
@@ -224,10 +228,10 @@ pub fn between(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
     std::array::from_fn(|k| 0.5 * (a[k] + b[k]))
 }
 
-/// The point a conversation camera looks at: the partner's position plus
-/// the following camera's 1,400 (Q126 stand-in).
-pub fn partner_aim(partner_at: [f32; 3]) -> [f32; 3] {
-    crate::camera::Camera::aim_for(partner_at)
+/// Add the following camera's 1,400 vertical offset to the conversation
+/// centre. Both the right-button placement and Talk exit use that centre.
+pub fn partner_aim(centre: [f32; 3]) -> [f32; 3] {
+    crate::camera::Camera::aim_for(centre)
 }
 
 impl WorldState {
@@ -608,39 +612,64 @@ impl Active {
         self.conversation_leave("walked out of the stay area", talk_exit);
     }
 
-    /// Rule 15: the conversation ends. Connor's own state changes at the
-    /// next [`Active::conversation_tick`] (this update, before his next).
+    /// The actual Talk-state exit, without normal conversation completion.
+    /// Forced Choice uses this even when Talk's ordinary exit gate is closed.
+    /// Speech, panels and handsOff are deliberately left to their own owners.
+    pub fn force_conversation_exit(&mut self) -> bool {
+        let Some(c) = self.world.conversation.as_ref().filter(|c| c.entered()) else { return false; };
+        let talk_exit = !self.world.talk.conv_suppresses_talk_exit(&c.partner);
+        let left = self.conversation_exit("forced state replacement", talk_exit);
+        if left { self.world.connor_leave = None; }
+        left
+    }
+
+    /// Rule 15's normal finish owns panel restoration and Connor's later
+    /// Wait/Move proposal. These are not part of the old state's exit itself.
     pub(crate) fn conversation_leave(&mut self, why: &str, talk_exit: bool) {
-        let Some(c) = self.world.conversation.take() else { return };
+        if !self.conversation_exit(why, talk_exit) { return; }
+        self.world.connor_leave = Some(why.to_string());
+        self.world.gui_orders.push(GuiOrder::Conversation { start: false, at: "conversation ends".into() });
+        self.world.conversation_note("normal finish: the bottom bar comes back if it was shown at the start");
+    }
+
+    fn conversation_exit(&mut self, why: &str, talk_exit: bool) -> bool {
+        let Some(c) = self.world.conversation.take() else { return false; };
         if !c.entered() {
             self.world.conversation = Some(c);
-            return;
+            return false;
         }
         let mut notes = Vec::new();
-        // The camera: at cam0 looking at the partner, then following Connor.
+        // Same centre as the right-button path: the captured partner feet
+        // and authored talking spot, not either actor's later position.
+        let centre = between(c.partner_at, c.info.as_ref().map_or(c.walk_from, |i| i.spot));
         match c.info.as_ref().and_then(|i| i.cameras.first()) {
             Some(cam0) => {
-                let aim = partner_aim(c.partner_at);
+                let aim = partner_aim(centre);
                 let d: [f32; 3] = std::array::from_fn(|k| aim[k] - cam0.position[k]);
                 let (tilt, heading) = crate::camera::view_angles(d);
                 let at = format!("conversation with {} ends", c.partner);
                 self.world.requests.push(Request::Move { who: "KQCamera".into(), flags: 0, position: cam0.position, turn: [tilt, 0.0, heading], at: at.clone() });
                 notes.push(format!(
-                    "camera to cam0 ({:.0}, {:.0}, {:.0}) looking at ({:.0}, {:.0}, {:.0}) (the partner + 1400, Q126 stand-in), then follows Connor",
+                    "camera to cam0 ({:.0}, {:.0}, {:.0}) looking at midpoint + 1400 ({:.0}, {:.0}, {:.0})",
                     cam0.position[0], cam0.position[1], cam0.position[2], aim[0], aim[1], aim[2]
                 ));
-                self.world.requests.push(Request::CameraFollow { connor: true, at });
             }
             None => {
-                self.world.requests.push(Request::CameraFollow { connor: true, at: format!("conversation with {} ends", c.partner) });
-                notes.push("no cam0: the camera follows Connor".into());
+                notes.push("no cam0: no exit camera placement".into());
             }
         }
+        // The callback sees the partner's old Talk owner. Its Wait comes
+        // after TalkExit, not before it (conversation.md rule 15).
+        if talk_exit {
+            self.talk_exit(&c.partner);
+        } else {
+            self.world.conversation_note(format!("{}: the sent goodbye owns TalkExit", c.partner));
+        }
+        self.world.requests.push(Request::CameraFollow { connor: true, at: format!("conversation with {} ends", c.partner) });
         if c.resume_first_person {
             self.world.first_person = self.world.connor_at.is_some();
             notes.push("first person restored at Talk exit (rule 16)".into());
         }
-        self.world.connor_leave = Some(why.to_string());
         // The partner goes to Wait (rules 15, 16).
         if let Some(i) = self.world.character_index(&c.partner) {
             let a = &mut self.world.anims[i];
@@ -649,14 +678,8 @@ impl Active {
                 notes.push(format!("partner: {line}"));
             }
         }
-        self.world.gui_orders.push(GuiOrder::Conversation { start: false, at: "conversation ends".into() });
-        notes.push("the bottom bar comes back if it was shown at the start".into());
         self.world.conversation_note(format!("the conversation with {} ends ({why}): {}", c.partner, notes.join("; ")));
-        if talk_exit {
-            self.talk_exit(&c.partner);
-        } else {
-            self.world.conversation_note(format!("{}: TalkExit waits for the goodbye's end", c.partner));
-        }
+        true
     }
 
     /// `TalkExit` to the partner's script: `$1` its name, `$2 TalkExit`.
@@ -665,6 +688,10 @@ impl Active {
         self.world.conversation_note(format!("{partner}: TalkExit: {}", if ran { "its script ran" } else { "no script" }));
     }
 }
+
+#[cfg(test)]
+#[path = "forced_talk_exit_tests.rs"]
+mod forced_talk_exit_tests;
 
 #[cfg(test)]
 mod tests {

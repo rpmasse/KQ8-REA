@@ -523,6 +523,39 @@ pub fn read_set(game: &GameDir, world: &World, file: &str) -> Vec<kq8_data::kq_t
     bytes.map(|b| kq8_data::kq_text::parse(&b)).unwrap_or_default()
 }
 
+/// Inventory rule 8: load changed persistent entries even if this world's
+/// startup files do not mention the weapon that originally received them.
+fn changed_third_person_banks(original: &kq8_data::characters::ConnorAnimLists,
+    current: &kq8_data::characters::ConnorAnimLists) -> std::collections::BTreeSet<String> {
+    let mut files = std::collections::BTreeSet::new();
+    if let Some(file) = current.stowed.as_ref().filter(|file|
+        original.stowed.as_ref().is_none_or(|old| !old.eq_ignore_ascii_case(file))) {
+        files.insert(file.to_ascii_lowercase());
+    }
+    for (before, after) in [(&original.hand, &current.hand), (&original.ranged, &current.ranged)] {
+        for (item, file) in after {
+            if kq8_data::characters::ConnorAnimLists::equipped(before, item)
+                .is_none_or(|old| !old.eq_ignore_ascii_case(file)) {
+                files.insert(file.to_ascii_lowercase());
+            }
+        }
+    }
+    files
+}
+
+#[cfg(test)]
+pub(crate) fn temple_armor_late_fixture(game: &GameDir) -> LateSets {
+    let world = World::open(game, "temple1").expect("original Temple1 archives");
+    let mut log = Log::create("armour-late-fixture").unwrap();
+    let palette = load_palette(&world, Some("temple01.ppl"), game, &mut log).unwrap();
+    LateSets { game: game.clone(), world: world.name.clone(), palette, lip_base: None,
+        sets: Vec::new(), first_person_files: Default::default() }
+}
+
+#[cfg(test)]
+#[path = "temple_armor_load_tests.rs"]
+mod temple_armor_load_tests;
+
 /// The `I_` version of a texture this world has (`potions.md` rule 29):
 /// for a set loaded while playing (M6 6c-2).
 pub fn ghost_texture(world: &World, texture: &str, palette: &PaletteColors) -> Option<Look> {
@@ -1989,7 +2022,7 @@ pub struct Marker {
 #[derive(Clone, Debug)]
 pub enum ItemLoad {
     Region(kq8_core::item::RegionItems),
-    Slot { objects: Vec<kq8_core::item::ItemObject>, next_name: usize, order: u64, first_person_banks: Vec<String> },
+    Slot { objects: Vec<kq8_core::item::ItemObject>, next_name: usize, order: u64, first_person_banks: Vec<String>, third_person_banks: Vec<String> },
 }
 
 /// A world Connor arrives in through a world change (M6 6e-3,
@@ -1997,6 +2030,9 @@ pub enum ItemLoad {
 #[derive(Debug, Clone)]
 pub struct Arrival {
     pub items: Option<ItemLoad>,
+    /// Inventory rule 8: actual persistent entries, independent of whether
+    /// Temple Armour is still carried. Installed defaults remain for old slots.
+    pub third_person_lists: Option<kq8_data::characters::ConnorAnimLists>,
     /// The game-wide `NoName<n>` counter carried over (rule 18): the new
     /// world's start names nothing below it.
     pub no_name_from: usize,
@@ -2125,6 +2161,11 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         log.summary(format!("world change: NoName counter from {} (world-change.md rule 18); conStart.cs not run (rule 21)", a.no_name_from));
     }
     let mut placer = Placer {
+        arriving_third_person_lists: arrival.as_ref().and_then(|a| a.third_person_lists.clone()),
+        saved_third_person_banks: match arrival.as_ref().and_then(|a| a.items.as_ref()) {
+            Some(ItemLoad::Slot { third_person_banks, .. }) => third_person_banks.iter().map(|name| name.to_ascii_lowercase()).collect(),
+            _ => Default::default(),
+        },
         saved_first_person_banks: match arrival.as_ref().and_then(|a| a.items.as_ref()) {
             Some(ItemLoad::Slot { first_person_banks, .. }) => first_person_banks.iter().map(|name| name.to_ascii_lowercase()).collect(),
             _ => Default::default(),
@@ -2502,6 +2543,8 @@ struct Located {
 /// Places objects one by one as the scripts load them, and keeps the
 /// numbers for the log.
 struct Placer<'a> {
+    arriving_third_person_lists: Option<kq8_data::characters::ConnorAnimLists>,
+    saved_third_person_banks: std::collections::BTreeSet<String>,
     saved_first_person_banks: std::collections::BTreeSet<String>,
     /// Objects that left this world on an earlier visit (M6 6e-8), lower
     /// case, and those skipped.
@@ -3106,9 +3149,13 @@ impl Placer<'_> {
             // fighting.md rules 24, 39-41 (M5 5c-4): his ouch sound, the big
             // swing's factors, the hand weapons' movement lists.
             let num = |k: &str, d: f32| section.number(k).and_then(Result::ok).map_or(d, |v| v as f32);
-            let third_person = kq8_data::characters::ConnorAnimLists::from_file(&file, section, false);
+            let original_third_person = kq8_data::characters::ConnorAnimLists::from_file(&file, section, false);
+            let third_person = self.arriving_third_person_lists.clone().unwrap_or_else(|| original_third_person.clone());
             let first_person = kq8_data::characters::ConnorAnimLists::from_file(&file, section, true);
-            let base_list = third_person.stowed.clone().unwrap_or_else(|| "Conner.anm".into());
+            // Preserve the original bare-name table for old slots and a model
+            // retained during refresh. A changed base is a qualified bank.
+            let base_list = original_third_person.stowed.clone().unwrap_or_else(|| "Conner.anm".into());
+            let changed_third_person = changed_third_person_banks(&original_third_person, &third_person);
             // ranged-weapons.md rules 10, 17, 21 (M5 5f-4): the ranged
             // weapons' lists, the shoot offsets by item, the start values.
             let shoot_offsets = kq8_data::characters::shoot_offsets(section);
@@ -3130,6 +3177,7 @@ impl Placer<'_> {
                 max_damage_factor: num("maxDamageFactor", 1.0),
                 third_person,
                 first_person,
+                list_refresh_pending: false,
                 shoot_offsets,
                 start_projectile,
                 start_offset,
@@ -3249,6 +3297,17 @@ impl Placer<'_> {
             let mut sets = vec![(anm.clone(), list.to_string(), None)];
             let (weapons, late) = self.weapon_sets();
             sets.extend(weapons);
+            // A restored controller may still play the bank from before an
+            // armour change. Load both its retained bank and the current table
+            // before save restoration validates/reconstructs that controller.
+            for file in changed_third_person.iter().chain(&self.saved_third_person_banks) {
+                if sets.iter().any(|(_, _, loaded)| loaded.as_ref().is_some_and(|name| name.eq_ignore_ascii_case(file))) {
+                    continue;
+                }
+                let sections = read_set(self.game, self.world, file);
+                let list = sections.first().ok_or_else(|| format!("saved third-person bank {file} is unavailable"))?.name.clone();
+                sets.push((sections, list, Some(file.clone())));
+            }
             self.log.summary(format!("connor: weapon sets not loaded now, loaded when the weapon is given (M6 6c-2): {:?}", late.iter().map(|(_, f)| f.clone()).collect::<Vec<_>>()));
             let mut first_person_files: std::collections::BTreeSet<String> = self.connor_fight.as_ref().map(|f| {
                 let fp = &f.first_person;
@@ -6121,7 +6180,7 @@ mod campaign_tests {
             .filter_map(|(name, place)| place.map(|p| (name.clone(), p))).collect();
         let bytes = serde_json::to_vec(&kept_props).unwrap();
         let saved_props = serde_json::from_slice(&bytes).unwrap();
-        let arrival = Arrival { no_name_from: 0, items: None, exit_movement: None,
+        let arrival = Arrival { no_name_from: 0, items: None, third_person_lists: None, exit_movement: None,
             kept_vars: active.scripts.vars.iter().filter(|(name, _)| name.starts_with("Gnome::"))
                 .map(|(name, value)| (name.to_string(), value.to_string())).collect(),
             gone: Default::default(), came_in: vec![], object_copies: vec![],
@@ -7018,7 +7077,7 @@ mod runtime_stat_default_checks {
             ObjectCopy { file: "boardpx.kq".into(), name: "AlphaProbe".into(), placement: Placement::at([400., 500., 600.]) },
             ObjectCopy { file: "drborded.kq".into(), name: "belstnd1".into(), placement: Placement::at([700., 800., 900.]) },
         ];
-        let arrival = Arrival { no_name_from: 12, items: None, exit_movement: None, kept_vars: vec![],
+        let arrival = Arrival { no_name_from: 12, items: None, third_person_lists: None, exit_movement: None, kept_vars: vec![],
             gone: ["zedprobe".into(), "belstnd1".into()].into_iter().collect(),
             came_in: vec!["boardpx.kq".into()], object_copies: copies.clone(), states: Default::default(),
             prop_placements: Default::default(), kept_maps: Default::default() };
@@ -7042,7 +7101,7 @@ mod regional_item_checks {
     use kq8_core::item::{Place, RegionItems};
 
     fn arrival(no_name_from: usize, items: Option<ItemLoad>) -> Arrival {
-        Arrival { no_name_from, items, exit_movement: None, kept_vars: vec![],
+        Arrival { no_name_from, items, third_person_lists: None, exit_movement: None, kept_vars: vec![],
             gone: Default::default(), came_in: vec![], object_copies: vec![],
             states: Default::default(), prop_placements: Default::default(), kept_maps: Default::default() }
     }

@@ -250,5 +250,8 @@ Also distinguish ordinary forced entry from destructive or reentrant
 WrongWeapon callbacks, whose behavior remains unestablished. Separate study
 A has answered in characters.md's "Forced replacement and the previous
 action" table, including resource/world-object lifetime and Talk's panel
-distinction. Implementation and grouped exit checks remain open; arbitrary
-reentrant callbacks and later projectile-return effects remain unestablished.
+distinction. Implementation and grouped exit checks now pass: owner cleanup,
+Talk ordering/aim/queue preservation and camera input reset, with affected
+weapon and normal Talk checks retained in controller-exit-completion.md.
+Arbitrary reentrant callbacks and later projectile-return effects remain
+unestablished; m4-completion-audit.md records authored callback scope.

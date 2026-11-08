@@ -209,6 +209,9 @@ pub struct ConnorFight {
     /// Actor-authored stowed, melee and ranged movement lists for each view.
     pub third_person: kq8_data::characters::ConnorAnimLists,
     pub first_person: kq8_data::characters::ConnorAnimLists,
+    /// Inventory rule 8: reload the active list and re-request its action,
+    /// independently of a weapon mode assignment or draw/put-away sequence.
+    pub list_refresh_pending: bool,
     /// `shootOffsets`: (item type, offset in his own space) (rule 17).
     pub shoot_offsets: Vec<(String, [f32; 3])>,
     /// `projectileFile` and `shootOffsetX/Y/Z`: start values the first
@@ -228,29 +231,63 @@ impl ConnorFight {
         use crate::weapons::WeaponMode;
         let view = self.view_lists(first_person);
         let table = match mode {
-            WeaponMode::None => return if first_person { view.stowed.as_deref() } else { None },
+            WeaponMode::Raw(_) => return None,
+            WeaponMode::None => return view.stowed.as_deref().filter(|file|
+                first_person || !file.eq_ignore_ascii_case("conner.anm")),
             WeaponMode::Hand => &view.hand,
             WeaponMode::Ranged => &view.ranged,
         };
         kq8_data::characters::ConnorAnimLists::equipped(table, item?)
     }
 
-    /// During a draw or sheath the current bank can differ from the
-    /// targeted item. Resolve the currently playing bank's own item.
-    pub fn opposite_bank(&self, current_first: bool, mode: crate::weapons::WeaponMode,
-        current_bank: Option<&str>) -> Option<&str> {
-        use crate::weapons::WeaponMode;
-        let current = self.view_lists(current_first);
-        let table = match mode {
-            WeaponMode::None => return self.bank(!current_first, mode, None),
-            WeaponMode::Hand => &current.hand,
-            WeaponMode::Ranged => &current.ranged,
+}
+
+impl crate::active::WorldState {
+    /// Ranged-weapons rule 8a: select by mode/view and current equipment,
+    /// independently of the identity of an older movement still playing.
+    pub fn equipped_weapon_bank(&self, first_person: bool, mode: crate::weapons::WeaponMode) -> Option<String> {
+        self.connor_fight.as_ref()?.bank(first_person, mode, self.weapon_item(mode).as_deref()).map(str::to_owned)
+    }
+
+    /// Inventory rule 8: Temple Armour and KQConner::helmetize replace the
+    /// entries for the weapons actually carried now, not named late-game
+    /// weapon types. Removal never reverses these persistent table edits.
+    pub fn helmetize(&mut self, short_list: &str, long_list: &str, at: &str) -> bool {
+        let equipped = |category: &str| self.items.objects.iter()
+            .find(|item| item.carried_by(crate::talk::CONNOR)
+                && self.items.kind(&item.kind).is_some_and(|kind| kind.category == category))
+            .map(|item| item.kind.clone());
+        let (hand, ranged) = (equipped("ShortWeapon"), equipped("LongWeapon"));
+        let index = |rows: &[(String, String)], item: &str| {
+            let item = match item.split_at_checked(kq8_data::items::PREFIX.len()) {
+                Some((prefix, item)) if prefix.eq_ignore_ascii_case(kq8_data::items::PREFIX) => item,
+                _ => item,
+            };
+            rows.iter().position(|(name, _)| name.eq_ignore_ascii_case(item))
         };
-        let file = current_bank?;
-        let (item, _) = table.iter().find(|(_, name)| name.eq_ignore_ascii_case(file))?;
-        self.bank(!current_first, mode, Some(item))
+        let slots = self.connor_fight.as_ref().and_then(|fight| Some((
+            index(&fight.third_person.hand, hand.as_deref()?)?,
+            index(&fight.third_person.ranged, ranged.as_deref()?)?,
+        )));
+        // The original's missing-equipment case is not established. Refuse
+        // explicitly instead of guessing which other entry it should change.
+        let Some((hand_at, ranged_at)) = slots.filter(|_| !short_list.trim().is_empty() && !long_list.trim().is_empty()) else {
+            self.item_note(format!("helmetize ({at}): missing carried weapon/mapping or filename; no table changed (defensive rejection, original edge not established)"));
+            return false;
+        };
+        let fight = self.connor_fight.as_mut().expect("slots checked");
+        fight.third_person.stowed = Some("conner2.anm".into());
+        fight.third_person.hand[hand_at].1 = short_list.to_owned();
+        fight.third_person.ranged[ranged_at].1 = long_list.to_owned();
+        fight.list_refresh_pending = true;
+        self.item_note(format!("helmetize ({at}): unarmed conner2.anm; {hand:?} -> {short_list}; {ranged:?} -> {long_list}; first-person mappings unchanged; active-list refresh requested (inventory.md rule 8)"));
+        true
     }
 }
+
+#[cfg(test)]
+#[path = "temple_armor_tests.rs"]
+mod temple_armor_tests;
 
 /// A character's part in the fight (M5 5c).
 #[derive(Debug, Clone)]

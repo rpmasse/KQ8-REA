@@ -200,7 +200,7 @@ pub fn receive(w: &mut WorldState, name: &str, lay_at: Option<[f32; 3]>, why: &s
             }
         }
         if o.kind.eq_ignore_ascii_case("INVITEM_TempleArmor") {
-            w.item_note("INVITEM_TempleArmor: Connor's animation set would change (contpsd2.anm, conicbw2.anm); not done");
+            w.helmetize("contpsd2.anm", "conicbw2.anm", why);
         }
         return;
     }

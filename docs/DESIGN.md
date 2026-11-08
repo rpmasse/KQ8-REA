@@ -2661,7 +2661,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M1 · Render the world | All 12 regions opened and rendered in bounded Windows runs. | Check terrain, models and textures in reachable scenes and assign gaps to their regions in M6. |
 | M2 · Move Connor | Implemented in Daventry. Walking, running, jumping, slopes and collision exist. | Replay input at fixed ticks and check position, facing, jump timing and collision against the original rules. |
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
-| M4 · Interface and dialogue | Partial. Menus, HUD, captions, credits, inventory selection, conversation and graphics controls have grouped checks and representative Windows evidence. | Finish shared weapon-controller admission and TempleArmor's animation-set change; verify exclusive fullscreen on a display with the original modes. |
+| M4 · Interface and dialogue | Approximately 98%. Menus, HUD, captions, credits, inventory, conversation, weapon requests, controller exits, TempleArmor mappings and graphics controls have grouped checks and representative Windows evidence. | Verify exclusive fullscreen on a display with the original modes. |
 | M5 · Combat | Partial. Axe/crossbow attacks, weapon draws, combat/death saves and representative enemy families have checks. Ordinary liquid damage now reaches armor, sounds and death through the shared attack path. | Finish other weapon/damage and enemy-decision families, distinct bosses, specialised deaths and exceptional terrain behavior; integrate them into campaign routes. |
 | M6 · The whole game | Partial. Earned saves cover Daventry, Castle Daventry and Dead City through the northwest archers, river crossing and GoodSkull. Scales, interrupted encounters and Temple 4 outcomes have focused checks. | Return with the skull, complete the statue/feather/scales and remaining regional quests in integrated routes; finish missing controller/persistence families and verify one Normal New Game through ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
@@ -6758,7 +6758,94 @@ by adding the selection side effect.
 
 This assignment step now passes: shared release compilation in 4m02s and
 two grouped/affected checks in 0.04s. See `weapon-selection-completion.md`.
-The separate bounded M4 audit also confirms inventory.md8's TempleArmor
-animation-set change is still a production stub; the loader does not apply
-it implicitly. A is studying its exact mappings and lifetime before B adds
-the missing side effect. This remains M4 inventory work.
+TempleArmor's completed study and separate implementation plan are recorded
+in `temple-armor-mappings.md`; its loader refresh is a separate M4 batch.
+
+### M4 shared weapon admission (2026-11-08)
+
+Use `behaviour/ranged-weapons.md` rules 2–9, `conversation.md`'s common
+request ordering and `characters.md`'s Choice rules. Separate lower weapon
+request planning from mutation on admitted Swap entry. Only Delete's
+hand-to-ranged check requires a real ranged weapon; the shared lower gate
+accepts any carried LongWeapon, including NoRanged. Store a full strong
+Swap payload in the existing replaceable pending slot and its checkpoint,
+with no mode/list/selection side effects while it waits. For script requests,
+perform the documented same-mode early return and preparation before asking
+the actual remaining controller. Implement optional movement only from the
+completed study note. Preserve unadvertised numeric modes with WeaponMode::Raw;
+accepted raw assignments clear selection and preserve the active list, with
+no Swap entry. Carry optional movement text through the pending checkpoint.
+The grouped matrix will check the raw-mode modifier rule and normal transitions from a raw mode.
+
+Extract the existing swap entry into a helper borrowing disjoint controller
+fields, so admission callbacks can execute it synchronously before physics
+continues. Keep current assignment notices and save continuation. An entered
+swap admits its documented exits only after its final clip completes, unlike
+ordinary Special's last-entry rule. Move handsOff completion after an older
+pending candidate declines; pending-only retries perform neither preparation
+nor forced-state handling. Represent Choice's forced entry and target-aware
+gate explicitly: preserve the incoming payload on forced reentry, run its
+StartChoice callback before measuring points, and clear the slot only at the
+established pre-DoChoice boundary.
+
+Verify as one lower-request matrix, one shared controller/preparation matrix
+and one pending-Swap checkpoint matrix. Update only affected older assertions
+and retain successful native evidence. Root owns compilation and execution;
+no separate native run or unrelated regression replay is planned.
+
+The shared batch is implemented. Release compilation passes in 4m04s;
+core checks pass 8/8 across the first run and one fixture-only retry, and
+viewer checks pass 9/9 in 5.70s. The required-mode matrix checks actual
+completion, pending Talk, draw/undraw bypass and callback rereading.
+TempleArmor persistence/refresh/load checks pass in the same batch. See
+`weapon-admission-completion.md`. Dedicated-controller exit cleanup on
+forced Choice remains separate unfinished M4 work, now supported by A's
+characters.md forced replacement table. No manual/native test was run.
+
+### M4 forced Choice exit cleanup (implemented 2026-11-08)
+
+Use the separate study's `characters.md` forced-replacement table and the
+linked conversation, tile, rope, Rock and Hammer notes. Before entering a
+forced Choice, run only the old controller's documented exit effects and
+discard its local continuation. Do not call the successful completion path
+to stand, land, teleport, climb off, catch a projectile or restore settings.
+
+1. Add one viewer helper for dedicated-owner cancellation. Clear the old
+   controller and its deferred end/cue records. Re-enable leaning for Tile,
+   Tile2, Tile3 and Scales; release Tile's camera hold. Tile3 queues its
+   unsolved-grid shutdown cues and delayed music stop only through existing
+   live services. Preserve the separate rope model and launched projectiles.
+   Rope/Rock/Hammer cancellation retains actor physics, projectile setting,
+   weapon/view, handsOff and camera settings except for explicit exit rules.
+2. Split actual Talk exit from normal conversation completion. Forced exit
+   performs camera/follow/view and partner TalkExit/Wait effects, respecting
+   goodbye suppression, without a synthetic TalkComplete, queue clear,
+   panel restore, handsOff change or intermediate Wait request for Connor.
+   Use the established midpoint of captured partner feet and the authored
+   talk spot, plus 1400 vertically, for the cam0 exit aim. The existing
+   partner-only aim is a confirmed leftover stand-in, so cover the shared
+   correction and callback/partner-state order in this same family.
+3. Apply this cleanup before the shared dispatcher's forced Choice entry;
+   permit that request through the door dispatcher's held-controller filter.
+   Preserve exit-before-StartChoice and queued StateChange ordering. Supply
+   actual music-service availability and an ordered camera input reset from
+   the runtime; do not infer either from filenames or reset actor handsOff.
+   Rock's normal completion must request Wait through the common path so a
+   still-forced Choice reenters with a fresh StartChoice and choice points.
+4. Check the owner family in one grouped matrix using the real Connor
+   constructor and controlled state: expected exit effects, preserved actor
+   settings/world objects, no late old-controller revival, and pending swap
+   cancellation without completing its assignment. Check Talk separately
+   for callback/entry order and preserved panels/queue. Reuse prior passing
+   common admission and normal completion evidence unless the split affects
+   it. No manual gameplay or unrelated campaign replay.
+
+This batch now passes its shared release build (2m41s), two core and seven
+viewer checks (1.31s for the viewer group), including the equipped-item,
+Swap input-lock and loading corrections in temple-armor-mappings.md. Keep
+the initial private-helper compile failure and the public-wrapper correction.
+See controller-exit-completion.md for exact evidence and commands. No native
+or manual test was run; unrelated successes were retained. Arbitrary reentrant
+callbacks and later projectile-return consequences after ownership changes
+remain unestablished by the static study; the authored required-mode calls
+and that limit's scope are recorded in m4-completion-audit.md.

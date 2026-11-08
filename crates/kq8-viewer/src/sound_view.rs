@@ -45,6 +45,7 @@ pub struct SoundSim {
 }
 
 impl SoundSim {
+    pub(crate) fn has_music(&self) -> bool { self.music.is_some() }
     pub fn apply_options(&mut self, settings:&kq8_core::options_menu::Settings) -> [f32; GROUPS] {
         settings.apply_groups(&mut self.system.groups);
         self.system.groups.slider

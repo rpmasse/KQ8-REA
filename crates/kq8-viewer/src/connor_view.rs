@@ -64,11 +64,23 @@ pub struct DrawnMovement {
 pub mod route;
 #[path = "connor_requests.rs"]
 mod requests;
+#[path = "connor_owner_exit.rs"]
+mod owner_exit;
+#[path = "connor_weapons.rs"]
+mod weapon_entry;
+#[path = "temple_armor_view.rs"]
+pub(crate) mod temple_armor_view;
 pub use requests::SavedPendingState;
 
 #[cfg(test)]
 #[path = "weapon_selection_tests.rs"]
 mod weapon_selection_tests;
+#[cfg(test)]
+#[path = "weapon_admission_tests.rs"]
+mod weapon_admission_tests;
+#[cfg(test)]
+#[path = "forced_choice_tests.rs"]
+mod forced_choice_tests;
 
 /// Keys from `Connor.sae`, and which of them are held, oldest first.
 pub struct Controls {
@@ -206,6 +218,7 @@ pub struct ConnorSim {
     /// The Choice state (`characters.md` "Connor's Choice state", Q155),
     /// while he is in it.
     pub choice: Option<kq8_core::choice::Choice>,
+    pub(super) forced_choice: Option<kq8_core::choice::ChoiceList>,
     /// The Choice state's script calls (`StartChoice`, `DoChoice`; its
     /// arguments), run by `door_view::trap_step`.
     pub choice_calls: Vec<Vec<String>>,
@@ -268,6 +281,9 @@ pub struct ConnorSim {
     pub weapon_keys: Vec<(kq8_core::weapons::Ask, String)>,
     /// The big-swing key (Shift) is held (rule 6's `away2`).
     pub shift_held: bool,
+    /// Actual runtime music service, refreshed by the host before dispatch.
+    /// Transient: only controls Tile3's documented exit pop scheduling.
+    pub(crate) choice_music_available: bool,
     /// A script's walk asked while a script's swap starts: it waits for
     /// the swap's end (Q141, the user's check).
     held_walk: Option<kq8_core::connor_auto::AutoMove>,
@@ -475,6 +491,8 @@ pub struct SavedWeaponState {
     /// Restore its bank before reconstructing the saved controller.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     first_person_banks: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    third_person_banks: Vec<String>,
     pending_set: Option<(Option<String>, WeaponMode, usize)>,
     #[serde(default)]
     selection: WeaponSelection,
@@ -513,6 +531,7 @@ impl SavedWeaponState {
     pub fn first_person_banks(&self) -> &[String] {
         &self.first_person_banks
     }
+    pub fn third_person_banks(&self) -> &[String] { &self.third_person_banks }
 
     pub fn swapping(&self) -> bool { self.readying }
     pub fn retains_drawn_list(&self) -> bool {
@@ -523,10 +542,11 @@ impl SavedWeaponState {
 
     pub fn matches_ready(&self, item: Option<&str>, mode: WeaponMode) -> bool {
         self.ready_item.as_deref() == item && self.target_mode == mode
+            || self.readying && self.set_mode == mode
     }
 
     pub fn matches_list(&self, list: Option<&str>) -> bool {
-        self.weapon_target.as_deref() == list
+        self.weapon_target.as_deref() == list || self.readying && self.weapon_set.as_deref() == list
     }
 
     pub fn valid(&self, special: Option<&SavedSpecial>) -> bool {
@@ -537,6 +557,7 @@ impl SavedWeaponState {
         if self.first_person_banks.len() > 64 || self.first_person_banks.iter().any(|file| !valid_swing_name(file)) {
             return false;
         }
+        if self.third_person_banks.len() > 256 || self.third_person_banks.iter().any(|file| !valid_swing_name(file)) { return false; }
         if self.readying && special.is_none() {
             return false;
         }
@@ -746,6 +767,9 @@ impl ConnorSim {
             weapon_set: self.weapon_set.clone(), weapon_target: self.weapon_target.clone(),
             actor_first_person: Some(self.first_person),
             first_person_banks: first_person_banks.into_iter().map(str::to_owned).collect(),
+            third_person_banks: self.movements.iter().filter(|m| !m.first_person)
+                .filter_map(|m| m.name.split_once('/').map(|(bank, _)| bank.to_string()))
+                .collect::<std::collections::BTreeSet<_>>().into_iter().collect(),
             pending_set: self.pending_set.clone(), readying: self.readying,
             selection: self.weapon_selection,
             target_mode: self.target_mode, ready_item: self.ready_item.clone(),
@@ -767,6 +791,7 @@ impl ConnorSim {
         self.pending_set.clone_from(&saved.pending_set);
         self.weapon_selection = saved.selection;
         self.readying = saved.readying;
+        self.walker.restore_swap_owner(saved.readying);
         self.target_mode = saved.target_mode;
         self.ready_item.clone_from(&saved.ready_item);
         self.set_mode = saved.set_mode;
@@ -883,6 +908,7 @@ impl ConnorSim {
         self.walker.waiting = waiting;
         self.walker.playing = playing;
         self.walker.death = death;
+        self.walker.restore_swap_owner(self.readying && !legacy_death);
         if legacy_death { self.walker.animation_input_lock = true; }
         self.redraw_from_walker();
         Ok(())
@@ -1030,14 +1056,14 @@ impl ConnorSim {
         Some(if name.contains('/') { movement.qualified } else { kq8_core::connor::plain_movement_name(movement.name) })
     }
 
-    fn drawn_bank_after_toggle(&self, w: &kq8_core::active::WorldState) -> Option<String> {
-        w.connor_fight.as_ref()?.opposite_bank(self.first_person, self.set_mode, self.weapon_set.as_deref()).map(str::to_owned)
+    fn bank_after_toggle(&self, w: &kq8_core::active::WorldState) -> Option<String> {
+        w.equipped_weapon_bank(!self.first_person, self.set_mode)
     }
 
     pub(crate) fn refresh_perspective(&mut self, w: &kq8_core::active::WorldState) -> Option<String> {
         if self.first_person == w.first_person { return None; }
-        let banks = w.connor_fight.as_ref()?;
-        let next = self.drawn_bank_after_toggle(w);
+        w.connor_fight.as_ref()?;
+        let next = self.bank_after_toggle(w);
         if next.is_none() && (w.first_person || self.set_mode != WeaponMode::None) { return None; }
         let action = kq8_core::connor::plain_movement_name(self.walker.movement);
         if let Some(bank) = &next {
@@ -1045,9 +1071,9 @@ impl ConnorSim {
             if !self.movements.iter().any(|m| m.qualified.eq_ignore_ascii_case(&wanted)) { return None; }
         }
         let old = self.drawn(self.walker.movement)?.qualified;
-        let target = banks.opposite_bank(self.first_person, self.target_mode, self.weapon_target.as_deref()).map(str::to_owned);
+        let target = w.equipped_weapon_bank(!self.first_person, self.target_mode);
         if let Some((file, mode, at)) = &mut self.pending_set {
-            let mapped = banks.opposite_bank(self.first_person, *mode, file.as_deref()).map(str::to_owned);
+            let mapped = w.equipped_weapon_bank(!self.first_person, *mode);
             // The swap controller queued its next clip when the player chose
             // the weapon. It has not started; resolve it in the new bank.
             if let Some(kq8_core::connor::SpecialStep::Play(movement, _)) = self.walker.special.get_mut(*at) {
@@ -1059,9 +1085,11 @@ impl ConnorSim {
         self.first_person = w.first_person;
         self.weapon_set = next;
         self.weapon_target = target;
+        self.ready_item = w.weapon_item(self.target_mode);
         let movements = &self.movements;
         let bank = self.weapon_set.as_deref();
         let loops = |n: &str| find(movements, bank, n).map(|m| &m.movement_loop);
+        self.walker.animation_input_lock = false;
         let notes = self.walker.rerequest_view(old, action, &loops);
         let selected_attack = |movement: &'static str, waiting: bool| {
             if waiting {
@@ -1322,19 +1350,23 @@ pub fn late_set_step(
             }
         }
         if !c.first_person {
-            if let Some(drawn) = c.drawn_bank_after_toggle(&sim.active.world) {
+            if let Some(drawn) = c.bank_after_toggle(&sim.active.world) {
                 wanted_fp.insert(drawn.to_ascii_lowercase());
             }
         }
     }
-    let Some(mut late) = c.late.take_if(|l| l.sets.iter().any(|(k, _)| carried.contains(k))
+    let inventory_banks = c.missing_inventory_banks(&sim.active.world);
+    let Some(mut late) = c.late.take_if(|l| !inventory_banks.is_empty() || l.sets.iter().any(|(k, _)| carried.contains(k))
         || !wanted_fp.is_disjoint(&l.first_person_files)) else { return };
     let mut due: Vec<(String, String, bool)> = late.sets.iter().filter(|(k, _)| carried.contains(k))
         .map(|(kind,file)| (kind.clone(),file.clone(),false)).collect();
     late.sets.retain(|(k, _)| !carried.contains(k));
+    for file in inventory_banks { due.push(("inventory mapping".into(), file, false)); }
     for file in wanted_fp.into_iter().filter(|file| late.first_person_files.remove(file)) {
         due.push(("first person".into(),file,true));
     }
+    let due = plan_late_banks(&c.movements, due);
+    if due.is_empty() { c.late = Some(late); return; }
     let started = std::time::Instant::now();
     let mut log = shared.log.lock().unwrap();
     match crate::load::World::open(&late.game, &late.world) {
@@ -1414,6 +1446,17 @@ pub fn late_set_step(
         }
     }
     c.late = Some(late);
+}
+
+/// The startup catalogue and live mapping scan can overlap. Resolve that
+/// before model/material allocation; movement-name deduplication is too late.
+fn plan_late_banks(movements: &[DrawnMovement], candidates: Vec<(String, String, bool)>) -> Vec<(String, String, bool)> {
+    let mut planned = std::collections::BTreeSet::new();
+    candidates.into_iter().filter(|(_, file, first_person)| {
+        let key = (file.to_ascii_lowercase(), *first_person);
+        planned.insert(key) && !movements.iter().any(|movement| movement.first_person == *first_person
+            && movement.qualified.split_once('/').is_some_and(|(loaded, _)| loaded.eq_ignore_ascii_case(file)))
+    }).collect()
 }
 
 /// Spawns Connor (every frame of every movement, hidden but one) and
@@ -1601,6 +1644,7 @@ pub fn spawn_connor(
         auto_ends: Vec::new(),
         pending_state: None,
         choice: None,
+        forced_choice: None,
         choice_calls: Vec::new(),
         tile: None,
         secondary_tile: None,
@@ -1630,6 +1674,7 @@ pub fn spawn_connor(
         set_mode: WeaponMode::None,
         weapon_keys: Vec::new(),
         shift_held: false,
+        choice_music_available: false,
         held_walk: None,
         rope: None,
         rope_model: None,
@@ -2198,103 +2243,19 @@ impl ConnorSim {
     /// once. Restoring a movement list does not create another notice.
     pub(crate) fn apply_weapon_assignment(&mut self, world: &mut kq8_core::active::WorldState) -> bool {
         if !std::mem::take(&mut self.weapon_selection.assigned_ordinary) { return false; }
+        world.commit_weapon_change(self.set_mode, false);
         kq8_core::connor_inventory::weapon_mode_assigned(world);
         true
     }
 
     #[allow(clippy::too_many_arguments)]
     fn ready_set_with_origin(&mut self, list: Option<String>, mode: WeaponMode, item: Option<String>, at_once: bool, shift: bool, script: bool, ordinary: bool) -> String {
-        use kq8_core::connor::SpecialStep;
-        let old = self.weapon_target.clone();
-        let old_mode = self.target_mode;
-        let old_item = self.ready_item.clone();
-        if old == list && old_mode == mode && old_item == item {
-            return "no change".into();
-        }
-        self.weapon_target = list.clone();
-        self.target_mode = mode;
-        self.ready_item = item.clone();
-        self.weapon_selection.pending_ordinary = false;
-        if at_once {
-            self.pending_set = None;
-            self.assign_swap_set(list.clone(), mode, ordinary);
-            return format!("picked up while another was ready: {list:?} at once, nothing plays (the user's check)");
-        }
-        let named = |file: &str, w: &str| {
-            let wanted = kq8_core::connor::special_movement_name(file, w);
-            self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(&wanted)).map(|m| m.name)
-        };
-        let own = |w: &str| self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(w)).map(|m| m.name);
-        // A movement of a list (`None`: his own).
-        let of = |l: &Option<String>, w: &str| match l {
-            Some(f) => named(f, w),
-            None => own(w),
-        };
-        let fists = |i: &Option<String>| i.as_deref().is_some_and(|k| k.eq_ignore_ascii_case(kq8_core::weapons::FISTS));
-        let mut steps: Vec<(&'static str, String)> = Vec::new();
-        let switch_at;
-        let case;
-        if old_mode == WeaponMode::None && mode == WeaponMode::Hand && fists(&item) {
-            case = "1: none to the Fists, the list first, then draw";
-            switch_at = 0;
-            if let Some(m) = of(&list, "draw") {
-                steps.push((m, "draw".into()));
-            }
-        } else if old_mode == WeaponMode::Hand && fists(&old_item) && mode == WeaponMode::None {
-            case = "2: the Fists to none, undraw, then the list";
-            if let Some(m) = of(&old, "undraw") {
-                steps.push((m, "undraw".into()));
-            }
-            switch_at = steps.len();
-        } else {
-            let big = old_mode == WeaponMode::Hand && shift;
-            case = if big { "3: from a hand weapon with Shift: away2, the list, out" } else { "4: away, the list, out" };
-            let away = if big { of(&old, "away2").map(|m| (m, "away2")).or_else(|| of(&old, "away").map(|m| (m, "away"))) } else { of(&old, "away").map(|m| (m, "away")) };
-            if let Some((m, w)) = away {
-                steps.push((m, format!("{w} ({})", old.as_deref().unwrap_or("his own"))));
-            }
-            switch_at = steps.len();
-            if let Some(m) = of(&list, "out") {
-                steps.push((m, format!("out ({})", list.as_deref().unwrap_or("his own"))));
-            }
-        }
-        let set = match &list {
-            Some(l) => format!("his movements come from {l} where it has them"),
-            None => "his own movements again (Conner.anm)".into(),
-        };
-        let played: Vec<&str> = steps.iter().map(|(m, _)| *m).collect();
-        let plays = self.walker.mode == Mode::Free || (script && matches!(self.walker.mode, Mode::Special | Mode::Push | Mode::Talk));
-        // Q141 (the user's check in the original, 2026-10-21): a script's
-        // request while a scripted walk runs (`ax.cs`: `setDoMode 0`, then
-        // `walkTo` in the same event): he stops, the swap plays, then the
-        // walk starts (held until the swap is over, `weapon_step`).
-        let scripted_walk = self.walker.auto.as_ref().is_some_and(|a| matches!(a.kind, kq8_core::connor_auto::AutoKind::Walk { .. }));
-        let held = if script && scripted_walk && !steps.is_empty() {
-            self.held_walk = self.walker.auto.take();
-            "; the scripted walk waits until the swap is over (Q141, the user's check)"
-        } else {
-            ""
-        };
-        if !plays || steps.is_empty() {
-            self.pending_set = None;
-            self.assign_swap_set(list, mode, ordinary);
-            return format!("rule 6 case {case}; {set} at once; mode {}: {played:?} not played", self.walker.mode.name());
-        }
-        if switch_at == 0 {
-            self.pending_set = None;
-            self.assign_swap_set(list, mode, ordinary);
-        } else {
-            self.pending_set = Some((list, mode, switch_at));
-            self.weapon_selection.pending_ordinary = ordinary;
-        }
-        self.walker.auto = None;
-        self.readying = true;
-        let notes = self.walker.start_special(steps.iter().map(|(m, w)| SpecialStep::Play(m, w.clone())).collect());
-        let line = format!("rule 6 case {case}: plays {played:?}; {set} from item {switch_at} ({}){held}", notes.join("; "));
-        self.log.detail(format!("connor update {}: weapon: {line}", self.updates));
-        line
+        weapon_entry::enter(&mut self.walker, &self.movements, &mut self.weapon_target,
+            &mut self.target_mode, &mut self.ready_item, &mut self.weapon_selection,
+            &mut self.pending_set, &mut self.weapon_set, &mut self.set_mode,
+            &mut self.held_walk, &mut self.readying, &mut self.log, &self.updates,
+            list, mode, item, at_once, shift, script, ordinary, None)
     }
-
     /// The movement set switches (5d fix 10; `ranged-weapons.md` rule 8),
     /// with his hand mode (`pushing.md`: sword 0, bow 1, empty hands 4;
     /// `conversation.md` rule 7, gestures, pushing) and the pointer's mode
@@ -2326,13 +2287,11 @@ impl ConnorSim {
         }
         if self.readying && self.walker.mode != Mode::Special {
             self.readying = false;
+            self.walker.restore_swap_owner(false);
             // characters.md rule 11 (Q155): a swap before the choice ends in
             // a fresh Choice: StartChoice again, the points measured again.
-            if let Some(c) = self.choice.as_mut().filter(|c| !c.made) {
-                c.circle = None;
-                self.choice_calls.push(vec!["Connor".into(), "StartChoice".into()]);
-                self.log.detail(format!("connor update {}: weapon: the swap is over: back in a fresh Choice state, StartChoice again (characters.md rule 11)", self.updates));
-            }
+            // Ordinary completion already arbitrated the remembered Choice
+            // synchronously; do not queue a second entry callback here.
             // Q141: the scripted walk held during the swap starts now.
             if let Some(a) = self.held_walk.take() {
                 let line = self.walker.start_auto(a);
@@ -2344,6 +2303,7 @@ impl ConnorSim {
     /// Keep the assignment and its inventory side effect at the same
     /// production completion boundary; no later frame-based retry.
     fn finish_weapon_step(&mut self, world: Option<&mut kq8_core::active::WorldState>) {
+        if let Some(world) = world.as_deref() { self.prepare_pending_weapon_list(world); }
         self.weapon_step();
         if let Some(world) = world { self.apply_weapon_assignment(world); }
     }
@@ -2366,6 +2326,8 @@ impl ConnorSim {
         }
         Ok(())
     }
+
+    pub(crate) fn weapon_swap_in_progress(&self) -> bool { self.readying }
 
     /// His full turn now: the lean about his forward axis, then his
     /// heading (as he is drawn; `ranged-weapons.md` rule 23).
@@ -2498,7 +2460,7 @@ impl ConnorSim {
         true
     }
 
-    pub fn rock_step(&mut self) -> Option<Option<String>> {
+    pub fn rock_step(&mut self, active: &mut kq8_core::active::Active) -> Option<Option<String>> {
         let Some(r) = self.rock.take() else { return None };
         let ended = std::mem::take(&mut self.throw_ended);
         if !ended.contains(&self.walker.movement) {
@@ -2506,21 +2468,23 @@ impl ConnorSim {
             return None;
         }
         if Some(self.walker.movement) == r.out {
-            self.walker.throw_leave();
+            self.dispatch_state(active, kq8_core::active::Request::ConnorTransition(kq8_core::conversation::StateRequest::Wait));
         } else if self.walker.movement == r.throw {
             if self.secondary_rock_finished() {self.redraw_from_walker();return None;}
             let projectile = r.saved_projectile.clone();
+            active.world.connor_projectile = projectile.clone();
             self.switch_set(r.saved_list.clone(), r.saved_mode);
             if let Some(out) = r.out {
                 self.walker.throw_play(out);
                 self.rock = Some(r);
             } else {
-                self.walker.throw_leave();
+                self.dispatch_state(active, kq8_core::active::Request::ConnorTransition(kq8_core::conversation::StateRequest::Wait));
             }
             self.redraw_from_walker();
             return Some(projectile);
         } else {
             let projectile = r.file.clone();
+            active.world.connor_projectile = Some(projectile.clone());
             self.switch_set(None, WeaponMode::None);
             self.walker.throw_play(r.throw);
             self.rock = Some(r);
@@ -3026,6 +2990,7 @@ impl ConnorSim {
             list.points.len()
         );
         self.choice = Some(kq8_core::choice::Choice::new(list));
+        self.forced_choice = self.choice.as_ref().map(|c| c.list.clone());
         self.log.detail(format!("connor update {}: {line} ({at})", self.updates));
         line
     }
@@ -3074,7 +3039,7 @@ impl ConnorSim {
         let circle = c.circle.as_ref().unwrap();
         if let Some(i) = kq8_core::choice::pick(at, self.walker.heading, forward, circle) {
             let number = circle[i].0.clone();
-            requests::commit_choice(&mut self.pending_state, &mut c.made, &mut self.choice_calls, number.clone());
+            requests::commit_choice(&mut self.pending_state, &mut self.forced_choice, &mut c.made, &mut self.choice_calls, number.clone());
             lines.push(format!(
                 "{} key: chooses {number} (heading {:.2}, the point nearest {:.0} {}; rule 7); {} gets DoChoice {number} (rule 10)",
                 if forward { "forward" } else { "back" },

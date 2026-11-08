@@ -30,7 +30,18 @@ getter is documented in the linked Bevy 0.20 API there. A's inventory.md12a
 and ranged-weapons.md8/9 further clarify actual weapon-assignment clearing;
 that implementation and its grouped checkpoint checks now pass
 ([evidence](../weapon-selection-completion.md)). Original save-file parity
-is not claimed; shared weapon-controller admission remains open.
+is not claimed. A's ranged-weapons.md rules 2–9, conversation.md request
+ordering and characters.md Choice rules supply shared weapon admission,
+optional/raw requests, required-mode completion and pending checkpoint
+payloads. inventory.md rule 8 supplies TempleArmor/helmetize mappings and
+refresh; installed Connor tables and animation banks supply the load checks.
+These grouped checks pass ([evidence](../weapon-admission-completion.md)).
+The characters.md forced-exit table and conversation.md rule 15 supply
+dedicated controller cancellation and Talk exit/camera/callback ordering.
+The inventory.md8 and ranged-weapons.md8a clarification supplies equipped
+item lookup, pending assignment and Swap animation-input locks. These
+corrections and camera input reset pass [grouped checks](../controller-exit-completion.md).
+B read no executable, disassembly or study scratch files.
 
 **Inventory display and held-item selection (2026-11-08).** Study A's
 interface.md rules 35, 39, 43–45 and Q109/Q110 follow-up establish carried

@@ -131,6 +131,7 @@ pub enum Request {
     ConnorTalk,
     /// Internal ordinary state proposals at completion boundaries.
     ConnorTransition(crate::conversation::StateRequest),
+    ConnorWeaponSwap(crate::weapons::SwapRequest),
     /// `KQConner::setRun 0|1` (connor-movement.md rule 4).
     SetRun { run: bool, at: String },
     /// `KQCamera::setRange <min> <max>` (camera.md "Distance" rule 2),
@@ -198,6 +199,9 @@ pub enum Request {
     /// `KQCamera::follow Connor|none` (`camera.md` rule 1): `true` =
     /// follow Connor, `false` = stay where it is.
     CameraFollow { connor: bool, at: String },
+    /// Ordered old-controller exit / Choice entry camera effects.
+    CameraHold { on: bool, at: String },
+    ResetCameraInput { at: String },
     /// Independent camera-sync angular shake (camera-shake.md, Q187).
     CameraShake { parameters: crate::camera_shake::Parameters, at: String },
     /// The player swings and zooms the camera around `point` instead of
@@ -3526,27 +3530,20 @@ impl WorldState {
         "0".into()
     }
 
-    /// `KQConner::setRequiredWeaponMode <mode> [script]` (`ranged-weapons.md`
-    /// rule 9, batch 2): a mode other than -1 that differs from his own is
-    /// swapped to at once (as `setDoMode`); the mode is remembered. The
-    /// script for a later wrong swap is kept and logged only (its swap-back
-    /// was not traced; the data never names one).
+    /// Rule 9: direct lower-controller request, without setDoMode preparation.
+    /// Requirement and callback lifetime are independent of admission.
     fn required_weapon_mode_command(&mut self, words: &[String], at: &str) -> String {
         let Some(mode) = words.get(1).and_then(|w| w.parse::<i64>().ok()) else {
             self.note(format!("{at}: usage: KQConner::setRequiredWeaponMode <mode> [script]; nothing"));
             return "1".into();
         };
-        let script = words.get(2).cloned();
-        let swap = match crate::weapons::WeaponMode::from_number(mode) {
-            Some(m) if m != self.weapon_mode => {
-                self.ask_weapon(crate::weapons::Ask::Script(m), &format!("{at}: setRequiredWeaponMode"));
-                format!("swaps to {m:?} at once (as setDoMode)")
-            }
-            _ => "no swap".to_string(),
-        };
-        self.required_weapon_mode = (mode, script.clone());
-        let script = script.map_or(String::new(), |s| format!("; script {s} for a wrong swap kept, not run (its swap-back not traced)"));
-        self.note(format!("{at}: KQConner::setRequiredWeaponMode {mode}: {swap}; required mode {mode}{script} (ranged-weapons.md rule 9)"));
+        let differs = mode != -1 && mode != self.weapon_mode.number();
+        if differs {
+            self.ask_weapon(crate::weapons::Ask::Required(crate::weapons::WeaponMode::from_raw(mode)), &format!("{at}: setRequiredWeaponMode"));
+            if let Some(script) = words.get(2) { self.required_weapon_mode.1 = Some(script.clone()); }
+        }
+        self.required_weapon_mode.0 = mode;
+        self.note(format!("{at}: required weapon mode {mode}; direct controller request={differs}, callback {:?}", self.required_weapon_mode.1));
         "0".into()
     }
 
@@ -4708,17 +4705,21 @@ impl ScriptHost for WorldState {
                 Some(mode.to_string())
             }
             "KQConner::setDoMode" => {
-                // ranged-weapons.md rule 9 (M5 5f-3): the request waits for
-                // the viewer, which puts him into standing and plays the swap.
-                // The optional movement word is not used (no Daventry script
-                // gives one).
-                let Some(mode) = words.get(1).and_then(|w| w.parse::<i64>().ok()).and_then(crate::weapons::WeaponMode::from_number) else {
-                    self.note(format!("{at}: usage: KQConner::setDoMode 0|1|4 [movement]; nothing"));
+                let Some(mode) = words.get(1).and_then(|w| w.parse::<i64>().ok()).map(crate::weapons::WeaponMode::from_raw) else {
+                    self.note(format!("{at}: usage: KQConner::setDoMode <number> [movement]; nothing"));
                     return Some("1".into());
                 };
-                let extra = words.get(2).map_or(String::new(), |m| format!(" (movement {m} not used)"));
-                self.note(format!("{at}: KQConner::setDoMode {}: asks for {}{extra} (ranged-weapons.md rule 9)", mode.number(), mode.name()));
-                self.ask_weapon(crate::weapons::Ask::Script(mode), &format!("{at}: setDoMode {}", mode.number()));
+                let ask = words.get(2).map_or(crate::weapons::Ask::Script(mode), |movement|
+                    crate::weapons::Ask::ScriptMovement { mode, movement: movement.clone() });
+                self.ask_weapon(ask, &format!("{at}: setDoMode {}", mode.number()));
+                Some("0".into())
+            }
+            "KQConner::helmetize" => {
+                let [_, short, long] = words else {
+                    self.note(format!("{at}: usage: KQConner::helmetize <hand-list> <ranged-list>"));
+                    return Some("1".into());
+                };
+                self.helmetize(short, long, at);
                 Some("0".into())
             }
             "KQConner::JumpDir" => Some(self.jump_dir(at)),
@@ -9360,7 +9361,7 @@ endif
         // fighting.md rules 39-41, 16 (M5 5c-5).
         let mut a = fighter();
         a.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
-        a.world.connor_fight = Some(crate::fight::ConnorFight { ouch_sound: "conrow3.aud".into(), min_damage_factor: 0.75, max_damage_factor: 4.0, third_person: Default::default(), first_person: Default::default(), shoot_offsets: vec![], start_projectile: None, start_offset: [0.0; 3] });
+        a.world.connor_fight = Some(crate::fight::ConnorFight { list_refresh_pending: false, ouch_sound: "conrow3.aud".into(), min_damage_factor: 0.75, max_damage_factor: 4.0, third_person: Default::default(), first_person: Default::default(), shoot_offsets: vec![], start_projectile: None, start_offset: [0.0; 3] });
         // The goblin at (0, 0, 100); Connor 2,000 south of it, facing it
         // (heading pi faces +y).
         let from = [0.0, -2000.0, 100.0];
@@ -9749,10 +9750,11 @@ endif
         assert!(a.world.fight_log.join("\n").contains("dropped, he is not standing or moving (mode Jump) (rule 5)"));
         // handsOff: ignored.
         assert!(a.world.take_weapon_request(&r(Ask::Away), Ok(()), true).is_none());
-        // A script: setDoMode 4 asks, whatever his state.
+        // Script preparation belongs to the viewer; the lower handler never bypasses its current owner.
         assert_eq!(a.test_command("KQConner::setDoMode 4", "t").as_deref(), Some("0"));
         let req = a.world.weapon_requests.remove(0);
-        let ch = a.world.take_weapon_request(&req, Err("mode Special".into()), false).unwrap();
+        assert!(a.world.take_weapon_request(&req, Err("mode Special".into()), false).is_none());
+        let ch = a.world.take_weapon_request(&req, Ok(()), false).unwrap();
         assert!(ch.script && ch.to == WeaponMode::None && a.world.weapon_ready.is_none());
         assert_eq!(a.test_command("KQConner::getDoMode", "t").as_deref(), Some("4"));
     }

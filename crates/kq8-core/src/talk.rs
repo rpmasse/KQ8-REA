@@ -494,6 +494,16 @@ impl Talk {
         self.conv_index(partner).is_some_and(|i| self.queues[i].paused)
     }
 
+    /// A sent goodbye owns TalkExit at its own end (conversation.md 15, 22).
+    /// Paused queues retain that fact after the end notification was queued
+    /// or delivered. Inspecting it must not finish, clear or resume the queue.
+    pub fn conv_suppresses_talk_exit(&self, partner: &str) -> bool {
+        self.conv_index(partner).is_some_and(|i| {
+            let q = &self.queues[i];
+            q.paused || q.playing.as_ref().is_some_and(|p| p.kind == LineKind::Goodbye)
+        })
+    }
+
     /// Lines of the partner's conversation queue: playing and waiting.
     pub fn conv_left(&self, partner: &str) -> usize {
         self.conv_index(partner).map_or(0, |i| usize::from(self.queues[i].playing.is_some()) + self.queues[i].lines.len())

@@ -1759,7 +1759,7 @@ pub fn gui_step(
             _ if ctrl => PLAY_POINTER,
             kq8_core::weapons::WeaponMode::Hand => SWORD_POINTER,
             kq8_core::weapons::WeaponMode::Ranged => BOW_POINTER,
-            kq8_core::weapons::WeaponMode::None => PLAY_POINTER,
+            kq8_core::weapons::WeaponMode::None | kq8_core::weapons::WeaponMode::Raw(_) => PLAY_POINTER,
         }
         .to_string()
     });

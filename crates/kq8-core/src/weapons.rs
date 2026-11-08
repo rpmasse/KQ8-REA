@@ -15,10 +15,9 @@
 //!   the start).
 //! - Rule 3, Alt: whatever is ready → none (remembering whether it was the
 //!   ranged one); nothing ready: nothing.
-//! - Rule 4: the mode already ready asked again becomes none. A request
-//!   for ranged needs a ranged item; `NoRanged` counting is **not
-//!   reproduced** ("Do not reproduce": a request for ranged needs a real
-//!   ranged item, else the hand weapon is asked for).
+//! - Rule 4: the requested current mode toggles to none. The lower ranged
+//!   gate accepts any LongWeapon, including NoRanged; Delete alone rejects
+//!   that placeholder when changing from hand to ranged.
 //! - Rule 5: a request is taken only while Connor stands or moves (Wait,
 //!   Move); otherwise it is dropped. The viewer knows his state and
 //!   decides that ([`WorldState::take_weapon_request`]'s `free`).
@@ -26,6 +25,9 @@
 //!   into standing and the same request is made (the full swap plays).
 
 use crate::active::WorldState;
+#[cfg(test)]
+#[path = "weapon_admission_tests.rs"]
+mod admission_tests;
 
 /// What Connor has ready (rule 1's words).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
@@ -34,6 +36,8 @@ pub enum WeaponMode {
     Ranged,
     #[default]
     None,
+    /// Unadvertised setDoMode values retain their exact number and active list.
+    Raw(i64),
 }
 
 impl WeaponMode {
@@ -43,6 +47,7 @@ impl WeaponMode {
             WeaponMode::Hand => 0,
             WeaponMode::Ranged => 1,
             WeaponMode::None => 4,
+            WeaponMode::Raw(n) => n,
         }
     }
 
@@ -54,6 +59,8 @@ impl WeaponMode {
             _ => None,
         }
     }
+
+    pub fn from_raw(n: i64) -> Self { Self::from_number(n).unwrap_or(Self::Raw(n)) }
 
     /// An item's mode column (`Invinfo.itl`; rule 1): `None` for
     /// `NoModeChange` and anything else.
@@ -71,6 +78,7 @@ impl WeaponMode {
             WeaponMode::Hand => "hand",
             WeaponMode::Ranged => "ranged",
             WeaponMode::None => "none",
+            WeaponMode::Raw(_) => "raw",
         }
     }
 }
@@ -86,6 +94,27 @@ pub enum Ask {
     Away,
     /// `KQConner::setDoMode <n>` (rule 9).
     Script(WeaponMode),
+    ScriptMovement { mode: WeaponMode, movement: String },
+    Required(WeaponMode),
+}
+
+impl Ask {
+    pub fn script_mode(&self) -> Option<WeaponMode> {
+        match self { Self::Script(m) | Self::ScriptMovement { mode: m, .. } | Self::Required(m) => Some(*m), _ => None }
+    }
+    pub fn movement(&self) -> Option<&str> {
+        match self { Self::ScriptMovement { movement, .. } => Some(movement), _ => None }
+    }
+}
+
+/// Full ordinary state payload. Resolving the equipped item/list waits for entry.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct SwapRequest {
+    pub mode: WeaponMode,
+    pub movement: Option<String>,
+    pub script: bool,
+    pub shift: bool,
+    pub how: String,
 }
 
 /// A request waiting for the viewer, which knows Connor's state (rule 5).
@@ -105,7 +134,7 @@ pub enum Decision {
     Nothing(String),
 }
 
-/// Rules 2–4 (and the Do instead of rule 4): what `ask` asks for, with
+/// Rules 2–4: what `ask` asks for, with
 /// `ready` now, a real ranged item carried or not, and whether the last
 /// weapon put away was the ranged one.
 pub fn decide(ask: &Ask, ready: WeaponMode, real_ranged: bool, last_away_ranged: bool) -> Decision {
@@ -121,24 +150,20 @@ pub fn decide(ask: &Ask, ready: WeaponMode, real_ranged: bool, last_away_ranged:
             Ranged => (Hand, "Delete with the ranged weapon ready: the hand one (rule 2)".into()),
             None if last_away_ranged => (Ranged, "Delete with nothing ready: the ranged one, put away last (rule 2)".into()),
             None => (Hand, "Delete with nothing ready: the hand one (put away last, or the start) (rule 2)".into()),
+            Raw(_) => return Decision::Nothing("Delete outside the advertised weapon modes: no documented draw branch".into()),
         },
         Ask::Away => match ready {
             None => return Decision::Nothing("Alt with nothing ready: nothing (rule 3)".into()),
             _ => (None, "Alt: put away (rule 3)".into()),
         },
-        Ask::Script(m) if *m == ready => return Decision::Nothing(format!("setDoMode {}: already {} (rule 9)", m.number(), m.name())),
-        Ask::Script(m) => (*m, format!("setDoMode {} (rule 9)", m.number())),
+        Ask::Script(m) | Ask::ScriptMovement { mode: m, .. } | Ask::Required(m) if *m == ready => return Decision::Nothing(format!("script mode {}: already {} (rule 9)", m.number(), m.name())),
+        Ask::Script(m) | Ask::ScriptMovement { mode: m, .. } | Ask::Required(m) => (*m, format!("script mode {} (rule 9)", m.number())),
     };
     let (mut mode, mut why) = wanted;
     // Rule 4: the mode already ready becomes none.
     if mode == ready && mode != None {
         why = format!("{why}; already ready: put away (rule 4)");
         mode = None;
-    }
-    // Rule 4 with the Do instead: ranged needs a real ranged item.
-    if mode == Ranged && !real_ranged {
-        why = format!("{why}; no real ranged weapon: the hand one instead (rule 4, Do instead)");
-        mode = if ready == Hand { return Decision::Nothing(format!("{why}; the hand one is ready: nothing")) } else { Hand };
     }
     if mode == ready {
         return Decision::Nothing(format!("{why}: nothing to change"));
@@ -243,7 +268,7 @@ impl WorldState {
             };
         }
         match (ctrl, self.weapon_mode) {
-            (true, _) | (_, WeaponMode::None) => WorldClick::Interact,
+            (true, _) | (_, WeaponMode::None | WeaponMode::Raw(_)) => WorldClick::Interact,
             (_, WeaponMode::Hand) => WorldClick::Swing,
             (_, WeaponMode::Ranged) => WorldClick::Shoot,
         }
@@ -260,6 +285,12 @@ impl WorldState {
             .map(|o| o.kind.clone())
     }
 
+    pub fn ranged_slot(&self) -> Option<String> {
+        self.items.objects.iter().find(|o| o.carried_by(crate::talk::CONNOR)
+            && self.items.types.find(&o.kind).is_some_and(|t| t.category == "LongWeapon"))
+            .map(|o| o.kind.clone())
+    }
+
     /// Rules 1, 9: a request waits for the viewer.
     pub fn ask_weapon(&mut self, ask: Ask, how: &str) {
         self.weapon_requests.push(Request { ask, how: how.to_string() });
@@ -268,10 +299,18 @@ impl WorldState {
     /// Rules 2–5, 9: the viewer takes a waiting request. `free`: Connor
     /// stands or moves and no swap plays (`Err`: his state, for the log);
     /// `hands_off`: requests are ignored (rule 1). A script's request
-    /// needs no state (rule 9: it puts him into standing). Returns the
+    /// still obeys the current owner after the viewer tries standing. Returns the
     /// change, if any; every request is logged in `fight.log`.
     pub fn take_weapon_request(&mut self, r: &Request, free: Result<(), String>, hands_off: bool) -> Option<Change> {
-        let script = matches!(r.ask, Ask::Script(_));
+        let change = self.plan_weapon_request(r, free, hands_off)?;
+        self.commit_weapon_change(change.to, false);
+        Some(change)
+    }
+
+    /// Validate a lower-controller request without mutating its mode or items.
+    /// The viewer submits the resulting payload to its common pending slot.
+    pub fn plan_weapon_request(&mut self, r: &Request, free: Result<(), String>, hands_off: bool) -> Option<Change> {
+        let script = r.ask.script_mode().is_some();
         if self.connor_roping {
             // ropeandhook.md rules 28, 30 (M6 6a-6): the rope state ignores
             // it, keys, slots and scripts alike; no remark.
@@ -292,23 +331,40 @@ impl WorldState {
             }
             Decision::Asks(m, why) => (m, why),
         };
-        if let (Err(state), false) = (&free, script) {
+        if let Err(state) = &free {
             self.fight_note("Connor", format!("weapon request ({}): {why}: asks {}; dropped, he is not standing or moving ({state}) (rule 5)", r.how, to.name()));
+            return None;
+        }
+        if to == WeaponMode::Ranged && self.ranged_slot().is_none() {
+            self.fight_note("Connor", "weapon request refused: no LongWeapon slot item");
             return None;
         }
         let from_item = self.weapon_ready.clone();
         let to_item = match to {
             WeaponMode::Hand => Some(crate::connor_inventory::hand_weapon(self).unwrap_or_else(|| FISTS.to_string())),
-            WeaponMode::Ranged => self.ranged_weapon(),
+            WeaponMode::Ranged => self.ranged_slot(),
             WeaponMode::None => None,
+            WeaponMode::Raw(_) => self.weapon_ready.clone(),
         };
-        if to == WeaponMode::None {
-            self.last_away_ranged = ready == WeaponMode::Ranged;
-        }
-        self.weapon_mode = to;
-        self.weapon_ready = to_item.clone();
         self.fight_note("Connor", format!("weapon request ({}): {why}: taken, {} ({from_item:?}) -> {} ({to_item:?}) (rules 4, 5)", r.how, ready.name(), to.name()));
         Some(Change { from: ready, to, from_item, to_item, script })
+    }
+
+    pub fn commit_weapon_change(&mut self, mode: WeaponMode, use_modifier: bool) {
+        if (mode == WeaponMode::None || matches!(mode, WeaponMode::Raw(_))) && !use_modifier {
+            self.last_away_ranged = self.weapon_mode == WeaponMode::Ranged;
+        }
+        self.weapon_ready = self.weapon_item(mode);
+        self.weapon_mode = mode;
+    }
+
+    pub fn weapon_item(&self, mode: WeaponMode) -> Option<String> {
+        match mode {
+            WeaponMode::Hand => Some(crate::connor_inventory::hand_weapon(self).unwrap_or_else(|| FISTS.into())),
+            WeaponMode::Ranged => self.ranged_slot(),
+            WeaponMode::None => None,
+            WeaponMode::Raw(_) => self.weapon_ready.clone(),
+        }
     }
 
     /// `tile-puzzle.md` rule 7 (G-1): a state that puts his weapon away
@@ -577,8 +633,8 @@ mod tests {
         assert_eq!(asks(decide(&Ask::Draw, Ranged, true, false)), Some(Hand));
         assert_eq!(asks(decide(&Ask::Draw, None, true, true)), Some(Ranged));
         assert_eq!(asks(decide(&Ask::Draw, None, true, false)), Some(Hand), "the start: his fists");
-        // The Do instead: put away a bow, then lost it: the hand weapon.
-        assert_eq!(asks(decide(&Ask::Draw, None, false, true)), Some(Hand));
+        // Delete remembers ranged; the lower handler separately requires a LongWeapon.
+        assert_eq!(asks(decide(&Ask::Draw, None, false, true)), Some(Ranged));
     }
 
     #[test]
@@ -591,7 +647,7 @@ mod tests {
         assert_eq!(asks(decide(&slot("SwordMode"), Hand, false, false)), Some(None), "the ready slot again: put away");
         assert_eq!(asks(decide(&slot("BowMode"), Hand, true, false)), Some(Ranged));
         assert_eq!(asks(decide(&slot("BowMode"), Ranged, true, false)), Some(None));
-        assert_eq!(asks(decide(&slot("BowMode"), None, false, false)), Some(Hand), "NoRanged's slot: Do instead");
+        assert_eq!(asks(decide(&slot("BowMode"), None, false, false)), Some(Ranged), "the lower handler accepts any carried LongWeapon");
         assert_eq!(asks(decide(&slot("NoModeChange"), None, true, false)), Option::None);
         assert_eq!(asks(decide(&slot("HandMode"), Hand, true, false)), Some(None));
     }
