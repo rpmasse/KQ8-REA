@@ -58,6 +58,17 @@ pub struct Journey {
     pub weapon_ready: Option<String>,
     pub weapon_mode: crate::weapons::WeaponMode,
     pub last_away_ranged: bool,
+    /// Ranged-weapons rule 9: mode and optional completion callback survive
+    /// both travel and slots. Disabled is -1, not a zero-valued mode.
+    #[serde(default = "disabled_required_weapon_mode")]
+    pub required_weapon_mode: (i64, Option<String>),
+    /// Inventory rule 8: changed entries survive armour removal and travel.
+    /// Older Rust slots retain the destination's original Connor.kq table.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_person_lists: Option<kq8_data::characters::ConnorAnimLists>,
+    /// A checkpoint can precede the frontend's same-update list refresh.
+    #[serde(default)]
+    pub animation_list_refresh_pending: bool,
     pub projectile: Option<String>,
     pub shoot_offset: [f32; 3],
     /// Running potions (their `next_tick` 0), with the updates left until
@@ -100,6 +111,8 @@ pub fn belongs_to_world(name: &str, world: &str) -> bool {
     lower.starts_with("kqworld") || (!world.is_empty() && lower.starts_with(&world.to_ascii_lowercase()))
 }
 
+fn disabled_required_weapon_mode() -> (i64, Option<String>) { (-1, None) }
+
 impl Journey {
     /// Takes the journey from the world Connor leaves (`from`).
     pub fn take(w: &WorldState, vars: &Vars, from: &str) -> Journey {
@@ -116,6 +129,9 @@ impl Journey {
             weapon_ready: w.weapon_ready.clone(),
             weapon_mode: w.weapon_mode,
             last_away_ranged: w.last_away_ranged,
+            required_weapon_mode: w.required_weapon_mode.clone(),
+            third_person_lists: w.connor_fight.as_ref().map(|f| f.third_person.clone()),
+            animation_list_refresh_pending: w.connor_fight.as_ref().is_some_and(|f| f.list_refresh_pending),
             projectile: w.connor_projectile.clone(),
             shoot_offset: w.connor_shoot_offset,
             potions: w.potions.iter().map(|r| (Running { next_tick: 0, ..r.clone() }, r.next_tick.saturating_sub(now))).collect(),
@@ -152,7 +168,13 @@ impl Journey {
         w.connor_flags = self.flags.clone();
         w.connor_in_temple4 = self.in_temple4;
         w.help_prompts.restore_history_at(&self.help(), w.now() as f32);
-        self.give_after_flags(w, vars)
+        let lines = self.give_after_flags(w, vars);
+        // A slot restores its controller separately, including any old model
+        // retained by the ordinary movement request. Do not invent a refresh.
+        if let Some(f) = &mut w.connor_fight {
+            f.list_refresh_pending = self.animation_list_refresh_pending;
+        }
+        lines
     }
 
     /// On ordinary travel the destination already received Connor's flags
@@ -189,6 +211,13 @@ impl Journey {
         w.weapon_ready = self.weapon_ready.clone();
         w.weapon_mode = self.weapon_mode;
         w.last_away_ranged = self.last_away_ranged;
+        w.required_weapon_mode.clone_from(&self.required_weapon_mode);
+        if let (Some(saved), Some(f)) = (&self.third_person_lists, &mut w.connor_fight) {
+            f.third_person.clone_from(saved);
+            // A newly built destination has no saved actor controller. Select
+            // the carried table without an ordinary weapon assignment.
+            f.list_refresh_pending = true;
+        }
         if self.weapon_ready.is_some() {
             // Its stance at once, nothing played (as a swap, 5d fix 11).
             w.weapon_swapped = true;

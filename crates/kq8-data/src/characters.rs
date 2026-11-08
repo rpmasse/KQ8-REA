@@ -793,7 +793,7 @@ impl Lips {
 }
 
 /// Connor.kq selects a different set of movement files for each view (Q193).
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ConnorAnimLists {
     pub stowed: Option<String>,
     pub hand: Vec<(String, String)>,

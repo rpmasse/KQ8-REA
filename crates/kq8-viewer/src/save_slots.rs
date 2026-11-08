@@ -128,6 +128,7 @@ impl Snapshot {
             next_name: self.journey.next_no_name,
             order: self.inventory_order,
             first_person_banks: self.weapon_state.as_ref().map(|state| state.first_person_banks().to_vec()).unwrap_or_default(),
+            third_person_banks: self.weapon_state.as_ref().map(|state| state.third_person_banks().to_vec()).unwrap_or_default(),
         }
     }
     // A conversation finishes `away` in trap_step after weapon synchronization.
@@ -231,7 +232,7 @@ impl Snapshot {
         }
         if self.weapon_state.as_ref().is_some_and(|w| !w.valid(self.special.as_ref()))
             || (self.weapon_state.as_ref().is_some_and(|w| !w.matches_ready(self.journey.weapon_ready.as_deref(), self.journey.weapon_mode))
-                && !self.conversation_weapon_change_pending()) {
+                && !self.conversation_weapon_change_pending() && !self.journey.animation_list_refresh_pending) {
             return Err("save has an invalid Connor weapon state".into());
         }
         if self.combat_cues.as_ref().is_some_and(|cues| !cues.valid()) {
@@ -434,7 +435,8 @@ impl Snapshot {
             if let Some(state) = &self.weapon_state {
                 let w = &sim.active.world;
                 let bank = w.connor_fight.as_ref().and_then(|f| f.bank(actor_view, w.weapon_mode, w.weapon_ready.as_deref()));
-                if !state.matches_list(bank) && !self.conversation_weapon_change_pending() {
+                if !matches!(w.weapon_mode, kq8_core::weapons::WeaponMode::Raw(_)) && !state.matches_list(bank)
+                    && !self.conversation_weapon_change_pending() && !self.journey.animation_list_refresh_pending {
                     return Err("saved weapon movement list does not match the restored world".into());
                 }
             }

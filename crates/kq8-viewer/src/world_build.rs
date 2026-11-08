@@ -843,6 +843,7 @@ pub fn world_change_step(world: &mut World) {
                     Some(save) => Some(save.item_load()),
                     None => kept.items.clone().map(load::ItemLoad::Region),
                 },
+                third_person_lists: j.third_person_lists.clone(),
                 exit_movement,
                 kept_vars: kept.vars.clone(),
                 gone: kept.gone.clone(),

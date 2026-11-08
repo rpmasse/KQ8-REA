@@ -202,6 +202,10 @@ pub struct GameCam {
     mouse_was_held: bool,
     pressed_mode: bool,
     pressed_reset: bool,
+    /// Choice clears logical camera controls. A physically held control
+    /// stays cleared until its release; this transient latch is not saved.
+    reset_keys: Vec<KeyCode>,
+    reset_mouse: bool,
     updates: u64,
     log: Log,
     /// `KQCamera::follow none` (M3 3k-3, `camera.md` rule 1): `false` =
@@ -268,6 +272,34 @@ struct ActorFrame {
 }
 
 impl GameCam {
+    pub(crate) fn reset_input(&mut self, keys: &ButtonInput<KeyCode>, buttons: &ButtonInput<MouseButton>) {
+        self.reset_keys = [self.keys.first_person, self.keys.change_mode, self.keys.tilt_up,
+            self.keys.tilt_down, self.keys.reset, self.keys.shift].into_iter().flatten()
+            .filter(|k| keys.pressed(*k)).collect();
+        self.reset_mouse = self.keys.mouse.is_some_and(|b| buttons.pressed(b));
+        self.mouse = Vec2::ZERO;
+        self.mouse_was_held = false;
+        self.pressed_mode = false;
+        self.pressed_reset = false;
+    }
+
+    fn update_input_reset(&mut self, keys: &ButtonInput<KeyCode>, buttons: &ButtonInput<MouseButton>) {
+        self.reset_keys.retain(|k| keys.pressed(*k));
+        self.reset_mouse &= self.keys.mouse.is_some_and(|b| buttons.pressed(b));
+    }
+
+    fn key_held(&self, key: Option<KeyCode>, keys: &ButtonInput<KeyCode>) -> bool {
+        key.is_some_and(|k| keys.pressed(k) && !self.reset_keys.contains(&k))
+    }
+
+    fn key_pressed(&self, key: Option<KeyCode>, keys: &ButtonInput<KeyCode>) -> bool {
+        key.is_some_and(|k| keys.just_pressed(k) && !self.reset_keys.contains(&k))
+    }
+
+    fn mouse_held(&self, buttons: &ButtonInput<MouseButton>) -> bool {
+        !self.reset_mouse && self.keys.mouse.is_some_and(|b| buttons.pressed(b))
+    }
+
     fn perspective(&mut self, first_person: bool, actor: ActorFrame) {
         if first_person == self.first_person.is_some() { return; }
         if first_person {
@@ -724,6 +756,8 @@ pub fn make(
         mouse_was_held: false,
         pressed_mode: false,
         pressed_reset: false,
+        reset_keys: Vec::new(),
+        reset_mouse: false,
         updates: 0,
         log,
         following: true,
@@ -770,6 +804,7 @@ pub fn camera_input(
     map_drag: Res<crate::gui_view::MapDrag>,
 ) {
     let Some(mut game) = game else { return };
+    game.update_input_reset(&keys, &buttons);
     if keys.just_pressed(KeyCode::KeyF) {
         choice.game = !choice.game;
         if !choice.game {
@@ -785,7 +820,7 @@ pub fn camera_input(
     if !choice.game {
         return;
     }
-    if game.keys.first_person.is_some_and(|key| keys.just_pressed(key)) {
+    if game.key_pressed(game.keys.first_person, &keys) {
         if let (Some(connor), Some(mut doors)) = (connor, doors) {
             let changed = doors.active.world.first_person_key(connor.hands_off || connor.walker.animation_input_lock);
             if changed {
@@ -796,15 +831,15 @@ pub fn camera_input(
     // The mouse's own movement (not the cursor's place, so a drag doesn't
     // stop at the window's edge: our method) as a share of the window.
     // M6 6d-4: not while a drag that started on the magic map runs.
-    if let (true, Ok(w)) = (game.keys.mouse.is_some_and(|b| buttons.pressed(b)) && map_drag.0.is_none(), windows.single()) {
+    if let (true, Ok(w)) = (game.mouse_held(&buttons) && map_drag.0.is_none(), windows.single()) {
         if w.width() > 0.0 && w.height() > 0.0 {
             game.mouse += motion.delta / Vec2::new(w.width(), w.height());
         }
     }
-    if game.keys.change_mode.is_some_and(|k| keys.just_pressed(k)) {
+    if game.key_pressed(game.keys.change_mode, &keys) {
         game.pressed_mode = true;
     }
-    if game.keys.reset.is_some_and(|k| keys.just_pressed(k)) {
+    if game.key_pressed(game.keys.reset, &keys) {
         game.pressed_reset = true;
     }
 }
@@ -927,12 +962,13 @@ pub fn camera_step(
         g.log.detail(format!("camera tick {}: Connor's first move since the rope was taken at the top: not followed, the camera stays (ropeandhook.md rule 9); the flag is cleared", g.updates));
     }
     let script_moves = std::mem::take(&mut g.script_moves);
-    let held = |k: Option<KeyCode>| choice.game && k.is_some_and(|k| keys.pressed(k));
+    g.update_input_reset(&keys, &buttons);
+    let held = |k: Option<KeyCode>| choice.game && g.key_held(k, &keys);
     // A walking route can orbit from the player's current position until
     // its intended click is visible. Use the normal bound drag input.
     let orbit = route_aim.orbit && choice.game && !sim.hands_off && g.keys.mouse.is_some();
     let input = Input {
-        mouse_held: orbit || (choice.game && !sim.hands_off && g.keys.mouse.is_some_and(|b| buttons.pressed(b))),
+        mouse_held: orbit || (choice.game && !sim.hands_off && g.mouse_held(&buttons)),
         mouse_x: -g.mouse.x + if orbit { 0.02 } else { 0.0 },
         mouse_forward: g.mouse.y,
         shift: held(g.keys.shift),

@@ -9,7 +9,7 @@ impl kq8_core::connor_mover::GroundLookup for Flat {
     fn ground(&self, _: f32, _: f32) -> Option<(f32, [f32; 3])> { Some((0., [0., 0., 1.])) }
 }
 
-fn controller() -> ConnorSim {
+pub(super) fn controller() -> ConnorSim {
     // Reuse the real constructor with empty renderer assets, then install
     // short, deterministic clips for the actual swap controller to play.
     let mut world = World::new();
@@ -37,7 +37,7 @@ fn controller() -> ConnorSim {
     sim
 }
 
-fn active(types: &ItemTypes) -> (Active, String) {
+pub(super) fn active(types: &ItemTypes) -> (Active, String) {
     let mut a = Active::new(Default::default(), vec![], vec![], ["Connor".to_string()], []);
     a.world.items = Items::new(types.clone(), []);
     for kind in ["Fists", "SmCrossbow"] {
@@ -46,7 +46,7 @@ fn active(types: &ItemTypes) -> (Active, String) {
     let held = a.world.items.make("Candle", 1, Place::Carried("Connor".into())).unwrap().name.clone();
     a.world.hand = Some(held.clone());
     a.world.connor_fight = Some(kq8_core::fight::ConnorFight {
-        ouch_sound: "sword.aud".into(), min_damage_factor: 1., max_damage_factor: 1.,
+        list_refresh_pending: false, ouch_sound: "sword.aud".into(), min_damage_factor: 1., max_damage_factor: 1.,
         third_person: ConnorAnimLists { stowed: None, hand: vec![("Fists".into(), "fists.anm".into())],
             ranged: vec![("SmCrossbow".into(), "bow.anm".into())] },
         first_person: ConnorAnimLists { stowed: Some("fpown.anm".into()),
@@ -64,7 +64,7 @@ fn request(sim: &mut ConnorSim, active: &mut Active, ask: Ask) -> bool {
     true
 }
 
-fn tick(sim: &mut ConnorSim, active: &mut Active) {
+pub(super) fn tick(sim: &mut ConnorSim, active: &mut Active) {
     sim.tick_with_state_requests(Some(active), Intent::default(), false, &Flat);
     sim.finish_weapon_step(Some(&mut active.world));
 }
@@ -77,14 +77,14 @@ fn finish(sim: &mut ConnorSim, active: &mut Active) {
     panic!("swap did not finish: {:?} {} {}", sim.walker.mode, sim.walker.movement, sim.walker.phase);
 }
 
-fn pending_save(sim: &ConnorSim) -> (SavedWeaponState, SavedSpecial) {
+pub(super) fn pending_save(sim: &ConnorSim) -> (SavedWeaponState, SavedSpecial) {
     let special = sim.saved_special().unwrap();
     let weapon = sim.saved_weapon_state(Some(&special)).unwrap();
     let value = serde_json::to_string(&(weapon, special)).unwrap();
     serde_json::from_str(&value).unwrap()
 }
 
-fn restore(sim: &mut ConnorSim, weapon: &SavedWeaponState, special: &SavedSpecial) {
+pub(super) fn restore(sim: &mut ConnorSim, weapon: &SavedWeaponState, special: &SavedSpecial) {
     sim.first_person = weapon.actor_first_person(false);
     sim.restore_weapon_state(weapon, Some(special)).unwrap();
     sim.restore_special(special).unwrap();
@@ -226,12 +226,12 @@ fn original_weapon_assignment_selection_and_checkpoint_matrix() {
     a.world.hand = Some(rock.clone());
     assert!(sim.start_rock_throw("rock.kq".into(), [100., 0., 0.], None));
     sim.throw_ended.push(sim.walker.movement.into());
-    sim.rock_step();
+    sim.rock_step(&mut a);
     assert_eq!(sim.set_mode, WeaponMode::None);
     assert!(!sim.apply_weapon_assignment(&mut a.world));
     assert_eq!(a.world.hand.as_deref(), Some(rock.as_str()));
     sim.throw_ended.push(sim.walker.movement.into());
-    sim.rock_step();
+    sim.rock_step(&mut a);
     assert_eq!(sim.set_mode, WeaponMode::Hand);
     assert!(!sim.apply_weapon_assignment(&mut a.world));
     assert_eq!(a.world.hand.as_deref(), Some(rock.as_str()));

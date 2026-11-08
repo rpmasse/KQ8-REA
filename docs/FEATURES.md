@@ -5,8 +5,13 @@
 Shared state admission, original inventory selection/placement, popup
 drawing/hit geometry, client top-bar thresholds and graphics-device controls
 now pass grouped checks. Actual weapon-assignment selection clearing and
-checkpoint continuation also pass; shared weapon-controller admission,
-TempleArmor's animation-set change and native exclusive fullscreen remain open.
+checkpoint continuation also pass. Shared weapon requests, required-mode
+completion and TempleArmor's persistent animation mappings now have grouped
+checks. Forced Choice exits, Talk camera/callback order and equipment-based
+view/list changes also pass their grouped checks; native exclusive fullscreen
+on a supported display remains open.
+[Controller exits and lists](controller-exit-completion.md),
+[Weapon requests and TempleArmor](weapon-admission-completion.md),
 [Weapon selection](weapon-selection-completion.md), [Dialogue](conversation-admission.md),
 [inventory/popups](inventory-popup-completion.md), [graphics](graphics-runtime-completion.md).
 

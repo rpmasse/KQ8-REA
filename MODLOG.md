@@ -1,5 +1,38 @@
 # MODLOG
 
+## 2026-11-08 Finish grouped controller exits and weapon-list corrections
+
+Use actual equipped-item lookup for view/list refresh and pending assignment,
+retain old clips through ordinary movement requests, model Swap input locks,
+and deduplicate late animation loads. Forced Choice discards old controller
+continuations with their documented exit effects; Talk uses the correct
+midpoint camera aim and callback order, while camera input resets in order.
+Three new grouped matrices and affected existing checks pass: core 2/2 and
+viewer 7/7 in 1.31s. Corrected shared release build: 2m41s. The first build's
+private-helper error is retained; the fix uses the existing public wrapper.
+No native or manual gameplay, and no unrelated passing tests were repeated.
+Evidence and exact commands: docs/controller-exit-completion.md. M4 is about
+98%; supported-display original-size exclusive fullscreen remains open.
+
+## 2026-11-08 Implement shared weapon requests and TempleArmor mappings
+
+Preserve full pending weapon requests, run script preparation through the
+current controller, retain raw numeric modes and implement required-mode
+completion/callback ordering. Actual assignment commits selection and mode
+together. TempleArmor/helmetize changes persistent third-person mappings,
+loads the required banks and refreshes animation without weapon assignment.
+New Rust checkpoints retain mapping, pending refresh and request state.
+Shared release build passes in 4m04s; viewer checks pass 9/9 in 5.70s;
+core checks pass 8/8 across the original run and one test-command correction.
+The initial dropItem fixture failure is retained. Evidence, scope and exact
+commands: docs/weapon-admission-completion.md. No manual/native gameplay.
+
+Separate A study settles forced Choice exit effects and raw-mode Delete/Alt
+in characters.md and ranged-weapons.md. The dedicated-controller exit
+implementation remains open; static study alone does not close it. M4 is
+approximately 95% pending the view-switch review fixes; M5/M6 remain paused
+at approximately 65%/28%.
+
 ## 2026-11-08 Settle remaining inventory and weapon-request rules
 
 Separate study A documents TempleArmor's persistent third-person base and

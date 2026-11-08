@@ -1,5 +1,59 @@
 # STATUS
 
+## 2026-11-08 Shared controller and list corrections pass
+
+M4 is approximately 98%. Forced Choice cleanup, shared Talk exit and
+camera aim, camera input reset, current-equipped list selection, Swap input
+locks and duplicate-load prevention pass the grouped checks. The first build
+failed on a private helper call; using its existing public wrapper corrected
+that error. Shared release build: 2m41s. Core: 2/2 in 0.00s. Viewer: 7/7 in
+1.31s. Evidence and commands: docs/controller-exit-completion.md. Retain the
+first compile failure and earlier successful unrelated checks. No native
+window or manual gameplay test was run. The bounded M4 audit found no further
+concrete implementation family; original-size exclusive fullscreen on a
+supported display remains the identified acceptance gate. M5/M6 remain paused
+at approximately 65%/28%. M4 is not complete until its remaining gate passes.
+
+After the final checks, read-only host enumeration at 2026-11-08 03:14 UTC
+still shows RDP session 2, one attached DISPLAY193 and only 3600x2096 at
+32 Hz in both normal and raw mode lists. Neither required original mode
+is exposed. The same host condition has persisted across the preceding
+goal turns; source work is now verified and only this external acceptance
+gate remains. No identical native failure was rerun. Script coverage was
+regenerated after the final build (45.98s). Completion requires the existing
+unattended fullscreen harness in a session exposing 640x480 and 800x600;
+no manual gameplay test is required.
+
+## 2026-11-08 Weapon admission and TempleArmor matrices pass
+
+Review follow-up is in progress and **not tested**: select view/list
+mappings from the current mode and equipped item after repeated armor
+changes, and deduplicate legacy/dynamic late bank loads. A's completed
+study rejects the initial proposal to preserve an old drawn-item identity;
+the current implementation is being corrected from that source evidence.
+The results below describe
+the initial batch. M4 remains at the last reported 95% until this correction
+passes its affected checks.
+
+M4 is approximately 95%. Shared release compilation passes in 4m04s;
+the viewer group passes 9/9 in 5.70s. Core checks pass 8/8 across the
+initial 7/8 run and one focused TempleArmor retry. Its fixture used an
+instance where dropItem requires a type; correcting only the command gives
+1/1 in 0.01s after a 1m11s rebuild. Retain the failure and the seven
+unrepeated core successes. Evidence: docs/weapon-admission-completion.md.
+
+Shared weapon admission, optional/raw requests, required-mode correction,
+pending checkpoint payloads and TempleArmor's persistent animation mappings
+are implemented with grouped checks. Ordinary forced Choice still needs
+the source-proven exit cleanup for dedicated puzzle/climb/throw controllers
+and the full Talk exit path. Static study is now ready in characters.md;
+this is remaining M4 work, not deferred fidelity polish. Arbitrary reentrant
+callback effects remain unestablished. Original-size exclusive fullscreen
+still needs a display advertising the original modes; the current RDP host
+does not. M5 remains approximately 65%, M6 approximately 28%; both paused.
+These are scope estimates, not measured completion fractions or time estimates.
+No manual or native gameplay run was performed for this batch.
+
 ## 2026-11-08 Weapon-assignment selection and checkpoints pass
 
 M4 remains approximately 95%. The shared release build passes in 4m02s;

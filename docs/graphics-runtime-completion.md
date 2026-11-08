@@ -231,6 +231,12 @@ no display configuration was changed.
 
 Observed facts:
 
+The inventory was rechecked after the controller/list completion batch at
+2026-11-08 03:14 UTC. Session 2, DISPLAY193, and its sole 3600x2096 at 32 Hz
+mode remain unchanged, including raw mode enumeration. The earlier JSON is
+preserved as `graphics-host-inventory-before-owner-batch.json`; no display
+setting was changed and the known-failing native test was not repeated.
+
 - The process is in session **2**, `rdp-tcp#0`, with
   `GetSystemMetrics(SM_REMOTESESSION) = 1`.
 - Windows enumerates exactly **one attached monitor**, also the primary:

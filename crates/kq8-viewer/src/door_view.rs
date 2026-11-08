@@ -1093,12 +1093,13 @@ pub fn trap_step(
     lookup: Option<Res<crate::terrain_view::GroundLookup>>,
     mut buildings: Option<ResMut<Buildings>>,
     order: Option<Res<crate::terrain_view::ColliderOrder>>,
-    (buttons, right_at, mut set_haze, mut ground_anim): (Res<ButtonInput<MouseButton>>, Res<RightAt>, ResMut<crate::object_light::SetHaze>, Option<ResMut<crate::ground_anim_view::GroundAnimSim>>),
+    (buttons, right_at, mut set_haze, mut ground_anim, keys, sound): (Res<ButtonInput<MouseButton>>, Res<RightAt>, ResMut<crate::object_light::SetHaze>, Option<ResMut<crate::ground_anim_view::GroundAnimSim>>, Res<crate::keyboard_input::GameKeys>, Option<Res<crate::sound_view::SoundSim>>),
     shared: Res<Shared>,
 ) {
     let (mut colliders, mut view, mut anim) = (colliders, view, anim);
     let (Some(mut sim), Some(mut connor)) = (sim, connor) else { return };
     let sim = &mut *sim;
+    connor.choice_music_available = sound.as_ref().is_some_and(|s| s.has_music());
     // `--special`: as if a script asked for it now.
     if let Some((items, _)) = special_at.0.take_if(|(_, n)| sim.active.world.updates >= *n) {
         let at = "test --special".to_string();
@@ -1291,7 +1292,8 @@ pub fn trap_step(
     // before a click's turn decides it; otherwise his state at the click.
     let mut asked = false;
     while let Some((i, r)) = requests.pop_front() {
-        if matches!(r, Request::ConnorDies { .. } | Request::ConnorDieNow { .. }) && !sim.active.world.connor_death_entered {
+        if matches!(r, Request::ConnorDies { .. } | Request::ConnorDieNow { .. })
+            && !sim.active.world.connor_death_entered && !connor.choice_replaces_owner(&r) {
             let state = connor.state_number();
             use kq8_core::character::state_number::{WAIT, SWAP_WEAPONS};
             if state == SWAP_WEAPONS || state == WAIT && !connor.wait_retains_stop() {
@@ -1303,28 +1305,10 @@ pub fn trap_step(
                 continue;
             }
         }
-        // characters.md rules 3, 11 (Q155): before the choice, the Choice
-        // state refuses every other state (kept as his waiting request,
-        // thrown away at DoChoice: so dropped).
-        let refused_by_choice = connor.choice.as_ref().is_some_and(|c| !c.made)
-            && match &r {
-                Request::ConnorSpecial { .. } | Request::ConnorWait { .. } | Request::ConnorDies { .. } | Request::ConnorDieNow { .. } => true,
-                Request::ConnorAuto { auto, .. } => matches!(auto.kind, kq8_core::connor_auto::AutoKind::Walk { .. }),
-                _ => false,
-            };
-        if refused_by_choice {
-            if matches!(r, Request::ConnorDies { .. }) { sim.active.world.pending_combat_death = None; }
-            let line = format!("update {}: {r:?}: refused, Connor is in the Choice state before the choice; dropped (characters.md rules 3, 11)", sim.active.world.updates);
-            connor.log.detail(line.clone());
-            if let Some(log) = &mut sim.trap_log {
-                log.detail(line);
-            }
-            continue;
-        }
         // Dedicated puzzle/rope controllers retain their established drop
         // policy. Ordinary requests use the one slot, only when requested.
         let ordinary = connor.ordinary_state_request(&r);
-        if ordinary && (connor.tile_holds() || connor.scales.is_some()
+        if ordinary && !connor.choice_replaces_owner(&r) && (connor.tile_holds() || connor.scales.is_some()
             || (connor.secondary_holds() && !matches!(r, Request::ConnorDies {..} | Request::ConnorDieNow {..}))
             || connor.roping()) {
             if matches!(r, Request::ConnorDies {..}) { sim.active.world.pending_combat_death = None; }
@@ -1382,21 +1366,7 @@ pub fn trap_step(
                 format!("{at}: Connor gravity {on}")
             }
             Request::EndJump { at } => format!("{at}: applied: {}", connor.end_jump(&at)),
-            Request::ConnorChoice { list, at } => {
-                // characters.md rules 3-5 (Q155): entered at once; the script
-                // gets StartChoice at once and what it asks (his `move`) is
-                // applied now, before his next update measures the points.
-                let script = list.script.clone();
-                let line = connor.enter_choice(list, &at);
-                let from = sim.active.world.requests.len();
-                sim.active.run_script(&script, &["Connor".into(), "StartChoice".into()]);
-                let asked_now: Vec<Request> = sim.active.world.requests.drain(from..).collect();
-                let n = asked_now.len();
-                for r in asked_now.into_iter().rev() {
-                    requests.push_front((usize::MAX, r));
-                }
-                format!("{at}: applied: Connor {line}; StartChoice asked {n} thing(s), applied next")
-            }
+            Request::ConnorChoice { .. } | Request::ConnorWeaponSwap(_) => unreachable!("ordinary state dispatch above"),
             Request::ConnorStandNow { at } => {
                 connor.walker.stand_now();
                 connor.intent = Default::default();
@@ -1573,6 +1543,14 @@ pub fn trap_step(
             Request::CameraFollow { connor: follow, at } => match camera.as_mut() {
                 Some(c) => format!("{at}: applied: {}", c.follow(follow, connor.mover.position)),
                 None => format!("{at}: KQCamera::follow: no game camera; not applied"),
+            },
+            Request::CameraHold { on, at } => match camera.as_mut() {
+                Some(c) => format!("{at}: applied: {}", c.set_hold(on)),
+                None => format!("{at}: camera hold: no game camera; not applied"),
+            },
+            Request::ResetCameraInput { at } => match camera.as_mut() {
+                Some(c) => { c.reset_input(&keys, &buttons); format!("{at}: camera controls cleared") },
+                None => format!("{at}: camera controls: no game camera; not applied"),
             },
             Request::CameraShake { parameters, at } => match camera.as_mut() {
                 Some(c) => format!("{at}: applied: {}",c.start_shake(parameters)),
@@ -2116,19 +2094,23 @@ pub(crate) fn weapon_list(w: &kq8_core::active::WorldState) -> Option<String> {
 /// One update of the doors (15 per second), before Connor's: clicks,
 /// events, door movements; then the door colliders are moved.
 pub fn door_step(
+    keys: Res<crate::keyboard_input::GameKeys>,
     sim: Option<ResMut<DoorSim>>,
     mut connor: Option<ResMut<ConnorSim>>,
     colliders: Option<ResMut<ObjectColliders>>,
     mut click_at: ResMut<ClickAt>,
     shared: Res<Shared>,
     (in_range, solid): (Res<crate::draw_distance::CharactersInRange>, Res<crate::draw_distance::CharactersSolid>),
-    (mut command_at, mut swing_at): (ResMut<CommandAt>, ResMut<SwingAt>),
+    (mut command_at, mut swing_at, sound): (ResMut<CommandAt>, ResMut<SwingAt>, Option<Res<crate::sound_view::SoundSim>>),
 ) {
     let Some(mut sim) = sim else { return };
     let sim = &mut *sim;
     // A new Rust slot can retain a completed, undrained assignment.
     // Consume it before commands or clicks, never merely on restore.
-    if let Some(c) = connor.as_mut() { c.apply_weapon_assignment(&mut sim.active.world); }
+    if let Some(c) = connor.as_mut() {
+        c.choice_music_available = sound.as_ref().is_some_and(|s| s.has_music());
+        c.apply_weapon_assignment(&mut sim.active.world);
+    }
     // `--command`: one script command, as if a script ran it now.
     let updates = sim.active.world.updates;
     let (due, later): (Vec<_>, Vec<_>) = std::mem::take(&mut command_at.0).into_iter().partition(|(_, n)| updates >= *n);
@@ -2229,9 +2211,9 @@ pub fn door_step(
                 sim.log.detail(format!("update {updates}: {line}"));
             }
         }
-        let w = &mut sim.active.world;
         let mut later = Vec::new();
-        for r in std::mem::take(&mut w.weapon_requests) {
+        for r in std::mem::take(&mut sim.active.world.weapon_requests) {
+            let w = &mut sim.active.world;
             // Q138 (ranged-weapons.md open question 1, traced): moving (a
             // movement key held: his Move state), the swap is taken at once
             // and its away / out cuts the swing short (before `do`: no hit).
@@ -2242,26 +2224,22 @@ pub fn door_step(
             }
             // Standing refuses every request while a swing plays: it waits
             // for the swing's end (Q138, traced).
-            if c.swing.is_some() && !matches!(r.ask, kq8_core::weapons::Ask::Script(_)) {
+            if c.swing.is_some() && r.ask.script_mode().is_none() {
                 if !r.how.ends_with(" (waits for the swing)") {
                     w.fight_note("Connor", format!("weapon request ({}): standing, a swing plays: it waits for its end (Q138)", r.how));
                 }
                 later.push(kq8_core::weapons::Request { how: if r.how.ends_with(" (waits for the swing)") { r.how } else { format!("{} (waits for the swing)", r.how) }, ..r });
                 continue;
             }
-            if let Some(ch) = w.take_weapon_request(&r, c.may_ready(), c.hands_off) {
-                let list = weapon_list(w);
-                let shift = c.shift_held;
-                let line = c.ready_weapon_request(w, list, &ch, shift);
-                w.fight_note("Connor", format!("swap ({} -> {}): {line}", ch.from.name(), ch.to.name()));
-            }
+            c.deliver_weapon_request(&mut sim.active, &r, keys.change_cursor_held());
         }
+        let w = &mut sim.active.world;
         w.weapon_requests.splice(0..0, later);
         // Readied or put away another way (picked up while one is ready,
         // 5d fix 11; a conversation's put-away, `conversation.md` rule 7;
         // the `--swing` test): the set follows.
         let list = weapon_list(w);
-        if w.first_person == c.first_person && !c.target_matches(&list,w.weapon_ready.as_deref()) {
+        if !c.weapon_swap_in_progress() && !matches!(w.weapon_mode, kq8_core::weapons::WeaponMode::Raw(_)) && !w.connor_fight.as_ref().is_some_and(|f| f.list_refresh_pending) && w.first_person == c.first_person && !c.target_matches(&list,w.weapon_ready.as_deref()) {
             let at_once = std::mem::take(&mut w.weapon_swapped);
             let line = c.ready_set(list, w.weapon_mode, w.weapon_ready.clone(), at_once, false, false);
             w.fight_note("Connor", format!("weapon {:?}: {line}", w.weapon_ready));
@@ -2333,7 +2311,7 @@ pub fn door_step(
             sim.active.world.fight_note("Connor", line);
         }
         let rock_before = c.rock.is_some();
-        if let Some(projectile) = c.rock_step() { sim.active.world.connor_projectile = projectile; }
+        c.rock_step(&mut sim.active);
         if let Some(line) = c.throw_step(&mut sim.active) {
             sim.active.world.fight_note("Connor", line);
         }

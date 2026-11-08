@@ -54,6 +54,10 @@ impl ConnorSim {
         if !saved.valid() { return Err("invalid Choice checkpoint".into()); }
         if let Some(pose) = &saved.pose { self.restore_controller_pose(pose, Mode::Free, "Choice")?; }
         self.choice = Some(saved.state.clone());
+        // Older recreation slots stored the unmade Choice as the remembered
+        // forced target. A new pending-state checkpoint restores its exact
+        // target afterward, including an explicitly cleared one.
+        self.forced_choice = (!saved.state.made).then(|| saved.state.list.clone());
         self.choice_calls.clone_from(&saved.calls);
         self.log.detail(format!("Choice restored: {}, made {}, cached {} points, {} pending call(s)", saved.script(), saved.state.made,
             saved.state.circle.as_ref().map_or(0, Vec::len), saved.calls.len()));

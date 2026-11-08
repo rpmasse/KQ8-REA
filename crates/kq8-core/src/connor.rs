@@ -532,6 +532,10 @@ pub struct Walker {
     /// `animSetHandsOff`, independent of scripted handsOff and playback.
     /// A lip request clears it even when its movement must wait.
     pub animation_input_lock: bool,
+    /// Ranged-weapons rule 8a: Swap owns Special progression even while its
+    /// requested movement locks input. Other Special owners retain their gate.
+    pub swap_owned_special: bool,
+    swap_requested: Option<&'static str>,
     /// A Tile2/Tile3 controller selects motions through the ordinary request
     /// path; key motion selection must not overwrite its pending jump.
     pub controller_owned_input: bool,
@@ -659,6 +663,8 @@ impl Walker {
             reaction: None,
             reaction_playing: None,
             animation_input_lock: false,
+            swap_owned_special: false,
+            swap_requested: None,
             controller_owned_input: false,
             pre_special_stop: false,
             interrupt_override: None,
@@ -1010,6 +1016,13 @@ impl Walker {
         while let Some(step) = self.special.get(self.special_at).cloned() {
             match step {
                 SpecialStep::Play(name, written) => {
+                    if self.swap_owned_special {
+                        let requested = plain_movement_name(name);
+                        if self.swap_requested != Some(requested) {
+                            self.animation_input_lock = true;
+                            self.swap_requested = Some(requested);
+                        }
+                    }
                     self.pre_special_stop = false;
                     notes.push(format!("special: plays {written} ({name})"));
                     self.movement = name;
@@ -1040,7 +1053,31 @@ impl Walker {
         }
         notes.push("special: list used up: back to standing".into());
         self.special.clear();
+        if self.swap_owned_special {
+            self.animation_input_lock = false;
+            self.restore_swap_owner(false);
+        }
         request(self, crate::conversation::StateRequest::Wait);
+    }
+
+    /// The actual Swap controller's request, distinct from an unrelated
+    /// Special sequence or the identity of an older visible movement.
+    pub fn start_swap_special(&mut self, steps: Vec<SpecialStep>) -> Vec<String> {
+        if !self.swap_owned_special { self.swap_requested = None; }
+        self.swap_owned_special = true;
+        self.start_special(steps)
+    }
+
+    /// The existing saved readying flag and Special position contain the
+    /// owner/request state. Restoring it must not issue a request or relock.
+    pub fn restore_swap_owner(&mut self, on: bool) {
+        self.swap_owned_special = on;
+        self.swap_requested = if on {
+            match self.special.get(self.special_at) {
+                Some(SpecialStep::Play(name, _)) => Some(plain_movement_name(name)),
+                _ => None,
+            }
+        } else { None };
     }
 
     /// Which jump the Jump key would start now, or why none: only in the
@@ -1505,7 +1542,7 @@ impl Walker {
             }
         }
         // Rule 16: the Special movement playing has ended: the next item.
-        if self.mode == Mode::Special && self.phase >= 1.0 && !self.animation_input_lock {
+        if self.mode == Mode::Special && self.phase >= 1.0 && (!self.animation_input_lock || self.swap_owned_special) {
             if self.mode_movement().is_some_and(|m| self.retains_view_for(m)) {
                 self.wanted = None;
             }
