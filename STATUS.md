@@ -1,5 +1,64 @@
 # STATUS
 
+## 2026-11-08 M4 complete — final production fullscreen check passes
+
+M4 is **100% complete against its planned implementation and automated
+acceptance checks**. M5/M6 remain paused at approximately 65%/28%; full
+campaign and final original-game comparison are still unfinished.
+
+Windows game Auto now uses DX12 with DirectComposition when no backend
+override is supplied. Explicit API and environment choices are retained.
+Native requests/restorations also require a fresh matching acquired frame
+submitted for presentation; matching camera dimensions alone cannot accept
+a mode. Exact physical fullscreen requirements are unchanged.
+
+Final release build PASS in 2m47s. New grouped checks PASS 3/3 in 0.01s;
+affected original-data frontend PASS 1/1 in 0.41s. With renderer environment
+overrides absent, the final native route PASS in 3.68s (child route 3.23s):
+actual Exclusive/window/monitor/camera 640x480 → 800x600 → 640x480 and
+submitted frame epochs 1/2/3; repeated 800 is a no-op; Options/Main/Quit
+finish normally; isolated Glide640 preferences and original Options bytes
+are correct. No viewer remains and the desktop is restored to 2560x1440.
+Evidence: `kq8-artifacts/live-display-native/1794119657462978500/` and
+`kq8-artifacts/logs/m4-final-default-native.log`. Exact commands and all
+earlier failures: docs/graphics-runtime-completion.md.
+
+The Vulkan and DX12 HWND paths failed on this host and remain explicit
+diagnostic overrides, not the production default. Failed Vulkan mismatch
+restoration is recorded; Winit internal-panic recovery is not tested. This
+does not claim original-driver pixel fidelity or GPU scanout verification.
+No manual playtesting or repeated unrelated passing checks were performed.
+
+## 2026-11-08 Connected-monitor fullscreen failure under investigation
+
+M4 remains approximately 98%; M5/M6 remain paused. The hardware blocker is
+removed: console session 2 now exposes DISPLAY2 with a connected VG27A and
+both 640x480 and 800x600 modes. The first supported native run acknowledged
+640, then its 180-frame fixture ended before the pending 800 request's
+five-second deadline. The fixture now finishes through ordinary Quit/Yes,
+retaining its 45-second parent deadline and all exact-mode assertions;
+the fixture-only build passed in 1.96s.
+
+The corrected bounded run FAILED in 11.89s. Startup acknowledged exact
+640x480; the 800 request retained an Exclusive/800 mode token but actual
+window and monitor dimensions returned to 2560x1440. Requested restoration
+to 640 similarly retained a mode token without restoring actual dimensions,
+and the viewer exited with a reported failure. No child remains; desktop
+dimensions are 2560x1440. Evidence:
+`kq8-artifacts/live-display-native/1794118345306277000/` and
+`kq8-artifacts/logs/m4-fullscreen-completion-native.log`.
+
+Changed-state diagnostics then built in 2m16s and failed in 12.07s
+(`1794118605829582400`): actual800 is reached before the camera updates,
+then actual desktop dimensions return as the renderer changes size. Focus
+remains true and minimized false in each captured state. An existing DX12
+override failed in 1.46s at initial swapchain creation with0x887A0001, before
+any800 request (`1794118672782384000`); it is not a working alternative.
+Locked Bevy overlaps old-frame rendering and new-frame native updates.
+The single serial-render diagnostic is now building to isolate that overlap;
+its result is not tested. No default backend, deadlines or acceptance
+requirements were changed. No manual gameplay or visual inspection.
+
 ## 2026-11-08 Shared controller and list corrections pass
 
 M4 is approximately 98%. Forced Choice cleanup, shared Talk exit and

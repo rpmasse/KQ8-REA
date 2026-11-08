@@ -27,6 +27,8 @@ use kq8_data::palette::{Output, Rgb};
 
 #[path = "graphics_runtime_driver.rs"]
 mod driver;
+#[path = "graphics_present.rs"]
+mod present;
 pub(crate) use driver::{
     accept_host, apply_palette, device_action, palette_values, pending, register, runtime_output,
 };

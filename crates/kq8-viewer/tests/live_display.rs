@@ -40,9 +40,9 @@ fn live_original_exclusive_resolution_round_trip() {
             "--sound",
             "off",
             "--menu-input",
-            "down,enter,release,enter,release,down,down,down,enter,enter,up,enter,escape,escape",
-            "--frames",
-            "180",
+            // Quit through the menu after the route. A frame cap can end
+            // before the backend's bounded acknowledgement deadline.
+            "down,enter,release,enter,release,down,down,down,enter,enter,up,enter,escape,escape,down,down,enter,left,enter,release",
         ])
         .stdout(Stdio::from(
             fs::File::create(dir.join("stdout.log")).unwrap(),
@@ -103,6 +103,16 @@ fn live_original_exclusive_resolution_round_trip() {
             );
         }
     }
+    let submitted: Vec<_> = log.lines()
+        .filter(|line| line.starts_with("graphics runtime: accepted frame submission epoch "))
+        .collect();
+    assert_eq!(submitted.len(), 3, "each native change requires an actual submitted target frame");
+    for (index, (line, pixels)) in submitted.iter()
+        .zip(["[640, 480]", "[800, 600]", "[640, 480]"]).enumerate()
+    {
+        assert!(line.contains(&format!("epoch {} ", index + 1)) && line.contains(pixels),
+            "stale or wrong-sized submission: {line}");
+    }
     assert_eq!(
         log.lines()
             .filter(|line| line.starts_with("graphics runtime: requested exact host"))
@@ -115,6 +125,7 @@ fn live_original_exclusive_resolution_round_trip() {
     );
     assert!(log.contains("graphics: returned to Options; saved local preferences"));
     assert!(log.contains("options: back to main"));
+    assert!(log.contains(", Quit,"), "the route must finish through the ordinary Quit action");
     assert!(
         !log.contains("world built:"),
         "this flow must not load a world"

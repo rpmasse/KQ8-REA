@@ -81,3 +81,9 @@ inventory at 2026-11-08 03:14 UTC still reports remote session 2 and only
 3600x2096 at 32 Hz, including raw mode enumeration. The previous inventory
 was preserved before capture. No identical native fullscreen failure was
 repeated and no display setting was changed.
+
+Subsequent M4 completion: the connected-console production-default fullscreen
+route now passes, closing M4 at 100%. See graphics-runtime-completion.md for
+its native/frame-submission evidence, retained failures and commands. This
+does not change the controller batch's test scope recorded above. M5/M6
+remain paused; manual playtesting is still deferred.

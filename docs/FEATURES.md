@@ -8,19 +8,34 @@ now pass grouped checks. Actual weapon-assignment selection clearing and
 checkpoint continuation also pass. Shared weapon requests, required-mode
 completion and TempleArmor's persistent animation mappings now have grouped
 checks. Forced Choice exits, Talk camera/callback order and equipment-based
-view/list changes also pass their grouped checks; native exclusive fullscreen
-on a supported display remains open.
+view/list changes also pass their grouped checks. The final native route on
+the console VG27A display passes in 3.68 seconds using the Windows DX12/Visual
+defaults without environment overrides. All three 640×480 → 800×600 → 640×480
+steps confirm exclusive host mode, matching window/monitor/camera dimensions
+and a submitted frame before accepting the change. The route also checks
+repeated selection, menu return, ordinary Quit and unchanged original Options.
+M4 is complete (100% of its defined milestone checks); M5/M6 remain paused at
+approximately 65%/28%. Manual testing remains deferred until the entire Rust
+recreation is feature-complete.
 [Controller exits and lists](controller-exit-completion.md),
 [Weapon requests and TempleArmor](weapon-admission-completion.md),
 [Weapon selection](weapon-selection-completion.md), [Dialogue](conversation-admission.md),
 [inventory/popups](inventory-popup-completion.md), [graphics](graphics-runtime-completion.md).
 
+Windows game launches default to DX12 with DirectComposition (Visual).
+Explicit API choices and existing backend/presentation environment values
+are preserved; model inspection retains its previous defaults. Explicit
+Vulkan and DX12 Hwnd fullscreen failures on this host remain unresolved.
+The passing route establishes presentation submission, not GPU completion,
+scanout or original-driver raster equivalence.
+
 ## Help timing, cursor/map and Graphics lifetime (2026-11-08)
 
 Original tutorial timing, cursor animation/scaling, map display coordinates
 and retained Graphics focus/pointer behavior pass grouped automated checks;
-exclusive-fullscreen acceptance remains open.
-[Evidence and limits](help-cursor-lifecycle.md).
+the separate native fullscreen transition now also passes.
+[Evidence and limits](help-cursor-lifecycle.md),
+[fullscreen result](graphics-runtime-completion.md).
 
 ## Inventory display and selection (2026-11-08)
 
@@ -1179,10 +1194,12 @@ also played by the user.
   <world> [x y turn]` (to another world; Connor's stats, items, ready
   weapon, running potions, flags and map marks go along; each change in
   `kq8-artifacts/logs/world.log`). Also in `kq8-artifacts/logs/console.log`.
-- **Graphics API** (`--renderer`): draw with Vulkan or DirectX 12 instead
-  of letting the graphics library choose; `viewer.log` says which one
-  ran. Checked by the user 2026-10-16 on Windows with one NVIDIA card;
-  not tested on Linux or other graphics cards. OpenGL is not built in.
+- **Graphics API** (`--renderer`): select Vulkan or DirectX 12 explicitly,
+  or use `auto`. Windows game `auto` defaults to DX12 when `WGPU_BACKEND`
+  is absent; other platforms and model inspection retain the library's
+  defaults. `viewer.log` records the policy and actual API. Earlier user
+  checks on one NVIDIA card (2026-10-16) remain historical evidence; the
+  current automated Windows result is linked above. OpenGL is not built in.
 
 ## Launch options (viewer)
 
@@ -1221,10 +1238,12 @@ repeated and checked in the logs. They do not change the game's rules.
 - `--sound on|off`: play sound through the sound card (default `on`).
   `off` still runs the sound rules and writes `sound.log`.
 - `--renderer auto|vulkan|dx12`: which graphics API draws the picture
-  (default `auto`: the graphics library chooses, Vulkan on our test PC,
-  and the `WGPU_BACKEND` environment variable still works). `vulkan` and
-  `dx12` force that one. OpenGL is not built in. `viewer.log` says which
-  one was used (`renderer: asked ... got ...`).
+  (default `auto`: Windows game launches choose DX12 unless `WGPU_BACKEND`
+  is set; other platforms and model inspection keep the library's choice).
+  `vulkan` and `dx12` force that API. Windows games also default
+  `WGPU_DX12_PRESENTATION_SYSTEM` to `Visual` only when absent; explicit
+  presentation settings are preserved. OpenGL is not built in. `viewer.log`
+  records the policy and actual API (`renderer: asked ... got ...`).
 - `--game <folder>`: where the game's files are (default `MASK`). The
   environment variable `KQ8_GAME_DIR` sets the same folder.
 - `--frames <number>`: close the window by itself after that many frames,
