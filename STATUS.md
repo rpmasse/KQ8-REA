@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-08 M4 input, movie failures and F2 recovery verified
+
+The active objective is M4 only, approximately89%. Work is isolated in
+`target/m4-completion`; unfinished loader changes in the original checkout
+are preserved. Original-data Q200 check passes1/1, six affected movement
+checks pass6/6, and the shared top-bar/movie-error matrices pass2/2 first
+attempt. One native40-update F2 run proves transition/replay/held-run recovery;
+its endpoint-distance assertion was corrected offline from retained logs,
+with the original FAIL preserved and no native repeat. See
+docs/f2-transition-completion.md, docs/interface-input-completion.md and
+docs/movie-failure-completion.md.
+
+The graphics device policy passes; its original-data UI/modal check passes
+after correcting a fixture that expected placeholder warning text. Runtime
+device inventory/action routing and software palette/backend parity remain
+open. See docs/graphics-device-controls.md. The next source-backed families
+are HUD item/count/blink selection and ordinary hand/category dispatch;
+separated help/admission notes now clarify further shared interface gates.
+No manual testing and no successful film/credits/campaign replays.
+
 ## 2026-11-07 Authored Rock behavior verified in core; loader work continues
 
 The Rock asset/numeric/dispatch matrix passes in 0.13s after two fixture

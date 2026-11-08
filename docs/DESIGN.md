@@ -33,13 +33,28 @@ deferred until the recreation is feature-complete.
    from a WGPU adapter. Keep the production capability/provider and renderer
    family presentation gates open until integrated and checked. The already
    verified live 640/800 resize mechanism is reused.
-4. **F2 movement completion.** Await Q200's separated original study,
-   then correct the shared transition-end input continuation rather than
-   avoiding camera changes during a transition. Inventory HUD rules still
-   marked as guesses require the same bounded study before implementation.
+4. **F2 movement completion, implemented and checked.** Q200's separated
+   original study supplies the shared Move-state completion response.
+   The original ANM/KQS matrix and six affected checks pass. One short
+   native run confirms held-run recovery; its tree-collision endpoint
+   metric was corrected offline without rerunning the game. Evidence:
+   `f2-transition-completion.md`. Inventory HUD rules use the separately
+   studied follow-up below.
 
 Each family keeps a separate reviewable change. One shared viewer build may
 compile independent families, followed only by their focused checks.
+
+**Inventory HUD follow-up (2026-11-08).** Apply the separated Q109/Q110
+findings in interface.md and inventory.md as one display/selection family:
+literal empty gold/rock counts, original rock-picture thresholds, held-money
+presentation, represented armor/weapon selection and globally phased blink
+cycles. Share the production selectors with a grouped boundary/clock matrix
+and one original-data picture check. Do not invent armor priority from
+protection values or change held-item cutscene/death/world lifetimes; those
+remain separate unresolved rules. Read the precise study scope before
+implementing unusual coexisting armor or held-item swaps. Coordinate this
+source batch with the shared build lease; do not rerun successful ordinary
+inventory application routes solely for picture/count changes.
 
 **M4 live shadow controls (2026-11-06).** Apply the menu's shadow mask to the active renderer. Keep each character's original mask independently of the world mask, so enabling a category after loading can create its shadow. Gate Connor with bit 1. Hide existing character and object shadows when disabled; invalidate an object's cached projection so re-enabling restores it. Use unattended Windows menu routes and renderer state logs to check off/on transitions, then verify preference persistence in a fresh process. The scripted `allowShadows` step below supplies the independent global switch.
 
@@ -2511,7 +2526,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 
 **Deliverable.** A Windows executable and corresponding Rust source that recreate the original GOG game from its main menu through the ending and credits, using the player's original assets. Match the controls, 4:3 framing, animation cadence, sound and gameplay rules. Development and milestone verification use automated checks. Manual testing starts only after the entire Rust recreation is implemented.
 
-**Current position.** Implementation continues in M4, M5 and M6. The Windows build opens at the original title menu, reads the GOG assets, and has rendered all 12 regions in automated runs. Most campaign evidence covers selected interactions in Daventry and Dead City. The [README](../README.md) tracks the current Windows checks and outstanding work.
+**Current position.** Implementation is focused on completing M4; unfinished M5/M6 work is preserved. The Windows build opens at the original title menu, reads the GOG assets, and has rendered all 12 regions in automated runs. Most campaign evidence covers selected interactions in Daventry and Dead City. The [README](../README.md) tracks the current Windows checks and outstanding work.
 
 | Stage | State recorded in the fork | What must happen next |
 | --- | --- | --- |
