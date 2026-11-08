@@ -1,4 +1,4 @@
-//! One bounded native acknowledgment flow; no world or manual inspection.
+//! One bounded exact-fullscreen acknowledgment flow; no manual inspection.
 use std::{
     fs,
     path::Path,
@@ -9,7 +9,7 @@ use std::{
 
 #[test]
 #[ignore = "requires read-only KQ8_GAME_DIR and a native graphics device"]
-fn live_original_resolution_round_trip() {
+fn live_original_exclusive_resolution_round_trip() {
     let game =
         fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let original_options = fs::read(game.join("Options.cs")).unwrap();
@@ -20,7 +20,11 @@ fn live_original_resolution_round_trip() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join(format!("../../kq8-artifacts/live-display-native/{nonce}"));
     fs::create_dir_all(dir.join("kq8-artifacts")).unwrap();
-    fs::write(dir.join("kq8-artifacts/Options.cs"), "set800mode 0\n").unwrap();
+    fs::write(
+        dir.join("kq8-artifacts/Options.cs"),
+        "assignGModeName Glide\nset800mode 0\n",
+    )
+    .unwrap();
     println!("live display native evidence: {}", dir.display());
 
     let mut command = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"));
@@ -30,10 +34,13 @@ fn live_original_resolution_round_trip() {
         .arg("--game")
         .arg(&game)
         .args([
+            "--display-profile",
+            "glide",
+            "--fullscreen",
             "--sound",
             "off",
             "--menu-input",
-            "down,enter,release,enter,release,down,enter,enter,up,enter,escape,escape",
+            "down,enter,release,enter,release,down,down,down,enter,enter,up,enter,escape,escape",
             "--frames",
             "180",
         ])
@@ -71,21 +78,41 @@ fn live_original_resolution_round_trip() {
         "inspect {}",
         dir.display()
     );
-    let lines: Vec<_> = log.lines().filter(|l| l.starts_with("display:")).collect();
+    let lines: Vec<_> = log
+        .lines()
+        .filter(|l| l.starts_with("graphics runtime: confirmed"))
+        .collect();
     assert_eq!(
         lines.len(),
-        4,
+        3,
         "duplicate selection must add no request; inspect {}",
         dir.display()
     );
-    for (line, expected) in lines.iter().zip([
-        "display: requested [800, 600] physical pixels; waiting for window and camera acknowledgement",
-        "display: confirmed [800, 600], interface revision 1; retained renderer, projection and game state",
-        "display: requested [640, 480] physical pixels; waiting for window and camera acknowledgement",
-        "display: confirmed [640, 480], interface revision 2; retained renderer, projection and game state",
-    ]) {
-        assert_eq!(*line, expected, "inspect {}", dir.display());
+    for (line, pixels) in lines.iter().zip(["[640, 480]", "[800, 600]", "[640, 480]"]) {
+        for expected in [
+            "glide profile, active \"Glide\" Fullscreen",
+            "presentation: Exclusive",
+            "saved fullscreen \"Glide\"",
+            &format!("window_pixels: {pixels}"),
+            &format!("monitor_pixels: Some({pixels})"),
+        ] {
+            assert!(
+                line.contains(expected),
+                "missing {expected:?} in {line}; inspect {}",
+                dir.display()
+            );
+        }
     }
+    assert_eq!(
+        log.lines()
+            .filter(|line| line.starts_with("graphics runtime: requested exact host"))
+            .count(),
+        3,
+        "startup plus two real changes; selecting active800 must add no request"
+    );
+    assert!(
+        !log.contains("request 1 failed:") && !log.contains("presentation was not acknowledged")
+    );
     assert!(log.contains("graphics: returned to Options; saved local preferences"));
     assert!(log.contains("options: back to main"));
     assert!(
@@ -96,11 +123,16 @@ fn live_original_resolution_round_trip() {
         &fs::read(dir.join("kq8-artifacts/Options.cs")).unwrap(),
     );
     assert!(!saved.graphics.high_resolution);
+    assert_eq!(saved.graphics.mode, "Glide");
     assert_eq!(
         fs::read(game.join("Options.cs")).unwrap(),
         original_options,
         "the original installation remains read-only"
     );
-    println!("LIVE DISPLAY PASS: real 800/640 window and camera acknowledgements, repeat800 no-op, menu return, isolated preference false; original Options bytes unchanged; {:.2}s; {}",
+    assert!(
+        child.try_wait().unwrap().is_some(),
+        "the bounded child has exited"
+    );
+    println!("LIVE DISPLAY PASS: actual Winit Exclusive/window/monitor/camera 640/800/640 acknowledgements, repeat800 no-op, menu return, isolated Glide640 preferences; original Options bytes unchanged; {:.2}s; {}",
         started.elapsed().as_secs_f64(), dir.display());
 }

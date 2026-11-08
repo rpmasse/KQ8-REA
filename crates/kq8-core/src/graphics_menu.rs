@@ -213,6 +213,7 @@ impl Screen {
     }
 
     pub fn take_device_selection(&mut self) -> Option<DeviceAction> { self.selection.take() }
+    pub fn has_device_inventory(&self) -> bool { self.devices.is_some() }
 
     pub fn modal_open(&self) -> bool { self.restart.is_some() }
 

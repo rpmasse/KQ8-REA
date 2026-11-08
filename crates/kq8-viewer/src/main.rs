@@ -82,6 +82,8 @@ mod startup_menu;
 mod movie_player;
 mod option_settings;
 mod live_palette;
+mod graphics_runtime;
+mod system_palette;
 mod keyboard_input;
 mod sound_view;
 mod talk_view;
@@ -196,6 +198,9 @@ struct Args {
     corners: bool,
     /// `--renderer auto|vulkan|dx12`: the graphics API (default auto).
     renderer: renderer::Renderer,
+    /// Explicit original-device inventory, independent of the host API.
+    display_profile: graphics_runtime::Profile,
+    presentation: graphics_runtime::Presentation,
     /// `--dynamic on|off`: overrides `Options.cs`'s `useDynamicLighting`
     /// (M1 7d); `None` = as `Options.cs` says.
     dynamic: Option<bool>,
@@ -241,6 +246,8 @@ fn parse_args() -> Result<Args, String> {
         haze: true,
         corners: false,
         renderer: renderer::Renderer::Auto,
+        display_profile: Default::default(),
+        presentation: Default::default(),
         dynamic: None,
         smooth: false,
         sound: true,
@@ -368,6 +375,9 @@ fn parse_args() -> Result<Args, String> {
                 }
             }
             "--renderer" => a.renderer = renderer::Renderer::parse(&value()?)?,
+            "--display-profile" => a.display_profile = graphics_runtime::Profile::parse(&value()?)?,
+            "--windowed" => a.presentation = graphics_runtime::Presentation::Windowed,
+            "--fullscreen" => a.presentation = graphics_runtime::Presentation::Fullscreen,
             "--sound" => {
                 a.sound = match value()?.as_str() {
                     "on" => true,
@@ -458,6 +468,9 @@ Showing things:
   --world <name>             world to load (default Daventry; no name: list the worlds)
   --at X,Y,H                 start Connor at X, Y facing heading H (radians)
   --renderer auto|vulkan|dx12  graphics API (default auto)
+  --display-profile direct3d|glide  original-device compatibility inventory (default direct3d)
+  --fullscreen              exact original-size fullscreen (default for the game)
+  --windowed                original Software window device at 640x480 (diagnostic)
   --game <folder>            where the game is (default MASK; or KQ8_GAME_DIR)
   --sound on|off             play sound through the sound card (default on)
   --light x1|x2|off          light of the ground and objects at the start (default x1; F7)
@@ -577,6 +590,22 @@ fn main() -> ExitCode {
         eprintln!("The startup menu starts a new game in Daventry.");
         return ExitCode::FAILURE;
     }
+    let mut preferences = option_settings::Preferences::load(&opts.game);
+    let runtime = if args.model.is_none() {
+        match graphics_runtime::Runtime::startup(args.display_profile, args.presentation, &preferences.settings.graphics) {
+            Ok((runtime, graphics)) => {
+                preferences.settings.graphics = graphics;
+                log.summary(format!("graphics runtime: {} compatibility profile, requested {:?}, saved fullscreen {:?}; shared rasterizer fidelity remains separate",
+                    args.display_profile.name(),args.presentation,preferences.settings.graphics.mode));
+                Some(runtime)
+            }
+            Err(error) => {
+                log.summary(format!("graphics runtime: startup rejected: {error}"));
+                eprintln!("graphics runtime: {error}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else { None };
     let menu = if startup {
         match startup_menu::Menu::open(&args.game, args.menu_input, args.sound, &mut log) {
             Ok(menu) => Some(menu),
@@ -624,8 +653,10 @@ fn main() -> ExitCode {
     };
     let mut primary_window = Window { title, ..default() };
     if matches!(&scene, Scene::Ground(_)) {
-        let high = option_settings::Preferences::load(&opts.game).settings.graphics.high_resolution;
+        let high = preferences.settings.graphics.high_resolution;
         primary_window.resolution = kq8_core::caption::screen(high).into();
+        // Fixed original-size surfaces; the menu remains the size owner.
+        primary_window.resizable = false;
     }
     let mut app = App::new();
     app.add_plugins(
@@ -640,6 +671,10 @@ fn main() -> ExitCode {
     .add_systems(Update, renderer::report_renderer)
     .insert_resource(ClearColor(Color::srgb(0.18, 0.2, 0.24)))
     .insert_resource(shared.clone());
+    if let Some(runtime) = runtime {
+        app.insert_resource(preferences);
+        graphics_runtime::register(&mut app, runtime);
+    }
     // Timed menu replays request a save on a particular fixed update.
     // The menu opens after rendering. Multiple catch-up ticks in one
     // frame can otherwise advance an animation past the requested save.

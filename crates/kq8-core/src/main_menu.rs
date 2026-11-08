@@ -1,5 +1,5 @@
 //! Startup screen, New Game difficulty and Quit (docs/behaviour/main-menu.md).
-use crate::gui_draw::{Canvas, Pic};
+use crate::gui_draw::{self, Canvas, Pic};
 use kq8_data::font::{bitmap_array, Font};
 use kq8_data::gui::{self, Control, Kind};
 use kq8_data::msg::MessageFile;
@@ -372,13 +372,24 @@ impl Art {
     }
 
     pub fn cursor(&self) -> Canvas {
-        let bitmap = &self.pictures["cursgui.pba"][0];
-        let mut canvas = Canvas::new(bitmap.width, bitmap.height);
+        self.cursor_frame(0)
+    }
+
+    pub fn cursor_frames(&self) -> usize { self.pictures["cursgui.pba"].len() }
+
+    /// Interface 6a–6c: the menu pointer shares the gameplay pointer's
+    /// authored-screen scaling and keeps each 100ms frame's own flags.
+    pub fn cursor_frame(&self, tick: usize) -> Canvas {
+        let frames = &self.pictures["cursgui.pba"];
+        let bitmap = &frames[tick % frames.len()];
+        let rect = gui_draw::resolve_rect([0, 0, bitmap.width as i32, bitmap.height as i32],
+            [640, 480], self.size.map(|v| v as i32));
+        let mut canvas = Canvas::new(rect[2].max(1) as u32, rect[3].max(1) as u32);
         if let Some(pic) = Pic::of(bitmap) {
             canvas.picture(
-                [0, 0, bitmap.width as i32, bitmap.height as i32],
+                rect,
                 pic,
-                false,
+                true,
                 1.0,
                 &self.palette,
             );

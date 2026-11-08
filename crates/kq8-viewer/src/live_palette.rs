@@ -215,6 +215,31 @@ impl WorldPalette {
 /// Apply notification from the slider or surface restoration; storing a
 /// preference alone does not call this (Q186 rules 1/3/4/16).
 pub fn apply_to_surface(world: &mut World, values: Values, why: &str) {
+    if let Err(error) = try_apply_to_surface(world, values, why) {
+        world.resource::<crate::Shared>().log.lock().unwrap().summary(format!(
+            "palette: retained previous surface; {error} ({why})"));
+    }
+}
+
+/// A display request cannot be acknowledged if platform palette acquisition
+/// failed. Resolve it before mutating any image, menu or HUD palette.
+pub(crate) fn try_apply_to_surface(world: &mut World, mut values: Values, why: &str) -> Result<(), String> {
+    let windowed = world.query_filtered::<&Window, With<bevy::window::PrimaryWindow>>()
+        .single(world).map(|w| w.mode == bevy::window::WindowMode::Windowed);
+    // Headless callers supply explicit output data. A real window's actual
+    // presentation selects the original Software surface path, not its bpp.
+    if let Ok(windowed) = windowed {
+        match crate::system_palette::for_software_surface(values.output, windowed) {
+            Ok((output, source)) => {
+                values.output = output;
+                if let Some(source) = source {
+                    world.resource::<crate::Shared>().log.lock().unwrap().summary(format!(
+                        "palette: Software window uses twenty Windows static colors via {source:?} ({why})"));
+                }
+            },
+            Err(error) => return Err(error),
+        }
+    }
     let mut stable = None;
     let result = if world.contains_resource::<crate::object_light::ObjectLight>() {
         let (result, colour, before, after) =
@@ -276,6 +301,7 @@ pub fn apply_to_surface(world: &mut World, values: Values, why: &str) {
     world.resource::<crate::Shared>().log.lock().unwrap().summary(format!(
         "palette: live brightness {} gain {:.9}, output {:?}, menu open {menu}, flush {flush:?}; {result:?}; stable cache {stable:?}; source matching and texture dimensions retained ({why})",
         values.brightness,kq8_data::palette::brightness_gain(values.brightness),values.output));
+    Ok(())
 }
 
 #[cfg(test)]
@@ -286,6 +312,34 @@ mod tests {
             brightness,
             output: Output::Direct3D,
         }
+    }
+
+    #[test]
+    fn software_surface_rebuilds_keep_indices_size_and_transparency() {
+        let source = Arc::new(crate::load::IndexedTexture {
+            pixels: vec![0,9,10,245,246,255].into(),
+            palette: Arc::new([[100,200,250];256]), transparent_zero: true,
+        });
+        let mut images = Assets::<Image>::default();
+        let fullscreen = Values { brightness:50, output:Output::Software };
+        let window = Values { brightness:50, output:Output::SoftwareWindow { system: [[30,60,90];20] } };
+        let mut live = WorldPalette::new(fullscreen,[0;3]);
+        let handle = live.add(&mut images, 3,2,vec![],Some(source.clone()),ImageAddressMode::Repeat);
+        let before = images.get(&handle).unwrap().data.clone().unwrap();
+        assert_eq!(&before[..4], &[100,200,250,0]);
+        let changed = live.rebuild(window, &mut images).unwrap();
+        assert_eq!((changed.images,changed.changed),(1,1));
+        let image = images.get(&handle).unwrap();
+        assert_eq!((image.width(),image.height()),(3,2));
+        let rgba = image.data.as_ref().unwrap();
+        assert_eq!(&rgba[..8], &[30,60,90,0,30,60,90,255]);
+        assert_eq!(&rgba[8..16], &[100,200,250,255,100,200,250,255]);
+        assert_eq!(&rgba[16..], &[30,60,90,255,30,60,90,255]);
+        assert!(live.rebuild(window,&mut images).is_none());
+        live.rebuild(fullscreen,&mut images).unwrap();
+        assert_eq!(images.get(&handle).unwrap().data.as_ref(),Some(&before));
+        assert_eq!(&*source.pixels,&[0,9,10,245,246,255]);
+        assert_eq!(*source.palette,[[100,200,250];256]);
     }
 
     #[test]

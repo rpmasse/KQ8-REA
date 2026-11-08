@@ -76,12 +76,15 @@ pub(crate) fn register(app: &mut App, capabilities: Capabilities) {
 }
 
 pub(crate) fn pending(world: &World) -> bool {
-    world
+    crate::graphics_runtime::pending(world) || world
         .get_resource::<Display>()
         .is_some_and(|d| d.pending.is_some())
 }
 
 pub(crate) fn high_available(world: &World) -> bool {
+    if let Some(runtime) = world.get_resource::<crate::graphics_runtime::Runtime>() {
+        return runtime.can_high();
+    }
     world
         .get_resource::<Display>()
         .map_or(VIEWER_CAPABILITIES.high, |d| d.capabilities.high)
@@ -90,6 +93,13 @@ pub(crate) fn high_available(world: &World) -> bool {
 /// A changed WindowResolution is only a request. Bevy/Winit emits its
 /// WindowResized result after request_inner_size or the native callback.
 pub(crate) fn request(world: &mut World, requested: Size) -> Result<bool, String> {
+    if world.contains_resource::<crate::graphics_runtime::Runtime>() {
+        if crate::graphics_runtime::pending(world) {
+            return Err("a native display request or restoration is already pending".into());
+        }
+        return world.resource_mut::<crate::graphics_runtime::Runtime>()
+            .request_size(requested.high()).map(|request|request.is_some());
+    }
     let state = world
         .get_resource::<Display>()
         .ok_or("display owner unavailable")?;
@@ -132,6 +142,19 @@ pub(crate) fn request(world: &mut World, requested: Size) -> Result<bool, String
         requested.pixels()
     ));
     Ok(true)
+}
+
+/// The profile owner has verified actual host mode, cameras and palette.
+/// The older WindowResized path remains available to component fixtures.
+pub(crate) fn accept_profile(world: &mut World, high: bool, high_available: bool) {
+    if let Some(mut display) = world.get_resource_mut::<Display>() {
+        display.applied = Size::from_high(high);
+        display.capabilities.high = high_available;
+        display.pending = None;
+        display.revision += 1;
+    }
+    sync_world_presentation(world);
+    crate::startup_menu::resize_presentation(world, Size::from_high(high).pixels());
 }
 
 fn collect_replies(
@@ -241,6 +264,17 @@ pub(crate) fn sync_world_presentation(world: &mut World) {
         world.get_resource_mut::<crate::gui_view::ScreenFrame>(),
     ) {
         frame.0 = kq8_core::panels::screen_frame(logical);
+    }
+    if world.contains_resource::<crate::graphics_runtime::Runtime>() {
+        if let Err(error) = crate::graphics_runtime::apply_palette(world, "active device world/display restoration") {
+            world.resource::<Shared>().log.lock().unwrap().summary(format!("palette: world restoration failed: {error}"));
+        }
+    } else if let Some(graphics) = world.get_resource::<Preferences>().map(|p| p.settings.graphics.clone()) {
+        if let Some(output) = kq8_data::palette::Output::from_mode(&graphics.mode).filter(|o| o.is_software()) {
+            crate::live_palette::apply_to_surface(world,
+                crate::live_palette::Values { brightness: graphics.brightness, output },
+                "Software world/display restoration");
+        }
     }
 }
 

@@ -194,9 +194,8 @@ pub fn arrow_frame(heading: f64) -> usize {
 }
 
 /// Rule 22: where the map picture is drawn in the map area: a rectangle
-/// in 640 × 480 layout pixels measured from the area's centre (STAND-IN
-/// at 800 × 600, open question 6: scaled with the screen like the
-/// panels).
+/// in display pixels measured from the area's centre. The GUI area
+/// resizes at 800 × 600, but these picture offsets do not (rule 25a).
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct View {
     pub left: f64,
@@ -216,11 +215,10 @@ pub const ZOOM_DOUBLING: f64 = 64.0;
 /// Rule 24: the shown width's limits, × 0.25 and × 8 of the picture.
 pub const ZOOM_MIN: f64 = MAP_SIZE as f64 / 4.0;
 pub const ZOOM_MAX: f64 = MAP_SIZE as f64 * 8.0;
-/// Rule 25, STAND-IN (open question 2, DESIGN 6d): the arrow's top-left
-/// corner is kept at least this far inside the visible map area on all
-/// four sides.
-pub const FOLLOW_MARGIN: f64 = 20.0;
-/// Rule 25: the step is (distance past the margin) ÷ this + 1 pixels.
+/// Rule 25: fixed absolute display-coordinate limits, including the
+/// original top threshold above the fully open visible map area.
+pub const FOLLOW_LIMITS: [f64; 4] = [20.0, 20.0, 280.0, 340.0];
+/// Rule 25: the step is (distance past the limit) ÷ this + 1 pixels.
 pub const FOLLOW_DIVISOR: f64 = 10.0;
 /// Rule 25: steps at most per draw.
 pub const FOLLOW_STEPS: usize = 6;
@@ -234,11 +232,33 @@ impl View {
         self.bottom - self.top
     }
 
-    /// Rule 18: the arrow's top-left corner for map pixel `p`, from the
-    /// area's centre: the pixel scaled by the shown size, plus the
-    /// picture's top-left, minus half the arrow.
+    /// Rule 25 integer picture rectangle. Convert the offset and extent
+    /// separately, rather than rounding its final combined edges.
+    pub fn picture_rect(&self, area: [i32; 4]) -> [i32; 4] {
+        let x = area[0] + (area[2] - area[0]) / 2 + self.left as i32;
+        let y = area[1] + (area[3] - area[1]) / 2 + self.top as i32;
+        [x, y, x + self.width() as i32, y + self.height() as i32]
+    }
+
+    /// The one integer point used by both follow and drawing (rule 25).
+    /// Bitmap dimensions belong to the selected arrow frame.
+    pub fn arrow_position(&self, p: (i32, i32), area: [i32; 4], arrow: [u32; 2]) -> [i32; 2] {
+        let [left, top, right, bottom] = self.picture_rect(area);
+        [left + (i64::from(p.0) * i64::from(right - left) / MAP_SIZE as i64) as i32 - (arrow[0] / 2) as i32,
+         top + (i64::from(p.1) * i64::from(bottom - top) / MAP_SIZE as i64) as i32 - (arrow[1] / 2) as i32]
+    }
+
+    /// Original ordinary ten-pixel arrow, relative to the area's centre.
     pub fn arrow_at(&self, p: (i32, i32)) -> (f64, f64) {
-        (self.left + p.0 as f64 * self.width() / MAP_SIZE as f64 - ARROW_HALF, self.top + p.1 as f64 * self.height() / MAP_SIZE as f64 - ARROW_HALF)
+        let [x, y] = self.arrow_position(p, [0; 4], [10, 10]);
+        (f64::from(x), f64::from(y))
+    }
+
+    /// Rule 25: the actual map-area origin participates in follow tests.
+    /// `area` includes its converted parent and any sliding-window offset.
+    pub fn arrow_at_surface(&self, p: (i32, i32), area: [f64; 4]) -> (f64, f64) {
+        let [x, y] = self.arrow_position(p, area.map(|v| v as i32), [10, 10]);
+        (f64::from(x), f64::from(y))
     }
 
     /// The map pixel under point (`x`, `y`) from the area's centre
@@ -251,7 +271,7 @@ impl View {
         [self.left, self.top, self.right, self.bottom]
     }
 
-    /// Rule 23: the picture moved by (`dx`, `dy`) layout pixels, kept so
+    /// Rule 23: the picture moved by (`dx`, `dy`) display pixels, kept so
     /// that the area's centre stays on it (its left edge not right of the
     /// centre, its right edge not left of it; the same up and down).
     pub fn pan(&mut self, dx: f64, dy: f64) {
@@ -263,7 +283,7 @@ impl View {
         self.bottom += dy;
     }
 
-    /// Rule 24: a sideways movement of `dx` layout pixels multiplies the
+    /// Rule 24: a sideways movement of `dx` display pixels multiplies the
     /// size by 2^(dx ÷ 64) about the area's centre, the shown width kept
     /// between 115 and 3,680.
     pub fn zoom(&mut self, dx: f64) {
@@ -279,14 +299,15 @@ impl View {
         self.bottom *= f;
     }
 
-    /// Rule 25 (stand-in margins): one follow step for the arrow at map
-    /// pixel `p`; `false` when its top-left corner is already inside.
-    pub fn follow_once(&mut self, p: (i32, i32)) -> bool {
-        let (x, y) = self.arrow_at(p);
-        let half = AREA_SIZE / 2.0;
-        let (lo, hi) = (FOLLOW_MARGIN, AREA_SIZE - FOLLOW_MARGIN);
-        let step = |v: f64| {
-            let v = v + half;
+    /// Rule 25: one follow step, using the literal display limits rather
+    /// than an inset of the map area. Equality is already inside.
+    pub fn follow_once(&mut self, p: (i32, i32), area: [f64; 4]) -> bool {
+        self.follow_once_with_arrow(p, area, [10, 10])
+    }
+
+    pub fn follow_once_with_arrow(&mut self, p: (i32, i32), area: [f64; 4], arrow: [u32; 2]) -> bool {
+        let [x, y] = self.arrow_position(p, area.map(|v| v as i32), arrow).map(f64::from);
+        let step = |v: f64, lo: f64, hi: f64| {
             if v < lo {
                 ((lo - v) / FOLLOW_DIVISOR).trunc() + 1.0
             } else if v > hi {
@@ -295,7 +316,7 @@ impl View {
                 0.0
             }
         };
-        let (dx, dy) = (step(x), step(y));
+        let (dx, dy) = (step(x, FOLLOW_LIMITS[0], FOLLOW_LIMITS[2]), step(y, FOLLOW_LIMITS[1], FOLLOW_LIMITS[3]));
         if dx == 0.0 && dy == 0.0 {
             return false;
         }
@@ -374,7 +395,7 @@ pub struct MapState {
     /// Counts every change of [`MapState::picture`], for redrawing.
     pub version: u64,
     /// Rule 25: Connor's pixel changed since the view last had the arrow
-    /// inside its margins.
+    /// inside the fixed display-coordinate limits.
     pub follow: bool,
     /// Rule 22: the big map's view (its changes are stored on Connor by
     /// the caller); rule 27: the mini-map's own copy. Both taken from the
@@ -648,11 +669,15 @@ impl MapState {
     /// Rule 25, at each draw of the big map: while marked, up to 6 steps
     /// toward bringing the arrow inside; inside clears the mark. Returns
     /// the steps made.
-    pub fn follow_step(&mut self) -> usize {
+    pub fn follow_step(&mut self, area: [f64; 4]) -> usize {
+        self.follow_step_with_arrow(area, [10, 10])
+    }
+
+    pub fn follow_step_with_arrow(&mut self, area: [f64; 4], arrow: [u32; 2]) -> usize {
         let Some(p) = self.last_pixel.filter(|_| self.follow) else { return 0 };
         let mut steps = 0;
         while steps < FOLLOW_STEPS {
-            if !self.view.follow_once(p) {
+            if !self.view.follow_once_with_arrow(p, area, arrow) {
                 self.follow = false;
                 break;
             }
@@ -1095,9 +1120,9 @@ mod tests {
         let v = START_VIEW;
         assert!((v.width() / MAP_SIZE as f64 - 0.648).abs() < 0.001);
         // Pixel (0, 0): the picture's corner less half the arrow.
-        assert_eq!(v.arrow_at((0, 0)), (-152.83 - 5.0, -152.11 - 5.0));
+        assert_eq!(v.arrow_at((0, 0)), (-157.0, -157.0));
         let (x, y) = v.arrow_at((230, 230));
-        assert!((x - (-152.83 + 230.0 * v.width() / 460.0 - 5.0)).abs() < 1e-9 && (y + 5.0 - (-152.11 + 0.5 * v.height())).abs() < 1e-9);
+        assert_eq!((x, y), (-8.0, -8.0));
         let (mx, my) = v.map_point(-152.83, 146.16);
         assert!((mx - 0.0).abs() < 1e-9 && (my - 460.0).abs() < 1e-9);
     }
@@ -1126,30 +1151,69 @@ mod tests {
     }
 
     #[test]
-    fn follow_brings_the_arrow_inside_the_margins() {
-        // A view at x 1 (460 layout px for 460 map pixels): pixel (0, 230)
-        // puts the arrow's top-left at the picture's left - 5.
+    fn map_display_coordinate_follow_drag_zoom_matrix() {
+        // Separate truncation matters with fractions, negative map pixels,
+        // odd clipping dimensions and odd arrow frames.
+        let fractional = View { left: -152.83, top: 12.99, right: 145.44, bottom: 311.26 };
+        let odd_area = [15, 95, 386, 466];
+        assert_eq!(fractional.picture_rect(odd_area), [48, 292, 346, 590]);
+        assert_eq!(fractional.arrow_position((230, 230), odd_area, [11, 9]), [192, 437]);
+        assert_eq!(fractional.arrow_position((-1, -2), odd_area, [11, 9]), [43, 287], "negative division truncates toward zero");
+        let mut edge = View { left: -23.9, top: -23.9, right: 436.1, bottom: 436.1 };
+        let edge_area = [0.0, 0.0, 97.0, 97.0];
+        assert_eq!(edge.arrow_at_surface((0,0), edge_area), (20.0,20.0));
+        assert!(!edge.follow_once((0,0),edge_area), "integer arrow is exactly inside; floating pre-truncation comparison would scroll");
+        for area in [[12.0, 76.0, 308.0, 372.0], [15.0, 95.0, 385.0, 465.0], [-50.0, 95.0, 320.0, 465.0]] {
+            let centre = [(area[0] + area[2]) / 2.0, (area[1] + area[3]) / 2.0];
+            for (at, change) in [
+                ([20.0, 20.0], [0.0, 0.0]), ([280.0, 340.0], [0.0, 0.0]),
+                ([19.0, 19.0], [1.0, 1.0]), ([281.0, 341.0], [-1.0, -1.0]),
+                ([10.0, 350.0], [2.0, -2.0]), ([290.0, 10.0], [-2.0, 2.0]),
+            ] {
+                let mut view = View { left: at[0] - centre[0] + 5.0, top: at[1] - centre[1] + 5.0,
+                    right: at[0] - centre[0] + 465.0, bottom: at[1] - centre[1] + 465.0 };
+                assert_eq!(view.arrow_at_surface((0, 0), area), (at[0], at[1]));
+                let before = view;
+                assert_eq!(view.follow_once((0, 0), area), change != [0.0, 0.0]);
+                assert_eq!([view.left - before.left, view.top - before.top], change,
+                    "same absolute thresholds for either resolution and a sliding parent");
+                assert_eq!(view.width(), 460.0);
+            }
+            let mut view = START_VIEW;
+            let before = view;
+            view.pan(10.0, -12.0);
+            assert_eq!([view.left - before.left, view.top - before.top], [10.0, -12.0]);
+            let width = view.width();
+            view.zoom(64.0);
+            assert!((view.width() - 2.0 * width).abs() < 1e-9, "64 display pixels doubles either resolution");
+            view.zoom(-10000.0);
+            assert!((view.width() - 115.0).abs() < 1e-9);
+            view.zoom(10000.0);
+            assert!((view.width() - 3680.0).abs() < 1e-9);
+        }
+        // The original y=20 threshold is above the visible map area.
+        let area = [12.0, 76.0, 308.0, 372.0];
         let mut m = {
             let (b, f) = pics();
             MapState::new("davmap.kq", keys(), b, f, None, None)
         };
         m.view = View { left: 0.0, top: -230.0, right: 460.0, bottom: 230.0 };
         m.last_pixel = Some((0, 230));
-        assert_eq!(m.follow_step(), 0, "not marked: stays put");
+        assert_eq!(m.follow_step(area), 0, "not marked: stays put");
         m.follow = true;
-        // Top-left x = -5 from the centre = 143 in the area: inside.
-        assert_eq!(m.follow_step(), 0);
+        // Top-left x = -5 + surface centre160 =155: inside.
+        assert_eq!(m.follow_step(area), 0);
         assert!(!m.follow);
-        // Far right: x = 455 - 5 + 148 = 598 > 276: 33 px per step.
+        // Far right: x = 455 -5 +160 =610 >280.
         m.last_pixel = Some((455, 230));
         m.follow = true;
-        assert_eq!(m.follow_step(), 6, "at most 6 steps a draw");
+        assert_eq!(m.follow_step(area), 6, "at most 6 steps a draw");
         assert!(m.follow);
-        let x = |m: &MapState| m.view.arrow_at(m.last_pixel.unwrap()).0 + 148.0;
-        // Steps of 33, 29, 27, 24, 21, 19 (each from the new distance).
-        assert!((x(&m) - 445.0).abs() < 1e-9, "{}", x(&m));
-        while m.follow_step() > 0 {}
-        assert!(x(&m) <= 276.0 && x(&m) > 266.0 && !m.follow);
+        let x = |m: &MapState| m.view.arrow_at_surface(m.last_pixel.unwrap(), area).0;
+        // Steps of34,30,27,24,22,20, each using the updated distance.
+        assert!((x(&m) - 453.0).abs() < 1e-9, "{}", x(&m));
+        while m.follow_step(area) > 0 {}
+        assert!(x(&m) <= 280.0 && x(&m) > 270.0 && !m.follow);
     }
 
     #[test]
