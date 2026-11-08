@@ -323,6 +323,17 @@ also a phase).
      movement>` can be cut short).
    - A one-shot animation ending with no transition in progress: the
      wanted movement, if any, starts from phase 0.
+   - **Connor's ordinary Move-state follow-up (Q200, 2026-11-08):**
+     after this common completion handling, obtain the movement currently
+     selected by the movement controls. If it is nonempty and differs
+     from the movement now playing, submit it through the ordinary
+     request rules, even when the last input choice has not changed.
+     An uninterruptible newly started one-shot keeps that request until
+     its end. This is scoped to the ordinary Move state, not every
+     character state. See `camera.md`, "F2 during movement transitions",
+     for the playing-name refresh, retained transition destination,
+     overwritten request and held-run example. That follow-up was
+     established statically; original runtime is **not tested**.
 
 **What this gives for starting (worked out from the rules and data):**
 

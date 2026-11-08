@@ -63,6 +63,13 @@ below are marked traced or data; unresolved behavior is listed separately.
    presentation resources; no new-world load is present in that path.
    Exact camera, animation and panel-state preservation across real
    driver changes is **not tested**.
+   **Same-family selection, clarified 2026-11-08:** both the selected
+   marker and the decision to skip a device change compare renderer
+   families, not device-name strings. If the active device is `D3D-A`
+   while the retained eligible Direct3D menu entry is `D3D-B`, the
+   Direct3D row remains marked selected and selecting it does not switch
+   to `D3D-B`. That retained name supplies the target only when changing
+   from a different renderer family.
 8. **Direct3D to DirectDraw is a distinct family, traced/data.** When the
    current renderer is Direct3D and the menu has a corresponding
    Direct3D device entry, selecting DirectDraw instead opens the
@@ -87,6 +94,98 @@ below are marked traced or data; unresolved behavior is listed separately.
     validation does not prove a general fallback for arbitrary invalid
     Direct3D names, an empty device list, or unavailable resolutions on
     an otherwise present Glide device.
+
+### DirectDraw confirmation input (Q207 follow-up, 2026-11-08)
+
+This addendum traces the Graphics-specific confirmation and its shared
+bitmap-button input path. It is not inherited from the Main-menu popup.
+Evidence is static original executable study plus `Graphics.gui` and
+`kqGuiTag.TTAG`; original execution and visual comparison remain **not
+tested**.
+
+- **Default and arrows, traced/data.** Every opening selects the second,
+  right-hand answer, **Cancel**. The left answer is **Yes**. Left chooses
+  Yes only from Cancel; Right chooses Cancel only from Yes. A successful
+  change plays `button1.aud`; pressing the arrow already at that end
+  does not change the answer or play that sound. These choices do not
+  wrap. Up and Down do not change the selected answer. Opening the
+  popup and changing its answer do not themselves reposition the
+  system pointer.
+- **Enter press and release, traced.** Enter press plays `button1.aud`,
+  depresses the selected answer's highlighted button, saves the system
+  pointer position, and temporarily positions it at the button's
+  horizontal center and 16 pixels below its vertical center. Center
+  coordinates use the integer midpoint. It does not accept the answer
+  on that press. Ordinary Enter release restores the saved pointer,
+  clears the depressed appearance, and invokes the selected answer.
+  While this keyboard press is held, Graphics does not update its
+  custom pointer from ordinary pointer-movement input. For the
+  640-layout button rectangles below, the temporary coordinates are
+  `(232, 241)` for Yes and `(405, 241)` for Cancel. The original sends
+  these coordinates directly to the system cursor operation; this
+  trace does not establish desktop/window-origin adaptation.
+- **Cancel and Escape differ, traced.** Invoking Cancel hides the popup,
+  refreshes Graphics and restores its controls, without changing the
+  renderer. Escape takes the ordinary Graphics Back route to Options,
+  including when the popup is open; it does not accept the change.
+  Re-entering Graphics starts with the popup closed. Yes follows rule 8:
+  save the Software device choice, write Options and request application
+  exit. It is not a live switch followed by continued gameplay.
+- **Pointer choice, traced.** A normal left-button press followed by
+  release on a popup answer invokes that answer on release. Press alone
+  gives the shared pressed appearance. Hit testing uses each button's
+  current rectangle and includes its boundaries. The answer under the
+  pointer can be invoked regardless of the keyboard-selected answer.
+  Pointer movement does not rewrite the Graphics-specific Yes/Cancel
+  selection, although the shared button can have its ordinary pointer
+  appearance. The disabled Graphics rows and Back control do not
+  perform their normal click actions while the popup is open.
+- **Selection artwork and control identity, traced/data.** The popup
+  maintains a highlighted physical button and a normal physical button.
+  Changing the keyboard selection exchanges their positions and
+  captions. Therefore the numeric button ID alone does not permanently
+  mean Yes or Cancel: the action interprets it together with the current
+  selection. A recreation may represent the same displayed answer and
+  highlight directly, but must not make the right-hand answer Yes after
+  a Left press or bind an answer permanently to the highlighted ID.
+
+The exact installed content identifiers are:
+
+| Purpose | Control/content ID | Installed resource or text tag |
+| --- | --- | --- |
+| Popup background | `IDCTL_GRA_POP_BKGND` 1153 | `IDBMP_GM_WIN2` 1005, `gm_win2.pbm` |
+| Three question lines | `IDCTL_GRA_TEXT1` 1154, `TEXT2` 1155, `TEXT3` 1156 | Runtime text tag `#169`; `IDSTR_1159` 1159 is authored as `#169 Switch to Direct Draw?` |
+| Initially left, normal button | `IDCTL_GRA_BTN1` 1157 | `IDSTR_YES` 530, `#29 yes`; `IDBMA_G_YBTN` 1113, `g_ybtn.pba` |
+| Initially right, highlighted button | `IDCTL_GRA_BTN2` 1158 | `IDSTR_CANCEL` 725, `#35 Cancel`; `IDBMA_G_YHIBTN` 1110, `g_yhibtn.pba` |
+| Question/button font | `IDFNT_CONSOLEG` 1091 | `consoleg.pft` |
+
+The unused No text tag is not the second answer. On opening, the question
+is resolved from `#169`, then divided into three strings at spaces near
+one third of its length and half of the remaining length. The search
+checks the later space first at equal distance. The second and third
+authored placeholder strings are replaced; they are not literal zeroes
+in the popup. This is character-count splitting, not font-width wrapping.
+
+At the ordinary 640 × 480 presentation, popup opening places its
+background at `(140,135)-(500,255)`, the three question boxes at
+`(170,152)-(470,172)`, `(170,170)-(470,190)` and
+`(170,188)-(470,208)`, and the answer boxes at
+`(188,213)-(276,238)` and `(361,213)-(449,238)`. These are the runtime
+popup positions, not the offscreen/placeholder positions initially
+authored in the GUI file. The DirectDraw availability restriction in
+rule 4 still applies.
+
+**Bounded limits and original quirks.** Dragging out of a pressed answer,
+re-entering it, double clicks, mixed keyboard/mouse chords and key-repeat
+timing were not completely traced here. The original keyboard-release
+branch tests whether a saved pointer exists, rather than explicitly
+testing Enter, and uses saved horizontal coordinate zero as its empty
+sentinel. Thus other-key-release chords and an initial desktop x=0 can
+behave differently from an ordinary Enter cycle. These are original
+input quirks, not a requirement to introduce a zero-coordinate failure
+or an unrelated-key activation into a recreation. This addendum does
+not establish alternative desktop placement, other resolutions forced
+past the availability rules, or actual driver/exit results.
 
 ### Shared interface behavior
 

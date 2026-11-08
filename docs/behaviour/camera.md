@@ -712,9 +712,13 @@ clipping questions in rule 7 remain open.
    `SmCrossBow` maps to `Consbowfp.anm`, `ShortBow` to `Coscbwfp.anm`,
    and `NoRanged` to `connerFp.anm`. The lookup expects a matching type;
    no semantic fallback to a similarly named weapon is established.
-3. **Switching modes re-requests the movement, not its old phase.**
-   F2 retains Connor's gameplay state and current movement name. It
-   submits that name through the ordinary movement request, transition
+3. **Switching modes re-requests the playing movement, not its old phase.**
+   F2 retains Connor's gameplay state and submits the currently playing
+   movement name, including the transition clip's name when one is
+   playing. This replaces the pending movement request; it does not
+   preserve a different pending request or substitute the transition's
+   destination. The Q200 section below distinguishes these names. The
+   name goes through the ordinary movement request, transition
    and interruption rules (`connor-movement.md`, "Starting and
    stopping"). It does not force every in-progress one-shot to end.
    An uninterruptible current animation can therefore keep its existing
@@ -726,7 +730,8 @@ clipping questions in rule 7 remain open.
    The refresh also asks through the active movement controller, so
    handle repeated requests with those same ordinary rules rather than
    creating a second playback clock. This study does not replace the
-   existing rules for a queued transition or a one-shot's ending.
+   existing rules for a queued transition or a one-shot's ending,
+   including the movement-state completion follow-up described below.
 4. **Arm skins replace the active model's base arm material.** First
    person chooses `skinList_firstperson` (`ConnerFpSkinList`); third
    person chooses `skinList` (`ConnerSkinList`). F2 keeps the current
@@ -792,6 +797,103 @@ clipping questions in rule 7 remain open.
    last frames; the name alone must not trigger a whole-body hide rule.
    These CLI checks read original data; they do not measure native
    renderer pixels or settle rule 7.
+
+### F2 during movement transitions (Q200, 2026-11-08)
+
+This bounded static study follows accepted normal F2 through the list
+refresh, movement request, transition start/end and Connor's ordinary
+Move-state animation-end response. It also reads `Conner.anm` and
+`Connerfp.anm`. Original runtime and native save continuation are
+**not tested**. The rules concern an accepted toggle; the existing F2
+locks still apply.
+
+1. **Three names have different jobs.** The playing movement is the
+   animation currently being advanced. The wanted movement is the
+   replaceable request waiting for ordinary interruption/completion.
+   An already-playing transition separately retains its destination
+   movement and destination phase. Starting `stoprun` makes the playing
+   name `stoprun`, while retaining `run` and its transition destination
+   phase. F2 reads the playing name. Both its list-refresh request and
+   its subsequent movement-controller refresh use that name, with no
+   phase override. Neither reads the latest held-input choice instead.
+2. **An already-playing transition keeps its progress.** The shipped
+   `stoprun` is uninterruptible and has no transitions of its own, so
+   requesting `stoprun` while it plays replaces the wanted name but
+   does not restart or replace that current clip immediately. Its
+   existing model, phase, transition destination and destination phase
+   survive. A previously pending different name is overwritten; it is
+   not restored automatically at the transition's end. The selected
+   view's movement list is already changed and supplies later rebuilds.
+3. **Common completion runs before the Move-state follow-up.** At the
+   transition's end, ordinary completion still starts its retained
+   destination at its retained phase. It then handles the wanted name
+   using that destination's transitions/interruption rules. With F2's
+   wanted `stoprun`, the shipped destination `run` has no transition to
+   `stoprun` and can be interrupted, so `stoprun` is rebuilt from the
+   newly selected list as an ordinary one-shot. Its transition role has
+   ended; this rebuild does not retain a second destination.
+4. **Connor's ordinary Move state asks again at animation end.** After
+   the common completion just described, this state obtains the
+   movement currently selected by Connor's movement controls. When
+   there is a nonempty choice different from the now-playing name, it
+   submits that choice through the ordinary movement request. This
+   comparison is against the playing movement after common completion,
+   rather than the cached last input choice used to suppress unchanged
+   requests during ordinary movement updates. It therefore can submit
+   `run` again even though Forward never changed. An uninterruptible
+   replay keeps that request until its own end. This is a general
+   animation-end response in the Move state, not a special F2 recovery.
+5. **Held-run example, derived from the static paths and shipped data.**
+   Accept F2 while third-person `stoprun` is playing, with Connor still
+   in Move and his controls selecting `run`. The old `stoprun` finishes
+   at its existing pace. Completion starts first-person `run` at the
+   retained third-person destination phase **0.866667**, then rebuilds
+   first-person `stoprun`. In `Connerfp.anm`, this is the three-frame
+   `fp_stop.kqs` one-shot with authored start phase **0.666667**, speed
+   **1**, no looping and no interruption. The Move-state follow-up
+   then requests `run`; when that short one-shot ends, `run` starts
+   afresh from its authored start phase **0**. The temporary destination
+   selection and replay request occur in the same end handling; this
+   does not promise a separately rendered frame of that temporary run.
+   Omitting the Move-state follow-up can leave the replay holding its
+   last frame, but the original path does contain that follow-up.
+6. **A transition waiting for its start point is different.** The
+   playing name is still its source movement. F2 re-requests that source
+   name, replaces the wanted name and recomputes the waiting transition
+   from the current source animation. For the shipped walking/running
+   loops there is no self-transition, so the old waiting transition is
+   discarded and the interruptible source rebuilds in the new view at
+   its authored start. No destination/phase pair has yet been captured
+   as an already-playing transition. For example, F2 during `walk`
+   while a stop transition waits re-requests `walk`, not `stop` and not
+   `stopwalkstop`. Later input/state requests remain ordinary requests;
+   F2 does not keep a protected copy of the discarded stop request.
+
+**Do not reproduce by inference:** do not replace F2's name with the
+transition destination merely to avoid an observed stall, or copy the
+old normalized phase into the new model. Preserve the described
+completion response when matching the original. The earlier deliberate
+same-name walking-cycle improvement in `connor-movement.md` does not
+establish a different original F2 rule.
+
+**How to check:** an automated recreation trace should record the
+playing name/model/phase, wanted name, retained transition destination
+and phase, selected input movement, active gameplay state, and each
+movement request around F2 and both completion notices. Check the
+held-run example; a different pending request overwritten during a
+playing transition; and a walking stop transition still waiting for
+its start point. Distinguish the accepted F2 request from subsequent
+input/state requests. These are check procedures, not claims of an
+original runtime test.
+
+**Limits:** the animation-end selector above is established for
+Connor's ordinary Move state. Do not apply it to every character state,
+scripted action, attack, jump, or conversation. If the gameplay state
+changes before the end notice, that state's own response applies;
+this study does not catalogue those alternatives. Exact F2-versus-end
+event ordering when both become due at one timestamp, malformed or
+missing movement entries, and save/resume within these transitions
+remain outside this bounded answer.
 
 ### Shake and cutscene cameras
 
