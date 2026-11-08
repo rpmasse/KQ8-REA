@@ -5,6 +5,42 @@ changes, not on every commit.
 
 ## Goal
 
+**M4 completion batches (2026-11-08).** M4 is the active objective; the
+unfinished ordered world loader stays preserved in the original checkout.
+Use this isolated worktree for interface completion. Retain prior successful
+movie-clock, Credits, original-resolution, inventory-use and Choice checks;
+run only the new or affected behavior families below. Manual testing remains
+deferred until the recreation is feature-complete.
+
+1. **Top-bar input eligibility.** Apply interface.md rule 12's cursor-name
+   exclusion to pointer-triggered top-bar opening without blocking authored
+   news popups. Share the mask-menu result between physical and named input
+   delivery. Group eligible/ineligible cursors and dispatch in one check.
+2. **Existing-file movie errors.** Exercise the production decoder pipe,
+   playback update and acknowledgement/return path using controlled decoder
+   failures, original AVI metadata and headless menu state. Cover failure
+   before/after a picture, truncated output and nonzero decoder exit, then
+   Menu/Title/Gameplay and ending-to-Credits continuation. This closes the
+   explicit missing failure gate without replaying whole successful films.
+   The bounded acknowledgement is the safeguard allowed by
+   credits-completion.md, not a claim about every original MCI failure.
+   Also check the original New warning's started-and-playable predicate at
+   the ending boundary; retain existing world-lifetime and score evidence.
+3. **Graphics-device policy and controls.** Implement graphics-modes.md
+   rules 1–10 using explicit enumerated-device inputs, fixed selectable rows,
+   availability filters, saved device names and the Direct3D-to-DirectDraw
+   confirmation/restart path. Do not infer historical driver availability
+   from a WGPU adapter. Keep the production capability/provider and renderer
+   family presentation gates open until integrated and checked. The already
+   verified live 640/800 resize mechanism is reused.
+4. **F2 movement completion.** Await Q200's separated original study,
+   then correct the shared transition-end input continuation rather than
+   avoiding camera changes during a transition. Inventory HUD rules still
+   marked as guesses require the same bounded study before implementation.
+
+Each family keeps a separate reviewable change. One shared viewer build may
+compile independent families, followed only by their focused checks.
+
 **M4 live shadow controls (2026-11-06).** Apply the menu's shadow mask to the active renderer. Keep each character's original mask independently of the world mask, so enabling a category after loading can create its shadow. Gate Connor with bit 1. Hide existing character and object shadows when disabled; invalidate an object's cached projection so re-enabling restores it. Use unattended Windows menu routes and renderer state logs to check off/on transitions, then verify preference persistence in a fresh process. The scripted `allowShadows` step below supplies the independent global switch.
 
 A Rust rewrite of *King's Quest: Mask of Eternity* (KQ8, Sierra 1998) that
