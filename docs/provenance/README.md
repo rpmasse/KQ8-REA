@@ -3,6 +3,33 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**M4 shared completion batches (2026-11-08).** conversation.md's separated
+admission/priority study supplies the pending request and completion gates;
+pickup-tutorials.md rules 8–10 and in-game-help.md supply the non-pickup
+flags, game-time waits and Escape/Main lifecycle. interface.md rules 6a–6c
+and magic-map.md rules 23–25a supply cursor animation/scaling and display-
+pixel map coordinates. The corrected shared build and grouped help/cursor/
+map/lifetime checks pass; [evidence and limits](../help-cursor-lifecycle.md).
+The Talk admission core and production dispatch/save matrices now pass;
+[conversation evidence](../conversation-admission.md).
+brightness.md rules 11–12a supply Software surface conversion; Microsoft
+documents the read-only Windows palette adapter. [Palette scope/evidence](../software-surface-palette.md).
+graphics-modes.md supplies persistent screen focus, modal sound/pointer
+rules, compiled Software default and driver-name normalization. No original
+executable or disassembly was read by B. Runtime device integration passes
+model/frontend checks; actual exclusive fullscreen remains unverified because
+the current RDP display advertises no original-size mode.
+
+**Selection and popup follow-up (2026-11-08).** A's inventory.md8/9 and
+interface.md12 settle replacement placement, Scroll/Rock selection, rope-view
+lock lifetime and fixed client thresholds. world-change.md26 and in-game-help.md
+settle final-pixel dynamic popup overrides and keyboard pointer placement.
+Grouped original-data dispatch/CPU draw checks pass;
+[evidence and limits](../inventory-popup-completion.md). The physical client
+getter is documented in the linked Bevy 0.20 API there. A's inventory.md12a
+and ranged-weapons.md8/9 further clarify actual weapon-assignment clearing;
+that next implementation step remains open.
+
 **Inventory display and held-item selection (2026-11-08).** Study A's
 interface.md rules 35, 39, 43–45 and Q109/Q110 follow-up establish carried
 equipment order, count/picture rules and shared observed blink timing.

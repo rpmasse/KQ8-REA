@@ -1,5 +1,130 @@
 # STATUS
 
+## 2026-11-08 Inventory, popup and client-edge checks pass
+
+M4 is approximately 95%. The corrected shared build passes in 1m21s;
+the selection clock matrix passes 1/1 and the new original-data inventory,
+popup geometry and client top-bar matrices pass 3/3 in 0.12s. The popup
+matrix checks 48 CPU renders across both resolutions and all popup kinds.
+The first shared compile rejected an unnecessary private-field write in a
+fixture; removing that line left production code unchanged. Preserve both
+build logs and prior fixture failures. Successful checks were not repeated.
+Evidence: docs/inventory-popup-completion.md.
+
+The next implementation family is held-item clearing at the actual ordinary
+weapon-swap assignment, with pending-origin save continuity. Source study also
+distinguishes scripted mode requests from unconditional controller bypass;
+that admission boundary must be audited rather than silently marked complete.
+Original-size exclusive fullscreen acceptance remains open because the current
+RDP display has no 640/800 modes. M5/M6 remain paused; no manual testing.
+
+## 2026-11-08 Dialogue phase retry passes; inventory follow-up underway
+
+M4 is approximately 93%. The corrected airborne phase matrix passes;
+all 20 selected dialogue/core checks now pass across their initial run and
+one focused retry, and all three viewer dispatch/save matrices pass.
+The 19 initial core successes were not repeated. Core follow-up build:
+1m12s; `m4-selection-core-build.log`.
+
+The grouped follow-up run passes 3/4: the dialogue phase retry, original
+equipment replacement placement, and its affected equipment regression.
+The new selection/rope-lock matrix fails at its serialized speech-queue
+assertion and is being diagnosed; keep the result in
+`kq8-artifacts/logs/m4-selection-and-phase-core.log`. Do not rerun the
+three successes without an affected change. Popup and client threshold
+viewer checks await their shared build. The RDP fullscreen gate below
+remains open; no native retry was made.
+
+## 2026-11-08 Dialogue and graphics checks pass; fullscreen host gate open
+
+M4 is approximately 92%. Shared release compilation passes in 3m56s
+(`m4-final-admission-graphics-build.log`). The viewer group passes 11/11
+in 0.76s, including three dialogue admission/save matrices, five graphics
+policy matrices, the real frontend live/restart path, corrected original
+Software palette restoration and Portal/help navigation sound. Log:
+`kq8-artifacts/logs/m4-final-admission-graphics-viewer.log`.
+
+Core checks pass 19/20 in 0.11s. The new phase fixture skipped the entire
+flight but left Mover's constructor contact flag grounded; its two synthetic
+airborne setups are corrected. Production code and assertions are unchanged.
+Only that failed matrix awaits a focused retry; retain the 19 successes and
+the initial failure in `m4-final-admission-core.log`.
+
+The exclusive fullscreen native check failed in 1.26s before switching mode:
+the current RDP session exposes only DISPLAY193, Microsoft Remote Display
+Adapter, with 3600x2096 at 32Hz. There is no attached 640/800 target in this
+session; raw-mode enumeration supplies no 640 mode either. No selection bug
+is established, so do not repeat this launch or substitute borderless output
+as evidence. The original-size fullscreen gate remains open. Evidence:
+`kq8-artifacts/logs/m4-exclusive-display-native.log`,
+`kq8-artifacts/live-display-native/1794101649164562000/` and the read-only
+`kq8-artifacts/graphics-host-inventory.json`.
+
+The next source group implements newly studied inventory-selection and
+equipment-placement edges, fixed client top-bar thresholds and dynamic
+Portal/help geometry. These follow-up changes are not tested yet. All game
+installation data remains read-only; no manual testing was performed.
+
+## 2026-11-08 Help, cursor/map and Graphics lifetime checked
+
+M4 is approximately 91%. The corrected shared release build passes in
+4m26s. Grouped core checks pass 13/13 in 0.01s; viewer checks pass 5/6
+in 0.91s. Original tutorial clocks/receipt sources, cursor/map geometry,
+Help/Main/Return behavior and retained Graphics focus/pointer handling
+now have evidence in docs/help-cursor-lifecycle.md. Successful checks
+will not be repeated without an affected change.
+
+The remaining viewer failure was a fixture assumption: Daventry's
+reserved palette colors equal Windows static colors, so an inequality
+assertion was invalid. Correcting that assertion and its focused retry
+are part of the active graphics-runtime batch. Preserve the failure in
+`kq8-artifacts/logs/m4-help-map-surface-viewer.log`.
+
+Talk admission's final completion guards and pending-save migration,
+logical graphics profiles, live/restart routing and actual exclusive
+fullscreen acceptance remain unverified. No manual or new native game
+run was performed for the completed component batch. M5/M6 remain paused.
+
+The current M4 audit also identifies a bounded inventory follow-up: the
+new original study says Scroll clears selection before its speech gate;
+Rock selection is refused in Tile, Tile3 and Scales (not Tile2); generic
+selection clearing must not run the rope's separate put-back/view-unlock
+action. Those rules are now in inventory.md but are not implemented by
+this validated batch. Held-item lifetime, scripted equipment replacement
+placement and native top-edge/popup coordinate questions remain under study.
+Portal focus navigation lacked its original click cue; that narrow fix and
+its shared help/prompt check are ready for the next build.
+
+## 2026-11-08 Earlier shared batch preparation (superseded above)
+
+M4 remains approximately 90%, based on the published verified HUD/focus
+batch at c587049. The active worktree adds original tutorial receipt/stage
+timing, one-slot conversation admission, cursor/map display coordinates,
+Software surface palettes and retained Graphics screen/pointer handling.
+These connected viewer changes are **not tested** yet and are not published.
+
+The new Software data matrix passes 1/1 after a 10.71s build; two affected
+hardware-palette checks pass 2/2. The first shared core/viewer test build
+stopped at a private `Placement` import in a new fight test. That test-only
+import is corrected; no second build has run. Retain
+`kq8-artifacts/logs/m4-admission-help-surface-build.log` as the initial failure.
+The palette logs are `m4-software-palette-data.log` and
+`m4-software-palette-affected.log`.
+
+Before retrying the shared build, the Talk owner is adding bounded Rust-save
+continuity for the pending request and applying A's strong-request priority
+and hammer/Wait completion clarifications. Other source owners are frozen.
+The pending snapshot must preserve controller/gate context, distinguish a
+new empty slot from legacy Asked saves, and avoid resurrecting replaced Talk.
+This is Rust-format continuity, not proof of original save-queue equivalence.
+
+Runtime graphics still needs an explicit logical compatibility profile,
+active-device and fullscreen action routing, startup validation, accepted
+restart persistence/exit and fullscreen acceptance. The Software palette
+adapter alone does not identify the original active window device from a
+saved fullscreen name. No original assets or installation settings changed;
+no manual or new native game run was performed.
+
 ## 2026-11-08 M4 inventory and Graphics-focus families verified
 
 M4 is approximately 90%. The shared release test build passes in 2m37s;
