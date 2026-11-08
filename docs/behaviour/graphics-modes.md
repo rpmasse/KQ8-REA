@@ -48,6 +48,58 @@ below are marked traced or data; unresolved behavior is listed separately.
    interface declaration. This describes the original capability rule;
    the installed wrapper's current reported hardware was not queried.
 
+### Original device inventory and startup (bounded follow-up, 2026-11-08)
+
+The compiled renderer-name default is **`Software`**. The canvas creates
+separate Software devices for window and fullscreen use, initially with
+the window device active. These are separate choices: the saved
+`assignGModeName` preference supplies the fullscreen device name and
+does not replace the ordinary Software window device.
+
+The Options setup reads `Options.cs`; its mode-name assignment stores
+the requested spelling. The main window's first-presentation setup
+applies the saved name to its fullscreen choice and, when needed,
+switches to that fullscreen device. The pending 800-mode request is
+handled separately after the existing validation. The installed
+`Main.kq` authors a 640 × 480 window with `resMode=HiResDirectDraw`,
+and the installed Options file requests `D3D-display`. The latter is
+the supplied installation's preference, not the compiled default or
+proof that a corresponding device is currently available.
+
+The original Windows provider builds its device inventory from legacy
+DirectDraw, Glide and Direct3D probes:
+
+- **Software** is the first descriptor and advertises window support.
+  It advertises fullscreen support only when DirectDraw initialization
+  and its interface succeed and the accepted 8-bit mode list is not
+  empty. Advertising a capability is distinct from successfully creating
+  a later display surface.
+- A successfully detected **Glide** device is added as a fullscreen
+  device. When this provider supplies Glide, it omits Direct3D device
+  enumeration. The Graphics menu's own Glide-presence suppression in
+  rule 4 is a further menu rule.
+- Otherwise, qualifying devices from the Windows DirectDraw/Direct3D
+  enumeration supply the **Direct3D** entries. Their names have the
+  `D3D-` prefix and replace spaces in the driver name with hyphens.
+  They still depend on the original interface, capability and mode
+  probes; a matching name by itself does not establish availability.
+
+There is no automatic choice of a "best GPU" in these studied default
+and preference paths. A recreation's modern adapter enumeration does
+not reproduce this inventory or establish native Glide capability.
+Source-compatible profiles must represent those original inputs
+explicitly if they are used, rather than inferring them from modern
+adapter memory, API support or desktop pixel depth. Ordinary Software
+fullscreen and window surfaces are both explicitly 8-bit, as established
+in `brightness.md` rule 12a.
+
+Evidence is the original provider's initialization/enumeration, canvas
+device creation, preference assignment and main-window presentation
+setup, plus the installed configuration files. The complete Direct3D
+capability-filter matrix, all Options-load sequencing, actual current
+probe results and driver failure recovery remain outside this bounded
+follow-up. Original runtime: **not tested**.
+
 ### Applying a selection
 
 6. **A resolution click applies immediately, traced.** Selecting the
@@ -94,6 +146,104 @@ below are marked traced or data; unresolved behavior is listed separately.
     validation does not prove a general fallback for arbitrary invalid
     Direct3D names, an empty device list, or unavailable resolutions on
     an otherwise present Glide device.
+
+### Keyboard row focus and name matching (Q207 follow-up, 2026-11-08)
+
+Keyboard focus is separate from the `> name <` markers for the active
+device and resolution. A newly created Graphics screen initially focuses
+**DirectDraw**, regardless of which renderer is active. Ordinary screen
+activation retains its stored row. Returning to the same Graphics screen
+from Options therefore retains the previous focus rather than resetting
+it to DirectDraw or to the selected renderer.
+
+Outside the confirmation popup, Up and Down traverse this fixed order.
+Up moves backward; Down moves forward. Both wrap at the ends and skip
+rows whose selection is unavailable:
+
+| Order | Row |
+| --- | --- |
+| 1 | DirectDraw |
+| 2 | Direct3D |
+| 3 | 3Dfx |
+| 4 | 640 × 480 |
+| 5 | 800 × 600 |
+| 6 | Dynamic Lights |
+| 7 | Connor Shadows |
+| 8 | Monster Shadows |
+| 9 | Character Shadows |
+| 10 | Object Shadows |
+| 11 | Brightness |
+| 12 | Back to Options |
+
+Cancelling the DirectDraw confirmation, applying a live device change,
+and applying a resolution change refresh the screen without resetting
+this row. Thus Cancel ordinarily returns to the DirectDraw row that
+opened the popup, and a resolution change retains its resolution row.
+Refresh does not automatically move an existing focus merely because
+that row has become unavailable. On the next Up/Down input, navigation
+steps away from the stored row first, then searches for an enabled row
+in that direction. Refresh is not an automatic selection of the first
+enabled row.
+
+**Unchecked activation quirk:** Enter invokes the stored row's action
+without repeating the enabled-row test. It does not establish an
+automatic ignore of a retained disabled row. For example, an unavailable
+800 × 600 row still reaches the resize request if keyboard focus is
+retained there while the current resolution is 640 × 480. The result
+depends on the lower-level mode path and is not tested. Do not reproduce
+unchecked invalid-device access; a defensive rejection of a disabled
+activation is a recreation safeguard, not the original Enter rule.
+
+**Unavailable device targets, clarified 2026-11-08:** row availability
+and the remembered device target are separate. A refresh disables the
+device rows before enumeration, then each eligible entry enables its
+row and replaces that family's remembered target. If no entry qualifies,
+the previous target is retained; the original does not clear it merely
+because the row remains disabled. A newly created screen has no target
+for a family until an eligible entry has supplied one.
+
+| Reason the row is disabled on refresh | Remembered target |
+| --- | --- |
+| DirectDraw while at 800 × 600 | Any earlier eligible Software-family target remains. |
+| Direct3D suppressed by native Glide presence, or with only the excluded `D3D-dd3dfx` entry | Any earlier eligible Direct3D target remains; the excluded/suppressed entry does not replace it. |
+| No fullscreen-eligible entry for a device family | That family's earlier eligible target remains, if any. |
+
+Enter, or ordinary Left/Right activation, then uses the remembered
+target despite current row unavailability. The normal same-family
+comparison can still make this a no-op; otherwise the target's retained
+name is passed to the device-change path. DirectDraw first checks its
+remembered Direct3D target: if that target's family is active, the
+confirmation opens before the ordinary Software-device action, even
+when DirectDraw is currently disabled. This check uses the retained
+target, not a fresh search for a currently eligible Direct3D row.
+With no previously resolved target, the original has unchecked missing
+target access, not an established fallback, ignore, or default device.
+Do not reproduce that invalid access. This describes menu dispatch;
+device-list replacement, target lifetime across such replacement, and
+actual driver failures remain outside the bounded trace.
+
+Outside the popup, **Left and Right both activate the focused row**,
+using the same action as Enter, except on Brightness where they adjust
+the slider in their respective directions. On a resolution row they
+request that row's resolution; they do not toggle to the other size.
+The retained-disabled 800-row behavior therefore applies to Left and
+Right as well as Enter.
+
+Mode-name assignment preserves the supplied spelling. The relevant
+name checks are **case-sensitive, whole-name comparisons**: only `Glide`
+enters rule 10's special startup validation, only `Software` matches the
+DirectDraw name's special handling, and only `D3D-dd3dfx` matches rule 4's
+named exclusion. For example, `glide` clears the pending 800 request as
+an ordinary non-Glide saved name; it is not normalized to `Glide`.
+Actual device lookup also requires an exact full-name match, including
+case, against enumeration. A differently cased `D3D-dd3dfx` is not
+excluded by that name test, but still faces every other availability
+condition. This does not establish a fallback for arbitrary invalid
+saved names.
+
+Evidence is the original Graphics construction, activation, row
+navigation and refresh paths, plus saved-name assignment, startup
+validation and device lookup. Runtime comparison: **not tested**.
 
 ### DirectDraw confirmation input (Q207 follow-up, 2026-11-08)
 
@@ -367,6 +517,12 @@ manual play or visual comparison is requested.
   Direct3D entries. Compare row eligibility, stored name and selection
   markers. A separate Glide-capability fixture checks the board/memory
   threshold; DirectDraw and Direct3D do not enable 800.
+- A focus fixture can distinguish initial DirectDraw focus from the
+  active-family marker, traverse the twelve rows with unavailable rows
+  skipped, wrap in both directions, and retain focus through Cancel,
+  device/resolution refresh and a return from Options. Case-variant
+  names should exercise the exact comparisons separately from family
+  selection.
 - One ordinary control rectangle and one nested control can establish
   the shared coordinate conversion at both resolutions and after a
   return to 640. For a positive normalized coordinate corresponding to

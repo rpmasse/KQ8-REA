@@ -56,11 +56,112 @@ Words used here:
    - Connor is sent a "start conversation" message (handled in the same
      update, after the script): Connor's own `speak` queue is emptied
      (no `TalkComplete`), he remembers the partner and the partner's
-     position at this moment, is asked for `Stop`, and goes into his
-     **talk state** (rules 5–16). If he goes into it and `handsOff` is
+     position at this moment, records `Stop` as his requested movement,
+     and requests his **talk state** (rules 5–16). Admission depends on
+     the state that currently owns him, as described below; a refused
+     request does not itself start the `Stop` movement. If admitted by
+     this message and `handsOff` is
      off, the bottom bar's panels that were showing are hidden
      (`interface.md`; the meters, the left and right panels and the
      health bar) and remembered for the end (rule 15).
+
+### Admission during another action (bounded follow-up, 2026-11-08)
+
+The conversation command's preparation and Connor's admission to Talk
+are separate. Refusing Talk does not undo the partner's preparation or
+restore Connor's cleared speech queue. The incoming message also makes
+Connor's current movement eligible to be cut short, but this does not
+override the current state's admission rule. Talk entry requests the
+actual `Stop` movement and performs the camera and approach work in
+rules 6–10.
+
+For an ordinary request, with no forced-state override and `handsOff`
+clear, the reusable admission rules are:
+
+| Connor's current state | Admission of Talk |
+| --- | --- |
+| Wait | Admitted. The start-conversation message has already recorded `Stop`, satisfying Wait's movement-name condition. |
+| Move | Admitted, without waiting for the current movement or transition clip to end. |
+| Jump | Refused until jump completion has been opened. The ordinary jump-clip end opens it before requesting Fall. |
+| Fall | Refused while its completion gate is closed. Ordinary landing opens it before the landing animation or the return to Wait/Move. |
+| SwapWeapons | Refused, including after the weapon change has completed. Its allowed exits do not include Talk. |
+| Special, the scripted movement-list state | Refused while further list entries remain to be started. Admitted once none remain; this can already be true while the last movement is playing. This is not a test that every animation has ended. |
+| Die | Refused. |
+
+A refused request is retained in **one replaceable pending state
+request**, not a queue of conversations. When another state request
+arrives, an already-pending Talk is tried first. If the current state
+now admits it, Talk takes ownership and the newly arriving request
+remains pending without being tested against the newly entered Talk in
+that call. If Talk is still refused, the incoming request replaces it
+and is immediately tested against the current state in the same call;
+if accepted, that incoming state takes ownership then. Replacement does
+not add another mandatory retry delay. The original does not keep a
+separate guaranteed conversation retry
+after that replacement. Merely opening an admission gate does not
+itself retry the pending request every update.
+
+This gives the following ordinary interruption cases, assuming no
+intervening request replaces Talk:
+
+- **During a jump:** Connor remains in Jump until completion opens.
+  At the ordinary jump-clip end, gravity and normal step allowances are
+  restored; the ensuing request for Fall admits the pending Talk first.
+  Thus conversation control can begin **before physical ground contact**.
+  It is incorrect to require the full Jump → Fall → landing sequence
+  before admitting this conversation. An explicit `endJump` can also
+  open admission before a later Talk request.
+- **Already in Fall:** a request received while airborne remains
+  pending. At an ordinary running-jump landing, the request for Wait or
+  Move retries it immediately. With the standing or backward landing
+  animation, the usual retry is that animation's end request for Wait
+  or Move. A **new** Talk request received after the landing gate has
+  opened can be admitted during the landing animation itself. State
+  ownership and completion of every movement clip are separate matters.
+- **During a weapon change:** the completion request for Wait still
+  cannot admit the pending Talk from SwapWeapons, so it replaces it.
+  This conversation does not automatically start after the weapon
+  animation. A later start-conversation request can try again from Wait.
+
+Once Talk is admitted, its own approach and input rules apply (rule 13).
+Held forward/back input remains available to Talk; it is held during
+the approach and can move Connor when the stay-area test begins. The
+ordinary landing's proposed Move or Wait does not take control ahead
+of an admitted pending Talk. The panel-hide action in rule 2 belongs to
+the original start message's successful immediate admission; later
+admission of a retained request does not replay that message or repeat
+its panel-hide action.
+
+With `handsOff` set, the common request path can open Jump or Fall
+completion itself before testing the new request. Therefore the
+ordinary airborne delay above must not be applied universally to
+script-controlled requests. A separately forced state can also override
+ordinary pending-request handling.
+
+At ordinary Talk completion, its exit gate opens **before** it requests
+Wait or Move. Fall remains an unaccepted exit even then: a pending Fall
+left by Jump → Talk is refused and replaced by the proposed Wait/Move,
+which can take ownership in that same call. Conversely, if Wait is
+already pending when Talk completion proposes Move, Wait is admitted
+first and Move remains pending without a second gate test in that call.
+Neither example establishes an automatic frame-by-frame retry.
+
+In the `handsOff` exception above, opening Fall completion only opens
+its admission gate; the common request also makes the current movement
+cuttable. This does not force ground contact or execute the landing
+branch, and it does not change gravity or step allowances as Jump
+completion does. This describes the state-request exception, not every
+other effect of the separate `handsOff` command.
+
+Evidence: static original start-conversation handling, common Connor
+state requests, the listed state admission rules, and ordinary jump,
+fall and weapon-change completion paths. This settles reusable gates,
+not every campaign interruption. Lethal falls, collision-specific jump
+exits, other special-action states, overlapping conversations, and
+continuation of a multi-entry Special list interrupted by a conversation
+remain outside this follow-up. In particular, the Special admission
+rule alone does not establish that a refused conversation will later
+resume that list or be retried. Runtime comparison: **not tested**.
 
 ### The info object (data, traced)
 
@@ -592,6 +693,16 @@ Words used here:
 
 ## How to check
 
+- **Admission checks (B, logs):** record the current state, pending
+  request, Talk admission, jump completion, ground contact and landing
+  animation end separately. A surviving Talk requested during Jump
+  should take ownership at ordinary jump completion, before Fall;
+  a Talk requested during airborne Fall should follow the landing
+  cases above. Compare a fresh request during a landing animation,
+  a pending request replaced before its gate opens, and a request
+  during SwapWeapons. Record panel visibility at the original request
+  and at delayed admission. These are proposed checks, not original
+  runtime observations.
 - **Our logs (B):** per conversation: partner, tuple range, Connor's
   position, which boxes he is in, the case, the 3D distance to the spot;
   `away`/`out`, `stopwalk`, the placing (position, heading) and
@@ -641,5 +752,9 @@ Words used here:
    **Answered 2026-10-19** in `characters.md` rule 28: yes; the condition
    is the current movement (can be cut short or has ended), not a talk
    state (rule 18 corrected).
-3. Connor's states from which the talk state can't be entered (the
-   conversation then waits), e.g. in the middle of a jump: not traced.
+3. **Partly answered 2026-11-08:** ordinary Wait, Move, Jump, Fall,
+   SwapWeapons, Special and Die admission, pending-request replacement,
+   and the ordinary jump/landing handoff are described under
+   "Admission during another action". Refusal does not guarantee that
+   the conversation will eventually start. Other action states and the
+   interruption combinations listed there remain untraced.

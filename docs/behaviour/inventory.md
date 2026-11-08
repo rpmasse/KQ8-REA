@@ -137,6 +137,23 @@ weapons, health/potion slots, rope, rocks), see `interface.md`.
      (`INVITEM_NoRanged` has `NoModeChange`, so nothing happens). Fighting is M5 [traced the request;
      what it does is M5].
    - The mask button opens the main menu instead (`interface.md` rule 41).
+   **Bar clicks while holding an item (Q110 d/e, traced 2026-11-08):**
+   holding an item does not redirect a bar click into the world's
+   accept-list/use-on-object path. Choosing a different holdable quest
+   item or the coins replaces the held selection: the previous item
+   remains carried and returns to its ordinary bar presentation.
+   Choosing the held item again puts it back. Choosing an empty
+   inventory slot clears the held selection. Choosing a health item,
+   weapon or other immediately applied item performs its ordinary
+   category action and clears the previous held selection. Scroll,
+   cursorless quest items, rope eligibility and restricted rock states
+   still take their category-specific paths; this is not a rule that
+   every bar click must successfully swap an item. The coins button
+   retains its count-based picture and full count while held, including
+   no subtraction of one coin (`interface.md` rules 43–45 and follow-up).
+   These are static original findings; native/manual behavior is **not
+   tested**, and this follow-up does not settle mixed clicks during
+   `handsOff`, cutscenes or a world change.
 10. **Right click** on a slot: Connor describes the item
     (`talking.md` rule 20, built as sound only). Right click on an empty
     slot does nothing [traced].

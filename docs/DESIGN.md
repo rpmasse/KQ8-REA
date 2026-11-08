@@ -33,6 +33,14 @@ deferred until the recreation is feature-complete.
    from a WGPU adapter. Keep the production capability/provider and renderer
    family presentation gates open until integrated and checked. The already
    verified live 640/800 resize mechanism is reused.
+   The follow-up focus/activation study also requires fresh DirectDraw
+   focus, retained focus across same-screen refresh/reentry, fixed wrapped
+   navigation and previously resolved device targets that survive disabled
+   rows. Pass the actual high-resolution flag to inventory refresh. Pointer
+   and navigation eligibility must not silently suppress Enter/Left/Right
+   dispatch on a retained row; brightness alone adjusts its slider. A target
+   that never existed is an undefined original failure, not permission to
+   invent a device. Group these control edges in the same focused matrix.
 4. **F2 movement completion, implemented and checked.** Q200's separated
    original study supplies the shared Move-state completion response.
    The original ANM/KQS matrix and six affected checks pass. One short
@@ -55,6 +63,32 @@ remain separate unresolved rules. Read the precise study scope before
 implementing unusual coexisting armor or held-item swaps. Coordinate this
 source batch with the shared build lease; do not rerun successful ordinary
 inventory application routes solely for picture/count changes.
+
+**Conversation admission and tutorial events (2026-11-08, next shared
+families).** The new conversation.md admission study replaces the blanket
+per-update Talk retry. Preserve one pending state request and arbitrate it
+at existing request/completion boundaries, before Jump/Fall/landing/weapon
+ownership changes commit. Prepare the start message once (speech clear,
+current partner position, Stop and interruptibility); actual Talk entry
+owns its movement/camera/approach work. Hide panels only for immediate
+start-message admission. Pending admission/replacement follows the study's
+exact order, including Talk exit with retained Fall/Wait. Use narrow hooks
+in existing core/viewer boundaries rather than rewriting unrelated actor
+controllers. Group Jump, landing, Swap, Special and immediate/deferred
+entry/exit in one state/dispatch matrix. Preserve existing conversation
+continuation fields and explicitly audit the pending-state checkpoint
+boundary; do not claim original save-queue equivalence from a new field.
+
+The same study handoff specifies the four previously missing non-pickup
+tutorial bits: first eligible hit, low health, ordinary non-Connor death
+and standing-jump completion. Implement their actual message numbers,
+receipt gates and game-time delays through the shared help scheduler.
+Do not change combat damage, actor controllers or quest routes to emit
+help. Keep death's delayed intermediate notice distinct from delivery
+gates. One grouped source/clock matrix covers positive and negative gates,
+paused-time behavior and once-only consumption; successful pickup/help
+routes are retained. Coordinate the standing-jump boundary with the Talk
+owner so both effects preserve the original completion order.
 
 **M4 live shadow controls (2026-11-06).** Apply the menu's shadow mask to the active renderer. Keep each character's original mask independently of the world mask, so enabling a category after loading can create its shadow. Gate Connor with bit 1. Hide existing character and object shadows when disabled; invalidate an object's cached projection so re-enabling restores it. Use unattended Windows menu routes and renderer state logs to check off/on transitions, then verify preference persistence in a fresh process. The scripted `allowShadows` step below supplies the independent global switch.
 
