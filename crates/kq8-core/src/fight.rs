@@ -617,10 +617,10 @@ impl Corpse {
     }
 }
 
-/// Types whose death gives no first-kill tip (rule 33, with the Do
-/// instead: `chicken2`, not the original's typo `checken2`).
-pub const NO_KILL_TIP: [&str; 3] = ["bat", "chicken", "chicken2"];
-/// The first-kill tip comes this long after the death (rule 33), seconds.
+/// Original exclusions, including the literal `checken2` spelling
+/// confirmed by pickup-tutorials.md rule 9.
+pub const NO_KILL_TIP: [&str; 3] = ["bat", "chicken", "checken2"];
+/// Intermediate first-kill notice delay from ordinary death entry, seconds.
 pub const KILL_TIP_DELAY: f64 = 1.5;
 
 impl Fight {
@@ -765,13 +765,6 @@ impl crate::active::WorldState {
         // interface.md rule 24: the bars follow his stats.
         self.connor_stats_events += 1;
         self.fight_note("Connor", format!("hit by {from}, {}: {} (roll 25-100 %, rule 16); health {before} -> {after}{temple}", kind.name(), dmg.describe()));
-        // Rule 29: two one-off tips (logged only; their texts are another study).
-        if self.help_prompts.consume(crate::starting_help::FIRST_HIT) {
-            self.fight_note("Connor", "first hit by a character: a one-off tip would come here (rule 29; not traced further)");
-        }
-        if after * 2 < 10 * c.level && self.help_prompts.consume(crate::starting_help::LOW_HEALTH) {
-            self.fight_note("Connor", "health below half his maximum for the first time: a one-off tip would come here (rule 29; not traced further)");
-        }
         let at = format!("hit by {from}");
         if after < 0 {
             self.fight_note("Connor", format!("health {after} is below 0: requests Die, hit kind {} (rules 18, 29)", kind.name()));
@@ -783,6 +776,15 @@ impl crate::active::WorldState {
             let special = self.connor_react.1.clone().filter(|(_, p)| dmg.flinch_roll(*p)).map(|(m, _)| m);
             self.requests.push(crate::active::Request::ConnorHurt { roll_over: dmg.flinch_roll(percent), forced, special, world_hit: from.eq_ignore_ascii_case("world"), at });
         }
+        // Q196: consume source flags after an accepted hit, including a
+        // zero-loss or lethal one. Only the arrival Die/Rope guards apply.
+        let now = self.now() as f32;
+        let character = self.character_index(from).is_some() ||
+            (from.eq_ignore_ascii_case("Connor") && self.connor_at.is_some());
+        let tips = self.help_prompts.accepted_hit(now, self.weapon_mode.number() == 4,
+            character, kind == HitKind::Projectile, after, c.level);
+        if tips[0] { self.fight_note("Connor", format!("empty-hands hit: help case 140 due at game time {now:.6}")); }
+        if tips[1] { self.fight_note("Connor", format!("health below half: help case 130 due at game time {:.6}", now + 0.2)); }
         // Q206 rule 10: this follows the ordinary hit even when armor
         // prevents all loss or this hit requests Die. Earlier dying/rope
         // guards still suppress it. Repeated hits do not postpone rearm.
@@ -1184,6 +1186,7 @@ impl crate::active::WorldState {
         if f.dying.is_some() {
             return;
         }
+        let monster_type = f.settings.type_name.clone();
         f.stats.0[0] = 0;
         f.last_kind = Some(kind);
         let has = |n: &str| a.player.available().iter().any(|m| m.name.eq_ignore_ascii_case(n));
@@ -1236,6 +1239,12 @@ impl crate::active::WorldState {
         if tower_fall {
             self.tower_fall_start(j);
             return;
+        }
+        // Q196 rule 9: ordinary shared Die entry owns this source, before
+        // its movement finishes. Specialized tower fall remains separate.
+        if self.help_prompts.character_death(now as f32, self.connor_at.is_some(),
+            &name, &monster_type, now_flag) {
+            self.fight_note(&name, format!("first qualifying character death: intermediate help event due at game time {:.6}", now as f32 + 1.5));
         }
         self.drop_items(j);
         if now_flag {
@@ -1541,9 +1550,8 @@ impl crate::active::WorldState {
     /// experience (a stats event: his levels apply); a corpse where it
     /// stood (`deadDts`; `Projectile`: `projdKqs` or `deadDts`; `Ice`:
     /// `idedKqs` or none; `Fire`: none); its script gets `Die <kind>`
-    /// (queued for the caller, which runs scripts); it is removed. Rule 33:
-    /// the first-kill tip (logged only).
-    pub(crate) fn death_ended(&mut self, j: usize, now: f64) {
+    /// (queued for the caller, which runs scripts); it is removed.
+    pub(crate) fn death_ended(&mut self, j: usize, _now: f64) {
         // Rule 31a: the kept weapon first, before the experience and the
         // corpse.
         self.lay_kept_drop(j);
@@ -1560,7 +1568,6 @@ impl crate::active::WorldState {
             HitKind::Ice => s.ided_kqs.clone(),
             HitKind::Fire => None,
         };
-        let type_name = s.type_name.clone();
         a.gone = true;
         // 32.1: experience to Connor, whoever killed it.
         let xp = match self.connor_stats.as_mut() {
@@ -1594,11 +1601,6 @@ impl crate::active::WorldState {
         self.die_calls.push((name.clone(), kind.name()));
         self.active_list.retain(|n| !n.eq_ignore_ascii_case(&name));
         self.requests.push(crate::active::Request::Delete { name: name.clone(), at: format!("{name} died (fighting.md rule 32)") });
-        // Rule 33.
-        if !NO_KILL_TIP.iter().any(|t| t.eq_ignore_ascii_case(&type_name))
-            && self.help_prompts.consume(crate::starting_help::FIRST_KILL) {
-            self.fight_note(&name, format!("first kill (type {type_name}): a one-off tip would come at {:.2} (rule 33; not followed further)", now + KILL_TIP_DELAY));
-        }
     }
 }
 
@@ -2118,6 +2120,86 @@ impl crate::active::WorldState {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    fn tutorial_world() -> crate::active::Active {
+        use crate::{active::{Active, AnimObject}, character::Character, named_anim::tests::movement};
+        let mut active = Active::new(Default::default(), vec![], vec![], ["Connor".into()], []);
+        active.set_connor_stats(crate::stats::ConnorStats { stats: Stats([10, 1, 0, 0, 0]), level: 1 });
+        active.world.connor_at = Some([100., 0., 0.]);
+        let mut character = Character::new(false, 0, 0., false, false, false, 1);
+        character.fight = Some(Fight::new(settings([10, 1, 0, 0, 3], 1.)));
+        let player = crate::named_anim::NamedAnimPlayer::new("gob", vec![
+            movement("Stop", 0., 1., true, true, vec![]),
+            movement("Die", 0., 1., false, false, vec![]),
+        ], 0, crate::collide::Placement::at([0.; 3]));
+        active.add_anims([AnimObject { player, script: None, gone: false,
+            character: Some(Box::new(character)), translucency: None }]);
+        active
+    }
+
+    #[test]
+    fn tutorial_sources_use_accepted_hit_and_ordinary_death_entry_matrix() {
+        use crate::starting_help::{FIRST_HIT, LOW_HEALTH, FIRST_KILL};
+        use crate::weapons::WeaponMode;
+        for (from, kind, weapon, dying, rope, prior, health, flags) in [
+            ("gob", HitKind::Normal, WeaponMode::None, false, false, 0, 5, FIRST_HIT),
+            ("world", HitKind::Normal, WeaponMode::None, false, false, 0, 4, LOW_HEALTH),
+            ("absent", HitKind::Projectile, WeaponMode::None, false, false, 0, 4, FIRST_HIT | LOW_HEALTH),
+            ("gob", HitKind::Normal, WeaponMode::Hand, false, false, 0, 5, 0),
+            ("gob", HitKind::Normal, WeaponMode::Ranged, false, false, 0, 4, LOW_HEALTH),
+            ("gob", HitKind::Normal, WeaponMode::None, false, false, FIRST_KILL, 4, FIRST_KILL | LOW_HEALTH),
+            ("gob", HitKind::Projectile, WeaponMode::None, true, false, 0, 4, 0),
+            ("gob", HitKind::Projectile, WeaponMode::None, false, true, 0, 4, 0),
+        ] {
+            let mut active = tutorial_world();
+            let w = &mut active.world;
+            w.advance_clock_for_test(20.);
+            w.updates = 9999; // diagnostics cannot determine a help deadline
+            w.weapon_mode = weapon;
+            w.connor_dying = dying;
+            w.connor_roping = rope;
+            w.connor_stats.as_mut().unwrap().stats.0[0] = health;
+            w.help_prompts.restore_history_at(&crate::starting_help::History { start_help: prior, ..Default::default() }, 20.);
+            w.hit_connor(from, 0, kind); // accepted zero-loss hit still qualifies
+            assert_eq!(w.help_prompts.history_at(20.).start_help, flags, "{from} {weapon:?} dying {dying} rope {rope}");
+            assert_eq!(w.help_prompts.due_at(20., true, false, false), (flags & FIRST_HIT != 0).then_some(140));
+            if flags & LOW_HEALTH != 0 {
+                assert_eq!(w.help_prompts.due_at(20.199, true, false, false), None);
+                if flags & FIRST_HIT != 0 {
+                    assert_eq!(w.help_prompts.due_at(20.2, true, false, false), None);
+                    assert_eq!(w.help_prompts.due_at(23.2, true, false, false), Some(130));
+                } else {
+                    assert_eq!(w.help_prompts.due_at(20.2, true, false, false), Some(130));
+                }
+            }
+        }
+        let mut lethal = tutorial_world();
+        lethal.world.hit_connor("gob", 1000, HitKind::Normal);
+        assert!(lethal.world.pending_combat_death.is_some() || lethal.world.connor_dying);
+        assert_eq!(lethal.world.help_prompts.history(0).start_help, FIRST_HIT | LOW_HEALTH);
+
+        for (kind, immediate, present, expected) in [
+            ("goblin2", false, true, true), ("goblin2", true, true, false),
+            ("goblin2", false, false, false), ("BAT", false, true, false),
+            ("chicken", false, true, false), ("checken2", false, true, false),
+            ("chicken2", false, true, true),
+        ] {
+            let mut active = tutorial_world();
+            if !present { active.world.connor_at = None; }
+            active.world.anims[0].character.as_mut().unwrap().fight.as_mut().unwrap().settings.type_name = kind.into();
+            active.world.character_dies(0, HitKind::Normal, immediate);
+            assert_eq!(active.world.help_prompts.history(0).start_help == FIRST_KILL, expected);
+            if !expected { continue; }
+            assert!(!active.world.anims[0].gone, "consumed at entry, before movement ends");
+            assert_eq!(active.world.help_prompts.due_at(100., true, false, false), None, "the intermediate handler has not run");
+            active.world.advance_clock_for_test(1.5);
+            active.update(); // actual runtime connection services the +1.5 stage
+            assert_eq!(active.world.help_prompts.due_at(7.499, true, false, false), None);
+            assert_eq!(active.world.help_prompts.due_at(7.5, true, false, false), Some(137));
+            assert_eq!(active.world.help_prompts.due_at(10.499, true, false, false), None);
+            assert_eq!(active.world.help_prompts.due_at(10.5, true, false, false), Some(149));
+        }
+    }
 
     /// Fight settings with these stats and attack delay, nothing else.
     pub(crate) fn settings(stats: [i64; 5], attack_delay: f32) -> FightSettings {

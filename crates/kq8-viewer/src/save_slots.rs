@@ -93,6 +93,10 @@ pub(super) struct Snapshot {
     conversation: Option<kq8_core::conversation::SavedConversation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     talk_pose: Option<connor_view::SavedTalkPose>,
+    /// Always present in new slots, including an empty slot. Absence alone
+    /// identifies legacy Asked snapshots needing one start-message migration.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pending_state: Option<connor_view::SavedPendingState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     choice: Option<connor_view::SavedChoice>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -180,6 +184,7 @@ impl Snapshot {
             return Err("save has invalid scripted footstep types".into());
         }
         if self.conversation.as_ref().is_some_and(|s| !s.valid()) || self.talk_pose.as_ref().is_some_and(|s| !s.valid())
+            || self.pending_state.as_ref().is_some_and(|s| !s.valid())
             || self.camera.as_ref().is_some_and(|s| !s.valid()) || self.panels.as_ref().is_some_and(|s| !s.valid_checkpoint()) {
             return Err("save has invalid conversation, pose, camera or panel state".into());
         }
@@ -399,6 +404,16 @@ impl Snapshot {
         *live=std::mem::take(&mut self.pending_secondary_calls);
     }
 
+    fn restore_conversation_state(&self, active: &mut Active) -> Result<(), String> {
+        if let Some(conversation) = &self.conversation {
+            active.world.restore_conversation(conversation)?;
+            if self.pending_state.is_none() && conversation.awaiting_admission() {
+                active.world.requests.push(kq8_core::active::Request::ConnorConversationStart);
+            }
+        }
+        Ok(())
+    }
+
     pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) -> Result<(), String> {
         let actor_view = self.weapon_state.as_ref().map_or(self.view_flags.active,
             |state| state.actor_first_person(self.view_flags.active));
@@ -441,7 +456,7 @@ impl Snapshot {
             if let Some(drains) = &self.drains {
                 sim.active.world.restore_drains(drains, self.special.is_some() && self.tile.is_none())?;
             }
-            if let Some(conversation) = &self.conversation { sim.active.world.restore_conversation(conversation)?; }
+            self.restore_conversation_state(&mut sim.active)?;
         }
         let tile_stones = if self.tile.is_some() || self.old_tile_entrance() {
             let sim = world.get_resource::<crate::door_view::DoorSim>()
@@ -497,7 +512,9 @@ impl Snapshot {
                     connor.restore_old_tile_entrance(stones);
                 }
             }
+            if let Some(pending) = &self.pending_state { connor.restore_pending_state(pending)?; }
         } else if self.swing.is_some() || self.shot.is_some() || self.special.is_some() || self.combat_death.is_some()
+            || self.pending_state.is_some()
             || self.pending_combat_death.is_some() || self.weapon_state.is_some() || self.combat_cues.is_some() || self.choice.is_some()
             || self.hit_timing.as_ref().is_some_and(|timing| timing.has_reaction_pose()) {
             return Err("Connor is unavailable while restoring his attack".into());
@@ -724,6 +741,7 @@ pub fn save_slot_with_thumbnail(
         speech_sources: world.get_resource::<crate::talk_view::Speech>().map(|s| s.sources.clone()),
         conversation: Some(sim.active.world.saved_conversation()),
         talk_pose: connor.saved_talk_pose(),
+        pending_state: Some(connor.saved_pending_state()?),
         choice,
         camera: world.get_resource::<crate::game_camera::GameCam>().map(|c| c.saved()),
         view_flags: sim.active.world.view_flags(),
@@ -786,6 +804,42 @@ mod tests {
 
     fn active() -> Active {
         Active::new(Default::default(), vec![], vec![], [], [])
+    }
+
+    #[test]
+    fn conversation_admission_grouped_snapshot_legacy_migration() {
+        let mut original = active();
+        original.world.conversation = Some(kq8_core::conversation::Conversation {
+            partner: "Connor".into(), partner_at: [0.; 3], info: None,
+            lines: kq8_core::talk::Speak { issuer: "Connor".into(), first: kq8_data::msg::Tuple::new(1000, 1, 1, 1, 1), last: 1, nofade: false },
+            keep_weapon: false, resume_first_person: false, case: None, stage: kq8_core::conversation::Stage::Asked,
+            walk_from: [0.; 3], approach_updates: 0, at: "legacy fixture".into(), cuts_stopped: false,
+        });
+        let mut saved = fixture();
+        saved.conversation = Some(original.world.saved_conversation());
+        let mut fresh = active();
+        fresh.world.known.insert("connor".into());
+        saved.restore_conversation_state(&mut fresh).unwrap();
+        assert_eq!(fresh.world.requests.iter().filter(|r| matches!(r, kq8_core::active::Request::ConnorConversationStart)).count(), 1,
+            "legacy Asked receives one explicit message when loaded");
+        fresh.world.requests.clear();
+        let mut walker = kq8_core::connor::Walker::new(0.);
+        fresh.conversation_tick(&mut walker, [0.; 3], false);
+        assert!(fresh.world.requests.is_empty(), "ordinary frames do not repeat migration");
+
+        // A present empty slot means Talk was replaced. It must not be
+        // reconstructed just because the prepared conversation still exists.
+        let mut value = serde_json::to_value(&saved).unwrap();
+        value["pending_state"] = serde_json::json!({ "request":null, "jump_finished":false, "fall_finished":false,
+            "talk_exit_open":false, "preparation_stop":true, "interrupt_override":true, "airborne":null });
+        let saved: Snapshot = serde_json::from_value(value).unwrap();
+        let mut fresh = active();
+        fresh.world.known.insert("connor".into());
+        saved.restore_conversation_state(&mut fresh).unwrap();
+        assert!(fresh.world.requests.is_empty(), "new empty slot does not revive replaced Talk");
+        assert!(saved.pending_state.as_ref().unwrap().valid());
+        let copy: Snapshot = serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();
+        assert!(copy.pending_state.is_some(), "empty-slot presence survives disk encoding");
     }
 
     #[test]
@@ -1304,6 +1358,7 @@ mod tests {
             speech_sources: None,
             conversation: None,
             talk_pose: None,
+            pending_state: None,
             choice: None,
             camera: None,
             view_flags: Default::default(),

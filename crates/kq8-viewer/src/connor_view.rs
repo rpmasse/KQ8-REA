@@ -62,6 +62,9 @@ pub struct DrawnMovement {
 }
 
 pub mod route;
+#[path = "connor_requests.rs"]
+mod requests;
+pub use requests::SavedPendingState;
 
 /// Keys from `Connor.sae`, and which of them are held, oldest first.
 pub struct Controls {
@@ -193,12 +196,9 @@ pub struct ConnorSim {
     /// Scripted turns and walks that ended (M3 3l-2), whose cues
     /// `door_view::trap_step` sends.
     pub auto_ends: Vec<kq8_core::connor_auto::AutoEnd>,
-    /// His waiting request: the last state request refused (a jump, the
-    /// hammer throw; M3 3m-1, `anim-scripts.md` rule 28; one slot,
-    /// `azriel-hammer.md` "Connor's waiting request"): tried again at each
-    /// later update by `door_view::trap_step` (STAND-IN: the original
-    /// tries again when a movement ends while he stands, and at the catch).
-    pub refused: Vec<kq8_core::active::Request>,
+    /// The common replaceable request slot. Retried only at a state-request
+    /// boundary, before the proposed new owner is committed.
+    pub pending_state: Option<kq8_core::active::Request>,
     /// The Choice state (`characters.md` "Connor's Choice state", Q155),
     /// while he is in it.
     pub choice: Option<kq8_core::choice::Choice>,
@@ -1578,7 +1578,7 @@ pub fn spawn_connor(
         not_pushable: Vec::new(),
         hands_off: false,
         auto_ends: Vec::new(),
-        refused: Vec::new(),
+        pending_state: None,
         choice: None,
         choice_calls: Vec::new(),
         tile: None,
@@ -2494,7 +2494,7 @@ impl ConnorSim {
     /// Rule 3 (M6 6b-3), each update after his own: `attack` ended ->
     /// `wait` (or `catch` if the hammer is back); `catch` ended -> handsOff
     /// off, standing. Returns the line for `fight.log`.
-    pub fn throw_step(&mut self) -> Option<String> {
+    pub fn throw_step(&mut self, active: &mut kq8_core::active::Active) -> Option<String> {
         let ended = std::mem::take(&mut self.throw_ended);
         let t = self.throw.clone()?;
         let mut lines = Vec::new();
@@ -2506,9 +2506,11 @@ impl ConnorSim {
                 self.redraw_from_walker();
                 lines.push(format!("'{e}' ended: '{next}' (rule 3)"));
             } else if e == t.catch {
-                self.walker.throw_leave();
                 self.throw = None;
                 self.hands_off = false;
+                // Open Throw's gate while it still owns the walker. Its
+                // Wait proposal can discard Talk or admit pending Special/Die.
+                self.dispatch_state(active, kq8_core::active::Request::ConnorTransition(kq8_core::conversation::StateRequest::Wait));
                 let again = self.keys_sent_again();
                 let secs = (self.updates - t.from_update) as f64 / kq8_core::UPDATES_PER_SECOND;
                 lines.push(format!("'{e}' ended: handsOff off ({again}), standing; the throw took {secs:.2} s (rule 3)"));
@@ -3011,7 +3013,7 @@ impl ConnorSim {
         let circle = c.circle.as_ref().unwrap();
         if let Some(i) = kq8_core::choice::pick(at, self.walker.heading, forward, circle) {
             let number = circle[i].0.clone();
-            c.made = true;
+            requests::commit_choice(&mut self.pending_state, &mut c.made, &mut self.choice_calls, number.clone());
             lines.push(format!(
                 "{} key: chooses {number} (heading {:.2}, the point nearest {:.0} {}; rule 7); {} gets DoChoice {number} (rule 10)",
                 if forward { "forward" } else { "back" },
@@ -3020,7 +3022,6 @@ impl ConnorSim {
                 if forward { "ahead" } else { "behind" },
                 c.list.script
             ));
-            self.choice_calls.push(vec!["Connor".into(), "DoChoice".into(), number]);
         }
         lines
     }
@@ -3188,6 +3189,7 @@ pub fn connor_step(
 ) {
     let (Some(mut sim), Some(lookup)) = (sim, lookup) else { return };
     let sim = &mut *sim;
+    if let Some(doors) = doors.as_mut() { sim.finish_talk_request(&mut doors.active); }
     if sim.walker.mode == Mode::ScriptedDie {
         sim.updates += 1;
         return;
@@ -3245,17 +3247,17 @@ pub fn connor_step(
     let choice_owned_movement = sim.choosing();
     let reaction_before = sim.walker.reaction_playing;
     let animation_was_locked = sim.walker.animation_input_lock;
-    let tick = {
-        let ConnorSim { mover, walker, movements, weapon_set, .. } = &mut *sim;
-        let loops = |name: &str| find(movements, weapon_set.as_deref(), name).map(|m| &m.movement_loop);
-        kq8_core::connor_update::tick(mover, walker, intent, jump, &loops, &scene)
-    };
+    let tick = sim.tick_with_state_requests(doors.as_mut().map(|d| &mut d.active), intent, jump, &scene);
     // 5d fix 10: the weapon set switch waiting for its list item.
     sim.weapon_step();
     if sim.walker.mode == Mode::Jump && sim.jump_start_z.is_none() {
         sim.jump_start_z = Some(z_before);
     }
-    let kq8_core::connor_update::Tick { step, report, wall_stop, notes: jump_notes, auto_end, auto_turn_ended } = tick;
+    let kq8_core::connor_update::Tick { step, report, wall_stop, notes: jump_notes, auto_end, auto_turn_ended, jump_completed } = tick;
+    if let (Some(movement), Some(doors)) = (jump_completed, doors.as_mut()) {
+        let now = doors.active.world.now() as f32;
+        doors.active.world.help_prompts.standing_jump_completed(now, movement);
+    }
     if sim.secondary_tile.is_some() && matches!(sim.walker.mode,Mode::Dying|Mode::Dead|Mode::CombatDie|Mode::ScriptedDie) {sim.leave_secondary_tile();}
     if animation_was_locked && !sim.walker.animation_input_lock && !sim.hands_off {
         let replay = sim.turn_sent_again().unwrap_or_else(|| "no turn key held".into());

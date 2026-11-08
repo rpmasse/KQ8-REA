@@ -104,7 +104,7 @@ impl Journey {
     /// Takes the journey from the world Connor leaves (`from`).
     pub fn take(w: &WorldState, vars: &Vars, from: &str) -> Journey {
         let now = w.updates;
-        let help = w.help_prompts.history(now);
+        let help = w.help_prompts.history_at(w.now() as f32);
         Journey {
             from: from.to_string(),
             stats: w.connor_stats,
@@ -151,7 +151,7 @@ impl Journey {
     pub fn give(&self, w: &mut WorldState, vars: &mut Vars) -> Vec<String> {
         w.connor_flags = self.flags.clone();
         w.connor_in_temple4 = self.in_temple4;
-        w.help_prompts.restore_history(&self.help(), w.updates);
+        w.help_prompts.restore_history_at(&self.help(), w.now() as f32);
         self.give_after_flags(w, vars)
     }
 
