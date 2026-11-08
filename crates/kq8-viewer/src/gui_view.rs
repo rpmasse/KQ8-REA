@@ -65,6 +65,10 @@ mod animation_tests {
     }
 }
 
+#[cfg(test)]
+#[path = "inventory_hud_tests.rs"]
+mod inventory_hud_tests;
+
 /// The play pointer (`Gplayscr.kq` `cursor=`, `interface.md` rule 1).
 const PLAY_POINTER: &str = "IDBMA_CURS04";
 /// The sword pointer while a hand weapon is ready (`fighting.md` rule 39,
@@ -191,10 +195,6 @@ mod top_bar_input_tests {
     }
 }
 
-/// Rule 44: a blink changes the picture every 0.25 s, 5 times.
-const BLINK_MS: f64 = 250.0;
-const BLINKS: u32 = 5;
-
 /// What Connor carries, as the bars show it (4c-3): item names, counts
 /// and picture files.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -227,11 +227,21 @@ pub enum BarAction {
     Scroll { by: i32, how: String },
     /// Keys 1-8 (`interface.md` rule 40), slot 0-7.
     Key { slot: usize, how: String },
+    /// A left click on an empty inventory picture control (Q110).
+    Empty { how: String },
 }
 
 /// The clicks and keys of the panels since the last update (4c-3).
 #[derive(Resource, Default)]
 pub struct BarActions(pub Vec<BarAction>);
+
+fn inventory_picture_control(control: &str) -> bool {
+    let numbered = |prefix: &str, limit: usize| control.strip_prefix(prefix)
+        .and_then(|n| n.parse::<usize>().ok()).is_some_and(|n| (1..=limit).contains(&n));
+    SLOT_PICTURES.contains(&control) || numbered("IDCTL_INVBAR_QUEST", 7)
+        || numbered("IDCTL_HEALTHBAR_", 8)
+        || matches!(control, "IDCTL_INVBAR_GOLD" | "IDCTL_INVBAR_ROPE" | "IDCTL_INVBAR_ROCKS")
+}
 
 /// What is drawn as its own picture: a sliding panel, or the status icons
 /// (they don't slide; rule 7).
@@ -506,8 +516,10 @@ pub struct Gui {
     first_inv: bool,
     /// The quest strip's first-shown index (`inventory.md` rule 6).
     quest_first: usize,
-    /// Items blinking (rule 44): when it started, real ms.
-    blinks: HashMap<String, f64>,
+    /// Bound object/type identity by picture control. Count-only updates
+    /// preserve the binding and do not restart its blink (Q109/Q110).
+    inventory_bindings: HashMap<String, (String, String)>,
+    blinks: HashMap<String, kq8_core::inventory::PictureBlink>,
     /// The description voice playing (`talking.md` rule 20).
     description: Option<u64>,
     /// The item in hand (4c-4) and the pointer's tag: its type's `cursor`,
@@ -713,6 +725,7 @@ pub fn load_gui(game: &GameDir, region: &crate::load::World, main: &mut Log) -> 
         inv: InvView::default(),
         first_inv: true,
         quest_first: 0,
+        inventory_bindings: HashMap::new(),
         blinks: HashMap::new(),
         description: None,
         hand: None,
@@ -820,25 +833,54 @@ impl Gui {
         out
     }
 
-    /// Whether item `name` shows its empty picture now (rule 44: a new
-    /// item or a higher count switches between its picture and the empty
-    /// one every 0.25 s, 5 times).
-    fn blank(&self, name: &str) -> bool {
-        self.blinks.get(name).is_some_and(|start| {
-            let k = ((self.panels.now_ms - start) / BLINK_MS) as u32;
-            k < BLINKS && k % 2 == 1
-        })
+    fn blank(&self, control: &str) -> bool {
+        self.blinks.get(control).is_some_and(|blink| blink.blank())
     }
 
     /// The picture file an item shows in its slot, or `None` while it
     /// blinks (then the layout's empty picture).
-    fn shown_file(&self, item: &Option<(String, Option<String>)>) -> Option<String> {
-        let (name, file) = item.as_ref()?;
-        if self.blank(name) {
+    fn shown_file(&self, control: &str, item: &Option<(String, Option<String>)>) -> Option<String> {
+        let (_, file) = item.as_ref()?;
+        if self.blank(control) {
             None
         } else {
             file.clone()
         }
+    }
+
+    /// A real assignment, including rebuilding an initially empty panel,
+    /// begins blinking. Re-observing the same object/type does not.
+    fn bind_inventory_pictures(&mut self, items: &kq8_core::item::Items) {
+        let controls = SLOT_PICTURES.into_iter().map(str::to_owned)
+            .chain((1..=7).map(|i| format!("IDCTL_INVBAR_QUEST{i}")))
+            .chain((1..=8).map(|i| format!("IDCTL_HEALTHBAR_{i}")))
+            .chain(["IDCTL_INVBAR_MASK", "IDCTL_INVBAR_GOLD", "IDCTL_INVBAR_ROPE", "IDCTL_INVBAR_ROCKS"].map(str::to_owned));
+        let next: HashMap<_, _> = controls.filter_map(|control| {
+            let name = self.item_at(&control, false)?;
+            let kind = items.get(&name)?.kind.clone();
+            Some((control, (name, kind)))
+        }).collect();
+        self.blinks.retain(|control, _| next.contains_key(control));
+        for (control, identity) in &next {
+            if self.inventory_bindings.get(control) != Some(identity) {
+                self.blinks.insert(control.clone(), kq8_core::inventory::PictureBlink::assigned());
+            }
+        }
+        self.inventory_bindings = next;
+    }
+
+    /// Observe only pictures actually drawn. Shared real-time phase is
+    /// supplied by the renderer; missed bands are not replayed afterward.
+    fn observe_inventory_pictures(&mut self, d: Drawn, shared_ms: f64) {
+        let controls: Vec<_> = self.control(d.layout_id()).map(|dialog|
+            self.controls(dialog).into_iter().map(|(c, _)| self.name_of(c)).collect()).unwrap_or_default();
+        for control in controls {
+            if control == "IDCTL_INVBAR_GOLD" && self.inv.gold.as_ref().is_some_and(|(name, ..)| self.hand.as_ref() == Some(name)) {
+                continue; // Held money refreshes its normal picture at draw.
+            }
+            if let Some(blink) = self.blinks.get_mut(&control) { blink.draw(shared_ms); }
+        }
+        self.blinks.retain(|_, blink| !blink.finished());
     }
 
     /// The quest strip's items now: the held one left out, the others
@@ -925,38 +967,32 @@ impl Gui {
                     let default = self.tags.string(p.bitmap).map(str::to_string);
                     let file = if let Some(k) = slot(&SLOT_PICTURES) {
                         // Rule 34: the worn item's picture, else the empty one.
-                        self.slot_files[k].clone()
+                        (!self.blank(&name)).then(|| self.slot_files[k].clone()).flatten()
                     } else if let Some(k) = numbered("IDCTL_INVBAR_QUEST") {
                         // inventory.md rules 5-6: from the first-shown index.
-                        self.shown_file(&strip.get(self.quest_first + k - 1).cloned())
+                        self.shown_file(&name, &strip.get(self.quest_first + k - 1).cloned())
                     } else if let Some(k) = numbered("IDCTL_HEALTHBAR_") {
                         // Rules 38-39: a stack at 0 shows the empty picture.
                         let item = self.inv.slots.get(k - 1).cloned().flatten().filter(|(_, n, _)| *n > 0).map(|(n, _, f)| (n, f));
-                        self.shown_file(&item)
+                        self.shown_file(&name, &item)
                     } else {
                         match name.as_str() {
                             // Rule 41: the mask piece carried.
-                            "IDCTL_INVBAR_MASK" => self.shown_file(&self.inv.mask),
+                            "IDCTL_INVBAR_MASK" => self.shown_file(&name, &self.inv.mask),
                             // Rule 43: the coins by count.
-                            "IDCTL_INVBAR_GOLD" => self.inv.gold.as_ref().and_then(|(n, count, _)| {
-                                let step = match *count {
-                                    c if c <= 0 => 0,
-                                    1..=24 => 1,
-                                    25..=49 => 2,
-                                    _ => 3,
-                                };
-                                if self.blank(n) {
+                            "IDCTL_INVBAR_GOLD" => {
+                                let held = self.inv.gold.as_ref().is_some_and(|(n, ..)| self.hand.as_ref() == Some(n));
+                                if !held && self.blank(&name) {
                                     None
                                 } else {
-                                    self.file_of(&format!("IDBMP_2GOLD{step}"))
+                                    self.file_of(kq8_core::inventory::CountedPicture::Gold.tag(self.inv.gold.as_ref().map_or(0, |(_, count, _)| *count)))
                                 }
-                            }),
+                            },
                             // Rule 45: the rope carried.
-                            "IDCTL_INVBAR_ROPE" => self.inv.rope.as_ref().filter(|n| !self.blank(n)).and_then(|_| self.file_of("IDBMP_2ROPE1")),
-                            // Rule 45; the levels are not traced (stand-in,
-                            // Q109: the rock type's own picture when he has
-                            // any).
-                            "IDCTL_INVBAR_ROCKS" => self.inv.rocks.as_ref().filter(|(n, c, _)| *c > 0 && !self.blank(n)).and_then(|(_, _, f)| f.clone()),
+                            "IDCTL_INVBAR_ROPE" => self.inv.rope.as_ref().filter(|_| !self.blank(&name)).and_then(|_| self.file_of("IDBMP_2ROPE1")),
+                            "IDCTL_INVBAR_ROCKS" => if self.blank(&name) { None } else {
+                                self.file_of(kq8_core::inventory::CountedPicture::Rocks.tag(self.inv.rocks.as_ref().map_or(0, |(_, count, _)| *count)))
+                            },
                             _ => None,
                         }
                     }
@@ -1013,8 +1049,7 @@ impl Gui {
                     // Rules 23, 36, 39, 43, 45: the numbers we set; the
                     // layout's own placeholder texts ("0", "3Dfx") are not
                     // drawn, nor the red alternative numbers (rule 32, M5).
-                    // Counts of 0 are not written (stand-in, Q109).
-                    let count = |c: Option<i64>| c.filter(|n| *n > 0).map(|n| n.to_string());
+                    let count = kq8_core::inventory::count_text;
                     let value = match (slot(&SLOT_NUMBERS), name.as_str()) {
                         // potions.md rule 37: the red number replaces the
                         // white one while it is on.
@@ -1040,10 +1075,10 @@ impl Gui {
                             let k = MAP_NAME_TWO.iter().position(|x| *x == n).expect("listed");
                             self.map.as_ref().filter(|m| m.name.len() >= 2).map(|m| m.name[k].clone())
                         }
-                        (None, "IDCTL_INVBAR_GOLDTEXT") => count(self.inv.gold.as_ref().map(|(_, c, _)| *c)),
-                        (None, "IDCTL_INVBAR_ROCKSTEXT") => count(self.inv.rocks.as_ref().map(|(_, c, _)| *c)),
+                        (None, "IDCTL_INVBAR_GOLDTEXT") => count(self.inv.gold.as_ref().map(|(_, c, _)| *c), true),
+                        (None, "IDCTL_INVBAR_ROCKSTEXT") => count(self.inv.rocks.as_ref().map(|(_, c, _)| *c), true),
                         (None, n) => match n.strip_prefix("IDCTL_HEALTHBAR_").and_then(|k| k.strip_suffix("TEXT")).and_then(|k| k.parse::<usize>().ok()) {
-                            Some(k) => count(self.inv.slots.get(k - 1).cloned().flatten().map(|(_, c, _)| c)),
+                            Some(k) => count(self.inv.slots.get(k - 1).cloned().flatten().map(|(_, c, _)| c), false),
                             None => None,
                         },
                     };
@@ -1452,6 +1487,7 @@ pub fn gui_step(
                     // Rules 38, 39 (M6 6d-7): the "Go" button.
                     (MAP_GO, _) if left => sim.active.map_go(&format!("update {updates}: {how}")),
                     (_, Some(item)) => actions.0.push(BarAction::Item { item, left, how }),
+                    (_, None) if left && inventory_picture_control(&control) => actions.0.push(BarAction::Empty { how }),
                     _ => {
                         let line = format!("update {updates}: {how}: nothing there; nothing (inventory.md rule 10)");
                         gui.note(line);
@@ -1484,12 +1520,18 @@ pub fn gui_step(
                     apply_bar_result(&mut menu, result);
                 }
                 _ => {
-                    let line = format!("update {updates}: {how}: slot {} is empty; nothing (interface.md rule 40)", slot + 1);
+                    let result = kq8_core::connor_inventory::empty_bar_click(w, gui.hands_off, &how);
+                    apply_bar_result(&mut menu, result);
+                    let line = format!("update {updates}: {how}: slot {} is empty; ordinary empty-cell selection (interface.md rule 40, inventory.md rule 9)", slot + 1);
                     gui.note(line);
                 }
             },
             BarAction::Item { item, left, how } => {
                 let result = kq8_core::connor_inventory::bar_click(w, &item, left, gui.hands_off, &how);
+                apply_bar_result(&mut menu, result);
+            }
+            BarAction::Empty { how } => {
+                let result = kq8_core::connor_inventory::empty_bar_click(w, gui.hands_off, &how);
                 apply_bar_result(&mut menu, result);
             }
         }
@@ -1608,7 +1650,8 @@ pub fn gui_step(
         }
     }
     // Rules 34-35: the slot pictures follow what Connor wears.
-    let (types, why) = kq8_core::inventory::slot_types(&sim.active.world.items, "Connor");
+    let (worn, why) = kq8_core::inventory::slot_items(&sim.active.world.items, "Connor");
+    let types = worn.clone().map(|name| name.and_then(|name| sim.active.world.items.get(&name).map(|o| o.kind.clone())));
     // 4c-4: the item in hand and the pointer (inventory.md rules 7, 9).
     let hand = kq8_core::connor_inventory::hand(&mut sim.active.world);
     // fighting.md rule 39 (manual): with a hand weapon ready the pointer
@@ -1634,24 +1677,16 @@ pub fn gui_step(
         gui.hand = hand;
         gui.pointer = pointer;
     }
-    let worn: [Option<String>; 3] = types.clone().map(|t| {
-        t.and_then(|t| sim.active.world.items.objects.iter().find(|o| o.carried_by("Connor") && o.kind == t).map(|o| o.name.clone()))
-    });
     gui.slot_items = worn;
-    // 4c-3: what the bars show; new items and higher counts blink (rule
-    // 44); a new quest item or mask piece pops the top bar (rule 13).
+    // A new quest item or mask piece pops the top bar (rule 13).
+    // Picture assignment below owns blinking; a count alone does not.
     let inv = inventory_view(gui, &sim.active.world.items);
     if inv != gui.inv {
-        let now = gui.panels.now_ms;
         let mut news = Vec::new();
         if !gui.first_inv {
-            for (name, (count, category)) in &inv.counts {
-                let before = gui.inv.counts.get(name).map(|(c, _)| *c);
-                if before.is_none_or(|b| *count > b) {
-                    gui.blinks.insert(name.clone(), now);
-                    if before.is_none() && (category == "QuestItem" || category == "MaskPiece") {
-                        news.push(name.clone());
-                    }
+            for (name, (_, category)) in &inv.counts {
+                if !gui.inv.counts.contains_key(name) && (category == "QuestItem" || category == "MaskPiece") {
+                    news.push(name.clone());
                 }
             }
         }
@@ -1687,6 +1722,7 @@ pub fn gui_step(
         gui.slot_types = types;
         gui.slot_files = files;
     }
+    gui.bind_inventory_pictures(&sim.active.world.items);
     // Rule 24: after every stats event on Connor, all values are sent.
     let events = sim.active.world.connor_stats_events;
     let Some(stats) = sim.active.world.connor_stats else { return };
@@ -1823,9 +1859,7 @@ pub fn gui_draw(
         _ => None,
     });
     let frames = fx.map_or(0, |f| gui.frames(&f));
-    // Blinks that have played out (rule 44).
     let now = gui.panels.now_ms;
-    gui.blinks.retain(|_, start| now - *start < BLINK_MS * BLINKS as f64);
     let flame_frames = gui.flame_file().map_or(0, |f| gui.frames(&f));
     if let Some(start) = gui.level_flame.filter(|start| one_shot_frame(now - start, flame_frames).is_none()) {
         gui.level_flame = None;
@@ -1920,6 +1954,7 @@ pub fn gui_draw(
             covered.push((d.layout_id(), [(fl + left * k) / ww, (ft + top * k) / wh, (fl + (left + w) * k) / ww, (ft + (top + h) * k) / wh]));
             places.push((d, left, top, w, h));
         }
+        gui.observe_inventory_pictures(d, time.elapsed_secs_f64() * 1000.0);
         let Some((size, specs)) = gui.specs(d) else { continue };
         if gui.last.get(d.layout_id()) == Some(&specs) {
             continue;
@@ -2023,6 +2058,7 @@ pub fn gui_draw(
                     }
                 }
                 (_, Some(item)) => actions.0.push(BarAction::Item { item, left, how }),
+                (_, None) if left && inventory_picture_control(&control) => actions.0.push(BarAction::Empty { how }),
                 _ => {
                     let line = format!("{how}: nothing there; nothing (inventory.md rule 10)");
                     gui.note(line);
