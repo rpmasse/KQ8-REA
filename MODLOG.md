@@ -1,5 +1,52 @@
 # MODLOG
 
+## 2026-11-08 Complete grouped inventory selection and popup geometry
+
+Implement exact Scroll/Rock selection rules, rope view-lock lifetime,
+scripted replacement placement, final-pixel Portal/help geometry and fixed
+client top-bar thresholds. Core placement/regression checks pass; corrected
+selection clock matrix passes 1/1. Viewer inventory/controller dispatch,
+original-data popup drawing/hits and client threshold matrices pass 3/3 in
+0.12s after a 1m21s build. Retain the first fixture clock failure and private
+fixture-field compile failure. No repeated successful routes or manual tests.
+Evidence: docs/inventory-popup-completion.md. M4 about 95%; actual weapon
+assignment clearing and supported-display fullscreen acceptance remain open.
+
+## 2026-11-08 Validate dialogue dispatch and graphics runtime
+
+Shared release build passes in 3m56s; viewer checks pass 11/11, core 19/20.
+The failed new core phase fixture now establishes the airborne history it
+had skipped; production code is unchanged and only that check awaits retry.
+The first exclusive-fullscreen native run fails safely because the RDP
+monitor advertises no original-size mode. Read-only inventory confirms the
+host constraint; no blind rerun or borderless substitution. Record complete
+evidence and remaining gates in STATUS and graphics-runtime-completion.md.
+Source-backed inventory and popup follow-ups continue. M4 about 92%.
+
+## 2026-11-08 Verify grouped help, cursor/map and Graphics lifetime
+
+The corrected shared release build passes in 4m26s. Core checks pass
+13/13; viewer checks pass 5/6. The failed palette inequality was an
+invalid assumption about Daventry's original colors, not demonstrated
+production corruption; keep its log and correct only the affected check.
+Tutorial receipts/staged game-time delivery, cursor/map display geometry,
+actual Help/Main/Return actions and retained Graphics focus/pointer have
+bounded automated evidence in docs/help-cursor-lifecycle.md. Final Talk
+guards and graphics runtime integration are still in progress. No manual
+or new native run; successful checks are retained. M4 about 91%.
+
+## 2026-11-08 Prepare grouped M4 admission, help and presentation work
+
+Implement source-backed tutorial clocks/gates, synchronous pending-state
+admission, original cursor/map coordinates, Software window palette edges
+and Graphics screen/pointer lifetime. New grouped checks are written.
+Software data 1/1 and affected palette 2/2 pass. Initial shared compile
+failed at a test-only private Placement import, now corrected; viewer checks
+have not run. Talk pending-save continuity and newly clarified strong/Wait/
+hammer request order are being completed before the next build. Keep the
+batch unverified/unpublished until its connected checks pass. M4 stays about
+90%; published HUD/focus source and successful prior routes remain evidence.
+
 ## 2026-11-08 Match inventory display, hand selection and Graphics focus
 
 Use original added-order equipment selection, empty-count rules, money/Rock

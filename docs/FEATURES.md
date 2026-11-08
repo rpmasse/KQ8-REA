@@ -1,5 +1,20 @@
 # What works, in detail
 
+## Dialogue, inventory and graphics completion checks (2026-11-08)
+
+Shared state admission, original inventory selection/placement, popup
+drawing/hit geometry, client top-bar thresholds and graphics-device controls
+now pass grouped checks. Weapon-swap selection clearing and native exclusive
+fullscreen acceptance remain open. [Dialogue](conversation-admission.md),
+[inventory/popups](inventory-popup-completion.md), [graphics](graphics-runtime-completion.md).
+
+## Help timing, cursor/map and Graphics lifetime (2026-11-08)
+
+Original tutorial timing, cursor animation/scaling, map display coordinates
+and retained Graphics focus/pointer behavior pass grouped automated checks;
+exclusive-fullscreen acceptance remains open.
+[Evidence and limits](help-cursor-lifecycle.md).
+
 ## Inventory display and selection (2026-11-08)
 
 The inventory bar follows original equipment order, count/picture thresholds
