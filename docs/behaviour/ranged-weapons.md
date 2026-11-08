@@ -117,8 +117,17 @@ Words used here:
    - nothing else changes: the ranged slot item's projectile file and
      shoot offset were already set when the item was picked up
      (rule 21).
-   The item held on the pointer, if any, is likely let go (a call that
-   resets the pointer's item; not checked in the original).
+   **Selection boundary (static follow-up 2026-11-08):** the ordinary
+   assignment at this point clears any held inventory selection and
+   restores the mode pointer. Merely asking for a mode does not clear
+   it. Delete/Alt ignored by `handsOff`, a controller-refused request,
+   Delete's missing-real-ranged check and Alt while already in mode none
+   leave it selected. An equipment-slot click has a separate, earlier
+   apply-and-clear step, before its mode request; see `inventory.md`
+   rule 12a. The internal selection-preserving assignment is used in
+   ThrowRock's temporary weapon-away step, not in ordinary
+   `SwapWeapons`. This distinction was traced statically, not tested in
+   the original runtime.
 9. **Scripts** (`KQConner::setDoMode <0|1|4> [movement]`, traced): if the
    mode differs, a jump is ended, his standing movement becomes `Stop`,
    he is put into standing and the same request is made (so the full
@@ -138,6 +147,24 @@ Words used here:
    City's tower (`towSklTp.cs`) uses `0` (sword) on `On` and `-1` on
    `Off`, with no script, so on the tower he is made to hold his hand
    weapon and no script is told.
+   **Request gates (static follow-up 2026-11-08):** `setDoMode` has no
+   `handsOff` check. A request for the current mode returns immediately,
+   without putting Connor into standing or clearing a held item. A
+   different-mode request tries standing, then asks the controller that
+   is current afterward; a controller such as Rope can remain in place
+   and ignore that request. An accepted ordinary swap, including one
+   with the optional movement, uses the clearing assignment in rule 8.
+   A ranged request through this controller path requires a
+   `LongWeapon`, so `NoRanged` still passes it; only Delete's hand-to-ranged
+   branch rejects that placeholder. `SwordMode`, `BowMode` and
+   `NoModeChange` are item-table choices for bar clicks; the advertised
+   script modes are numeric 0, 1 and 4. NoModeChange suppresses only the
+   bar's mode request, not the preceding item application. The shared
+   controller request does **not** validate other numeric values: a
+   value other than 0/1/4 reaches an immediate ordinary assignment and
+   clears selection, if the caller and controller allow it through.
+   This unadvertised case and the distinctions above have not been
+   tested in the original runtime.
 
 ### 3. The ranged movement list and pointer
 

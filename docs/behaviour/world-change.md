@@ -402,8 +402,9 @@ himself goes across as his own saved file.
       works only if there is a button on that side. Yes is on the left,
       No on the right.
     - **Enter** (or F1) pressed: the pointer position is remembered, the
-      pointer jumps to the highlighted button's centre (16 pixels
-      lower), the button shows pressed and a "pressed" flag is set.
+      pointer jumps to the highlighted button's centre plus **16 pixels
+      in y** (a literal offset, also at 800 × 600), the button shows
+      pressed and a "pressed" flag is set.
       **Released**: answers, only if that flag is set; the pointer goes
       back and the flag clears. Opening or closing a popup clears the
       flag, so an Enter held from before can't answer it and a held
@@ -416,13 +417,17 @@ himself goes across as his own saved file.
       has moved the highlight to No, Escape answers **Yes** (traced from
       the swap, not checked in the game; see "Do not reproduce").
     - **Button places:** with W the popup's width (inferred: the 370-wide
-      dialog), the two buttons' left edges are at W/3 - 44 and 2W/3 - 44,
+      dialog), first truncate W/3 to an integer q. The two buttons' left
+      edges are at q - 44 and 2q - 44,
       each 88 wide (centres at a third and two thirds): Yes 79-167, No
       202-290 from the dialog's left edge. Vertically at 640 x 480: the
       highlighted button (BTN1) rows 145-183 (38 high), the other
       146-182 (36 high); heights stay with the control when they swap.
       With the "turn off help" box shown, BTN1 is at 142, 25 high.
-      800 x 600: 44 lower. Three buttons: W/4, 2W/4, 3W/4, minus 44.
+      800 x 600: 44 lower. For three buttons, first truncate W/4 to an
+      integer q, then use q - 44, 2q - 44 and 3q - 44. Thus W=370 gives
+      left edges 48/140/232, and W=462 gives 71/186/301. The division
+      happens before multiplication; retain that truncation order.
     - **The text:** text 114 has its own line break; explicit breaks are
       used only if one comes before the 39th character, otherwise the
       38-character wrap applies (here: 2 lines). 7 line boxes, each 360
@@ -434,6 +439,22 @@ himself goes across as his own saved file.
       48-66, line 2 rows 74-92 (centres 57 and 83: **26 apart**). The
       first line keeps its trailing CR (probably draws nothing, not
       traced).
+    - **Dynamic layout precedence at 800 × 600 (static follow-up
+      2026-11-08):** the text rows and button positions above are written
+      into the popup's already converted, integer control rectangles.
+      They are **final local pixel positions**, not new 640 × 480 values
+      for another 1.25 multiplication. Opening and drawing the popup do
+      not scale them again; drawing adds the popup's current parent
+      origin. Thus the high-resolution text uses base 36 and pitch 22
+      directly, and button rows use the stated 44-pixel offset directly.
+      Button width stays **88 pixels** and its height stays 36/38 pixels
+      (25 for the help-checkbox variant). The horizontal button centres
+      use the **current converted popup width** for W, not an assumed
+      constant 370 at every resolution. Text left/right edges and the
+      popup's own rectangle retain their ordinary converted layout
+      values; only the text rows' vertical coordinates are overwritten.
+      A live resolution change while the popup is already open was not
+      traced. Original runtime/manual appearance is **not tested**.
     - **The looks:** every button picture is **stretched to the button's
       box** (so `buyhibtn.pba`, 88 x 25, is stretched to 88 x 38). Normal:
       frame 0; pressed (mouse button or Enter held): **frame 1** of

@@ -59,8 +59,8 @@ Words used here:
      position at this moment, records `Stop` as his requested movement,
      and requests his **talk state** (rules 5–16). Admission depends on
      the state that currently owns him, as described below; a refused
-     request does not itself start the `Stop` movement. If admitted by
-     this message and `handsOff` is
+     request does not itself start the `Stop` movement. If this message's
+     state request reports a successful state change and `handsOff` is
      off, the bottom bar's panels that were showing are hidden
      (`interface.md`; the meters, the left and right panels and the
      health bar) and remembered for the end (rule 15).
@@ -88,6 +88,33 @@ clear, the reusable admission rules are:
 | Special, the scripted movement-list state | Refused while further list entries remain to be started. Admitted once none remain; this can already be true while the last movement is playing. This is not a test that every animation has ended. |
 | Die | Refused. |
 
+**Admission of other pending payloads, clarified 2026-11-08.** The
+following matrix was checked against the original state-owned gates,
+rather than inferred by extending the Talk observations. It covers
+ordinary requests for Wait, Move, Fall, Special, Die and Talk; the
+forced Choice mechanism remains separate.
+
+| State that currently owns Connor | Wait | Move | Fall | Special | Die | Talk |
+| --- | --- | --- | --- | --- | --- | --- |
+| Special, further list entries remain to be started | No | No | No | No | No | No |
+| Special, no list entries remain to be started | Yes | Yes | Yes | Yes | Yes | Yes |
+| Terminal Die | No | No | No | No | No | No |
+| Talk, conversation completion gate closed | No | No | No | No | No | No |
+| Talk, conversation completion gate open | Yes | Yes | No | Yes | Yes | No |
+| ThrowHammer, catch completion gate closed | No | No | No | No | No | No |
+| ThrowHammer, catch completion gate open | Yes | Yes | No | Yes | Yes | No |
+
+Special's remaining-list condition applies to all six listed targets,
+including a new Special list and Die; none of them bypasses it.
+Exhausting that list means no further entry remains to be started, not
+that the last animation has finished. Other Special target kinds are
+not enumerated by this bounded matrix. Terminal Die's ordinary refusal
+is unconditional for **every** target, including another Die. The
+complete ordinary allowed-target set for an opened Talk or hammer
+catch gate is Wait, Move, Special and Die; other targets are refused.
+Strong-request priority chooses which pending candidate is tried, but
+does not change any of these gate results.
+
 A refused request is retained in **one replaceable pending state
 request**, not a queue of conversations. When another state request
 arrives, an already-pending Talk is tried first. If the current state
@@ -100,6 +127,75 @@ not add another mandatory retry delay. The original does not keep a
 separate guaranteed conversation retry
 after that replacement. Merely opening an admission gate does not
 itself retry the pending request every update.
+
+**Ordinary priority and forced states are different (clarified
+2026-11-08).** The common request path classifies weapon swap, Special,
+Talk, rock throw and hammer throw as **strong** requests. This is a
+property of the requested state, not an extra force flag supplied by a
+caller. Wait, Move, Fall and Die are not strong. Automatic completion
+requests have the same classification as requests for that state from
+other callers; there is no separate automatic-request priority here.
+
+An incoming strong request discards an older **non-strong** pending
+request without trying that older request first. The incoming request
+is then tested against the state that still owns Connor, in the same
+call. Strong priority does **not** bypass that state's admission gate:
+if refused, the incoming request remains pending. In every other
+combination, the older pending request is tried first. An admitted older
+request takes ownership and the incoming request is retained untested;
+an older request that is refused is replaced and the incoming request
+is tested immediately. Thus the pending-Talk examples above remain
+valid even when the new request is Special: Talk is already strong.
+Conversely, new Talk or Special supersedes pending Wait, Move, Fall or
+Die before the older request receives an admission test.
+
+The start-conversation message uses this ordinary **strong Talk**
+request. It does not install a forced state. If an older strong request
+is admitted first, Talk is merely retained; nevertheless the common
+request reports a successful state change. The message's immediate
+panel-hide action can therefore run in this case too, when `handsOff`
+is clear. The success result does not by itself prove Talk took
+ownership. Later admission of pending Talk does not replay the start
+message or its panel action.
+
+The separately remembered **forced Choice** request takes precedence
+before these ordinary pending-priority checks, while its target differs
+from Connor's current state. It replaces the older pending candidate
+and enters the forced target without the current state's ordinary
+admission test; the newly arriving request is then retained, untested.
+If Connor already owns that forced target state, this special branch
+is not used. This is the distinct script Choice mechanism described in
+`characters.md`, not a property of Talk or Special. Forced entry does
+not leave the ordinary pending slot permanently empty: the incoming
+request is retained after the entry, even for the initial Choice
+request. The explicit discard of the retained request and its payload
+occurs when a choice is made, immediately before marking it made and
+calling `DoChoice` (`characters.md`, Choice rule 10), not on every
+Choice update or on the `StartChoice` callback boundary. Once ordinary
+pending handling has declined to apply a candidate, the `handsOff`
+Jump/Fall completion exception described below occurs before testing
+the newly stored incoming request. It does not move the earlier
+pending-candidate test after that exception.
+
+**Explicit retry boundaries, clarified 2026-11-08.** A pending-only
+retry tests the retained request against the current state's gate,
+clears it when admitted, and keeps it when refused. It does not propose
+a new Wait or apply the common request's forced-state/`handsOff`
+exceptions. The standing state's movement-end path has such a retry
+only after a non-`Stop`, non-`gesture`-prefixed movement ends and
+selecting the `Stop` movement succeeds; it records `Stop` before the
+retry. `Stop` and `gesture`-prefixed endings skip this retry. These
+name checks ignore case. This corrects the older claim that every
+standing movement end retries a pending request.
+
+At **hammer catch completion**, the hammer state first opens its exit
+gate and clears `handsOff`, then requests Wait through the ordinary
+common request path **while the hammer state still owns Connor**. The
+pending candidate is tested against that opened hammer gate, which
+allows only Wait, Move, Special and Die. Pending Talk is refused and
+replaced by Wait; it must not be retried after first entering Wait.
+Pending Special or Die can instead take ownership directly, with the
+newly proposed Wait retained. See `azriel-hammer.md` rule 3.
 
 This gives the following ordinary interruption cases, assuming no
 intervening request replaces Talk:
@@ -128,9 +224,9 @@ Held forward/back input remains available to Talk; it is held during
 the approach and can move Connor when the stay-area test begins. The
 ordinary landing's proposed Move or Wait does not take control ahead
 of an admitted pending Talk. The panel-hide action in rule 2 belongs to
-the original start message's successful immediate admission; later
-admission of a retained request does not replay that message or repeat
-its panel-hide action.
+the original start message's successful state-change result, including
+the older-strong-request case above; later admission of a retained
+request does not replay that message or repeat its panel-hide action.
 
 With `handsOff` set, the common request path can open Jump or Fall
 completion itself before testing the new request. Therefore the

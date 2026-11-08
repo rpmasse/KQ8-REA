@@ -303,16 +303,23 @@ of the map, centred on Connor, sits in the bottom-right panel.
 23. **Left button: drag to move ("position") the map** [traced; which
     button from the help text and the handler order]. While the left
     button is held over the map area, every mouse movement moves the
-    picture by the same number of screen pixels. The move is limited so
-    that the **centre of the map area always stays on the picture**: the
+    picture by the same number of display pixels. These are differences
+    between successive supplied mouse positions, without conversion to
+    640-layout units or multiplication/division by the map zoom. This
+    remains true at 800 × 600: a 10-pixel drag moves the picture 10
+    display pixels (clarified by static trace, 2026-11-08). The move is
+    limited so that the **centre of the map area always stays on the picture**: the
     picture's left edge can't go right of the centre, its right edge
     can't go left of it, and the same for top and bottom.
 24. **Right button: drag sideways to zoom** [traced]. While the right
     button is held, each sideways mouse movement of dx screen pixels
     multiplies the picture's size by 2^(dx ÷ 64), about the centre of the
     map area: 64 pixels to the right doubles it (zoom in), 64 to the left
-    halves it. Up/down movement does nothing. Limits: the shown width
-    stays between 460 ÷ 4 = **115** and 460 × 8 = **3,680** screen pixels
+    halves it. The divisor remains 64 **display pixels** at 800 × 600;
+    it does not become 80 or use a 640-layout mouse delta (clarified by
+    static trace, 2026-11-08). Up/down movement does nothing. Limits:
+    the shown width stays between 460 ÷ 4 = **115** and 460 × 8 =
+    **3,680** screen pixels
     (× 0.25 to × 8 of the picture's own size); past a limit it is set to
     the limit. A right click without moving does nothing.
 25. **Following Connor** [traced]: each time Connor's map pixel changes
@@ -323,13 +330,68 @@ of the map, centred on Connor, sits in the bottom-right panel.
     with 20 and 340 (whole-number divisions), repeated up to 6 times in
     one draw. When the arrow is inside, the mark is cleared. So after
     the player drags the map away, it stays put until Connor moves to
-    another map pixel. Which coordinates these limits are in was not
-    traced. **The user's check in the original (2026-10-21):** once
-    Connor moves, the map scrolls to keep the arrow in view **at all four
-    edges** (so the top limit does work); the exact margin could not be
-    measured by eye. Build it as: keep the arrow's top-left corner at
-    least 20 pixels inside the visible map area on every side, with the
-    step above (open question 2).
+    another map pixel.
+
+    **Coordinate basis resolved, 2026-11-08 (static trace).** These are
+    absolute **display-surface coordinates**, including the map
+    window's position. They are not local coordinates within the map
+    area and are not distances from its edges. Ordinary GUI drawing
+    adds each converted parent origin before supplying the map area's
+    rectangle. The arrow position used for the comparisons includes
+    that rectangle's centre, the stored picture offset, its map-pixel
+    position at the current zoom, and subtraction of half the arrow
+    bitmap's own width/height. The four thresholds remain exactly
+    20, 280, 20 and 340 after a resolution change; no display-size or
+    map-area adjustment is applied.
+
+    **Integer arrow position, clarified 2026-11-08.** The comparisons
+    and the arrow drawing use the same integer top-left point. Shown
+    picture width and height are each truncated toward zero from the
+    stored rectangle's extent. The area's integer centre is its left/top
+    edge plus integer half its width/height. The picture origin is that
+    centre plus its stored left/top offset, each offset
+    truncated toward zero separately. Each integer map-pixel position
+    is multiplied by the shown integer dimension and divided by the
+    map bitmap's dimension with integer division toward zero. The
+    arrow's integer half-width/half-height is subtracted. These map
+    calculations use neither nearest-integer rounding nor the GUI
+    rectangle conversion's extra 0.1; do not compare a floating arrow
+    position and then draw a separately rounded one.
+
+    For example, at the authored fully open position the map's visible
+    rectangle is (12, 76)–(308, 372) at 640 × 480. The follow limits
+    therefore do **not** describe a uniform interior margin: the top
+    threshold is above the visible rectangle. This is an original
+    fixed-coordinate defect; the current original-matching target
+    preserves these limits. See "Do not reproduce" item 4 for the
+    superseded repair policy. **The user's check in the original
+    (2026-10-21)** reported scrolling at all four edges but did not
+    measure its margin. That qualitative observation is retained; it
+    does not establish a symmetric 20-pixel margin or supersede the
+    now-traced coordinate calculation. Original runtime comparison of
+    these exact limits: **not tested**.
+
+25a. **The map window scales; its live drawing uses display pixels**
+    [static trace, 2026-11-08]. The window, borders and map-area control
+    follow the ordinary parent-relative GUI resize rules in
+    `graphics-modes.md` rules 11–12. At the authored fully open position,
+    800 × 600 gives a window (0, 80)–(400, 520) and map area
+    (15, 95)–(385, 465), 370 × 370 display pixels. The map renderer uses
+    that area's new centre and clipping rectangle, but does not
+    multiply its stored picture offsets or zoom rectangle by 1.25.
+    Its approximately 298 × 298 starting picture therefore remains
+    approximately 298 × 298 display pixels, unless zoom changes. The
+    arrow is drawn at its bitmap's own size, with no 1.25 multiplier.
+    The 115–3,680 zoom-width limits and rule 25's follow thresholds
+    also remain display-pixel values. This differs from the mouse
+    pointer, which scales as described in `interface.md` rules 6a–6c.
+
+    Evidence is the original map control's button/motion delivery,
+    pan, zoom and draw paths, followed through shared GUI resize and
+    parent-origin accumulation. No native or manual original test was
+    run. Windows DPI/client-coordinate conversion and behaviour of
+    resolutions outside the ordinary 640/800 choices are not established
+    here.
 26. The pointer over the map is the normal play pointer [inferred:
     nothing in the map changes it].
 
@@ -600,9 +662,14 @@ of the map, centred on Connor, sits in the bottom-right panel.
 3. **`useFog 0` is lost on reload** [traced]: the full picture is copied
    in without marking the fog, so a reloaded game shows only the fog
    again. Only the debug alias uses it; if we keep it, mark the pixels.
-4. **Follow margins** (rule 25): their coordinates were not traced; the
-   user saw them work on all four edges. Keep the arrow at least 20
-   pixels inside the visible map area on all four sides.
+4. **Former follow-margin repair — superseded, 2026-11-08.** Earlier
+   notes requested a 20-pixel margin inside every visible map edge.
+   That is an inherited divergence from the original, whose fixed
+   display-coordinate comparisons are now established in rule 25.
+   The current task requires original behaviour without improvements:
+   preserve those original thresholds, including the top limit outside
+   the visible map area. The earlier interior-margin repair is not a
+   current implementation requirement.
 5. **The debug teleport** (rule 41) and `KQMap::teleport`: leave it out
    of normal play (a developer key at most).
 6. **The unused maps** (`dwrfMap`, `ice1map`–`ice3map`; `ice2`/`ice3`
@@ -675,9 +742,11 @@ revealed pixels.
 ## Open questions
 
 1. The last-pixel start value (rule 11): not traced; assume "unset".
-2. ~~Whether the follow margins work on every edge~~: they do (the
-   user, 2026-10-21; rule 25). Their exact size in the original is still
-   not known; 20 pixels inside the visible area is the build rule.
+2. ~~The follow limits and their coordinate basis~~: resolved by static
+   trace, 2026-11-08, rule 25. The original uses fixed display-coordinate
+   limits; a 20-pixel interior margin was an earlier repair, now
+   superseded as described in "Do not reproduce" item 4. Exact original
+   runtime comparison was not performed.
 3. ~~Whether the mini-map follows the big map's zoom~~: it doesn't (the
    user, 2026-10-21; rule 27). Still open, small: whether it picks up the
    big map's zoom after a world change (each view reloads the stored
@@ -687,5 +756,7 @@ revealed pixels.
 5. ~~How the game finds another world's kept map~~: answered 2026-10-21
    in `world-change.md` rule 16: each left world's map is saved as
    `cur/<map>.kq` and the file search looks in `cur` first.
-6. How 800 × 600 scales the window, the map area and the margins
-   (`interface.md` open question 1).
+6. ~~How 800 × 600 scales the window, map area, follow limits and
+   dragging~~: resolved by static trace, 2026-11-08, rules 23–25a.
+   The GUI area scales, live map/arrow sizes and follow limits stay in
+   display pixels, and dragging uses display-pixel deltas directly.
