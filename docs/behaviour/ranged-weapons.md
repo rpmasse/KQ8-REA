@@ -139,6 +139,53 @@ Words used here:
    ThrowRock's temporary weapon-away step, not in ordinary
    `SwapWeapons`. This distinction was traced statically, not tested in
    the original runtime.
+8a. **List refresh and first-person changes during a swap (static
+    clarification 2026-11-08).** An explicit list refresh selects from
+    the **current numeric weapon mode**, current first/third-person
+    view, and currently equipped item: hand mode reads the present
+    `ShortWeapon`, ranged mode the present `LongWeapon`, and empty
+    hands uses the view's unarmed list. No old drawn-item identity is
+    consulted. The pending swap target is separate: ordinary `away`
+    completion assigns that target mode, then resolves its list using
+    the equipment present at that moment before requesting `out`.
+
+    Consequently, if Dagger's `away` is still playing while SmallAx
+    has become the equipped short weapon and the current mode remains
+    hand, `helmetize`'s refresh selects SmallAx's changed mapping.
+    It does not preserve Dagger's list merely because that movement
+    began there. This is a list-selection rule; a playing movement may
+    still continue under the ordinary cut-short and transition rules.
+    Do not equate an active-list refresh with unconditional immediate
+    replacement of the visible clip.
+
+    **Ordinary F2 is normally blocked during the swap.** Its `away`,
+    `away2`, `out`, `draw` and `undraw` movement requests set the
+    animation-owned input lock when the controller requests a different
+    movement name. Repeating the controller's already recorded name
+    does not issue another movement request or change that lock.
+    F2 refuses an active animation lock or scripted `handsOff` with
+    `no.aud`; first-person permission being disabled refuses silently
+    (`camera.md` rule 9). There is no additional SwapWeapons-state
+    prohibition.
+
+    `helmetize` explicitly requests the current movement again with
+    the animation lock **off** after refreshing the list. The lock
+    changes at request time, even if an uncuttable old clip continues;
+    scripted `handsOff` is unaffected. A subsequent F2 can therefore
+    become eligible without the swap having finished. When F2 is
+    accepted, it changes view and uses the same current-mode/currently-
+    equipped-item selection above, followed by a current-movement
+    re-request with animation lock off. It does not select the old
+    drawn weapon separately, assign the pending target early, restart
+    the SwapWeapons controller or finish it. The next ordinary swap
+    movement request sets its animation lock again.
+
+    These selection and lock paths were traced statically. Original
+    runtime scenarios are **not tested**. Exact visible phase continuity
+    for every cross-list movement or missing movement is not established
+    by this bounded clarification; use the existing movement-request
+    rules rather than inventing a special swap identity-preservation
+    rule.
 9. **Scripts** (`KQConner::setDoMode <0|1|4> [movement]`, traced): if the
    mode differs, a jump is ended and standing is requested before asking
    the controller that remains current. Without the optional movement,

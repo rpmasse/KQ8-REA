@@ -131,6 +131,21 @@ weapons, health/potion slots, rope, rocks), see `interface.md`.
    weapon draw/put-away sequence; it does not itself assign a weapon
    mode or clear a held item.
 
+   **Refresh during an unfinished swap (static clarification
+   2026-11-08):** this selection uses the currently stored weapon mode,
+   current view, and the item **currently equipped** in that mode's
+   inventory slot. It does not recover the identity of an older drawn
+   weapon from the movement still playing, and it does not select by
+   the swap's pending target mode before that mode has been assigned.
+   For example, with current hand mode, an old Dagger `away` still
+   playing, and SmallAx now equipped, this refresh uses SmallAx's
+   current mapping. The explicit movement re-request after the refresh
+   also clears the animation-owned input lock, even if playback must
+   wait for the old movement to finish. It does not clear scripted
+   `handsOff` or finish the swap. See `ranged-weapons.md` rule 8a for
+   view changes and the distinction between selected list and playing
+   movement.
+
    These mapping changes are persistent changes to Connor's animation
    lists, rather than a conditional choice made on every frame while
    armour is present. Ordinary inventory removal does not restore the
