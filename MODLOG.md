@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-08 Implement original Graphics device policy and confirmation
+
+Add explicit device inventories, original eligibility/capability/startup
+rules, real selected/disabled rows and accepted live/restart action types.
+The Cancel-default DirectDraw confirmation follows the separated Q207
+input/artwork study. Policy passes first attempt; GUI matrix passes on its
+targeted retry after correcting the fixture's placeholder-warning text.
+The correct renderer already resolved the installed message. Pressed
+picture/caption pixels, modal input and original640/800 rows are checked.
+Runtime device provider, action routing and actual backend parity are
+still unimplemented; this is a verified component, not live switching.
+Evidence: docs/graphics-device-controls.md. M4 approximately89%.
+
 ## 2026-11-08 Resume held movement after F2 transition completion
 
 Apply Q200's separated original study: after common animation completion,

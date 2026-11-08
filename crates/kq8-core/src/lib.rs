@@ -7,6 +7,7 @@
 pub mod active;
 pub mod main_menu;
 pub mod credits;
+pub mod graphics_devices;
 pub mod graphics_menu;
 pub mod keyboard_menu;
 mod menu_layout;

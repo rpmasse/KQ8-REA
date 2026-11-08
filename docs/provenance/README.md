@@ -3,6 +3,27 @@
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
+**M4 movement and interface completion (2026-11-08).** Q200's separated
+camera.md / connor-movement.md notes establish the Move-state follow-up
+after ordinary animation completion. Original ANM/KQS data supplies the
+transition and replay phases. The grouped check and affected regressions
+pass; [evidence and limits](../f2-transition-completion.md). interface.md
+rules 12–14/41 and main-menu.md rule 7 establish the top-bar cursor gate
+and shared Mask action; [input evidence](../interface-input-completion.md).
+credits-completion.md establishes retained ending state and distinguishes
+missing files from media errors, allowing bounded error acknowledgement as
+a safeguard. The [movie failure matrix](../movie-failure-completion.md)
+checks the actual Rust pipe/update/return path without claiming original
+MCI failure equivalence or rerunning successful films.
+
+**Original Graphics device frontend.** graphics-modes.md rules 1–10 and
+the separately traced Q207 modal contract provide eligibility, saved-name,
+same-family, confirmation and input semantics. Installed GUI/message/font
+and bitmap data provide presentation. Policy and original-data matrices
+pass; the warning fixture's initial placeholder mistake is retained.
+[Evidence and production integration gaps](../graphics-device-controls.md).
+No host GPU is claimed to be a legacy Glide or Direct3D device.
+
 **Live original resolution changes.** graphics-modes.md supplies the
 known 640/800 presentation and interface resize rules; installed GUI and
 caption data supplies their original geometry and art. The modern backend
