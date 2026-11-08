@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-08 Resume held movement after F2 transition completion
+
+Apply Q200's separated original study: after common animation completion,
+ordinary Move requests its current input selection even when the key choice
+has not changed. Do not replace F2's playing-name request with a guessed
+destination. Original ANM/KQS matrix passes1/1, six affected checks pass6/6.
+One40-update native run confirms old-transition completion at16, new replay
+and held-run recovery at17, then actual movement. The native fixture's
+endpoint metric initially failed at a tree; an offline per-step check of
+that same retained run passes513.1 units, excluding crash motion. Original
+FAIL retained; no native repeat. Evidence: docs/f2-transition-completion.md.
+No manual testing. M4 approximately89%; device integration/HUD remain open.
+
 ## 2026-11-08 Verify existing-file movie error continuation
 
 Share the real bounded decoder reader with controlled child processes and

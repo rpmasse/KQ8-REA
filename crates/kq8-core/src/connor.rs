@@ -1670,18 +1670,19 @@ impl Walker {
                     }
                 }
             }
-            // Q195: common end handling starts the waiting movement first.
-            // Standing Wait then asks for Stop itself, even if that cuts a
-            // newly started interruptible gesture. Talk has no such request.
-            if reaction_ended && self.mode == Mode::Free {
-                if self.choice == "stop" {
+            // Q195/Q200: common completion precedes the state's own end
+            // response. Wait's reaction asks for Stop; ordinary Move asks
+            // for its current input selection after any genuine end, even
+            // when that selection has not changed since the last update.
+            // This also resumes held input after F2 rebuilds a transition
+            // clip as a one-shot. Controller-owned states keep their rules.
+            if step.ended.is_some() && self.mode == Mode::Free {
+                if reaction_ended && self.choice == "stop" {
                     self.state_movement("stop", loops, &mut notes);
-                } else {
-                    // Move keeps its forward/back selection during the
-                    // animation lock; its own end handler requests that
-                    // selection, if different from actual playback.
+                } else if self.choice != "stop" && !self.controller_owned_input {
                     let selected = choose_movement(intent, self.submerged);
-                    if selected != self.movement {
+                    if !selected.is_empty() && selected != self.movement {
+                        notes.push(format!("Move animation end: selected {selected}, playing {}; asks again", self.movement));
                         self.choice = selected;
                         self.state_movement(selected, loops, &mut notes);
                     }
@@ -1708,6 +1709,10 @@ impl Walker {
         finish(step, self, notes)
     }
 }
+
+#[cfg(test)]
+#[path = "connor_view_transition_tests.rs"]
+mod view_transition_tests;
 
 #[cfg(test)]
 mod tests {
