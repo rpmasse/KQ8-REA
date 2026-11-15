@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-15 M5 ordinary ranged item matrix
+
+An unattended original-data Windows matrix now passes all five ordinary
+player bows and crossbows beyond the already checked Small Crossbow:
+`SmCpndCBow`, `ShortBow`, `LongBow`, `CrossBow` and `CpndCrossbow`. Each
+launches its authored projectile, contacts one original Dead City
+skeleton and applies one Projectile hit. The grouped test passes 1/1 in
+224.38 s. Its first assertion expected the wrong `Normal` label; the
+logged hit was correctly `Projectile`, and no production code changed.
+This checks shared dispatch, not every aim/save/moving-shot or campaign
+route. No manual gameplay was run, and the GOG install was read only.
+M5 remains about 65%.
+
 ## 2026-11-15 M5 Swamp Mandragor tree visual load
 
 The 11 installed Swamp `KQMandragorTree` actors now load their authored

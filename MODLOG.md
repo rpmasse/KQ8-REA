@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-15 Check five ordinary player ranged items
+
+Add one unattended GOG-data Windows matrix for `SmCpndCBow`,
+`ShortBow`, `LongBow`, `CrossBow` and `CpndCrossbow`. Each launches its
+authored projectile, flies into an original Dead City skeleton and
+applies one Projectile hit. The grouped test passes 1/1 in 224.38 s.
+Its first draft expected a `Normal` log label and failed after a
+correct `SmCpndCBow` hit; changing the assertion to `Projectile`
+passed without any production-code change. The GOG install was read
+only; no manual gameplay was performed. Other weapon modes, moving
+shots, save boundaries and earned campaign routes remain open.
+
 ## 2026-11-15 Load Swamp Mandragor tree visuals
 
 Recognize `KQMandragorTree` in the character loader and use the shared

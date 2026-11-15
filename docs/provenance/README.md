@@ -1,5 +1,17 @@
 # Provenance
 
+**Ordinary ranged item matrix (2026-11-15).**
+[Ranged weapon rule 21](../behaviour/ranged-weapons.md) lists each
+ordinary LongWeapon's projectile; the installed `Invinfo.itl` gives
+the exact five item names and files. An unattended Dead City test gives
+each weapon after the start script, then checks one authored bolt,
+flight/contact and a Projectile hit on an original skeleton. All five
+cases pass. The first assertion used `Normal` for the damage log; the
+original-data run established `Projectile`, and only the test was
+corrected. This is Rust route coverage, not an original-executable
+comparison or a full weapon/campaign acceptance test. Implementation B
+used the prose rule and installed data, without reading the executable.
+
 **Mandragor tree shared visual path (2026-11-15).** The separate
 [Mandragor study](../behaviour/mandragor.md) establishes that Tree and
 Root are specialized monsters, both run common monster setup, and that
