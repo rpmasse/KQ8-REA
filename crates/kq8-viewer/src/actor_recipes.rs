@@ -175,7 +175,22 @@ pub fn character(
     if let Some(keys) = k.tower {
         ch.tower = Some(kq8_core::tower_skeleton::Tower::new(keys));
     }
-    if k.class != Class::MandragorTree {
+    if k.class == Class::MandragorRoot {
+        if let Some(offset) = k.mandragor_offset {
+            let mut tree = p.name.clone();
+            tree.pop();
+            tree.push('t');
+            ch.mandragor_root = Some(kq8_core::character::MandragorRoot {
+                tree,
+                offset,
+                last_tree_pose: None,
+            });
+        }
+    }
+    if k.class == Class::MandragorRoot {
+        ai.has_birth = has_birth;
+        ch.ai = Some(ai);
+    } else if k.class != Class::MandragorTree {
         ch.fight = c.fight.clone().map(|s| {
             let mut f = kq8_core::fight::Fight::new(s);
             f.combat_scaled = c.combat_scaled;

@@ -1,5 +1,19 @@
 # Provenance
 
+**Mandragor root attachment and birth (2026-11-15).** The separate
+[Mandragor study](../behaviour/mandragor.md) establishes the root's
+tree-rotated authored offset, world-aligned orientation on tree
+movement, projectile-immunity collision type, gravity-off setup and
+inherited Unborn rise that later restores gravity. Implementation B
+reads `offsetX/Y/Z` from the installed root files, keeps a link to the
+sibling tree, and enables shared AI startup without attaching generic
+fighting. A focused pose check and two unattended Swamp routes confirm
+all 22 roots load, one pair follows a moved and turned tree, and a
+nearby root rises with the expected collision. This covers startup
+and attachment, not specialized combat, death, save, or an
+original-executable runtime comparison. Implementation B used the
+prose note and installed data, without reading study scratch.
+
 **Ordinary ranged item matrix (2026-11-15).**
 [Ranged weapon rule 21](../behaviour/ranged-weapons.md) lists each
 ordinary LongWeapon's projectile; the installed `Invinfo.itl` gives

@@ -3798,6 +3798,32 @@ impl Placer<'_> {
             self.raised += usize::from(!unused);
             p.position = grounded;
         }
+        if !unused && character.as_ref().is_some_and(|c| c.keys.class == kq8_data::characters::Class::MandragorRoot) {
+            let mut tree_name = p.name.clone();
+            tree_name.pop();
+            tree_name.push('t');
+            if let (Some(offset), Some(tree)) = (
+                character.as_ref().and_then(|c| c.keys.mandragor_offset),
+                self.located.get(&tree_name.to_ascii_lowercase()),
+            ) {
+                let tree_pose = kq8_core::collide::Placement {
+                    rotation: kq8_data::objects::rotation(tree.angles),
+                    position: tree.position,
+                };
+                let pose = kq8_core::character::mandragor_root_pose(tree_pose, offset);
+                p.position = pose.position;
+                p.angles = [0.0; 3];
+                p.z_on_ground = None;
+                p.keep_on_ground = kq8_data::objects::KeepOnGround::Off;
+                self.log.detail(format!(
+                    "Mandragor root [{}] attached to [{}] at ({:.0}, {:.0}, {:.0}) from rotated offset ({:.0}, {:.0}, {:.0})",
+                    p.name, tree_name, p.position[0], p.position[1], p.position[2],
+                    offset[0], offset[1], offset[2],
+                ));
+            } else {
+                self.log.detail(format!("Mandragor root [{}]: tree [{}] or offset unavailable; original attachment pending", p.name, tree_name));
+            }
+        }
         let key = p.name.to_ascii_lowercase();
         if let Some(v) = s.get("stats").filter(|_| !unused) {
             self.object_stats.push((p.name.clone(), v.to_string()));

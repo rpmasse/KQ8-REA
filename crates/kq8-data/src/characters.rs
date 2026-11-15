@@ -81,6 +81,7 @@ pub fn casts_shadow(world_mask: u32, own_mask: u32, allowed: bool, translucency:
 pub enum Class {
     Monster,
     MandragorTree,
+    MandragorRoot,
     GeometryTalker,
     Death,
     Lucreto,
@@ -96,6 +97,8 @@ impl Class {
             Some(Class::Monster)
         } else if c.eq_ignore_ascii_case("KQMandragorTree") {
             Some(Class::MandragorTree)
+        } else if c.eq_ignore_ascii_case("KQMandragorRoot") {
+            Some(Class::MandragorRoot)
         } else if c.eq_ignore_ascii_case("KQGeometryTalker") {
             Some(Class::GeometryTalker)
         } else if c.eq_ignore_ascii_case("KQDeath") {
@@ -113,6 +116,7 @@ impl Class {
         match self {
             Class::Monster => "KQMonster",
             Class::MandragorTree => "KQMandragorTree",
+            Class::MandragorRoot => "KQMandragorRoot",
             Class::GeometryTalker => "KQGeometryTalker",
             Class::Death => "KQDeath",
             Class::Lucreto => "KQLucreto",
@@ -592,6 +596,8 @@ impl MonsterTypes {
 pub struct CharacterKeys {
     pub class: Class,
     pub tower: Option<TowerKeys>,
+    /// Root position relative to its sibling Mandragor tree, in the tree's axes.
+    pub mandragor_offset: Option<[f32; 3]>,
     /// Model-space launch points used if the attack frame lacks the projectile's mesh.
     pub shoot_offsets: Vec<(String, [f32; 3])>,
     /// `animFile=`: its movement list.
@@ -698,6 +704,7 @@ impl CharacterKeys {
         let text = |k: &str| s.get(k).map(|v| v.split(|c: char| c.is_whitespace() || c == '#').next().unwrap_or("").to_string()).filter(|v| !v.is_empty());
         let number = |k: &str| s.number(k).and_then(Result::ok);
         let switch = |k: &str, default: bool| number(k).map_or(default, |v| v != 0.0);
+        let mandragor = matches!(class, Class::MandragorTree | Class::MandragorRoot);
         Some(CharacterKeys {
             tower: (class == Class::TowerSkeleton).then(|| TowerKeys {
                 real_alarm: number("realAlarm").unwrap_or(0.) as f32,
@@ -706,13 +713,20 @@ impl CharacterKeys {
                 move_time: number("moveTime").unwrap_or(0.),
             }),
             shoot_offsets: shoot_offsets(s),
+            mandragor_offset: (class == Class::MandragorRoot).then(|| {
+                Some([
+                    number("offsetX")? as f32,
+                    number("offsetY")? as f32,
+                    number("offsetZ")? as f32,
+                ])
+            }).flatten(),
             class,
             anim_file: text("animFile"),
             idle_anim_file: text("idleAnimFile"),
             lips: text("lips"),
             base_lip: text("baseLip"),
             flags: s.get("flags").map_or(DEFAULT_FLAGS, |f| f.trim().parse::<i64>().unwrap_or(0) as u32),
-            gravity: switch("monUseGravity", true),
+            gravity: !mandragor && switch("monUseGravity", true),
             no_turn: switch("noTurn", false),
             wanders: switch("wanders", true),
             monster_type: text("monsterType"),
@@ -723,7 +737,7 @@ impl CharacterKeys {
             skin: text("originalBmp").zip(text("alternateBmp")),
             step_up: number("stepUpAmount").map(|v| v as f32),
             step_down: number("stepDownAmount").map(|v| v as f32),
-            collider_type: number("colliderType").map_or(CHARACTER_TYPE, |v| v as i64 as u32),
+            collider_type: number("colliderType").map_or(if mandragor { 0x4042 } else { CHARACTER_TYPE }, |v| v as i64 as u32),
             collider_mask: number("colliderMask").map_or(CHARACTER_MASK, |v| v as i64 as u32),
             goodbye: line_keys(s, "GB"),
             welcome_back: line_keys(s, "WB"),

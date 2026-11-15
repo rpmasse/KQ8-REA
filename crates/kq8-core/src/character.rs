@@ -126,6 +126,8 @@ pub struct Character {
     /// movements; otherwise an ordinary character.
     pub mouth_moves: bool,
     pub tower: Option<crate::tower_skeleton::Tower>,
+    /// A Swamp root whose position follows a sibling Mandragor tree.
+    pub mandragor_root: Option<MandragorRoot>,
     /// KQLucreto's post-stagger standing interval (fighting.md rule 23).
     pub lucreto_react_pause: Option<f32>,
     pub lucreto_change_dist: Option<f32>,
@@ -204,6 +206,25 @@ pub struct Character {
     pub unborn: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct MandragorRoot {
+    pub tree: String,
+    pub offset: [f32; 3],
+    pub last_tree_pose: Option<crate::collide::Placement>,
+}
+
+/// Q209: the tree turns the root's authored offset, while the root itself
+/// keeps a world-aligned orientation when the tree reports a new pose.
+pub fn mandragor_root_pose(tree: crate::collide::Placement, offset: [f32; 3]) -> crate::collide::Placement {
+    let position = std::array::from_fn(|j| {
+        tree.position[j] + (0..3).map(|i| offset[i] * tree.rotation[i][j]).sum::<f32>()
+    });
+    crate::collide::Placement {
+        rotation: kq8_data::objects::rotation([0.0; 3]),
+        position,
+    }
+}
+
 /// A character's walking (`character-movement.md` rules 1–8; M5 5a-2).
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Walk {
@@ -277,6 +298,7 @@ impl Character {
             geometry,
             mouth_moves: false,
             tower: None,
+            mandragor_root: None,
             lucreto_react_pause: None,
             lucreto_change_dist: None,
             resume_move_at: f64::NEG_INFINITY,
@@ -1185,6 +1207,24 @@ fn times(a: &[[f32; 3]; 3], b: &[[f32; 3]; 3]) -> [[f32; 3]; 3] {
 pub(crate) mod tests {
     use super::*;
     use crate::named_anim::tests::movement;
+
+    #[test]
+    fn mandragor_roots_use_tree_rotated_offsets_but_world_aligned_orientation() {
+        let tree = crate::collide::Placement {
+            position: [1000.0, 2000.0, 3000.0],
+            rotation: kq8_data::objects::rotation([0.0, 0.0, std::f32::consts::FRAC_PI_2]),
+        };
+        let right = mandragor_root_pose(tree, [600.0, -1000.0, 0.0]);
+        let left = mandragor_root_pose(tree, [-600.0, -1000.0, 0.0]);
+        for (actual, expected) in right.position.into_iter().zip([2000.0, 2600.0, 3000.0]) {
+            assert!((actual - expected).abs() < 0.001);
+        }
+        for (actual, expected) in left.position.into_iter().zip([2000.0, 1400.0, 3000.0]) {
+            assert!((actual - expected).abs() < 0.001);
+        }
+        assert_eq!(right.rotation, kq8_data::objects::rotation([0.0; 3]));
+        assert_eq!(left.rotation, right.rotation);
+    }
 
     /// attack (one-shot, can't be cut short), stop (repeats, can be cut
     /// short), caw (one-shot), gesturea (one-shot).

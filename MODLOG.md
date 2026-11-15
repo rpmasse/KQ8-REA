@@ -1,5 +1,35 @@
 # MODLOG
 
+## 2026-11-15 Attach and wake Swamp Mandragor roots
+
+Recognize `KQMandragorRoot`, load its authored animation list and
+place all 22 roots at tree-rotated right/left offsets. Both Mandragor
+classes start with collision type `0x4042` and gravity off. A root
+uses shared Unborn AI to rise; its specialized fight and death remain
+inactive. Tree movement updates linked root positions and resets their
+orientation only when the tree's base pose changes. A first probe
+reset root orientation on every update; the corrected sync retained
+its turn toward Connor while the tree stood still. The focused pose
+check passes 1/1, the ignored Swamp checks pass 2/2, and the core/data
+suites pass 752/158 active tests. The GOG install was read only; no
+manual gameplay was performed. Q209 still covers combat, rebirth and
+save continuation.
+
+## 2026-11-15 Refine Swamp Mandragor behavior
+
+Study session A confirmed world-aligned root orientation with a
+tree-rotated position offset, the inherited root rise gate and gravity
+restoration, the root's common melee `Do` cue, the
+tree attack's lack of a common hit cue, and the tree's fixed corpse
+selection even on Fire/Ice death. It also found binary property codecs
+for specialized root/tree fields and the root-death state’s deadline
+and phase flags, without
+establishing full save/load continuation.
+The behavior note and Q209 distinguish these verified rules from
+targeting, visual transitions, callbacks and restoration still open.
+The GOG install was read only; no Rust or game files changed and no
+manual gameplay test was performed.
+
 ## 2026-11-15 Check five ordinary player ranged items
 
 Add one unattended GOG-data Windows matrix for `SmCpndCBow`,
@@ -31,7 +61,8 @@ three distinct class files, type stats, animation lists and special
 keys in `docs/behaviour/mandragor.md`. A later portable Ghidra run
 confirmed that Tree and Root are sibling subclasses of `KQMonster`.
 Subsequent method tracing established common monster construction and
-animation setup, root attachment at a rotated offset, projectile-immunity
+animation setup, root attachment at a tree-rotated offset with
+world-aligned orientation, projectile-immunity
 collision type, gravity-off setup, inherited Unborn startup, and the
 root's die/rebirth timer with tree down-count and no-turn changes.
 Q209 stays open for attack timing, tree death, visual transition details

@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-15 M5 Mandragor root attachment and birth
+
+The 22 authored Swamp roots now load as animated characters beside
+their 11 trees. Each uses its tree's position and turn to place its
+right/left offset, while keeping its own orientation world aligned
+when the tree moves. A scripted quarter-turn moved `mand3r/l` to
+their expected positions; a stationary tree no longer resets their
+turns each update. The inherited rise path made `mand3r` visible and
+solid with collision type `0x4042` and mask `0x281F`, turning gravity
+on. The ignored original-data Windows check passes 2/2 in 34.23 s;
+the focused pose check passes 1/1, and core/data suites pass 752/158
+active tests. Specialized hits, root rebirth, tree death and save
+continuation remain unimplemented; this is not a complete encounter.
+No manual gameplay was run and the GOG installation was read only.
+M5 remains about 65%.
+
 ## 2026-11-15 M5 ordinary ranged item matrix
 
 An unattended original-data Windows matrix now passes all five ordinary

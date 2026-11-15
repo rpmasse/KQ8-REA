@@ -36,11 +36,14 @@ performs the tree link. The root's world position is the tree's world
 position plus its authored `offset` rotated by the tree's orientation.
 The engine applies the same calculation again when the linked tree
 sends a movement notification. It also records the root as a dependent
-of the tree's transform. Root orientation and behavior when the tree
-is absent remain open, as does setup order across the three entries.
-The shared setup reads the
-object's configured animation file through the common animation-list
-loader. As established for characters in `characters.md`, each
+of the tree's transform. For setup and these notifications, the root
+uses world-aligned orientation rather than copying the tree's turn;
+only its offset position rotates with the tree. Whether its own AI
+turns it between notifications remains open. Behavior when the tree
+is absent and setup order across the three entries remain open.
+The shared setup reads the object's configured animation file through
+the common animation-list loader. As established for characters in
+`characters.md`, each
 animation movement names a model and sequence. No distinct Mandragor
 drawing override was found in the compared method tables. This supports
 loading their existing `.anm` and `.kqs` assets through the ordinary
@@ -56,23 +59,33 @@ and mask `0x281F`. Both Mandragor classes replace the type with
 `0x4042` while retaining that initial mask. The extra `0x4000` is the
 projectile-immunity flag established for other characters in
 `ranged-weapons.md` and `henchman.md`. After common setup, both
-Mandragor classes turn their mover's gravity off. The authored
+Mandragor classes turn their mover's gravity off. This is their setup
+state, not a permanent gravity override. The authored
 `keeponground=1` remains a separate setting.
 
 The roots' animation list contains `birth`, so common character
 startup enters the inherited Unborn state. As described in
 `characters.md`, Unborn is not drawn or solid until it emerges. The
 tree's list has no `birth`; common startup instead queues Wait with
-the authored zero birth delay. The exact first-frame ordering and
-whether root-specific state changes alter Unborn's normal emergence
-remain to be established.
+the authored zero birth delay. The roots keep the ordinary Unborn and
+Wait state classes; only their death state is replaced. Thus the
+common rise gate in `character-movement.md` rule 30 applies: an
+inactive root must see Connor within its alarm radius and obtain an
+active-monster slot. After the authored zero birth delay it enters
+Wait, which delays `birth` while Connor stands within the combined
+actor balls. The monster type/list gives each root a 3,000-unit alarm
+radius, overriding its `.kq` file's 15,000. When this Wait entry can
+proceed, the shared method requests `birth`, restores ordinary groups,
+and turns gravity back on because the root retains the default
+`monUseGravity=1`. The exact first-frame ordering remains to be
+established.
 
-The root's class-specific property reader accepts `offset`,
-`origHealth`, `origBirthDelay`, `rebirthDelay`, `repelDist` and
-`tooClose` in addition to common monster properties. The tree's reader
-accepts `rootDownCount` and `maxRoots`; its constructor defaults them
-to zero and two respectively. These keys indicate retained encounter
-state, but their update, death and save semantics are still open.
+The root's class-specific property reader accepts the authored
+`offset`, `rebirthDelay`, `repelDist` and `tooClose`, plus stored baseline
+health and birth delay, in addition to common monster properties. The
+tree stores how many roots are down and the permitted maximum; its
+constructor defaults them to zero and two respectively. These values
+support the death and rebirth cycle below.
 
 ## First combat and event boundaries
 
@@ -90,26 +103,73 @@ inside it and in a susceptible movement state, the root sends him a
 movement event using `repelDist` and selects his `reactback` movement.
 The exact displacement vector and collision aftermath remain open.
 
+The roots retain the common monster attack and animation-cue handler.
+Their `attack` movement has a `Do` cue at phase 0.1875, so the shared
+melee hit test in `fighting.md` can run there with the root's authored
+hand damage and reach. The tree's `attack` movement uses its standing
+model and has no `Do` cue. Its ordinary melee hit test therefore has
+no cue at which to run. No separate tree attack-hit callback was found
+in its class methods; any contact damage or other source remains open.
+The tree's Wait-entry method also limits one target-position update to
+when Connor's distance is within its alarm radius; the roots retain the
+ordinary Wait-entry method. This does not by itself establish the full
+targeting or attack schedule.
+
+The tree's class property reader does not consume its file's
+`tooClose=1600` or `repelDist=1800`; neither does the common monster
+reader. Only the root class reader names these keys. No tree proximity
+push should be inferred from those file lines.
+
 ## Root death and rebirth
 
 A root uses a dedicated death state instead of the ordinary monster
 death state. On entry it sets its health to zero, adds one to the linked
-tree's `rootDownCount` up to `maxRoots` (default two), and sets the
-tree's common `noTurn` flag. It requests the root's `die` movement and
-sets the root's collision type and mask to zero. It also clears a
-render-related state field; the exact visible transition during `die`
-has not yet been established.
+tree's down-root count up to the maximum (default two), and stops the
+tree from turning. It requests the root's `die` movement and sets the
+root's collision type and mask to zero, as ordinary Die also
+does. This makes the root non-solid while the death movement plays.
+The exact draw-group transitions remain to be established.
 
 When `die` finishes, the root starts a timer for its `rebirthDelay`:
 four seconds for the right root and five for the left in the installed
-data. When due, it requests `birth`, restores `origHealth`, and runs its
-proximity response. When `birth` finishes, it restores collision type
-`0x4042` and mask `0x201F`, reduces the linked tree's down count by
-one, clears `noTurn` if the count reaches zero, and enters Wait. The
-mask after rebirth differs from the constructor's initial `0x281F`;
+data. When due, it requests `birth`, restores its stored baseline health,
+and runs its proximity response. When `birth` finishes, it restores
+collision type `0x4042` and mask `0x201F`, reduces the linked tree's
+down count by one, lets the tree turn again if the count reaches zero,
+and enters Wait. The mask after rebirth differs from the constructor's
+initial `0x281F`;
 the reason for this difference and its terrain consequences need
-separate study. Tree death, interruption, event queue persistence and
+separate study. Root interruption, event queue persistence and
 save/load continuation remain open.
+
+## Tree death boundary
+
+The tree uses the common monster Die state, which selects `die` for a
+normal hit, `firedie` for fire and `icedie` for ice. Its animation list
+has no `projdie`, so that movement falls back to `die` if requested.
+After the death movement, the tree uses a class-specific finalizer. It
+retains the common experience award and creates a corpse from its
+authored `deadDts=mt_dead.kqs` whenever that field is present, even for
+Fire or Ice death. The ordinary monster finalizer would choose its
+corpse by damage kind. The tree then marks itself for removal. Its
+finalizer does not call the ordinary monster's script `Die` callback
+helper. Whether another point in the tree's death path sends a script
+callback remains open.
+
+## Save boundary
+
+The class property paths for both types can read and write their
+class-specific values through the game's binary property stream as
+well as its text form. This covers the root's authored offset, rebirth
+delay and proximity distances, plus stored baseline health and birth
+delay. The tree stores its down-root count and permitted maximum. The
+root's live reference to the tree is not among those class-specific
+properties. The dedicated root death state also stores its rebirth
+deadline and two phase flags. The live tree reference may be rebuilt
+by setup or restored through a shared object-reference path; load
+order, listener reattachment, state
+activation and collision restoration have not yet been traced.
+Save/load continuation remains open.
 
 ## Confirmed data
 
@@ -141,8 +201,8 @@ save/load continuation remain open.
    `icedie`, `laugh`, `react`, `stop`, `walk`. Its `attack` movement has
    no `Do` cue. `mandroot.anm` lists nine: `attack`, `birth`, `die`,
    `firedie`, `hide`, `icedie`, `react`, `stop`, `walk`. Its `attack`
-   movement has a `Do` cue at phase 0.1875. This is animation data;
-   whether or how the class uses those cues remains open.
+   movement has a `Do` cue at phase 0.1875. The shared melee cue
+   handler's effect is described above; other attack sources remain open.
 5. A read-only scan of all `.cs` entries in Swamp's `kq.vol` found no
    direct reference to the `mand` actor names or Mandragor classes.
    This does not rule out indirect script or engine interactions.
@@ -152,9 +212,8 @@ save/load continuation remain open.
 - Manager creation and setup order, missing-tree handling, and how
   team names affect targeting.
 - Exact first-frame and root death visibility, sight and attack
-  decisions, damage dispatch, the tree's `tooClose`/`repelDist`
-  behavior, and interruptions of root rebirth.
-- Tree hit/death effects, experience and drops, script callbacks,
+  decisions, non-cue damage paths, and interruptions of root rebirth.
+- Tree hit reactions, experience and drops, script callbacks,
   the end condition of a group, and save/load continuation.
 
 ## Do not reproduce

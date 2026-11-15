@@ -1381,6 +1381,37 @@ impl WorldState {
         }
     }
 
+    /// Q209: a Mandragor root follows its sibling tree's world pose rather
+    /// than taking an independent gravity or walking step.
+    fn sync_mandragor_roots(&mut self) {
+        let roots: Vec<_> = self.anims.iter().enumerate().filter_map(|(i, a)| {
+            let link = a.character.as_deref()?.mandragor_root.as_ref()?;
+            (!a.gone).then(|| (i, link.tree.clone(), link.offset, link.last_tree_pose))
+        }).collect();
+        for (i, tree_name, offset, last_tree_pose) in roots {
+            let Some(tree_i) = self.anim_index(&tree_name) else { continue };
+            if self.anims[tree_i].gone { continue; }
+            let tree_pose = self.anims[tree_i].player.base;
+            if last_tree_pose == Some(tree_pose) { continue; }
+            let pose = crate::character::mandragor_root_pose(tree_pose, offset);
+            let a = &mut self.anims[i];
+            a.character.as_deref_mut().unwrap().mandragor_root.as_mut().unwrap().last_tree_pose = Some(tree_pose);
+            if a.player.base == pose { continue; }
+            a.player.base = pose;
+            if let Some(mover) = a.character.as_deref_mut().and_then(|c| c.mover.as_deref_mut()) {
+                mover.position = pose.position;
+            }
+            let name = a.player.name.clone();
+            if let Some(k) = self.clickables.iter_mut().find(|k| k.name.eq_ignore_ascii_case(&name)) {
+                k.placement = a.player.placement();
+            }
+            self.character_note(&name, format!(
+                "Mandragor root follows {tree_name} at ({:.0}, {:.0}, {:.0})",
+                pose.position[0], pose.position[1], pose.position[2],
+            ));
+        }
+    }
+
     /// M4 4d-12-2: the characters solid for Connor, as cylinders where they
     /// stand now (`connor-collision.md` rules 2, 4, 18; `characters.md`
     /// rules 9, 16, 33): not deleted, with a box, not in Birth, its
@@ -5802,6 +5833,7 @@ impl Active {
         for i in 0..self.world.anims.len() {
             let a = &self.world.anims[i];
             if a.gone || a.character.is_none() { continue; }
+            if a.character.as_ref().is_some_and(|c| c.mandragor_root.is_some()) { continue; }
             let from = a.player.base.position;
             self.world.move_character(i, ground, buildings, objects, &mut by_mask);
             let to = self.world.anims[i].player.base.position;
@@ -5810,6 +5842,7 @@ impl Active {
                 self.character_placements();
             }
         }
+        self.world.sync_mandragor_roots();
         self.world.update_character_colliders();
     }
 
