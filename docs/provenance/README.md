@@ -1,5 +1,16 @@
 # Provenance
 
+**Dragon finish across a Rust disk save (2026-11-16).** The
+[Dragon study](../behaviour/dragon.md) establishes that two permanently
+defeated heads trigger the body's death and named world changes, and that
+the first head's permanent phase contributes after restoration. The new
+unattended test uses the installed IceWorld head/body/box data and the
+project's menu save/load path in two fresh Windows processes. It checks
+the saved Flame Sword and head state, then the body, box and wall response.
+This is Rust checkpoint evidence, not an original binary save comparison
+or an earned encounter. The implementation session read no executable or
+study scratch.
+
 **Dragon head defeat and rebirth (2026-11-15).** The separate
 [Dragon study](../behaviour/dragon.md) specifies the head's full-health
 record, `deadPause`, `lopt`/`rebirth` temporary route, equipped Flame

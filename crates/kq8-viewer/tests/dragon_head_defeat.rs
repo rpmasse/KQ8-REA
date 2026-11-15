@@ -66,3 +66,66 @@ fn dragon_heads_rebirth_or_stay_defeated_by_equipped_sword() {
     }
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
+fn first_permanent_head_finish_survives_a_fresh_process() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../kq8-artifacts/dragon-checkpoint/{nonce}"));
+    let slots = root.join("slots");
+    let run = |label: &str, args: &[&str]| {
+        let dir = root.join(label);
+        fs::create_dir_all(&dir).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+            .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
+            .args(["--windowed", "--sound", "off", "--no-ai", "--god"])
+            .args(args).output().unwrap();
+        fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+        let logs = dir.join("kq8-artifacts/logs");
+        let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+        assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+        (viewer, fs::read_to_string(logs.join("fight.log")).unwrap(),
+            fs::read_to_string(logs.join("doors.log")).unwrap())
+    };
+    let (before, fight_before, _) = run("save", &[
+        "--world", "IceWorld", "--at", "182334,490176,30902",
+        "--command", "KQMonster::inventory Connor INVITEM_FlameSword 1,2",
+        "--command", "KQConner::setDoMode 0,8",
+        "--console", "kill draglhed,15",
+        "--frames", "500",
+        "--key", "menu:down:down:enter:release:enter:release:escape:type=DragonFirst:enter:release:escape,50",
+    ]);
+    assert!(before.contains("Save screen -> Save(1, \"DragonFirst\")"), "inspect {}", root.display());
+    assert!(fight_before.contains("draglhed: Dragon head Die: Normal, health 0, non-solid; synge starts; permanently defeated")
+        && !fight_before.contains("dragbody: both heads permanently defeated"), "inspect {}", root.display());
+    let slot: serde_json::Value = serde_json::from_slice(&fs::read(slots.join("slot-1.json")).unwrap()).unwrap();
+    let characters = slot["kept"]["iceworld"]["characters"].as_array().unwrap();
+    let left = characters.iter().find(|c| c["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case("draglhed"))).unwrap();
+    assert_eq!(left["character"]["dragon_head"]["phase"], "Permanent", "inspect {}", root.display());
+    let body = characters.iter().find(|c| c["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case("dragbody"))).unwrap();
+    assert_eq!(body["character"]["state"], "Wait", "body died before the second head; inspect {}", root.display());
+    assert_eq!(slot["journey"]["weapon_mode"], "Hand", "inspect {}", root.display());
+    assert_eq!(slot["journey"]["weapon_ready"], "INVITEM_FlameSword", "inspect {}", root.display());
+    assert!(!slot["kept"]["iceworld"]["gone"].as_array().unwrap().iter().any(|n| n == "dragwall"),
+        "first defeat removed the wall; inspect {}", root.display());
+
+    let (after, fight_after, doors_after) = run("restore", &[
+        "--menu-input", "down,enter,release,enter,release",
+        "--console", "kill dragrhed,35",
+        "--command", "move Connor 0 182974 490884 30902 0 0 0,154",
+        "--click", "dragdbox,155",
+        "--updates", "175", "--frames", "1300",
+    ]);
+    assert!(after.contains("save restored in IceWorld without replaying Begin"), "inspect {}", root.display());
+    assert!(fight_after.contains("dragrhed: Dragon head Die: Normal, health 0, non-solid; synge starts; permanently defeated")
+        && fight_after.contains("dragbody: both heads permanently defeated: body enters Die")
+        && fight_after.contains("dragbody: Dragon body 'die' movement ended"), "inspect {}", root.display());
+    assert!(doors_after.contains("loadKQ: dragdbox came in: 1 drawn part(s) shown; registered collision [\"object box\"]")
+        && doors_after.contains("deleteObject dragwall: clickable object deleted")
+        && doors_after.contains("dragwall.cs line 7: KQMonster::speak Connor to Connor: 6000 35 14 106"),
+        "restored encounter did not reach the post-fight box response; inspect {}", root.display());
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
+}

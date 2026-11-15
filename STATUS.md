@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-16 M5 Dragon save continuation and surprise-line audit
+
+An unattended two-process IceWorld test now saves after one permanent Dragon
+head defeat, verifies the Flame Sword and still-living body in the disk slot,
+restores in a fresh process, defeats the other head and reaches the body's
+death, original box and post-fight speech. The final test passes 1/1 in
+82.63 seconds. This is a controlled Rust checkpoint, not an earned fight or
+comparison with an original game save. No manual gameplay test was run; the
+GOG installation was read only.
+
+A read-only scan of 176 world/character-file pairs found `Surprise` lines in
+six Dead City files and nowhere else in that set. `fighting.md` states the
+unseen-hit trigger and 20-second shared limit, but leaves selection and
+speech scheduling unspecified. Q214 now records the missing original rule;
+the Rust surprise response is still unimplemented. M5 remains about 65%.
+
 ## 2026-11-16 M5 Dragon two-head finish
 
 When both IceWorld heads are permanently defeated, the Dragon body now starts

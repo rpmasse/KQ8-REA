@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Check the Dragon finish across a disk save
+
+Added an unattended two-process IceWorld test. The first process equips the
+original Flame Sword, permanently defeats one head and saves through the menu.
+The slot retains that head's phase, Connor's ready sword, the living body and
+the intact wall. The next process restores the slot, defeats the other head,
+waits for the body's death movement, and checks the original box's collision
+and post-fight `dragwall.cs` response. The final test passes 1/1 in 82.63 s.
+The initial passing run was followed by explicit saved-sword/body assertions
+and the final passing run. No production rule changed.
+
+Also scanned 176 character-file pairs from the original GOG archives. Six
+Dead City files have `Surprise` keys; no others in that set do. The existing
+behavior note does not specify the line choice and speech scheduling, so Q214
+asks for those rules instead of guessing. GOG data was read only; no manual
+gameplay or original-executable comparison was performed.
+
 ## 2026-11-16 Finish the two-head Dragon transition
 
 The second permanent IceWorld Dragon head defeat now starts the body's `die`
