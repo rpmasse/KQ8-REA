@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-15 M5 scripted Unborn collision state
+
+`setState Unborn` already entered Birth but left the live `unborn` flag clear,
+so a risen actor could remain visible and solid. Apply `characters.md` rule
+16 at that command and check the downstream Connor collider in the existing
+zombie scenario. `cargo test -p kq8-core a_zombie_rises_chases_and_sinks_back
+-- --nocapture` passed 1/1. This is a focused scripted-transition check;
+other enemy families and original-runtime comparison are not tested. No
+manual testing or original executable inspection was performed.
+
 ## 2026-11-15 Rewrite the public README
 
 Replace the long technical README with a short project overview, KQ8R and

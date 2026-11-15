@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-15 M5 scripted Unborn transition
+
+`KQMonster::setState Unborn` now marks the actor underground when it enters
+Birth. The existing live-visibility and collision paths therefore hide it and
+remove its Connor collider. The focused core zombie scenario passes: it rises,
+chases, sinks and rises again, then a scripted Unborn request removes its live
+collider on the same update. Exact command: `cargo test -p kq8-core
+a_zombie_rises_chases_and_sinks_back -- --nocapture` (1 passed). No native
+Windows encounter or original-runtime comparison was performed for this
+scripted transition. M5 remains approximately 65%; other weapon/enemy
+families, bosses, exceptional damage and integrated campaign fights remain
+open. No manual testing was performed.
+
 ## 2026-11-15 DX12 animated-geometry regression corrected
 
 The shared Windows executable now passes the instance index explicitly

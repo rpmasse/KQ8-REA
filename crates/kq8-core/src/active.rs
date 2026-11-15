@@ -9132,6 +9132,19 @@ endif
         assert_eq!(log.matches("alarmed: seen from underground").count(), 2, "{log}");
         assert_eq!(log.matches("rises (rule 30)").count(), 2, "{log}");
         assert!(!a.world.anims[0].character.as_ref().unwrap().unborn);
+
+        // A script can also send a risen zombie back to Unborn. It must
+        // cease blocking Connor in the same update, before a later AI step.
+        a.world.characters_solid.insert("zom".into());
+        a.world.update_character_colliders();
+        assert_eq!(a.world.character_colliders.len(), 1);
+        let actor = &mut a.world.anims[0];
+        let line = actor.character.as_deref_mut().unwrap().set_state(
+            &mut actor.player, "Unborn", &[], a.world.updates as f64 / 15.0,
+        );
+        assert!(line.contains("underground"), "{line}");
+        a.world.update_character_colliders();
+        assert!(a.world.character_colliders.is_empty());
     }
 
     #[test]

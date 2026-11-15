@@ -2772,6 +2772,15 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Scripted Unborn transition (2026-11-15).** `characters.md` rule 16
+requires a character in the underground Birth state to be hidden and
+non-solid; the existing `setState Unborn` branch changes the state but
+leaves the live `unborn` flag clear. Set that flag when the command enters
+Birth. Use the existing zombie encounter fixture to check that a risen,
+solid character loses its Connor collider immediately, while the existing
+rise and natural `hide` paths still work. This closes this scripted
+transition only; enemy-family and full encounter checks remain separate.
+
 **Wait hit/attack-deadline correction (2026-11-06, implemented with open checks).** The separately
 authorized study answered Q190 in behaviour/henchman.md, correcting fighting
 rules 11 and 22.7: a surviving hit in Wait repairs the attack-in-progress

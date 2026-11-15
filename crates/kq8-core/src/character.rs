@@ -1020,7 +1020,8 @@ impl Character {
         } else if state.eq_ignore_ascii_case("Unborn") {
             self.state = State::Birth;
             self.wait_at = None;
-            notes.push("state Birth (Unborn); hiding a character that was drawn is not done (none in Daventry)".into());
+            self.unborn = true;
+            notes.push("state Birth (Unborn): underground, not drawn or solid (characters.md rule 16)".into());
         } else if state.eq_ignore_ascii_case("Move") {
             // character-movement.md "Edge cases": not active, it just
             // walks straight on (`walk`, as wandering asks: our reading).

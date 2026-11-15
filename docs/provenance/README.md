@@ -1,5 +1,13 @@
 # Provenance
 
+**Scripted Unborn state (2026-11-15).** The `setState Unborn` command and
+Birth's hidden, non-solid condition come from
+[characters.md](../behaviour/characters.md), rules 16 and 22. Existing
+`character-movement.md` rules 28 and 30 describe natural zombie sinking and
+rising. Implementation B used these prose notes and existing Rust systems;
+it did not inspect the original executable. The focused zombie check covers
+the command's immediate Connor-collider effect, not a native encounter.
+
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.
 
