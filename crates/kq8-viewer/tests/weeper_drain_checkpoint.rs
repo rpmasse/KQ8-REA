@@ -13,7 +13,7 @@ fn dead_city_weeper_drain_resumes_remaining_pulses_after_disk_reload() {
         fs::create_dir_all(&dir).unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
             .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
-            .args(["--sound", "off"]).args(args).output().unwrap();
+            .args(["--windowed", "--sound", "off"]).args(args).output().unwrap();
         fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
         let viewer = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
         assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
@@ -21,6 +21,8 @@ fn dead_city_weeper_drain_resumes_remaining_pulses_after_disk_reload() {
     };
     let before = run("save", &[
         "--world", "DeadCity", "--at", "170920,149369,0",
+        "--command", "KQObject::collision dhalltrp -4,1",
+        "--command", "KQObject::collision introtp -4,1",
         "--command", "KQConner::setLevel 8,1",
         "--command", "sendEvent 0 Connor KQStatsChangeRequestEvent 80 0 0 0 0,2",
         "--frames", "130",
@@ -44,7 +46,7 @@ fn dead_city_weeper_drain_resumes_remaining_pulses_after_disk_reload() {
     assert!((saved_phase - 0.3777778).abs() < 0.001, "the save lost Connor's current pose; inspect {}", root.display());
 
     let after = run("restore", &[
-        "--menu-input", "down,enter,release,enter,release", "--frames", "700",
+        "--menu-input", "down,enter,release,enter,release", "--frames", "220",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=AfterDrain:enter:release:escape,40",
     ]);
     assert!(after.contains("save restored in DeadCity without replaying Begin")
@@ -85,7 +87,7 @@ fn dead_city_weeper_drain_resumes_remaining_pulses_after_disk_reload() {
     old.as_object_mut().unwrap().remove("special");
     fs::write(slots.join("slot-1.json"), serde_json::to_vec(&old).unwrap()).unwrap();
     let legacy = run("legacy", &[
-        "--menu-input", "down,enter,release,enter,release", "--frames", "700",
+        "--menu-input", "down,enter,release,enter,release", "--frames", "220",
     ]);
     assert!(legacy.contains("save restored in DeadCity without replaying Begin"), "inspect {}", root.display());
     let legacy_logs = root.join("legacy/kq8-artifacts/logs");

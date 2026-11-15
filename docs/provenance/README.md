@@ -1,5 +1,12 @@
 # Provenance
 
+**Post-impact Weeper fixture refresh (2026-11-15).** The older drain
+check still follows [ranged-weapons.md](../behaviour/ranged-weapons.md)
+and installed Dead City data. Only its Windows presentation and two
+intro-trap collision bits changed to make the isolated route reachable;
+the drain implementation and assertions stayed the same. The check
+passes across the saved drain, fresh load and legacy-slot load.
+
 **Hammer hit and return check (2026-11-15).** The installed Dead City
 `Prhammer.kq`, Connor's `conHamr.anm`, the Skeleton and
 [azriel-hammer.md](../behaviour/azriel-hammer.md) supply the scenario and

@@ -2880,6 +2880,18 @@ route, not original-runtime midflight save semantics or every projectile.
 
 **Weeper post-impact drain checkpoint (effect implemented).** After impact the projectile is gone, but the world holds a drain with a tick and pulse count, a source and target, original `PRweeper.kq` settings, and live beam links indexed into animated objects. Optional version-2 slots now save those values and each beam link's name and position rather than its old vector index. After restoring placed characters, the drain rebuilds links from the installed templates and maps their new indices; the usual viewer spawn and sound paths draw them and restart the drain sound. An unattended Windows test saved Dead City's first drain at tick 17, pulse 4, with eight links and Connor at 76 health. A fresh process resumed pulses 5–12 exactly once, ended the drain, removed the links and saved Connor at 68 health; the looped sound started and stopped. Connor's `magicReact` phase is now restored by the standalone Special checkpoint below.
 
+**Post-impact drain fixture refresh (2026-11-15, verified).** Run the
+existing three-process Weeper drain check on the current Windows display.
+Use windowed presentation and remove only the two intro traps' Connor
+collision bits before its test teleport, as in the verified flight route.
+Keep the tick-17/pulse-4 checkpoint, resumed pulses 5–12, beam and audio
+checks, and legacy slot behavior. This is test setup only; retain the
+original-data drain implementation and its saved-state assertions.
+The corrected three-process check passes 1/1 in 135.27s on the current
+Windows display. The saved pulse-4 drain resumes pulses 5–12, ends once,
+rebuilds the beam links and starts/stops its sound; the older slot path
+still restarts the expected animation cue. No production code changed.
+
 **Weeper flight-to-drain disk checkpoint (2026-11-15, verified).** Use the
 installed Dead City Weeper and `PRweeper.kq` in an isolated windowed route.
 Keep the two intro traps from intercepting the test teleport by removing

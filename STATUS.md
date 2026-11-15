@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-15 M5 post-impact Weeper drain regression restored
+
+The existing three-process Weeper drain test now runs windowed and removes
+only the two Dead City intro traps' Connor collision bits before its
+teleport. It passes 1/1 in 135.27s: a pulse-4 save resumes pulses 5–12,
+ends once, restores the beam links and sound loop, and retains the older
+slot's animation-restart behavior. The assertions and production code did
+not change. Exact command: `cargo test -p kq8-viewer --test
+weeper_drain_checkpoint -- --ignored --nocapture` with `KQ8_GAME_DIR` set
+to the GOG install. No manual testing. M5 remains approximately 65%.
+
 ## 2026-11-15 M5 Hammer hit, return and menu lock
 
 An original-data Dead City Windows check now exercises Azriel's Hammer

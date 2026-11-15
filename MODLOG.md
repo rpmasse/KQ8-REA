@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-15 Refresh the post-impact Weeper drain fixture
+
+The older drain test needed windowed presentation on this display and
+had to avoid two intro traps crossing its teleport. Add those fixture
+settings and reduce each post-load run to 220 rendered frames, leaving
+all drain, beam, sound and legacy-slot assertions intact. The three-
+process check passes 1/1 in 135.27s. No production code or original
+game data changed; no manual testing was performed.
+
 ## 2026-11-15 Check Hammer hit, return and menu lock
 
 Add an unattended original-data Dead City check that gives Connor Azriel's
