@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-15 M5 Weeper flight continues through a disk save
+
+The installed Dead City Weeper now has a three-process automated checkpoint.
+Slot 1 holds `bolt1` at flight update 2 before impact. A fresh process loads
+it, creates eight drain links at collision, applies exactly twelve health
+pulses and one drain end, and saves Connor at 68 health. Its final combat
+state matches an uninterrupted route at the same world update. The check
+passes 1/1 in 122.81s. The first test run failed on a `3.0` versus `3`
+JSON assertion; the corrected assertion passed. Exact command and limits:
+`docs/weeper-flight-checkpoint.md`. This verifies Rust continuation with
+original game data, not the original executable's save behavior or a full
+campaign fight. No production code or game assets changed; no manual testing.
+M5 remains approximately 65%; other projectile/weapon families, bosses and
+integrated encounters remain open.
+
 ## 2026-11-15 M5 Rock flight survives a fresh-process save
 
 The original-data Daventry Rock route now has a three-process automated

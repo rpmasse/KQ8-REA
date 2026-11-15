@@ -1,5 +1,14 @@
 # Provenance
 
+**Weeper flight save check (2026-11-15).** The installed Dead City Weeper,
+`PRweeper.kq` and [ranged-weapons.md](../behaviour/ranged-weapons.md) supply
+the launch and drain behavior. The new test exercises existing Rust flight,
+collision, save and drain paths without changing them. The fixture removes
+the two intro traps' Connor collision bit to keep the test teleport from
+starting their scripts. A fresh-process load and an uninterrupted Rust run
+agree on the completed combat state. Original executable save behavior and
+native gameplay are not claimed.
+
 **Scripted Unborn state (2026-11-15).** The `setState Unborn` command and
 Birth's hidden, non-solid condition come from
 [characters.md](../behaviour/characters.md), rules 16 and 22. Existing

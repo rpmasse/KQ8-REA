@@ -29,6 +29,7 @@ cargo test --locked -p kq8-viewer --test movies -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
 cargo test --locked -p kq8-viewer --test rock_flight_checkpoint -- --ignored
 cargo test --locked -p kq8-viewer --test weeper -- --ignored
+cargo test --locked -p kq8-viewer --test weeper_flight_checkpoint -- --ignored --nocapture
 cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored
 cargo test --locked -p kq8-viewer --test cottage_journey -- --ignored
 cargo test --locked -p kq8-viewer --test daventry_wizard -- --ignored

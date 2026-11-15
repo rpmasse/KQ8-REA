@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-15 Check Weeper flight before impact across a disk save
+
+Add a three-process Windows original-data test for the Dead City Weeper.
+The fixture clears only two intro traps' Connor collision bits before the
+teleport, then saves `bolt1` after flight update 2. Reload produces one
+eight-link drain and twelve health pulses, and the completed slot matches
+an uninterrupted route. The corrected test passes 1/1 in 122.81s. The
+initial run failed only because its assertion compared JSON `3.0` with
+integer `3`. No production code changed. See
+`docs/weeper-flight-checkpoint.md` for the command and limits.
+
 ## 2026-11-15 Simplify the public README
 
 Clarify the KQ8R origin and planned REA-guided Rust conversion, condense the

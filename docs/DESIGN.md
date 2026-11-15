@@ -2881,6 +2881,25 @@ projectile variants.
 
 **Weeper post-impact drain checkpoint (effect implemented).** After impact the projectile is gone, but the world holds a drain with a tick and pulse count, a source and target, original `PRweeper.kq` settings, and live beam links indexed into animated objects. Optional version-2 slots now save those values and each beam link's name and position rather than its old vector index. After restoring placed characters, the drain rebuilds links from the installed templates and maps their new indices; the usual viewer spawn and sound paths draw them and restart the drain sound. An unattended Windows test saved Dead City's first drain at tick 17, pulse 4, with eight links and Connor at 76 health. A fresh process resumed pulses 5–12 exactly once, ended the drain, removed the links and saved Connor at 68 health; the looped sound started and stopped. Connor's `magicReact` phase is now restored by the standalone Special checkpoint below.
 
+**Weeper flight-to-drain disk checkpoint (2026-11-15, verified).** Use the
+installed Dead City Weeper and `PRweeper.kq` in an isolated windowed route.
+Keep the two intro traps from intercepting the test teleport by removing
+only their Connor collision bit before placement. Save with `bolt1` in
+flight after update 2 and before impact. In a fresh process, require the
+next collision to create the original eight beam links and a drain, then
+exactly twelve health pulses, one end, no second bolt and the saved final
+health. Compare with an uninterrupted route from the same setup. Preserve
+the earlier post-impact drain checkpoint. This verifies Rust continuation
+with original data, not the original executable's midflight save behavior.
+The three-process Windows check passes 1/1 in 122.81s. Slot 1 contains
+`bolt1` at flight update 2, with no active drain and Connor at 80 health.
+The restored flight hits on its first update, creates eight links, runs
+each of the twelve health pulses and one drain end, then saves Connor at
+68 health with no live bolt or drain and one shot counted. The final combat
+state matches the uninterrupted route saved at the corresponding update.
+An initial assertion failed because the saved duration is a JSON float
+(`3.0`); the corrected assertion passed. No production code changed.
+
 **Connor's standalone Special checkpoint (implemented for the Weeper reaction and weapon swaps).** Optional version-2 slots save a Special movement's current phase, cue cursor, resolved movement list and list index, plus pending turn and transition state. Movement names resolve against the installed GOG lists after world load; malformed slots are rejected. This checkpoint is skipped when a separately modeled melee, ranged, throw or rope action owns the Special state; a weapon swap now pairs it with the weapon checkpoint below. On a Weeper drain reload, it takes precedence over the compatibility path that restarts `magicReact`; older drain slots without it still restart. The unattended two-process Dead City test saved phase 0.3778 and resumed at 0.4000 on the first update. The earlier `magicrct.aud` cue did not replay, and the health pulses and drain end stayed correct. Other Special lists and overlapping actions need later checks before claiming general cutscene persistence.
 
 **Connor hit timing checkpoint (implemented for a scripted hit).** The Special checkpoint keeps a `react` pose. Optional version-2 saves now also retain the remaining two-second flinch pause and one-second ouch limit relative to Connor's 15 Hz clock, validate them, and rebuild deadlines after loading. An unattended two-process Windows check used the GOG Dead City data and a scripted damage event. The saved `react` phase advanced from 0.3333 on its first resumed update; a hit at update 3 neither flinched nor played a second ouch, one at update 21 was past the animation but still inside the flinch pause and played an ouch, and one at update 61 flinched again. Older slots omit the field. Other overlapping combat and cutscene actions still need checkpoints.
