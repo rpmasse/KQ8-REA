@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-16 Simplify the project README
+
+Rewrote the README as a short overview of the game's origin, the planned
+REA-guided Rust converter, M0–M7 progress, the GOG-copy requirement and
+later modernization goals. Kept the phase percentages as estimates and
+stated that REA is not yet integrated. Documentation only; no gameplay
+or build behavior changed.
+
 ## 2026-11-16 Start Lucreto's altar fire when the script loads it
 
 Temple 4's `lucfire.kq` is now prepared as an invisible runtime effect,
