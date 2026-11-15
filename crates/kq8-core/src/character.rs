@@ -216,6 +216,8 @@ pub struct MandragorRoot {
     pub linked: bool,
     pub offset: [f32; 3],
     pub rebirth_delay: f64,
+    pub too_close: f32,
+    pub repel_dist: f32,
     pub baseline_health: i64,
     pub phase: MandragorRootPhase,
     pub last_tree_pose: Option<crate::collide::Placement>,

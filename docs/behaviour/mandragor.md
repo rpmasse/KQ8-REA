@@ -99,10 +99,31 @@ meaning and any health effect have not yet been established. Another
 root event method distinguishes messages from its linked tree and
 updates the root pose before running a proximity response. The trigger
 and timing of that message remain open. The response checks Connor's
-horizontal distance against the root's `tooClose` value. If Connor is
-inside it and in a susceptible movement state, the root sends him a
-movement event using `repelDist` and selects his `reactback` movement.
-The exact displacement vector and collision aftermath remain open.
+horizontal distance from the root against its `tooClose` value. If
+Connor is closer than that radius and not already in Special state,
+the root sends him an immediate absolute move event. Its requested
+horizontal destination is the root's current position plus
+`repelDist` along the direction from Connor toward the linked tree;
+it keeps Connor's current height. It then asks for Connor's Special
+`reactback` movement. For the shipped roots those values are 700 and
+800 respectively. The helper itself sends no damage or health event.
+The move follows Connor's ordinary mover path, so walls, terrain or
+overlapping actors may affect the final placement; that collision
+outcome remains open.
+
+The original root sends the plain Special movement name `reactback`.
+Special requests it from Connor's currently active movement list; the
+root does not load a separate animation list. The installed
+`GAME/Kq/Connor.kq` references 46 distinct normal, hand-weapon, ranged
+and first-person `.anm` lists, and every one contains `reactback`.
+For example, `conner.anm` uses `c_rctbk.kqs`, `conbswd.anm` uses
+`bsrctbk.KQS`, `conscbow.anm` uses `scbrctbk.KQS`, and first-person
+lists use `fp_rctbk.KQS`. The original therefore plays the active
+list's movement without an alternate-list lookup in this encounter.
+If a malformed active list truly omitted a requested movement, the
+shared animation player would use movement zero of that same list;
+all 46 installed lists name that movement `attack`. This fallback is
+not needed for the installed `reactback` data.
 
 The roots retain the common monster attack and animation-cue handler.
 Their `attack` movement has a `Do` cue at phase 0.1875, so the shared
@@ -116,10 +137,14 @@ rule 13, then sends the root's 15 hand damage on a hit. The root class
 has no separate target-selection or attack-cue override. This
 establishes the ordinary Connor-target route; interactions with team
 targets and the tree's influence on root facing need further study.
-The tree's `attack` movement uses its standing
-model and has no `Do` cue. Its ordinary melee hit test therefore has
-no cue at which to run. No separate tree attack-hit callback was found
-in its class methods; any contact damage or other source remains open.
+The tree's `attack` movement uses its standing model and has no `Do`
+cue. Its ordinary melee hit test therefore has no cue at which to run.
+Its class replaces neither the shared attack-cue handler nor the
+ordinary attack state, and its class file names no script or contact
+action. Under these shipped data and shared attack rules, the tree's
+ordinary Attack movement does not deliver its authored 25 hand damage.
+Generic collision effects and indirect external events remain open;
+the class-specific methods examined show no separate outgoing hit.
 The tree's Wait-entry method also limits one target-position update to
 when Connor's distance is within its alarm radius; the roots retain the
 ordinary Wait-entry method. This does not by itself establish the full
@@ -239,8 +264,8 @@ Save/load continuation remains open.
 
 - Manager creation and setup order, missing-tree handling, and how
   team names affect targeting.
-- Exact first-frame and root death visibility, tree damage path,
-  team targeting and the collision/notification order during root rebirth.
+- Exact first-frame and root death visibility, team targeting,
+  proximity-move collision outcome and notification order during rebirth.
 - Tree hit reactions, experience and drops, script callbacks,
   the end condition of a group, and save/load continuation.
 

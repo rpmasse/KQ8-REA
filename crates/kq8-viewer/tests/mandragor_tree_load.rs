@@ -82,6 +82,39 @@ fn swamp_mandragor_trees_and_roots_load_as_animated_characters() {
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
+fn an_original_swamp_root_pushes_nearby_connor_after_tree_move() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../kq8-artifacts/mandragor-root-proximity/{nonce}"));
+    fs::create_dir_all(&dir).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+        .current_dir(&dir).arg("--game").arg(&game)
+        .args([
+            "--world", "Swamp", "--at", "161000,140100,0", "--sound", "off",
+            "--windowed", "--command", "move mand3t 0 160000 140000 6120 0 0 1.5707963,10",
+            "--updates", "25",
+        ])
+        .output().unwrap();
+    fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+    let logs = dir.join("kq8-artifacts/logs");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
+    let connor = fs::read_to_string(logs.join("connor.log")).unwrap();
+    assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+    assert!(characters.contains("mand3r: Mandragor proximity:"), "right root did not respond; inspect {}", dir.display());
+    assert!(connor.contains("moved Connor from (161000, 140100")
+        && connor.contains("to (160204, 140520") && connor.contains("KQMoveEvent"),
+        "Connor's mover did not receive the root destination; inspect {}", dir.display());
+    assert!(viewer.contains("connor: movement reactback = movement"), "shipped Connor reactback was not loaded; inspect {}", dir.display());
+    assert!(connor.contains("special: plays reactback (") && !connor.contains("movement reactback not loaded"),
+        "Connor did not play his active-list reaction; inspect {}", dir.display());
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
 fn a_swamp_root_rises_without_repeated_tree_pose_resets() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR"))
         .unwrap();

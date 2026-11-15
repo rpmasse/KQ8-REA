@@ -386,7 +386,7 @@ pub fn load_model(
 /// connor-movement.md "Starting and stopping") and wading (2h, water.md).
 /// Transitions to or via a movement not listed here are skipped. M4 4e-7
 /// adds his gestures; M5 5c-4 his flinch and deaths from a hit.
-pub const CONNOR_MOVEMENTS: [&str; 60] = [
+pub const CONNOR_MOVEMENTS: [&str; 61] = [
     "stop",
     "walk",
     "run",
@@ -436,6 +436,7 @@ pub const CONNOR_MOVEMENTS: [&str; 60] = [
     "gestureh",
     // Hit (M5 5c-4, fighting.md rule 29): the flinch, the deaths.
     "react",
+    "reactback",
     "die",
     "dropweapon",
     "firedie",

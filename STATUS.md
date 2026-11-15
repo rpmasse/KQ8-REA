@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-15 M5 Mandragor root proximity move
+
+The linked Swamp roots now read their original 700-unit proximity radius
+and 800-unit push distance. A tree move or root rebirth checks Connor's
+horizontal distance and Special state, then sends an absolute move event
+through Connor's normal mover and requests `reactback`. The helper does
+not directly change health. Three focused proximity checks and the
+existing two root checks pass; the unattended original-data Swamp route
+passes 1/1 in 22.05 s with the corrected animation loader and records
+Connor's requested move from (161000, 140100) to (160204, 140520).
+The installed Connor movement
+lists include `reactback`; the viewer now loads it from the active
+normal, weapon or first-person list, and the Swamp route plays it.
+The event is queued in the root's update and applied by the viewer on
+the following update; the
+original immediate ordering is still open. Wall/terrain outcomes, other
+notification triggers, and original binary save continuation remain
+open. Core passes 759 active tests, data 158 and viewer 64. The
+generic Special missing-name fallback to movement zero is also open.
+The final grouped Mandragor Windows checks pass 7/7 in 298.41 s.
+No manual gameplay test was run; the GOG installation was read only.
+M5 remains about 65%.
+
 ## 2026-11-15 M5 ordinary hand-weapon matrix
 
 Ten installed hand weapons beyond the separately checked Small Axe and

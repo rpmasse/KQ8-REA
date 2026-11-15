@@ -2780,12 +2780,15 @@ impl ConnorSim {
     /// line for the script logs.
     pub fn start_special(&mut self, items: &str, at: &str) -> String {
         let movements = &self.movements;
+        let current_set = self.weapon_set.as_deref();
         let resolve = |list: Option<&str>, word: &str| -> Option<&'static str> {
-            let wanted = match list {
-                Some(l) => kq8_core::connor::special_movement_name(l, word),
-                None => word.to_string(),
-            };
-            movements.iter().find(|m| m.name.eq_ignore_ascii_case(&wanted)).map(|m| m.name)
+            match list {
+                Some(file) => {
+                    let wanted = kq8_core::connor::special_movement_name(file, word);
+                    movements.iter().find(|m| m.name.eq_ignore_ascii_case(&wanted)).map(|m| m.name)
+                }
+                None => find(movements, current_set, word).map(|m| m.name),
+            }
         };
         let steps = kq8_core::connor::special_steps(items, &resolve);
         let plays: Vec<&str> = steps.iter().filter_map(|s| if let kq8_core::connor::SpecialStep::Play(n, _) = s { Some(*n) } else { None }).collect();

@@ -1,5 +1,55 @@
 # MODLOG
 
+## 2026-11-15 Trace Connor reactback list selection
+
+Study session A checked the original Special movement request and the
+installed `Connor.kq` list map. The root requests plain `reactback` from
+Connor's active animation list; every one of the 46 normal, weapon and
+first-person lists contains that movement. A genuinely missing name
+would fall back to movement zero of the same active list, but that case
+does not apply to the shipped root encounter. The prior missing
+animation was a viewer loader omission, not absent GOG data. This
+study made no Rust or game-file changes and performed no manual test.
+
+## 2026-11-15 Play Connor's active-list reactback
+
+Load the shipped `reactback` movement from Connor's base and current
+weapon lists, and resolve a plain Special name against his active list.
+A focused normal/weapon/first-person selection check passes 1/1, the
+viewer unit suite passes 64 active tests, and the unattended GOG-data
+Swamp route passes 1/1 in 22.05 s. Its log shows the real `reactback`
+clip advancing and firing its authored sound cue. The final grouped
+Mandragor Windows checks pass 7/7 in 298.41 s. The generic
+missing-name movement-zero fallback remains open. No manual gameplay
+test was run and the GOG installation was read only.
+
+## 2026-11-15 Add Mandragor root proximity move
+
+Read the roots' `tooClose` and `repelDist` keys and respond to a moved
+tree or the start of root rebirth. A nearby Connor receives a zero-delay
+absolute `KQMoveEvent` through his established mover and a Special
+`reactback` request; the helper itself changes no health. Focused core
+checks pass 5/5, and an unattended GOG-data Swamp route passes 1/1 in
+23.05 s on the final rerun, moving Connor from (161000, 140100)
+to (160204, 140520).
+The viewer applies the queued move on the following update; original
+immediate ordering remains open. The earlier viewer loader omitted
+`reactback` despite its presence in the GOG lists; the fix is above.
+The GOG installation was read only. No manual gameplay test was run.
+
+## 2026-11-15 Trace Mandragor attack and root proximity move
+
+Study session A confirmed that the tree's ordinary Attack has no hit
+cue or class-specific outgoing hit, so it does not deliver the listed
+hand damage through the common melee path. A linked root that finds
+Connor within its 700-unit horizontal proximity radius sends an
+immediate absolute move toward the tree from the root's position, at
+the authored 800-unit displacement, and requests Special `reactback`.
+That helper sends no health hit. Ordinary mover collision effects and
+original binary disk-load listener reattachment remain unverified.
+The findings and limits are recorded in `mandragor.md` and Q209. This
+study changed no Rust or game files and performed no manual testing.
+
 ## 2026-11-15 Check ten ordinary hand weapons
 
 Add one unattended GOG-data Dead City matrix for Dagger, Broad Sword,

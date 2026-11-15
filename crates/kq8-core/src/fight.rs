@@ -1378,6 +1378,7 @@ impl crate::active::WorldState {
                 (a.player.name.clone(), health)
             };
             self.fight_note(&name, format!("Mandragor root rebirth due: restores health {health}, starts birth"));
+            self.mandragor_root_proximity(i);
         }
     }
 

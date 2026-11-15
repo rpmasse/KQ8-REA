@@ -600,6 +600,9 @@ pub struct CharacterKeys {
     pub mandragor_offset: Option<[f32; 3]>,
     /// Seconds between a Mandragor root's `die` ending and its next `birth`.
     pub mandragor_rebirth_delay: Option<f32>,
+    /// Horizontal response radius and push distance for a Mandragor root.
+    pub mandragor_too_close: Option<f32>,
+    pub mandragor_repel_dist: Option<f32>,
     /// Model-space launch points used if the attack frame lacks the projectile's mesh.
     pub shoot_offsets: Vec<(String, [f32; 3])>,
     /// `animFile=`: its movement list.
@@ -723,6 +726,8 @@ impl CharacterKeys {
                 ])
             }).flatten(),
             mandragor_rebirth_delay: (class == Class::MandragorRoot).then(|| number("rebirthDelay").map(|v| v as f32)).flatten(),
+            mandragor_too_close: (class == Class::MandragorRoot).then(|| number("tooClose").map(|v| v as f32)).flatten(),
+            mandragor_repel_dist: (class == Class::MandragorRoot).then(|| number("repelDist").map(|v| v as f32)).flatten(),
             class,
             anim_file: text("animFile"),
             idle_anim_file: text("idleAnimFile"),

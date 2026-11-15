@@ -37,6 +37,30 @@ pub(super) fn controller() -> ConnorSim {
     sim
 }
 
+#[test]
+fn plain_special_reactback_uses_connors_active_movement_list() {
+    for (bank, expected) in [
+        (None, "reactback"),
+        (Some("fists.anm"), "fists.anm/reactback"),
+        (Some("fpown.anm"), "fpown.anm/reactback"),
+    ] {
+        let mut sim = controller();
+        for (name, first_person) in [
+            ("reactback", false),
+            ("fists.anm/reactback", false),
+            ("fpown.anm/reactback", true),
+        ] {
+            sim.movements.push(DrawnMovement { name, qualified: name, first_person,
+                movement_loop: MovementLoop { duration: 0.8, frames: 12, repeat: false,
+                    cut_short: false, speed: 1.0, ..Default::default() },
+                frames: 12, anim: 0, parts: vec![] });
+        }
+        sim.weapon_set = bank.map(str::to_string);
+        sim.start_special("reactback", "active-list check");
+        assert_eq!(sim.walker.movement, expected, "active bank {bank:?}");
+    }
+}
+
 pub(super) fn active(types: &ItemTypes) -> (Active, String) {
     let mut a = Active::new(Default::default(), vec![], vec![], ["Connor".to_string()], []);
     a.world.items = Items::new(types.clone(), []);

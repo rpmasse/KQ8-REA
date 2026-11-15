@@ -186,6 +186,8 @@ pub fn character(
                 linked: true,
                 offset,
                 rebirth_delay: f64::from(k.mandragor_rebirth_delay.unwrap_or(0.0)),
+                too_close: k.mandragor_too_close.unwrap_or(0.0),
+                repel_dist: k.mandragor_repel_dist.unwrap_or(0.0),
                 baseline_health: 0,
                 phase: kq8_core::character::MandragorRootPhase::Alive,
                 last_tree_pose: None,

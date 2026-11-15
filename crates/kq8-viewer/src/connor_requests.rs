@@ -445,9 +445,15 @@ impl Dispatch<'_> {
                 "Wait admitted; ordinary Stop request".into()
             }
             Request::ConnorSpecial { items, at } => {
+                let current_set = self.weapon_set.as_deref();
                 let resolve = |list: Option<&str>, word: &str| {
-                    let wanted = list.map_or_else(|| word.to_string(), |l| kq8_core::connor::special_movement_name(l, word));
-                    self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(&wanted)).map(|m| m.name)
+                    match list {
+                        Some(file) => {
+                            let wanted = kq8_core::connor::special_movement_name(file, word);
+                            self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(&wanted)).map(|m| m.name)
+                        }
+                        None => find(self.movements, current_set, word).map(|m| m.name),
+                    }
                 };
                 let steps = kq8_core::connor::special_steps(&items, &resolve);
                 format!("{at}: special {items}: {}", walker.start_special(steps).join("; "))

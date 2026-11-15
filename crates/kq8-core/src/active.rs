@@ -1397,7 +1397,10 @@ impl WorldState {
             let pose = crate::character::mandragor_root_pose(tree_pose, offset);
             let a = &mut self.anims[i];
             a.character.as_deref_mut().unwrap().mandragor_root.as_mut().unwrap().last_tree_pose = Some(tree_pose);
-            if a.player.base == pose { continue; }
+            if a.player.base == pose {
+                if last_tree_pose.is_some() { self.mandragor_root_proximity(i); }
+                continue;
+            }
             a.player.base = pose;
             if let Some(mover) = a.character.as_deref_mut().and_then(|c| c.mover.as_deref_mut()) {
                 mover.position = pose.position;
@@ -1410,7 +1413,41 @@ impl WorldState {
                 "Mandragor root follows {tree_name} at ({:.0}, {:.0}, {:.0})",
                 pose.position[0], pose.position[1], pose.position[2],
             ));
+            if last_tree_pose.is_some() {
+                self.mandragor_root_proximity(i);
+            }
         }
+    }
+
+    /// Q209: a linked root reacts to a tree-movement notification or the
+    /// start of its rebirth. The move event is resolved by Connor's normal
+    /// mover; this helper does not deal damage or guess collision outcomes.
+    pub(crate) fn mandragor_root_proximity(&mut self, i: usize) {
+        let Some(connor) = self.connor_at else { return };
+        if self.connor_state == Some(crate::character::state_number::SPECIAL) { return; }
+        let Some(root) = self.anims.get(i) else { return };
+        let Some(link) = root.character.as_deref().and_then(|c| c.mandragor_root.as_ref()) else { return };
+        if !link.linked || link.too_close <= 0.0 || link.repel_dist <= 0.0 { return; }
+        let Some(tree_i) = self.anim_index(&link.tree) else { return };
+        if self.anims[tree_i].gone { return; }
+        let root_at = root.player.base.position;
+        let tree_at = self.anims[tree_i].player.base.position;
+        let nearby = (connor[0] - root_at[0]).hypot(connor[1] - root_at[1]);
+        if nearby >= link.too_close { return; }
+        let toward_tree = [tree_at[0] - connor[0], tree_at[1] - connor[1]];
+        let length = toward_tree[0].hypot(toward_tree[1]);
+        if length <= f32::EPSILON { return; }
+        let destination = [
+            root_at[0] + link.repel_dist * toward_tree[0] / length,
+            root_at[1] + link.repel_dist * toward_tree[1] / length,
+            connor[2],
+        ];
+        let name = root.player.name.clone();
+        let data = ["0".to_string(), destination[0].to_string(), destination[1].to_string(),
+            destination[2].to_string(), "0".into(), "0".into(), self.connor_heading.to_string()];
+        self.queue.send(self.now(), 0.0, CONNOR, "KQMoveEvent", &data, &format!("Mandragor root {name}"));
+        self.requests.push(Request::ConnorSpecial { items: "reactback".into(), at: format!("Mandragor root {name}") });
+        self.character_note(&name, format!("Mandragor proximity: Connor horizontal distance {nearby:.1}, move event toward ({:.1}, {:.1}, {:.1}), reactback, no direct damage", destination[0], destination[1], destination[2]));
     }
 
     /// M4 4d-12-2: the characters solid for Connor, as cylinders where they
@@ -7267,6 +7304,12 @@ impl Active {
         // objects.md "Loops that move the whole object" rule 3 (batch 2,
         // D-1): on an object it is a `move` with the same flag bits; only
         // 7 numbers are read after the flags (the 8th is ignored).
+        if e.kind == "KQMoveEvent" && e.target.eq_ignore_ascii_case(CONNOR) {
+            let mut words = vec!["move".to_string(), CONNOR.to_string()];
+            words.extend(e.data.iter().take(7).cloned());
+            self.world.move_command(&words, &format!("KQMoveEvent{from}"));
+            return;
+        }
         if e.kind == "KQMoveEvent" && !e.target.eq_ignore_ascii_case(CONNOR) && !e.target.eq_ignore_ascii_case("KQCamera") {
             // Q176 (answered; I-2 not built, the user's choice
             // 2026-10-31): in the original a relative move from the
@@ -9257,10 +9300,70 @@ endif
         c.mandragor_root = Some(crate::character::MandragorRoot {
             tree: "mand3t".into(), linked: true, offset: [600.0, -1000.0, 0.0],
             rebirth_delay: delay, baseline_health: 15,
+            too_close: 700.0, repel_dist: 800.0,
             phase: crate::character::MandragorRootPhase::Alive, last_tree_pose: None,
         });
         c.state = crate::character::State::Wait;
         a
+    }
+
+    #[test]
+    fn mandragor_root_proximity_queues_connors_move_and_reactback() {
+        let mut a = mandragor_root_fixture(4.0);
+        a.world.anims[0].player.base.position = [100.0, 0.0, 0.0];
+        a.world.anims[1].player.base.position = [0.0, 0.0, 0.0];
+        a.world.connor_at = Some([100.0, -600.0, 42.0]);
+        a.world.connor_heading = 1.25;
+        a.world.connor_state = Some(crate::character::state_number::WAIT);
+        a.world.register_event_receiver(CONNOR);
+        a.world.mandragor_root_proximity(0);
+        a.handle_due(a.world.now());
+        let move_request = a.world.requests.iter().find_map(|r| match r {
+            Request::Move { who, flags, position, turn, .. } if who == CONNOR => Some((*flags, *position, *turn)),
+            _ => None,
+        }).expect("root sends Connor an immediate move event");
+        let direction_length = 100.0_f32.hypot(600.0);
+        let expected = [100.0 - 800.0 * 100.0 / direction_length,
+            800.0 * 600.0 / direction_length, 42.0];
+        assert_eq!(move_request.0, 0);
+        assert!((move_request.1[0] - expected[0]).abs() < 0.01);
+        assert!((move_request.1[1] - expected[1]).abs() < 0.01);
+        assert_eq!(move_request.1[2], 42.0);
+        assert_eq!(move_request.2, [0.0, 0.0, 1.25]);
+        assert!(a.world.requests.iter().any(|r| matches!(r, Request::ConnorSpecial { items, .. } if items == "reactback")));
+    }
+
+    #[test]
+    fn mandragor_root_proximity_respects_radius_and_special_state() {
+        let mut a = mandragor_root_fixture(4.0);
+        a.world.anims[0].player.base.position = [100.0, 0.0, 0.0];
+        a.world.anims[1].player.base.position = [0.0, 0.0, 0.0];
+        a.world.connor_state = Some(crate::character::state_number::WAIT);
+        a.world.connor_at = Some([100.0, -700.0, 42.0]);
+        a.world.mandragor_root_proximity(0);
+        a.handle_due(a.world.now());
+        assert!(a.world.requests.is_empty(), "distance exactly equal to tooClose is outside");
+        a.world.connor_at = Some([100.0, -600.0, 42.0]);
+        a.world.connor_state = Some(crate::character::state_number::SPECIAL);
+        a.world.mandragor_root_proximity(0);
+        a.handle_due(a.world.now());
+        assert!(a.world.requests.is_empty(), "Special Connor cannot be pushed again");
+    }
+
+    #[test]
+    fn mandragor_root_rebirth_rechecks_connors_proximity() {
+        let mut a = mandragor_root_fixture(4.0);
+        a.world.anims[0].player.base.position = [100.0, 0.0, 0.0];
+        a.world.anims[1].player.base.position = [0.0, 0.0, 0.0];
+        a.world.connor_at = Some([100.0, -600.0, 42.0]);
+        a.world.connor_state = Some(crate::character::state_number::WAIT);
+        a.world.anims[0].character.as_deref_mut().unwrap().mandragor_root.as_mut().unwrap().phase = crate::character::MandragorRootPhase::Waiting(0.0);
+        a.world.mandragor_roots_due(0.0);
+        a.handle_due(a.world.now());
+        assert!(a.world.requests.iter().any(|r| matches!(r, Request::Move { who, .. } if who == CONNOR)));
+        assert!(a.world.requests.iter().any(|r| matches!(r, Request::ConnorSpecial { items, .. } if items == "reactback")));
+        assert_eq!(a.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase,
+            crate::character::MandragorRootPhase::BirthMovement);
     }
 
     #[test]
