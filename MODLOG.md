@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-15 Route trap Lookup notice to trap log
+
+The queued Lookup notice followed trap Init but was logged in the general
+door log. Put that line in the trap log, preserving the event and its
+timing. Keep the log-isolation assertion and include leaked lines in its
+failure message. The full core suite passes 747/747 active tests; 26
+remain ignored. No original data or manual gameplay changed.
+
 ## 2026-11-15 Inventory missing specialized M5 actors
 
 Read the installed Swamp and IceWorld monster-list audit and compare its

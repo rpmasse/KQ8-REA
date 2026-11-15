@@ -1,5 +1,12 @@
 # Provenance
 
+**Trap Lookup log routing (2026-11-15).**
+[scripted-controller-commands.md](../behaviour/scripted-controller-commands.md)
+rule 7 supplies the unconditional due-now Lookup after trap Init. The
+existing Rust event scheduling remains intact; only its diagnostic line
+now follows the other trap activity into `traps.log`. Core regression
+checks pass without original executable inspection.
+
 **Combat tutorial regression checks (2026-11-15).**
 [pickup-tutorials.md](../behaviour/pickup-tutorials.md) rules 8–9 replace
 the older first-hit and first-kill log expectations in two core tests.

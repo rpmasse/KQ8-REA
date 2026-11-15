@@ -4288,7 +4288,7 @@ impl WorldState {
         // scripted-controller-commands.md rule 7; saved-world-events.md rule 2.
         let name = t.settings.name.clone();
         self.queue.send(self.now(), 0.0, &name, TRAP_LOOKUP_EVENT, &[], reason);
-        self.note(format!("trap {name}: Lookup notice queued after {reason} (scripted-controller-commands.md rule 7)"));
+        self.trap_log.push(format!("update {}: trap {name}: Lookup notice queued after {reason} (scripted-controller-commands.md rule 7)", self.updates));
     }
 
     /// Each registration posts its own lookup; saved/live work is not deduplicated.
@@ -7886,7 +7886,8 @@ endif
         assert_eq!(a.scripts.vars.get("T::Out"), Some("Connor"));
         let log = a.take_trap_log().join("\n");
         assert!(log.contains("script trap.cs clifTrap Init") && log.contains("trap clifTrap: On Connor at (-600, 0, 0)"), "{log}");
-        assert!(a.take_log().is_empty(), "trap lines stay out of doors.log");
+        let door_log = a.take_log();
+        assert!(door_log.is_empty(), "trap lines stay out of doors.log: {door_log:?}");
     }
 
     #[test]

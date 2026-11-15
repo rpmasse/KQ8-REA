@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-15 Core regression suite restored
+
+The last core failure came from a trap Lookup notice written to the
+general log after Init. It now goes to the trap log with the other trap
+activity. The assertion prints any future general-log leak. `cargo test
+--locked -p kq8-core --lib -- --quiet` passes: 747 passed, 0 failed,
+26 ignored. Trap behavior and game files were not changed; no manual
+gameplay test was run. This restores the core gate for further M5 work.
+
 ## 2026-11-15 M5 specialized actor study gates identified
 
 The read-only original-data audit found 11 Swamp Mandragor tree/root
