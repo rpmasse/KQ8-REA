@@ -1,5 +1,18 @@
 # Provenance
 
+**Mandragor root combat and rebirth (2026-11-15).** The separate
+[Mandragor study](../behaviour/mandragor.md) establishes shared root
+attack/`Do` handling, timed root death and rebirth, tree down-count and
+turn blocking, and the tree-death link-clearing rule. Implementation B
+loaded the installed root fight settings and 4/5-second delays and
+retained the live phase and remaining time in Rust checkpoints. A
+focused Rust check covers both delays and tree-death overlap; an
+unattended Swamp route logs the root's hand hit and both rebirths. A
+fresh-process GOG-data slot test confirms Rust timer continuation. It
+does not prove the original binary's disk-load listener sequence or
+full encounter parity. Implementation B used the study prose and
+installed assets without reading the executable or study scratch.
+
 **Mandragor tree combat stats and death (2026-11-15).** The separate
 [Mandragor study](../behaviour/mandragor.md) establishes shared monster
 damage/Die movement and the tree's special finalizer: an authored

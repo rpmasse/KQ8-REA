@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-15 M5 Mandragor root combat and rebirth
+
+The Swamp roots now use their authored combat stats and shared attack
+cue. In an unattended original-data route, `mand3r` hit Connor for hand
+damage 15. Lethal hits made both roots non-solid; the right root waited
+four seconds and the left five after `die`, then each played `birth`,
+regained health 250 and restored collision `0x4042/0x201F`. No root
+corpse was made. A fresh-process disk slot saved `mand3r` while down
+and restored its remaining timer, health, collision and its tree's
+down-root count. Focused checks cover tree death during rebirth. Core
+passes 756 active tests and data passes 158; the grouped Mandragor
+Windows check passes 5/5 in 250.34 s. The original binary's exact save-load listener
+sequence, tree attack effect and root proximity push remain open.
+No manual gameplay test was run; the GOG installation was read only.
+M5 remains about 65%.
+
 ## 2026-11-15 M5 Mandragor tree death
 
 All 11 Swamp trees now load their authored combat stats. A tree hit by

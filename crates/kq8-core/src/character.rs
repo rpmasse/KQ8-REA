@@ -128,6 +128,8 @@ pub struct Character {
     pub tower: Option<crate::tower_skeleton::Tower>,
     /// Swamp Mandragor tree: its death finalizer keeps `deadDts` for every hit kind.
     pub mandragor_tree: bool,
+    /// Number of roots currently in the tree's timed death cycle.
+    pub mandragor_down_roots: u8,
     /// A Swamp root whose position follows a sibling Mandragor tree.
     pub mandragor_root: Option<MandragorRoot>,
     /// KQLucreto's post-stagger standing interval (fighting.md rule 23).
@@ -211,8 +213,20 @@ pub struct Character {
 #[derive(Debug, Clone)]
 pub struct MandragorRoot {
     pub tree: String,
+    pub linked: bool,
     pub offset: [f32; 3],
+    pub rebirth_delay: f64,
+    pub baseline_health: i64,
+    pub phase: MandragorRootPhase,
     pub last_tree_pose: Option<crate::collide::Placement>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum MandragorRootPhase {
+    Alive,
+    DieMovement,
+    Waiting(f64),
+    BirthMovement,
 }
 
 /// Q209: the tree turns the root's authored offset, while the root itself
@@ -301,6 +315,7 @@ impl Character {
             mouth_moves: false,
             tower: None,
             mandragor_tree: false,
+            mandragor_down_roots: 0,
             mandragor_root: None,
             lucreto_react_pause: None,
             lucreto_change_dist: None,

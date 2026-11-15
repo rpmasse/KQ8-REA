@@ -33,6 +33,13 @@ pub(crate) struct SpecialActor {
     collision_mask: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SavedMandragorRoot {
+    linked: bool,
+    baseline_health: i64,
+    phase: super::MandragorRootPhase,
+}
+
 // Keep the moving body and the animation at their respective saved
 // positions. The installed model still supplies its collision geometry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,6 +110,10 @@ pub(crate) struct SpawnedCharacter {
     mover_started: bool,
     collision_type: u32,
     collision_mask: u32,
+    #[serde(default)]
+    mandragor_down_roots: u8,
+    #[serde(default)]
+    mandragor_root: Option<SavedMandragorRoot>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -147,6 +158,14 @@ impl SpawnedCharacter {
             combat_scaled: f.combat_scaled, shoot_offset: f.shoot_offset,
             kept_drop: f.kept_drop.clone(),
         });
+        let mandragor_root = c.mandragor_root.as_ref().map(|root| SavedMandragorRoot {
+            linked: root.linked,
+            baseline_health: root.baseline_health,
+            phase: match root.phase {
+                super::MandragorRootPhase::Waiting(due) => super::MandragorRootPhase::Waiting(relative(due, now)),
+                phase => phase,
+            },
+        });
         Self {
             state: c.state, started: c.started, first_update_seen: c.first_update.is_some(),
             wait_due: c.wait_at.map(|t| relative(t, now)), random_pending: c.random_pending,
@@ -156,6 +175,7 @@ impl SpawnedCharacter {
             resume_move_due: c.resume_move_at.is_finite().then(|| relative(c.resume_move_at, now)), falling_from: c.falling_from,
             mover_started: c.mover_started, collision_type: c.collision_type,
             collision_mask: c.collision_mask,
+            mandragor_down_roots: c.mandragor_down_roots, mandragor_root,
         }
     }
 
@@ -203,6 +223,15 @@ impl SpawnedCharacter {
         c.falling_from = self.falling_from;
         c.mover_started = self.mover_started;
         c.set_collision(self.collision_type, self.collision_mask);
+        c.mandragor_down_roots = self.mandragor_down_roots;
+        if let (Some(saved), Some(root)) = (&self.mandragor_root, c.mandragor_root.as_mut()) {
+            root.linked = saved.linked;
+            root.baseline_health = saved.baseline_health;
+            root.phase = match saved.phase {
+                super::MandragorRootPhase::Waiting(due) => super::MandragorRootPhase::Waiting(absolute(due, now)),
+                phase => phase,
+            };
+        }
     }
 
     pub(crate) fn valid(&self) -> bool {
@@ -211,6 +240,10 @@ impl SpawnedCharacter {
             && self.resume_move_due.is_none_or(f64::is_finite)
             && self.fight.as_ref().is_none_or(|f| [f.attack_due, f.flinch_end, f.last_ouch].into_iter().flatten().all(f64::is_finite))
             && self.mover.as_ref().is_none_or(|m| m.position.iter().all(|x| x.is_finite()) && m.fall_timer.is_finite())
+            && self.mandragor_root.as_ref().is_none_or(|r| match r.phase {
+                super::MandragorRootPhase::Waiting(due) => due.is_finite(),
+                _ => true,
+            })
     }
 }
 

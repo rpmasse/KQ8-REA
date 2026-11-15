@@ -163,3 +163,110 @@ fn an_original_swamp_tree_dies_with_its_authored_corpse_after_fire() {
     assert!(fight.contains("a corpse mt_dead.kqs") && fight.contains("Mandragor tree finalizer has no ordinary Die callback"), "inspect {}", dir.display());
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
+fn original_swamp_roots_die_and_rebirth_on_their_own_timers() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR"))
+        .unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../kq8-artifacts/mandragor-root-rebirth/{nonce}"));
+    fs::create_dir_all(&dir).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+        .current_dir(&dir)
+        .arg("--game")
+        .arg(&game)
+        .args([
+            "--world", "Swamp", "--at", "159904,140178,0", "--god", "--sound", "off",
+            "--windowed", "--command", "sendEvent 0 mand3r KQAttackEvent Connor 0 10000 0,40",
+            "--command", "sendEvent 0 mand3l KQAttackEvent Connor 0 10000 0,42", "--updates", "200",
+        ])
+        .output()
+        .unwrap();
+    fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+    let logs = dir.join("kq8-artifacts/logs");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+    let at_update = |needle: &str| -> u64 {
+        fight.lines().find(|line| line.contains(needle))
+            .and_then(|line| line.split_whitespace().nth(1))
+            .and_then(|word| word.trim_end_matches(':').parse().ok())
+            .unwrap_or_else(|| panic!("missing {needle}; inspect {}", dir.display()))
+    };
+    assert!(fight.lines().any(|line| line.contains("mand3r: Do (Attack") && line.contains("hits Connor: distance")), "root shared Do attack missing; inspect {}", dir.display());
+    for (root, expected) in [("mand3r", 60), ("mand3l", 75)] {
+        assert!(fight.contains(&format!("{root}: Mandragor root Die:")), "{root} did not enter timed Die; inspect {}", dir.display());
+        assert!(fight.contains(&format!("{root}: Mandragor root die ended: rebirth due")), "{root} did not start timer; inspect {}", dir.display());
+        assert!(fight.contains(&format!("{root}: Mandragor root rebirth due: restores health 250, starts birth")), "{root} did not rebirth; inspect {}", dir.display());
+        assert!(fight.contains(&format!("{root}: Mandragor root birth ended: collision 0x4042/0x201f")), "{root} did not finish birth; inspect {}", dir.display());
+        let elapsed = at_update(&format!("{root}: Mandragor root rebirth due")) - at_update(&format!("{root}: Mandragor root die ended"));
+        assert!((expected..=expected + 2).contains(&elapsed), "{root} waited {elapsed} updates; inspect {}", dir.display());
+    }
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
+fn original_swamp_root_rebirth_resumes_after_disk_reload() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR"))
+        .unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../kq8-artifacts/mandragor-root-checkpoint/{nonce}"));
+    let slots = root.join("slots");
+    let run = |name: &str, args: &[&str]| {
+        let dir = root.join(name);
+        fs::create_dir_all(&dir).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+            .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
+            .args(["--sound", "off", "--god", "--windowed"]).args(args).output().unwrap();
+        fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+        let viewer = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
+        assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+        viewer
+    };
+    let before = run("save", &[
+        "--world", "Swamp", "--at", "159904,140178,0",
+        "--command", "sendEvent 0 mand3r KQAttackEvent Connor 0 10000 0,40",
+        "--frames", "380", "--key",
+        "menu:down:down:enter:release:enter:release:escape:type=RootWaiting:enter:release:escape,75",
+    ]);
+    assert!(before.contains("Save screen -> Save(1, \"RootWaiting\")"), "inspect {}", root.display());
+    let read = |n| -> serde_json::Value {
+        serde_json::from_slice(&fs::read(slots.join(format!("slot-{n}.json"))).unwrap()).unwrap()
+    };
+    let first = read(1);
+    let actors = first["kept"]["swamp"]["characters"].as_array().unwrap();
+    let root_at = |actors: &[serde_json::Value], name: &str| -> serde_json::Value {
+        actors.iter().find(|a| a["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case(name)))
+            .unwrap_or_else(|| panic!("missing {name}; inspect {}", root.display())).clone()
+    };
+    let waiting = root_at(actors, "mand3r");
+    assert!(waiting["character"]["mandragor_root"]["phase"].get("Waiting").is_some(), "root timer not saved; inspect {}", root.display());
+    assert_eq!(root_at(actors, "mand3t")["character"]["mandragor_down_roots"], 1);
+
+    let after = run("restore", &[
+        "--menu-input", "down,enter,release,enter,release", "--frames", "950",
+        "--key", "menu:down:down:down:enter:release:enter:release:escape:type=RootReborn:enter:release:escape,180",
+    ]);
+    assert!(after.contains("save restored in Swamp without replaying Begin"), "inspect {}", root.display());
+    let second = read(2);
+    let actors = second["kept"]["swamp"]["characters"].as_array().unwrap();
+    let reborn = root_at(actors, "mand3r");
+    assert_eq!(reborn["character"]["mandragor_root"]["phase"], "Alive");
+    assert_eq!(reborn["character"]["fight"]["stats"][0], 250);
+    assert_eq!(reborn["character"]["collision_type"], 0x4042);
+    assert_eq!(reborn["character"]["collision_mask"], 0x201f);
+    assert_eq!(root_at(actors, "mand3t")["character"]["mandragor_down_roots"], 0);
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
+}

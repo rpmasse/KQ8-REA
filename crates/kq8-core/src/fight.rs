@@ -1215,9 +1215,19 @@ impl crate::active::WorldState {
     /// its drops (5c-8); off the active list; gravity off; not solid
     /// (collision type and mask 0); its state never changes again.
     pub(crate) fn character_dies(&mut self, j: usize, kind: HitKind, now_flag: bool) {
+        let linked_root = self.anims[j].character.as_deref().and_then(|c| c.mandragor_root.as_ref())
+            .is_some_and(|root| root.linked && root.phase == crate::character::MandragorRootPhase::Alive);
+        if linked_root {
+            let tree = self.anims[j].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().tree.clone();
+            if self.character_index(&tree).is_some_and(|i| !self.anims[i].gone) {
+                self.mandragor_root_dies(j, kind);
+                return;
+            }
+        }
         let now = self.now();
         let a = &mut self.anims[j];
         let name = a.player.name.clone();
+        let tree_dies = a.character.as_deref().is_some_and(|c| c.mandragor_tree);
         let Some(c) = a.character.as_deref_mut() else { return };
         let Some(f) = c.fight.as_mut() else { return };
         if f.dying.is_some() {
@@ -1284,8 +1294,142 @@ impl crate::active::WorldState {
             self.fight_note(&name, format!("first qualifying character death: intermediate help event due at game time {:.6}", now as f32 + 1.5));
         }
         self.drop_items(j);
+        if tree_dies { self.mandragor_tree_dies(&name); }
         if now_flag {
             self.death_ended(j, now);
+        }
+    }
+
+    /// Q209: linked roots use a timed Die state, without the common
+    /// permanent corpse/experience finalizer.
+    fn mandragor_root_dies(&mut self, j: usize, kind: HitKind) {
+        let (name, tree) = {
+            let a = &mut self.anims[j];
+            let c = a.character.as_deref_mut().unwrap();
+            let tree = c.mandragor_root.as_ref().unwrap().tree.clone();
+            let f = c.fight.as_mut().unwrap();
+            if f.dying.is_some() { return; }
+            c.mandragor_root.as_mut().unwrap().phase = crate::character::MandragorRootPhase::DieMovement;
+            f.stats.0[0] = 0;
+            f.last_kind = Some(kind);
+            f.dying = Some(Some("die".into()));
+            f.flinching = None;
+            c.state = crate::character::State::Die;
+            c.set_collision(0, 0);
+            c.turn_to = None;
+            if let Some(ai) = c.ai.as_mut() {
+                ai.active = false;
+                ai.alarmed = false;
+                ai.hunting = false;
+                ai.on_way_home = false;
+            }
+            a.player.start("die");
+            (a.player.name.clone(), tree)
+        };
+        self.active_list.retain(|n| !n.eq_ignore_ascii_case(&name));
+        if let Some(i) = self.character_index(&tree) {
+            if let Some(c) = self.anims[i].character.as_deref_mut() {
+                c.mandragor_down_roots = c.mandragor_down_roots.saturating_add(1).min(2);
+                c.no_turn = true;
+            }
+        }
+        self.fight_note(&name, format!("Mandragor root Die: {kind:?}, non-solid, linked tree {tree} holds {} down root(s)",
+            self.character_index(&tree).and_then(|i| self.anims[i].character.as_deref()).map_or(0, |c| c.mandragor_down_roots)));
+    }
+
+    /// Q209: a tree's Die-state notice ends its roots' ability to rebirth.
+    fn mandragor_tree_dies(&mut self, tree: &str) {
+        let roots: Vec<_> = self.anims.iter().enumerate().filter_map(|(i, a)| {
+            let root = a.character.as_deref()?.mandragor_root.as_ref()?;
+            (root.linked && root.tree.eq_ignore_ascii_case(tree) && !a.gone).then_some(i)
+        }).collect();
+        for i in roots {
+            let (name, phase) = {
+                let a = &mut self.anims[i];
+                let root = a.character.as_deref_mut().unwrap().mandragor_root.as_mut().unwrap();
+                root.linked = false;
+                (a.player.name.clone(), root.phase)
+            };
+            self.fight_note(&name, format!("Mandragor tree {tree} enters Die: root link cleared"));
+            if phase == crate::character::MandragorRootPhase::Alive {
+                self.character_dies(i, HitKind::Normal, false);
+            }
+        }
+    }
+
+    /// Service a down root's world-clock rebirth even when it is out of
+    /// drawing range. `characters_due` calls this twice per update; the
+    /// phase switch makes the second visit inert.
+    pub(crate) fn mandragor_roots_due(&mut self, now: f64) {
+        for i in 0..self.anims.len() {
+            let due = self.anims[i].character.as_deref().and_then(|c| c.mandragor_root.as_ref())
+                .is_some_and(|root| matches!(root.phase, crate::character::MandragorRootPhase::Waiting(t) if now >= t));
+            if !due || self.anims[i].gone { continue; }
+            let (name, health) = {
+                let a = &mut self.anims[i];
+                let c = a.character.as_deref_mut().unwrap();
+                let root = c.mandragor_root.as_mut().unwrap();
+                root.phase = crate::character::MandragorRootPhase::BirthMovement;
+                let health = root.baseline_health;
+                let f = c.fight.as_mut().unwrap();
+                f.stats.0[0] = health;
+                f.dying = Some(Some("birth".into()));
+                a.player.start("birth");
+                (a.player.name.clone(), health)
+            };
+            self.fight_note(&name, format!("Mandragor root rebirth due: restores health {health}, starts birth"));
+        }
+    }
+
+    /// Returns true when the movement belonged to a root's timed Die
+    /// cycle and must not run the ordinary permanent finalizer.
+    fn mandragor_root_death_ended(&mut self, j: usize, now: f64) -> bool {
+        use crate::character::MandragorRootPhase as Phase;
+        let phase = self.anims[j].character.as_deref().and_then(|c| c.mandragor_root.as_ref()).map(|r| r.phase);
+        match phase {
+            Some(Phase::DieMovement) => {
+                let a = &mut self.anims[j];
+                let c = a.character.as_deref_mut().unwrap();
+                let root = c.mandragor_root.as_mut().unwrap();
+                let due = now + root.rebirth_delay;
+                root.phase = Phase::Waiting(due);
+                c.fight.as_mut().unwrap().dying = Some(None);
+                let name = a.player.name.clone();
+                self.fight_note(&name, format!("Mandragor root die ended: rebirth due at {due:.2}"));
+                true
+            }
+            Some(Phase::BirthMovement) => {
+                let (name, tree, linked) = {
+                    let a = &mut self.anims[j];
+                    let c = a.character.as_deref_mut().unwrap();
+                    let root = c.mandragor_root.as_mut().unwrap();
+                    root.phase = Phase::Alive;
+                    let tree = root.tree.clone();
+                    let linked = root.linked;
+                    c.fight.as_mut().unwrap().dying = None;
+                    c.state = crate::character::State::None;
+                    (a.player.name.clone(), tree, linked)
+                };
+                if linked {
+                    if let Some(i) = self.character_index(&tree) {
+                        if let Some(c) = self.anims[i].character.as_deref_mut() {
+                            c.mandragor_down_roots = c.mandragor_down_roots.saturating_sub(1);
+                            if c.mandragor_down_roots == 0 { c.no_turn = false; }
+                        }
+                    }
+                    let a = &mut self.anims[j];
+                    let c = a.character.as_deref_mut().unwrap();
+                    c.set_collision(0x4042, 0x201f);
+                    c.unborn = false;
+                    let line = c.set_state(&mut a.player, "Wait", &[], now);
+                    self.fight_note(&name, format!("Mandragor root birth ended: collision 0x4042/0x201f; {line}"));
+                } else {
+                    self.fight_note(&name, "Mandragor root birth ended without tree: enters permanent Die");
+                    self.character_dies(j, HitKind::Normal, false);
+                }
+                true
+            }
+            _ => false,
         }
     }
 
@@ -1589,6 +1733,7 @@ impl crate::active::WorldState {
     /// `idedKqs` or none; `Fire`: none); its script gets `Die <kind>`
     /// (queued for the caller, which runs scripts); it is removed.
     pub(crate) fn death_ended(&mut self, j: usize, _now: f64) {
+        if self.mandragor_root_death_ended(j, _now) { return; }
         // Rule 31a: the kept weapon first, before the experience and the
         // corpse.
         self.lay_kept_drop(j);

@@ -1327,6 +1327,7 @@ impl WorldState {
                 self.character_note(&name, line);
             }
         }
+        self.mandragor_roots_due(now);
     }
 
     /// `characters.md` rule 8 (M4 4d-6b-2): every character's mover, once
@@ -1386,7 +1387,7 @@ impl WorldState {
     fn sync_mandragor_roots(&mut self) {
         let roots: Vec<_> = self.anims.iter().enumerate().filter_map(|(i, a)| {
             let link = a.character.as_deref()?.mandragor_root.as_ref()?;
-            (!a.gone).then(|| (i, link.tree.clone(), link.offset, link.last_tree_pose))
+            (!a.gone && link.linked).then(|| (i, link.tree.clone(), link.offset, link.last_tree_pose))
         }).collect();
         for (i, tree_name, offset, last_tree_pose) in roots {
             let Some(tree_i) = self.anim_index(&tree_name) else { continue };
@@ -5566,6 +5567,11 @@ impl Active {
             // fighting.md rule 3 (M5 5c-10): the combat level on entry.
             let factor = self.world.combat_level;
             let scaled = a.character.as_deref_mut().and_then(|c| c.fight.as_mut()).filter(|f| f.combat_scaled).map(|f| f.apply_combat_level(factor));
+            if let Some(c) = a.character.as_deref_mut() {
+                if let (Some(root), Some(fight)) = (c.mandragor_root.as_mut(), c.fight.as_ref()) {
+                    root.baseline_health = fight.stats.0[0];
+                }
+            }
             if let Some(f) = a.character.as_deref().and_then(|c| c.fight.as_ref()) {
                 let mut line = format!("fights (rule 2): {}; from {}", f.settings.describe(), f.settings.from);
                 line.push_str(&match scaled {
@@ -9232,6 +9238,100 @@ endif
         let ai = c.ai.as_mut().unwrap();
         (ai.settings.alarm_radius, ai.settings.attack_dist, ai.settings.home_radius, ai.settings.chase_radius) = (4000.0, 1500.0, 3000.0, 6000.0);
         a
+    }
+
+    fn mandragor_root_fixture(delay: f64) -> Active {
+        let mut a = fighter();
+        let mut tree = a.world.anims[0].clone();
+        tree.player.name = "mand3t".into();
+        let tree_character = tree.character.as_deref_mut().unwrap();
+        tree_character.mandragor_tree = true;
+        tree_character.ai = None;
+        tree_character.fight.as_mut().unwrap().settings.dead_dts = Some("mt_dead.kqs".into());
+        a.world.anims.push(tree);
+        let root = &mut a.world.anims[0];
+        root.player.name = "mand3r".into();
+        root.player.movements.push(crate::named_anim::tests::movement("die", 0.0, 1.0, false, false, vec![]));
+        root.player.movements.push(crate::named_anim::tests::movement("birth", 0.0, 1.0, false, false, vec![]));
+        let c = root.character.as_deref_mut().unwrap();
+        c.mandragor_root = Some(crate::character::MandragorRoot {
+            tree: "mand3t".into(), linked: true, offset: [600.0, -1000.0, 0.0],
+            rebirth_delay: delay, baseline_health: 15,
+            phase: crate::character::MandragorRootPhase::Alive, last_tree_pose: None,
+        });
+        c.state = crate::character::State::Wait;
+        a
+    }
+
+    #[test]
+    fn mandragor_root_dies_waits_and_rebirths_without_a_corpse() {
+        use crate::character::MandragorRootPhase as Phase;
+        for delay in [4.0, 5.0] {
+            let mut a = mandragor_root_fixture(delay);
+            a.world.character_dies(0, crate::fight::HitKind::Fire, false);
+            let root = a.world.anims[0].character.as_deref().unwrap();
+            assert_eq!((root.state, root.collision_type, root.collision_mask), (crate::character::State::Die, 0, 0));
+            assert_eq!(root.mandragor_root.as_ref().unwrap().phase, Phase::DieMovement);
+            assert_eq!(a.world.anims[1].character.as_deref().unwrap().mandragor_down_roots, 1);
+            assert!(a.world.anims[1].character.as_deref().unwrap().no_turn);
+            a.world.death_ended(0, 2.0);
+            assert_eq!(a.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::Waiting(2.0 + delay));
+            a.world.mandragor_roots_due(2.0 + delay - 0.01);
+            assert!(matches!(a.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::Waiting(_)));
+            a.world.mandragor_roots_due(2.0 + delay);
+            assert_eq!(a.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::BirthMovement);
+            assert_eq!(a.world.anims[0].character.as_deref().unwrap().fight.as_ref().unwrap().stats.0[0], 15);
+            a.world.death_ended(0, 3.0 + delay);
+            let root = a.world.anims[0].character.as_deref().unwrap();
+            assert_eq!(root.mandragor_root.as_ref().unwrap().phase, Phase::Alive);
+            assert_eq!((root.state, root.collision_type, root.collision_mask), (crate::character::State::Wait, 0x4042, 0x201f));
+            assert!(root.fight.as_ref().unwrap().dying.is_none());
+            assert_eq!(a.world.anims[1].character.as_deref().unwrap().mandragor_down_roots, 0);
+            assert!(!a.world.anims[1].character.as_deref().unwrap().no_turn);
+            assert!(a.world.corpses.is_empty() && !a.world.anims[0].gone);
+        }
+    }
+
+    #[test]
+    fn mandragor_tree_death_ends_alive_and_rebirthing_roots() {
+        use crate::character::MandragorRootPhase as Phase;
+        let mut alive = mandragor_root_fixture(4.0);
+        alive.world.character_dies(1, crate::fight::HitKind::Normal, false);
+        let c = alive.world.anims[0].character.as_deref().unwrap();
+        assert!(!c.mandragor_root.as_ref().unwrap().linked);
+        assert_eq!(c.state, crate::character::State::Die);
+        assert_eq!(c.fight.as_ref().unwrap().dying, Some(Some("Die".into())));
+
+        let mut down = mandragor_root_fixture(4.0);
+        down.world.character_dies(0, crate::fight::HitKind::Normal, false);
+        down.world.death_ended(0, 1.0);
+        down.world.character_dies(1, crate::fight::HitKind::Normal, false);
+        assert!(!down.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().linked);
+        down.world.mandragor_roots_due(5.0);
+        assert_eq!(down.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::BirthMovement);
+        down.world.death_ended(0, 6.0);
+        let c = down.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(c.state, crate::character::State::Die);
+        assert_eq!(c.fight.as_ref().unwrap().dying, Some(Some("Die".into())));
+    }
+
+    #[test]
+    fn mandragor_root_checkpoint_keeps_the_remaining_rebirth_time() {
+        use crate::character::MandragorRootPhase as Phase;
+        let mut a = mandragor_root_fixture(4.0);
+        a.world.simulation_time = 2.0;
+        a.world.character_dies(0, crate::fight::HitKind::Normal, false);
+        a.world.death_ended(0, a.world.now());
+        a.world.simulation_time = 3.0;
+        let saved: Vec<SavedPlacedCharacter> = serde_json::from_slice(&serde_json::to_vec(&a.world.saved_placed_characters_for_disk_save()).unwrap()).unwrap();
+        let mut loaded = mandragor_root_fixture(4.0);
+        loaded.world.restore_placed_characters(&saved);
+        assert_eq!(loaded.world.anims[1].character.as_deref().unwrap().mandragor_down_roots, 1);
+        assert_eq!(loaded.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::Waiting(3.0));
+        loaded.world.mandragor_roots_due(2.99);
+        assert!(matches!(loaded.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::Waiting(_)));
+        loaded.world.mandragor_roots_due(3.0);
+        assert_eq!(loaded.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::BirthMovement);
     }
 
     #[test]

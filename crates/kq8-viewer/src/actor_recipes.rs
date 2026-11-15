@@ -183,7 +183,11 @@ pub fn character(
             tree.push('t');
             ch.mandragor_root = Some(kq8_core::character::MandragorRoot {
                 tree,
+                linked: true,
                 offset,
+                rebirth_delay: f64::from(k.mandragor_rebirth_delay.unwrap_or(0.0)),
+                baseline_health: 0,
+                phase: kq8_core::character::MandragorRootPhase::Alive,
                 last_tree_pose: None,
             });
         }
@@ -191,17 +195,15 @@ pub fn character(
     if k.class == Class::MandragorRoot {
         ai.has_birth = has_birth;
         ch.ai = Some(ai);
-    } else {
-        ch.fight = c.fight.clone().map(|s| {
-            let mut f = kq8_core::fight::Fight::new(s);
-            f.combat_scaled = c.combat_scaled;
-            f
-        });
-        if k.class != Class::MandragorTree {
-            ai.has_birth = has_birth;
-            ch.ai = Some(ai);
-        }
+    } else if k.class != Class::MandragorTree {
+        ai.has_birth = has_birth;
+        ch.ai = Some(ai);
     }
+    ch.fight = c.fight.clone().map(|s| {
+        let mut f = kq8_core::fight::Fight::new(s);
+        f.combat_scaled = c.combat_scaled;
+        f
+    });
     if let Some((min, max)) = bounds {
         let keep = match p.keep_on_ground {
             kq8_data::objects::KeepOnGround::Floor => -1,

@@ -598,6 +598,8 @@ pub struct CharacterKeys {
     pub tower: Option<TowerKeys>,
     /// Root position relative to its sibling Mandragor tree, in the tree's axes.
     pub mandragor_offset: Option<[f32; 3]>,
+    /// Seconds between a Mandragor root's `die` ending and its next `birth`.
+    pub mandragor_rebirth_delay: Option<f32>,
     /// Model-space launch points used if the attack frame lacks the projectile's mesh.
     pub shoot_offsets: Vec<(String, [f32; 3])>,
     /// `animFile=`: its movement list.
@@ -720,6 +722,7 @@ impl CharacterKeys {
                     number("offsetZ")? as f32,
                 ])
             }).flatten(),
+            mandragor_rebirth_delay: (class == Class::MandragorRoot).then(|| number("rebirthDelay").map(|v| v as f32)).flatten(),
             class,
             anim_file: text("animFile"),
             idle_anim_file: text("idleAnimFile"),

@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-15 Add Mandragor root combat and timed rebirth
+
+Attach installed combat stats and the authored `rebirthDelay` to Swamp
+roots. Their shared `Do` attack now applies hand damage; while linked to
+a tree, lethal damage enters a timed non-solid death instead of making a
+permanent corpse. The root plays `birth` after its 4/5-second delay,
+restores health and collision, and clears the tree's down count. Tree
+death detaches roots and ends their rebirth route. Rust checkpoints keep
+the phase, remaining time, link, baseline health and tree count. The
+focused root checks pass 3/3; the original-data two-root encounter and
+fresh-process slot checks pass individually, and the grouped Mandragor
+Windows check passes 5/5 in 250.34 s. The core/data suites pass
+756/158 active tests. The first checkpoint assertion used update count
+instead of simulation time; correcting that test made it pass without
+a production change. The GOG installation was read only and no manual
+gameplay test was performed. Original binary save continuation remains
+Q209.
+
 ## 2026-11-15 Finish Mandragor tree damage and corpse path
 
 Attach the installed fight settings to Mandragor trees while keeping
