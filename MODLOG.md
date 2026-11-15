@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-15 Load Swamp Mandragor tree visuals
+
+Recognize `KQMandragorTree` in the character loader and use the shared
+animation/model path established by the separate Q209 study. Do not
+attach generic monster AI or fighting to these trees while their
+specialized rules remain open. In an unattended GOG-data Swamp route,
+all 11 trees load as characters, `mand3t` draws `mt_stop.kqs`, and
+`mand3r/l` remain markers. The permanent ignored Windows check passes
+1/1 in 21.72 s; the data library suite passes 158 active tests. This
+is only the visual first step, not Mandragor combat parity. The GOG
+install was read only and no manual gameplay was performed.
+
+## 2026-11-15 Inventory Swamp Mandragor source data
+
+Study session A recorded the 11 authored tree/root triplets, their
+three distinct class files, type stats, animation lists and special
+keys in `docs/behaviour/mandragor.md`. A later portable Ghidra run
+confirmed that Tree and Root are sibling subclasses of `KQMonster`.
+Subsequent method tracing established common monster construction and
+animation setup, root lookup of its matching tree, the class-specific
+property keys, and bounded event/repel behavior. Q209 stays open for
+combat timing, death and save behavior. The GOG
+install was read only; no manual gameplay test or Rust code change was made.
+
 ## 2026-11-15 Queue authored character alarm lines
 
 Read the `Alarm…` tuple and end sequence from character files, retain it

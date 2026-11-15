@@ -1,5 +1,18 @@
 # Provenance
 
+**Mandragor tree shared visual path (2026-11-15).** The separate
+[Mandragor study](../behaviour/mandragor.md) establishes that Tree and
+Root are specialized monsters, both run common monster setup, and that
+setup reads their authored animation lists. No distinct drawing override
+was found in the compared methods. Implementation B added the tree class
+to the character loader and withheld generic AI/combat pending Q209's
+specialized rules. An unattended Swamp route draws `mand3t` with its
+`mt_stop.kqs` model and counts all 11 trees; root actors remain markers.
+The `mandragor_tree_load` check passes 1/1. This is original-data Rust
+coverage, not a full combat or original-runtime comparison. Implementation
+B used the prose note and installed game data, without reading the
+executable or study scratch.
+
 **Authored enemy alarm speech (2026-11-15).**
 [Character movement rule 23](../behaviour/character-movement.md) supplies
 the first-alarm `Alarm…` line run and single-queue timing. The read-only

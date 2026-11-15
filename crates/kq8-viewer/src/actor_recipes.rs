@@ -175,13 +175,15 @@ pub fn character(
     if let Some(keys) = k.tower {
         ch.tower = Some(kq8_core::tower_skeleton::Tower::new(keys));
     }
-    ch.fight = c.fight.clone().map(|s| {
-        let mut f = kq8_core::fight::Fight::new(s);
-        f.combat_scaled = c.combat_scaled;
-        f
-    });
-    ai.has_birth = has_birth;
-    ch.ai = Some(ai);
+    if k.class != Class::MandragorTree {
+        ch.fight = c.fight.clone().map(|s| {
+            let mut f = kq8_core::fight::Fight::new(s);
+            f.combat_scaled = c.combat_scaled;
+            f
+        });
+        ai.has_birth = has_birth;
+        ch.ai = Some(ai);
+    }
     if let Some((min, max)) = bounds {
         let keep = match p.keep_on_ground {
             kq8_data::objects::KeepOnGround::Floor => -1,

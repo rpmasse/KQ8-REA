@@ -80,6 +80,7 @@ pub fn casts_shadow(world_mask: u32, own_mask: u32, allowed: bool, translucency:
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
     Monster,
+    MandragorTree,
     GeometryTalker,
     Death,
     Lucreto,
@@ -93,6 +94,8 @@ impl Class {
         let c = class_type.trim();
         if c.eq_ignore_ascii_case("KQMonster") {
             Some(Class::Monster)
+        } else if c.eq_ignore_ascii_case("KQMandragorTree") {
+            Some(Class::MandragorTree)
         } else if c.eq_ignore_ascii_case("KQGeometryTalker") {
             Some(Class::GeometryTalker)
         } else if c.eq_ignore_ascii_case("KQDeath") {
@@ -109,6 +112,7 @@ impl Class {
     pub fn name(self) -> &'static str {
         match self {
             Class::Monster => "KQMonster",
+            Class::MandragorTree => "KQMandragorTree",
             Class::GeometryTalker => "KQGeometryTalker",
             Class::Death => "KQDeath",
             Class::Lucreto => "KQLucreto",

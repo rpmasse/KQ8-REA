@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-15 M5 Swamp Mandragor tree visual load
+
+The 11 installed Swamp `KQMandragorTree` actors now load their authored
+animation lists and draw as characters instead of plain markers. In an
+unattended route, `mand3t` draws `mt_stop.kqs`; its linked `mand3r/l`
+roots remain markers while Q209's pose and combat rules are studied.
+The ignored Windows `mandragor_tree_load` test passes 1/1 in 21.72 s;
+the data library suite passes 158 active tests, 0 failures, 5 ignored.
+No manual gameplay or original-executable comparison was performed for
+this implementation. M5 remains about 65%: the family is not yet
+combat-complete, and the GOG installation was read only.
+
 ## 2026-11-15 M5 authored alarm speech for Swamp Witch
 
 Characters with explicit `Alarm…` keys now queue their authored line run
