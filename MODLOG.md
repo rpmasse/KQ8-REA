@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-15 Simplify public README
+
+Rewrote the overview in plain language to explain the KQ8R origin, the
+planned use of REA for a faithful Rust conversion, phase progress and
+later modernization goals. Kept the GOG copy requirement and a short
+Windows build example. Checked the links and milestone figures against
+the project status; no code or game files changed. No gameplay test was
+needed for this documentation change.
+
 ## 2026-11-15 Audit Fists in the earned windmill route
 
 An unattended GOG-data Daventry run from an earned wizard save reached
