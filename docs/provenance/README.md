@@ -1,5 +1,15 @@
 # Provenance
 
+**Flame Sword Fire death route (2026-11-15).**
+[Fighting rule 14](../behaviour/fighting.md) assigns Fire damage to a
+Flame Sword hit; rules 30–33 specify `firedie` and no corpse. The installed
+GOG `Connor.kq`, inventory, movement and Dead City skeleton data supply the
+weapon and target. The unattended `flame_sword_death` test confirms one
+`confswd.anm/attack` hit, Fire death and no corpse. It is an isolated Rust
+route, not an original-executable comparison or earned campaign encounter.
+Q212 records that the projectile files' separate `emitter=` visual effect
+still lacks a lifecycle rule. No original executable or disassembly was read.
+
 **Elemental ranged death route (2026-11-15).**
 [Ranged weapon rules 21–30](../behaviour/ranged-weapons.md) name the Flame
 Bow and Ice Crossbow projectile files and their Fire/Ice `weaponType` values;

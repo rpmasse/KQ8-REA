@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-15 Check Flame Sword Fire death with installed game data
+
+Add an unattended Dead City route for the original Flame Sword and one
+skeleton. It confirms the sword's movement, one Fire hit, `firedie` and no
+corpse. The focused Windows test passes 1/1. Record Q212 for the separate
+untraced projectile-attached emitter lifecycle. No production code or game
+assets changed; no manual gameplay test was run.
+
 ## 2026-11-15 Check elemental ranged death against installed game data
 
 Add one unattended Windows regression that equips Flame Bow and Ice

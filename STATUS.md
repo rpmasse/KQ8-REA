@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-15 M5 Flame Sword Fire death in original-data route
+
+An unattended GOG-data Dead City check passes 1/1. Connor uses
+`confswd.anm/attack` to hit `skeleton2` once with Fire damage; the
+original `firedie` movement finishes and the skeleton leaves no corpse.
+With `KQ8_GAME_DIR` set, `cargo test --locked -p kq8-viewer --test
+flame_sword_death -- --ignored --nocapture` passes in 35.98 s. The initial
+probe and the permanent check both passed. Q212 asks the study session to
+establish the separate projectile-attached fire/ice emitter lifecycle; that
+effect was not implemented or visually tested. This is an isolated combat
+route, not a full earned encounter or original-executable comparison. No
+manual gameplay was run; M5 remains about 65%.
+
 ## 2026-11-15 M5 original-data Flame Bow and Ice Crossbow routes
 
 An unattended two-case Windows check passes 1/1 using the installed GOG

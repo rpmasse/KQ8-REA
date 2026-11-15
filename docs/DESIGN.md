@@ -286,6 +286,10 @@ The shared AI now covers those paths. Q211 asks for original priority when retre
 
 The grouped `elemental_ranged_death` test passes 1/1. Flame Bow's `Prfarrow.kq` kills `skeleton2` with Fire, runs `firedie` and leaves no corpse. Ice Crossbow's `PRicycle.kq` kills `skeleton1` with Ice, runs `icedie` and leaves `skmided.kqs`. Both shots use the installed 6,000-unit/s and 12,000-unit range values. The initial Flame Bow probe used `--item` before Dead City's `conStart.cs` replaced the slot with Small Crossbow; the permanent route gives the weapon at update 20 after that script. M5 remains open.
 
+**M5 Flame Sword death check (2026-11-15).** The installed `INVITEM_FlameSword` has a separate Connor hand-weapon movement list, and `fighting.md` rules 14 and 30–33 assign Fire hits, `firedie` and no corpse. Give the sword after Dead City's start script, ready hand mode, swing once at an original skeleton and verify the authored movement, Fire damage, death and corpse outcome in one unattended Windows run. This adds original-data coverage of the melee Fire path without asserting parity for all hand weapons. Q212 separately asks for the unimplemented fire/ice bolt emitter lifecycle.
+
+The `flame_sword_death` Windows test passes 1/1 with the GOG data: `confswd.anm/attack` hits `skeleton2` once at update 70, Fire damage kills it, `firedie` completes at update 110, and there is no corpse. Other melee weapon types and integrated earned encounters remain open.
+
 **M5 monster walk-slope correction (2026-11-15, implemented).** `KQMonster::walkSlope` stores a degree-based limit. Each character now passes that limit to its mover for walkable landing and ground checks; Connor keeps the default 0.8. The original Dead City scripts use 90 degrees, which the behaviour note defines as accepting every slope. Focused checks compare default and 90-degree landing on a steep synthetic surface and exercise the character-to-mover handoff. Source: `behaviour/character-movement.md` rule 6 and Do not reproduce.
 
 A unique asset name or parameter value is not by itself a new engine
