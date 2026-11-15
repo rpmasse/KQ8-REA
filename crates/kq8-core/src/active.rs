@@ -9733,6 +9733,36 @@ endif
     }
 
     #[test]
+    fn mandragor_tree_keeps_its_corpse_for_all_hit_kinds() {
+        for (kind, movement) in [
+            (crate::fight::HitKind::Normal, "Die"),
+            (crate::fight::HitKind::Projectile, "Die"),
+            (crate::fight::HitKind::Fire, "firedie"),
+            (crate::fight::HitKind::Ice, "icedie"),
+        ] {
+            let mut a = fighter();
+            let o = &mut a.world.anims[0];
+            for name in ["die", "firedie", "icedie"] {
+                o.player.movements.push(crate::named_anim::tests::movement(name, 0.0, 1.0, false, false, vec![]));
+            }
+            let c = o.character.as_deref_mut().unwrap();
+            c.mandragor_tree = true;
+            c.ai = None; // The class-specific attack controller is still under study.
+            c.fight.as_mut().unwrap().settings.dead_dts = Some("mt_dead.kqs".into());
+            a.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
+            a.world.character_dies(0, kind, false);
+            assert_eq!(a.world.anims[0].player.movement_name().to_ascii_lowercase(), movement.to_ascii_lowercase());
+            watch(&mut a, &[], 75);
+            assert!(a.world.anims[0].gone, "{kind:?} did not finish");
+            assert_eq!(a.world.corpses.len(), 1, "{kind:?} lost its authored corpse");
+            assert_eq!(a.world.corpses[0].shape, "mt_dead.kqs");
+            assert_eq!(a.world.connor_stats.unwrap().stats.0[4], 3, "{kind:?} experience changed");
+            assert!(a.world.die_calls.is_empty(), "{kind:?} used the ordinary Die callback");
+            assert!(a.world.fight_log.iter().any(|s| s.contains("Mandragor tree finalizer has no ordinary Die callback")));
+        }
+    }
+
+    #[test]
     fn a_character_dies_then_gives_experience_a_corpse_and_goes() {
         // fighting.md rules 30, 32, 33 (M5 5c-7).
         let mut a = fighter();

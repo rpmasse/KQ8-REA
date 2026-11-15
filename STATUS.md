@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-15 M5 Mandragor tree death
+
+All 11 Swamp trees now load their authored combat stats. A tree hit by
+Normal, Projectile, Fire or Ice damage uses its death movement and leaves the same
+`mt_dead.kqs` corpse while awarding experience once; its specialized
+finalizer does not call the ordinary monster Die-script helper. A focused
+four-kind Rust check passes, the original-data Swamp fire-death check
+passes, the grouped Mandragor Windows checks pass 3/3, and the core suite
+passes 753 active tests. The first fire probe crashed on an active-list
+assumption about attack AI; a guard fixed it and the rerun passed.
+Tree attack decisions, root combat/rebirth, and saved continuation remain
+open. This was automated Rust verification, without manual gameplay or
+an original-runtime comparison; the GOG installation was read only.
+M5 remains about 65%.
+
 ## 2026-11-15 M5 Mandragor root attachment and birth
 
 The 22 authored Swamp roots now load as animated characters beside

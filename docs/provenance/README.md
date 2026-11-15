@@ -1,5 +1,18 @@
 # Provenance
 
+**Mandragor tree combat stats and death (2026-11-15).** The separate
+[Mandragor study](../behaviour/mandragor.md) establishes shared monster
+damage/Die movement and the tree's special finalizer: an authored
+`deadDts` corpse even after Fire/Ice and no ordinary Die callback.
+Implementation B attached the installed tree fight settings and marked
+the class for that finalizer, leaving unresolved attack AI inactive.
+The focused four-kind death check and an unattended GOG-data Swamp
+fire-death run pass; the latter logs `mand3t`'s 300 health, 20,000
+experience and `mt_dead.kqs` corpse. This verifies Rust behavior with
+original data, not full encounter parity or original-runtime comparison.
+Implementation B used the prose note and installed data without reading
+the original executable or study scratch.
+
 **Mandragor root attachment and birth (2026-11-15).** The separate
 [Mandragor study](../behaviour/mandragor.md) establishes the root's
 tree-rotated authored offset, world-aligned orientation on tree

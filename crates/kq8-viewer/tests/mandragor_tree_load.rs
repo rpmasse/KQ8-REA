@@ -128,3 +128,38 @@ fn a_swamp_root_rises_without_repeated_tree_pose_resets() {
     );
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
+fn an_original_swamp_tree_dies_with_its_authored_corpse_after_fire() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR"))
+        .unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../kq8-artifacts/mandragor-tree-fire/{nonce}"));
+    fs::create_dir_all(&dir).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+        .current_dir(&dir)
+        .arg("--game")
+        .arg(&game)
+        .args([
+            "--world", "Swamp", "--at", "157904,140178,0", "--god", "--sound", "off",
+            "--no-ai", "--windowed", "--command",
+            "sendEvent 0 mand3t KQAttackEvent Connor 2 10000 0,10", "--updates", "85",
+        ])
+        .output()
+        .unwrap();
+    fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+    let logs = dir.join("kq8-artifacts/logs");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+    assert!(fight.contains("mand3t: dies (rule 30): kind Fire, 'firedie' starts"), "inspect {}", dir.display());
+    assert!(fight.contains("mand3t: its death ended (rule 32): Connor gets its experience 20000"), "inspect {}", dir.display());
+    assert!(fight.contains("a corpse mt_dead.kqs") && fight.contains("Mandragor tree finalizer has no ordinary Die callback"), "inspect {}", dir.display());
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
+}

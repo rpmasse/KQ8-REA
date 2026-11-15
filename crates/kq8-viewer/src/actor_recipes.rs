@@ -162,6 +162,7 @@ pub fn character(
     if k.class == Class::Lucreto {
         ch.lucreto_react_pause = k.react_pause;
     }
+    ch.mandragor_tree = k.class == Class::MandragorTree;
     ch.lucreto_change_dist = k.lucreto_change_dist;
     ch.flying = k.flying;
     ch.mouth_moves = k.class == Class::Death;
@@ -190,14 +191,16 @@ pub fn character(
     if k.class == Class::MandragorRoot {
         ai.has_birth = has_birth;
         ch.ai = Some(ai);
-    } else if k.class != Class::MandragorTree {
+    } else {
         ch.fight = c.fight.clone().map(|s| {
             let mut f = kq8_core::fight::Fight::new(s);
             f.combat_scaled = c.combat_scaled;
             f
         });
-        ai.has_birth = has_birth;
-        ch.ai = Some(ai);
+        if k.class != Class::MandragorTree {
+            ai.has_birth = has_birth;
+            ch.ai = Some(ai);
+        }
     }
     if let Some((min, max)) = bounds {
         let keep = match p.keep_on_ground {

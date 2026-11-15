@@ -415,6 +415,9 @@ impl WorldState {
     /// Rule 20: joins the active list if there is room; a character with a
     /// team may take the place of the first one without a team.
     fn join_active(&mut self, i: usize, now: f64) {
+        // A specialized actor may already take damage before its attack AI is
+        // implemented. It has no active-list state to update in that case.
+        if self.anims[i].character.as_deref().and_then(|c| c.ai.as_ref()).is_none() { return; }
         let name = self.anims[i].player.name.clone();
         let team = self.anims[i].character.as_deref().and_then(|c| c.ai.as_ref()).and_then(|ai| ai.settings.team.clone());
         let max = self.max_monsters;

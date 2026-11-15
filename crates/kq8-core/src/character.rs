@@ -126,6 +126,8 @@ pub struct Character {
     /// movements; otherwise an ordinary character.
     pub mouth_moves: bool,
     pub tower: Option<crate::tower_skeleton::Tower>,
+    /// Swamp Mandragor tree: its death finalizer keeps `deadDts` for every hit kind.
+    pub mandragor_tree: bool,
     /// A Swamp root whose position follows a sibling Mandragor tree.
     pub mandragor_root: Option<MandragorRoot>,
     /// KQLucreto's post-stagger standing interval (fighting.md rule 23).
@@ -298,6 +300,7 @@ impl Character {
             geometry,
             mouth_moves: false,
             tower: None,
+            mandragor_tree: false,
             mandragor_root: None,
             lucreto_react_pause: None,
             lucreto_change_dist: None,

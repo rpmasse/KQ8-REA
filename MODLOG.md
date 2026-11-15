@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-15 Finish Mandragor tree damage and corpse path
+
+Attach the installed fight settings to Mandragor trees while keeping
+their unstudied attack AI inactive. The tree's finalizer always selects
+its authored corpse, including Fire/Ice deaths, and omits the ordinary
+Die-script callback. A focused Normal/Projectile/Fire/Ice check passes 1/1; the
+original-data Swamp fire-death check and all three Mandragor Windows
+checks pass. Core passes 753 active tests. The first Swamp probe crashed
+because the shared active-list helper assumed attack AI; a guard fixed
+it, and the rerun passed. This remains partial Q209 combat work. The
+GOG install was read only and no manual gameplay was performed.
+
+## 2026-11-15 Trace Mandragor attack and tree-death propagation
+
+Study session A confirmed that both roots use the ordinary standing and
+moving attack gates, with their authored `Do` cue delivering the shared
+melee hit. A tree's Die-state notification clears each linked root's
+tree reference and requests Die. A root without a link uses permanent
+ordinary Die; a root already in its timed death cycle finishes `birth`
+before taking that path. The root-death timer and phase flags are saved,
+but complete disk-load reattachment and continuation remain open. Q209
+and `mandragor.md` record the rules and remaining limits. The GOG
+install was read only; no Rust, game files or manual gameplay changed.
+
 ## 2026-11-15 Attach and wake Swamp Mandragor roots
 
 Recognize `KQMandragorRoot`, load its authored animation list and

@@ -1599,12 +1599,15 @@ impl crate::active::WorldState {
         let kind = f.last_kind.unwrap_or(HitKind::Normal);
         let exp = f.stats.0[4];
         let s = &f.settings;
-        let shape = match kind {
+        let tree = a.character.as_deref().is_some_and(|c| c.mandragor_tree);
+        let shape = if tree {
+            s.dead_dts.clone()
+        } else { match kind {
             HitKind::Normal => s.dead_dts.clone(),
             HitKind::Projectile => s.projd_kqs.clone().or_else(|| s.dead_dts.clone()),
             HitKind::Ice => s.ided_kqs.clone(),
             HitKind::Fire => None,
-        };
+        }};
         a.gone = true;
         // 32.1: experience to Connor, whoever killed it.
         let xp = match self.connor_stats.as_mut() {
@@ -1633,9 +1636,11 @@ impl crate::active::WorldState {
             }
             None => format!("no corpse ({})", if kind == HitKind::Fire { "Fire: burnt away" } else { "no shape for this kind" }),
         };
-        self.fight_note(&name, format!("its death ended (rule 32): {xp}; {corpse}; its script gets Die {}; removed from the world", kind.name()));
-        // 32.3: queued for the caller; 32.4: removed.
-        self.die_calls.push((name.clone(), kind.name()));
+        let callback = if tree { "Mandragor tree finalizer has no ordinary Die callback".to_string() }
+            else { format!("its script gets Die {}", kind.name()) };
+        self.fight_note(&name, format!("its death ended (rule 32): {xp}; {corpse}; {callback}; removed from the world"));
+        // 32.3: queued for the caller only by the ordinary finalizer; 32.4: removed.
+        if !tree { self.die_calls.push((name.clone(), kind.name())); }
         self.active_list.retain(|n| !n.eq_ignore_ascii_case(&name));
         self.requests.push(crate::active::Request::Delete { name: name.clone(), at: format!("{name} died (fighting.md rule 32)") });
     }

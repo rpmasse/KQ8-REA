@@ -4,8 +4,9 @@
 
 This note records what the installed GOG 1.03 data says about Swamp's
 Mandragor tree and two roots, plus their original-engine class
-relationship. Creation and event handling are partly answered; full
-combat, death and save behavior remain Q209.
+relationship. Creation, ordinary root attack and the tree-to-root death
+path are partly answered; visual transitions, some damage paths and
+save continuation remain Q209.
 
 ## Source-backed class relationship
 
@@ -105,8 +106,17 @@ The exact displacement vector and collision aftermath remain open.
 
 The roots retain the common monster attack and animation-cue handler.
 Their `attack` movement has a `Do` cue at phase 0.1875, so the shared
-melee hit test in `fighting.md` can run there with the root's authored
-hand damage and reach. The tree's `attack` movement uses its standing
+melee hit test in `fighting.md` runs there with the root's authored
+hand damage and reach. Both roots use the ordinary Wait and Move states;
+their class replaces only the Die state. Consequently their attacks
+start under the shared sight, distance, due-time and movement
+interruption gates in `fighting.md` rule 7. At `Do`, the shared handler
+tests the current target's straight-line reach and front half as in
+rule 13, then sends the root's 15 hand damage on a hit. The root class
+has no separate target-selection or attack-cue override. This
+establishes the ordinary Connor-target route; interactions with team
+targets and the tree's influence on root facing need further study.
+The tree's `attack` movement uses its standing
 model and has no `Do` cue. Its ordinary melee hit test therefore has
 no cue at which to run. No separate tree attack-hit callback was found
 in its class methods; any contact damage or other source remains open.
@@ -139,8 +149,10 @@ down count by one, lets the tree turn again if the count reaches zero,
 and enters Wait. The mask after rebirth differs from the constructor's
 initial `0x281F`;
 the reason for this difference and its terrain consequences need
-separate study. Root interruption, event queue persistence and
-save/load continuation remain open.
+separate study. Until `birth` finishes, this dedicated death state
+rejects a request to leave it for Wait or Die. It then permits those
+transitions. Event queue persistence and save/load continuation remain
+open.
 
 ## Tree death boundary
 
@@ -156,6 +168,17 @@ finalizer does not call the ordinary monster's script `Die` callback
 helper. Whether another point in the tree's death path sends a script
 callback remains open.
 
+Each root listens for its linked tree's state change. When the tree
+enters Die, the root clears its tree link and requests Die too. A root
+with no tree link creates the ordinary permanent monster Die state,
+rather than its timed root-death state. If a root is already in its
+timed death/rebirth cycle, that state does not leave early for the
+tree's request. Its `birth` completion checks the link: with a tree it
+returns to Wait; without one it enters Die. Thus tree death prevents
+further root rebirth, but a root already down can finish its current
+cycle before entering ordinary Die. The order of removal notifications
+and collision changes in that overlap remains open.
+
 ## Save boundary
 
 The class property paths for both types can read and write their
@@ -165,10 +188,15 @@ delay and proximity distances, plus stored baseline health and birth
 delay. The tree stores its down-root count and permitted maximum. The
 root's live reference to the tree is not among those class-specific
 properties. The dedicated root death state also stores its rebirth
-deadline and two phase flags. The live tree reference may be rebuilt
-by setup or restored through a shared object-reference path; load
-order, listener reattachment, state
-activation and collision restoration have not yet been traced.
+deadline and two phase flags, so its timer is an absolute simulation
+deadline rather than a new delay from load time. The shared saved-world
+sequence restores an object's saved fields before its normal Init, and
+restores objects in recorded order (`saved-world-events.md` rule 10).
+Root setup resolves the tree by name and registers its listener, which
+provides a possible reconstruction path if the tree is already present.
+Whether root setup runs on every disk-load path, whether the tree is
+present before each root, and how the dedicated death state and collision
+are reactivated after loading have not yet been traced.
 Save/load continuation remains open.
 
 ## Confirmed data
@@ -211,8 +239,8 @@ Save/load continuation remains open.
 
 - Manager creation and setup order, missing-tree handling, and how
   team names affect targeting.
-- Exact first-frame and root death visibility, sight and attack
-  decisions, non-cue damage paths, and interruptions of root rebirth.
+- Exact first-frame and root death visibility, tree damage path,
+  team targeting and the collision/notification order during root rebirth.
 - Tree hit reactions, experience and drops, script callbacks,
   the end condition of a group, and save/load continuation.
 
@@ -229,6 +257,8 @@ vol:Swamp/kq/monsters.kq`, `kq8 text vol:Swamp/kq/mandrg.kq`,
 `kq8 text vol:Swamp/kq/mandrtr.kq`, `kq8 text
 vol:Swamp/kq/mandrtl.kq`, `kq8 text vol:Swamp/kq/mandrg.anm`,
 `kq8 text vol:Swamp/kq/mandroot.anm` and `kq8 text
-GAME/Kq/Monstats.mtl` expose the cited data. An engine study is
-needed before specifying combat or save assertions. No manual
-gameplay test was performed for this note.
+GAME/Kq/Monstats.mtl` expose the cited data. The combat and death rules
+above were checked against the read-only original executable, with
+scratch analysis kept outside the tracked source. Full disk-load
+continuation still needs original-engine tracing. No manual gameplay
+test was performed for this note.
