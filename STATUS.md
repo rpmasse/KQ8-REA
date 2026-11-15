@@ -1,5 +1,13 @@
 # STATUS
 
+## 2026-11-15 M5 PreBirth visibility exception
+
+The scripted Unborn fix now follows the loader's existing `PreBirth`
+exception: that movement stays visible and keeps its eligible collider.
+The focused zombie scenario passes both forms of the command after the
+natural rise/sink cycle (1 passed). No native encounter or original-runtime
+comparison was run for this follow-up. M5 remains approximately 65%.
+
 ## 2026-11-15 M5 scripted Unborn transition
 
 `KQMonster::setState Unborn` now marks the actor underground when it enters

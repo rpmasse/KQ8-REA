@@ -6,7 +6,9 @@ Birth's hidden, non-solid condition come from
 `character-movement.md` rules 28 and 30 describe natural zombie sinking and
 rising. Implementation B used these prose notes and existing Rust systems;
 it did not inspect the original executable. The focused zombie check covers
-the command's immediate Connor-collider effect, not a native encounter.
+the command's immediate Connor-collider effect, including the visible
+`PreBirth` exception defined by rule 16 and already used at load, not a
+native encounter.
 
 Where each piece of knowledge in this project came from. Modelled on IW4L's
 `docs/provenance/`. Add an entry whenever code is written from a new source.

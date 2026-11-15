@@ -1,5 +1,12 @@
 # MODLOG
 
+## 2026-11-15 Preserve the visible PreBirth exception
+
+Follow `characters.md` rule 16 and the existing loader: a list containing
+`PreBirth` remains visible when a script enters Unborn. The same focused
+zombie test now checks both ordinary Birth removal and `PreBirth` retention
+of the Connor collider; 1/1 passed. No native or manual test was run.
+
 ## 2026-11-15 M5 scripted Unborn collision state
 
 `setState Unborn` already entered Birth but left the live `unborn` flag clear,

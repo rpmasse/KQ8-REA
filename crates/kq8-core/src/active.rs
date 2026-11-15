@@ -9145,6 +9145,18 @@ endif
         assert!(line.contains("underground"), "{line}");
         a.world.update_character_colliders();
         assert!(a.world.character_colliders.is_empty());
+
+        // PreBirth is the loader's visible Birth exception.
+        let actor = &mut a.world.anims[0];
+        actor.player.movements.push(crate::named_anim::tests::movement(
+            "PreBirth", 0.0, 1.0, true, false, vec![],
+        ));
+        let line = actor.character.as_deref_mut().unwrap().set_state(
+            &mut actor.player, "Unborn", &[], a.world.updates as f64 / 15.0,
+        );
+        assert!(line.contains("PreBirth stays visible"), "{line}");
+        a.world.update_character_colliders();
+        assert_eq!(a.world.character_colliders.len(), 1);
     }
 
     #[test]

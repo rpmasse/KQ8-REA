@@ -2776,9 +2776,11 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 requires a character in the underground Birth state to be hidden and
 non-solid; the existing `setState Unborn` branch changes the state but
 leaves the live `unborn` flag clear. Set that flag when the command enters
-Birth. Use the existing zombie encounter fixture to check that a risen,
-solid character loses its Connor collider immediately, while the existing
-rise and natural `hide` paths still work. This closes this scripted
+Birth, unless its animation list has a visible `PreBirth` loop. Use the
+existing zombie encounter fixture to check that a risen, solid character
+loses its Connor collider immediately and that the `PreBirth` exception
+retains it, while the existing rise and natural `hide` paths still work.
+This closes this scripted
 transition only; enemy-family and full encounter checks remain separate.
 
 **Wait hit/attack-deadline correction (2026-11-06, implemented with open checks).** The separately

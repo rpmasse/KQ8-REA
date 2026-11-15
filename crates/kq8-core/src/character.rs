@@ -1020,8 +1020,13 @@ impl Character {
         } else if state.eq_ignore_ascii_case("Unborn") {
             self.state = State::Birth;
             self.wait_at = None;
-            self.unborn = true;
-            notes.push("state Birth (Unborn): underground, not drawn or solid (characters.md rule 16)".into());
+            // As at load, PreBirth is the visible Birth exception.
+            self.unborn = !player.movements.iter().any(|m| m.name.eq_ignore_ascii_case("PreBirth"));
+            notes.push(if self.unborn {
+                "state Birth (Unborn): underground, not drawn or solid (characters.md rule 16)"
+            } else {
+                "state Birth (Unborn): PreBirth stays visible (characters.md rule 16)"
+            }.into());
         } else if state.eq_ignore_ascii_case("Move") {
             // character-movement.md "Edge cases": not active, it just
             // walks straight on (`walk`, as wandering asks: our reading).
