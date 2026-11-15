@@ -632,6 +632,9 @@ pub struct CharacterKeys {
     pub goodbye: Option<crate::msg::Tuple>,
     /// `WBMsg`…`WBSeq`: the welcome-back line (rule 20).
     pub welcome_back: Option<crate::msg::Tuple>,
+    /// `AlarmMsg`…`AlarmSeq` and `AlarmEnd`: the line run spoken on
+    /// first alarm (`character-movement.md` rule 23).
+    pub alarm_line: Option<(crate::msg::Tuple, u8)>,
     /// `homeRadius=`, `chaseRadius=`, `attackDist=`, if given
     /// (`character-movement.md` rules 25, 27).
     pub home_radius: Option<f32>,
@@ -720,6 +723,7 @@ impl CharacterKeys {
             collider_mask: number("colliderMask").map_or(CHARACTER_MASK, |v| v as i64 as u32),
             goodbye: line_keys(s, "GB"),
             welcome_back: line_keys(s, "WB"),
+            alarm_line: line_keys(s, "Alarm").map(|first| (first, number("AlarmEnd").map_or(first.seq, |n| n as u8))),
             home_radius: number("homeRadius").map(|v| v as f32),
             chase_radius: number("chaseRadius").map(|v| v as f32),
             attack_dist: number("attackDist").map(|v| v as f32),
@@ -918,6 +922,9 @@ pub struct AiSettings {
     pub can_always_see: bool,
     pub wander_and_stop: bool,
     pub do_mode: i32,
+    /// The authored speech run on first alarm; absent in Daventry.
+    #[serde(default)]
+    pub alarm_line: Option<(crate::msg::Tuple, u8)>,
     /// Where each value came from, for the log.
     pub from: String,
 }
@@ -939,6 +946,7 @@ impl AiSettings {
             can_always_see: keys.can_always_see,
             wander_and_stop: keys.wander_and_stop,
             do_mode: keys.do_mode,
+            alarm_line: keys.alarm_line,
             from: "its .kq keys".into(),
         }
     }
@@ -1727,6 +1735,31 @@ useDynamicLighting 1
         let k = CharacterKeys::from_section(&file[0]).unwrap();
         assert_eq!(k.goodbye, Some(crate::msg::Tuple::new(1000, 4, 0, 7, 1)));
         assert_eq!(k.welcome_back, None);
+    }
+
+    #[test]
+    fn alarm_line_keys_keep_the_authored_sequence_run() {
+        let file = kq_text::parse(b"[Witch]\nclassType=KQMonster\nAlarmMsg=3000\nAlarmNoun=4\nAlarmVerb=0\nAlarmCase=24\nAlarmSeq=1\nAlarmEnd=2\n");
+        let keys = CharacterKeys::from_section(&file[0]).unwrap();
+        let line = Some((crate::msg::Tuple::new(3000, 4, 0, 24, 1), 2));
+        assert_eq!(keys.alarm_line, line);
+        assert_eq!(AiSettings::from_keys(&keys).alarm_line, line);
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn installed_swamp_and_dead_city_alarm_lines_reach_ai_settings() {
+        let game = crate::GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        for (world, file, expected) in [
+            ("Swamp", "SWMPWICH.KQ", crate::msg::Tuple::new(3000, 4, 0, 24, 1)),
+            ("DeadCity", "SKEL3.KQ", crate::msg::Tuple::new(2000, 63, 0, 120, 1)),
+        ] {
+            let archive = crate::VolArchive::open(&game.volume_path(world, "kq").unwrap()).unwrap();
+            let bytes = archive.unpack(archive.find(file).unwrap()).unwrap().data;
+            let section = kq_text::parse(&bytes);
+            let keys = CharacterKeys::from_section(&section[0]).unwrap();
+            assert_eq!(AiSettings::from_keys(&keys).alarm_line, Some((expected, 2)), "{world}/{file}");
+        }
     }
 
     #[test]

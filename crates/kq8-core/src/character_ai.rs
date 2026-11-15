@@ -887,14 +887,24 @@ impl WorldState {
         let Some(c) = a.character.as_deref_mut() else { return };
         let delay = if c.tower.is_some() { 0. } else { f64::from(c.random()) };
         let Some(ai) = c.ai.as_mut() else { return };
+        let first_alarm = !ai.alarmed;
+        let authored_line = ai.settings.alarm_line;
         ai.alarmed = true;
         ai.on_way_home = false;
         ai.last_seen = connor;
         ai.react_at = now + delay;
         ai.chase_until = now + CHASE_TIME;
-        let line = format!("alarmed: {why}; reacts in {delay:.2} s (rule 23); chase timer {CHASE_TIME} s; no alarm line in its file (Daventry has none)");
+        let speech = authored_line.map_or("no authored alarm line".to_string(), |(first, last)| format!("authored alarm line {first}…{last}"));
+        let line = format!("alarmed: {why}; reacts in {delay:.2} s (rule 23); chase timer {CHASE_TIME} s; {speech}");
         let team = ai.settings.team.clone();
         self.character_note(&name, line);
+        if first_alarm {
+            if let Some((first, last)) = authored_line {
+                let speak = crate::talk::Speak { issuer: name.clone(), first, last, nofade: false };
+                let queued = self.talk.queue(&speak, now);
+                self.character_note(&name, format!("alarm line (rule 23): {queued}"));
+            }
+        }
         if !told {
             self.spread_alarm(i, &name, team.as_deref(), now);
         }

@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-15 Queue authored character alarm lines
+
+Read the `Alarm…` tuple and end sequence from character files, retain it
+in AI settings with old-save compatibility, and queue it once when a
+character becomes alarmed. The focused parser/core checks pass, both
+installed GOG key sets pass the data check, and the unattended Swamp
+Witch route passes 1/1 with the Witch line before Connor's reply.
+`cargo test --locked -p kq8-core --lib -- --quiet` passes 751 active
+tests; `cargo test --locked -p kq8-data --lib -- --quiet` passes 158.
+Q213 records the unkeyed battle cries. No original game files or manual
+gameplay tests changed.
+
 ## 2026-11-15 Keep the full enemy flinch pause
 
 Apply `fighting.md` rule 23's strict "more than" boundary to the shared

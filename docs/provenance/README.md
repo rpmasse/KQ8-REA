@@ -1,5 +1,18 @@
 # Provenance
 
+**Authored enemy alarm speech (2026-11-15).**
+[Character movement rule 23](../behaviour/character-movement.md) supplies
+the first-alarm `Alarm…` line run and single-queue timing. The read-only
+GOG character-file scan found active runs in Swamp `SWMPWICH.KQ` and
+Dead City `SKEL3.KQ`; their tuple and end-sequence values pass the
+ignored data check. `AiSettings` retains the parsed line and the shared
+alarm path queues it through `Talk` only on the first alarm. A synthetic
+alarm/save compatibility check and an unattended Swamp Witch route pass;
+the latter logs the Witch's line followed by Connor's reply. This is
+Rust behavior with installed data, not an original-executable comparison.
+Q213 retains unkeyed random battle cries. No original executable or
+disassembly was read.
+
 **Enemy flinch pause boundary (2026-11-15).**
 [Fighting rule 23](../behaviour/fighting.md) requires more than two
 seconds since an ordinary character's previous flinch ended and gives the

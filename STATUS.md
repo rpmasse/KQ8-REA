@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-15 M5 authored alarm speech for Swamp Witch
+
+Characters with explicit `Alarm…` keys now queue their authored line run
+on first alarm, including alarms spread from teammates or a hit. The two
+installed GOG key sets (Swamp Witch and Dead City SKEL3) pass a data
+check; a synthetic check covers one queue and older AI snapshots. The
+unattended Swamp route passes 1/1: at update 15 the Witch starts its
+first line, and Connor's reply starts at update 36. The full core suite
+passes 751 active tests, 0 failures, 26 ignored; the data suite passes
+158 active tests, 0 failures, 5 ignored. The GOG install was read only.
+Random battle cries without keys remain open in Q213. This is not an
+original-executable comparison or manual gameplay test. M5 remains
+about 65%; specialized actors and other combat routes are still open.
+
 ## 2026-11-15 M5 enemy flinch pause boundary corrected
 
 The shared hit path no longer starts a second flinch at exactly the

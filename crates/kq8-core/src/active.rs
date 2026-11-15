@@ -9201,6 +9201,26 @@ endif
         a
     }
 
+    #[test]
+    fn authored_alarm_dialogue_queues_once_and_old_ai_slots_still_load() {
+        let mut a = fighter();
+        let line = (kq8_data::msg::Tuple::new(3000, 4, 0, 24, 1), 2);
+        let ai = a.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap();
+        ai.settings.alarm_line = Some(line);
+        let saved = serde_json::to_value(&*ai).unwrap();
+        let mut old = saved.clone();
+        old["settings"].as_object_mut().unwrap().remove("alarm_line");
+        let restored: crate::character_ai::Ai = serde_json::from_value(old).unwrap();
+        assert_eq!(restored.settings.alarm_line, None);
+        assert_eq!(serde_json::from_value::<crate::character_ai::Ai>(saved).unwrap().settings.alarm_line, Some(line));
+
+        let now = a.world.now();
+        a.world.alarm_pub(0, "sees Connor", now);
+        assert_eq!(a.world.talk.log.iter().filter(|line| line.contains("queued 3000 4 0 24 1…2")).count(), 1, "{:?}", a.world.talk.log);
+        a.world.alarm_pub(0, "told again", now);
+        assert_eq!(a.world.talk.log.iter().filter(|line| line.contains("queued 3000 4 0 24 1…2")).count(), 1, "the line is spoken only on the first alarm");
+    }
+
     fn ranged_flee_fighter(chase: f32, must: bool, chance: f32, limits: [f32; 2]) -> Active {
         let mut a = fighter();
         a.world.connor_at = Some([0.0, -1000.0, 100.0]);

@@ -750,6 +750,9 @@ too). Details and numbers in `kq8-artifacts/logs/characters.log`.
   fight will start); it gives up when it loses sight of him for 3 s or
   goes beyond its leash, and goes home. Scripts can set its home
   (`getLoc`, `setHome`), its radii and `goHome`.
+- **Authored alarm speech:** a character with `Alarm…` keys queues its
+  line run once when first alarmed; the Swamp Witch's two-line exchange
+  passes an unattended GOG-data route (2026-11-15).
 - **Zombies:** they rise when Connor comes within their alarm radius
   (after their `birthDelay`), sink back when they give up, and rise again
   from their home when he comes back.
