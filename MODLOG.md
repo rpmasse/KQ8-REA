@@ -31,10 +31,12 @@ three distinct class files, type stats, animation lists and special
 keys in `docs/behaviour/mandragor.md`. A later portable Ghidra run
 confirmed that Tree and Root are sibling subclasses of `KQMonster`.
 Subsequent method tracing established common monster construction and
-animation setup, root lookup of its matching tree, the class-specific
-property keys, and bounded event/repel behavior. Q209 stays open for
-combat timing, death and save behavior. The GOG
-install was read only; no manual gameplay test or Rust code change was made.
+animation setup, root attachment at a rotated offset, projectile-immunity
+collision type, gravity-off setup, inherited Unborn startup, and the
+root's die/rebirth timer with tree down-count and no-turn changes.
+Q209 stays open for attack timing, tree death, visual transition details
+and save behavior. The GOG install was read only; no manual gameplay test
+or Rust code change was made.
 
 ## 2026-11-15 Queue authored character alarm lines
 

@@ -32,8 +32,12 @@ keeps a reference when the tree is found and initializes a pose from
 the tree. It also registers with the tree's common event listener, so
 later tree messages can reach the root. Thus the three entries in
 `monsters.kq` are separately authored actors, and the root's setup
-performs the tree link. The exact pose conversion, behavior when the
-tree is absent, and setup order across the three entries remain open.
+performs the tree link. The root's world position is the tree's world
+position plus its authored `offset` rotated by the tree's orientation.
+The engine applies the same calculation again when the linked tree
+sends a movement notification. It also records the root as a dependent
+of the tree's transform. Root orientation and behavior when the tree
+is absent remain open, as does setup order across the three entries.
 The shared setup reads the
 object's configured animation file through the common animation-list
 loader. As established for characters in `characters.md`, each
@@ -44,6 +48,24 @@ character drawing path; the detailed per-movement pose and root/tree
 alignment still need study. The generic monster-list loader described
 in `characters.md` supplies type statistics, but its handling of these
 specific types has not been separately traced here.
+
+## Startup and collision
+
+The ordinary monster constructor starts with collision type `0x42`
+and mask `0x281F`. Both Mandragor classes replace the type with
+`0x4042` while retaining that initial mask. The extra `0x4000` is the
+projectile-immunity flag established for other characters in
+`ranged-weapons.md` and `henchman.md`. After common setup, both
+Mandragor classes turn their mover's gravity off. The authored
+`keeponground=1` remains a separate setting.
+
+The roots' animation list contains `birth`, so common character
+startup enters the inherited Unborn state. As described in
+`characters.md`, Unborn is not drawn or solid until it emerges. The
+tree's list has no `birth`; common startup instead queues Wait with
+the authored zero birth delay. The exact first-frame ordering and
+whether root-specific state changes alter Unborn's normal emergence
+remain to be established.
 
 The root's class-specific property reader accepts `offset`,
 `origHealth`, `origBirthDelay`, `rebirthDelay`, `repelDist` and
@@ -67,6 +89,27 @@ horizontal distance against the root's `tooClose` value. If Connor is
 inside it and in a susceptible movement state, the root sends him a
 movement event using `repelDist` and selects his `reactback` movement.
 The exact displacement vector and collision aftermath remain open.
+
+## Root death and rebirth
+
+A root uses a dedicated death state instead of the ordinary monster
+death state. On entry it sets its health to zero, adds one to the linked
+tree's `rootDownCount` up to `maxRoots` (default two), and sets the
+tree's common `noTurn` flag. It requests the root's `die` movement and
+sets the root's collision type and mask to zero. It also clears a
+render-related state field; the exact visible transition during `die`
+has not yet been established.
+
+When `die` finishes, the root starts a timer for its `rebirthDelay`:
+four seconds for the right root and five for the left in the installed
+data. When due, it requests `birth`, restores `origHealth`, and runs its
+proximity response. When `birth` finishes, it restores collision type
+`0x4042` and mask `0x201F`, reduces the linked tree's down count by
+one, clears `noTurn` if the count reaches zero, and enters Wait. The
+mask after rebirth differs from the constructor's initial `0x281F`;
+the reason for this difference and its terrain consequences need
+separate study. Tree death, interruption, event queue persistence and
+save/load continuation remain open.
 
 ## Confirmed data
 
@@ -92,8 +135,8 @@ The exact displacement vector and collision aftermath remain open.
    `deadDts=mt_dead.kqs`, `tooClose=1600`, `repelDist=1800`.
    The roots give `tooClose=700`, `repelDist=800`, plus offsets
    (+600, −1000, 0) on the right and (−600, −1000, 0) on the left.
-   Their `rebirthDelay` values are 4 and 5 (unit unconfirmed). The meaning and
-   precedence of these class-specific keys require engine study.
+   Their `rebirthDelay` values are 4 and 5 seconds, as confirmed by the
+   death state's world-clock timer. Other key interactions remain open.
 4. `mandrg.anm` lists eight movements: `attack`, `die`, `firedie`,
    `icedie`, `laugh`, `react`, `stop`, `walk`. Its `attack` movement has
    no `Do` cue. `mandroot.anm` lists nine: `attack`, `birth`, `die`,
@@ -106,13 +149,13 @@ The exact displacement vector and collision aftermath remain open.
 
 ## Unresolved original behavior
 
-- Manager creation and setup order, missing-tree handling, and how team
-  names and root offsets affect attachment or targeting.
-- Initial active, visible and solid states, sight and attack decisions,
-  damage dispatch, root `birth`/`hide` and `rebirthDelay` timing, and
-  the tree's `tooClose`/`repelDist` behavior.
-- Root versus tree hit and death effects, experience and drops,
-  callbacks, the end condition of a group, and save/load continuation.
+- Manager creation and setup order, missing-tree handling, and how
+  team names affect targeting.
+- Exact first-frame and root death visibility, sight and attack
+  decisions, damage dispatch, the tree's `tooClose`/`repelDist`
+  behavior, and interruptions of root rebirth.
+- Tree hit/death effects, experience and drops, script callbacks,
+  the end condition of a group, and save/load continuation.
 
 ## Do not reproduce
 
