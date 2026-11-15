@@ -3,6 +3,29 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 first-person weapon put-away matrix (2026-11-16)
+
+The attack matrix covers first-person hits but does not check putting
+weapons away. `ranged-weapons.md` rules 1–8 describe Alt's request, the
+Fists `undraw` exception and the other items' `away` then base-list
+`out` sequence. The installed `Connor.kq` names 13 hand and nine ranged
+first-person banks, including the Azriel Hammer. Run one unattended
+Dead City process per item with its original data: give the item,
+ready its mode, enter first person, press Alt, and record the requested
+movement sequence, list assignment and final empty-hand mode. Verify
+that the GOG `Options.cs` bytes are unchanged. Fix only a failure that
+the logs and the behavior note establish. This checks the transition
+path with original data, not visual parity with the original executable.
+
+Done: the release-profile original-data matrix passed 1/1 across 22
+fresh Windows processes in 313.76 seconds. Alt was accepted at update
+95 after each item was ready and first person was active. Fists played
+their first-person `undraw` before returning to the base `stop`; all
+other items played their mapped first-person `away`, switched to the
+base `out`, and finished at the base `stop`. The GOG `Options.cs` bytes
+were unchanged. No gameplay code or original file changed, and no
+manual or original-executable comparison was run.
+
 ## M5 first-person Azriel Hammer throw direction (2026-11-16)
 
 `azriel-hammer.md` rule 2 says a third-person throw turns Connor toward

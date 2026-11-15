@@ -1,5 +1,15 @@
 # Provenance
 
+**First-person weapon put-away matrix (2026-11-16).**
+[Ranged weapon rules 1–8](../behaviour/ranged-weapons.md) specify Alt's
+put-away request, the Fists `undraw` exception, and the ordinary `away`
+then base `out` sequence. The installed `Connor.kq` supplies the
+first-person banks for 13 hand and nine ranged items. An unattended
+Windows run checks each item with GOG data, the selected bank and the
+return to the base list. It does not compare animation pictures or
+timing with the original executable. Implementation B used the prose
+note and installed data, not executable or study scratch.
+
 **First-person Azriel Hammer direction (2026-11-16).**
 [Hammer rule 2](../behaviour/azriel-hammer.md) distinguishes the
 third-person turn toward the aim from an immediate first-person throw

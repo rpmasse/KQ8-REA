@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 first-person weapon put-away matrix
+
+An unattended original-data Windows matrix now covers Alt put-away for
+all 13 hand weapons and nine ranged weapons, including the Azriel
+Hammer. All 22 cases used their first-person movement bank and returned
+to the base list: Fists played `undraw`; other items played `away` then
+base `out`. The release test passed 1/1 in 313.76 seconds, and GOG
+`Options.cs` bytes were unchanged. This checks the put-away path, not
+all movement variants or original-runtime visual timing. No manual
+gameplay test was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 first-person Azriel Hammer throw
 
 The first-person Hammer throw now starts without turning Connor, as

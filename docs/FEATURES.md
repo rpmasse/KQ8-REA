@@ -843,7 +843,8 @@ miss, roll, flinch, death, drop and shot is in
 - **First-person weapons:** an unattended original-data matrix checks
   all 13 hand weapons and eight conventional ranged weapons: each uses
   its first-person attack list and hits with the expected damage kind.
-  The Azriel Hammer has a separate throw controller.
+  The Azriel Hammer has a separate throw controller. A second matrix
+  checks Alt put-away for all 22 items, including the Hammer.
 - **Combat level:** `--combat-level 1|2|3` (0.66 / 1.0 / 1.5 × the
   creatures' health and damage; stand-in for the menu).
 - Remaining combat work includes nonattack weapon movements outside

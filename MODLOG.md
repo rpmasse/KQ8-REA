@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-16 Check first-person put-away for every weapon
+
+Added an unattended GOG-data Alt put-away matrix for 13 hand and nine
+ranged items. All 22 fresh-process cases reached first person, accepted
+Alt at update 95, played their authored put-away sequence and returned
+to the base movement list. Fists used `undraw`; the others used `away`
+then base `out`. The release test passed 1/1 in 313.76 seconds, and
+GOG `Options.cs` bytes were unchanged. The test file was formatted and
+the diff checked. No gameplay code or original asset changed; no manual
+gameplay test or original-executable comparison was run.
+
 ## 2026-11-16 Keep first-person Hammer heading fixed
 
 Changed only the Azriel Hammer throw's auto-turn request: third person
