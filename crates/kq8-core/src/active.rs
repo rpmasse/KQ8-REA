@@ -1025,6 +1025,10 @@ pub struct WorldState {
     pub scripted_death: crate::connor::ScriptedDeath,
     /// The fight's random draws (the rolls, M5 5c).
     pub fight_rng: crate::emitter::Rng,
+    /// Shared unseen-hit/battle-cry speech deadline. It survives an
+    /// in-process world change, but the original save path did not expose
+    /// it in Q214's bounded study (`fighting.md` rule 25).
+    pub combat_speech_deadline: f64,
     /// The weapon Connor has ready (its type name; `inventory.md` rule 9,
     /// `fighting.md` rule 39; M5 5c-5), `None` = none drawn; since M5 5f-3
     /// the hand or the ranged one, as `weapon_mode` says.
@@ -5185,6 +5189,7 @@ impl Active {
                 connor_last_hit: None,
                 scripted_death: Default::default(),
                 fight_rng: crate::emitter::Rng::new(0x5EED_F1647),
+                combat_speech_deadline: 0.0,
                 weapon_ready: None,
                 weapon_mode: crate::weapons::WeaponMode::None,
                 last_away_ranged: false,
@@ -9646,6 +9651,45 @@ endif
         assert_eq!(a.world.talk.log.iter().filter(|line| line.contains("queued 3000 4 0 24 1…2")).count(), 1, "{:?}", a.world.talk.log);
         a.world.alarm_pub(0, "told again", now);
         assert_eq!(a.world.talk.log.iter().filter(|line| line.contains("queued 3000 4 0 24 1…2")).count(), 1, "the line is spoken only on the first alarm");
+    }
+
+    #[test]
+    fn unseen_surviving_hits_share_a_strict_speech_deadline() {
+        let mut a = fighter();
+        let line = kq8_data::msg::Tuple::new(2000, 65, 0, 98, 1);
+        let first = a.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap();
+        first.settings.surprise_line = Some((line, 4));
+        first.settings.alarm_radius = 0.0;
+        first.sees = false;
+        let mut second = a.world.anims[0].clone();
+        second.player.name = "other_skeleton".into();
+        second.character.as_deref_mut().unwrap().ai.as_mut().unwrap().settings.surprise_line =
+            Some((line.with_seq(1), 1));
+        a.world.anims.push(second);
+
+        a.world.simulation_time = 1.0;
+        a.world.hit_character(0, "Connor", 1, crate::fight::HitKind::Normal);
+        assert_eq!(a.world.combat_speech_deadline, 21.0);
+        assert_eq!(a.world.talk.log.iter().filter(|line| line.contains("queued 2000 65 0 98")).count(), 1);
+
+        // A different actor cannot speak at the exact shared deadline.
+        a.world.simulation_time = 21.0;
+        a.world.hit_character(1, "Connor", 1, crate::fight::HitKind::Normal);
+        assert_eq!(a.world.combat_speech_deadline, 21.0);
+        assert!(!a.world.talk.log.iter().any(|line| line.contains("other_skeletonTalk")));
+
+        a.world.simulation_time = 21.1;
+        a.world.hit_character(1, "Connor", 1, crate::fight::HitKind::Normal);
+        assert!(a.world.combat_speech_deadline > 41.0);
+        assert!(a.world.talk.log.iter().any(|line| line.contains("other_skeletonTalk") && line.contains("queued 2000 65 0 98 1…1")));
+
+        // A visible hit and a lethal hit do not spend another window.
+        a.world.simulation_time = 50.0;
+        a.world.anims[1].character.as_deref_mut().unwrap().ai.as_mut().unwrap().sees = true;
+        a.world.hit_character(1, "Connor", 1, crate::fight::HitKind::Normal);
+        assert!(a.world.combat_speech_deadline < 42.0);
+        a.world.hit_character(0, "Connor", 100, crate::fight::HitKind::Normal);
+        assert!(a.world.combat_speech_deadline < 42.0);
     }
 
     fn ranged_flee_fighter(chase: f32, must: bool, chance: f32, limits: [f32; 2]) -> Active {

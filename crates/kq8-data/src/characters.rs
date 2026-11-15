@@ -664,6 +664,10 @@ pub struct CharacterKeys {
     /// `AlarmMsg`…`AlarmSeq` and `AlarmEnd`: the line run spoken on
     /// first alarm (`character-movement.md` rule 23).
     pub alarm_line: Option<(crate::msg::Tuple, u8)>,
+    /// `SurpriseMsg`…`SurpriseSeq` and `SurpriseNSeq`: the authored
+    /// unseen-hit speech data (`fighting.md` rule 25, Q214). The second
+    /// value is retained as written; selection belongs to combat.
+    pub surprise_line: Option<(crate::msg::Tuple, u8)>,
     /// `homeRadius=`, `chaseRadius=`, `attackDist=`, if given
     /// (`character-movement.md` rules 25, 27).
     pub home_radius: Option<f32>,
@@ -767,6 +771,7 @@ impl CharacterKeys {
             goodbye: line_keys(s, "GB"),
             welcome_back: line_keys(s, "WB"),
             alarm_line: line_keys(s, "Alarm").map(|first| (first, number("AlarmEnd").map_or(first.seq, |n| n as u8))),
+            surprise_line: line_keys(s, "Surprise").map(|first| (first, number("SurpriseNSeq").unwrap_or(0.0) as u8)),
             home_radius: number("homeRadius").map(|v| v as f32),
             chase_radius: number("chaseRadius").map(|v| v as f32),
             attack_dist: number("attackDist").map(|v| v as f32),
@@ -968,6 +973,9 @@ pub struct AiSettings {
     /// The authored speech run on first alarm; absent in Daventry.
     #[serde(default)]
     pub alarm_line: Option<(crate::msg::Tuple, u8)>,
+    /// Authored unseen-hit line and sequence count (`fighting.md` rule 25).
+    #[serde(default)]
+    pub surprise_line: Option<(crate::msg::Tuple, u8)>,
     /// Where each value came from, for the log.
     pub from: String,
 }
@@ -990,6 +998,7 @@ impl AiSettings {
             wander_and_stop: keys.wander_and_stop,
             do_mode: keys.do_mode,
             alarm_line: keys.alarm_line,
+            surprise_line: keys.surprise_line,
             from: "its .kq keys".into(),
         }
     }
@@ -1805,6 +1814,26 @@ useDynamicLighting 1
             let section = kq_text::parse(&bytes);
             let keys = CharacterKeys::from_section(&section[0]).unwrap();
             assert_eq!(AiSettings::from_keys(&keys).alarm_line, Some((expected, 2)), "{world}/{file}");
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn installed_dead_city_surprise_keys_are_read_without_selecting_a_line() {
+        let game = crate::GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let archive = crate::VolArchive::open(&game.volume_path("DeadCity", "kq").unwrap()).unwrap();
+        for (file, noun, count) in [
+            ("SKEL2.KQ", 65, 4),
+            ("SKELBOW.KQ", 65, 4),
+            ("SKELBS.KQ", 65, 4),
+            ("SKELETON.KQ", 65, 4),
+            ("SKELKING.KQ", 15, 1),
+            ("SKELTOWR.KQ", 16, 1),
+        ] {
+            let bytes = archive.unpack(archive.find(file).unwrap()).unwrap().data;
+            let section = kq_text::parse(&bytes);
+            let keys = CharacterKeys::from_section(&section[0]).unwrap();
+            assert_eq!(keys.surprise_line, Some((crate::msg::Tuple::new(2000, noun, 0, 98, 1), count)), "{file}");
         }
     }
 

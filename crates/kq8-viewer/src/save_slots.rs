@@ -773,6 +773,11 @@ pub fn load_slot(world: &mut bevy::prelude::World, slot: u16) -> Result<(), Stri
     } else {
         FREE_FRAMES
     };
+    // Q214: combat speech uses a process-wide deadline, omitted from the
+    // disk slot. Keep the live value through a same-process load; a fresh
+    // process starts with the ordinary zero deadline.
+    let process_speech_deadline = world.get_resource::<crate::door_view::DoorSim>()
+        .map_or(0.0, |sim| sim.active.world.combat_speech_deadline);
     if frames > 0 {
         take_down(world);
     }
@@ -788,11 +793,13 @@ pub fn load_slot(world: &mut bevy::prelude::World, slot: u16) -> Result<(), Stri
     let mut change = world.resource_mut::<WorldChange>();
     change.current.clear();
     change.kept = save.kept.clone();
+    let mut journey = save.journey.clone();
+    journey.combat_speech_deadline = process_speech_deadline;
     change.step = Step::Down {
         request,
         frames,
         from: String::new(),
-        journey: Some(Box::new(save.journey.clone())),
+        journey: Some(Box::new(journey)),
     };
     change.restoring = Some(Box::new(save));
     Ok(())

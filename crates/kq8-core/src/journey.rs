@@ -83,6 +83,10 @@ pub struct Journey {
     pub map_view: crate::magic_map::View,
     pub other_maps: BTreeMap<usize, (String, kq8_data::magic_map::MapKeys, String)>,
     pub combat_level: f32,
+    /// Process-wide battle-cry/surprise deadline. Carried during an
+    /// in-memory world change; omitted from disk slots (Q214 inference).
+    #[serde(skip)]
+    pub combat_speech_deadline: f64,
     /// The next `NoName<n>` number (rule 18).
     pub next_no_name: usize,
     /// New slots keep the mask, previous delivery age and held IDs. Older
@@ -142,6 +146,7 @@ impl Journey {
             map_view: w.map_view,
             other_maps: w.other_maps.clone(),
             combat_level: w.combat_level,
+            combat_speech_deadline: w.combat_speech_deadline,
             next_no_name: w.items.no_name_counter(),
             helps_asked: help.legacy_item_flags(),
             connor_tips: [crate::starting_help::FIRST_HIT, crate::starting_help::LOW_HEALTH]
@@ -237,6 +242,7 @@ impl Journey {
         w.map_view = self.map_view;
         w.other_maps = self.other_maps.clone();
         w.combat_level = self.combat_level;
+        w.combat_speech_deadline = self.combat_speech_deadline;
 
         w.god_mode = self.god_mode;
         w.ai_off = self.ai_off;
@@ -325,6 +331,21 @@ numItems=2
         assert!(!belongs_to_world("KQWorld::SaveGameName", "Daventry"));
         assert!(!belongs_to_world("Swamp::Thing", "Daventry"));
         assert!(!belongs_to_world("KQGame::runOptimal", "Daventry"));
+    }
+
+    #[test]
+    fn shared_surprise_deadline_crosses_worlds_but_not_a_disk_slot() {
+        let mut first = world();
+        first.world.combat_speech_deadline = 27.0;
+        let journey = Journey::take(&first.world, &first.scripts.vars, "Daventry");
+        let mut second = world();
+        journey.give(&mut second.world, &mut second.scripts.vars);
+        assert_eq!(second.world.combat_speech_deadline, 27.0);
+
+        let value = serde_json::to_value(&journey).unwrap();
+        assert!(value.get("combat_speech_deadline").is_none());
+        let loaded: Journey = serde_json::from_value(value).unwrap();
+        assert_eq!(loaded.combat_speech_deadline, 0.0);
     }
 
     #[test]

@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-16 Add unseen-hit enemy surprise speech
+
+Parsed the original `Surprise` tuple and sequence count, and wired
+surviving unseen hits to one selected line in the existing speech
+queue. The shared deadline is strict and crosses an in-memory world
+change, but is omitted from disk slots in line with Q214's bounded
+static evidence. Focused core selection, hit and world-change checks,
+the GOG data check and the unattended Dead City voice route passed;
+the full core/data release suites passed. The first Windows fixture
+clicked during the uncuttable axe draw and got no hit; moving its draw
+earlier produced the expected update-39 hit and spoken line. No
+same-process disk-load scenario was run for the carried deadline.
+Original game files were unchanged; no manual gameplay test was run.
+
+## 2026-11-16 Study surprise speech after unseen hits
+
+Read the six original Dead City skeleton files and traced the original
+hit, sight, speech and shared-timer paths read-only. `fighting.md`
+rule 25 now gives the eligibility, sequence choice, queue behavior and
+20-second deadline. Q214 retains the native disk/world continuation
+limit: direct references suggest a process-global timer but no saved
+cooldown was tested. No Rust or original game file changed; no manual
+gameplay test was run.
+
 ## 2026-11-16 Check settled weapon saves across all combat banks
 
 Added a Windows two-process save and reload matrix for every real

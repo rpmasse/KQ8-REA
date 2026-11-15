@@ -623,6 +623,12 @@ pub const AIM_SHARE: f32 = 0.75;
 /// `ProjImmune`.
 pub const IMMUNE_TO_PROJECTILES: u32 = 0x4000;
 
+/// Q214's native selector rounds a random point over the sequence span.
+/// For four lines, the two endpoint lines have half the middle weight.
+fn surprise_sequence(count: u8, random: f32) -> u8 {
+    1 + (random * f32::from(count.saturating_sub(1))).round() as u8
+}
+
 /// Rule 36: where to aim so that a bolt of speed `speed` from `from`
 /// meets a target at `at` moving at `v`: the first time t > 0 with
 /// |at + v t − from| = speed × t; straight at it if there is none.
@@ -1186,7 +1192,7 @@ impl crate::active::WorldState {
         self.fight_note(&name, format!("{line}; {}", notes.join("; ")));
         // 22.10: the alarm with "run" (rule 26).
         let told = self.run_alarm(&name, now);
-        // Rule 25: no Daventry character has Surprise lines (not built).
+        self.surprise_after_hit(j, now);
         // Rule 28: it had no target when hit and is still not alarmed.
         let still = self.anims[j].character.as_deref().and_then(|c| c.ai.as_ref()).is_some_and(|ai| !ai.alarmed);
         if !had_target && standing && still {
@@ -1195,6 +1201,31 @@ impl crate::active::WorldState {
         if !told.is_empty() {
             self.fight_note(&name, format!("the alarm with run (rule 26): {}", told.join(", ")));
         }
+    }
+
+    /// Fighting rule 25, Q214: the hit uses the last stored sight sample,
+    /// not a fresh ray. The speech request spends the shared 20-second
+    /// window even when the queue later cannot play the selected line.
+    fn surprise_after_hit(&mut self, j: usize, now: f64) {
+        if now <= self.combat_speech_deadline {
+            return;
+        }
+        let Some((first, count)) = self.anims[j].character.as_deref()
+            .and_then(|c| c.ai.as_ref())
+            .filter(|ai| !ai.sees)
+            .and_then(|ai| ai.settings.surprise_line)
+            .filter(|(line, count)| line.file != 0 && line.noun != 0 && line.case != 0 && *count != 0)
+        else { return };
+        // The native selector rounds a random point across the N-1 span:
+        // endpoint lines are half as likely as interior lines when N > 2.
+        let seq = surprise_sequence(count, self.fight_rng.fraction());
+        let name = self.anims[j].player.name.clone();
+        let line = first.with_seq(seq);
+        let queued = self.talk.queue(&crate::talk::Speak {
+            issuer: name.clone(), first: line, last: seq, nofade: false,
+        }, now);
+        self.combat_speech_deadline = now + 20.0;
+        self.fight_note(&name, format!("unseen hit surprise: selected {line}; {queued}; shared deadline {:.2} (rule 25)", self.combat_speech_deadline));
     }
 
     /// Rule 26: after every hit, every active character with an alarm
@@ -2498,6 +2529,12 @@ impl crate::active::WorldState {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[test]
+    fn surprise_sequence_rounds_across_the_authored_span() {
+        assert_eq!(surprise_sequence(1, 0.99), 1);
+        assert_eq!([0.0, 0.24, 0.50, 0.76, 0.99].map(|x| surprise_sequence(4, x)), [1, 2, 3, 3, 4]);
+    }
 
     fn tutorial_world() -> crate::active::Active {
         use crate::{active::{Active, AnimObject}, character::Character, named_anim::tests::movement};

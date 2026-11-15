@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-16 M5 unseen-hit enemy surprise lines
+
+Surviving hits on enemies with authored `Surprise` lines now use the
+last sight result, choose one original line with the studied weighting,
+and share a 20-second speech limit. The six Dead City skeleton files
+passed the GOG parser check. The unattended Windows route hit
+`skeleton1` at update 39, before its update-45 sight sample, then
+started its original voice line and caption. The core and data release
+suites passed. An initial Windows fixture clicked while Connor was
+still drawing the axe, so no hit occurred; the corrected fixture passed.
+The separate unkeyed alarm cry (Q213), unusual overlapping speech and
+native save continuation remain open. The same-process disk-load carry
+path compiled but was not exercised by an automated slot scenario.
+No manual gameplay test or original-executable comparison was run.
+M5 remains about 65%.
+
 ## 2026-11-16 M5 settled weapon save and reload matrix
 
 An unattended Windows matrix saved and restored each of the 22 real

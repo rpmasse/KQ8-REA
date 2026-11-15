@@ -360,6 +360,63 @@ Words used here:
     character hit while it could **not** see Connor may say one of its
     `Surprise…` lines (`characters.md`), at most once every 20 s for the
     whole game.
+
+    **Q214 clarification, static study 2026-11-16.** The hit must leave
+    the character alive. The handler uses the character's **stored
+    sight result** from the normal visibility check (made every 15th
+    update while the character is updated, `character-movement.md`
+    rule 20); it does not perform a fresh sight test for this line.
+    It requires nonzero `SurpriseMsg`, `SurpriseNoun` and `SurpriseCase`,
+    and the current world's simulation time must be **strictly later**
+    than one shared speech deadline. There is **no separate chance
+    roll** for a configured surprise line. The hit kind and the
+    attacker's identity are not tested in this branch.
+
+    It chooses one sequence number from **1 through `SurpriseNSeq`**:
+    it scales a random fraction over that span and rounds to the
+    nearest whole number, then requests that single line. For a count
+    of four, sequences 1 and 4 are each roughly half as likely as 2
+    or 3. The exact random-number sequence need not be copied.
+    `SurpriseSeq` is loaded from the file but **not read by this hit
+    path**; it does not shift the chosen range. With the installed
+    Dead City data, ordinary skeletons can choose 1–4; the king and
+    tower skeletons always choose 1. The chosen line goes straight to
+    that character's usual speech queue, without a turn or a half-
+    second turn wait. It takes the ordinary queued-speech path
+    (`talking.md` rules 8–11); the hit handler does not explicitly
+    clear a prior line. The general speech path can ignore it during a
+    conversation or drop an absent line, but the hit handler does not
+    check whether it played. An optional side effect of the shared
+    speech helper when other speech is active was not traced to the
+    end, so interruption in that unusual overlap remains open.
+
+    **Cooldown.** Immediately after requesting the line, the hit
+    handler sets the shared deadline to current world time **plus 20
+    seconds**, even if the speech request is later ignored or cannot
+    play. A later hit at exactly that deadline is still too early.
+    This is a process-wide value, not one field per monster. An alarm
+    battle cry uses the same shared value with a separate shorter
+    delay; this surprise rule does not define that cry (`character-
+    movement.md` rule 23, Q213).
+
+    **Installed data.** The only six character files with these keys
+    are Dead City's `SKEL2.KQ`, `SKELBOW.KQ`, `SKELBS.KQ` and
+    `SKELETON.KQ` (`SurpriseMsg=2000`, noun 65, verb 0, case 98,
+    `SurpriseSeq=1`, `SurpriseNSeq=4`), `SKELKING.KQ` (same except noun
+    15 and count 1) and `SKELTOWR.KQ` (noun 16 and count 1).
+
+    **Save and world continuation limit.** The deadline begins at zero
+    when the program starts. The static direct-reference audit found
+    speech paths reading and changing it, but no world-snapshot or
+    disk-save read/write path for it. It therefore appears to remain a
+    process value across an ordinary world change, where the next
+    world has its own restored simulation clock (`world-change.md`
+    rule 14); a fresh process begins with zero rather than a saved
+    deadline. These continuation conclusions are **inferred from the
+    static references**, not tested in a native save or world change.
+    No native saved unseen-hit fixture was present in the supplied
+    GOG folder. Do not claim frame-exact save continuity from this
+    audit.
 26. **The alarm with "run"** (traced; refines `character-movement.md`
     rules 23–24): after every hit, **every active character** with an
     alarm radius above 0 that **can see Connor** (or whose team has a

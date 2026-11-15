@@ -1,5 +1,16 @@
 # Provenance
 
+**Unseen-hit enemy speech (2026-11-16).** [Fighting rule 25](../behaviour/fighting.md)
+and its Q214 clarification establish the stored sight check, the
+rounded random sequence, normal speech request and shared 20-second
+deadline. The installed Dead City skeleton files provide the six
+`Surprise` tuples. The Rust hit path queues the chosen original line;
+an unattended GOG-data route produced a surviving hit and played the
+voice before the next sight sample. The process deadline's disk and
+world continuation is inferred from bounded static references, not
+native runtime verification. Implementation B used the prose study
+and installed data, not the executable or study scratch.
+
 **Settled weapon save matrix (2026-11-16).** The installed GOG
 `Connor.kq` supplies the expected hand and ranged movement banks for
 all 22 real weapons; `NoRanged` is a placeholder and is excluded.

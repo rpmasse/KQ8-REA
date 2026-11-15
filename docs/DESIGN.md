@@ -55,6 +55,33 @@ All 22 authored banks passed the two-process save and load matrix in
 Rust viewer; animation-boundary saves and original-runtime presentation
 remain separate checks.
 
+## M5 unseen-hit enemy response (2026-11-16)
+
+`fighting.md` rule 25 and its Q214 clarification establish an enemy
+speech response after a surviving hit when the stored sight result is
+false. Read `Surprise...` keys from the original character file. Require
+nonzero message, noun and case and a world time strictly later than the
+shared speech deadline. Choose sequence 1 through `SurpriseNSeq` by
+rounding a random position over that span, then request that one line
+through the existing speech queue. Set the deadline to hit time plus
+20 seconds immediately, regardless of later playback. Preserve the
+current hit damage, reaction and alarm sequence. Carry this process
+value across an in-memory world change, but do not serialize it to disk;
+when a slot loads in the same process, carry the current live value
+across the rebuilt world. The study found no native save path for it,
+and that continuation is still an inference. Check the six authored
+Dead City skeleton files,
+visible-hit and lethal-hit exclusions, weighted selection, the shared
+limit across two enemies, and the strict deadline. Use automated Rust
+checks only; do not claim native save parity or overlapping-speech
+behavior from this step.
+The focused core, original-data parser and unattended Dead City voice
+route passed. Connor's update-39 hit preceded skeleton1's update-45
+sight sample; the selected original voice line played. The first
+Windows fixture clicked while his axe was still drawing and produced
+no hit; moving the draw request earlier fixed that fixture. Q213's
+battle cry and native save continuation remain separate work.
+
 ## M5 first-person weapon put-away matrix (2026-11-16)
 
 The attack matrix covers first-person hits but does not check putting
