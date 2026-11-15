@@ -664,6 +664,9 @@ pub struct Mover {
     pub pull: [f32; 3],
     pub step_up: f32,
     pub step_down: f32,
+    /// Minimum upward normal for a walkable landing. Characters can
+    /// change this with `KQMonster::walkSlope`; Connor keeps 0.8.
+    pub walkable_normal_z: f32,
     pub state: State,
     /// This update: steep surfaces count as head-on (jumping).
     steep_head_on: bool,
@@ -799,6 +802,7 @@ impl Mover {
             pull: [0.0, 0.0, -1.0],
             step_up: STEP,
             step_down: STEP,
+            walkable_normal_z: WALKABLE_NORMAL_Z,
             state: State::Normal,
             steep_head_on: false,
             push: PushAbility::default(),
@@ -1184,7 +1188,7 @@ impl Mover {
             report.down_normal = Some(normal);
             self.pull = down_slope(normal);
             let angle = head_on_angle(sub(end, start), normal);
-            if normal[2] > WALKABLE_NORMAL_Z {
+            if normal[2] > self.walkable_normal_z {
                 report.down = DownResult::Walkable;
                 self.on_ground = true;
                 self.support_normal = Some(normal);
@@ -1202,7 +1206,7 @@ impl Mover {
             // "Exact hit handling": walkable landings (surface z ≥ 0.8),
             // head-on hits and the last allowed hit stay at the contact;
             // anything else is pushed off along the surface.
-            let result = if normal[2] >= WALKABLE_NORMAL_Z {
+            let result = if normal[2] >= self.walkable_normal_z {
                 "landing"
             } else if head_on {
                 "head-on"
@@ -1249,7 +1253,7 @@ impl Mover {
         if let (true, Some((height, normal))) = (self.keep_on_ground, under) {
             if self.position[2] <= height {
                 self.position[2] = height;
-                if normal[2] > WALKABLE_NORMAL_Z {
+                if normal[2] > self.walkable_normal_z {
                     report.check = "walkable";
                     self.on_ground = true;
                     self.support_normal = Some(normal);
@@ -1579,6 +1583,31 @@ pub(crate) mod tests {
         fn ground(&self, _: f32, _: f32) -> Option<(f32, [f32; 3])> {
             Some((self.0, [0.0, 0.0, 1.0]))
         }
+    }
+
+    #[test]
+    fn character_walk_slope_changes_steep_ground_landing() {
+        struct Steep;
+        impl GroundLookup for Steep {
+            fn ground(&self, _: f32, _: f32) -> Option<(f32, [f32; 3])> {
+                Some((0.0, [0.8, 0.0, 0.6]))
+            }
+        }
+        let character = || Mover::character(
+            [0.0; 3], true, [-200.0, -200.0, 0.0], [200.0, 200.0, 1300.0],
+            (0, TERRAIN_BIT), (STEP, STEP), -1,
+        );
+        let mut ordinary = character();
+        let ordinary_report = ordinary.update([0.0; 3], &Steep);
+        assert_eq!(ordinary_report.down, DownResult::Steep);
+        assert!(!ordinary.on_ground);
+
+        let mut all_slopes = character();
+        all_slopes.walkable_normal_z = -1.0; // walkSlope 90 degrees
+        let all_report = all_slopes.update([0.0; 3], &Steep);
+        assert_eq!(all_report.down, DownResult::Walkable);
+        assert!(all_slopes.on_ground);
+        assert_eq!(all_report.check, "walkable");
     }
 
     /// Flat at height 0 for x < 0; from x = 0 a plane rising (positive

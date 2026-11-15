@@ -403,6 +403,8 @@ impl Character {
             ));
         }
         m.position = player.base.position;
+        // The saved character rule remains the source after a checkpoint restore.
+        m.walkable_normal_z = self.walk_slope.unwrap_or(crate::connor_mover::WALKABLE_NORMAL_Z);
         if m.use_gravity != gravity {
             notes.push(format!("gravity {} (setUseGravity / setMonUseGravity)", if gravity { "on" } else { "off" }));
             m.use_gravity = gravity;
@@ -1201,6 +1203,28 @@ pub(crate) mod tests {
         let mut c = Character::new(false, flags, 0.0, false, false, true, 7);
         c.in_range = true;
         c
+    }
+
+    #[test]
+    fn character_walk_slope_reaches_its_mover() {
+        struct Steep;
+        impl crate::connor_mover::GroundLookup for Steep {
+            fn ground(&self, _: f32, _: f32) -> Option<(f32, [f32; 3])> {
+                Some((0.0, [0.8, 0.0, 0.6]))
+            }
+        }
+        let mut c = character(0x20);
+        c.mover = Some(Box::new(crate::connor_mover::Mover::character(
+            [0.0; 3], true, [-200.0, -200.0, 0.0], [200.0, 200.0, 1300.0],
+            (0, crate::connor_mover::TERRAIN_BIT),
+            (crate::connor_mover::STEP, crate::connor_mover::STEP), -1,
+        )));
+        c.walk_slope = Some(-1.0); // the stored result of walkSlope 90
+        let mut p = player(1, Some("stop"), None);
+        c.gravity_step(&mut p, &Steep, 0.0);
+        let mover = c.mover.as_ref().unwrap();
+        assert_eq!(mover.walkable_normal_z, -1.0);
+        assert!(mover.on_ground, "the character should accept this steep surface");
     }
 
     /// Runs updates until `done` or `limit`.

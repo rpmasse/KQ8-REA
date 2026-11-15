@@ -274,6 +274,8 @@ a later change affects their rule or an unresolved failure requires it.
 | M5 | Hits/protection; melee/ranged controllers; enemy decision families; death/recovery; terrain hazards | Use parameter/data matrices across weapons and monsters. Native checks establish shared dispatch and state ownership; add cases only for distinct controllers or a failure. Cover ordinary poison/lava/swamp together. |
 | M6 | Script/event coverage; item/object/trigger lifecycle; timed puzzle persistence; world transitions; campaign progression | Audit all regional scripts/data against shared implementations, then use integrated chapter/campaign routes covering multiple quests and transitions per run. Keep earned checkpoints for recovery, not a mandatory fresh process after every pickup. |
 
+**M5 monster walk-slope correction (2026-11-15, implemented).** `KQMonster::walkSlope` stores a degree-based limit. Each character now passes that limit to its mover for walkable landing and ground checks; Connor keeps the default 0.8. The original Dead City scripts use 90 degrees, which the behaviour note defines as accepting every slope. Focused checks compare default and 90-degree landing on a steep synthetic surface and exercise the character-to-mover handoff. Source: `behaviour/character-movement.md` rule 6 and Do not reproduce.
+
 A unique asset name or parameter value is not by itself a new engine
 behavior. A new callback type, controller, persistence rule or observed
 failure can justify a focused check. Select representative normal,

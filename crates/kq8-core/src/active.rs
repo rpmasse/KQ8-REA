@@ -3624,8 +3624,7 @@ impl WorldState {
 
     /// `KQMonster::walkSlope <name> <degrees>` (`character-movement.md`,
     /// Do not reproduce: degrees converted properly, 90 = every surface).
-    /// Kept on the character; our characters' mover has no slope limit
-    /// yet, so nothing changes in play.
+    /// Kept on the character and applied to its mover on the next update.
     fn walk_slope(&mut self, words: &[String], at: &str) -> String {
         let (Some(who), Some(deg)) = (words.get(1), words.get(2).filter(|w| looks_like_number(w))) else {
             self.note(format!("{at}: usage: KQMonster::walkSlope <name> <degrees>; nothing"));
@@ -3639,7 +3638,7 @@ impl WorldState {
         let limit = if deg >= 90.0 { -1.0 } else { deg.to_radians().cos() };
         self.anims[i].character.as_mut().unwrap().walk_slope = Some(limit);
         let name = self.anims[i].player.name.clone();
-        self.character_note(&name, format!("{at}: KQMonster::walkSlope {deg}: walkable when the surface faces up more than {limit:.3} (90 = everything); kept, our characters' mover has no slope limit yet"));
+        self.character_note(&name, format!("{at}: KQMonster::walkSlope {deg}: walkable when the surface faces up more than {limit:.3} (90 = everything); applied on the next mover update"));
         "0".into()
     }
 

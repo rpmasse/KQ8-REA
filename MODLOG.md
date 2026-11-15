@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-15 Apply monster walk-slope limits
+
+The `KQMonster::walkSlope` command already stored its limit, but monster
+movement ignored it. Pass the limit to the character mover's landing and
+ground checks. The default remains 0.8; the 90-degree command accepts a
+steep surface. The focused checks pass 2/2 and the mover group passes
+46/46; `cargo check --locked -p kq8-viewer` passes. The full core suite
+has three failures that also reproduce on the clean published baseline;
+see STATUS.md. No manual game testing or original asset change.
+
 ## 2026-11-15 Refresh the post-impact Weeper drain fixture
 
 The older drain test needed windowed presentation on this display and

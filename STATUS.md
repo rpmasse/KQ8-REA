@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-15 M5 monster walk-slope limit applied
+
+`KQMonster::walkSlope` now changes the character mover's walkable landing
+and ground checks. The default is still 0.8; a 90-degree setting accepts
+a synthetic steep surface. The focused checks pass 2/2, the mover group
+passes 46/46, and `cargo check --locked -p kq8-viewer` passes in 2m09s.
+The full core suite reports 744 passed and three failed. A separate clean
+worktree at published `21448a8` reports the same three failures (742
+passed before the two new checks), so this patch did not introduce them:
+`a_character_dies_then_gives_experience_a_corpse_and_goes`,
+`a_trap_gets_init_on_and_off_with_its_name_and_connors`, and
+`its_swings_hurt_connor_until_he_dies`. No original-data native monster
+route or manual gameplay was run for this change. M5 remains about 65%;
+specialized bosses, other weapon/enemy families and integrated encounters
+remain open.
+
 ## 2026-11-15 M5 post-impact Weeper drain regression restored
 
 The existing three-process Weeper drain test now runs windowed and removes

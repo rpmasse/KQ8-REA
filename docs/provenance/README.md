@@ -1,5 +1,14 @@
 # Provenance
 
+**Monster walk slope (2026-11-15).** [character-movement.md](../behaviour/character-movement.md)
+rule 6 and its Do not reproduce section specify the character mover's
+walkable-surface limit and the corrected degree conversion for
+`KQMonster::walkSlope`. The installed Dead City scripts use 90 degrees.
+Implementation B applied the existing stored limit to walkable landing
+and ground checks in the shared mover, while retaining Connor's default.
+Synthetic core checks cover both limits. No original executable or
+disassembly was read.
+
 **Post-impact Weeper fixture refresh (2026-11-15).** The older drain
 check still follows [ranged-weapons.md](../behaviour/ranged-weapons.md)
 and installed Dead City data. Only its Windows presentation and two
