@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-15 Load the three IceWorld Dragon actors
+
+Recognized the authored Dragon body and two head classes as animated
+characters. They now load separate IceWorld models and placements
+instead of marker shapes. Generic monster AI and fighting remain off
+until the studied Dragon head attack and death states are implemented.
+The unattended original-data Dragon load check passes 1/1; the data
+library passes 158 active tests. The GOG install was read only, and no
+manual gameplay test was run. This is visual loading, not a complete
+Dragon encounter or original-runtime comparison.
+
 ## 2026-11-15 Simplify public README
 
 Rewrote the overview in plain language to explain the KQ8R origin, the

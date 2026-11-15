@@ -154,6 +154,7 @@ pub fn character(
 ) -> Box<Character> {
     use kq8_data::characters::Class;
     let k = &c.keys;
+    let dragon_visual_only = matches!(k.class, Class::DragonBody | Class::DragonHead);
     let has_birth = player.available().iter().any(|m| m.name.eq_ignore_ascii_case("Birth"));
     let mut ch = Box::new(Character::new(
         k.class == Class::GeometryTalker, k.flags, c.birth_delay, has_birth,
@@ -197,11 +198,11 @@ pub fn character(
     if k.class == Class::MandragorRoot {
         ai.has_birth = has_birth;
         ch.ai = Some(ai);
-    } else if k.class != Class::MandragorTree {
+    } else if k.class != Class::MandragorTree && !dragon_visual_only {
         ai.has_birth = has_birth;
         ch.ai = Some(ai);
     }
-    ch.fight = c.fight.clone().map(|s| {
+    ch.fight = c.fight.clone().filter(|_| !dragon_visual_only).map(|s| {
         let mut f = kq8_core::fight::Fight::new(s);
         f.combat_scaled = c.combat_scaled;
         f

@@ -82,6 +82,8 @@ pub enum Class {
     Monster,
     MandragorTree,
     MandragorRoot,
+    DragonBody,
+    DragonHead,
     GeometryTalker,
     Death,
     Lucreto,
@@ -99,6 +101,10 @@ impl Class {
             Some(Class::MandragorTree)
         } else if c.eq_ignore_ascii_case("KQMandragorRoot") {
             Some(Class::MandragorRoot)
+        } else if c.eq_ignore_ascii_case("KQDragonBody") {
+            Some(Class::DragonBody)
+        } else if c.eq_ignore_ascii_case("KQDragonHead") {
+            Some(Class::DragonHead)
         } else if c.eq_ignore_ascii_case("KQGeometryTalker") {
             Some(Class::GeometryTalker)
         } else if c.eq_ignore_ascii_case("KQDeath") {
@@ -117,6 +123,8 @@ impl Class {
             Class::Monster => "KQMonster",
             Class::MandragorTree => "KQMandragorTree",
             Class::MandragorRoot => "KQMandragorRoot",
+            Class::DragonBody => "KQDragonBody",
+            Class::DragonHead => "KQDragonHead",
             Class::GeometryTalker => "KQGeometryTalker",
             Class::Death => "KQDeath",
             Class::Lucreto => "KQLucreto",

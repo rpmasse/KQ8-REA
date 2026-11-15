@@ -1,5 +1,16 @@
 # Provenance
 
+**IceWorld Dragon visual actors (2026-11-15).** The separate
+[Dragon study](../behaviour/dragon.md) identifies one body and two
+independent heads, each with its own original animation list. The
+installed IceWorld character files provide the class names, positions
+and model sequences. Implementation B recognizes those classes as
+animated characters and withholds generic AI/combat pending the
+specialized Dragon rules. The unattended GOG-data check confirms all
+three names, separate positions and distinct model families. It does
+not establish attack, death, save or original-runtime parity. No
+executable or study scratch was read in implementation B.
+
 **Ordinary hand-weapon matrix (2026-11-15).** The installed GOG
 `Invinfo.itl` lists the ten remaining ordinary hand items, and
 `Connor.kq` maps each to its movement file. The unattended Dead City

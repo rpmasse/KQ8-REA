@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-15 M5 IceWorld Dragon visual actors
+
+The Dragon body and both heads now load as separate animated characters
+with their authored IceWorld model families and positions. An unattended
+GOG-data check passes 1/1 for all three actors; the data library passes
+158 active tests. Generic AI and combat are intentionally off for this
+visual step. Head bite/fire attacks, temporary rebirth, permanent Flame
+Sword defeat, body completion and saved continuation remain open. No
+manual gameplay test was run, and the GOG installation was read only.
+M5 remains about 65%.
+
 ## 2026-11-15 M5 Fists combat evidence; windmill route open
 
 An unattended original-data Daventry run from an earned wizard slot
