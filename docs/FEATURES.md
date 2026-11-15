@@ -1214,8 +1214,7 @@ repeated and checked in the logs. They do not change the game's rules.
 ### Showing things
 
 - `--world <name>`: which world to load (default `Daventry`). The names
-  are listed in [README.md](../README.md); `--world` with no name prints
-  them.
+  are printed by `--world` with no name.
 - `--model <file>`: show one model on its own, e.g. `--model smlchest.KQS`
   (default: no model, so the ground opens). Add `--palette <file>` to
   colour it with another palette; that option works only with `--model`.

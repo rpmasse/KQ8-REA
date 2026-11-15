@@ -39,7 +39,7 @@ The checked-in regression passed in 131.20 seconds. The first route
 tried the eastern slope, where Connor fell to his death. The western
 route gives his running turns room on both sides of the path.
 
-The command in the README earns its own ring save by default.
+The command in the [automated checks](automated-checks.md) earns its own ring save by default.
 Setting `KQ8_HERO_RING_SLOT` to an already earned `HeroRingReload`
 save repeats just the watermill leg. Local evidence is in
 `kq8-artifacts/hero-ring-watermill/1793992515113529500`. This run
@@ -78,7 +78,7 @@ the front of the platform also hit a vertical wall. The original mill
 interior and gear boxes explain the two jumps and the path between them.
 
 Run `earned_mill_rope_on_live_and_reloaded_scenery` as shown in the
-README. Leave optional input slots unset to reproduce the full run.
+[automated checks](automated-checks.md). Leave optional input slots unset to reproduce the full run.
 For a short repeat of both mill branches, set `KQ8_HERO_RING_SLOT` to
 an earned `HeroRingReload` and `KQ8_MILL_TREE_SLOT` to a `MillTree`
 earned on the same campaign. Local outputs are in
@@ -127,7 +127,7 @@ The roof save retained the rope, the ring, 35 health and 122 experience.
 The test passed across two Windows launches in 82.10 seconds from the
 earned `ChurchYard` in the preceding section. To repeat just this leg,
 set `KQ8_CHURCH_YARD_SLOT` to that slot before running the church climb
-test in the README. Without it the test earns the churchyard save first.
+test in the [automated checks](automated-checks.md). Without it the test earns the churchyard save first.
 The remaining church route uses another rope to reach the interior.
 
 ### Church Candle
@@ -155,7 +155,7 @@ and granted one Candle. The delayed award added 25 experience. Connor
 reached level 6 with 60 health and 12 experience toward the next level.
 A fresh launch preserved the item, quest flag, removed prop and stats.
 
-Use the church Candle command in the README. `KQ8_CHURCH_ROOF_SLOT`
+Use the church Candle command in the [automated checks](automated-checks.md). `KQ8_CHURCH_ROOF_SLOT`
 accepts an earned `ChurchRoof` for just this leg. Leave the optional
 checkpoint variables unset to earn the earlier saves from New Game.
 The full run log is `kq8-artifacts/fresh-normal-to-church-candle.log`.
@@ -327,7 +327,7 @@ The two-launch regression passed in 108.96 seconds. Loading the
 collision flag its script cleared, the urn's new position (216850, 185249, 8370)
 and Connor's stats. He still carried his Candle, rope and hero’s ring.
 To repeat just this leg, set `KQ8_CHURCH_CANDLE_SLOT` to the earned
-`CandleReload`. The urn command in the README earns the earlier
+`CandleReload`. The urn command in the [automated checks](automated-checks.md) earns the earlier
 checkpoints itself if optional input variables are unset. The combined
 invocation through the urn has not been run from scratch. The next
 campaign check is reaching the Shadow encounter through the tomb.

@@ -1,171 +1,42 @@
-# King's Quest: Mask of Eternity — Rust recreation for Windows
+# King's Quest: Mask of Eternity — Rust recreation
 
-KQ8-REA recreates Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. The engine reads the original levels, models, scripts, audio and interface assets from your own GOG installation. The target is the original Windows game, including its controls, timing, 4:3 presentation, and the full campaign from New Game through the ending.
+KQ8-REA is an unofficial project to recreate Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. Its first goal is to match the original Windows game from the opening menu through the ending. That faithful version will provide the foundation for a later, modernized edition.
 
-**Development build.** All 12 regions load and render on Windows. An unattended test started a fresh Normal New Game, earned the dead hero’s ring, the watermill Rope and Hook and the church Candle, then reloaded all three. It passed in 24 minutes 54 seconds across 18 Windows launches using only saves created during the test. The rest of the campaign through the ending remains open. This fork incorporates the [October 31 upstream revision](https://github.com/Eric-lz/KQ8R/commit/5ea5a46f791a637b2d2e231e56195726050e57cb).
+## Where it comes from
 
-## Project status
+This project builds on [Eric Peracchi Pisoni's KQ8R](https://github.com/Eric-lz/KQ8R), a Rust rewrite of the game. KQ8-REA continues that work in this fork. The goal is to use [REA (Reverse Engineering Anything)](https://github.com/morluto/rea) where useful to understand the original engine and turn its behavior into a Rust version. REA is a planned research aid; it has not been integrated or run for this project yet.
 
-| Stage | What works | What remains |
-| --- | --- | --- |
-| M0–M3 · Data, worlds and movement | The engine reads the original assets, opens every region and runs Connor’s movement, collision and early Daventry scripts. | Recheck inherited behavior in the Windows build and record differences by region. |
-| M4 · Interface and dialogue | Complete: menus, HUD, inventory, dialogue, weapon requests, controller exits and graphics controls pass their defined automated checks, including native 640/800/640 fullscreen transitions. | Backend limits remain documented; campaign and final fidelity work continue under M6/M7. |
-| M5 · Combat | First-person axe strikes and Small Crossbow shots use Connor’s original animations. Equipped attacks, pending deaths and the three-second game-over hold have save and reload checks. Representative enemies, puzzle controllers and Rock projectiles have grouped checks using original data. | Complete the remaining weapons, enemies, bosses and controller transitions. Verify full encounters during campaign play. |
-| M6 · Campaign and saves | Using earned campaign saves, Connor completes the Wizard’s Ring of Light quest, travels through Castle Daventry and enters Dead City. Focused checks cover the scales, both Temple 4 outcomes and saves during encounters and cutscenes. | Complete remaining quests, branches and bosses; integrate original save/region clock and event ordering into world loading. Verify one continuous New Game through the ending and credits. |
-| M7 · Original-game fidelity | The project has original behavior notes and focused automated comparisons. | Compare the feature-complete Rust recreation against the GOG release. |
+## Progress
 
-**M4 complete: 100% of its defined milestone checks.** [Controller exits and weapon-list changes](docs/controller-exit-completion.md), [dialogue](docs/conversation-admission.md), [inventory/popups](docs/inventory-popup-completion.md) and [graphics controls](docs/graphics-runtime-completion.md) have grouped checks; the final native fullscreen route passes using the Windows defaults. M5 is approximately 65% and M6 approximately 28%, both paused; these are scope estimates, not time estimates. [M4 completion audit](docs/m4-completion-audit.md)
+The current Windows development build loads all 12 regions. Daventry and parts of the campaign have automated checks, but the game is not yet recreated through the ending.
 
-Shared save-event and trigger rules pass core checks; unfinished [ordered world loader](docs/ordered-world-loading.md) work is preserved for M6.
+| Phase | Status | Scope |
+| --- | ---: | --- |
+| M0 · Read game data | 100% | Original archives and images |
+| M1 · Render the world | 100% | Terrain, objects and lighting |
+| M2 · Move Connor | 100% | Movement, collision and camera |
+| M3 · Bring Daventry to life | 100% | Early scripts, objects and puzzles |
+| M4 · Interface and dialogue | 100% | Menus, inventory, dialogue and display controls |
+| M5 · Combat | ~65% | Weapons, enemies, damage and death |
+| M6 · Campaign and saves | ~28% | Quests, world transitions and the full story; paused |
+| M7 · Match the original | 0% formally | Final comparison and Windows release |
 
-**Current campaign boundary.** The earned Dead City route has passed the paddle and letter puzzles, gate encounters, four Ferryman topics, all Sylph pressure plates and her three introductory topics. An earned Rock holds the western plate while Connor returns to Sylph's area and crosses the portal into the northwest chamber; its first-use award, level-up and fresh process reload now pass. Picking the Rock back up is also verified on a separate saved branch. Both skull-chamber archers are defeated; the original two-block river crossing, good-skull pickup and shelf replacement survive reload. The return crossing, northwest portal and well healing now lead to an earned central-room save; the eastern portal, statue, feather, scales, Sylph item quest and later branches remain incomplete. Earlier failures, including the unreliable western patrol replay, remain documented. [Dead City route](docs/dead-city-progression.md) · [Western portal](docs/western-portal.md) · [Skull chamber](docs/skull-river-access.md)
+Percentages refer to each phase's planned work, not an overall project percentage. Some focused comparisons have been made, but the final M7 review has not begun. See the [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) and [current status](STATUS.md) for details.
 
-**How the original is used.** The Rust engine reads scripts, models, audio, interface files and other assets from the player’s GOG installation. A separate study session investigates compiled engine rules and records them in prose. The implementation uses those notes and the installed data. [Study and implementation workflow](docs/SESSIONS.md)
+## Bring your own game
 
-The six menu families and HUD use original 640/800 geometry, font and picture rules; device controls, Software palette restoration and native exclusive fullscreen at 640×480 → 800×600 → 640×480 pass automated checks, including a submitted frame at each size. [Interface checks](docs/original-interface-resolutions.md) · [Graphics checks](docs/graphics-runtime-completion.md)
+**This repository contains no original game files or assets.** To build and play the Rust version, supply your own GOG copy of *Mask of Eternity* (tested with version 1.03). The recreation reads its levels, models, sound and artwork from that installation.
 
-Credits now follows the original card timing, layout, input and late score calculation, with grouped core checks and one native menu flow; the full ending remains unverified. [Credits checks](docs/credits-completion.md)
-
-Quest-item replacement now removes the previous item's effects, with grouped automated checks for timers, inventory state and serialized continuation. [Inventory application](docs/inventory-application.md)
-
-Scripted character preparation and direct health reduction now use the original motion and queued-stat rules, with grouped checks including the Henchman and altar callbacks. [Scripted characters](docs/scripted-character-preparation.md)
-
-Ordinary poison, lava and swamp damage now use the original world-attack rules, with grouped checks for protection, sound timing and death; exceptional sinking behavior remains open. [Terrain hazards](docs/terrain-liquid-damage.md)
-
-The loader now gives the installed regional patch files priority over archive copies, with an automated check of all 22 overrides and the patched portal callback. [File selection](docs/world-file-selection.md)
-
-Fresh world items and tossed loot notify matching triggers through their collision shapes, and pickup/deletion releases occupied traps at the event boundary; the earned Rock hold and pickup both pass reload checks, while other item lifecycle rules remain incomplete. [Item triggers](docs/item-registration-traps.md) · [Pickup and release](docs/item-removal-traps.md)
-
-Pushed objects now notify puzzle triggers, with an installed-data check of the Temple2 book sequence's start; full puzzle traversal and remaining occupancy rules are still incomplete. [Pushed-object triggers](docs/pushed-object-traps.md)
-
-Scripted prop moves now notify occupied triggers after the script finishes, with original Gnome boulder and position-restoration checks passing; full campaign coverage remains incomplete. [Scripted placement](docs/scripted-prop-traps.md)
-
-Press **F2** during play to switch between first and third person. The
-viewer selects Connor’s arm and weapon animations from the tables in
-your installed `GAME/Kq/Connor.kq`. Drawing a weapon, using a rope and
-loading a save can all cross a view change. Near-wall clipping and more
-weapons still need comparison. [First-person controls and evidence](docs/FEATURES.md#connors-view-specific-animation-files-2026-11-07)
-
-The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. The [feature reference](docs/FEATURES.md) gives subsystem details and the [status log](STATUS.md) records verified results and open cases. Remaining work is grouped by shared engine behavior, with representative checks and integrated campaign routes; individual objects need separate checks only for a distinct rule or failure. Successful checks are reused. Manual playtesting begins after the Rust implementation is feature-complete.
-
-The DX12 animated-geometry regression is corrected, with automated GPU pose checks and a matching-state scene comparison; full visual fidelity remains part of M7. [Rendering correction](docs/geometry-rendering-regression.md)
-
-## Build and run
-
-Use Windows, the stable Rust toolchain for MSVC, the Visual Studio C++ build tools and Windows SDK, and a GOG installation of the game (version 1.3, also called 1.03). Run these commands in PowerShell from the repository root. The example uses the development layout, with `KQ8-REA` and `King's Quest 8 GOG` side by side. For another layout, set `KQ8_GAME_DIR` to the folder containing `data` and `Mask.exe`.
+On Windows, install Rust and the Visual Studio C++ build tools, then run these commands in PowerShell from the repository folder. Replace the example path with your GOG installation folder:
 
 ```powershell
-$env:KQ8_GAME_DIR = (Resolve-Path "..\King's Quest 8 GOG").Path
+$env:KQ8_GAME_DIR = "C:\path\to\King's Quest 8 GOG"
 cargo build --locked --release -p kq8-viewer
-.\target\release\kq8-viewer.exe
+.\target\release\kq8-viewer.exe --windowed
 ```
 
-The game opens at the main menu. Choose **New** and a difficulty to enter Daventry. Escape opens the menu during play. For a development run, add `--world Daventry` to start directly in the region. The viewer also accepts `--game <folder>` instead of the environment variable. Run `cargo play --help` for supported arguments. The [viewer reference](docs/FEATURES.md) covers controls and console commands.
+## After the faithful recreation
 
-The Windows game defaults to DX12 with DirectComposition (Visual); explicit
-renderer choices and existing backend/presentation environment settings are
-preserved. The tested host's explicit Vulkan and DX12 Hwnd fullscreen failures
-remain unresolved; neither is the default. Fullscreen requires an advertised
-original-size display mode. If a Remote
-Desktop session does not expose the required size, use `--windowed` for the
-explicit 640x480 diagnostic path. [Display profiles and verification](docs/graphics-runtime-completion.md)
+The modernized version could add widescreen and ultrawide resolutions, smoother movement and animation at higher frame rates, and ports to other platforms, including macOS. These are future goals; the current milestone is matching the original game.
 
-Choose **Save** from the pause menu and name the slot. **Load** is available from the title or pause menu. The recreation stores its own saves in `kq8-artifacts/saves` under the launch directory. Set `KQ8_SAVE_DIR` to use a fixed location across launches. Support for importing original Sierra saves is still open.
-
-The three original movies use Indeo 5 video. The development build uses FFmpeg to decode the pictures and reads the original stereo soundtrack in Rust. Set `KQ8_FFMPEG` to the full path to a local `ffmpeg.exe`, place it beside the viewer executable, or make it available on `PATH`. Windows acceptance used FFmpeg 7.1. A missing decoder opens a message you can dismiss. Packaging a decoder for the finished Windows release remains open.
-
-## Automated checks
-
-Use the same game-data path for these commands. The workspace command includes the viewer tests. The archive check reads the local game data. The last command launches Daventry and exits after 120 rendered frames.
-
-```powershell
-cargo test --locked --workspace
-cargo run --locked --release -p kq8-cli -- vol-verify
-.\target\release\kq8-viewer.exe --world Daventry --frames 120
-```
-
-The following checks use the installed game assets and run unattended. The menu and region tests require a graphics device. The region test opens each of the 12 regions and renders 30 frames. The Barren test executes the original dock script from the player's archive and checks which gong trigger it selects.
-
-```powershell
-cargo test --locked -p kq8-viewer campaign_tests -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test main_menu -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test options_menu -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test graphics_preferences -- --ignored
-cargo test --locked -p kq8-viewer --test shadow_checkpoint -- --ignored
-cargo test --locked -p kq8-viewer --test speech_checkpoint -- --ignored
-cargo test --locked -p kq8-viewer --test conversation_checkpoint -- --ignored
-cargo test --locked --release -p kq8-viewer --test route_conversation_input -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test connor_weapon_checkpoint -- --ignored
-cargo test --locked -p kq8-data connor_view_ -- --include-ignored
-cargo test --locked -p kq8-viewer --test keyboard_menu -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test credits_menu -- --ignored
-cargo test --locked -p kq8-viewer --test starting_help -- --ignored
-cargo test --locked -p kq8-viewer --test inventory_tutorials -- --ignored
-cargo test --locked -p kq8-viewer --test movies -- --ignored --nocapture
-cargo test --locked -p kq8-viewer --test rock_throw -- --ignored
-cargo test --locked -p kq8-viewer --test weeper -- --ignored
-cargo test --locked -p kq8-viewer --test kept_interactions -- --ignored
-cargo test --locked -p kq8-viewer --test cottage_journey -- --ignored
-cargo test --locked -p kq8-viewer --test daventry_wizard -- --ignored
-cargo test --locked -p kq8-viewer --test daventry_windmill -- --ignored
-cargo test --locked -p kq8-viewer --test daventry_hero_ring breakable_route_dispatches -- --ignored
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_crystal_to_hero_ring_and_fresh_reload -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_hero_ring_to_watermill_tree -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield earned_mill_rope_on_live_and_reloaded_scenery -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield church_rope_is_usable_after_a_fresh_launch_inside_its_trap -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield church_climb_resumes_from_its_saved_frame_on_the_wall -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield first_person:: -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test connor_death_checkpoint first_person_death_selects_the_third_person_pose_and_resumes_once -- --ignored --exact
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield church::earned_roof_to_candle_and_fresh_reload -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield church::earned_candle_to_urn_and_open_tomb_door -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield shadow::wizard_accepts_the_earned_ring_and_candle -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield castle::waterfall_rope_and_brick_puzzle -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield castle_interior::fireplace_passage_to_ashes_and_fresh_reload -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield wizard_ring::ring_opens_dead_city_and_arrival_survives_reload -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --test daventry_cottage_shield dead_city::restored_letter_sequence_earns_deaths_key -- --ignored --exact --test-threads=1
-cargo test --locked -p kq8-viewer --bin kq8-viewer fallen_tree_and_dock_use_the_same_surfaces_on_script_load_and_revisit -- --ignored --nocapture
-cargo test --locked -p kq8-viewer --test raven_flight -- --ignored
-cargo test --locked -p kq8-viewer --test spawned_monsters -- --ignored
-cargo test --locked -p kq8-viewer --test placed_characters -- --ignored
-cargo test --locked -p kq8-viewer --test death_checkpoint -- --ignored
-cargo test --locked -p kq8-viewer --test connor_death_checkpoint -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test choice_checkpoint -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test henchman_combat -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test ordinary_once_checkpoint -- --ignored
-cargo test --locked -p kq8-viewer --test alternate_interior -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test connor_swing_checkpoint -- --ignored --test-threads=1
-cargo test --locked -p kq8-viewer --test puzzle_timer -- --ignored
-cargo test --locked -p kq8-viewer --test regions -- --ignored --test-threads=1 --nocapture
-cargo test --locked -p kq8-core original_barren_dock_script -- --ignored
-cargo test --locked -p kq8-core original_gnome_rock_and_dead_city -- --ignored
-```
-
-The [Daventry campaign route](docs/daventry-progression.md) starts at New Game. An unattended player follows the road around the farmhouse using the bound movement keys, talks to the wizard and saves after his last line. The save contains the mask, the first piece and the Magic Map awarded by his original scripts. A second process follows the normal route to the windmill, fights the archer, pushes the bale, takes the Small Axe and saves. A third process restores Connor standing on the moved bale, with the axe in its scripted position; a second save preserves both placements.
-
-The separate cottage test collects five mushrooms, consumes one, saves and quits. A fresh process restores four mushrooms and the open cottage door, opens the pub chest, travels through both castle portal prompts, and saves back in Daventry. This test disables enemy AI, moves Connor between landmarks and applies damage so he can use a healing item.
-
-Two Dead City checks start with the original portal's arrival cue. One gives Connor the feather, uses it on the right dish and steers him onto the left. The original scripts then lower five river sections. The other boards the right dish, steps off and walks out of the puzzle. Getting the feather during campaign play and saving mid-puzzle still need coverage.
-
-The Temple 4 scenarios check the altar’s changes to Lucreto’s movements and the animated sequences for victory and defeat. All three `KQMonster::setState Connor Die Now` branches hold Connor and the final camera shot for three seconds, then open the paused death menu. The unattended Windows route checked the empty-hand ending; the sword and bow endings passed original-data simulation tests. Separate movie checks cover title replay, the middle film returning to play, and the ending film followed by scored credits. Reaching that ending in an uninterrupted campaign remains open. The [script coverage report](docs/SCRIPT-COVERAGE.md) lists commands across all worlds.
-
-## Source and research
-
-Live palette handling is in [live_palette.rs](crates/kq8-viewer/src/live_palette.rs); the [feature notes](docs/FEATURES.md) distinguish tested rules from remaining output differences.
-
-The GOG installation supplies two kinds of evidence. Files such as `Options.cs` and the scripts inside each world’s `.vol` archive contain readable game logic. For example, this command prints Dead City’s scales script directly from the installed archive. Its first numbered cue lowers five sections of the river.
-
-```powershell
-cargo run --locked -p kq8-cli -- text vol:DeadCity/kq/SCALE.CS
-```
-
-The original engine ships as `Mask.exe`. The [Lucreto study](docs/behaviour/lucreto-forms.md) shows how executable research and game data work together. His character file specifies a switching distance of 2,000. The executable supplies the three-dimensional comparison, its behavior at exactly 2,000 and how one form takes the other's place. The [scripted death study](docs/behaviour/connor-vortex-death.md) records the original three-second hold and death-menu transition. The [research workflow](docs/SESSIONS.md) keeps that investigation separate from writing the Rust code.
-
-| Component | Responsibility |
-| --- | --- |
-| `kq8-data` | Reads and decodes files from the original game. |
-| `kq8-core` | Implements game rules, scripts, movement and combat. |
-| `kq8-viewer` | Runs the game window, input, rendering and interface. |
-| `kq8-audio` | Mixes and plays audio. |
-| `kq8-cli` | Inspects game data and runs verification tools. |
-
-This fork builds on [Eric Peracchi Pisoni's KQ8R](https://github.com/Eric-lz/KQ8R). See [provenance](docs/provenance/README.md), the [development log](MODLOG.md) and [credits](CREDITS.md) for sources and contributions. This is an unofficial fan project. Players supply their own original game files.
+For developer commands, see [automated checks](docs/automated-checks.md). For sources and acknowledgments, see [credits](CREDITS.md) and [provenance](docs/provenance/README.md).

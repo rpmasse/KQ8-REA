@@ -3,6 +3,22 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## Public README presentation (2026-11-15)
+
+Keep the README short and accessible: origin, faithful Rust recreation,
+honest M0–M7 progress, user-owned GOG assets, a minimal Windows build/run
+example and future enhancements after parity. Describe REA as a possible
+research aid; the current research notes say it has not been run. Move the
+existing developer command list to a linked technical guide so historical
+test instructions remain available, and update any links that pointed to
+those README commands. This is a documentation change, not a new feature
+or an update to the milestone percentages.
+
+Done: the README now summarizes the origin, milestones, user-supplied GOG
+copy, build command and future direction. The command list lives in
+`docs/automated-checks.md`; references from the Daventry and feature guides
+point to the new location.
+
 ## Animated-geometry regression investigation (2026-11-15)
 
 The user reports stretched triangles/broken character shapes. The saved

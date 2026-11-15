@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-15 Rewrite the public README
+
+Replace the long technical README with a short project overview, KQ8R and
+REA lineage, honest M0–M7 progress, user-owned GOG requirement, Windows
+build command and modernization goals after faithful recreation. State
+that REA is planned but has not been run. Move the existing automated
+commands to `docs/automated-checks.md` and update references in the
+Daventry and feature guides. This changes documentation only; no game
+code or completion estimate changed. Local Markdown links and the moved
+command list were checked. No gameplay or manual test was needed.
+
 ## 2026-11-15 Correct DX12 animated-model pose selection
 
 Passing the vertex-input struct into the animation helper lost DX12's
