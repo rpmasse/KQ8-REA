@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-15 M5 ranged enemies keep their distance
+
+Ranged characters with a chase radius now use their saved `mustFlee`
+state and the original `likelyToFlee`, `tooClose` and `farEnough` values
+to run away from Connor and stop at the authored distance. The rule 37
+synthetic matrix passes forced and chance starts, cooldown tick, custom
+distance, guard exclusion, stop and save-field compatibility. Read-only
+GOG data confirms Gnome slimes have this behavior (reach 5,000, ratios
+0.4/3.0 and `likelyToFlee` 0.75). The full core suite passes 749 active
+tests, 0 failures, 26 ignored. Q211 remains open on shot/retreat priority
+when both are due on one update; a full Gnome encounter and manual
+gameplay were not tested. M5 remains about 65%.
+
 ## 2026-11-15 M5 unboxed returning-character hit
 
 An unboxed character returning home now applies its hand damage directly

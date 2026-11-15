@@ -9201,6 +9201,85 @@ endif
         a
     }
 
+    fn ranged_flee_fighter(chase: f32, must: bool, chance: f32, limits: [f32; 2]) -> Active {
+        let mut a = fighter();
+        a.world.connor_at = Some([0.0, -1000.0, 100.0]);
+        let c = a.world.anims[0].character.as_deref_mut().unwrap();
+        c.state = crate::character::State::Wait;
+        let f = c.fight.as_mut().unwrap();
+        f.settings.ranged_weapon = Some("INVITEM_SmCrossbow".into());
+        f.settings.attack_more = Some(limits);
+        f.settings.likely_to_flee = Some(chance);
+        f.attack_time = 100.0;
+        f.must_flee = must;
+        let ai = c.ai.as_mut().unwrap();
+        ai.active = true;
+        ai.alarmed = true;
+        ai.sees = true;
+        ai.checked = true;
+        ai.react_at = 0.0;
+        ai.chase_until = 100.0;
+        ai.settings.can_always_see = true;
+        ai.settings.do_mode = 1;
+        ai.settings.attack_dist = 5000.0;
+        ai.settings.chase_radius = chase;
+        a
+    }
+
+    #[test]
+    fn ranged_character_keeps_distance_with_forced_and_chance_starts() {
+        // fighting.md rule 37: the decision is once per second, with
+        // the authored tooClose/farEnough pair and guard exclusion.
+        let mut forced = ranged_flee_fighter(20_000.0, true, 0.0, [0.4, 3.0]);
+        forced.world.updates = 14;
+        forced.world.simulation_time = 0.93;
+        forced.world.characters_ai(&FlatGround, &[], &[]);
+        assert!(!forced.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
+        forced.world.updates = 15;
+        forced.world.simulation_time = 1.0;
+        forced.world.characters_ai(&FlatGround, &[], &[]);
+        let c = forced.world.anims[0].character.as_ref().unwrap();
+        assert_eq!(c.state, crate::character::State::Move);
+        assert!(c.walk.run && c.ai.as_ref().unwrap().keeping_distance);
+        assert_eq!(c.walk.steer, Some([0.0, 1000.0]));
+        assert!(!c.fight.as_ref().unwrap().must_flee);
+        let saved = serde_json::to_value(c.ai.as_ref().unwrap()).unwrap();
+        let restored: crate::character_ai::Ai = serde_json::from_value(saved.clone()).unwrap();
+        assert!(restored.keeping_distance);
+        let mut legacy = saved;
+        legacy.as_object_mut().unwrap().remove("keeping_distance");
+        let old_slot: crate::character_ai::Ai = serde_json::from_value(legacy).unwrap();
+        assert!(!old_slot.keeping_distance);
+        forced.world.updates = 16;
+        forced.world.simulation_time = 1.07;
+        forced.world.characters_ai(&FlatGround, &[], &[]);
+        assert!(forced.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
+        forced.world.connor_at = Some([0.0, -16_000.0, 100.0]);
+        forced.world.updates = 17;
+        forced.world.simulation_time = 1.13;
+        forced.world.characters_ai(&FlatGround, &[], &[]);
+        let c = forced.world.anims[0].character.as_ref().unwrap();
+        assert_eq!(c.state, crate::character::State::Wait);
+        assert!(!c.ai.as_ref().unwrap().keeping_distance);
+
+        let mut chance = ranged_flee_fighter(20_000.0, false, 1.0, [0.4, 3.0]);
+        chance.world.updates = 15;
+        chance.world.simulation_time = 1.0;
+        chance.world.characters_ai(&FlatGround, &[], &[]);
+        assert!(chance.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
+        let mut outside = ranged_flee_fighter(20_000.0, false, 1.0, [0.1, 3.0]);
+        outside.world.updates = 15;
+        outside.world.simulation_time = 1.0;
+        outside.world.characters_ai(&FlatGround, &[], &[]);
+        assert!(!outside.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
+        let mut guard = ranged_flee_fighter(0.0, true, 1.0, [0.4, 3.0]);
+        guard.world.updates = 15;
+        guard.world.simulation_time = 1.0;
+        guard.world.characters_ai(&FlatGround, &[], &[]);
+        assert!(!guard.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
+        assert!(guard.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().must_flee);
+    }
+
     #[test]
     fn scripted_character_grouped_preparation_dispatch_and_ordinary_monster() {
         let mut a=fighter();

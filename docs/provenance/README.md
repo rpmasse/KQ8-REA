@@ -1,5 +1,17 @@
 # Provenance
 
+**Ranged keeping-distance AI (2026-11-15).**
+[fighting.md](../behaviour/fighting.md) rule 37 supplies the eligibility,
+one-second choice, `mustFlee` and chance behavior, away direction and
+stop distance. The existing original-data parser supplies the optional
+`attackDist` ratios; read-only `character-verify` output identifies the
+Gnome slimes as ranged, chase-capable users of 0.4/3.0 and 0.75 chance.
+Implementation B added a saved AI flag and shared movement branch from
+those prose/data facts. A synthetic core matrix covers transitions and
+old-slot deserialization. Q211 marks same-update shot priority unresolved;
+no original executable or disassembly was read and no Gnome encounter
+was run.
+
 **Unboxed returning-character hit (2026-11-15).**
 [fighting.md](../behaviour/fighting.md) rule 15 and
 [character-movement.md](../behaviour/character-movement.md) rule 28

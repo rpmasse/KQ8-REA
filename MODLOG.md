@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-15 Add ranged keeping-distance AI
+
+Use `fighting.md` rule 37 and the already-parsed monster attack-distance
+ratios to start and stop ranged retreat, keep its direction away from
+Connor, and retain the flag in save data. Clear it on give-up or active-list
+exit. A focused synthetic matrix passes, along with all 749 active core
+tests; 26 are ignored. The installed Gnome slime data has the relevant
+values, but an original-data encounter is not yet checked. Q211 records
+the original same-update shot/retreat ordering still to study.
+
 ## 2026-11-15 Recreate unboxed returning-character attack
 
 Apply fighting.md rule 15 before the ordinary homeward chase retake:

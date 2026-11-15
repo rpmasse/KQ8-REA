@@ -106,11 +106,14 @@ pub struct Ai {
     /// Hit while not alarmed, with no team (`fighting.md` rule 28): it
     /// runs about with no target, toward a point beside Connor.
     pub hunting: bool,
+    /// Ranged rule 37: running away until Connor is past farEnough x reach.
+    #[serde(default)]
+    pub keeping_distance: bool,
 }
 
 impl Ai {
     pub fn new(settings: AiSettings, home: [f32; 3], eye: f32, has_hide: bool) -> Self {
-        Ai { settings, home, eye, has_hide, active: false, sees: false, blocked_by: None, checked: false, unseen: 0, on_way_home: false, has_birth: false, route: None, point: 0, closest: f32::MAX, wander_done: false, idle_due: 0.0, fidget: None, alarmed: false, react_at: 0.0, chase_until: 0.0, last_seen: None, go_home: false, rise_at: None, retaking: false, following: false, sinking: false, hit_count: 0, hunting: false }
+        Ai { settings, home, eye, has_hide, active: false, sees: false, blocked_by: None, checked: false, unseen: 0, on_way_home: false, has_birth: false, route: None, point: 0, closest: f32::MAX, wander_done: false, idle_due: 0.0, fidget: None, alarmed: false, react_at: 0.0, chase_until: 0.0, last_seen: None, go_home: false, rise_at: None, retaking: false, following: false, sinking: false, hit_count: 0, hunting: false, keeping_distance: false }
     }
 
     /// Alarmed and past its reaction delay: the chase rules drive it, not
@@ -445,6 +448,7 @@ impl WorldState {
         let Some(ai) = c.ai.as_mut() else { return };
         ai.active = false;
         ai.alarmed = false;
+        ai.keeping_distance = false;
         self.active_list.retain(|n| !n.eq_ignore_ascii_case(&name));
         let far = connor.map(|at| distance(at, a.player.base.position));
         let limit = 2.0 * ai.settings.alarm_radius;
@@ -743,6 +747,36 @@ impl WorldState {
             self.give_up(i, &why, now);
             return;
         }
+        let flee_tick = self.updates.is_multiple_of(SIGHT_EVERY);
+        let flee = c.fight.as_ref().filter(|f| f.ranged()).map(|f| {
+            let [too_close, far_enough] = f.settings.attack_more.unwrap_or([0.25, 0.75]);
+            (f.must_flee, f.settings.likely_to_flee.unwrap_or(0.5), too_close, far_enough)
+        });
+        if let Some((must, chance, too_close, far_enough)) = flee.filter(|_| s.chase_radius > 0.0) {
+            if state == State::Move && c.ai.as_ref().unwrap().keeping_distance {
+                if d > far_enough * s.attack_dist {
+                    c.ai.as_mut().unwrap().keeping_distance = false;
+                    let stopped = c.set_state(&mut a.player, "Wait", &[], now);
+                    lines.push(format!("keeping distance ends: Connor {d:.0} beyond {:.0}; {stopped} (fighting.md rule 37)", far_enough * s.attack_dist));
+                } else {
+                    c.walk.steer = Some([2.0 * pos[0] - connor[0], 2.0 * pos[1] - connor[1]]);
+                }
+                for line in lines { self.character_note(&name, line); }
+                return;
+            }
+            // Q211: the original's same-update priority versus a due
+            // ranged shot is still to be established.
+            if state == State::Wait && flee_tick && now >= c.resume_move_at
+                && (must || (d < too_close * s.attack_dist && c.random() < chance)) {
+                c.fight.as_mut().unwrap().must_flee = false;
+                c.ai.as_mut().unwrap().keeping_distance = true;
+                let movement = c.enter_move(&mut a.player, now, true, "keeping distance (fighting.md rule 37)");
+                c.walk.steer = Some([2.0 * pos[0] - connor[0], 2.0 * pos[1] - connor[1]]);
+                lines.push(format!("keeping distance starts: {} (mustFlee {must}, Connor {d:.0}, tooClose {:.0}); {movement} (fighting.md rule 37)", if must { "forced" } else { "chance" }, too_close * s.attack_dist));
+                for line in lines { self.character_note(&name, line); }
+                return;
+            }
+        }
         // Rule 25: what it does.
         let aim = if sees { Some(connor) } else { last_seen.filter(|p| distance(*p, pos) > LAST_SEEN_AIM) };
         let aim2 = aim.map(|p| [p[0], p[1]]);
@@ -915,6 +949,7 @@ impl WorldState {
         let Some(ai) = c.ai.as_mut() else { return };
         ai.alarmed = false;
         ai.on_way_home = true;
+        ai.keeping_distance = false;
         let mut line = format!("gives up: {why}; on its way home (rule 28)");
         if ai.has_hide {
             // Rule 30: `hide` where it stands, still drawn, solid, active.
