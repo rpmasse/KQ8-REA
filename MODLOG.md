@@ -1,5 +1,12 @@
 # MODLOG
 
+## 2026-11-15 Simplify public project overview
+
+Shorten the README around the project's origin, REA-assisted Rust recreation,
+per-phase status, user-supplied GOG copy, Windows build command and later
+enhancements. Keep the existing M0–M7 percentages and state plainly that REA
+has not yet been used. Documentation only; no game code or assets changed.
+
 ## 2026-11-15 Validate Swamp slime retreat with installed game data
 
 Correct the Gnome/Swamp label from the monster-list audit. Add an
