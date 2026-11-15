@@ -1309,7 +1309,9 @@ impl crate::active::WorldState {
     /// timed disabled pose followed by rebirth.
     fn dragon_head_dies(&mut self, j: usize, kind: HitKind) {
         use crate::character::DragonHeadPhase;
-        let permanent = self.weapon_ready.as_deref().is_some_and(|w| w.eq_ignore_ascii_case(FLAME_SWORD));
+        let permanent = self.weapon_mode == crate::weapons::WeaponMode::Hand
+            && self.weapon_item(crate::weapons::WeaponMode::Hand).as_deref()
+                .is_some_and(|w| w.eq_ignore_ascii_case(FLAME_SWORD));
         let now = self.now();
         let (name, line) = {
             let a = &mut self.anims[j];

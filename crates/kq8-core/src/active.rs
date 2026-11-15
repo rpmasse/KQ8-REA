@@ -9310,6 +9310,8 @@ endif
 
     fn dragon_head_fixture() -> Active {
         let mut a = fighter();
+        let types = b"[InventoryItemTypeList]\nnumItems=1\nitem0=\tKQInventoryItemType\tINVITEM_FlameSword\t1\t0\t0\t0\t0\t0\t0\tShortWeapon\tIDBMP_X\t1 0 0 1\tNoModeChange\t0\t1\tnone\tnone\tnone\tx.kqs\tnone\t1\t256\n";
+        a.world.items.types = kq8_data::items::ItemTypes::parse(types).0;
         let actor = &mut a.world.anims[0];
         actor.player.name = "draglhed".into();
         for (name, repeat) in [("lopt", true), ("rebirth", false), ("synge", false)] {
@@ -9360,7 +9362,8 @@ endif
     fn dragon_head_flame_sword_defeat_stays_permanent() {
         use crate::character::DragonHeadPhase as Phase;
         let mut a = dragon_head_fixture();
-        a.world.weapon_ready = Some(crate::fight::FLAME_SWORD.into());
+        a.world.items.add_named("Sword", "FlameSword", 1, -1, crate::item::Place::Carried("Connor".into())).unwrap();
+        a.world.weapon_mode = crate::weapons::WeaponMode::Hand;
         a.world.character_dies(0, crate::fight::HitKind::Fire, false);
         let head = a.world.anims[0].character.as_deref().unwrap();
         assert_eq!(head.dragon_head.as_ref().unwrap().phase, Phase::Permanent);
@@ -9369,6 +9372,12 @@ endif
         a.world.death_ended(0, 100.0);
         assert_eq!(a.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap().phase, Phase::Permanent);
         assert!(!a.world.anims[0].gone && a.world.corpses.is_empty());
+
+        let mut stowed = dragon_head_fixture();
+        stowed.world.items.add_named("Sword", "FlameSword", 1, -1, crate::item::Place::Carried("Connor".into())).unwrap();
+        stowed.world.weapon_mode = crate::weapons::WeaponMode::None;
+        stowed.world.character_dies(0, crate::fight::HitKind::Fire, false);
+        assert!(matches!(stowed.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap().phase, Phase::Waiting(_)));
     }
 
     #[test]

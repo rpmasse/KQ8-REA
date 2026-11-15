@@ -72,9 +72,22 @@ disk-load ordering for this pass remains open.
 
 ## Targeting, attacks and hit delivery
 
-The heads use a dedicated attack-state selector. When its animation
-state permits an attack, it chooses between `attack` and `attack2`
-using the original random branch. `attack2` also creates the emitter
+The heads enter a specialized version of the ordinary monster fight
+state. It keeps the common monster's target and timing decisions and
+replaces the movement chosen once an attack is due. The common alarm
+rule in `character-movement.md` rules 20, 23–26 applies: an active head
+that sees Connor within its 6000-unit alarm radius targets him, and
+the two heads' `dragteam` can spread that alarm. Their type's `none`
+chase mode gives them no chase radius, so they stay at their authored
+positions and fight when Connor is in range. The fight-state trace
+confirms that its shared update invokes the head's specialized attack
+selector only after it has a target and Connor is within its ordinary
+6000-unit attack distance.
+
+When the head is able to start that movement, the selector's random
+branch chooses `attack` (bite) for one quarter of its possible random
+outputs and `attack2` (fire) for the other three quarters. That is a
+nominal 25%/75% choice, not a forced alternation. `attack2` also creates the emitter
 named by that head's `fireFile`; `attack` does not. The visual emitter
 follows the named head at its animated `fire` part, as established in
 `emitters.md` rule 11. There is no separately traced emitter contact
@@ -91,9 +104,11 @@ gets no hit. The dedicated cue handler does not repeat the common
 front-facing test described for ordinary monsters in `fighting.md`;
 the earlier attack-state selection and target acquisition have their
 own gates. When the cue is not the head's attack `Do`, it delegates to
-the common animation event handler. The exact initial target
-acquisition and line-of-sight rules are still inherited monster
-behavior and have not been separately traced for IceWorld.
+the common animation event handler. The head accepts an `attackLoc`
+property, but its specialized movement selector and `Do` hit handler
+do not read that point. The shipped head files do not set it; the
+default is zero. Thus it does not displace the target check in the
+traced shipped attack path. Any other use of this property is open.
 
 The body keeps the common monster attack-state machinery; its authored
 `attack` movement has no `Do` cue. Its 25 hand-damage statistic must
@@ -107,8 +122,11 @@ body-specific damage formula.
 
 The heads replace the common death state. Entry sets that head's
 health to zero, removes its ordinary collision, and chooses one of
-two routes based on an equipped-item check against the Flame Sword
-(inventory item 1110). Without that item, the head plays `lopt`, a
+two routes by checking Connor's current fighting mode and equipped
+hand-weapon slot at death-state entry. The permanent route requires
+melee mode (`doMode=0`) **and** the Flame Sword (inventory item 1110)
+in that slot. The check does not inspect the killing hit's damage kind.
+Without both conditions, the head plays `lopt`, a
 looping disabled movement, and a deadline is set from `deadPause`.
 After that deadline, it requests `rebirth`, restores health from the
 recorded `fullHealth`, and on completion restores ordinary collision
@@ -116,12 +134,13 @@ groups and enters its attack state. This is a temporary defeat. The
 head's death-state property reader includes its completion deadline
 and `rebirthed` flag, as well as the disabled-pose flag.
 
-With the Flame Sword condition, the head marks `reallyDead`, requests
+With both permanent-route conditions, the head marks `reallyDead`, requests
 `synge`, and contributes to a shared permanent-defeat count. The
 encounter-ending branch runs when that count exceeds one. It asks the
 named `dragbody` to enter its death state, handles the authored
 `dragdbox.kq` collision object, and removes `draglhed`, `dragrhed`,
-and `dragwall` by name. The body has its own replacement for entering
+and `dragwall` by name, in that order after the body-state request.
+The body has its own replacement for entering
 the death state and a later death finalizer. The finalizer arranges a
 `dragwall.cs` callback. In the installed script, Connor's action at
 the wall speaks one of two lines according to whether `dragwall`
@@ -150,8 +169,8 @@ one of these directly or derives some on load is open.
 
 Remaining questions for Q210:
 
-- Exact head target acquisition, line of sight, attack selection
-  probability, and whether `attackLoc` changes target geometry.
+- Whether `attackLoc` has an effect outside the traced head attack
+  selector and cue handler; the shipped files do not set it.
 - Every body damage/contact route and whether it can enter death
   independently of the two permanently defeated heads.
 - Frame order of head collision removal, rebirth restoration, body
@@ -163,7 +182,8 @@ Remaining questions for Q210:
 
 An unattended original-data encounter check can assert separate
 body/head ownership and assets, head `Do` timing, bite versus fire
-radius and damage kind, temporary `lopt`/rebirth without the Flame
-Sword, and the two-head permanent-defeat transition with it. The
+radius and damage kind, temporary `lopt`/rebirth when Connor is not
+in melee mode with the equipped Flame Sword, and the two-head
+permanent-defeat transition when he is. The
 open points above should remain scoped questions rather than silently
 filled by common monster behavior.
