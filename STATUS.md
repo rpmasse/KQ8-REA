@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-15 M5 Dragon head defeat and rebirth
+
+Both IceWorld heads now load their authored 600-health stats and
+three-second rebirth pause. A lethal hit takes a head out of collision;
+without the equipped Flame Sword it plays `lopt` and rebirths at full
+health, while with the sword it plays `synge` and stays permanently
+defeated. The unattended original-data route passes both console-driven
+outcomes 1/1, and a focused Rust checkpoint roundtrip preserves a
+waiting timer. Core passes 761 active tests, data 158. Automatic Dragon
+attacks, Fire/Bite cue damage, the two-head body/wall transition, and a
+fresh-process saved encounter remain open. No manual gameplay test was
+run; the GOG installation was read only. M5 remains about 65%.
+
 ## 2026-11-15 M5 IceWorld Dragon visual actors
 
 The Dragon body and both heads now load as separate animated characters

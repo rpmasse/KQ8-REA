@@ -40,6 +40,14 @@ struct SavedMandragorRoot {
     phase: super::MandragorRootPhase,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SavedDragonHead {
+    dead_pause: f64,
+    full_health: i64,
+    original_collision: (u32, u32),
+    phase: super::DragonHeadPhase,
+}
+
 // Keep the moving body and the animation at their respective saved
 // positions. The installed model still supplies its collision geometry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,6 +122,8 @@ pub(crate) struct SpawnedCharacter {
     mandragor_down_roots: u8,
     #[serde(default)]
     mandragor_root: Option<SavedMandragorRoot>,
+    #[serde(default)]
+    dragon_head: Option<SavedDragonHead>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -166,6 +176,15 @@ impl SpawnedCharacter {
                 phase => phase,
             },
         });
+        let dragon_head = c.dragon_head.as_ref().map(|head| SavedDragonHead {
+            dead_pause: head.dead_pause,
+            full_health: head.full_health,
+            original_collision: head.original_collision,
+            phase: match head.phase {
+                super::DragonHeadPhase::Waiting(due) => super::DragonHeadPhase::Waiting(relative(due, now)),
+                phase => phase,
+            },
+        });
         Self {
             state: c.state, started: c.started, first_update_seen: c.first_update.is_some(),
             wait_due: c.wait_at.map(|t| relative(t, now)), random_pending: c.random_pending,
@@ -175,7 +194,7 @@ impl SpawnedCharacter {
             resume_move_due: c.resume_move_at.is_finite().then(|| relative(c.resume_move_at, now)), falling_from: c.falling_from,
             mover_started: c.mover_started, collision_type: c.collision_type,
             collision_mask: c.collision_mask,
-            mandragor_down_roots: c.mandragor_down_roots, mandragor_root,
+            mandragor_down_roots: c.mandragor_down_roots, mandragor_root, dragon_head,
         }
     }
 
@@ -232,6 +251,15 @@ impl SpawnedCharacter {
                 phase => phase,
             };
         }
+        if let (Some(saved), Some(head)) = (&self.dragon_head, c.dragon_head.as_mut()) {
+            head.dead_pause = saved.dead_pause;
+            head.full_health = saved.full_health;
+            head.original_collision = saved.original_collision;
+            head.phase = match saved.phase {
+                super::DragonHeadPhase::Waiting(due) => super::DragonHeadPhase::Waiting(absolute(due, now)),
+                phase => phase,
+            };
+        }
     }
 
     pub(crate) fn valid(&self) -> bool {
@@ -244,6 +272,12 @@ impl SpawnedCharacter {
                 super::MandragorRootPhase::Waiting(due) => due.is_finite(),
                 _ => true,
             })
+            && self.dragon_head.as_ref().is_none_or(|h| h.dead_pause.is_finite()
+                && h.dead_pause >= 0.0
+                && match h.phase {
+                    super::DragonHeadPhase::Waiting(due) => due.is_finite(),
+                    _ => true,
+                })
     }
 }
 

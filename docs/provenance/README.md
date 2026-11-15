@@ -1,5 +1,18 @@
 # Provenance
 
+**Dragon head defeat and rebirth (2026-11-15).** The separate
+[Dragon study](../behaviour/dragon.md) specifies the head's full-health
+record, `deadPause`, `lopt`/`rebirth` temporary route, equipped Flame
+Sword `synge` permanent route, and collision changes. The installed
+IceWorld head files and type table supply the 600 health, three-second
+pause and animation names; [ranged weapon rule 30](../behaviour/ranged-weapons.md)
+identifies collision bit `0x4000` for projectile immunity. Rust keeps
+the head's phase and remaining pause through its checkpoint codec. An
+unattended original-data run triggers each branch through the test
+console; it does not prove an earned encounter or original-executable
+timing. Implementation B read the behavior note and installed game data,
+not the executable or study scratch.
+
 **IceWorld Dragon visual actors (2026-11-15).** The separate
 [Dragon study](../behaviour/dragon.md) identifies one body and two
 independent heads, each with its own original animation list. The

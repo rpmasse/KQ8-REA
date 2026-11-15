@@ -1215,6 +1215,10 @@ impl crate::active::WorldState {
     /// its drops (5c-8); off the active list; gravity off; not solid
     /// (collision type and mask 0); its state never changes again.
     pub(crate) fn character_dies(&mut self, j: usize, kind: HitKind, now_flag: bool) {
+        if self.anims[j].character.as_deref().is_some_and(|c| c.dragon_head.is_some()) {
+            self.dragon_head_dies(j, kind);
+            return;
+        }
         let linked_root = self.anims[j].character.as_deref().and_then(|c| c.mandragor_root.as_ref())
             .is_some_and(|root| root.linked && root.phase == crate::character::MandragorRootPhase::Alive);
         if linked_root {
@@ -1297,6 +1301,90 @@ impl crate::active::WorldState {
         if tree_dies { self.mandragor_tree_dies(&name); }
         if now_flag {
             self.death_ended(j, now);
+        }
+    }
+
+    /// Q210: a head stays in the encounter after its first defeat. The
+    /// Flame Sword chooses the permanent route; other weapons start a
+    /// timed disabled pose followed by rebirth.
+    fn dragon_head_dies(&mut self, j: usize, kind: HitKind) {
+        use crate::character::DragonHeadPhase;
+        let permanent = self.weapon_ready.as_deref().is_some_and(|w| w.eq_ignore_ascii_case(FLAME_SWORD));
+        let now = self.now();
+        let (name, line) = {
+            let a = &mut self.anims[j];
+            let c = a.character.as_deref_mut().unwrap();
+            let (movement, detail) = {
+                let head = c.dragon_head.as_mut().unwrap();
+                if head.phase != DragonHeadPhase::Alive { return; }
+                if permanent {
+                    head.phase = DragonHeadPhase::Permanent;
+                    ("synge", "permanently defeated".to_string())
+                } else {
+                    head.phase = DragonHeadPhase::Waiting(now + head.dead_pause);
+                    ("lopt", format!("rebirth due at {:.2}", now + head.dead_pause))
+                }
+            };
+            let f = c.fight.as_mut().unwrap();
+            f.stats.0[0] = 0;
+            f.last_kind = Some(kind);
+            f.dying = Some(None);
+            f.flinching = None;
+            c.state = crate::character::State::Die;
+            c.set_collision(0, 0);
+            c.turn_to = None;
+            if let Some(ai) = c.ai.as_mut() { ai.active = false; ai.alarmed = false; }
+            a.player.start(movement);
+            (a.player.name.clone(), format!("Dragon head Die: {kind:?}, health 0, non-solid; {movement} starts; {detail}"))
+        };
+        self.active_list.retain(|n| !n.eq_ignore_ascii_case(&name));
+        self.fight_note(&name, line);
+    }
+
+    pub(crate) fn dragon_heads_due(&mut self, now: f64) {
+        use crate::character::DragonHeadPhase;
+        for j in 0..self.anims.len() {
+            if self.anims[j].gone { continue; }
+            let due = self.anims[j].character.as_deref().and_then(|c| c.dragon_head.as_ref())
+                .is_some_and(|h| matches!(h.phase, DragonHeadPhase::Waiting(t) if now >= t));
+            if !due { continue; }
+            let (name, health) = {
+                let a = &mut self.anims[j];
+                let c = a.character.as_deref_mut().unwrap();
+                let head = c.dragon_head.as_mut().unwrap();
+                head.phase = DragonHeadPhase::RebirthMovement;
+                let f = c.fight.as_mut().unwrap();
+                f.stats.0[0] = head.full_health;
+                f.dying = Some(Some("rebirth".into()));
+                a.player.start("rebirth");
+                (a.player.name.clone(), head.full_health)
+            };
+            self.fight_note(&name, format!("Dragon head rebirth starts; health restored to {health}, collision stays off until movement ends"));
+        }
+    }
+
+    fn dragon_head_death_ended(&mut self, j: usize) -> bool {
+        use crate::character::DragonHeadPhase;
+        let phase = self.anims[j].character.as_deref().and_then(|c| c.dragon_head.as_ref()).map(|h| h.phase);
+        match phase {
+            Some(DragonHeadPhase::RebirthMovement) => {
+                let (name, collision) = {
+                    let a = &mut self.anims[j];
+                    let c = a.character.as_deref_mut().unwrap();
+                    let head = c.dragon_head.as_mut().unwrap();
+                    head.phase = DragonHeadPhase::Alive;
+                    let collision = head.original_collision;
+                    c.fight.as_mut().unwrap().dying = None;
+                    c.state = crate::character::State::Wait;
+                    c.set_collision(collision.0, collision.1);
+                    a.player.start("stop");
+                    (a.player.name.clone(), collision)
+                };
+                self.fight_note(&name, format!("Dragon head rebirth ended; original collision {:#x}/{:#x} restored, ready to attack", collision.0, collision.1));
+                true
+            }
+            Some(DragonHeadPhase::Permanent) => true,
+            _ => false,
         }
     }
 
@@ -1734,6 +1822,7 @@ impl crate::active::WorldState {
     /// `idedKqs` or none; `Fire`: none); its script gets `Die <kind>`
     /// (queued for the caller, which runs scripts); it is removed.
     pub(crate) fn death_ended(&mut self, j: usize, _now: f64) {
+        if self.dragon_head_death_ended(j) { return; }
         if self.mandragor_root_death_ended(j, _now) { return; }
         // Rule 31a: the kept weapon first, before the experience and the
         // corpse.

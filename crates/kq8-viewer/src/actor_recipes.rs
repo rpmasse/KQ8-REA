@@ -154,7 +154,7 @@ pub fn character(
 ) -> Box<Character> {
     use kq8_data::characters::Class;
     let k = &c.keys;
-    let dragon_visual_only = matches!(k.class, Class::DragonBody | Class::DragonHead);
+    let dragon_specialized = matches!(k.class, Class::DragonBody | Class::DragonHead);
     let has_birth = player.available().iter().any(|m| m.name.eq_ignore_ascii_case("Birth"));
     let mut ch = Box::new(Character::new(
         k.class == Class::GeometryTalker, k.flags, c.birth_delay, has_birth,
@@ -198,15 +198,25 @@ pub fn character(
     if k.class == Class::MandragorRoot {
         ai.has_birth = has_birth;
         ch.ai = Some(ai);
-    } else if k.class != Class::MandragorTree && !dragon_visual_only {
+    } else if k.class != Class::MandragorTree && !dragon_specialized {
         ai.has_birth = has_birth;
         ch.ai = Some(ai);
     }
-    ch.fight = c.fight.clone().filter(|_| !dragon_visual_only).map(|s| {
+    ch.fight = c.fight.clone().filter(|_| k.class != Class::DragonBody).map(|s| {
         let mut f = kq8_core::fight::Fight::new(s);
         f.combat_scaled = c.combat_scaled;
         f
     });
+    if k.class == Class::DragonHead {
+        if let Some(f) = ch.fight.as_ref() {
+            ch.dragon_head = Some(kq8_core::character::DragonHead {
+                dead_pause: f64::from(k.dragon_dead_pause.unwrap_or(3.0)),
+                full_health: f.stats.0[0],
+                original_collision: (ch.collision_type, ch.collision_mask),
+                phase: kq8_core::character::DragonHeadPhase::Alive,
+            });
+        }
+    }
     if let Some((min, max)) = bounds {
         let keep = match p.keep_on_ground {
             kq8_data::objects::KeepOnGround::Floor => -1,

@@ -1328,6 +1328,7 @@ impl WorldState {
             }
         }
         self.mandragor_roots_due(now);
+        self.dragon_heads_due(now);
     }
 
     /// `characters.md` rule 8 (M4 4d-6b-2): every character's mover, once
@@ -9305,6 +9306,69 @@ endif
         });
         c.state = crate::character::State::Wait;
         a
+    }
+
+    fn dragon_head_fixture() -> Active {
+        let mut a = fighter();
+        let actor = &mut a.world.anims[0];
+        actor.player.name = "draglhed".into();
+        for (name, repeat) in [("lopt", true), ("rebirth", false), ("synge", false)] {
+            actor.player.movements.push(crate::named_anim::tests::movement(name, 0.0, 1.0, repeat, false, vec![]));
+        }
+        let c = actor.character.as_deref_mut().unwrap();
+        c.ai = None;
+        c.state = crate::character::State::Wait;
+        c.set_collision(0x4042, 0);
+        c.fight.as_mut().unwrap().stats.0[0] = 600;
+        c.dragon_head = Some(crate::character::DragonHead {
+            dead_pause: 3.0, full_health: 600, original_collision: (0x4042, 0),
+            phase: crate::character::DragonHeadPhase::Alive,
+        });
+        a
+    }
+
+    #[test]
+    fn dragon_head_temporary_defeat_rebirth_and_checkpoint() {
+        use crate::character::DragonHeadPhase as Phase;
+        let mut a = dragon_head_fixture();
+        a.world.simulation_time = 2.0;
+        a.world.character_dies(0, crate::fight::HitKind::Normal, false);
+        let head = a.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(head.dragon_head.as_ref().unwrap().phase, Phase::Waiting(5.0));
+        assert_eq!((head.fight.as_ref().unwrap().stats.0[0], head.collision_type), (0, 0));
+        assert_eq!(a.world.anims[0].player.movement_name(), "lopt");
+        a.world.simulation_time = 3.0;
+        let saved: Vec<SavedPlacedCharacter> = serde_json::from_slice(&serde_json::to_vec(&a.world.saved_placed_characters_for_disk_save()).unwrap()).unwrap();
+        let mut loaded = dragon_head_fixture();
+        loaded.world.restore_placed_characters(&saved);
+        assert_eq!(loaded.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap().phase, Phase::Waiting(2.0));
+        loaded.world.dragon_heads_due(1.99);
+        assert!(matches!(loaded.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap().phase, Phase::Waiting(_)));
+        loaded.world.dragon_heads_due(2.0);
+        let head = loaded.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(head.dragon_head.as_ref().unwrap().phase, Phase::RebirthMovement);
+        assert_eq!((head.fight.as_ref().unwrap().stats.0[0], head.collision_type), (600, 0));
+        loaded.world.death_ended(0, 3.0);
+        let head = loaded.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(head.dragon_head.as_ref().unwrap().phase, Phase::Alive);
+        assert_eq!((head.state, head.collision_type, head.collision_mask), (crate::character::State::Wait, 0x4042, 0));
+        assert!(head.fight.as_ref().unwrap().dying.is_none());
+        assert!(loaded.world.corpses.is_empty() && !loaded.world.anims[0].gone);
+    }
+
+    #[test]
+    fn dragon_head_flame_sword_defeat_stays_permanent() {
+        use crate::character::DragonHeadPhase as Phase;
+        let mut a = dragon_head_fixture();
+        a.world.weapon_ready = Some(crate::fight::FLAME_SWORD.into());
+        a.world.character_dies(0, crate::fight::HitKind::Fire, false);
+        let head = a.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(head.dragon_head.as_ref().unwrap().phase, Phase::Permanent);
+        assert_eq!(a.world.anims[0].player.movement_name(), "synge");
+        a.world.dragon_heads_due(100.0);
+        a.world.death_ended(0, 100.0);
+        assert_eq!(a.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap().phase, Phase::Permanent);
+        assert!(!a.world.anims[0].gone && a.world.corpses.is_empty());
     }
 
     #[test]

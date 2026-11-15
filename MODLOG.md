@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-15 Add Dragon head defeat and rebirth states
+
+Loaded each IceWorld head's 600-health fight stats and authored
+three-second `deadPause`. A lethal hit removes collision. Without the
+equipped Flame Sword the head plays `lopt`, regains full health at the
+deadline, plays `rebirth`, and restores its original collision when the
+movement ends. With the sword it plays `synge` and stays permanently
+defeated. A Rust disk-checkpoint roundtrip retains the waiting deadline.
+The focused core checks pass 2/2, the installed data check passes 1/1,
+and the unattended IceWorld console-driven check passes both branches
+1/1. Core passes 761 active tests; data passes 158. The first compile
+attempt found a Rust borrow conflict, which was fixed before testing.
+The original GOG installation was read only; no manual gameplay test was
+run. Attack selection, head `Do` damage, the second-head body/wall
+transition, and a fresh-process saved encounter remain open.
+
 ## 2026-11-15 Load the three IceWorld Dragon actors
 
 Recognized the authored Dragon body and two head classes as animated

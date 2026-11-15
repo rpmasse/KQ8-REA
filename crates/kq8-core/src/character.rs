@@ -132,6 +132,8 @@ pub struct Character {
     pub mandragor_down_roots: u8,
     /// A Swamp root whose position follows a sibling Mandragor tree.
     pub mandragor_root: Option<MandragorRoot>,
+    /// IceWorld head's specialized defeat, permanent death and rebirth state.
+    pub dragon_head: Option<DragonHead>,
     /// KQLucreto's post-stagger standing interval (fighting.md rule 23).
     pub lucreto_react_pause: Option<f32>,
     pub lucreto_change_dist: Option<f32>,
@@ -221,6 +223,22 @@ pub struct MandragorRoot {
     pub baseline_health: i64,
     pub phase: MandragorRootPhase,
     pub last_tree_pose: Option<crate::collide::Placement>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DragonHead {
+    pub dead_pause: f64,
+    pub full_health: i64,
+    pub original_collision: (u32, u32),
+    pub phase: DragonHeadPhase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DragonHeadPhase {
+    Alive,
+    Waiting(f64),
+    RebirthMovement,
+    Permanent,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -319,6 +337,7 @@ impl Character {
             mandragor_tree: false,
             mandragor_down_roots: 0,
             mandragor_root: None,
+            dragon_head: None,
             lucreto_react_pause: None,
             lucreto_change_dist: None,
             resume_move_at: f64::NEG_INFINITY,

@@ -611,6 +611,8 @@ pub struct CharacterKeys {
     /// Horizontal response radius and push distance for a Mandragor root.
     pub mandragor_too_close: Option<f32>,
     pub mandragor_repel_dist: Option<f32>,
+    /// Seconds before a temporarily defeated Dragon head starts rebirth.
+    pub dragon_dead_pause: Option<f32>,
     /// Model-space launch points used if the attack frame lacks the projectile's mesh.
     pub shoot_offsets: Vec<(String, [f32; 3])>,
     /// `animFile=`: its movement list.
@@ -736,6 +738,7 @@ impl CharacterKeys {
             mandragor_rebirth_delay: (class == Class::MandragorRoot).then(|| number("rebirthDelay").map(|v| v as f32)).flatten(),
             mandragor_too_close: (class == Class::MandragorRoot).then(|| number("tooClose").map(|v| v as f32)).flatten(),
             mandragor_repel_dist: (class == Class::MandragorRoot).then(|| number("repelDist").map(|v| v as f32)).flatten(),
+            dragon_dead_pause: (class == Class::DragonHead).then(|| number("deadPause").unwrap_or(3.0) as f32),
             class,
             anim_file: text("animFile"),
             idle_anim_file: text("idleAnimFile"),
@@ -753,7 +756,7 @@ impl CharacterKeys {
             skin: text("originalBmp").zip(text("alternateBmp")),
             step_up: number("stepUpAmount").map(|v| v as f32),
             step_down: number("stepDownAmount").map(|v| v as f32),
-            collider_type: number("colliderType").map_or(if mandragor { 0x4042 } else { CHARACTER_TYPE }, |v| v as i64 as u32),
+            collider_type: number("colliderType").map_or(if mandragor || class == Class::DragonHead { 0x4042 } else { CHARACTER_TYPE }, |v| v as i64 as u32),
             collider_mask: number("colliderMask").map_or(CHARACTER_MASK, |v| v as i64 as u32),
             goodbye: line_keys(s, "GB"),
             welcome_back: line_keys(s, "WB"),
@@ -1793,6 +1796,21 @@ useDynamicLighting 1
             let section = kq_text::parse(&bytes);
             let keys = CharacterKeys::from_section(&section[0]).unwrap();
             assert_eq!(AiSettings::from_keys(&keys).alarm_line, Some((expected, 2)), "{world}/{file}");
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn installed_dragon_heads_keep_their_defeat_pause_and_collision() {
+        let game = crate::GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let archive = crate::VolArchive::open(&game.volume_path("IceWorld", "kq").unwrap()).unwrap();
+        for file in ["draglhed.kq", "dragrhed.kq"] {
+            let bytes = archive.unpack(archive.find(file).unwrap()).unwrap().data;
+            let section = kq_text::parse(&bytes);
+            let keys = CharacterKeys::from_section(&section[0]).unwrap();
+            assert_eq!(keys.class, Class::DragonHead, "{file}");
+            assert_eq!(keys.dragon_dead_pause, Some(3.0), "{file}");
+            assert_eq!((keys.collider_type, keys.collider_mask), (0x4042, 0), "{file}");
         }
     }
 
