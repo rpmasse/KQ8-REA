@@ -25,7 +25,7 @@ Percentages refer to each phase's planned work, not an overall project percentag
 
 ## Bring your own game
 
-**This repository contains no original game files or assets.** To build and play the Rust version, supply your own GOG copy of *Mask of Eternity* (tested with version 1.03). The recreation reads its levels, models, sound and artwork from that installation.
+**This repository does NOT contain any original game files or assets.** To build and play the Rust version, supply your own GOG copy of *Mask of Eternity* (tested with version 1.03). The recreation reads its levels, models, sound and artwork from that installation.
 
 On Windows, install Rust and the Visual Studio C++ build tools, then run these commands in PowerShell from the repository folder. Replace the example path with your GOG installation folder:
 
