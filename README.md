@@ -1,8 +1,8 @@
 # KQ8-REA
 
-KQ8-REA is an unofficial Rust recreation of Sierra's 1998 game *King's Quest: Mask of Eternity*. It continues [Eric Peracchi Pisoni's KQ8R project](https://github.com/Eric-lz/KQ8R). The immediate goal is to recreate the original Windows game from beginning to end.
+KQ8-REA is an unofficial Rust recreation of Sierra's 1998 game *King's Quest: Mask of Eternity*. It builds on [Eric Peracchi Pisoni's KQ8R project](https://github.com/Eric-lz/KQ8R) and aims to recreate the original game from beginning to end.
 
-The project aims to use [REA](https://github.com/morluto/rea) to help understand the original game and guide its conversion to Rust. REA has not yet been used here. A faithful Rust version will provide the foundation for a later modernized edition.
+The plan is to use [REA](https://github.com/morluto/rea) to study the original game and guide its conversion to Rust. REA has not yet been used in this project. The finished Rust recreation will be the foundation for a modernized edition.
 
 ## Project phases
 

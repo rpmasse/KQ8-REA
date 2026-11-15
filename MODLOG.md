@@ -1,5 +1,12 @@
 # MODLOG
 
+## 2026-11-15 Clarify the README overview
+
+The README now states how this fork builds on KQ8R, where REA fits in the
+planned Rust conversion, and that REA has not yet been used. The phase
+estimates, GOG-copy requirement, and later enhancement goals remain
+prominent. Documentation only; no gameplay test was run.
+
 ## 2026-11-15 Add IceWorld Dragon head bite and fire hits
 
 The separate original-engine study establishes shared alarm targeting,
