@@ -831,6 +831,8 @@ miss, roll, flinch, death, drop and shot is in
   bolt flies straight and tilted toward its aim, no gravity, and stops
   at the first building, object, character or Connor, the ground or
   after its range (M5 5f-1).
+- **Elemental bows:** an unattended original-data route confirms Flame Bow
+  and Ice Crossbow shots, Fire/Ice deaths and their different corpse results.
 - **Combat level:** `--combat-level 1|2|3` (0.66 / 1.0 / 1.5 × the
   creatures' health and damage; stand-in for the menu).
 - Remaining combat work includes complete weapon movement sets outside

@@ -1,5 +1,16 @@
 # Provenance
 
+**Elemental ranged death route (2026-11-15).**
+[Ranged weapon rules 21–30](../behaviour/ranged-weapons.md) name the Flame
+Bow and Ice Crossbow projectile files and their Fire/Ice `weaponType` values;
+[fighting rules 30–33](../behaviour/fighting.md) give the death movement and
+corpse outcomes. The installed GOG Connor, inventory, projectile, monster and
+movement data supply the two weapons and Dead City skeletons. The unattended
+`elemental_ranged_death` test checks one hit and death for each: Fire burns
+away `skeleton2`, Ice leaves `skeleton1`'s `skmided.kqs` corpse. This verifies
+the Rust path with original data, not original-executable parity or emitter
+appearance. No original executable or disassembly was read.
+
 **Swamp slime original-data route (2026-11-15).** The installed GOG
 `Swamp/kq/monsters.kq` and `slime.kq` data, read through the existing
 loader, place the ranged `slime1` with reach 5,000, ratios 0.4/3.0 and

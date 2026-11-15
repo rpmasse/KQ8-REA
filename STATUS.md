@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-15 M5 original-data Flame Bow and Ice Crossbow routes
+
+An unattended two-case Windows check passes 1/1 using the installed GOG
+weapon and Dead City monster data. Flame Bow launches `Prfarrow.kq` as
+Fire, kills `skeleton2` with `firedie` and leaves no corpse. Ice Crossbow
+launches `PRicycle.kq` as Ice, kills `skeleton1` with `icedie` and leaves
+`skmided.kqs`. Both projectiles use their data's 6,000-unit/s speed and
+12,000-unit range. Dead City's start script replaced an initial `--item`
+Flame Bow during the first probe; the check now gives each weapon after
+the start script. With `KQ8_GAME_DIR` set, `cargo test --locked -p
+kq8-viewer --test elemental_ranged_death -- --ignored --nocapture` passes
+1/1 in 70.14 s. This is isolated original-data coverage, not an earned
+campaign encounter, emitter visual check or original-executable comparison.
+No manual testing was run. M5 remains about 65%.
+
 ## 2026-11-15 M5 Swamp slime retreat in original-data route
 
 The installed `Swamp/kq/monsters.kq` places `slime1`–`slime13`; the

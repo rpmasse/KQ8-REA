@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-15 Check elemental ranged death against installed game data
+
+Add one unattended Windows regression that equips Flame Bow and Ice
+Crossbow after Dead City's start script, fires at original skeletons and
+checks the distinct projectile, hit, death animation and corpse outcomes.
+The grouped test passes 1/1. The first probe's initial `--item` was
+replaced by the start script's Small Crossbow; the corrected post-start
+give reaches both intended weapons. No production code or original game
+assets changed; no manual testing was run.
+
 ## 2026-11-15 Simplify public project overview
 
 Shorten the README around the project's origin, REA-assisted Rust recreation,
