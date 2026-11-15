@@ -1,5 +1,12 @@
 # MODLOG
 
+## 2026-11-16 Clarify public project overview
+
+Shortened the README's explanation of the KQ8R lineage, planned REA-guided
+Rust conversion, phase progress, GOG copy requirement and later enhancement
+goals. The percentages remain unchanged. Checked the README links and diff;
+no gameplay code, original game files or manual testing were involved.
+
 ## 2026-11-16 Use each monster's retreat and sight phase
 
 Replaced the global 15-update sight/retreat phase with an actor counter
