@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-15 M5 unboxed returning-character hit
+
+An unboxed character returning home now applies its hand damage directly
+when Connor is visible, in reach and its attack is due. It keeps heading
+home, uses a Normal hit, and waits its `attackDelay` before another hit.
+The focused synthetic check passes 1/1, contrasting the boxed character's
+ordinary chase; the full core suite passes 748 active tests, 0 failures,
+26 ignored. No original-data encounter or manual gameplay was run. M5
+remains about 65%; the other weapon, enemy and boss families remain open.
+
 ## 2026-11-15 Core regression suite restored
 
 The last core failure came from a trap Lookup notice written to the

@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-15 Recreate unboxed returning-character attack
+
+Apply fighting.md rule 15 before the ordinary homeward chase retake:
+without a collision shape, a returning fighter directly hits Connor with
+Normal hand damage while visible, in reach and due. It retains its
+homeward movement and resets only its attack deadline. A focused core
+check passes; the full core suite passes 748/748 active tests, with 26
+ignored. The check uses a synthetic fighter, not an original-data route.
+
 ## 2026-11-15 Route trap Lookup notice to trap log
 
 The queued Lookup notice followed trap Init but was logged in the general

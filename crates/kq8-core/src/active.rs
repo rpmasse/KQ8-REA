@@ -9344,6 +9344,57 @@ endif
     }
 
     #[test]
+    fn unboxed_character_zaps_connor_while_returning_home() {
+        // fighting.md rule 15: the unboxed homeward path uses hand damage
+        // without an attack movement, front test, or chase retake.
+        let mut a = fighter();
+        a.set_connor_stats(ConnorStats { stats: Stats([100, 10, 0, 0, 0]), level: 10 });
+        a.world.connor_at = Some([0.0, -1000.0, 100.0]);
+        let c = a.world.anims[0].character.as_deref_mut().unwrap();
+        c.bounds = None;
+        c.state = crate::character::State::Move;
+        let ai = c.ai.as_mut().unwrap();
+        ai.active = true;
+        ai.on_way_home = true;
+        ai.home = [0.0, 10_000.0, 100.0];
+        ai.sees = true;
+        ai.checked = true;
+        ai.settings.can_always_see = true;
+        a.world.updates = 1;
+        a.world.characters_ai(&FlatGround, &[], &[]);
+        let first = a.world.fight_log.iter().filter(|l| l.contains("direct Normal hit on Connor")).count();
+        assert_eq!(first, 1, "{}", a.world.fight_log.join("\n"));
+        assert!(a.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().on_way_home);
+        assert!(!a.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().alarmed);
+        assert_ne!(a.world.anims[0].player.movement_name(), "attack");
+        a.world.updates = 15;
+        a.world.simulation_time = 0.99;
+        a.world.characters_ai(&FlatGround, &[], &[]);
+        assert_eq!(a.world.fight_log.iter().filter(|l| l.contains("direct Normal hit on Connor")).count(), 1);
+        a.world.updates = 16;
+        a.world.simulation_time = 1.0;
+        a.world.characters_ai(&FlatGround, &[], &[]);
+        assert_eq!(a.world.fight_log.iter().filter(|l| l.contains("direct Normal hit on Connor")).count(), 2, "fight: {:?}; character: {:?}", a.world.fight_log, a.world.character_log);
+
+        let mut boxed = fighter();
+        boxed.set_connor_stats(ConnorStats { stats: Stats([100, 10, 0, 0, 0]), level: 10 });
+        boxed.world.connor_at = Some([0.0, -1000.0, 100.0]);
+        let c = boxed.world.anims[0].character.as_deref_mut().unwrap();
+        c.state = crate::character::State::Move;
+        let ai = c.ai.as_mut().unwrap();
+        ai.active = true;
+        ai.on_way_home = true;
+        ai.home = [0.0, 10_000.0, 100.0];
+        ai.sees = true;
+        ai.checked = true;
+        ai.settings.can_always_see = true;
+        boxed.world.updates = 1;
+        boxed.world.characters_ai(&FlatGround, &[], &[]);
+        assert!(!boxed.world.fight_log.iter().any(|l| l.contains("direct Normal hit on Connor")));
+        assert!(boxed.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().alarmed);
+    }
+
+    #[test]
     fn its_swings_hurt_connor_until_he_dies() {
         // fighting.md rules 13, 16, 18, 29 (M5 5c-4): a zombie's 15.
         let mut a = fighter();

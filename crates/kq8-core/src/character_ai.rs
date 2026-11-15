@@ -658,6 +658,23 @@ impl WorldState {
             return;
         }
         if !ai.alarmed {
+            // fighting.md rule 15: an unboxed character returning home
+            // strikes directly instead of taking up the chase again.
+            if ai.on_way_home && c.bounds.is_none() {
+                if sees && d <= s.attack_dist {
+                    let hit = c.fight.as_ref().filter(|f| f.due(now))
+                        .map(|f| (f.stats.0[1], f.settings.attack_delay));
+                    if let Some((damage, delay)) = hit {
+                        self.anims[i].character.as_deref_mut().unwrap()
+                            .fight.as_mut().unwrap().attack_time = now + f64::from(delay);
+                        let name = self.anims[i].player.name.clone();
+                        self.fight_note(&name, format!("returning home without a collision shape: direct Normal hit on Connor, damage {damage}; next due at {:.2} (fighting.md rule 15)", now + f64::from(delay)));
+                        self.hit_connor(&name, damage, crate::fight::HitKind::Normal);
+                    }
+                }
+                self.way_home(i, now);
+                return;
+            }
             // Rule 28: only while moving; case 2 needs it to see him too.
             let retake = ai.on_way_home && state == State::Move && !go_home && s.alarm_radius > 0.0 && sees && (d <= s.attack_dist || (home_d <= s.home_radius && d < s.alarm_radius));
             let alarm = !ai.on_way_home && !go_home && s.alarm_radius > 0.0 && sees && d < s.alarm_radius && ai.fidget.is_none() && matches!(state, State::Wait | State::Move);

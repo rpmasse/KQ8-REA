@@ -1,5 +1,15 @@
 # Provenance
 
+**Unboxed returning-character hit (2026-11-15).**
+[fighting.md](../behaviour/fighting.md) rule 15 and
+[character-movement.md](../behaviour/character-movement.md) rule 28
+describe the direct Normal hand-damage hit, due-time reset and continued
+homeward movement for characters without a collision shape. Implementation
+B used those prose rules and the existing Rust bounds and combat state.
+The synthetic core check covers the hit, cooldown, no attack movement and
+the boxed-character contrast. No original executable or disassembly was
+read; no original-data encounter was tested.
+
 **Trap Lookup log routing (2026-11-15).**
 [scripted-controller-commands.md](../behaviour/scripted-controller-commands.md)
 rule 7 supplies the unconditional due-now Lookup after trap Init. The
