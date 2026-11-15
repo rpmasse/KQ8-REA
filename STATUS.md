@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-15 M5 Hammer hit, return and menu lock
+
+An original-data Dead City Windows check now exercises Azriel's Hammer
+against `skeleton1`. It hits once (Skeleton health 60 to 23), turns back
+on contact, returns to Connor and completes `catch` at update 76. The
+menu is blocked at update 63 while `handsOff` is active; a save at update
+80 succeeds with the Hammer ready, one shot counted and no live projectile.
+The focused check passes 1/1 in 34.54s. The earlier idea of saving during
+flight was dropped because the game's throw controller prevents opening
+the menu then. Exact command and limits: `docs/hammer-hit-return.md`. AI
+was disabled for the target; no production code or game assets changed,
+and no manual testing was performed. M5 remains approximately 65%.
+
 ## 2026-11-15 M5 Weeper flight continues through a disk save
 
 The installed Dead City Weeper now has a three-process automated checkpoint.

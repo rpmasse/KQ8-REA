@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-15 Check Hammer hit, return and menu lock
+
+Add an unattended original-data Dead City check that gives Connor Azriel's
+Hammer after the start script, throws it at `skeleton1`, verifies one
+damage event, turn-back, catch and the end of `handsOff`, and saves after
+the throw. The menu is refused during the throw as expected. The test
+passes 1/1 in 34.54s. The initial Dead City probe injected the Hammer
+before the start script, which replaced it with a Small Crossbow; the
+ordinary give command corrected the fixture. A Daventry probe confirmed
+a floor-grid return. No production code changed. See
+`docs/hammer-hit-return.md` for the command and limits.
+
 ## 2026-11-15 Check Weeper flight before impact across a disk save
 
 Add a three-process Windows original-data test for the Dead City Weeper.

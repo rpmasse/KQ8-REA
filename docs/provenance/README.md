@@ -1,5 +1,14 @@
 # Provenance
 
+**Hammer hit and return check (2026-11-15).** The installed Dead City
+`Prhammer.kq`, Connor's `conHamr.anm`, the Skeleton and
+[azriel-hammer.md](../behaviour/azriel-hammer.md) supply the scenario and
+expected rules. The test uses the ordinary give and weapon-request paths;
+it disables target AI to isolate the throw. Existing Rust hit, return,
+catch, menu lock and save behavior is checked without changing production
+code. No original executable comparison or exceptional midflight save is
+claimed.
+
 **Weeper flight save check (2026-11-15).** The installed Dead City Weeper,
 `PRweeper.kq` and [ranged-weapons.md](../behaviour/ranged-weapons.md) supply
 the launch and drain behavior. The new test exercises existing Rust flight,

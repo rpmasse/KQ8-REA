@@ -2856,7 +2856,7 @@ The loader now prepares the six type files named by Dead City's 16 add commands.
 
 **Moving-shot timing at a disk save (implemented).** Connor's moving crossbow click releases its bolt immediately, then permits another after 0.5 seconds. A shot made while running switches him to walking and schedules the run switch to return after one second; another moving shot extends both deadlines. Version-2 slots now keep these deadlines relative to Connor's update clock, along with the run switch. Older slots omit the optional timing field. An unattended two-process Windows check used the original GOG Small Crossbow and saved with 0.367 seconds of cooldown and 0.867 seconds until running returned. After reload, an early moving shot was refused, a later one fired as `bolt2`, and running returned at update 23 after that second shot extended the deadline. The second slot kept the run switch on and no return timer.
 
-**Live projectile disk checkpoint (implemented for flight).** A bolt is a world object once its release cue passes. Optional version-2 slots preserve each live bolt's shooter, type, name, shape, position, direction, speed, travelled range, damage, collision ball stack, flight update, hammer or rock motion, drain keys and script, plus the world's next-bolt counter. Load validates finite values, bounded lists and safe resource names. After loading the world and characters, the ordinary collision and rendering paths continue those bolts. An unattended two-process Windows test used the original GOG Small Crossbow data and a distant Dead City skeleton: the slot kept `bolt1` after 800 units of travel with the skeleton at 60 health; after reload, bolt updates 3 and 4 hit the skeleton once and left it at 47. A core JSON round trip retains ordinary, rock, hammer and Weeper flight state; those three special variants still need collision-after-reload checks. A Weeper drain after impact has separate state and remains an open checkpoint.
+**Live projectile disk checkpoint (implemented for flight).** A bolt is a world object once its release cue passes. Optional version-2 slots preserve each live bolt's shooter, type, name, shape, position, direction, speed, travelled range, damage, collision ball stack, flight update, hammer or rock motion, drain keys and script, plus the world's next-bolt counter. Load validates finite values, bounded lists and safe resource names. After loading the world and characters, the ordinary collision and rendering paths continue those bolts. An unattended two-process Windows test used the original GOG Small Crossbow data and a distant Dead City skeleton: the slot kept `bolt1` after 800 units of travel with the skeleton at 60 health; after reload, bolt updates 3 and 4 hit the skeleton once and left it at 47. A core JSON round trip retains ordinary, rock, hammer and Weeper flight state. Rock and Weeper now also have original-data fresh-process flight checks below. The Hammer's ordinary throw locks the menu until catch, so its original-data check covers hit, return and post-catch save. The Weeper's post-impact drain has its own checkpoint below.
 
 **Rock flight across a disk save (2026-11-15, checked).** Use the existing
 Daventry Rock input route and the original GOG `prrock.kq` and `rockHit.cs`.
@@ -2866,8 +2866,8 @@ record, then load in a fresh Windows process and require ordinary flight,
 one landing script, one inventory deduction and one recoverable Rock.
 Compare the final state with an uninterrupted run from the same input
 route. This tests the Rust continuation; the original game's exceptional
-midflight save semantics remain unstudied. The hammer and Weeper flight
-cases remain separate.
+midflight save semantics remain unstudied. Weeper flight is checked below;
+the Hammer's menu lock prevents an ordinary in-flight save.
 
 The three-process windowed GOG check now passes. It saves at update 61 with
 `rock1` at flight update 2, authored arc progress 333.33 and the documented
@@ -2876,8 +2876,7 @@ and leaves no live projectile. An uninterrupted throw yields identical final
 Rock item records and shot/NoName counters. The original last-Rock identity
 at its old placement and the fresh landing identity are both retained, as
 `items.md` rule 11 describes. This proves the Rust continuation for this
-route, not original-runtime midflight save semantics or the remaining
-projectile variants.
+route, not original-runtime midflight save semantics or every projectile.
 
 **Weeper post-impact drain checkpoint (effect implemented).** After impact the projectile is gone, but the world holds a drain with a tick and pulse count, a source and target, original `PRweeper.kq` settings, and live beam links indexed into animated objects. Optional version-2 slots now save those values and each beam link's name and position rather than its old vector index. After restoring placed characters, the drain rebuilds links from the installed templates and maps their new indices; the usual viewer spawn and sound paths draw them and restart the drain sound. An unattended Windows test saved Dead City's first drain at tick 17, pulse 4, with eight links and Connor at 76 health. A fresh process resumed pulses 5–12 exactly once, ended the drain, removed the links and saved Connor at 68 health; the looped sound started and stopped. Connor's `magicReact` phase is now restored by the standalone Special checkpoint below.
 
@@ -2899,6 +2898,27 @@ each of the twelve health pulses and one drain end, then saves Connor at
 state matches the uninterrupted route saved at the corresponding update.
 An initial assertion failed because the saved duration is a JSON float
 (`3.0`); the corrected assertion passed. No production code changed.
+
+**Azriel Hammer hit, return and input lock (2026-11-15, verified).** Use the
+installed Dead City `Prhammer.kq`, Connor hammer movement and an original
+Skeleton in an isolated Windows route. Give Connor the Hammer after the
+world-start script, then throw at the Skeleton. Require one hit, one
+turn-back, a catch, and the throw controller's return to standing. A menu
+request while the throw holds `handsOff` must be refused; after `catch`
+ends, the same menu path must admit a save with the Hammer still ready and
+no projectile in flight. The initial plan to save during flight is
+incompatible with the original input lock and was replaced after the
+windowed probe confirmed the menu refused it. A separate Daventry probe
+reached a floor-grid turn-back; the core range/floor unit check remains.
+This verifies the Rust encounter path with original data, not an original
+executable comparison or exceptional midflight save behavior.
+The original-data Dead City check passes 1/1 in 34.54s. `hammer1` hits
+`skeleton1` once, leaving it at 23 health, reverses on that touch and
+returns to Connor. `catch` completes at update 76 and releases `handsOff`.
+A menu request at update 63 is blocked; a save at update 80 succeeds with
+the Hammer ready, one shot counted and no live projectile. The separate
+Daventry exploratory route also turned back on a floor-grid contact.
+No production code changed; target AI was disabled for this isolated route.
 
 **Connor's standalone Special checkpoint (implemented for the Weeper reaction and weapon swaps).** Optional version-2 slots save a Special movement's current phase, cue cursor, resolved movement list and list index, plus pending turn and transition state. Movement names resolve against the installed GOG lists after world load; malformed slots are rejected. This checkpoint is skipped when a separately modeled melee, ranged, throw or rope action owns the Special state; a weapon swap now pairs it with the weapon checkpoint below. On a Weeper drain reload, it takes precedence over the compatibility path that restarts `magicReact`; older drain slots without it still restart. The unattended two-process Dead City test saved phase 0.3778 and resumed at 0.4000 on the first update. The earlier `magicrct.aud` cue did not replay, and the health pulses and drain end stayed correct. Other Special lists and overlapping actions need later checks before claiming general cutscene persistence.
 
