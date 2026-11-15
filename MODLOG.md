@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-16 Make the README easier to read
+
+Shortened the public overview to explain the project's origin, planned use of
+REA for the Rust conversion, current phase estimates, the player's required GOG
+copy, and later enhancements. Removed setup commands from the public overview.
+The phase estimates and game code are unchanged. Documentation only; no
+gameplay test was run.
+
 ## 2026-11-16 Add the Dragon head fire effects
 
 Preserved the named `followMesh` part, prepared the two IceWorld fire
