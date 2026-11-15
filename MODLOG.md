@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-16 Clarify the public project overview
+
+Shortened the README's project description and phase names. It now clearly
+states the KQ8R origin, the planned REA-guided Rust converter, current phase
+estimates, the requirement to supply a GOG copy, and future enhancements.
+The estimates and game code are unchanged. Documentation links and Markdown
+format were checked; no gameplay test was run.
+
 ## 2026-11-16 Check all ordinary first-person weapon attacks
 
 Added an unattended GOG-data matrix for Connor's 13 hand weapons and
