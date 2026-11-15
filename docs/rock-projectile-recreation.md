@@ -89,6 +89,36 @@ This is measured asset data, not an original-gameplay observation.
 
 Viewer changes compile in the combined release test build (1m53s), logged
 in `kq8-artifacts/logs/ordered-loading-shared-viewer-build.log`.
-The away/throw/out viewer controller is not exercised by a native or standalone
-controller test; the grouped test covers the production core requests, data
-frame selection, launch, flight and script recovery.
+At that stage, the away/throw/out viewer controller had no native or
+standalone controller check; the grouped test covered the production core
+requests, data frame selection, launch, flight and script recovery. The
+Windows follow-up below exercises the complete viewer route.
+
+## 2026-11-15 Windows flight continuation
+
+The production viewer now passes an unattended Rock throw/recovery route and
+a three-process flight checkpoint using the installed GOG data. The test
+uses `--windowed` because this display has no exclusive 640×480 mode. Its
+save at update 61 holds `rock1` after flight update 2 with the authored arc
+and falling phase. On fresh-process reload, flight updates 3–6 finish and
+`rockHit.cs` runs once. The final Rock records and projectile/NoName
+counters equal an uninterrupted run from the same inputs. The retained old
+identity at the origin and the new landing identity follow `items.md` rule
+11. This is Rust continuation evidence, not original-runtime save parity or
+a full campaign route.
+
+Run from the repository in PowerShell:
+
+```powershell
+$env:KQ8_GAME_DIR="C:\Users\Robert\Documents\Codex\KQ8\King's Quest 8 GOG"
+cargo test -p kq8-viewer --test rock_throw -- --ignored --nocapture
+cargo test -p kq8-viewer --test rock_flight_checkpoint -- --ignored --nocapture
+```
+
+Expected: each test reports `1 passed; 0 failed`. The baseline passed in
+54.33s and the three-process checkpoint in 111.72s on this machine. The
+initial baseline failed at unavailable fullscreen; the first windowed run
+revealed an outdated pickup assertion (the route never picks the landing
+Rock up). The exploratory restore's first menu sequence selected Load
+because an existing save adds a menu row; the final test uses the correct
+Save row. These were fixture corrections, not projectile behavior changes.

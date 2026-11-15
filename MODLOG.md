@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-15 Check Rock flight across a disk save
+
+Add a three-process Windows test using the installed Daventry Rock, its
+authored arc and `rockHit.cs`. Save during flight at update 61, reload in a
+new process and compare the recovered Rock records with an uninterrupted
+throw. The checkpoint passes 1/1 in 111.72s; flight updates 3–6 resume,
+one landing callback runs and the final items and projectile counters match.
+The existing throw/recovery test passes 1/1 in 54.33s after selecting
+`--windowed` for this virtual display and correcting its stale pickup
+assertion: the route drops a recoverable Rock but does not pick it up.
+
+The first baseline run failed because this display has no exclusive 640×480
+mode. The next windowed run reached landing but failed only its stale
+pickup assertion. The first exploratory restore menu script selected Load
+because the menu gains a row when saves exist; a three-Down save sequence
+then passed. No projectile production code was changed. Original exceptional
+midflight save semantics, other projectile variants, campaign play and
+manual testing remain unverified.
+
 ## 2026-11-15 Preserve the visible PreBirth exception
 
 Follow `characters.md` rule 16 and the existing loader: a list containing

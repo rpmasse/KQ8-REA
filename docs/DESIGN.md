@@ -2858,6 +2858,27 @@ The loader now prepares the six type files named by Dead City's 16 add commands.
 
 **Live projectile disk checkpoint (implemented for flight).** A bolt is a world object once its release cue passes. Optional version-2 slots preserve each live bolt's shooter, type, name, shape, position, direction, speed, travelled range, damage, collision ball stack, flight update, hammer or rock motion, drain keys and script, plus the world's next-bolt counter. Load validates finite values, bounded lists and safe resource names. After loading the world and characters, the ordinary collision and rendering paths continue those bolts. An unattended two-process Windows test used the original GOG Small Crossbow data and a distant Dead City skeleton: the slot kept `bolt1` after 800 units of travel with the skeleton at 60 health; after reload, bolt updates 3 and 4 hit the skeleton once and left it at 47. A core JSON round trip retains ordinary, rock, hammer and Weeper flight state; those three special variants still need collision-after-reload checks. A Weeper drain after impact has separate state and remains an open checkpoint.
 
+**Rock flight across a disk save (2026-11-15, checked).** Use the existing
+Daventry Rock input route and the original GOG `prrock.kq` and `rockHit.cs`.
+Capture a menu save after the `do` cue launches the Rock but before its
+landing. Check its authored arc and progress in the saved live-projectile
+record, then load in a fresh Windows process and require ordinary flight,
+one landing script, one inventory deduction and one recoverable Rock.
+Compare the final state with an uninterrupted run from the same input
+route. This tests the Rust continuation; the original game's exceptional
+midflight save semantics remain unstudied. The hammer and Weeper flight
+cases remain separate.
+
+The three-process windowed GOG check now passes. It saves at update 61 with
+`rock1` at flight update 2, authored arc progress 333.33 and the documented
+falling phase. A fresh process resumes updates 3–6, runs `rockHit.cs` once,
+and leaves no live projectile. An uninterrupted throw yields identical final
+Rock item records and shot/NoName counters. The original last-Rock identity
+at its old placement and the fresh landing identity are both retained, as
+`items.md` rule 11 describes. This proves the Rust continuation for this
+route, not original-runtime midflight save semantics or the remaining
+projectile variants.
+
 **Weeper post-impact drain checkpoint (effect implemented).** After impact the projectile is gone, but the world holds a drain with a tick and pulse count, a source and target, original `PRweeper.kq` settings, and live beam links indexed into animated objects. Optional version-2 slots now save those values and each beam link's name and position rather than its old vector index. After restoring placed characters, the drain rebuilds links from the installed templates and maps their new indices; the usual viewer spawn and sound paths draw them and restart the drain sound. An unattended Windows test saved Dead City's first drain at tick 17, pulse 4, with eight links and Connor at 76 health. A fresh process resumed pulses 5–12 exactly once, ended the drain, removed the links and saved Connor at 68 health; the looped sound started and stopped. Connor's `magicReact` phase is now restored by the standalone Special checkpoint below.
 
 **Connor's standalone Special checkpoint (implemented for the Weeper reaction and weapon swaps).** Optional version-2 slots save a Special movement's current phase, cue cursor, resolved movement list and list index, plus pending turn and transition state. Movement names resolve against the installed GOG lists after world load; malformed slots are rejected. This checkpoint is skipped when a separately modeled melee, ranged, throw or rope action owns the Special state; a weapon swap now pairs it with the weapon checkpoint below. On a Weeper drain reload, it takes precedence over the compatibility path that restarts `magicReact`; older drain slots without it still restart. The unattended two-process Dead City test saved phase 0.3778 and resumed at 0.4000 on the first update. The earlier `magicrct.aud` cue did not replay, and the health pulses and drain end stayed correct. Other Special lists and overlapping actions need later checks before claiming general cutscene persistence.

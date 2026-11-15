@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-15 M5 Rock flight survives a fresh-process save
+
+The original-data Daventry Rock route now has a three-process automated
+checkpoint. At update 61, slot 1 holds one live `rock1` at flight update 2
+with its authored arc and falling phase. A fresh process resumes flight
+updates 3–6 and runs `rockHit.cs` once. Its final Rock item records, one
+shot, empty projectile list and next item counter match an uninterrupted
+run from the same input. The separate original-data throw/recovery check also
+passes in 54.33s; the new checkpoint passes in 111.72s. Exact commands are
+in `docs/rock-projectile-recreation.md`. These are isolated Windows routes
+with AI disabled and god mode on, not an earned campaign encounter or an
+original-game runtime comparison. No manual testing was performed. M5
+remains approximately 65%; hammer and Weeper flight saves, weapon/enemy
+families, bosses and integrated fights remain open.
+
 ## 2026-11-15 M5 PreBirth visibility exception
 
 The scripted Unborn fix now follows the loader's existing `PreBirth`

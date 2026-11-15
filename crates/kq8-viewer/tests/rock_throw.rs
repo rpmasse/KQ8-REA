@@ -13,7 +13,7 @@ fn throw_and_recover_a_rock_in_daventry() {
     // bar clicks put it back, then take it from the ordinary rock slot.
     let run = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
         .current_dir(&dir)
-        .arg("--game").arg(game)
+        .arg("--game").arg(game).arg("--windowed")
         .args(["--world", "Daventry", "--at", "277744,199295,0", "--no-ai", "--god",
             "--sound", "off", "--item", "Rock", "--key", "left:IDCTL_INVBAR_ROCKS,10",
             "--key", "left:IDCTL_INVBAR_ROCKS,14", "--aim-point", "277744,198000,13580,24",
@@ -26,5 +26,6 @@ fn throw_and_recover_a_rock_in_daventry() {
     let items = fs::read_to_string(logs.join("items.log")).unwrap();
     assert!(fight.contains("ThrowRock: started=true") && fight.contains("shoots rock"), "see {}", logs.display());
     assert!(items.to_ascii_lowercase().contains("rockhit.cs"), "see {}", logs.display());
-    assert!(items.contains("picked up; Connor's INVITEM_Rock 0 -> 1"), "see {}", logs.display());
+    assert!(items.contains("dropItem: fresh landing") && items.contains("old identity TestItem retained"),
+        "the Rock was not recovered in the world; see {}", logs.display());
 }
