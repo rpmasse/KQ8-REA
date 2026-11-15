@@ -613,6 +613,10 @@ pub struct CharacterKeys {
     pub mandragor_repel_dist: Option<f32>,
     /// Seconds before a temporarily defeated Dragon head starts rebirth.
     pub dragon_dead_pause: Option<f32>,
+    /// Dragon head bite reach; its fire Do uses the ordinary attack distance.
+    pub dragon_bite_rad: Option<f32>,
+    /// Authored visual effect file named for a Dragon head's attack2.
+    pub dragon_fire_file: Option<String>,
     /// Model-space launch points used if the attack frame lacks the projectile's mesh.
     pub shoot_offsets: Vec<(String, [f32; 3])>,
     /// `animFile=`: its movement list.
@@ -739,6 +743,8 @@ impl CharacterKeys {
             mandragor_too_close: (class == Class::MandragorRoot).then(|| number("tooClose").map(|v| v as f32)).flatten(),
             mandragor_repel_dist: (class == Class::MandragorRoot).then(|| number("repelDist").map(|v| v as f32)).flatten(),
             dragon_dead_pause: (class == Class::DragonHead).then(|| number("deadPause").unwrap_or(3.0) as f32),
+            dragon_bite_rad: (class == Class::DragonHead).then(|| number("biteRad").unwrap_or(250.0) as f32),
+            dragon_fire_file: (class == Class::DragonHead).then(|| text("fireFile")).flatten(),
             class,
             anim_file: text("animFile"),
             idle_anim_file: text("idleAnimFile"),
@@ -1810,6 +1816,8 @@ useDynamicLighting 1
             let keys = CharacterKeys::from_section(&section[0]).unwrap();
             assert_eq!(keys.class, Class::DragonHead, "{file}");
             assert_eq!(keys.dragon_dead_pause, Some(3.0), "{file}");
+            assert_eq!(keys.dragon_bite_rad, Some(3000.0), "{file}");
+            assert_eq!(keys.dragon_fire_file.as_deref(), Some(if file.starts_with("dragl") { "draglfir.kq" } else { "dragrfir.kq" }), "{file}");
             assert_eq!((keys.collider_type, keys.collider_mask), (0x4042, 0), "{file}");
         }
     }

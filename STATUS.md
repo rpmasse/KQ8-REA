@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-15 M5 Dragon head bite and fire attacks
+
+Both IceWorld heads now take part in ordinary sight and team alarm,
+remain stationary under their authored chase mode, and choose bite or
+fire attacks. Their `Do` cues use separate three-dimensional ranges
+and send Normal or Fire damage without an extra facing test. The
+unattended original-data attack route passes 1/1 for both movement
+kinds on both heads and a reborn head rejoins; focused core passes 3/3, full core 762 active,
+data 158 active, and the GOG head-data check 1/1. The fire emitter's
+visual effect, two-head body/wall transition, and saved live attacks
+remain open. The existing defeat route also passes 1/1.
+No manual gameplay test was run; the GOG copy was read only. M5 remains
+about 65%.
+
 ## 2026-11-15 M5 earned Fists and Small Axe route
 
 The unattended original-data wizard-to-windmill route now passes 1/1

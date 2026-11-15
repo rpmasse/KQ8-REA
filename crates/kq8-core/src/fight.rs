@@ -700,6 +700,12 @@ impl crate::active::WorldState {
         let Some(c) = a.character.as_deref() else { return };
         let Some(f) = c.fight.as_ref() else { return };
         let movement = format!("{} at phase {:.4}", a.player.movement_name(), a.player.phase);
+        if c.dragon_head.is_some()
+            && (a.player.movement_name().eq_ignore_ascii_case("attack")
+                || a.player.movement_name().eq_ignore_ascii_case("attack2")) {
+            self.dragon_head_do(i, &movement);
+            return;
+        }
         if f.ranged() {
             self.shoot(i, &movement);
             return;
@@ -721,6 +727,36 @@ impl crate::active::WorldState {
         let kind = if f.settings.fire { HitKind::Fire } else { HitKind::Normal };
         self.fight_note(&name, format!("Do ({movement}): hits Connor: distance {:.0}, reach {:.0}{back}, {:.0} deg off its facing; hand damage {d}, {} (rules 13, 14)", t.distance, t.reach, t.angle, kind.name()));
         self.hit_connor(&name, d, kind);
+    }
+
+    /// Q210: the head's bite and fire cues test 3D reach against its
+    /// current Connor target. The ordinary monster facing test is absent.
+    fn dragon_head_do(&mut self, i: usize, movement: &str) {
+        use crate::character::DragonHeadPhase;
+        let a = &self.anims[i];
+        let name = a.player.name.clone();
+        let c = a.character.as_deref().unwrap();
+        let head = c.dragon_head.as_ref().unwrap();
+        let fire = a.player.movement_name().eq_ignore_ascii_case("attack2");
+        let reach = if fire { c.ai.as_ref().map_or(0.0, |ai| ai.settings.attack_dist) }
+            else { head.bite_rad };
+        let damage = c.fight.as_ref().unwrap().stats.0[1];
+        let target = self.connor_at.filter(|_| head.phase == DragonHeadPhase::Alive
+            && c.ai.as_ref().is_some_and(|ai| ai.alarmed));
+        let Some(target) = target else {
+            self.fight_note(&name, format!("Dragon head Do ({movement}): no live Connor target; no hit (Q210)"));
+            return;
+        };
+        let pos = a.player.base.position;
+        let distance = ((pos[0] - target[0]).powi(2) + (pos[1] - target[1]).powi(2)
+            + (pos[2] - target[2]).powi(2)).sqrt();
+        if distance > reach {
+            self.fight_note(&name, format!("Dragon head Do ({movement}): Connor {distance:.0} beyond {reach:.0}; no hit (Q210)"));
+            return;
+        }
+        let kind = if fire { HitKind::Fire } else { HitKind::Normal };
+        self.fight_note(&name, format!("Dragon head Do ({movement}): Connor {distance:.0} within {reach:.0}; {damage} {} damage (Q210)", kind.name()));
+        self.hit_connor(&name, damage, kind);
     }
 
     /// Ordinary Wait/Move accept dying immediately. Mirror that logical

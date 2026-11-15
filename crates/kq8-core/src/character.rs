@@ -228,6 +228,8 @@ pub struct MandragorRoot {
 #[derive(Debug, Clone)]
 pub struct DragonHead {
     pub dead_pause: f64,
+    pub bite_rad: f32,
+    pub fire_file: Option<String>,
     pub full_health: i64,
     pub original_collision: (u32, u32),
     pub phase: DragonHeadPhase,
@@ -1144,9 +1146,13 @@ impl Character {
     /// moving one's stuck check is off until its `walk` / `run` plays
     /// again. Returns what happened, for the log.
     pub fn start_attack(&mut self, player: &mut NamedAnimPlayer, now: f64) -> String {
-        let how = match self.request_state_motion(player, crate::fight::ATTACK) {
-            Request::AtOnce(st) => format!("'{}' starts at once{}", crate::fight::ATTACK, if st.unknown { " (not in its list: movement 0)" } else { "" }),
-            _ => format!("'{}' waits for '{}' (should not happen: it can be cut short)", crate::fight::ATTACK, player.movement_name()),
+        // Q210: Dragon heads replace the ordinary attack movement, while
+        // keeping the shared target, alarm and attack deadline decisions.
+        let movement = if self.dragon_head.as_ref().is_some_and(|h| h.phase == DragonHeadPhase::Alive)
+            && self.random() >= 0.25 { "attack2" } else { crate::fight::ATTACK };
+        let how = match self.request_state_motion(player, movement) {
+            Request::AtOnce(st) => format!("'{movement}' starts at once{}", if st.unknown { " (not in its list: movement 0)" } else { "" }),
+            _ => format!("'{movement}' waits for '{}' (should not happen: it can be cut short)", player.movement_name()),
         };
         if let Some(f) = self.fight.as_mut() {
             f.attack_time = crate::fight::NEVER;
@@ -1161,7 +1167,9 @@ impl Character {
 
     /// `Attack` is playing (rule 9; for the Do instead of rule 11b).
     pub fn attack_playing(&self, player: &NamedAnimPlayer) -> bool {
-        player.movement_name().eq_ignore_ascii_case(crate::fight::ATTACK) && !player.has_ended()
+        (player.movement_name().eq_ignore_ascii_case(crate::fight::ATTACK)
+            || (self.dragon_head.is_some() && player.movement_name().eq_ignore_ascii_case("attack2")))
+            && !player.has_ended()
     }
 
     /// Rule 10: a movement named `Attack` or `Attack2` ended (an idle

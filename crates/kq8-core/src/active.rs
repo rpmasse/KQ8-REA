@@ -9314,16 +9314,19 @@ endif
         a.world.items.types = kq8_data::items::ItemTypes::parse(types).0;
         let actor = &mut a.world.anims[0];
         actor.player.name = "draglhed".into();
+        actor.player.movements.push(crate::named_anim::tests::movement("attack2", 0.0, 1.0, false, false, vec![]));
         for (name, repeat) in [("lopt", true), ("rebirth", false), ("synge", false)] {
             actor.player.movements.push(crate::named_anim::tests::movement(name, 0.0, 1.0, repeat, false, vec![]));
         }
         let c = actor.character.as_deref_mut().unwrap();
-        c.ai = None;
+        let ai = c.ai.as_mut().unwrap();
+        (ai.settings.alarm_radius, ai.settings.attack_dist, ai.settings.chase_radius) = (6000.0, 6000.0, 0.0);
         c.state = crate::character::State::Wait;
         c.set_collision(0x4042, 0);
         c.fight.as_mut().unwrap().stats.0[0] = 600;
         c.dragon_head = Some(crate::character::DragonHead {
-            dead_pause: 3.0, full_health: 600, original_collision: (0x4042, 0),
+            dead_pause: 3.0, bite_rad: 3000.0, fire_file: Some("draglfir.kq".into()),
+            full_health: 600, original_collision: (0x4042, 0),
             phase: crate::character::DragonHeadPhase::Alive,
         });
         a
@@ -9343,7 +9346,9 @@ endif
         let saved: Vec<SavedPlacedCharacter> = serde_json::from_slice(&serde_json::to_vec(&a.world.saved_placed_characters_for_disk_save()).unwrap()).unwrap();
         let mut loaded = dragon_head_fixture();
         loaded.world.restore_placed_characters(&saved);
-        assert_eq!(loaded.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap().phase, Phase::Waiting(2.0));
+        let restored = loaded.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap();
+        assert_eq!(restored.phase, Phase::Waiting(2.0));
+        assert_eq!((restored.bite_rad, restored.fire_file.as_deref()), (3000.0, Some("draglfir.kq")));
         loaded.world.dragon_heads_due(1.99);
         assert!(matches!(loaded.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap().phase, Phase::Waiting(_)));
         loaded.world.dragon_heads_due(2.0);
@@ -9378,6 +9383,49 @@ endif
         stowed.world.weapon_mode = crate::weapons::WeaponMode::None;
         stowed.world.character_dies(0, crate::fight::HitKind::Fire, false);
         assert!(matches!(stowed.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap().phase, Phase::Waiting(_)));
+    }
+
+    #[test]
+    fn dragon_head_selects_bite_and_fire_and_uses_3d_cue_reach() {
+        use crate::fight::HitKind;
+        let mut choices = dragon_head_fixture();
+        let mut bite = 0;
+        let mut fire = 0;
+        for _ in 0..128 {
+            let actor = &mut choices.world.anims[0];
+            actor.player.start("stop");
+            actor.player.cut_short = true;
+            let c = actor.character.as_deref_mut().unwrap();
+            c.start_attack(&mut actor.player, 0.0);
+            let current = actor.player.movement_name();
+            if current.eq_ignore_ascii_case("attack") { bite += 1; }
+            else if current.eq_ignore_ascii_case("attack2") { fire += 1; }
+            else { panic!("unexpected Dragon head attack {current}"); }
+        }
+        assert!(bite > 0 && fire > bite && bite + fire == 128, "bite {bite}, fire {fire}");
+
+        let hit = |movement: &str, target: [f32; 3], live: bool| {
+            let mut a = dragon_head_fixture();
+            a.set_connor_stats(crate::stats::ConnorStats {
+                stats: crate::stats::Stats([1000, 0, 0, 0, 0]), level: 1,
+            });
+            a.world.connor_at = Some(target);
+            let actor = &mut a.world.anims[0];
+            actor.player.base.position = [0.0; 3];
+            actor.player.start(movement);
+            let c = actor.character.as_deref_mut().unwrap();
+            c.ai.as_mut().unwrap().alarmed = true;
+            if !live { c.dragon_head.as_mut().unwrap().phase = crate::character::DragonHeadPhase::Waiting(5.0); }
+            a.world.character_do(0);
+            (a.world.connor_last_hit, a.world.fight_log.join("\n"))
+        };
+        let (kind, log) = hit("attack", [2000.0, 0.0, 0.0], true);
+        assert_eq!(kind, Some(HitKind::Normal), "sideways bite should hit without an extra facing gate: {log}");
+        assert_eq!(hit("attack", [3001.0, 0.0, 0.0], true).0, None);
+        assert_eq!(hit("attack2", [5000.0, 0.0, 0.0], true).0, Some(HitKind::Fire));
+        assert_eq!(hit("attack2", [6001.0, 0.0, 0.0], true).0, None);
+        assert_eq!(hit("attack2", [1000.0, 0.0, 0.0], false).0, None);
+        assert_eq!(hit("attack", [0.0, 0.0, 3001.0], true).0, None);
     }
 
     #[test]

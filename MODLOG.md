@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-15 Add IceWorld Dragon head bite and fire hits
+
+The separate original-engine study establishes shared alarm targeting,
+stationary heads, a one-quarter bite/three-quarter fire movement choice,
+and a head-specific three-dimensional hit test. The Rust loader now
+reads each head's `biteRad` and `fireFile`, and the heads use ordinary
+alarm/team timing while the untraced body contact stays off. `attack`
+does Normal hand damage within the 3,000-unit bite radius; `attack2`
+does Fire hand damage within the 6,000-unit ordinary reach. Neither
+cue repeats the ordinary facing check. New checkpoint fields preserve
+the authored attack settings.
+
+The focused core tests pass 3/3, full core 762 active, data 158 active,
+and the installed GOG data check passes 1/1. An unattended IceWorld
+run also passes 1/1 in 39.10 s: both heads alarm and issue bite and fire Do
+cues at their authored delays, and a temporarily defeated head
+rebirths and rejoins the active list. The existing original-data defeat
+route also passes 1/1 with the head AI code present. The fire emitter's visual effect,
+body/wall completion and a saved live attack remain open. No manual
+gameplay test was run and the GOG installation was read only.
+
 ## 2026-11-15 Restore earned windmill combat and save route
 
 Repaired the unattended wizard-to-windmill test for the current host

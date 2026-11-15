@@ -43,6 +43,10 @@ struct SavedMandragorRoot {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SavedDragonHead {
     dead_pause: f64,
+    #[serde(default)]
+    bite_rad: Option<f32>,
+    #[serde(default)]
+    fire_file: Option<String>,
     full_health: i64,
     original_collision: (u32, u32),
     phase: super::DragonHeadPhase,
@@ -178,6 +182,8 @@ impl SpawnedCharacter {
         });
         let dragon_head = c.dragon_head.as_ref().map(|head| SavedDragonHead {
             dead_pause: head.dead_pause,
+            bite_rad: Some(head.bite_rad),
+            fire_file: head.fire_file.clone(),
             full_health: head.full_health,
             original_collision: head.original_collision,
             phase: match head.phase {
@@ -253,6 +259,8 @@ impl SpawnedCharacter {
         }
         if let (Some(saved), Some(head)) = (&self.dragon_head, c.dragon_head.as_mut()) {
             head.dead_pause = saved.dead_pause;
+            if let Some(bite_rad) = saved.bite_rad { head.bite_rad = bite_rad; }
+            if saved.fire_file.is_some() { head.fire_file.clone_from(&saved.fire_file); }
             head.full_health = saved.full_health;
             head.original_collision = saved.original_collision;
             head.phase = match saved.phase {
