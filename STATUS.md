@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-15 M5 Fists combat evidence; windmill route open
+
+An unattended original-data Daventry run from an earned wizard slot
+reached the windmill archer with ordinary AI and damage. The current
+fight log records four `confists.anm/attack2` `Do` hits and the archer's
+Normal death at update 1030. This verifies Fists contact and damage in
+that encounter. The larger earned-axe route did not pass: attempts met
+a host fullscreen refusal, an outdated help-deadline assertion, then
+unacknowledged help cases 140 and 137. The test-harness experiments
+were restored; no code or original game data changed. Axe pickup,
+saved return and first-person Fists remain open. No manual gameplay
+test was run. M5 remains about 65%.
+
 ## 2026-11-15 M5 Mandragor root proximity move
 
 The linked Swamp roots now read their original 700-unit proximity radius
@@ -31,7 +44,7 @@ Broad Sword, Mace, Lake Sword, Skeleton King Sword, Battle Axe, War
 Hammer, Pike, Long Sword and Temple Sword. Each used its authored
 animation, landed one `Do` contact on an original Skeleton and applied
 one Normal hit. The unattended matrix passes 1/1 in 400.02 s. This
-checks shared dispatch, not every damage amount, Fists, first-person
+checks shared dispatch, not every damage amount, first-person
 attack or earned campaign route. The GOG install was read only and no
 manual gameplay test was run. M5 remains about 65%.
 

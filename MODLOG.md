@@ -1,5 +1,31 @@
 # MODLOG
 
+## 2026-11-15 Audit Fists in the earned windmill route
+
+An unattended GOG-data Daventry run from an earned wizard save reached
+the windmill archer with AI and damage enabled. Its fight log records
+four `confists.anm/attack2` `Do` hits and the authored `sprigwnd1`
+death at update 1030. The complete route did not pass: the first
+attempt hit a 640x480 exclusive-fullscreen host failure; a windowed
+wizard pass saved successfully but its test helper still expected an
+old update-number help deadline; later windmill replays stopped at
+unacknowledged combat help 140 and then loot help 137. The exploratory
+test-harness edits were restored after these bounded attempts. Fists
+contact and death have current log evidence; the axe pickup and final
+save do not. No manual gameplay test was run and the GOG install was
+read only.
+
+## 2026-11-15 Study IceWorld dragon family
+
+Study session A traced the installed IceWorld dragon files and original
+body/head class methods. `dragon.md` now records three separate
+monsters and animation owners, head bite/fire cue damage, temporary
+rebirth, Flame Sword permanent defeat, and the two-head completion
+transition. Q210 remains partly open for body contact damage,
+frame-exact callbacks, collision-mask interpretation and save-load
+ordering. No Rust or game files were changed and no manual test was
+run.
+
 ## 2026-11-15 Trace Connor reactback list selection
 
 Study session A checked the original Special movement request and the
