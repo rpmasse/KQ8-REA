@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Finish the two-head Dragon transition
+
+The second permanent IceWorld Dragon head defeat now starts the body's `die`
+movement, loads the original `dragdbox.kq`, and deletes both heads and the old
+wall. The body remains non-solid in its final pose. A temporary defeat alone
+does not trigger the transition, and a saved first permanent defeat still
+counts after the placed-character state is restored.
+
+Core passes 766 active tests, data 159 active, viewer compilation passes, and
+the three-case unattended original-data test passes 1/1. Its first post-fight
+box click was too far away: the fixture had placed Connor on the ground, below
+the box's original height. Moving Connor beside the box one update before the
+click exercised the original `dragwall.cs` post-fight line. The GOG installation
+was read only. No manual playtest or original-executable comparison was run;
+Q210 still has body-finalizer timing and independent body-damage questions.
+
 ## 2026-11-16 Make the README easier to read
 
 Shortened the public overview to explain the project's origin, planned use of

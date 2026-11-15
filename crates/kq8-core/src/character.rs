@@ -134,6 +134,9 @@ pub struct Character {
     pub mandragor_root: Option<MandragorRoot>,
     /// IceWorld head's specialized defeat, permanent death and rebirth state.
     pub dragon_head: Option<DragonHead>,
+    /// IceWorld Dragon body: its death is entered after both heads are
+    /// permanently defeated, without the ordinary monster fight path.
+    pub dragon_body: bool,
     /// KQLucreto's post-stagger standing interval (fighting.md rule 23).
     pub lucreto_react_pause: Option<f32>,
     pub lucreto_change_dist: Option<f32>,
@@ -340,6 +343,7 @@ impl Character {
             mandragor_down_roots: 0,
             mandragor_root: None,
             dragon_head: None,
+            dragon_body: false,
             lucreto_react_pause: None,
             lucreto_change_dist: None,
             resume_move_at: f64::NEG_INFINITY,

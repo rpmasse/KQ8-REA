@@ -2111,6 +2111,12 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         load_targets.insert(file.to_string());
         if words.next().is_some() { copy_targets.insert(file.to_string()); }
     }
+    // Q210: the Dragon body creates this box after both heads are
+    // permanently defeated. The operation comes from the class, not a
+    // script's `loadKQ` line, so prepare its installed file explicitly.
+    if world.name.eq_ignore_ascii_case("IceWorld") {
+        load_targets.insert("dragdbox.kq".into());
+    }
     // A script can create a character by type rather than by `loadKQ`.
     // Resolve those types before the unused-file pass so their otherwise
     // unplaced .kq files (often at the origin) can supply model movements.

@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-16 M5 Dragon two-head finish
+
+When both IceWorld heads are permanently defeated, the Dragon body now starts
+its authored death movement, the installed `dragdbox.kq` appears, and both
+heads and `dragwall` are removed. A core test restores the first permanent
+head before defeating the second; a temporary defeat leaves the body alive.
+The unattended IceWorld test confirms the body movement, box drawing and
+collision, and the post-fight `dragwall.cs` speech after placing Connor beside
+the box. Core passes 766 active tests, data 159 active, viewer compilation
+passes, and the original-data Dragon test passes 1/1. The first box-click
+attempt was out of reach because Connor stood below its authored height; the
+fixture now moves him beside it. No manual gameplay test or original-executable
+comparison was run. The exact original body-finalizer schedule and independent
+body damage remain open under Q210; M5 remains approximately 65%.
+
 ## 2026-11-16 M5 Dragon fire follows both animated heads
 
 The IceWorld Dragon heads now start their authored `draglfir.kq` and

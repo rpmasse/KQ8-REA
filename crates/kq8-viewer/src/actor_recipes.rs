@@ -206,6 +206,7 @@ pub fn character(
         f.combat_scaled = c.combat_scaled;
         f
     });
+    ch.dragon_body = k.class == Class::DragonBody;
     if k.class == Class::DragonHead {
         if let Some(f) = ch.fight.as_ref() {
             ch.dragon_head = Some(kq8_core::character::DragonHead {

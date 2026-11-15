@@ -1377,6 +1377,48 @@ impl crate::active::WorldState {
         };
         self.active_list.retain(|n| !n.eq_ignore_ascii_case(&name));
         self.fight_note(&name, line);
+        if permanent && self.anims.iter().filter(|a| {
+            a.character.as_deref().and_then(|c| c.dragon_head.as_ref())
+                .is_some_and(|h| h.phase == DragonHeadPhase::Permanent)
+        }).count() >= 2 {
+            self.dragon_encounter_finished();
+        }
+    }
+
+    /// Q210: the second permanent head defeat asks the body to die,
+    /// installs the authored post-fight box and removes the two heads
+    /// and wall. Count the actual head states so a restored first defeat
+    /// contributes without a separate counter.
+    fn dragon_encounter_finished(&mut self) {
+        let Some(i) = self.character_index("dragbody") else {
+            self.fight_note("dragbody", "two Dragon heads permanently defeated, but the body was not found");
+            return;
+        };
+        if !self.anims[i].character.as_deref().is_some_and(|c| c.dragon_body && c.state != crate::character::State::Die) {
+            return;
+        }
+        {
+            let a = &mut self.anims[i];
+            let c = a.character.as_deref_mut().unwrap();
+            c.state = crate::character::State::Die;
+            c.gravity = false;
+            c.set_collision(0, 0);
+            c.turn_to = None;
+            a.player.start("die");
+        }
+        self.active_list.retain(|n| !n.eq_ignore_ascii_case("dragbody"));
+        self.fight_note("dragbody", "both heads permanently defeated: body enters Die, becomes non-solid and starts 'die' (Q210)");
+        let result = self.load_kq(&["loadKQ".into(), "dragdbox.kq".into()], "Dragon body death");
+        self.fight_note("dragbody", format!("dragdbox.kq load result {result}"));
+        for name in ["draglhed", "dragrhed", "dragwall"] {
+            let deleted = self.delete_one(name, "Dragon body death");
+            self.fight_note("dragbody", format!("remove {name}: {deleted}"));
+        }
+    }
+
+    pub(crate) fn dragon_body_death_ended(&mut self, i: usize) {
+        let name = self.anims[i].player.name.clone();
+        self.fight_note(&name, "Dragon body 'die' movement ended; final frame retained with dragdbox available (Q210)");
     }
 
     pub(crate) fn dragon_heads_due(&mut self, now: f64) {

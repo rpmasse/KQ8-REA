@@ -2650,7 +2650,7 @@ impl WorldState {
     /// the original stops with a fatal error; we log an error and refuse
     /// the load. With a name or a position on the line, or a file not
     /// prepared: not done (logged).
-    fn load_kq(&mut self, words: &[String], at: &str) -> String {
+    pub(crate) fn load_kq(&mut self, words: &[String], at: &str) -> String {
         let Some(file) = words.get(1) else {
             self.note(format!("{at}: usage: loadKQ <file> [name [x y z [rx ry rz]]]"));
             return "1".into();
@@ -4044,7 +4044,7 @@ impl WorldState {
 
     /// Deletes one object; `false` if there is no such object (or it was
     /// already deleted).
-    fn delete_one(&mut self, name: &str, at: &str) -> bool {
+    pub(crate) fn delete_one(&mut self, name: &str, at: &str) -> bool {
         let key = name.to_ascii_lowercase();
         if self.deleted.contains(&key) {
             return false;
@@ -6979,6 +6979,9 @@ impl Active {
                     if !self.world.tower_fall_end(i, &m) {
                         self.world.death_ended(i, now);
                     }
+                } else if m.eq_ignore_ascii_case("die") && self.world.anims[i].character.as_deref()
+                    .is_some_and(|c| c.dragon_body && c.state == crate::character::State::Die) {
+                    self.world.dragon_body_death_ended(i);
                 }
             }
         }
@@ -9330,6 +9333,70 @@ endif
             phase: crate::character::DragonHeadPhase::Alive,
         });
         a
+    }
+
+    fn dragon_encounter_fixture() -> Active {
+        let mut a = dragon_head_fixture();
+        let mut right = a.world.anims[0].clone();
+        right.player.name = "dragrhed".into();
+        right.character.as_deref_mut().unwrap().dragon_head.as_mut().unwrap().fire_file = Some("dragrfir.kq".into());
+        a.world.anims.push(right);
+        let mut body = a.world.anims[0].clone();
+        body.player.name = "dragbody".into();
+        body.player.movements.push(crate::named_anim::tests::movement("die", 0.0, 1.0, false, false, vec![]));
+        let c = body.character.as_deref_mut().unwrap();
+        c.dragon_head = None;
+        c.dragon_body = true;
+        c.fight = None;
+        c.ai = None;
+        c.state = crate::character::State::Wait;
+        a.world.anims.push(body);
+        for name in ["draglhed", "dragrhed", "dragbody", "dragwall"] {
+            a.world.known.insert(name.into());
+        }
+        a.world.dormant.insert("dragdbox.kq".into(), ("dragdbox".into(), Some("dragwall.cs".into())));
+        a
+    }
+
+    #[test]
+    fn dragon_second_permanent_head_starts_body_death_and_replaces_wall() {
+        use crate::character::DragonHeadPhase as Phase;
+        let mut a = dragon_encounter_fixture();
+        a.world.items.add_named("Sword", "FlameSword", 1, -1, crate::item::Place::Carried("Connor".into())).unwrap();
+        a.world.weapon_mode = crate::weapons::WeaponMode::Hand;
+        a.world.character_dies(0, crate::fight::HitKind::Normal, false);
+        assert_eq!(a.world.anims[0].character.as_deref().unwrap().dragon_head.as_ref().unwrap().phase, Phase::Permanent);
+        assert!(!a.world.is_deleted("dragwall") && a.world.character_index("dragbody").is_some());
+        // A disk save after the first permanent defeat must still count
+        // that head when the second is defeated in a fresh process.
+        let saved: Vec<SavedPlacedCharacter> = serde_json::from_slice(&serde_json::to_vec(&a.world.saved_placed_characters_for_disk_save()).unwrap()).unwrap();
+        let mut loaded = dragon_encounter_fixture();
+        loaded.world.restore_placed_characters(&saved);
+        loaded.world.items.add_named("Sword", "FlameSword", 1, -1, crate::item::Place::Carried("Connor".into())).unwrap();
+        loaded.world.weapon_mode = crate::weapons::WeaponMode::Hand;
+        loaded.world.character_dies(1, crate::fight::HitKind::Fire, false);
+        let body = &loaded.world.anims[2];
+        assert!(body.character.as_deref().unwrap().dragon_body);
+        assert_eq!(body.character.as_deref().unwrap().state, crate::character::State::Die);
+        assert_eq!(body.player.movement_name(), "die");
+        assert_eq!(body.character.as_deref().unwrap().collision_type, 0);
+        assert!(loaded.world.came_in.iter().any(|(file, name)| file == "dragdbox.kq" && name == "dragdbox"));
+        assert!(["draglhed", "dragrhed", "dragwall"].iter().all(|n| loaded.world.is_deleted(n)));
+        assert!(loaded.world.anims[0].gone && loaded.world.anims[1].gone && !loaded.world.anims[2].gone);
+        loaded.world.dragon_body_death_ended(2);
+        assert!(!loaded.world.anims[2].gone && !loaded.world.is_deleted("dragdbox"));
+    }
+
+    #[test]
+    fn dragon_temporary_defeat_does_not_finish_the_body() {
+        let mut a = dragon_encounter_fixture();
+        a.world.character_dies(0, crate::fight::HitKind::Normal, false);
+        a.world.items.add_named("Sword", "FlameSword", 1, -1, crate::item::Place::Carried("Connor".into())).unwrap();
+        a.world.weapon_mode = crate::weapons::WeaponMode::Hand;
+        a.world.character_dies(1, crate::fight::HitKind::Fire, false);
+        assert_eq!(a.world.anims[2].character.as_deref().unwrap().state, crate::character::State::Wait);
+        assert!(!a.world.is_deleted("dragwall"));
+        assert!(a.world.came_in.is_empty());
     }
 
     #[test]
