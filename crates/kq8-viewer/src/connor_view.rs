@@ -2431,7 +2431,11 @@ impl ConnorSim {
             return format!("{list} lacks attack, wait or catch: no throw");
         };
         let off = wrap(heading_towards(self.mover.position, [aim[0], aim[1]]) - self.walker.heading);
-        let turn = self.walker.start_auto(AutoMove::new(AutoKind::Point, [aim[0], aim[1]], None));
+        let turn = if self.first_person {
+            "first-person aim: no turn (rule 2)".to_string()
+        } else {
+            self.walker.start_auto(AutoMove::new(AutoKind::Point, [aim[0], aim[1]], None))
+        };
         let was = self.walker.movement;
         self.walker.throw_play(attack);
         self.hands_off = true;

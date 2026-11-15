@@ -3,6 +3,31 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 first-person Azriel Hammer throw direction (2026-11-16)
+
+`azriel-hammer.md` rule 2 says a third-person throw turns Connor toward
+the aim point, while a first-person throw starts without turning. The
+current first-person Dead City probe hit and caught the Hammer, but
+Connor's heading changed on the next update and the log reported an
+automatic Point turn. Branch only the throw's new auto-turn request on
+first-person view; keep the aim point, projectile flight, hit and catch
+rules unchanged. Add an unattended original-data first-person route
+that records heading before and during the throw, requires no heading
+change, and checks one projectile hit and the completed catch. Retain
+the existing third-person Hammer route as a regression. This repairs a
+documented attack rule; it does not resolve unrelated Hammer saves or
+the original executable's visual parity.
+
+Done: the first-person original-data test passed 1/1 with Connor's
+heading unchanged at updates 80, 81, 85 and 90. The projectile hit
+the Dead City skeleton once, turned back, and reached Connor; the
+first-person catch ended once. The existing third-person hit/return/save
+test passed 1/1 after replacing its fixed rendered-frame limit with a
+game-update limit. Before that fixture correction, the run ended at
+update 5, before its scheduled throw. The GOG `Options.cs` bytes were
+unchanged by the first-person test. Neither route compares pixels or
+timing against the original executable, and no manual test was run.
+
 ## M5 first-person weapon attack matrix (2026-11-16)
 
 `GAME/Kq/Connor.kq` maps 13 hand weapons and nine real ranged weapons

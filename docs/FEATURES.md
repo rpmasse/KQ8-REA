@@ -971,9 +971,9 @@ Checked in the logs only (`fight.log`), **not by eye**. Built from
 `azriel-hammer.md`.
 
 - **The throw:** with the hammer ready (its slot, or Delete), a left click
-  turns Connor toward the point at once and he throws; only while standing
-  or walking, never in a jump, landing or stumble. He can't act until he
-  has caught it.
+  turns Connor toward the point in third person; in first person he throws
+  without turning. Only while standing or walking, never in a jump,
+  landing or stumble. He can't act until he has caught it.
 - **The flight:** straight at the point, hits the first thing (a creature
   takes the file's modifier + his ranged damage, up to its cap), then flies
   back along the same line and he catches it, even if it falls short.

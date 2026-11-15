@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-16 Keep first-person Hammer heading fixed
+
+Changed only the Azriel Hammer throw's auto-turn request: third person
+still turns toward the aim, while first person starts the throw without
+turning. The new unattended first-person original-data test passed 1/1,
+checking stable heading, one projectile hit, return and catch; the GOG
+`Options.cs` bytes were unchanged. The existing third-person hit/return/
+save test passed 1/1. Its first run ended at update 5 under a fixed
+rendered-frame cutoff, so the fixture now stops at update 110 instead.
+The first-person red test failed before the code change as expected.
+No manual gameplay test or original-executable comparison was run.
+
 ## 2026-11-16 Clarify the public project overview
 
 Shortened the README's project description and phase names. It now clearly

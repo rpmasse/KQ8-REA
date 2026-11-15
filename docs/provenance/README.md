@@ -1,5 +1,16 @@
 # Provenance
 
+**First-person Azriel Hammer direction (2026-11-16).**
+[Hammer rule 2](../behaviour/azriel-hammer.md) distinguishes the
+third-person turn toward the aim from an immediate first-person throw
+without a turn. The installed `Connor.kq` maps the first-person Hammer
+movement to `ConHmrFp.anm`. The Rust throw now skips only the auto-turn
+request in first person. An unattended GOG-data test checks heading,
+hit, return and catch; the third-person regression checks its hit and
+menu save after catch. Neither proves original-runtime visual parity.
+Implementation B used the behavior note and original data, not the
+executable or study scratch.
+
 **Temple 4 Lucreto fire (2026-11-16).** The installed `altar.cs` loads
 and deletes `lucfire.kq`; that file names `Lucreto`, animated part
 `Box01`, and 125 particles. [Emitter rules 1 and 11](../behaviour/emitters.md)

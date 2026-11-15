@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 first-person Azriel Hammer throw
+
+The first-person Hammer throw now starts without turning Connor, as
+specified by the original behavior study. An unattended GOG-data
+Dead City test passed 1/1: his heading stayed fixed through the throw,
+the Hammer hit once, returned and was caught. The existing third-person
+hit/return/save test also passed 1/1 after its rendered-frame cutoff was
+changed to a game-update cutoff; the earlier fixture ended at update 5
+before the throw. The GOG `Options.cs` bytes were unchanged by the new
+test. No manual test or original-executable comparison was run. Other
+Hammer save cases and campaign fights remain; M5 is still about 65%.
+
 ## 2026-11-16 M5 first-person weapon attack matrix
 
 An unattended original-data Windows matrix now checks all 13 hand
@@ -11,7 +23,8 @@ bytes were unchanged. The first attempt pressed F2 while Mace's `out`
 still held input, and the second omitted the Fists pickup after the
 Dead City start script equipped Small Axe. Both were test-fixture
 errors, corrected before the passing run. The Azriel Hammer's special
-throw route, other weapon movements and full campaign fights remain.
+throw route has a separate check; other weapon movements and full
+campaign fights remain.
 No manual gameplay or original-executable comparison was run. M5
 remains about 65%.
 

@@ -28,7 +28,7 @@ fn dead_city_hammer_hits_returns_and_allows_a_save_after_catch() {
             "--aim", "skeleton1,50",
             "--key", "menu,63",
             "--key", "menu:down:down:enter:release:enter:release:escape:type=AfterHammer:enter:release:escape,80",
-            "--frames", "160"])
+            "--updates", "110"])
         .output().unwrap();
     fs::write(run.join("stdout.log"), &output.stdout).unwrap();
     fs::write(run.join("stderr.log"), &output.stderr).unwrap();
