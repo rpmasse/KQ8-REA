@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-15 Check ten ordinary hand weapons
+
+Add one unattended GOG-data Dead City matrix for Dagger, Broad Sword,
+Mace, Lake Sword, Skeleton King Sword, Battle Axe, War Hammer, Pike,
+Long Sword and Temple Sword. Each uses its authored `.anm/attack`,
+lands one `Do` contact on an original Skeleton and applies one Normal
+hit. The grouped check passes 1/1 across all ten cases in 400.02 s.
+No production code changed. Fists, exact damage, first-person and
+earned encounters remain open. The GOG install was read only and no
+manual gameplay test was performed.
+
 ## 2026-11-15 Check Mandragor tree death against linked roots
 
 Add an unattended original-data Swamp check that kills the right root

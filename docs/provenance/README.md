@@ -1,5 +1,14 @@
 # Provenance
 
+**Ordinary hand-weapon matrix (2026-11-15).** The installed GOG
+`Invinfo.itl` lists the ten remaining ordinary hand items, and
+`Connor.kq` maps each to its movement file. The unattended Dead City
+matrix gives each item after the start script, readies Hand mode and
+checks one authored `Do` contact and Normal hit on an original Skeleton.
+All ten cases pass. This is a Rust route using original data, not a
+complete damage, first-person, save or campaign comparison; no original
+executable or disassembly was read in implementation B.
+
 **Mandragor tree-death overlap (2026-11-15).** The separate
 [Mandragor study](../behaviour/mandragor.md) says a tree's Die notice
 clears root links; an already down root completes its current `birth`

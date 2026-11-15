@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-15 M5 ordinary hand-weapon matrix
+
+Ten installed hand weapons beyond the separately checked Small Axe and
+Flame Sword now pass one grouped original-data Dead City check: Dagger,
+Broad Sword, Mace, Lake Sword, Skeleton King Sword, Battle Axe, War
+Hammer, Pike, Long Sword and Temple Sword. Each used its authored
+animation, landed one `Do` contact on an original Skeleton and applied
+one Normal hit. The unattended matrix passes 1/1 in 400.02 s. This
+checks shared dispatch, not every damage amount, Fists, first-person
+attack or earned campaign route. The GOG install was read only and no
+manual gameplay test was run. M5 remains about 65%.
+
 ## 2026-11-15 M5 Mandragor tree-death overlap
 
 An unattended original-data Swamp run killed `mand3r` and then its tree
