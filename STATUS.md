@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-15 M5 Mandragor tree-death overlap
+
+An unattended original-data Swamp run killed `mand3r` and then its tree
+while that root waited to rebirth. The tree's Die transition detached
+both roots. The left root died permanently; the down right root finished
+its pending `birth` and then entered permanent Die. Both were removed.
+The tree awarded 20,000 experience and left `mt_dead.kqs`. The focused
+Windows check passes 1/1 in 36.74 s. This verifies the Rust route with
+installed GOG data, without a manual gameplay test or original-runtime
+comparison. The GOG installation was read only. M5 remains about 65%.
+
 ## 2026-11-15 M5 Mandragor root combat and rebirth
 
 The Swamp roots now use their authored combat stats and shared attack

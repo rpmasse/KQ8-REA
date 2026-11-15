@@ -270,3 +270,43 @@ fn original_swamp_root_rebirth_resumes_after_disk_reload() {
     assert_eq!(root_at(actors, "mand3t")["character"]["mandragor_down_roots"], 0);
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
+fn tree_death_ends_both_original_swamp_roots_even_when_one_is_down() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR"))
+        .unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../kq8-artifacts/mandragor-tree-overlap/{nonce}"));
+    fs::create_dir_all(&dir).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+        .current_dir(&dir).arg("--game").arg(&game)
+        .args([
+            "--world", "Swamp", "--at", "159904,140178,0", "--god", "--sound", "off",
+            "--windowed", "--command", "sendEvent 0 mand3r KQAttackEvent Connor 0 10000 0,40",
+            "--command", "sendEvent 0 mand3t KQAttackEvent Connor 2 10000 0,75",
+            "--updates", "205",
+        ])
+        .output().unwrap();
+    fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+    let logs = dir.join("kq8-artifacts/logs");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+    assert!(fight.contains("mand3r: Mandragor root die ended: rebirth due"), "right root not down; inspect {}", dir.display());
+    assert!(fight.contains("mand3t: dies (rule 30): kind Fire, 'firedie' starts"), "tree not killed; inspect {}", dir.display());
+    for root in ["mand3r", "mand3l"] {
+        assert!(fight.contains(&format!("{root}: Mandragor tree mand3t enters Die: root link cleared")), "{root} stayed linked; inspect {}", dir.display());
+        assert!(fight.contains(&format!("{root}: dies (rule 30): kind Normal")), "{root} never entered permanent Die; inspect {}", dir.display());
+        assert!(fight.contains(&format!("{root}: its death ended (rule 32):")), "{root} survived; inspect {}", dir.display());
+    }
+    assert!(fight.contains("mand3r: Mandragor root birth ended without tree: enters permanent Die"), "down root did not finish birth before permanent death; inspect {}", dir.display());
+    assert!(fight.contains("mand3t: its death ended (rule 32): Connor gets its experience 20000")
+        && fight.contains("a corpse mt_dead.kqs"), "tree outcome missing; inspect {}", dir.display());
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
+}

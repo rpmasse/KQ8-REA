@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-15 Check Mandragor tree death against linked roots
+
+Add an unattended original-data Swamp check that kills the right root
+and then its tree while the root is down. Both roots detach and take
+permanent death; the down root first completes its current `birth`.
+The tree awards 20,000 experience and leaves `mt_dead.kqs`. The check
+passes 1/1 in 36.74 s. This changes the test and documentation only;
+it does not establish the tree's attack effect or original binary save
+continuation. The GOG install was read only and no manual gameplay test
+was performed.
+
 ## 2026-11-15 Add Mandragor root combat and timed rebirth
 
 Attach installed combat stats and the authored `rebirthDelay` to Swamp

@@ -1,5 +1,15 @@
 # Provenance
 
+**Mandragor tree-death overlap (2026-11-15).** The separate
+[Mandragor study](../behaviour/mandragor.md) says a tree's Die notice
+clears root links; an already down root completes its current `birth`
+before switching to permanent Die. An unattended original-data Swamp
+check kills one root and then its tree. The fight log confirms both
+links clear, both roots finish permanent death, and the tree awards
+experience and leaves its authored corpse. This is a Rust route using
+the GOG assets, not an original-executable comparison. Implementation B
+used the prose study and installed data without reading the executable.
+
 **Mandragor root combat and rebirth (2026-11-15).** The separate
 [Mandragor study](../behaviour/mandragor.md) establishes shared root
 attack/`Do` handling, timed root death and rebirth, tree down-count and
