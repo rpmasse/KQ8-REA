@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-15 Inventory missing specialized M5 actors
+
+Read the installed Swamp and IceWorld monster-list audit and compare its
+class names with the Rust loader and script coverage. Record two study
+questions for Mandragor and Dragon behavior, and put their implementation
+gates in DESIGN.md. Documentation only: no invented combat behavior,
+original asset change or manual gameplay test.
+
 ## 2026-11-15 Refresh combat tutorial assertions
 
 Update two M5 core tests that still expected the old first-hit and

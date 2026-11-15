@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-15 M5 specialized actor study gates identified
+
+The read-only original-data audit found 11 Swamp Mandragor tree/root
+triplets and IceWorld's Dragon body plus two heads. The files have
+specialized classes absent from the Rust character loader; the
+`character-verify` "not a character" label describes its current parser,
+not a bad GOG asset. Questions Q209–Q210 now request the original
+creation, combat, death and save rules before implementation. No boss
+behavior was guessed, no game files were changed, and no manual testing
+was performed. M5 remains about 65% and these families remain open.
+
 ## 2026-11-15 M5 combat tutorial checks corrected
 
 Two long-standing combat tests expected obsolete tutorial log text. They
