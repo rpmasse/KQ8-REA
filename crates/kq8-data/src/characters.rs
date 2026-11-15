@@ -770,7 +770,7 @@ impl CharacterKeys {
             collider_mask: number("colliderMask").map_or(CHARACTER_MASK, |v| v as i64 as u32),
             goodbye: line_keys(s, "GB"),
             welcome_back: line_keys(s, "WB"),
-            alarm_line: line_keys(s, "Alarm").map(|first| (first, number("AlarmEnd").map_or(first.seq, |n| n as u8))),
+            alarm_line: alarm_line_keys(s),
             surprise_line: line_keys(s, "Surprise").map(|first| (first, number("SurpriseNSeq").unwrap_or(0.0) as u8)),
             home_radius: number("homeRadius").map(|v| v as f32),
             chase_radius: number("chaseRadius").map(|v| v as f32),
@@ -806,6 +806,18 @@ fn line_keys(s: &Section, p: &str) -> Option<crate::msg::Tuple> {
     let n = |k: &str| s.number(&format!("{p}{k}")).and_then(Result::ok).unwrap_or(0.0) as i64;
     let t = crate::msg::Tuple::new(n("Msg") as u16, n("Noun") as u8, n("Verb") as u8, n("Case") as u8, n("Seq") as u8);
     (t.file != 0 || t.noun != 0).then_some(t)
+}
+
+/// Q213: keyed alarm speech is admitted by `AlarmMsg + AlarmSeq`, not
+/// the generic nonzero-file-or-noun check used by conversation lines.
+fn alarm_line_keys(s: &Section) -> Option<(crate::msg::Tuple, u8)> {
+    let n = |k: &str| s.number(k).and_then(Result::ok).unwrap_or(0.0) as i64;
+    let msg = n("AlarmMsg");
+    let seq = n("AlarmSeq");
+    if msg + seq == 0 { return None; }
+    let first = crate::msg::Tuple::new(msg as u16, n("AlarmNoun") as u8,
+        n("AlarmVerb") as u8, n("AlarmCase") as u8, seq as u8);
+    Some((first, s.number("AlarmEnd").and_then(Result::ok).map_or(first.seq, |end| end as u8)))
 }
 
 /// The mouth (rule 25): the face texture and `lip0`…`lip7`.
@@ -973,6 +985,10 @@ pub struct AiSettings {
     /// The authored speech run on first alarm; absent in Daventry.
     #[serde(default)]
     pub alarm_line: Option<(crate::msg::Tuple, u8)>,
+    /// The monster-list type name (or a direct `.kq` `monsterType`)
+    /// used for built-in alarm cries (Q213).
+    #[serde(default)]
+    pub monster_type: Option<String>,
     /// Authored unseen-hit line and sequence count (`fighting.md` rule 25).
     #[serde(default)]
     pub surprise_line: Option<(crate::msg::Tuple, u8)>,
@@ -998,6 +1014,7 @@ impl AiSettings {
             wander_and_stop: keys.wander_and_stop,
             do_mode: keys.do_mode,
             alarm_line: keys.alarm_line,
+            monster_type: keys.monster_type.clone(),
             surprise_line: keys.surprise_line,
             from: "its .kq keys".into(),
         }
@@ -1008,6 +1025,7 @@ impl AiSettings {
     /// the team is the line's.
     pub fn from_line(keys: &CharacterKeys, line: &MonsterLine, kind: &MonsterType) -> Self {
         let mut s = Self::from_keys(keys);
+        s.monster_type = Some(kind.name.clone());
         s.wander = line.movement.or(kind.movement.clone());
         s.wanders = s.wander.wanders();
         s.alarm_radius = line.alarm_radius.or(kind.alarm_radius);
@@ -1814,6 +1832,32 @@ useDynamicLighting 1
             let section = kq_text::parse(&bytes);
             let keys = CharacterKeys::from_section(&section[0]).unwrap();
             assert_eq!(AiSettings::from_keys(&keys).alarm_line, Some((expected, 2)), "{world}/{file}");
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn installed_builtin_alarm_types_reach_ai_settings() {
+        let game = crate::GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let types_file = game.find("GAME/Kq/Monstats.mtl").unwrap();
+        let (types, errors) = MonsterTypes::parse(&std::fs::read(types_file).unwrap());
+        assert!(errors.is_empty(), "{errors:?}");
+        for (world, file, expected) in [
+            ("DeadCity", "SKEL2.KQ", "skeleton2"),
+            ("IceWorld", "orcbow.kq", "orcbow"),
+            ("Barren", "dwarfbow.kq", "dwarfbow"),
+            ("temple1", "henchspr.kq", "hencspr1"),
+        ] {
+            let (kind, _) = types.find(expected).unwrap();
+            assert!(kind.file.eq_ignore_ascii_case(file), "{expected}: {}", kind.file);
+            let archive = crate::VolArchive::open(&game.volume_path(world, "kq").unwrap()).unwrap();
+            let bytes = archive.unpack(archive.find(file).unwrap()).unwrap().data;
+            let section = kq_text::parse(&bytes);
+            let keys = CharacterKeys::from_section(&section[0]).unwrap();
+            let line = MonsterLine::from_command(&["sample".into(), expected.into()]).unwrap();
+            let ai = AiSettings::from_line(&keys, &line, kind);
+            assert!(ai.monster_type.as_deref().is_some_and(|kind| kind.eq_ignore_ascii_case(expected)),
+                "{world}/{file}: {:?}", ai.monster_type);
         }
     }
 

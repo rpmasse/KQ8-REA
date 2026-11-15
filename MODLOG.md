@@ -1,5 +1,36 @@
 # MODLOG
 
+## 2026-11-16 Add enemy alarm battle cries
+
+Passed the GOG monster-list type into live AI and added Q213's keyed
+one-time alarm line, unkeyed chance, four built-in ranges and shared
+three-second speech deadline. A new unattended Dead City test confirms
+an original skeleton voice starts and teammates are suppressed. The
+GOG type check and full data/core release suites pass. The first data
+test searched the character file for a list-owned type; the first
+live run missed its chance and the next location triggered a script.
+The corrected controlled route passed. No manual gameplay or native
+executable comparison was run; original assets were read only.
+
+## 2026-11-16 Clarify public project overview
+
+Rewrote the README opening and phase labels in plain language. It states
+the KQ8R lineage, the planned REA-guided Rust conversion, each phase's
+current status, the need for a user-owned GOG copy, and the intended
+enhancements after faithful recreation. The milestone estimates are
+unchanged. This is documentation only; no game or automated gameplay
+check was run.
+
+## 2026-11-16 Study alarm battle cries
+
+Traced the original alarm speech routine and its callers read-only, and
+checked the installed English message and voice families. Rule 23 in
+`character-movement.md` now records the shared speech deadline, keyed
+one-time behavior, exact half-range built-in chance and monster types, line ranges,
+and three-second deadline update. Q213 keeps native save/rebirth
+continuation and a shared speech-helper side effect open. No Rust or
+original game file changed; no manual gameplay test was run.
+
 ## 2026-11-16 Add unseen-hit enemy surprise speech
 
 Parsed the original `Surprise` tuple and sequence count, and wired

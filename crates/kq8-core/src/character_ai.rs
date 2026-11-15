@@ -43,6 +43,44 @@ pub const SIGHT_MASK: u32 = 0x1 | 0x8;
 /// world's `world.cs` sets it; 6 is the most common value).
 pub const DEFAULT_MAX_MONSTERS: usize = 6;
 
+/// Q213's fixed message choices for unkeyed monster alarm cries.
+/// The original rounds a random position across each listed range.
+fn built_in_cry(monster_type: &str, random: f32) -> Option<kq8_data::msg::Tuple> {
+    let pick = |first: u8, last: u8| first + (random * f32::from(last - first)).round() as u8;
+    let line = match monster_type.to_ascii_lowercase().as_str() {
+        "skeleton" | "skeleton2" | "skelbow" =>
+            kq8_data::msg::Tuple::new(2000, 65, 0, 89, pick(1, 11)),
+        "orcham" | "orcbow" =>
+            kq8_data::msg::Tuple::new(6000, 14, 0, 24, pick(1, 6)),
+        "dwarfbow" | "dwarfham" =>
+            kq8_data::msg::Tuple::new(5000, 28, 0, pick(24, 31), 1),
+        "hencspr1" | "hencspr2" | "henchbow" =>
+            kq8_data::msg::Tuple::new(7000, 16, 0, 27, pick(1, 5)),
+        _ => return None,
+    };
+    Some(line)
+}
+
+#[cfg(test)]
+mod cry_tests {
+    use super::built_in_cry;
+    use kq8_data::msg::Tuple;
+
+    #[test]
+    fn four_authored_monster_groups_select_their_message_ranges() {
+        for (kind, first, last) in [
+            ("SKELETON2", Tuple::new(2000, 65, 0, 89, 1), Tuple::new(2000, 65, 0, 89, 11)),
+            ("orcbow", Tuple::new(6000, 14, 0, 24, 1), Tuple::new(6000, 14, 0, 24, 6)),
+            ("dwarfham", Tuple::new(5000, 28, 0, 24, 1), Tuple::new(5000, 28, 0, 31, 1)),
+            ("henchbow", Tuple::new(7000, 16, 0, 27, 1), Tuple::new(7000, 16, 0, 27, 5)),
+        ] {
+            assert_eq!(built_in_cry(kind, 0.0), Some(first));
+            assert_eq!(built_in_cry(kind, 0.999), Some(last));
+        }
+        assert_eq!(built_in_cry("goblin2", 0.5), None);
+    }
+}
+
 /// A character's own movement rules and what it knows (M5 5a).
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ai {
@@ -81,6 +119,11 @@ pub struct Ai {
     pub fidget: Option<String>,
     /// After Connor (rule 23): its target is Connor.
     pub alarmed: bool,
+    /// A keyed `Alarm...` range was already requested for this live actor
+    /// (Q213). A newly loaded actor starts clear; the original's exact
+    /// disk continuation has not been verified.
+    #[serde(skip)]
+    pub keyed_alarm_spoken: bool,
     /// It reacts from this game time on (a random 0–1 s after the alarm);
     /// until then it carries on as before (rule 23).
     pub react_at: f64,
@@ -113,7 +156,7 @@ pub struct Ai {
 
 impl Ai {
     pub fn new(settings: AiSettings, home: [f32; 3], eye: f32, has_hide: bool) -> Self {
-        Ai { settings, home, eye, has_hide, active: false, sees: false, blocked_by: None, checked: false, unseen: 0, on_way_home: false, has_birth: false, route: None, point: 0, closest: f32::MAX, wander_done: false, idle_due: 0.0, fidget: None, alarmed: false, react_at: 0.0, chase_until: 0.0, last_seen: None, go_home: false, rise_at: None, retaking: false, following: false, sinking: false, hit_count: 0, hunting: false, keeping_distance: false }
+        Ai { settings, home, eye, has_hide, active: false, sees: false, blocked_by: None, checked: false, unseen: 0, on_way_home: false, has_birth: false, route: None, point: 0, closest: f32::MAX, wander_done: false, idle_due: 0.0, fidget: None, alarmed: false, keyed_alarm_spoken: false, react_at: 0.0, chase_until: 0.0, last_seen: None, go_home: false, rise_at: None, retaking: false, following: false, sinking: false, hit_count: 0, hunting: false, keeping_distance: false }
     }
 
     /// Alarmed and past its reaction delay: the chase rules drive it, not
@@ -890,7 +933,6 @@ impl WorldState {
         let Some(c) = a.character.as_deref_mut() else { return };
         let delay = if c.tower.is_some() { 0. } else { f64::from(c.random()) };
         let Some(ai) = c.ai.as_mut() else { return };
-        let first_alarm = !ai.alarmed;
         let authored_line = ai.settings.alarm_line;
         ai.alarmed = true;
         ai.on_way_home = false;
@@ -901,16 +943,52 @@ impl WorldState {
         let line = format!("alarmed: {why}; reacts in {delay:.2} s (rule 23); chase timer {CHASE_TIME} s; {speech}");
         let team = ai.settings.team.clone();
         self.character_note(&name, line);
-        if first_alarm {
-            if let Some((first, last)) = authored_line {
-                let speak = crate::talk::Speak { issuer: name.clone(), first, last, nofade: false };
-                let queued = self.talk.queue(&speak, now);
-                self.character_note(&name, format!("alarm line (rule 23): {queued}"));
-            }
-        }
+        self.alarm_speech(i, now);
         if !told {
             self.spread_alarm(i, &name, team.as_deref(), now);
         }
+    }
+
+    /// Character-movement rule 23, Q213. The alarm transition requests
+    /// speech now, independently of its random reaction delay.
+    fn alarm_speech(&mut self, i: usize, now: f64) {
+        let name = self.anims[i].player.name.clone();
+        if now <= self.combat_speech_deadline {
+            self.character_note(&name, format!("alarm speech: shared deadline {:.2} has not passed (Q213)", self.combat_speech_deadline));
+            return;
+        }
+        let Some(ai) = self.anims[i].character.as_deref().and_then(|c| c.ai.as_ref()) else { return };
+        let keyed = ai.settings.alarm_line.filter(|(line, _)|
+            u32::from(line.file) + u32::from(line.seq) != 0 && !ai.keyed_alarm_spoken);
+        let kind = ai.settings.monster_type.clone();
+        if let Some((first, last)) = keyed {
+            let queued = self.talk.queue(&crate::talk::Speak {
+                issuer: name.clone(), first, last, nofade: false,
+            }, now);
+            self.anims[i].character.as_deref_mut().unwrap().ai.as_mut().unwrap().keyed_alarm_spoken = true;
+            self.character_note(&name, format!("alarm line (rule 23): {queued}; keyed line marked used; shared deadline unchanged"));
+            return;
+        }
+        // The original 15-bit random draw passes at 16384..32767;
+        // our combat RNG fraction has the same half-range boundary.
+        let chance = self.fight_rng.fraction();
+        if chance < 0.5 {
+            self.character_note(&name, format!("built-in alarm cry: chance {chance:.3} below 0.5; none (Q213)"));
+            return;
+        }
+        let Some(kind) = kind else {
+            self.character_note(&name, "built-in alarm cry: chance passed, no monsterType; none (Q213)");
+            return;
+        };
+        let Some(line) = built_in_cry(&kind, self.fight_rng.fraction()) else {
+            self.character_note(&name, format!("built-in alarm cry: chance passed, monsterType {kind} is ineligible (Q213)"));
+            return;
+        };
+        let queued = self.talk.queue(&crate::talk::Speak {
+            issuer: name.clone(), first: line, last: line.seq, nofade: false,
+        }, now);
+        self.combat_speech_deadline = now + 3.0;
+        self.character_note(&name, format!("built-in alarm cry (Q213): {queued}; shared deadline {:.2}", self.combat_speech_deadline));
     }
 
     /// Rule 24: the active characters with an alarm radius that see Connor

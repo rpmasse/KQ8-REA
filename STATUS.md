@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-16 M5 enemy alarm battle cries
+
+Enemies now use the original keyed alarm line once or, when eligible,
+select a built-in cry from the studied skeleton, orc, dwarf and
+henchman ranges. Both paths respect the shared combat speech limit.
+The GOG monster type check passed, as did the full core (771 active)
+and data (159 active) release suites. An unattended Dead City run
+queued skeleton5's built-in line, started its original voice, and
+blocked two teammates during the three-second limit. The first data
+check looked for the type in a character file rather than the monster
+list and failed; the corrected check passed. A first live run drew no
+cry by chance, and a second location entered a scripted scene; the
+controlled group route passed. Exact original RNG order, native save
+continuation and unusual overlapping speech remain open. No manual
+gameplay or original-executable comparison was run. M5 remains ~65%.
+
 ## 2026-11-16 M5 unseen-hit enemy surprise lines
 
 Surviving hits on enemies with authored `Surprise` lines now use the

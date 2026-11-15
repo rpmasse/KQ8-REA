@@ -1,5 +1,17 @@
 # Provenance
 
+**Enemy alarm battle cries (2026-11-16).**
+[Character movement rule 23](../behaviour/character-movement.md) and
+Q213 give the keyed one-time rule, shared speech deadline, half-range
+chance and four built-in message ranges. The installed `Monstats.mtl`
+supplies each monster type; the character files supply optional
+`Alarm...` keys. The Rust alarm path requests the selected line through
+the existing speech queue. The GOG type check and an unattended Dead
+City voice route pass; the latter also confirms that two teammates
+are blocked during the three-second window. Exact original random
+sequence and native save continuation remain unverified. Implementation
+B used the prose study and installed data, not executable or study scratch.
+
 **Unseen-hit enemy speech (2026-11-16).** [Fighting rule 25](../behaviour/fighting.md)
 and its Q214 clarification establish the stored sight check, the
 rounded random sequence, normal speech request and shared 20-second

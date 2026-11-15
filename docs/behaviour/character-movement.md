@@ -318,6 +318,71 @@ Words used here:
     the listed goblins, data). Scripts change it with
     `KQMonster::setAlarmRadius` (Daventry: the graveyard trap, rule 30).
     A radius of 0 means never alarmed.
+
+    **Alarm speech, Q213 static follow-up (2026-11-16).** The speech
+    decision happens during the alarm transition, when the target and
+    the random 0–1 second reaction are set. The reaction wait does not
+    delay the speech request. Both traced entry paths require the
+    current world's simulation time to be **strictly later** than the
+    shared combat-speech deadline described in `fighting.md` rule 25.
+    If it is not later, no speech is queued for this alarm and the
+    decision is not saved for the deadline to expire. The actor may
+    speak on a later alarm opportunity.
+
+    If `AlarmMsg + AlarmSeq` is nonzero and this actor has not yet used
+    its keyed alarm line, it requests the file's `AlarmMsg`,
+    `AlarmNoun`, `AlarmVerb`, `AlarmCase`, `AlarmSeq`…`AlarmEnd` through
+    the ordinary character speech queue (`talking.md` rules 8–11),
+    then marks its keyed alarm line used. This branch has **no chance
+    roll** and **does not move the shared deadline**. The one-time mark
+    is set when the request is made, even if the speech later fails.
+    A nonzero sum, rather than full tuple validation, is the original's
+    admission rule; the shipped keyed lines have usable data.
+
+    Without an unused keyed line, the game first draws a **50% chance**:
+    it converts `rand() / 32767 + 0.5` to an integer and continues only
+    when the result is 1. With the original 15-bit `rand()` output, this
+    passes for values **16384–32767** and fails for **0–16383**: the
+    comparison is `rand() >= 16384`. Only if it passes does it compare
+    `monsterType` ignoring
+    capitals to the exact names below. An ineligible type still uses
+    the chance draw, then says nothing. The source is a fixed message
+    tuple, not an `Alarm…` entry or a standalone sound: its line and
+    matching voice come from the active world's English message and
+    speech files (`talking.md` rules 1–5). A second random draw chooses
+    its line. The selection scales a random fraction over the listed
+    span and rounds to the nearest whole number, so the ends of a
+    range are roughly half as likely as its interior entries.
+
+    | `monsterType` names | Message / noun / verb | Case and sequence chosen | Installed source |
+    | --- | --- | --- | --- |
+    | `skeleton`, `skeleton2`, `skelbow` | 2000 / 65 / 0 | case 89; sequence 1–11 | Dead City's `2000.MSG` and voice files |
+    | `orcham`, `orcbow` | 6000 / 14 / 0 | case 24; sequence 1–6 | Ice World's `6000.MSG` and voice files |
+    | `dwarfbow`, `dwarfham` | 5000 / 28 / 0 | case 24–31; sequence 1 | Barren's `5000.MSG` and voice files |
+    | `hencspr1`, `hencspr2`, `henchbow` | 7000 / 16 / 0 | case 27; sequence 1–5 | Temple 1/2's `7000.MSG` and voice files |
+
+    The installed voice files exist for the ranges in this table
+    (data). After requesting a built-in cry, the game sets the **same
+    shared deadline** to current world time **plus 3 seconds**, even
+    if the speech request is later ignored. A failed chance draw or
+    unmatched type leaves the deadline alone. A preceding unseen-hit
+    surprise line can therefore block a cry for 20 seconds; a built-in
+    cry can block another cry or surprise line for 3 seconds. A keyed
+    line leaves the deadline unchanged, so it can be followed by a
+    different actor's keyed line during the same eligible interval.
+
+    **Keyed suppression and continuation.** Keyed data suppresses the
+    built-in branch only until that actor has requested its keyed line
+    once. A later alarm falls through to the chance and type check;
+    only the names above can then give a built-in cry. The one-time
+    mark is created clear and has no direct saved `.kq` field or other
+    reset in the traced paths. It therefore remains set while that
+    actor instance survives, including a rebirth that keeps the same
+    instance (inferred), but a newly loaded actor begins clear; the
+    restored world loads objects anew (`world-change.md` rule 15).
+    No original alarm speech save/reload or rebirth run was tested.
+    The optional active-speech side effect of the shared helper remains
+    open as in `fighting.md` rule 25. No manual gameplay test was used.
 24. **Telling the others** (traced): when one character is alarmed,
     every **active** character with an alarm radius above 0 that **can
     see Connor** (at any distance) or whose team has a member that can

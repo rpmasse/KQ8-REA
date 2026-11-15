@@ -82,6 +82,32 @@ Windows fixture clicked while his axe was still drawing and produced
 no hit; moving the draw request earlier fixed that fixture. Q213's
 battle cry and native save continuation remain separate work.
 
+## M5 unkeyed enemy battle cries (2026-11-16)
+
+`character-movement.md` rule 23 leaves the unkeyed alarm cry to Q213.
+The separate original-engine study now identifies the exact built-in
+type groups and message ranges. At an alarm transition, gate speech on
+world time strictly beyond the Q214 shared deadline. An unused keyed
+`Alarm...` run requests its authored range and sets a one-time actor
+mark, without a chance draw or deadline change. A later alarm, or an
+actor without such keys, draws the studied chance before matching its
+case-insensitive `monsterType`, then rounds a second random draw across
+the chosen sequence or case range. A built-in request advances the
+shared deadline by three seconds. Use the existing speech queue and
+keep sight, alarm reaction and team spread unchanged. Do not persist
+the actor's one-time mark in disk records unless native continuation
+is established; a live actor retains it through its own rebirth.
+Check the four original-data type groups, a keyed actor, the random
+selection bounds and suppression/second-alarm behavior, and the shared
+cooldown with Q214 surprise. Include GOG voice playback where a
+controlled alarm can reach it. No manual gameplay test is needed.
+Implemented: monster-list type names now reach live AI for the four
+studied groups. Keyed lines use the one-time mark, while eligible
+unkeyed alarms use the studied chance and message ranges. The full core
+and data release suites, a GOG type check, and an unattended Dead City
+voice route pass. The original's exact RNG sequence, native save
+continuation, and unusual overlapping-speech helper effect remain open.
+
 ## M5 first-person weapon put-away matrix (2026-11-16)
 
 The attack matrix covers first-person hits but does not check putting

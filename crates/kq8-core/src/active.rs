@@ -9636,6 +9636,7 @@ endif
     #[test]
     fn authored_alarm_dialogue_queues_once_and_old_ai_slots_still_load() {
         let mut a = fighter();
+        a.world.simulation_time = 1.0;
         let line = (kq8_data::msg::Tuple::new(3000, 4, 0, 24, 1), 2);
         let ai = a.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap();
         ai.settings.alarm_line = Some(line);
@@ -9651,6 +9652,41 @@ endif
         assert_eq!(a.world.talk.log.iter().filter(|line| line.contains("queued 3000 4 0 24 1…2")).count(), 1, "{:?}", a.world.talk.log);
         a.world.alarm_pub(0, "told again", now);
         assert_eq!(a.world.talk.log.iter().filter(|line| line.contains("queued 3000 4 0 24 1…2")).count(), 1, "the line is spoken only on the first alarm");
+    }
+
+    #[test]
+    fn keyed_alarm_waits_for_shared_deadline_then_allows_a_later_built_in_cry() {
+        let mut a = fighter();
+        let ai = a.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap();
+        ai.settings.alarm_line = Some((kq8_data::msg::Tuple::new(3000, 4, 0, 24, 1), 2));
+        ai.settings.monster_type = Some("SkElEtOn2".into());
+        a.world.combat_speech_deadline = 2.0;
+
+        a.world.simulation_time = 1.0;
+        a.world.alarm_pub(0, "first alarm during a surprise cooldown", 1.0);
+        assert!(a.world.talk.log.is_empty());
+        assert!(!a.world.anims[0].character.as_deref().unwrap().ai.as_ref().unwrap().keyed_alarm_spoken);
+
+        a.world.simulation_time = 3.0;
+        a.world.alarm_pub(0, "later alarm", 3.0);
+        assert_eq!(a.world.talk.log.iter().filter(|l| l.contains("queued 3000 4 0 24 1…2")).count(), 1);
+        assert!(a.world.anims[0].character.as_deref().unwrap().ai.as_ref().unwrap().keyed_alarm_spoken);
+        assert_eq!(a.world.combat_speech_deadline, 2.0, "the keyed line does not move the shared deadline");
+
+        let seed = (0..20_u64).find(|seed| {
+            let mut rng = crate::emitter::Rng::new(*seed);
+            rng.fraction() >= 0.5
+        }).unwrap();
+        a.world.fight_rng = crate::emitter::Rng::new(seed);
+        a.world.simulation_time = 4.0;
+        a.world.alarm_pub(0, "another alarm after keyed line", 4.0);
+        assert!(a.world.talk.log.iter().any(|l| l.contains("queued 2000 65 0 89")));
+        assert_eq!(a.world.combat_speech_deadline, 7.0);
+
+        let saved = serde_json::to_value(a.world.anims[0].character.as_deref().unwrap().ai.as_ref().unwrap()).unwrap();
+        assert!(saved.get("keyed_alarm_spoken").is_none());
+        let loaded: crate::character_ai::Ai = serde_json::from_value(saved).unwrap();
+        assert!(!loaded.keyed_alarm_spoken, "a newly loaded actor has no in-memory one-time mark");
     }
 
     #[test]
