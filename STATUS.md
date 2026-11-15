@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 settled weapon save and reload matrix
+
+An unattended Windows matrix saved and restored each of the 22 real
+weapon banks from the installed GOG `Connor.kq` in a fresh process.
+Every case retained its ready item, hand or ranged mode and mapped
+movement bank, and no fresh weapon switch started on load. The release
+test passed 1/1 in 572.45 seconds; GOG `Options.cs` bytes were unchanged.
+An initial count included the `NoRanged` placeholder and failed; the
+matrix now excludes it. This checks settled equipment, not every
+mid-animation save or the original executable's appearance. No manual
+gameplay test was run. M5 remains about 65%.
+
 ## 2026-11-16 M5 Fire and Ice projectile trails
 
 The original Fire and Ice projectile files' `emitter` references now

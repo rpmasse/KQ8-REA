@@ -1,5 +1,27 @@
 # MODLOG
 
+## 2026-11-16 Check settled weapon saves across all combat banks
+
+Added a Windows two-process save and reload matrix for every real
+weapon bank in the installed GOG `Connor.kq`: 13 hand and nine ranged
+items. All 22 cases retained the ready item, mode and GOG movement bank
+after a fresh-process load, with no new switch pending. The release
+test passed 1/1 in 572.45 seconds, and GOG `Options.cs` was unchanged.
+The first count incorrectly included the `NoRanged` placeholder and
+failed before launching; excluding that non-weapon fixed the fixture.
+This checks settled equipment only. No manual gameplay test or
+original-executable comparison was run.
+
+## 2026-11-16 Bound the elemental emitter save and end rules
+
+Continued Q212 read-only original-engine study. The bolt's contact path
+prepares its hit before moving to contact and requesting removal; the
+world-removal hook then marks the attached emitter dying. Two bounded
+static attempts did not establish native in-flight save identity or
+particle phases, nor the complete floor and distance end ordering.
+The behavior note and Q212 now state those limits explicitly. No Rust
+or original game file changed, and no manual gameplay test was run.
+
 ## 2026-11-16 Attach original Fire and Ice effects to bolts
 
 The projectile parser now retains `emitter`; live and saved bolts carry

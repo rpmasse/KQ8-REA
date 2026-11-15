@@ -1,5 +1,29 @@
 # Provenance
 
+**Settled weapon save matrix (2026-11-16).** The installed GOG
+`Connor.kq` supplies the expected hand and ranged movement banks for
+all 22 real weapons; `NoRanged` is a placeholder and is excluded.
+[Ranged weapon rules](../behaviour/ranged-weapons.md) describe ready
+mode and weapon selection. Each item was saved and loaded in a fresh
+Windows process, then compared with its original-data bank. This checks
+Rust save restoration while the weapon is settled, not animation
+boundaries or original-executable presentation. Implementation B used
+the prose study and installed game data, not executable or study scratch.
+
+**Fire and Ice projectile trails (2026-11-16).** The separate
+[projectile-emitter study](../behaviour/elemental-projectile-emitters.md)
+establishes creation when an elemental bolt enters the world, following
+its own name, and a dying particle tail after removal. The installed
+`Prfarrow.kq` and `PRicycle.kq` name `firebits.kq` and `icebits.kq`;
+those recipes supply the unchanged particle models and counts. The Rust
+viewer keeps a launch notice for an immediate hit, then follows live
+bolts and lets their effects expire. Unattended GOG-data impact and
+range checks pass, including matching bolt/effect positions in flight.
+Native particle save continuation and exact removal ordering remain
+Q212; the checks are Rust runs, not original-executable comparisons.
+Implementation B used the prose note and installed data without reading
+the executable or study scratch.
+
 **First-person weapon put-away matrix (2026-11-16).**
 [Ranged weapon rules 1–8](../behaviour/ranged-weapons.md) specify Alt's
 put-away request, the Fists `undraw` exception, and the ordinary `away`

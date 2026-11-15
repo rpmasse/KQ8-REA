@@ -34,6 +34,27 @@ Retain a transient spawn notice in core until the effect step consumes
 it, because a bolt can enter and hit during the same 15 Hz update;
 scanning only the remaining live bolts would miss that creation.
 
+## M5 settled weapon save matrix (2026-11-16)
+
+The existing cross-process weapon checkpoint checks Small Crossbow and
+Small Axe at animation boundaries. Add a separate settled-ready check
+for every hand and ranged item named by the installed `Connor.kq`
+movement tables, including Fists and the Azriel Hammer but excluding
+the `NoRanged` placeholder. In an unattended Dead City process, give
+one item after `conStart.cs`, request its mode,
+wait for the draw to finish, and save through the ordinary menu. Load
+that slot in a fresh process and check the carried item, ready mode and
+original movement bank before another save. The bank expectation comes
+from the installed table, not from the Rust state under test. Require
+no fresh swap after load and unchanged GOG `Options.cs` bytes. Keep the
+existing Small Crossbow/Small Axe boundary checks for movement phases;
+this new matrix covers settled equipment, not every interrupted swap.
+Use game-update limits for the simulation and no manual gameplay.
+All 22 authored banks passed the two-process save and load matrix in
+572.45 seconds. This establishes settled equipment restoration in the
+Rust viewer; animation-boundary saves and original-runtime presentation
+remain separate checks.
+
 ## M5 first-person weapon put-away matrix (2026-11-16)
 
 The attack matrix covers first-person hits but does not check putting

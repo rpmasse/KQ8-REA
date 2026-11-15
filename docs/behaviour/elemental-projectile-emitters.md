@@ -36,14 +36,19 @@ bolt is removed.
    `delayStart=100` means the particles become visible one by one at
    their first restart; its numeric magnitude does not set a 100-tick
    delay. Individual particles are not projectile collision objects.
-4. **Projectile removal (traced).** When the projectile is taken out of
-   the world, its attached emitter is told to die before the bolt's
-   ordinary removal finishes. The emitter is not simply discarded with
-   the bolt. The ranged-weapon note says a bolt is removed after a hit,
-   ground contact or reaching its distance limit (rules 29–30). This
-   study did not follow every one of those routes through the shared
-   removal machinery, so their precise ordering against damage and
-   scripts remains open.
+4. **Projectile removal (traced).** On a collision with a damageable
+   target, the bolt's contact path prepares the hit request, moves the
+   bolt to the contact point and requests its removal, in that order.
+   The removal request is deferred through the world's ordinary object
+   removal path. When the projectile is then taken out of the world,
+   its attached emitter is told to die before the bolt's ordinary
+   removal finishes. The emitter is not simply discarded with the bolt.
+   This establishes request order, not when the target processes damage
+   or when its script runs. The ranged-weapon note says a bolt is also
+   removed after ground contact or reaching its distance limit (rules
+   28–30). The two bounded static traces for this follow-up did not
+   locate those paths' complete ordering against the emitter's update;
+   leave that timing open.
 5. **Tail after removal (traced; existing emitter rule 10).** A dying
    emitter stops restarting particles. Each particle already alive
    finishes its own life, then disappears; the emitter removes itself
@@ -57,8 +62,15 @@ bolt is removed.
    `emitters.md`. This does **not** establish how a native saved game
    restores an already flying bolt together with its existing emitter:
    creation order, identity matching, current particle ages and avoiding
-   a duplicate effect remain open. Do not claim binary-save parity from
-   the launch rule alone.
+   a duplicate effect remain open. The established world-snapshot rules
+   in `world-change.md` describe saved objects as `.kq` entries loaded
+   again on restoration, but this study did not establish whether the
+   attached emitter is written as its own saved object or rebuilt only
+   from its bolt. The installed GOG copy has no native in-flight
+   elemental-bolt save to inspect. Two bounded static inspections of
+   the projectile entry and general emitter fields did not settle that
+   identity or the live particle phases. Do not claim saved-game parity
+   from the launch rule alone.
 
 ## Numbers and data used
 
@@ -100,8 +112,9 @@ gameplay test is required for this study.
 1. How does the original saved-game loader match or rebuild the attached
    emitter when a Fire or Ice bolt is already in flight? Are current
    particle ages, velocity choices and the dying tail preserved?
-2. For each collision, ground and range termination, what is the exact
-   order of impact damage, any script notification, bolt removal and
-   the emitter's first dying update?
+2. After the contact path queues a hit and requests removal, when is
+   that damage delivered relative to projectile removal and the
+   emitter's first dying update? What is the corresponding ordering for
+   ground and range termination?
 3. Does the first rendered particle appear at the bolt's launch point
    or only after its first movement/update under `delayStart`?
