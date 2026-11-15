@@ -1,5 +1,28 @@
 # MODLOG
 
+## 2026-11-15 Correct DX12 animated-model pose selection
+
+Passing the vertex-input struct into the animation helper lost DX12's
+first-instance correction, selecting another part's pose. Pass the index
+as a scalar from the entry point, following the workaround in locked Bevy.
+The GPU regression extracts the actual production helper and call site;
+direct, ordinary indirect and batched draws each return the expected poses.
+Also replace the shader-queue log's unsupported image-correctness claim.
+
+Release build PASS 1m42s; focused test build PASS 1m28s; renderer checks PASS
+3/3 in 0.29s with nine exact GPU position readbacks. Production-default
+Daventry run PASS 14.73s. At identical saved state, 99.885% of thumbnail
+pixels now match Vulkan; mean RGB difference falls from 8.7066 to 0.00349.
+No visual inspection or manual gameplay gate. Full campaign and the exact
+opening cutscene as a separate capture remain not tested here.
+
+The first candidate was a real indirect-count dependency bug already
+avoided by Bevy. Its redundant feature exclusion was removed after its
+production output stayed unchanged; retain that failed hypothesis and the
+synthetic normal-endpoint discrepancy. Evidence, limitations and exact
+commands: docs/geometry-rendering-regression.md. Renderer defaults,
+original data, textures and game timing are unchanged. M5/M6 stay paused.
+
 ## 2026-11-08 Complete M4 with verified Windows fullscreen presentation
 
 The existing DX12 Visual presentation path passed the original-size route

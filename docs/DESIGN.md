@@ -3,6 +3,56 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## Animated-geometry regression investigation (2026-11-15)
+
+The user reports stretched triangles/broken character shapes. The saved
+run reaches the opening Daventry cutscene with windowed DX12/Visual. M4's
+final fullscreen route only exercised menus; its successful presentation
+acknowledgements did not establish correct world or character geometry.
+
+1. Preserve the run log and audit packed animation uploads, shader decoding
+   and instance selection against the exact dependency versions. Keep the
+   original installation read-only and perform no visual inspection.
+2. Use bounded numerical GPU checks to compare DX12 with Vulkan. First
+   isolate the shader's packed indices/vertex decoding; these currently
+   carry integer bits inside float lanes. If that does not reproduce the
+   fault, compare the actual production scene with controlled animation,
+   camera and shader readiness before changing the renderer.
+3. Fix only an evidenced defect and retain a focused automated regression
+   check. Do not infer image correctness from process success, empty shader
+   queues or window-size acknowledgement. Record failed hypotheses too.
+
+The numerical GPU probe reproduces a DX12 draw-count defect: requested
+first-instance values 17 and 131071 both reach the vertex shader as zero.
+Direct/ordinary indirect drawing and Vulkan return the expected indices.
+Packed node positions and bit-carried indices survive both backends; a
+separate synthetic -32768 normal endpoint differs by 0.0000305 on DX12.
+
+The first isolation disabled indirect-count and passed its GPU checks, but
+the production scene was byte-identical before/after. Further dependency
+inspection shows Bevy already excludes that path for DX12. Remove this
+redundant setting change; keep the failed hypothesis and results in the
+investigation report.
+
+The actual animated shader passes its vertex-input struct into
+`model_corner`, which reads `v.instance_index` inside the helper. Bevy's
+own shader documents a DX12 compiler defect with this exact pattern. A
+direct-draw GPU probe confirms that the helper reads instance zero while
+the vertex entry point and an explicit scalar argument read the requested
+17/131071. Vulkan reads all three correctly.
+
+Correction: pass `v.instance_index` explicitly from the vertex entry point
+to `model_corner` and use that scalar for animation-tag lookup, following
+Bevy's workaround. Preserve packing, data, timing and renderer settings.
+Replace the redundant draw-policy test with a numerical GPU regression
+that exercises the actual production helper/call site using synthetic
+buffers. The shader release build passes in 1m42s; three focused checks
+pass in 0.29s, including nine exact GPU pose readbacks. The production
+scene now matches 99.885% of Vulkan thumbnail pixels at identical saved
+state (mean channel error 0.00349/255 versus 8.7066 before). No visual
+inspection or full campaign claim. Evidence stays in the ignored
+`kq8-artifacts/geometry-investigation/` and the accompanying report.
+
 ## Goal
 
 **M4 completion batches complete (2026-11-08).** M4 is 100% against the

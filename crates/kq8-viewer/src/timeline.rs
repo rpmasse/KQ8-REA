@@ -146,7 +146,7 @@ fn pipelines_mark(waiting: bevy::prelude::Res<Waiting>, shared: bevy::prelude::R
     let now = waiting.0.load(Ordering::Relaxed);
     let (was, times) = *seen;
     if times < 6 && (was == 0) != (now == 0) {
-        let what = if now > 0 { format!("{now} pipelines (shaders) being prepared") } else { "no pipeline waiting: everything shown is drawn as it should be".to_string() };
+        let what = if now > 0 { format!("{now} pipelines (shaders) being prepared") } else { "no pipelines waiting for compilation (geometry correctness is not checked here)".to_string() };
         mark(&mut shared.log.lock().unwrap(), &what);
         seen.1 += 1;
     }

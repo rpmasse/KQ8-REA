@@ -48,6 +48,8 @@ weapons still need comparison. [First-person controls and evidence](docs/FEATURE
 
 The [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) defines each milestone and its automated checks. The [feature reference](docs/FEATURES.md) gives subsystem details and the [status log](STATUS.md) records verified results and open cases. Remaining work is grouped by shared engine behavior, with representative checks and integrated campaign routes; individual objects need separate checks only for a distinct rule or failure. Successful checks are reused. Manual playtesting begins after the Rust implementation is feature-complete.
 
+The DX12 animated-geometry regression is corrected, with automated GPU pose checks and a matching-state scene comparison; full visual fidelity remains part of M7. [Rendering correction](docs/geometry-rendering-regression.md)
+
 ## Build and run
 
 Use Windows, the stable Rust toolchain for MSVC, the Visual Studio C++ build tools and Windows SDK, and a GOG installation of the game (version 1.3, also called 1.03). Run these commands in PowerShell from the repository root. The example uses the development layout, with `KQ8-REA` and `King's Quest 8 GOG` side by side. For another layout, set `KQ8_GAME_DIR` to the folder containing `data` and `Mask.exe`.

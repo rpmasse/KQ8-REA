@@ -155,6 +155,10 @@ pub fn report_renderer(
     ));
 }
 
+#[cfg(all(test, windows))]
+#[path = "renderer_gpu_tests.rs"]
+mod gpu_tests;
+
 #[cfg(test)]
 mod tests {
     use super::*;

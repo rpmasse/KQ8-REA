@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-15 DX12 animated-geometry regression corrected
+
+The shared Windows executable now passes the instance index explicitly
+from the vertex entry point to the animation helper. A confirmed DX12
+compiler issue otherwise selected another part's pose. The regression
+uses the actual production shader functions/call: nine GPU pose readbacks
+pass, and all three renderer checks pass in 0.29s. Release rebuild passes
+in 1m42s. At identical saved Daventry state, the corrected default DX12
+thumbnail matches Vulkan at 99.885% of pixels, versus about 32.5% before.
+
+No visual inspection was performed; full-resolution raster identity,
+full campaign and a separate opening-cutscene capture are not tested by
+this correction. The first indirect-count hypothesis was rejected because
+Bevy already bypasses it; its redundant setting change was removed.
+Evidence, exact commands and limitations: docs/geometry-rendering-regression.md.
+M4's menu/fullscreen evidence remains valid within its original scope;
+M5/M6 remain paused. No original installation or player saves were modified.
+
 ## 2026-11-08 M4 complete — final production fullscreen check passes
 
 M4 is **100% complete against its planned implementation and automated

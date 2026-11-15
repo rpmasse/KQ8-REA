@@ -136,7 +136,7 @@ fn game_to_bevy(g: vec3<f32>) -> vec3<f32> {
 }
 
 @if(!ANIMATED)
-fn model_corner(v: ObjectIn) -> Corner {
+fn model_corner(v: ObjectIn, instance_index: u32) -> Corner {
     return Corner(v.position, v.normal, v.part_ball);
 }
 
@@ -163,8 +163,8 @@ fn node_corner(node: NodeFrame, corner: vec2<u32>) -> array<vec3<f32>, 2> {
 // ours): bits 24-31 name a join record; the pose so far is then drawn
 // mixed from the old part's pose (a change of movement).
 @if(ANIMATED)
-fn model_corner(v: ObjectIn) -> Corner {
-    let tag = mesh_functions::get_tag(v.instance_index);
+fn model_corner(v: ObjectIn, instance_index: u32) -> Corner {
+    let tag = mesh_functions::get_tag(instance_index);
     let node = anim_nodes[tag & 0x3FFFFu];
     let here = node_corner(node, v.corner);
     var g = here[0];
@@ -244,7 +244,10 @@ fn corner_light(normal: vec3<f32>, at: vec3<f32>, centre: vec3<f32>, radius: f32
 
 @vertex
 fn vertex(v: ObjectIn) -> LitVertex {
-    let corner = model_corner(v);
+    // Read the builtin at the entry point: on DX12 a struct passed to a
+    // helper loses its first-instance correction (wgpu issue 4564).
+    // This matches Bevy's decompress_vertex workaround.
+    let corner = model_corner(v, v.instance_index);
     let world_from_local = mesh_functions::get_world_from_local(v.instance_index);
     let world_position = mesh_functions::mesh_position_local_to_world(world_from_local, vec4<f32>(corner.position, 1.0));
     // Unit length; a zero normal (degenerate triangles) stays zero and
