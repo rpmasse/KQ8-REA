@@ -9354,7 +9354,8 @@ endif
 ");
         assert!(log.contains("Do (Attack at phase 0.5333): hits Connor: distance") && log.contains("hand damage 15, Normal"), "{log}");
         assert!(log.contains("Connor: hit by gob, Normal: D 15, R "), "{log}");
-        assert!(log.contains("first hit by a character: a one-off tip"), "{log}");
+        assert!(log.contains("empty-hands hit: help case 140 due at game time"), "{log}");
+        assert_ne!(a.world.help_prompts.history(a.world.updates).start_help & crate::starting_help::FIRST_HIT, 0);
         assert!(log.contains("is below 0: requests Die, hit kind Normal"), "{log}");
         assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 0, "accepted Wait death clamps health on entry (Q192)");
         assert!(a.world.connor_dying);
@@ -9545,7 +9546,8 @@ endif
         assert_eq!(a.world.corpses.len(), 1);
         assert_eq!((a.world.corpses[0].shape.as_str(), a.world.corpses[0].position), ("g2dead.kqs", a.world.anims[0].player.base.position));
         assert!(a.world.anims[0].gone);
-        assert!(log.contains("first kill (type goblin2)"), "{log}");
+        assert!(log.contains("first qualifying character death: intermediate help event due at game time"), "{log}");
+        assert_ne!(a.world.help_prompts.history(a.world.updates).start_help & crate::starting_help::FIRST_KILL, 0);
         assert!(log.contains("no script: Die Normal not called"), "{log}");
         // anim-scripts.md rule 38 (Q162): removed after its Die; the
         // corpse has no name of its own.

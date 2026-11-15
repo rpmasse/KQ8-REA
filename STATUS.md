@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-15 M5 combat tutorial checks corrected
+
+Two long-standing combat tests expected obsolete tutorial log text. They
+now check the scheduled empty-hands hit notice and consumed first-hit bit,
+and the first-kill event queued on ordinary death entry with its consumed
+bit. Both focused tests pass 1/1. The full core suite improves from 744
+passed/3 failed to 746 passed/1 failed; the remaining failure is the
+separate trap-log test `a_trap_gets_init_on_and_off_with_its_name_and_connors`.
+Production behavior and game data were not changed, and no manual testing
+was performed. M5 remains about 65%; this restores trustworthy combat
+regression coverage rather than closing an enemy or weapon family.
+
 ## 2026-11-15 M5 monster walk-slope limit applied
 
 `KQMonster::walkSlope` now changes the character mover's walkable landing

@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-15 Refresh combat tutorial assertions
+
+Update two M5 core tests that still expected the old first-hit and
+first-kill log wording. Assert the current game-time help events and
+persisted source bits defined by pickup-tutorials.md rules 8–9. Both
+focused tests pass; the full core suite now has one unrelated trap-log
+failure. No production code, original data or manual gameplay changed.
+
 ## 2026-11-15 Apply monster walk-slope limits
 
 The `KQMonster::walkSlope` command already stored its limit, but monster

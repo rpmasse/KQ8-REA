@@ -1,5 +1,12 @@
 # Provenance
 
+**Combat tutorial regression checks (2026-11-15).**
+[pickup-tutorials.md](../behaviour/pickup-tutorials.md) rules 8–9 replace
+the older first-hit and first-kill log expectations in two core tests.
+The tests now check event creation and the consumed tutorial flags using
+the existing Rust help system. Production combat and original game files
+were not changed; no executable or disassembly was read.
+
 **Monster walk slope (2026-11-15).** [character-movement.md](../behaviour/character-movement.md)
 rule 6 and its Do not reproduce section specify the character mover's
 walkable-surface limit and the corrected degree conversion for
