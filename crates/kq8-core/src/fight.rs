@@ -1089,7 +1089,7 @@ impl crate::active::WorldState {
         let special = f.settings.special_react_anim.clone().filter(|_| f.settings.special_react_percent.is_some_and(|p| dmg.flinch_roll(p)));
         let can_cut = a.player.cut_short || a.player.has_ended();
         let pause = c.tower.as_ref().map_or(FLINCH_PAUSE, |t| t.flinch_pause);
-        let paused = now < f.flinch_end + pause;
+        let paused = now <= f.flinch_end + pause;
         let why_not = if special.is_none() && !dmg.flinch_roll(percent) {
             Some(format!("R {} is not above {percent} x D", dmg.roll))
         } else if !can_cut {

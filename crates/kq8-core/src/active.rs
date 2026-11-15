@@ -9591,6 +9591,39 @@ endif
     }
 
     #[test]
+    fn a_second_flinch_waits_past_the_full_pause_for_ordinary_and_tower_fighters() {
+        use crate::fight::HitKind;
+        for (tower, pause) in [(false, 2.0), (true, 1.2)] {
+            for (elapsed, reacts) in [(pause, false), (pause + 1.0 / 15.0, true)] {
+                let mut a = hit_goblin();
+                a.world.updates = 150;
+                a.world.ai_off = true;
+                let now = a.world.now();
+                let o = &mut a.world.anims[0];
+                o.player.cut_short = true;
+                let c = o.character.as_deref_mut().unwrap();
+                c.state = crate::character::State::Wait;
+                c.ai.as_mut().unwrap().alarmed = true;
+                if tower {
+                    let keys = kq8_data::characters::TowerKeys {
+                        real_alarm: 5000.0, react_pause: 1.2, stun_pause: 1.5, move_time: 0.0,
+                    };
+                    let mut special = crate::tower_skeleton::Tower::new(keys);
+                    special.flinch_pause = pause;
+                    c.tower = Some(special);
+                }
+                let f = c.fight.as_mut().unwrap();
+                f.settings.normal_react_percent = Some(0.0);
+                f.flinch_end = now - elapsed;
+                a.world.hit_character(0, "Connor", 2, HitKind::Normal);
+                let f = a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap();
+                assert!(f.stats.0[0] < 500, "damage still applies during the pause");
+                assert_eq!(f.flinching.is_some(), reacts, "tower {tower}, elapsed {elapsed}");
+            }
+        }
+    }
+
+    #[test]
     fn a_hit_character_flinches_or_says_ouch_and_runs_after_connor() {
         // fighting.md rules 22-24, 26 (M5 5c-6).
         let mut a = hit_goblin();

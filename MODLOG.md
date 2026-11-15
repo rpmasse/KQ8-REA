@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-15 Keep the full enemy flinch pause
+
+Apply `fighting.md` rule 23's strict "more than" boundary to the shared
+enemy hit path, including the Tower Skeleton's configured pause. The
+focused four-case hit matrix passes; the full core suite passes 750
+active tests with 26 ignored. No original game files or manual gameplay
+tests changed.
+
 ## 2026-11-15 Check Flame Sword Fire death with installed game data
 
 Add an unattended Dead City route for the original Flame Sword and one

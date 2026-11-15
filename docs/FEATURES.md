@@ -813,6 +813,8 @@ miss, roll, flinch, death, drop and shot is in
   last) or say ouch, run after him from then on, and alarm everyone who
   sees him; hit unseen, a lone one runs about beside him until it finds
   him.
+- **Repeat flinch timing:** an enemy hit exactly at its pause deadline
+  still takes damage; its next flinch is eligible on the following update.
 - **Barrels (M5 5d):** a punch breaks Daventry's barrels: each bursts,
   leaves its wreck, and the crystal and mushroom barrels throw their
   items (objects loaded by scripts while playing, `copies_view.rs`).

@@ -1,5 +1,15 @@
 # Provenance
 
+**Enemy flinch pause boundary (2026-11-15).**
+[Fighting rule 23](../behaviour/fighting.md) requires more than two
+seconds since an ordinary character's previous flinch ended and gives the
+Tower Skeleton its authored `reactPause` after a moving `reactback`. The
+shared Rust hit gate now keeps the exact deadline closed. A four-case
+`hit_character` check covers damage without reaction at the deadline and
+reaction one 15 Hz update later for both pauses. This is a synthetic
+boundary check from the prose rule, not original-runtime observation. No
+original executable or disassembly was read.
+
 **Flame Sword Fire death route (2026-11-15).**
 [Fighting rule 14](../behaviour/fighting.md) assigns Fire damage to a
 Flame Sword hit; rules 30–33 specify `firedie` and no corpse. The installed

@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-15 M5 enemy flinch pause boundary corrected
+
+The shared hit path no longer starts a second flinch at exactly the
+previous flinch's pause deadline. Damage still applies; one 15 Hz update
+later the reaction can start. A four-case synthetic check covers the
+ordinary 2 s pause and the Tower Skeleton's 1.2 s moving-stagger pause.
+`cargo test --locked -p kq8-core --lib -- --quiet` passes 750 active
+tests, 0 failures, 26 ignored. This is a rule-based Rust check, not an
+original-runtime comparison or manual gameplay test. M5 remains about
+65%; other weapon and enemy families, specialized bosses and campaign
+encounters remain open.
+
 ## 2026-11-15 M5 Flame Sword Fire death in original-data route
 
 An unattended GOG-data Dead City check passes 1/1. Connor uses

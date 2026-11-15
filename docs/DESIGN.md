@@ -290,6 +290,10 @@ The grouped `elemental_ranged_death` test passes 1/1. Flame Bow's `Prfarrow.kq` 
 
 The `flame_sword_death` Windows test passes 1/1 with the GOG data: `confswd.anm/attack` hits `skeleton2` once at update 70, Fire damage kills it, `firedie` completes at update 110, and there is no corpse. Other melee weapon types and integrated earned encounters remain open.
 
+**M5 flinch pause boundary (2026-11-15).** `fighting.md` rule 23 allows another flinch only when the previous one ended **more than** two seconds ago; the Tower Skeleton uses its authored `reactPause` in that same gate after a moving `reactback`. The current hit path admits a flinch exactly at the pause deadline. Make the deadline inclusive, then exercise `hit_character` at the exact boundary and one 15 Hz update later for both ordinary and tower pauses. Confirm damage still applies at the boundary but no second flinch begins. This is a shared enemy decision correction, not a change to movement or damage rolls.
+
+Implemented: the exact-deadline hit now applies damage without starting a second flinch; one update later it can flinch. The focused four-case matrix passes, and the full core suite passes 750 active tests with 26 ignored. This checks the described rule in Rust, not an original-runtime timing comparison.
+
 **M5 monster walk-slope correction (2026-11-15, implemented).** `KQMonster::walkSlope` stores a degree-based limit. Each character now passes that limit to its mover for walkable landing and ground checks; Connor keeps the default 0.8. The original Dead City scripts use 90 degrees, which the behaviour note defines as accepting every slope. Focused checks compare default and 90-degree landing on a steep synthetic surface and exercise the character-to-mover handoff. Source: `behaviour/character-movement.md` rule 6 and Do not reproduce.
 
 A unique asset name or parameter value is not by itself a new engine
