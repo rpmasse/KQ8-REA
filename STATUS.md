@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-16 M5 ranged retreat and due-shot priority
+
+The original-engine study found that each monster has its own 15-update
+phase for sight and ordinary retreat checks. A forced retreat bypasses
+that phase and the normal distance and chase-radius gates. Retreat wins
+when a shot is due on the same update, and it needs no current sight.
+The Rust controller now follows those rules. Focused core checks cover
+continuation of a forced zero-radius retreat. The full core release
+suite passes 773 active tests, and the unattended original-data Swamp
+slime shot/retreat/leash route still passes. The
+previous focused test first failed because it expected forced retreat
+to wait for global update 15; its expectation was corrected. Exact
+original off/dying update gates and binary save continuation of the
+counter remain unverified. No manual gameplay or original-executable
+comparison was run. M5 remains about 65%.
+
 ## 2026-11-16 M5 enemy alarm battle cries
 
 Enemies now use the original keyed alarm line once or, when eligible,

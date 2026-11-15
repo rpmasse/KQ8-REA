@@ -3,6 +3,27 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 ranged shot and retreat priority (2026-11-16)
+
+Q211 asks which action wins when a ranged enemy's shot and close-range
+retreat are both due on one Wait update, whether retreat needs current
+sight, and how its once-per-second check is timed. The separate study
+found that each monster increments its own counter modulo 150 before
+sampling sight and entering Wait. A probabilistic retreat checks that
+counter at multiples of 15; `mustFlee` bypasses this cadence, chance,
+distance and positive chase-radius gate. Retreat wins over a due shot
+and does not require current sight, unlike the
+shot. Replace the global sight/retreat phase with this per-actor count,
+preserve the forced retreat path, add focused coincidence, sight and
+phase checks, then rerun the original-data Swamp slime route (baseline
+passed 2026-11-16). The counter's native disk and unusual base-update
+gate semantics remain explicit limits until settled. No manual test.
+Implemented: the actor counter controls both ordinary sight sampling
+and chance retreat; forced retreat bypasses the periodic and distance
+gates. Focused core and the original-data Swamp slime route pass. The
+broader core release suite passes 773 active tests. Native disk and
+special base-update timing remain open.
+
 ## M5 elemental projectile emitter reference (2026-11-16)
 
 The original Fire and Ice projectile files name `firebits.kq` and

@@ -98,6 +98,10 @@ pub struct Ai {
     pub blocked_by: Option<String>,
     /// A sight test has run.
     pub checked: bool,
+    /// This monster's update phase, incremented before sight and Wait
+    /// decisions and wrapped after 150 (fighting.md rule 37, Q211).
+    #[serde(default)]
+    pub mon_tick_count: u16,
     /// Updates since it last saw Connor (rule 20; used by rule 26).
     pub unseen: u32,
     /// On its way home (rules 21, 28).
@@ -156,7 +160,7 @@ pub struct Ai {
 
 impl Ai {
     pub fn new(settings: AiSettings, home: [f32; 3], eye: f32, has_hide: bool) -> Self {
-        Ai { settings, home, eye, has_hide, active: false, sees: false, blocked_by: None, checked: false, unseen: 0, on_way_home: false, has_birth: false, route: None, point: 0, closest: f32::MAX, wander_done: false, idle_due: 0.0, fidget: None, alarmed: false, keyed_alarm_spoken: false, react_at: 0.0, chase_until: 0.0, last_seen: None, go_home: false, rise_at: None, retaking: false, following: false, sinking: false, hit_count: 0, hunting: false, keeping_distance: false }
+        Ai { settings, home, eye, has_hide, active: false, sees: false, blocked_by: None, checked: false, mon_tick_count: 0, unseen: 0, on_way_home: false, has_birth: false, route: None, point: 0, closest: f32::MAX, wander_done: false, idle_due: 0.0, fidget: None, alarmed: false, keyed_alarm_spoken: false, react_at: 0.0, chase_until: 0.0, last_seen: None, go_home: false, rise_at: None, retaking: false, following: false, sinking: false, hit_count: 0, hunting: false, keeping_distance: false }
     }
 
     /// Alarmed and past its reaction delay: the chase rules drive it, not
@@ -221,7 +225,6 @@ impl WorldState {
     /// list, the sight test (rules 20, 21). `ground`, `buildings` and
     /// `objects` are the world for the sight test.
     pub fn characters_ai(&mut self, ground: &dyn GroundLookup, buildings: &[crate::collide::BuildingCollider], objects: &[crate::collide::BoxCollider]) {
-        let update = self.updates;
         let now = self.now();
         // Rule 21: off (not updated now) → off the list.
         for i in 0..self.anims.len() {
@@ -236,7 +239,6 @@ impl WorldState {
         let scene = Scene::new(ground, buildings, &sight_objects);
         // potions.md rule 26: the place they are told (M5 5g-6).
         let connor = self.connor_reported();
-        let check = update.is_multiple_of(SIGHT_EVERY);
         for i in 0..self.anims.len() {
             let a = &self.anims[i];
             if a.gone || !self.characters_in_range.contains(&a.player.name.to_ascii_lowercase()) {
@@ -250,16 +252,24 @@ impl WorldState {
             if tower && self.tower_ground_step(i, &scene) {
                 continue;
             }
+            let state = {
+                let Some(c) = self.anims[i].character.as_deref() else { continue };
+                if c.ai.is_none() || c.state == crate::character::State::Die {
+                    // Fighting rule 30: the dying have no movement rules.
+                    continue;
+                }
+                c.state
+            };
+            let check = {
+                let ai = self.anims[i].character.as_deref_mut().unwrap().ai.as_mut().unwrap();
+                ai.mon_tick_count = (ai.mon_tick_count % 150 + 1) % 150;
+                ai.mon_tick_count.is_multiple_of(SIGHT_EVERY as u16)
+            };
             let a = &self.anims[i];
-            let Some(c) = a.character.as_deref() else { continue };
-            let Some(ai) = c.ai.as_ref() else { continue };
-            // fighting.md rule 30: the dying have no movement rules.
-            if c.state == crate::character::State::Die {
-                continue;
-            }
+            let c = a.character.as_deref().unwrap();
+            let ai = c.ai.as_ref().unwrap();
             let pos = a.player.base.position;
             let name = a.player.name.clone();
-            let state = c.state;
             let mut lines = Vec::new();
             if check {
                 let (sees, blocked) = match connor {
@@ -793,12 +803,13 @@ impl WorldState {
             self.give_up(i, &why, now);
             return;
         }
-        let flee_tick = self.updates.is_multiple_of(SIGHT_EVERY);
+        let flee_tick = ai.mon_tick_count.is_multiple_of(SIGHT_EVERY as u16);
+        let keeping_distance = ai.keeping_distance;
         let flee = c.fight.as_ref().filter(|f| f.ranged()).map(|f| {
             let [too_close, far_enough] = f.settings.attack_more.unwrap_or([0.25, 0.75]);
             (f.must_flee, f.settings.likely_to_flee.unwrap_or(0.5), too_close, far_enough)
         });
-        if let Some((must, chance, too_close, far_enough)) = flee.filter(|_| s.chase_radius > 0.0) {
+        if let Some((must, chance, too_close, far_enough)) = flee.filter(|(must, ..)| *must || keeping_distance || s.chase_radius > 0.0) {
             if state == State::Move && c.ai.as_ref().unwrap().keeping_distance {
                 if d > far_enough * s.attack_dist {
                     c.ai.as_mut().unwrap().keeping_distance = false;
@@ -810,10 +821,10 @@ impl WorldState {
                 for line in lines { self.character_note(&name, line); }
                 return;
             }
-            // Q211: the original's same-update priority versus a due
-            // ranged shot is still to be established.
-            if state == State::Wait && flee_tick && now >= c.resume_move_at
-                && (must || (d < too_close * s.attack_dist && c.random() < chance)) {
+            // Q211: retreat precedes a due shot. Forced retreat bypasses
+            // the per-actor 15-update cadence, distance and chance gates.
+            if state == State::Wait && now >= c.resume_move_at
+                && (must || (flee_tick && d < too_close * s.attack_dist && c.random() < chance)) {
                 c.fight.as_mut().unwrap().must_flee = false;
                 c.ai.as_mut().unwrap().keeping_distance = true;
                 let movement = c.enter_move(&mut a.player, now, true, "keeping distance (fighting.md rule 37)");

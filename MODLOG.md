@@ -1,5 +1,28 @@
 # MODLOG
 
+## 2026-11-16 Use each monster's retreat and sight phase
+
+Replaced the global 15-update sight/retreat phase with an actor counter
+and made `mustFlee` immediate, including when chase radius is zero.
+That forced retreat stays active after the one-time flag clears.
+Retreat still precedes a due shot. Focused checks cover that collision,
+the actor phase, an unsighted forced retreat and off/rejoin timing.
+The core release suite passed 773 active tests, and the unattended
+GOG-data Swamp slime route still passed. The old focused test failed
+when it expected forced retreat to wait until update 15; its assertion
+now matches the studied rule. No manual gameplay or original-executable
+comparison was run; the GOG copy was read only.
+
+## 2026-11-16 Study ranged retreat and shot priority
+
+Traced the original common monster update and Wait decision read-only.
+`fighting.md` rule 37 now states that retreat wins over a due shot,
+requires no current sight result, and uses the monster's own 15-update
+counter phase; explicit `mustFlee` bypasses the periodic chance and
+distance gates. Corrected the slime example to Swamp. Q211 retains the
+limits around the base update gate and binary save continuation. No
+Rust or original game file changed; no manual gameplay test was run.
+
 ## 2026-11-16 Add enemy alarm battle cries
 
 Passed the GOG monster-list type into live AI and added Q213's keyed

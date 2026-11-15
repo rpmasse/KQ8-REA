@@ -759,13 +759,35 @@ scripted fall, not the ordinary `die`:
     (Connor: 1,200), flies straight and pitched at its file's speed with
     no gravity, and is removed at the first object, character, Connor or
     building it touches, below the floor grid, or past `maxDistance`.
-37. **Fleeing / keeping distance** (traced): only for a ranged character
-    with a **chase radius above 0** (and not tied to another object, as
-    rule 28):
-    - once a second while it stands with a target, if it **must flee**
-      (rule 22.5) or, with probability **`likelyToFlee`** (default
-      **0.5**), when Connor is closer than **`attackTooClose` × reach**
-      (default **0.25**): it starts "keeping distance": `run`, moving;
+37. **Fleeing / keeping distance** (traced): a ranged character standing
+    in Wait with a target may start keeping distance. The ordinary
+    chance path requires a **chase radius above 0** (and no tied object,
+    as rule 28); an explicit `mustFlee` bypasses the radius and chance
+    gates:
+    - at each eligible Wait update, `mustFlee` takes priority and starts
+      keeping distance at once, without a once-per-second or proximity
+      check. Otherwise, when its own `monTickCount` is a multiple of 15,
+      it draws `likelyToFlee` (default **0.5**) and starts keeping
+      distance only if Connor is closer than **`attackTooClose` × reach**
+      (default **0.25**). Neither path requires the current sight result
+      to be true;
+    - the counter increments **before** the Wait decision on each
+      monster update and wraps after 150; from an initial zero its first
+      periodic retreat check is on update 15, then every 15 updates
+      (one second at 15 updates/s). Its phase belongs to that monster,
+      not the world's update number. The same counter gates the ordinary
+      sight sample earlier in the update; a forced sight sample can also
+      occur between multiples of 15. The constructor sets the counter
+      to zero; the common update returns before increment when its base
+      update gate is clear. No separate reset at a Wait entry or on loss
+      of combat activation was found in that path. The exact meaning of
+      the base gate for off or dying actors, and binary disk-load
+      continuation of this counter, were not established;
+    - **Same-update priority (Q211):** this retreat decision precedes the
+      due-shot decision. If both are eligible, keeping distance starts
+      and no attack starts on that update. A due shot still requires
+      the stored current sight result, range and attack time. A failed
+      retreat test leaves that shot eligible later in the same update;
     - while keeping distance it heads straight **away from Connor** (the
       point as far beyond itself as Connor is on the other side) and stops
       (standing again) once he is farther than **`attackFarEnough` ×
@@ -773,7 +795,7 @@ scripted fall, not the ordinary `die`:
       radius from home after its chase timer: it runs home);
     - "must flee" is cleared when it starts keeping distance;
     - the monster list's reach column can give all three: `attackDist
-      tooClose farEnough` (Gnome's slime: `5000 0.4 3.0`); a single number
+      tooClose farEnough` (Swamp's `slime1`–`slime13`: `5000 0.4 3.0`); a single number
       keeps the defaults. `likelyToFlee` and `mustFlee` are `.kq` keys.
 38. **Daventry's bow spriggans** (data with the rules above): guards
     (`guard`, chase radius 0) with no wander points: they **never move

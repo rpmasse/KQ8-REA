@@ -9755,28 +9755,28 @@ endif
 
     #[test]
     fn ranged_character_keeps_distance_with_forced_and_chance_starts() {
-        // fighting.md rule 37: the decision is once per second, with
-        // the authored tooClose/farEnough pair and guard exclusion.
+        // Fighting rule 37: mustFlee is immediate; ordinary retreat is
+        // checked on the monster's own 15-update phase.
         let mut forced = ranged_flee_fighter(20_000.0, true, 0.0, [0.4, 3.0]);
         forced.world.updates = 14;
         forced.world.simulation_time = 0.93;
         forced.world.characters_ai(&FlatGround, &[], &[]);
-        assert!(!forced.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
-        forced.world.updates = 15;
-        forced.world.simulation_time = 1.0;
-        forced.world.characters_ai(&FlatGround, &[], &[]);
         let c = forced.world.anims[0].character.as_ref().unwrap();
         assert_eq!(c.state, crate::character::State::Move);
         assert!(c.walk.run && c.ai.as_ref().unwrap().keeping_distance);
+        assert_eq!(c.ai.as_ref().unwrap().mon_tick_count, 1);
         assert_eq!(c.walk.steer, Some([0.0, 1000.0]));
         assert!(!c.fight.as_ref().unwrap().must_flee);
         let saved = serde_json::to_value(c.ai.as_ref().unwrap()).unwrap();
         let restored: crate::character_ai::Ai = serde_json::from_value(saved.clone()).unwrap();
         assert!(restored.keeping_distance);
+        assert_eq!(restored.mon_tick_count, 1);
         let mut legacy = saved;
         legacy.as_object_mut().unwrap().remove("keeping_distance");
+        legacy.as_object_mut().unwrap().remove("mon_tick_count");
         let old_slot: crate::character_ai::Ai = serde_json::from_value(legacy).unwrap();
         assert!(!old_slot.keeping_distance);
+        assert_eq!(old_slot.mon_tick_count, 0);
         forced.world.updates = 16;
         forced.world.simulation_time = 1.07;
         forced.world.characters_ai(&FlatGround, &[], &[]);
@@ -9790,21 +9790,116 @@ endif
         assert!(!c.ai.as_ref().unwrap().keeping_distance);
 
         let mut chance = ranged_flee_fighter(20_000.0, false, 1.0, [0.4, 3.0]);
-        chance.world.updates = 15;
+        chance.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap().mon_tick_count = 14;
+        chance.world.updates = 4;
         chance.world.simulation_time = 1.0;
         chance.world.characters_ai(&FlatGround, &[], &[]);
         assert!(chance.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
         let mut outside = ranged_flee_fighter(20_000.0, false, 1.0, [0.1, 3.0]);
-        outside.world.updates = 15;
+        outside.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap().mon_tick_count = 14;
+        outside.world.updates = 4;
         outside.world.simulation_time = 1.0;
         outside.world.characters_ai(&FlatGround, &[], &[]);
         assert!(!outside.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
-        let mut guard = ranged_flee_fighter(0.0, true, 1.0, [0.4, 3.0]);
-        guard.world.updates = 15;
+        let mut guard = ranged_flee_fighter(0.0, true, 0.0, [0.4, 3.0]);
+        guard.world.updates = 4;
         guard.world.simulation_time = 1.0;
         guard.world.characters_ai(&FlatGround, &[], &[]);
-        assert!(!guard.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
-        assert!(guard.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().must_flee);
+        assert!(guard.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance);
+        assert!(!guard.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().must_flee);
+        guard.world.updates = 5;
+        guard.world.simulation_time = 1.0 + 1.0 / 15.0;
+        guard.world.characters_ai(&FlatGround, &[], &[]);
+        assert!(guard.world.anims[0].character.as_ref().unwrap().ai.as_ref().unwrap().keeping_distance,
+            "a forced zero-chase retreat remains active after mustFlee clears");
+    }
+
+    #[test]
+    fn ranged_retreat_precedes_a_due_shot_on_its_own_update_phase() {
+        let mut retreat = ranged_flee_fighter(20_000.0, false, 1.0, [0.4, 3.0]);
+        {
+            let c = retreat.world.anims[0].character.as_deref_mut().unwrap();
+            c.ai.as_mut().unwrap().mon_tick_count = 14;
+            c.fight.as_mut().unwrap().attack_time = 0.0;
+        }
+        retreat.world.updates = 4;
+        retreat.world.simulation_time = 1.0;
+        retreat.world.characters_ai(&FlatGround, &[], &[]);
+        let c = retreat.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(c.ai.as_ref().unwrap().mon_tick_count, 15);
+        assert!(c.ai.as_ref().unwrap().keeping_distance);
+        assert_eq!(c.fight.as_ref().unwrap().attack_time, 0.0, "the due shot did not start");
+
+        let mut shoot = ranged_flee_fighter(20_000.0, false, 1.0, [0.4, 3.0]);
+        {
+            let c = shoot.world.anims[0].character.as_deref_mut().unwrap();
+            c.ai.as_mut().unwrap().mon_tick_count = 13;
+            c.fight.as_mut().unwrap().attack_time = 0.0;
+        }
+        shoot.world.updates = 15;
+        shoot.world.simulation_time = 1.0;
+        shoot.world.characters_ai(&FlatGround, &[], &[]);
+        let c = shoot.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(c.ai.as_ref().unwrap().mon_tick_count, 14);
+        assert!(!c.ai.as_ref().unwrap().keeping_distance);
+        assert!(c.fight.as_ref().unwrap().attack_time > 1.0, "the shot remained due");
+
+        let mut unseen = ranged_flee_fighter(0.0, true, 0.0, [0.4, 3.0]);
+        {
+            let ai = unseen.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap();
+            ai.settings.can_always_see = false;
+            ai.mon_tick_count = 1;
+            ai.sees = false;
+        }
+        unseen.world.updates = 15;
+        unseen.world.simulation_time = 1.0;
+        unseen.world.characters_ai(&FlatGround, &[], &[]);
+        let ai = unseen.world.anims[0].character.as_deref().unwrap().ai.as_ref().unwrap();
+        assert_eq!(ai.mon_tick_count, 2);
+        assert!(!ai.sees && ai.keeping_distance, "forced retreat does not need a sight sample");
+    }
+
+    #[test]
+    fn sight_sample_uses_each_monsters_update_phase() {
+        let mut a = ranged_flee_fighter(0.0, false, 0.0, [0.4, 3.0]);
+        {
+            let ai = a.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap();
+            ai.settings.can_always_see = false;
+            ai.mon_tick_count = 13;
+            ai.sees = false;
+            ai.checked = false;
+        }
+        a.world.updates = 15;
+        a.world.simulation_time = 1.0;
+        a.world.characters_ai(&FlatGround, &[], &[]);
+        let ai = a.world.anims[0].character.as_deref().unwrap().ai.as_ref().unwrap();
+        assert_eq!(ai.mon_tick_count, 14);
+        assert!(!ai.checked, "world update 15 is not this monster's sight phase");
+        a.world.updates = 16;
+        a.world.simulation_time = 1.0 + 1.0 / 15.0;
+        a.world.characters_ai(&FlatGround, &[], &[]);
+        let ai = a.world.anims[0].character.as_deref().unwrap().ai.as_ref().unwrap();
+        assert_eq!(ai.mon_tick_count, 15);
+        assert!(ai.checked && ai.sees);
+        a.world.characters_in_range.clear();
+        a.world.updates = 17;
+        a.world.simulation_time = 1.0 + 2.0 / 15.0;
+        a.world.characters_ai(&FlatGround, &[], &[]);
+        assert_eq!(a.world.anims[0].character.as_deref().unwrap().ai.as_ref().unwrap().mon_tick_count, 15,
+            "an off actor does not advance its update phase");
+        let name = a.world.anims[0].player.name.to_ascii_lowercase();
+        a.world.characters_in_range.insert(name);
+        a.world.updates = 200;
+        a.world.simulation_time = 2.0;
+        a.world.characters_ai(&FlatGround, &[], &[]);
+        assert_eq!(a.world.anims[0].character.as_deref().unwrap().ai.as_ref().unwrap().mon_tick_count, 16,
+            "rejoining continues the actor's own phase");
+        a.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap().mon_tick_count = 149;
+        a.world.updates = 201;
+        a.world.simulation_time = 2.0 + 1.0 / 15.0;
+        a.world.characters_ai(&FlatGround, &[], &[]);
+        assert_eq!(a.world.anims[0].character.as_deref().unwrap().ai.as_ref().unwrap().mon_tick_count, 0,
+            "the actor's 150th update is also a periodic sight update");
     }
 
     #[test]

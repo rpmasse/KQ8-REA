@@ -1,5 +1,17 @@
 # Provenance
 
+**Ranged retreat and sight timing (2026-11-16).**
+[Fighting rule 37](../behaviour/fighting.md) and Q211 establish the
+per-monster 15-update counter, immediate `mustFlee`, no retreat sight
+requirement, and retreat priority over a due shot. The installed Swamp
+monster list places `slime1`–`slime13` with the authored reach and
+retreat distances. Rust now uses that counter for sight and ordinary
+retreat. Focused core checks and the unattended GOG-data slime route
+pass; the latter covers a shot followed by retreat and leash behavior,
+not an original-executable same-update comparison. Native disk and
+off/dying counter rules remain unverified. Implementation B used the
+study prose and original data, not executable or study scratch.
+
 **Enemy alarm battle cries (2026-11-16).**
 [Character movement rule 23](../behaviour/character-movement.md) and
 Q213 give the keyed one-time rule, shared speech deadline, half-range
