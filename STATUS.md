@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-16 M5 first-person weapon attack matrix
+
+An unattended original-data Windows matrix now checks all 13 hand
+weapons and eight conventional bows/crossbows in first person. Each
+uses its mapped movement list and lands one attack or authored
+projectile with the expected damage kind. The grouped test passed
+1/1 across 21 fresh-process cases in 302.61 s; the GOG `Options.cs`
+bytes were unchanged. The first attempt pressed F2 while Mace's `out`
+still held input, and the second omitted the Fists pickup after the
+Dead City start script equipped Small Axe. Both were test-fixture
+errors, corrected before the passing run. The Azriel Hammer's special
+throw route, other weapon movements and full campaign fights remain.
+No manual gameplay or original-executable comparison was run. M5
+remains about 65%.
+
 ## 2026-11-16 M5 outgoing elemental enemy attack regression
 
 An unattended original-data Windows test now covers the Barren Flame

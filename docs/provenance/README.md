@@ -185,6 +185,18 @@ real health loss, an arrow stopped by Barren building geometry, and
 Connor's Ice death sequence. It checks the Rust recreation with original
 data, not the original executable. No executable or disassembly was read.
 
+**First-person weapon attack matrix (2026-11-16).**
+The installed GOG `GAME/Kq/Connor.kq` lists the separate first-person
+weapon movement files. [Ranged weapon rule 10](../behaviour/ranged-weapons.md)
+selects the active list, and [fighting rule 41](../behaviour/fighting.md)
+delivers a hand hit at its attack cue; ranged rules 21–30 govern the
+projectile and damage kind. The unattended `first_person_weapon_matrix`
+test checks all 13 hand weapons and eight conventional ranged weapons
+against one original Dead City skeleton each. The Azriel Hammer's
+dedicated throw controller is separate. This is Rust behavior with GOG
+data, not an original-executable comparison; no executable or
+disassembly was read.
+
 **Swamp slime original-data route (2026-11-15).** The installed GOG
 `Swamp/kq/monsters.kq` and `slime.kq` data, read through the existing
 loader, place the ranged `slime1` with reach 5,000, ratios 0.4/3.0 and

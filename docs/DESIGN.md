@@ -3,6 +3,32 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 first-person weapon attack matrix (2026-11-16)
+
+`GAME/Kq/Connor.kq` maps 13 hand weapons and nine real ranged weapons
+to separate first-person movement lists. Existing third-person attack
+checks cover the ordinary items; first-person coverage is sparse. Run
+an unattended original-data Dead City encounter for each hand weapon
+and each conventional bow/crossbow, entering first person after the
+weapon is ready. Require its mapped `attack` movement to deliver one
+hit or one authored projectile with the correct damage kind. Keep the
+Azriel Hammer's dedicated throw/return controller in its separate
+tests. Use a fresh process for each item, keep AI off for a stable
+target, and verify the GOG `Options.cs` file is unchanged. If a mapping
+fails, inspect that item's installed animation cues and the shared
+attack path before changing code. This checks Rust behavior against
+original data, not parity with the original executable.
+
+The original-data Windows matrix passed 1/1 across 21 fresh-process
+cases in 302.61 s: all 13 hand weapons hit once using their mapped
+first-person list, and all eight conventional ranged weapons launched
+their authored projectile and hit once with the expected damage kind.
+The GOG `Options.cs` bytes were unchanged. The first failed attempt
+pressed F2 during Mace's still-playing `out`, so the test now waits for
+the swap to finish; the second omitted the Fists pickup after Dead
+City's script equipped Small Axe, so every case now explicitly equips
+its tested item. No production rule changed.
+
 ## M5 outgoing elemental enemy shots (2026-11-16)
 
 Use the installed Barren `eledwarf1` Flame Bow and IceWorld `WLGuard1B`

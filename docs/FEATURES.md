@@ -840,9 +840,13 @@ miss, roll, flinch, death, drop and shot is in
   and Ice Crossbow shots, Fire/Ice deaths and their different corpse results.
 - **Flame Sword:** an unattended original-data route confirms its attack
   movement, Fire hit and death without a corpse.
+- **First-person weapons:** an unattended original-data matrix checks
+  all 13 hand weapons and eight conventional ranged weapons: each uses
+  its first-person attack list and hits with the expected damage kind.
+  The Azriel Hammer has a separate throw controller.
 - **Combat level:** `--combat-level 1|2|3` (0.66 / 1.0 / 1.5 × the
   creatures' health and damage; stand-in for the menu).
-- Remaining combat work includes complete weapon movement sets outside
+- Remaining combat work includes nonattack weapon movements outside
   the tested cases, the original same-update shot/retreat priority and
   the other combat tutorial triggers. The Swamp slime's ranged retreat
   passes an isolated original-data Windows route.

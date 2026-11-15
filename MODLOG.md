@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Check all ordinary first-person weapon attacks
+
+Added an unattended GOG-data matrix for Connor's 13 hand weapons and
+eight conventional bows/crossbows. Each case equips its own item,
+enters first person after the swap, and checks one authored melee hit
+or projectile hit with the expected damage kind. The grouped release
+test passed 1/1 across 21 fresh processes in 302.61 s; `Options.cs`
+was unchanged. A first attempt pressed F2 during Mace's `out` and a
+second failed because Dead City's start script had replaced Fists with
+Small Axe. The fixture now waits for the swap and explicitly equips
+Fists. No production behavior or original game file changed, and no
+manual gameplay test was run.
+
 ## 2026-11-16 Check outgoing Fire and Ice enemy shots
 
 Added an unattended original-data Windows encounter test for the Barren
