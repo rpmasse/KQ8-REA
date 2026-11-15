@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Check outgoing Fire and Ice enemy shots
+
+Added an unattended original-data Windows encounter test for the Barren
+Flame Bow dwarf and IceWorld Orc Bow guard without god mode. It checks
+Fire/Ice contact and Connor health loss, a Barren arrow stopped by a
+building, and Connor's Ice death animation. The plan and provenance
+identify the source rules. The release-profile original-data test passed
+1/1 in 26.42 s, and the original GOG `Options.cs` bytes were unchanged.
+Repository-wide `cargo fmt --all -- --check` reported extensive existing
+formatting differences; `rustfmt --check` passed for the new test file.
+No gameplay rule or game asset changed; the original GOG installation was
+read only and no manual test was run.
+
 ## 2026-11-16 Simplify the project README
 
 Rewrote the README as a short overview of the game's origin, the planned

@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 outgoing elemental enemy attack regression
+
+An unattended original-data Windows test now covers the Barren Flame
+Bow dwarf's Fire arrow and IceWorld Orc Bow guard's Ice bolt without god
+mode. Both lower Connor's health; a separate Barren arrow stops at a
+building without hitting him. The IceWorld run reaches Connor's
+`dropweapon` and `icedie` sequence once. The test passed 1/1 in 26.42 s;
+the GOG `Options.cs` bytes were unchanged. This is Rust encounter
+coverage, not an original-executable comparison or complete campaign
+combat. No manual gameplay test was run. M5 remains about 65%.
+
 ## 2026-11-16 M5 Temple 4 Lucreto fire effect
 
 The original altar script's `loadKQ lucfire.kq` can now start a Rust

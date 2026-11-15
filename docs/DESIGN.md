@@ -3,6 +3,25 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 outgoing elemental enemy shots (2026-11-16)
+
+Use the installed Barren `eledwarf1` Flame Bow and IceWorld `WLGuard1B`
+Orc Bow data to check the shared ranged-weapon and Connor-hit rules in
+an unattended Windows run without god mode. The Barren run must show a
+Fire arrow touch Connor and lower his health, while a separate dwarf's
+arrow stops at a building without hurting him. The IceWorld run must
+show an Ice bolt touch Connor, lower health, and ultimately start the
+`dropweapon` then `icedie` sequence. Check each run's result and leave
+the GOG installation unchanged. This adds encounter coverage for the
+already implemented rules; it does not establish parity with the original
+executable or complete the M5 campaign fights.
+
+The `elemental_enemy_attacks` test passed 1/1 on Windows with GOG 1.03.
+Barren's first Fire hit lowered health 290 to 266; its other dwarf's
+arrow stopped at a building. IceWorld's first Ice hit lowered health
+360 to 338, and later Ice hits started `dropweapon` then `icedie` once.
+The GOG `Options.cs` bytes were unchanged.
+
 ## Public README presentation (2026-11-15)
 
 Keep the README short and accessible: origin, faithful Rust recreation,

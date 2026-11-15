@@ -175,6 +175,16 @@ away `skeleton2`, Ice leaves `skeleton1`'s `skmided.kqs` corpse. This verifies
 the Rust path with original data, not original-executable parity or emitter
 appearance. No original executable or disassembly was read.
 
+**Outgoing elemental enemy shots (2026-11-16).**
+[Ranged weapon rules 22–31](../behaviour/ranged-weapons.md) cover character
+projectiles and [fighting rule 29](../behaviour/fighting.md) covers Connor's
+damage and death response. The installed GOG Barren `eledwarf1` and
+IceWorld `WLGuard1B` data provide the Flame Bow and Orc Bow attack cases.
+The unattended `elemental_enemy_attacks` test checks Fire and Ice contact,
+real health loss, an arrow stopped by Barren building geometry, and
+Connor's Ice death sequence. It checks the Rust recreation with original
+data, not the original executable. No executable or disassembly was read.
+
 **Swamp slime original-data route (2026-11-15).** The installed GOG
 `Swamp/kq/monsters.kq` and `slime.kq` data, read through the existing
 loader, place the ranged `slime1` with reach 5,000, ratios 0.4/3.0 and
