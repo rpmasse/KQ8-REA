@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-15 Simplify the public README
+
+Clarify the KQ8R origin and planned REA-guided Rust conversion, condense the
+M0–M7 phase display, and state the GOG copy requirement and later resolution,
+frame-rate and platform goals. Keep the existing phase estimates and note
+that REA has not yet been integrated or run. Documentation only; no gameplay
+or manual test was needed. Checked the Markdown links and the build command
+against the current Windows viewer.
+
 ## 2026-11-15 Check Rock flight across a disk save
 
 Add a three-process Windows test using the installed Daventry Rock, its

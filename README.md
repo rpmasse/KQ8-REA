@@ -1,33 +1,29 @@
-# King's Quest: Mask of Eternity — Rust recreation
+# King's Quest: Mask of Eternity in Rust
 
-KQ8-REA is an unofficial project to recreate Sierra's 1998 *King's Quest: Mask of Eternity* in Rust. Its first goal is to match the original Windows game from the opening menu through the ending. That faithful version will provide the foundation for a later, modernized edition.
+**KQ8-REA** is an unofficial recreation of Sierra's 1998 game *King's Quest: Mask of Eternity*. This fork builds on [Eric Peracchi Pisoni's KQ8R](https://github.com/Eric-lz/KQ8R), an earlier Rust rewrite. The first goal is to recreate the complete original Windows game.
 
-## Where it comes from
+The goal is to use [REA (Reverse Engineering Anything)](https://github.com/morluto/rea) to study the original game and guide a Rust conversion that reads the player's game data. REA has not yet been integrated or run. That Rust version will be the foundation for a modernized edition.
 
-This project builds on [Eric Peracchi Pisoni's KQ8R](https://github.com/Eric-lz/KQ8R), a Rust rewrite of the game. KQ8-REA continues that work in this fork. The goal is to use [REA (Reverse Engineering Anything)](https://github.com/morluto/rea) where useful to understand the original engine and turn its behavior into a Rust version. REA is a planned research aid; it has not been integrated or run for this project yet.
+## Project phases
 
-## Progress
+| Phase | Progress |
+| --- | ---: |
+| M0 · Read original game data | 100% |
+| M1 · Render the world | 100% |
+| M2 · Movement and camera | 100% |
+| M3 · Daventry gameplay | 100% |
+| M4 · Menus, inventory and dialogue | 100% |
+| M5 · Combat | ~65% |
+| M6 · Full campaign and saves | ~28% |
+| M7 · Final comparison and Windows release | 0% |
 
-The current Windows development build loads all 12 regions. Daventry and parts of the campaign have automated checks, but the game is not yet recreated through the ending.
-
-| Phase | Status | Scope |
-| --- | ---: | --- |
-| M0 · Read game data | 100% | Original archives and images |
-| M1 · Render the world | 100% | Terrain, objects and lighting |
-| M2 · Move Connor | 100% | Movement, collision and camera |
-| M3 · Bring Daventry to life | 100% | Early scripts, objects and puzzles |
-| M4 · Interface and dialogue | 100% | Menus, inventory, dialogue and display controls |
-| M5 · Combat | ~65% | Weapons, enemies, damage and death |
-| M6 · Campaign and saves | ~28% | Quests, world transitions and the full story; paused |
-| M7 · Match the original | 0% formally | Final comparison and Windows release |
-
-Percentages refer to each phase's planned work, not an overall project percentage. Some focused comparisons have been made, but the final M7 review has not begun. See the [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) and [current status](STATUS.md) for details.
+These are estimates for each phase, not an overall completion percentage. The Windows build loads all 12 regions, but the full game cannot yet be played through to the ending. See [current status](STATUS.md) and the [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05) for details.
 
 ## Bring your own game
 
-**This repository does NOT contain any original game files or assets.** To build and play the Rust version, supply your own GOG copy of *Mask of Eternity* (tested with version 1.03). The recreation reads its levels, models, sound and artwork from that installation.
+**This repository contains no original game files or assets.** You need your own GOG copy of *Mask of Eternity* to build and run the Rust version. The project has been tested with GOG version 1.03.
 
-On Windows, install Rust and the Visual Studio C++ build tools, then run these commands in PowerShell from the repository folder. Replace the example path with your GOG installation folder:
+On Windows, install Rust and the Visual Studio C++ build tools. Then run this in PowerShell from the repository folder, replacing the example path with your GOG installation:
 
 ```powershell
 $env:KQ8_GAME_DIR = "C:\path\to\King's Quest 8 GOG"
@@ -35,8 +31,8 @@ cargo build --locked --release -p kq8-viewer
 .\target\release\kq8-viewer.exe --windowed
 ```
 
-## After the faithful recreation
+## After the recreation
 
-The modernized version could add widescreen and ultrawide resolutions, smoother movement and animation at higher frame rates, and ports to other platforms, including macOS. These are future goals; the current milestone is matching the original game.
+Future enhancements could include widescreen and ultrawide resolutions, higher frame rates for movement and animation, and ports to other platforms, including macOS.
 
-For developer commands, see [automated checks](docs/automated-checks.md). For sources and acknowledgments, see [credits](CREDITS.md) and [provenance](docs/provenance/README.md).
+See [credits](CREDITS.md) for the project's sources and [automated checks](docs/automated-checks.md) for developer commands.
