@@ -1,12 +1,23 @@
 # MODLOG
 
+## 2026-11-15 Validate Swamp slime retreat with installed game data
+
+Correct the Gnome/Swamp label from the monster-list audit. Add an
+unattended Windows check that places Connor near the installed `slime1`
+in Swamp and asserts the original-data shot, retreat entry, stop distance
+and leash give-up in order. The permanent test passes 1/1. The first
+unattended command probe failed at exclusive fullscreen mode negotiation;
+windowed probes passed. The game installation stayed read-only and no
+manual gameplay was performed. The unresolved original same-update
+priority remains Q211.
+
 ## 2026-11-15 Add ranged keeping-distance AI
 
 Use `fighting.md` rule 37 and the already-parsed monster attack-distance
 ratios to start and stop ranged retreat, keep its direction away from
 Connor, and retain the flag in save data. Clear it on give-up or active-list
 exit. A focused synthetic matrix passes, along with all 749 active core
-tests; 26 are ignored. The installed Gnome slime data has the relevant
+tests; 26 are ignored. The installed Swamp slime data has the relevant
 values, but an original-data encounter is not yet checked. Q211 records
 the original same-update shot/retreat ordering still to study.
 

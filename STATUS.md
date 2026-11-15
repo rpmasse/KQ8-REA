@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-15 M5 Swamp slime retreat in original-data route
+
+The installed `Swamp/kq/monsters.kq` places `slime1`–`slime13`; the
+earlier Gnome label in project notes and the last user update was wrong.
+An unattended windowed GOG-data route near `slime1` now passes 1/1: it
+fires a `Prslime.kq` bolt, retreats from Connor inside its 2,000-unit
+too-close distance, stops beyond 15,000, then gives up beyond its
+6,000-unit chase radius. The ordered integration test uses 120 world
+updates and leaves the GOG `Options.cs` unchanged. A first probe failed
+at presentation because the remote display lacks exclusive 640×480;
+`--windowed` then passed twice, followed by the permanent test twice.
+This is an isolated original-data route, not the earned campaign
+encounter or an original-executable comparison. No manual gameplay was
+run. Q211's shot/retreat same-update priority remains open; M5 remains
+about 65%.
+
 ## 2026-11-15 M5 ranged enemies keep their distance
 
 Ranged characters with a chase radius now use their saved `mustFlee`
@@ -7,10 +23,10 @@ state and the original `likelyToFlee`, `tooClose` and `farEnough` values
 to run away from Connor and stop at the authored distance. The rule 37
 synthetic matrix passes forced and chance starts, cooldown tick, custom
 distance, guard exclusion, stop and save-field compatibility. Read-only
-GOG data confirms Gnome slimes have this behavior (reach 5,000, ratios
+GOG data confirms Swamp slimes have this behavior (reach 5,000, ratios
 0.4/3.0 and `likelyToFlee` 0.75). The full core suite passes 749 active
 tests, 0 failures, 26 ignored. Q211 remains open on shot/retreat priority
-when both are due on one update; a full Gnome encounter and manual
+when both are due on one update; a full Swamp encounter and manual
 gameplay were not tested. M5 remains about 65%.
 
 ## 2026-11-15 M5 unboxed returning-character hit

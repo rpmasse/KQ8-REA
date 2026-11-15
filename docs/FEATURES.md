@@ -834,7 +834,9 @@ miss, roll, flinch, death, drop and shot is in
 - **Combat level:** `--combat-level 1|2|3` (0.66 / 1.0 / 1.5 × the
   creatures' health and damage; stand-in for the menu).
 - Remaining combat work includes complete weapon movement sets outside
-  the tested cases, fleeing behavior and the other combat tutorial triggers.
+  the tested cases, the original same-update shot/retreat priority and
+  the other combat tutorial triggers. The Swamp slime's ranged retreat
+  passes an isolated original-data Windows route.
 
 ## The on-screen interface (milestone M4, step 4c)
 

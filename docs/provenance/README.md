@@ -1,15 +1,26 @@
 # Provenance
 
+**Swamp slime original-data route (2026-11-15).** The installed GOG
+`Swamp/kq/monsters.kq` and `slime.kq` data, read through the existing
+loader, place the ranged `slime1` with reach 5,000, ratios 0.4/3.0 and
+flee chance 0.75. The unattended `swamp_slime_retreat` Windows test runs
+120 updates with that data and checks a projectile shot, retreat inside
+2,000, stop past 15,000 and leash give-up, in that order. It is an
+isolated route; no original executable/disassembly was read and the
+original game's runtime ordering remains Q211. The earlier "Gnome slime"
+label was a location error in project notes; study session A must fix
+its `fighting.md` rule 37 wording.
+
 **Ranged keeping-distance AI (2026-11-15).**
 [fighting.md](../behaviour/fighting.md) rule 37 supplies the eligibility,
 one-second choice, `mustFlee` and chance behavior, away direction and
 stop distance. The existing original-data parser supplies the optional
 `attackDist` ratios; read-only `character-verify` output identifies the
-Gnome slimes as ranged, chase-capable users of 0.4/3.0 and 0.75 chance.
+Swamp slimes as ranged, chase-capable users of 0.4/3.0 and 0.75 chance.
 Implementation B added a saved AI flag and shared movement branch from
 those prose/data facts. A synthetic core matrix covers transitions and
 old-slot deserialization. Q211 marks same-update shot priority unresolved;
-no original executable or disassembly was read and no Gnome encounter
+no original executable or disassembly was read and no Swamp encounter
 was run.
 
 **Unboxed returning-character hit (2026-11-15).**
