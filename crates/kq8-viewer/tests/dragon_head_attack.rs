@@ -20,6 +20,7 @@ fn dragon_heads_alarm_and_deliver_bite_and_fire_cues() {
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    let effects = fs::read_to_string(logs.join("effects.log")).unwrap();
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", root.display());
     assert!(characters.contains("draglhed: joins the active list")
         && characters.contains("dragrhed: alarmed: told by its team member draglhed"),
@@ -36,5 +37,24 @@ fn dragon_heads_alarm_and_deliver_bite_and_fire_cues() {
     assert!(fight.contains("within 3000; 200 Normal damage")
         && fight.contains("within 6000; 200 Fire damage"),
         "bite/Fire radius or kind missing; inspect {}", root.display());
+    assert!(viewer.contains("effects: 2 Dragon fire emitter recipes prepared")
+        && viewer.contains("effects: 2 emitters running, 375 particles"),
+        "fire recipes were not prepared separately from startup emitters; inspect {}", root.display());
+    for (head, fire, file) in [("draglhed", "draglfire", "draglfir.kq"), ("dragrhed", "dragrfire", "dragrfir.kq")] {
+        assert!(effects.contains(&format!("[{head}]: started {fire} from {file} with 100 particles")),
+            "{head} did not start its authored emitter; inspect {}", root.display());
+        let positions: Vec<&str> = effects.lines().filter(|line| line.contains(&format!("[{fire}] follows {head} part Some(\"fire\") frame")))
+            .filter_map(|line| line.split("loc ").nth(1)).collect();
+        assert!(positions.len() >= 2 && positions[0] != positions[1],
+            "{fire} did not follow changing animated part positions; inspect {}", root.display());
+        let visible = effects.lines().filter(|line| line.contains(&format!("[{fire}] follows {head} part")))
+            .filter_map(|line| line.rsplit(", ").next()?.split_whitespace().next()?.parse::<usize>().ok())
+            .any(|count| count > 0);
+        assert!(visible && effects.contains(&format!("draw [{fire}] activity Some(Near), draw groups true")),
+            "{fire} did not have visible particles within the draw distance; inspect {}", root.display());
+        assert!(effects.contains(&format!("[{fire}] part or target ended: dying"))
+            && effects.contains(&format!("[{fire}] all particles expired: removed")),
+            "{fire} did not finish its particles and leave the world; inspect {}", root.display());
+    }
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

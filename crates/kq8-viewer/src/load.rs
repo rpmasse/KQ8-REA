@@ -1891,8 +1891,13 @@ pub struct TemplateAssets {
 }
 
 /// An emitter (`classType=KQEmitter`) as loaded (docs/behaviour/emitters.md).
+#[derive(Clone)]
 pub struct EmitterAssets {
     pub name: String,
+    /// The authored `.kq` file, used by an attack's `fireFile` reference.
+    pub file: String,
+    /// Prepared during load, but started only by a Dragon head's `attack2`.
+    pub start_on_attack: bool,
     /// The position as the file or the `loadKQ` line gives it, and after
     /// the usual placement rules (and any `move`).
     pub written: [f32; 3],
@@ -2385,6 +2390,30 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         placer.recipe_only = recipe_only;
         placer.place(&load, Some((label, bytes)), true, &script.vars);
         placer.recipe_only = false;
+    }
+    // A Dragon head names these effect files with `fireFile`; they are not
+    // in a start-up script. Load their particle model now, but do not put
+    // either emitter in the world until the head starts `attack2`.
+    if world.name.eq_ignore_ascii_case("IceWorld") {
+        for file in ["draglfir.kq", "dragrfir.kq"] {
+            let Some((label, bytes)) = world.load(file).and_then(Result::ok) else {
+                placer.log.summary(format!("Dragon fire {file}: file not found"));
+                continue;
+            };
+            let sections = kq8_data::kq_text::parse(&bytes);
+            let Some(section) = sections.iter().find(|s| s.get("classType").is_some_and(|v| v.eq_ignore_ascii_case("KQEmitter"))) else {
+                placer.log.summary(format!("Dragon fire {file}: no KQEmitter section"));
+                continue;
+            };
+            let load = LoadKq { file: file.into(), name: LoadName::Keep, position: None, angles: None,
+                ignored_numbers: 0, from: "(Dragon head fireFile)".into(), line: 0, inside_if: false };
+            let placement = kq8_data::objects::Placement::from_load(section, &load);
+            placer.place_emitter(&label, section, &placement, &load);
+            if let Some(effect) = placer.emitters.last_mut() {
+                effect.start_on_attack = true;
+                placer.log.summary(format!("Dragon fire {file}: prepared {} with particle model {:?}", effect.name, effect.settings.shape));
+            }
+        }
     }
     // The world's scripts, for running them while the game plays (M3).
     phase("unused objects placed and loaded", &mut since);
@@ -4672,6 +4701,8 @@ impl Placer<'_> {
         });
         self.emitters.push(EmitterAssets {
             name: p.name.clone(),
+            file: load.file.clone(),
+            start_on_attack: false,
             written,
             position: p.position,
             settings,

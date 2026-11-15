@@ -12,7 +12,7 @@
 //!
 //! Following an object (rule 11): `Emitter::follow_to` before each tick.
 //!
-//! Not done here: dying (rule 10), the script commands (open question 4). `randomZRot` has no effect in the
+//! Not done here: the script commands (open question 4). `randomZRot` has no effect in the
 //! original and is left out ("Do not reproduce").
 
 use kq8_data::effects::EmitterSettings;
@@ -86,12 +86,14 @@ pub struct Particle {
     pub visible: bool,
     /// Restarted in the last tick (drawing doesn't blend across it).
     pub restarted: bool,
+    /// Its final life ended while the emitter was dying.
+    pub expired: bool,
 }
 
 impl Particle {
     /// On screen: visible and age not 0 (rule 4).
     pub fn drawn(&self) -> bool {
-        self.visible && self.age != 0
+        self.visible && self.age != 0 && !self.expired
     }
 }
 
@@ -108,6 +110,8 @@ pub struct Emitter {
     /// Following an object (rule 11): its turn now (angles like
     /// `dirX/Y/Z`), and the generator for `followMesh` restarts.
     pub following: Option<Following>,
+    /// Stop replacing particles when their current lives end (rule 10).
+    pub dying: bool,
 }
 
 /// What a following emitter knows about its target.
@@ -189,10 +193,11 @@ impl Emitter {
                     angles: [0.0; 3],
                     visible: !s.delay_start,
                     restarted: false,
+                    expired: false,
                 }
             })
             .collect();
-        Emitter { name: name.to_string(), loc, settings, particles, ticks: 0, following }
+        Emitter { name: name.to_string(), loc, settings, particles, ticks: 0, following, dying: false }
     }
 
     /// A following emitter moves with its target (call before `tick`):
@@ -202,6 +207,23 @@ impl Emitter {
         if let Some(f) = &mut self.following {
             f.angles = angles;
         }
+    }
+
+    /// A named model part supplies the emitter's location directly. Its
+    /// `followOffset` only applied when the emitter first entered the world.
+    pub fn follow_part_to(&mut self, position: [f32; 3], angles: [f32; 3]) {
+        self.loc = position;
+        if let Some(f) = &mut self.following {
+            f.angles = angles;
+        }
+    }
+
+    pub fn begin_dying(&mut self) {
+        self.dying = true;
+    }
+
+    pub fn done(&self) -> bool {
+        self.dying && self.particles.iter().all(|p| p.expired)
     }
 
     /// One tick (rule 3), particles in list order. No collision test:
@@ -214,6 +236,9 @@ impl Emitter {
         let mut mesh = self.following.as_mut().filter(|_| s.follow_mesh);
         for p in &mut self.particles {
             p.restarted = false;
+            if p.expired {
+                continue;
+            }
             // 1. age + 1
             p.age += 1;
             // 2. sway angles + sway speeds
@@ -240,6 +265,11 @@ impl Emitter {
             // 6. past its life: restart at loc + its own offset, visible again.
             // Turn and sway angle are not reset.
             if p.age > s.max_life {
+                if self.dying {
+                    p.expired = true;
+                    p.visible = false;
+                    continue;
+                }
                 p.age = 0;
                 p.position = std::array::from_fn(|k| self.loc[k] + p.offset[k]);
                 p.visible = true;
@@ -280,6 +310,9 @@ impl Catcher {
     pub fn catch(&self, emitter: &mut Emitter) -> Vec<usize> {
         let mut hid = Vec::new();
         for (k, p) in emitter.particles.iter_mut().enumerate() {
+            if p.expired {
+                continue;
+            }
             if p.position[2] > self.top {
                 continue;
             }
@@ -314,6 +347,7 @@ mod tests {
             delay_start: false,
             follow: None,
             follow_mesh: false,
+            follow_part: None,
             follow_offset: [0.0; 3],
             problems: Vec::new(),
         }
@@ -587,5 +621,36 @@ mod tests {
         let mut e = Emitter::new("e", [0.0; 3], s, &mut Rng::new(1));
         e.tick();
         assert!(e.particles.is_empty());
+    }
+
+    #[test]
+    fn dying_finishes_existing_lives_without_restarting() {
+        let mut s = settings();
+        s.max_particles = 8;
+        s.max_life = 10;
+        let mut e = Emitter::new("fire", [0.0; 3], s, &mut Rng::new(8));
+        e.begin_dying();
+        assert!(!e.done());
+        for _ in 0..=10 {
+            e.tick();
+        }
+        assert!(e.done());
+        assert!(e.particles.iter().all(|p| p.expired && !p.drawn() && !p.restarted));
+        e.tick();
+        assert!(e.done());
+    }
+
+    #[test]
+    fn named_part_uses_animated_position_without_follow_offset() {
+        let mut s = settings();
+        s.follow = Some("head".into());
+        s.follow_mesh = true;
+        s.follow_part = Some("fire".into());
+        s.follow_offset = [100.0, 0.0, 0.0];
+        let mut e = Emitter::new_following("fire", [0.0; 3], [0.0; 3], s, &mut Rng::new(2));
+        assert_eq!(e.loc, [100.0, 0.0, 0.0]);
+        e.follow_part_to([500.0, 600.0, 700.0], [0.0, 0.0, 1.0]);
+        assert_eq!(e.loc, [500.0, 600.0, 700.0]);
+        assert_eq!(e.following.unwrap().angles, [0.0, 0.0, 1.0]);
     }
 }

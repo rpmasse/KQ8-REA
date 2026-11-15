@@ -29,6 +29,7 @@ use kq8_core::collide::BuildingCollider;
 use kq8_core::emitter::{Catcher, Emitter, Rng};
 
 use crate::connor_view::ConnorSim;
+use crate::door_view::DoorSim;
 use crate::game_camera::GameCam;
 use crate::load::EmitterAssets;
 use crate::log::Log;
@@ -69,6 +70,8 @@ pub enum Target {
     Camera,
     /// A placed object that doesn't move: (position, angles).
     Fixed([f32; 3], [f32; 3]),
+    /// A character's current named model part.
+    Animated(String),
 }
 
 /// Finds a following emitter's target by name: what it is, its position
@@ -78,6 +81,7 @@ pub type TargetLookup<'a> = &'a dyn Fn(&str) -> Option<(Target, [f32; 3], [f32; 
 struct DrawnEmitter {
     emitter: Emitter,
     target: Option<Target>,
+    dynamic: bool,
     /// One entity per particle (its model's meshes are children).
     entities: Vec<Entity>,
     /// Positions before the last update, for blending.
@@ -92,6 +96,12 @@ struct DrawnEmitter {
     activity: Option<kq8_data::objects::Activity>,
 }
 
+#[derive(Clone)]
+struct PreparedEmitter {
+    assets: EmitterAssets,
+    parts: Vec<(Handle<Mesh>, Handle<ObjectMaterial>)>,
+}
+
 /// A catcher with the index of its emitter, and how many particles it has
 /// hidden so far.
 struct ActiveCatcher {
@@ -103,6 +113,9 @@ struct ActiveCatcher {
 #[derive(Resource)]
 pub struct EffectsSim {
     emitters: Vec<DrawnEmitter>,
+    prepared: Vec<PreparedEmitter>,
+    rng: Rng,
+    fire_active: std::collections::BTreeSet<String>,
     catchers: Vec<ActiveCatcher>,
     trackers: Vec<Tracker>,
     updates: u64,
@@ -131,8 +144,17 @@ pub fn spawn_emitters(
     };
     let mut rng = Rng::new(SEED);
     let mut drawn = Vec::new();
+    let mut prepared = Vec::new();
     let (mut particles, mut not_started) = (0, Vec::new());
     for a in emitters {
+        if a.start_on_attack {
+            if let Some(shape) = a.shape {
+                prepared.push(PreparedEmitter { parts: built[shape].clone(), assets: a });
+            } else {
+                main_log.summary(format!("effects: Dragon fire {} has no particle model", a.file));
+            }
+            continue;
+        }
         let s = &a.settings;
         let at = |g: Option<f32>| g.map_or("none".to_string(), |g| format!("{g:.0}"));
         let below = a.ground.iter().flatten().any(|g| a.position[2] < *g);
@@ -226,7 +248,7 @@ pub fn spawn_emitters(
         particles += emitter.particles.len();
         let previous = emitter.particles.iter().map(|p| p.position).collect();
         let materials = parts.iter().map(|(_, m)| m.clone()).collect();
-        drawn.push(DrawnEmitter { emitter, target, entities, previous, materials, haze_from: None, too_far: a.too_far, groups: a.groups, activity: None });
+        drawn.push(DrawnEmitter { emitter, target, dynamic: false, entities, previous, materials, haze_from: None, too_far: a.too_far, groups: a.groups, activity: None });
     }
     // Particle catchers: names looked up once, after the start-up scripts
     // (rule 2); any case. Nothing found: the catcher does nothing.
@@ -288,15 +310,79 @@ pub fn spawn_emitters(
         trackers.iter().map(|t| drawn[t.emitter].emitter.name.clone()).collect::<Vec<_>>(),
         log.path().display()
     ));
-    commands.insert_resource(EffectsSim { emitters: drawn, catchers: active_catchers, trackers, updates: 0, log });
+    main_log.summary(format!("effects: {} Dragon fire emitter recipes prepared", prepared.len()));
+    commands.insert_resource(EffectsSim { emitters: drawn, prepared, rng, fire_active: Default::default(), catchers: active_catchers, trackers, updates: 0, log });
+}
+
+/// The current animated part in world space, including the movement's
+/// frame turn and the character's placement (as for a dropped weapon).
+fn animated_part(actor: &kq8_core::active::AnimObject, part: &str) -> Option<([f32; 3], [f32; 3], usize)> {
+    let player = &actor.player;
+    let movement = player.movement()?;
+    let frame = player.frame();
+    let (_, local) = movement.frame_parts.get(frame)?.iter().find(|(name, _)| name.eq_ignore_ascii_case(part))?;
+    let base = kq8_data::shape::Transform { flags: 0, m: player.base.rotation, p: player.base.position };
+    let owner = kq8_core::door::chain(&base, &movement.turn_at_frame(frame));
+    let world = kq8_core::door::chain(&owner, local);
+    Some((world.p, kq8_data::objects::angles_of(world.m), frame))
 }
 
 /// One update of every emitter (15 per second), particles in list order.
-pub fn effects_step(sim: Option<ResMut<EffectsSim>>, shared: Res<Shared>, connor: Option<Res<ConnorSim>>, camera: Option<Res<GameCam>>) {
+pub fn effects_step(
+    sim: Option<ResMut<EffectsSim>>, shared: Res<Shared>, connor: Option<Res<ConnorSim>>,
+    camera: Option<Res<GameCam>>, door: Option<Res<DoorSim>>, mut commands: Commands,
+    mut materials: ResMut<Assets<ObjectMaterial>>,
+) {
     let Some(mut sim) = sim else { return };
     let sim = &mut *sim;
     sim.updates += 1;
     let n = sim.updates;
+    // The first update that a Dragon head shows attack2 starts a fresh
+    // emitter. An overlapping later attack may have its own particles.
+    if let Some(door) = &door {
+        let mut active = std::collections::BTreeSet::new();
+        let mut starts = Vec::new();
+        for actor in &door.active.world.anims {
+            let Some(head) = actor.character.as_ref().and_then(|c| c.dragon_head.as_ref()) else { continue };
+            if actor.gone || !actor.player.movement_name().eq_ignore_ascii_case("attack2") { continue }
+            let name = actor.player.name.to_ascii_lowercase();
+            active.insert(name.clone());
+            if sim.fire_active.contains(&name) { continue }
+            let Some(file) = &head.fire_file else { continue };
+            if let Some(recipe) = sim.prepared.iter().find(|p| p.assets.file.eq_ignore_ascii_case(file)).cloned() {
+                starts.push((recipe, name, actor.player.base.position, kq8_data::objects::angles_of(actor.player.base.rotation)));
+            } else {
+                sim.log.detail(format!("update {n} [{name}]: Dragon fire file {file} was not prepared"));
+            }
+        }
+        sim.fire_active = active;
+        for (recipe, target, position, angles) in starts {
+            let a = &recipe.assets;
+            let emitter = Emitter::new_following(&a.name, position, angles, a.settings.clone(), &mut sim.rng);
+            let opacity = if a.translucency >= 256.0 { 1.0 } else { (a.translucency / 255.0).clamp(0.0, 1.0) };
+            let parts: Vec<_> = recipe.parts.iter().map(|(mesh, material)| {
+                let material = materials.get(material).cloned().map(|m| materials.add(m)).unwrap_or_else(|| material.clone());
+                (mesh.clone(), for_object(&mut materials, &material, opacity, a.haze.0, a.haze.1))
+            }).collect();
+            let mut entities = Vec::with_capacity(emitter.particles.len());
+            for p in &emitter.particles {
+                let transform = bevy_transform_from(kq8_data::objects::rotation(p.angles), p.position);
+                let visibility = if p.drawn() { Visibility::Inherited } else { Visibility::Hidden };
+                let parent = commands.spawn((transform, visibility)).id();
+                for (mesh, material) in &parts {
+                    let child = commands.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(material.clone()))).id();
+                    commands.entity(parent).add_child(child);
+                }
+                entities.push(parent);
+            }
+            sim.log.detail(format!("update {n} [{target}]: started {} from {} with {} particles at {:?}; {} model parts, groups {:?}",
+                a.name, a.file, emitter.particles.len(), emitter.loc, parts.len(), a.groups));
+            sim.emitters.push(DrawnEmitter { previous: emitter.particles.iter().map(|p| p.position).collect(),
+                emitter, target: Some(Target::Animated(target)), dynamic: true, entities,
+                materials: parts.iter().map(|(_, m)| m.clone()).collect(), haze_from: None,
+                too_far: a.too_far, groups: a.groups, activity: None });
+        }
+    }
     for d in &mut sim.emitters {
         // Following emitters move with their target before the particles do.
         let at = match &d.target {
@@ -304,6 +390,26 @@ pub fn effects_step(sim: Option<ResMut<EffectsSim>>, shared: Res<Shared>, connor
             Some(Target::Connor) => connor.as_ref().map(|c| (c.mover.position, [0.0, 0.0, c.walker.heading])),
             Some(Target::Camera) => camera.as_ref().map(|c| (c.position(), [0.0; 3])),
             Some(Target::Fixed(p, a)) => Some((*p, *a)),
+            Some(Target::Animated(name)) => {
+                let pose = (!d.emitter.dying).then_some(()).and_then(|_| door.as_ref())
+                    .and_then(|door| door.active.world.anims.iter().find(|a| !a.gone && a.player.name.eq_ignore_ascii_case(name)))
+                    .filter(|a| a.player.movement_name().eq_ignore_ascii_case("attack2"))
+                    .and_then(|a| d.emitter.settings.follow_part.as_deref().and_then(|part| animated_part(a, part)));
+                match pose {
+                    Some((position, angles, frame)) => {
+                        d.emitter.follow_part_to(position, angles);
+                        if n % 5 == 0 { sim.log.detail(format!("update {n} [{}] follows {name} part {:?} frame {frame}: loc {:?} turn {:?}, {} particles drawn",
+                            d.emitter.name, d.emitter.settings.follow_part, d.emitter.loc, angles,
+                            d.emitter.particles.iter().filter(|p| p.drawn()).count())); }
+                    }
+                    None if !d.emitter.dying => {
+                        d.emitter.begin_dying();
+                        sim.log.detail(format!("update {n} [{}] part or target ended: dying", d.emitter.name));
+                    }
+                    None => {}
+                }
+                None
+            }
         };
         if let Some((position, angles)) = at {
             d.emitter.follow_to(position, angles);
@@ -388,6 +494,16 @@ pub fn effects_step(sim: Option<ResMut<EffectsSim>>, shared: Res<Shared>, connor
             t.this_life.push(p.position);
         }
     }
+    let mut i = 0;
+    while i < sim.emitters.len() {
+        if sim.emitters[i].dynamic && sim.emitters[i].emitter.done() {
+            let finished = sim.emitters.remove(i);
+            for entity in finished.entities { commands.entity(entity).despawn(); }
+            sim.log.detail(format!("update {n} [{}] all particles expired: removed", finished.emitter.name));
+        } else {
+            i += 1;
+        }
+    }
 }
 
 /// Each particle where it is, blended between the last two updates (not
@@ -404,6 +520,7 @@ pub fn effects_draw(
     use kq8_data::objects::{Activity, DRAW_BITS, EMITTER_RADIUS};
     let Some(mut sim) = sim else { return };
     let a = fixed.overstep_fraction();
+    let mut activity_logs = Vec::new();
     for d in &mut sim.emitters {
         // Rules 35-37: radius 250 round the emitter's location.
         let activity = point.at.map(|at| {
@@ -412,6 +529,12 @@ pub fn effects_draw(
             (Activity::of(distance, point.limit, d.too_far), distance + EMITTER_RADIUS)
         });
         if activity.map(|a| a.0) != d.activity {
+            if d.dynamic {
+                let [always, near, far] = d.groups;
+                let draw_groups = activity.is_none_or(|a| a.0.groups(always, near, far) & DRAW_BITS != 0);
+                activity_logs.push(format!("draw [{}] activity {:?}, draw groups {}, {} particles currently drawn", d.emitter.name,
+                    activity.map(|a| a.0), draw_groups, d.emitter.particles.iter().filter(|p| p.drawn()).count()));
+            }
             if let (Some(before), Some((now, distance))) = (d.activity, activity) {
                 shared.log.lock().unwrap().detail(format!(
                     "draw distance: emitter [{}] {before:?} -> {now:?}; location {distance:.0} from Connor",
@@ -430,6 +553,7 @@ pub fn effects_draw(
             }
         }
     }
+    for line in activity_logs { sim.log.detail(line); }
     for d in &sim.emitters {
         let [always, near, far] = d.groups;
         let emitter_drawn = d.activity.is_none_or(|a| a.groups(always, near, far) & DRAW_BITS != 0);

@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Add the Dragon head fire effects
+
+Preserved the named `followMesh` part, prepared the two IceWorld fire
+files and their existing `flame.kqs` model, and started a fresh effect
+when each head enters `attack2`. Particles follow the current animated
+`fire` part and its turn. When the part or attack ends, they finish their
+lives without restarting and are removed. The startup emitters keep
+their previous behavior; no texture resolution was changed.
+
+Core passes 764 active tests, data 159 active, and the installed GOG
+fire-file and unattended IceWorld routes pass 1/1 each. The IceWorld log
+shows both heads' moving part positions, 56/63 drawable particles at
+update 35, and removal after expiry. The GOG installation was read only;
+no manual gameplay test was run. Saving an in-flight emitter remains
+future work.
+
 ## 2026-11-15 Clarify the README overview
 
 The README now states how this fork builds on KQ8R, where REA fits in the

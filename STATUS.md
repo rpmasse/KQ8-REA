@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-16 M5 Dragon fire follows both animated heads
+
+The IceWorld Dragon heads now start their authored `draglfir.kq` and
+`dragrfir.kq` emitters when `attack2` begins. Each uses the unchanged
+`flame.kqs` model and follows the moving `fire` part of its head. When
+the attack or part ends, its particles finish their current lives and
+the emitter is removed. The original-data route shows both effects
+within the near draw group, with 56 and 63 drawable particles at update
+35, then records their clean removal. Startup emitters remain separate.
+
+Core passes 764 active tests and data 159 active. The installed GOG
+fire-file check and unattended IceWorld attack check each pass 1/1.
+The GOG installation was read only; no manual gameplay test or original
+executable comparison was run. An in-flight emitter is not yet saved
+across a fresh process. M5 remains approximately 65%.
+
 ## 2026-11-15 M5 Dragon head bite and fire attacks
 
 Both IceWorld heads now take part in ordinary sight and team alarm,

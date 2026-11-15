@@ -38,6 +38,8 @@ pub struct EmitterSettings {
     pub follow: Option<String>,
     /// `followMesh` set (any value but 0).
     pub follow_mesh: bool,
+    /// The named animated part when `followMesh` gives a part name.
+    pub follow_part: Option<String>,
     pub follow_offset: [f32; 3],
     /// Values that could not be read (the default was used instead).
     pub problems: Vec<String>,
@@ -74,6 +76,9 @@ impl EmitterSettings {
         let max_particles = count(num("maxParticles"), DEFAULT_MAX_PARTICLES);
         let delay_start = num("delayStart").is_some_and(|v| v != 0.0);
         let follow_mesh = s.get("followMesh").is_some_and(|v| v.trim() != "0");
+        let follow_part = s.get("followMesh").map(str::trim)
+            .filter(|v| !v.is_empty() && *v != "0" && *v != "1")
+            .map(str::to_string);
         let text = |k: &str| s.get(k).map(str::trim).filter(|v| !v.is_empty()).map(str::to_string);
         EmitterSettings {
             shape: text("shape"),
@@ -89,6 +94,7 @@ impl EmitterSettings {
             delay_start,
             follow: text("follow"),
             follow_mesh,
+            follow_part,
             follow_offset,
             problems,
         }
@@ -208,8 +214,35 @@ mod tests {
         assert_eq!(e.max_sin_period, [2.0, 0.0, 0.0]);
         assert_eq!((e.max_life, e.max_particles), (DEFAULT_MAX_LIFE, DEFAULT_MAX_PARTICLES));
         assert!(e.delay_start);
-        assert!(e.follow.is_none() && !e.follow_mesh);
+        assert!(e.follow.is_none() && !e.follow_mesh && e.follow_part.is_none());
         assert!(e.problems.is_empty());
+    }
+
+    #[test]
+    fn follow_mesh_keeps_its_named_model_part() {
+        let s = &parse(b"[e]\nclassType=KQEmitter\nfollow=dragonHead\nfollowMesh=fire\nfollowOffsetX=50\n")[0];
+        let e = EmitterSettings::from_section(s);
+        assert_eq!(e.follow.as_deref(), Some("dragonHead"));
+        assert!(e.follow_mesh);
+        assert_eq!(e.follow_part.as_deref(), Some("fire"));
+        assert_eq!(e.follow_offset[0], 50.0);
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn installed_dragon_fire_files_name_an_animated_part_and_model() {
+        let game = crate::GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+        let archive = crate::VolArchive::open(&game.volume_path("IceWorld", "kq").unwrap()).unwrap();
+        for (file, head) in [("draglfir.kq", "draglhed"), ("dragrfir.kq", "dragrhed")] {
+            let bytes = archive.unpack(archive.find(file).unwrap()).unwrap().data;
+            let sections = parse(&bytes);
+            let s = sections.iter().find(|s| s.get("classType").is_some_and(|v| v.eq_ignore_ascii_case("KQEmitter"))).expect("dragon fire emitter");
+            let e = EmitterSettings::from_section(s);
+            assert_eq!(e.follow.as_deref(), Some(head), "{file}");
+            assert_eq!(e.follow_part.as_deref(), Some("fire"), "{file}");
+            assert_eq!(e.shape.as_deref(), Some("flame.kqs"), "{file}");
+            assert_eq!((e.max_life, e.max_particles), (18, 100), "{file}");
+        }
     }
 
     #[test]
