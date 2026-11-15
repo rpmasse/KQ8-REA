@@ -2550,7 +2550,7 @@ impl ConnorSim {
     }
 
     /// Rule 20 (M5 5f-6): his updates as seconds.
-    fn clock(&self) -> f64 {
+    pub(crate) fn clock(&self) -> f64 {
         self.updates as f64 / kq8_core::UPDATES_PER_SECOND
     }
 

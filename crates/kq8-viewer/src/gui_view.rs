@@ -2510,6 +2510,12 @@ pub fn popup_step(
         if *n > updates {
             return true;
         }
+        if word.eq_ignore_ascii_case("autohelp") {
+            if active_help.is_some() {
+                pressed.push("enter".into());
+            }
+            return true;
+        }
         if let Some(id) = word.strip_prefix("help=") {
             if id.parse::<u8>().ok() != active_help || active_help.is_none() {
                 return true;

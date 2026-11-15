@@ -27,7 +27,7 @@ pub fn earn_magic_map(game: &Path, root: &Path) {
     let slots = root.join("slots");
     let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
         .current_dir(root).env("KQ8_SAVE_DIR", &slots)
-        .arg("--game").arg(game).args(["--sound", "off", "--menu-input", "enter,release,enter,release"])
+        .arg("--game").arg(game).args(["--windowed", "--sound", "off", "--menu-input", "enter,release,enter,release"])
         // The original introduction, movement, camera and map requests.
         .args(["--key", "popup:help=144,0", "--key", "popup:help=141,0",
             "--key", "popup:help=127,0", "--key", "popup:help=132,0", "--key", "popup:help=153,0"])

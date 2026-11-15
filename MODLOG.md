@@ -1,5 +1,45 @@
 # MODLOG
 
+## 2026-11-15 Restore earned windmill combat and save route
+
+Repaired the unattended wizard-to-windmill test for the current host
+and help timing. It now runs windowed, checks the game-time pickup
+deadline, and acknowledges help popups through a persistent test-only
+input. The first replay paused at the newly encountered PLAY CURSOR
+help case 149. The next reached the axe but could not save because a
+restored hit gave Connor's local ouch timer the continuing world time.
+The hit request now uses Connor's own 15 Hz clock, like his reaction
+and checkpoint code. A shorter diagnostic run then stopped before its
+second scheduled save; moving that save closer to the axe completed
+the route. The final original-data test passes 1/1 in 177.84 s:
+Fists defeat the archer, the bale supports the axe pickup, and a fresh
+process reload keeps the earned item, positions and combat state. Core
+passes 761 active tests, data 158. No manual gameplay test was run;
+the GOG installation was read only.
+
+## 2026-11-15 Match Dragon head permanent-death equipment gate
+
+Applied the follow-up Dragon study to the existing defeat path: a head
+stays defeated only when Connor is in melee mode and the equipped hand
+slot contains the Flame Sword at death entry. A carried but stowed sword
+now takes the timed rebirth path. The focused two-case core check and
+the full 761-test core suite pass. The original-data Dragon route also
+passes 1/1 after this correction. The GOG installation was read only;
+no manual gameplay test was run.
+
+## 2026-11-15 Refine Dragon head attack study
+
+Study session A traced the head's inherited fight state, original
+random-choice calculation and death-entry equipment lookup. The heads
+inherit Connor sight/alarm/target handling and stay in place under
+their authored `none` chase mode. An eligible attack selects bite
+about 25% and fire about 75% of the time. The permanent-death branch
+requires Connor in melee mode with Flame Sword equipped when the head
+enters death; it does not test the killing hit kind. The head's
+specialized attack path does not read `attackLoc`. `dragon.md` and
+Q210 record the remaining uncertainties. This study changed no Rust
+or game files and ran no manual gameplay test.
+
 ## 2026-11-15 Add Dragon head defeat and rebirth states
 
 Loaded each IceWorld head's 600-health fight stats and authored

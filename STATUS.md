@@ -1,13 +1,33 @@
 # STATUS
 
+## 2026-11-15 M5 earned Fists and Small Axe route
+
+The unattended original-data wizard-to-windmill route now passes 1/1
+with ordinary enemy AI and damage. Connor's Fists `Do` hit defeats the
+windmill archer; he pushes the bale, collects the Small Axe, saves,
+relaunches, and saves again with the bale and axe positions retained.
+The test also verifies help popups are acknowledged without overriding
+question dialogs. Its replay exposed and fixed a combat save bug: a
+post-load hit used the continuing world clock for Connor's local ouch
+timer, making the hit checkpoint invalid. Core passes 761 active tests;
+no manual gameplay test was run and the GOG copy was read only. M5
+remains about 65% because later encounters and combat rules are open.
+
 ## 2026-11-15 M5 Dragon head defeat and rebirth
+
+The follow-up original-engine study in `docs/behaviour/dragon.md`
+establishes inherited Connor sight/alarm targeting, stationary
+`none` chase, a nominal 25% bite/75% fire attack choice, and the
+permanent-death gate: Connor must be in melee mode with Flame Sword
+equipped at head death entry. Body contact, frame-exact callbacks,
+mask-zero collision and original disk-load ordering remain Q210.
 
 Both IceWorld heads now load their authored 600-health stats and
 three-second rebirth pause. A lethal hit takes a head out of collision;
-without the equipped Flame Sword it plays `lopt` and rebirths at full
-health, while with the sword it plays `synge` and stays permanently
+without Connor's melee mode and Flame Sword hand slot it plays `lopt`
+and rebirths at full health, while with both it plays `synge` and stays permanently
 defeated. The unattended original-data route passes both console-driven
-outcomes 1/1, and a focused Rust checkpoint roundtrip preserves a
+outcomes 1/1 after the melee/slot correction, and a focused Rust checkpoint roundtrip preserves a
 waiting timer. Core passes 761 active tests, data 158. Automatic Dragon
 attacks, Fire/Bite cue damage, the two-head body/wall transition, and a
 fresh-process saved encounter remain open. No manual gameplay test was

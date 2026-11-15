@@ -61,7 +61,10 @@ fn wizard_to_windmill_archer_bale_and_axe() {
     assert_eq!(quantity(&hillside, "INVITEM_Invulnerable"), shields);
 
     let fight = log("fight.log");
-    assert!(viewer.contains("starting help: acknowledged case 142"));
+    for case in [131, 137, 142, 149] {
+        assert!(viewer.contains(&format!("starting help: acknowledged case {case}")),
+            "case {case} was not acknowledged; inspect {}", replay.display());
+    }
     assert!(fight
         .lines()
         .any(|l| l.contains("Do (confists.anm/") && l.contains("hits sprigwnd1")));
@@ -145,7 +148,7 @@ fn verify_reloaded_windmill(game: &Path, root: &Path, earned_slot: &Path, end: &
     fs::copy(earned_slot, slots.join("slot-3.json")).unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
         .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(game)
-        .args(["--sound", "off", "--menu-input", "down,enter,release,enter,release",
+        .args(["--windowed", "--sound", "off", "--menu-input", "down,enter,release,enter,release",
             "--console", "KQObject::getLoc ax,10", "--click", "ax,18",
             "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Restored:enter:release:escape,38",
             "--key", "menu:up:enter:release:left:enter:release,48", "--frames", "2200"])

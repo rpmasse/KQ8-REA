@@ -1356,7 +1356,10 @@ pub fn trap_step(
             }
             Request::ConnorHurt { roll_over, forced, special, world_hit, at } => {
                 let ouch = sim.active.world.connor_fight.as_ref().map_or(kq8_core::fight::DEFAULT_OUCH.to_string(), |f| f.ouch_sound.clone());
-                let now = sim.active.world.now();
+                // Connor's reaction and ouch deadlines use his own update
+                // clock, which restarts after a disk load. The world clock
+                // can continue from the saved campaign.
+                let now = connor.clock();
                 let line = connor.hurt(roll_over, forced, special.as_deref(), &ouch, world_hit, now);
                 sim.active.world.fight_note("Connor", format!("{at}: {line}"));
                 format!("{at}: applied: Connor {line}")
