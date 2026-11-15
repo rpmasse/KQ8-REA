@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-16 Start Lucreto's altar fire when the script loads it
+
+Temple 4's `lucfire.kq` is now prepared as an invisible runtime effect,
+with a no-model copy template for the existing `loadKQ` command. Its 125
+particles start when the script creates `lucfire`, follow Lucreto's
+animated `Box01` part, disappear on explicit deletion, and finish their
+lives if the target part is lost. A later load of the same name starts a
+fresh effect. A restored copy is prepared for the same runtime path.
+
+The original-data loader check passes, including a saved-copy rebuild.
+Three unattended Windows runs passed: load/delete/reload/delete; a live
+`z1b` animation whose sampled part moved from frame 6 through frame 51;
+and target deletion at update 25 followed by particle completion at
+update 75. These were Rust checks with the GOG data, not original-game
+runtime comparisons. Q215 records the original emitter-specific
+deletion and save semantics still to study. No manual gameplay test was
+run; the GOG installation was read only.
+
 ## 2026-11-16 Check the Dragon finish across a disk save
 
 Added an unattended two-process IceWorld test. The first process equips the

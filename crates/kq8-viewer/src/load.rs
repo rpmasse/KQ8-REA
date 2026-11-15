@@ -1898,10 +1898,13 @@ pub struct EmitterAssets {
     pub file: String,
     /// Prepared during load, but started only by a Dragon head's `attack2`.
     pub start_on_attack: bool,
+    /// Prepared during load, but started by a script's later `loadKQ`.
+    pub start_on_load: bool,
     /// The position as the file or the `loadKQ` line gives it, and after
     /// the usual placement rules (and any `move`).
     pub written: [f32; 3],
     pub position: [f32; 3],
+    pub angles: [f32; 3],
     pub settings: kq8_data::effects::EmitterSettings,
     /// `translucency` (256 = solid), read like any object's.
     pub translucency: f32,
@@ -3944,8 +3947,16 @@ impl Placer<'_> {
         }
         // An emitter has no model of its own (it stays an invisible-object
         // marker); its particles are drawn by `effects_view.rs`.
-        if !unused && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQEmitter")) {
+        if p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQEmitter"))
+            && (!unused || (!self.recipe_only && self.load_targets.contains(&base.to_ascii_lowercase()))) {
             self.place_emitter(&label, s, &p, load);
+            // A restored runtime copy is already live in core's saved
+            // object list. Prepare its effect for effects_step, which can
+            // follow the current animated target instead of this static
+            // placement snapshot.
+            if unused || self.saved_copies.contains_key(&p.name.to_ascii_lowercase()) {
+                self.emitters.last_mut().unwrap().start_on_load = true;
+            }
         }
         // A particle catcher: no model; its names are looked up once all
         // start-up scripts have run (emitters.md "Particle catchers" rule 2).
@@ -4709,8 +4720,10 @@ impl Placer<'_> {
             name: p.name.clone(),
             file: load.file.clone(),
             start_on_attack: false,
+            start_on_load: false,
             written,
             position: p.position,
+            angles: p.angles,
             settings,
             translucency: p.translucency,
             haze: (p.haze_solid, p.haze_multiplier),
@@ -6477,6 +6490,43 @@ mod campaign_tests {
             }
         }
         assert!(changed > 0, "expected a change on the actual river grid");
+    }
+
+    /// Uses the same world scripts, monster list and model loader as a new
+    /// Temple 4 visit. The GOG install supplies all test assets.
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn temple4_prepares_lucretos_script_loaded_fire() {
+        let game = game_install();
+        let world = World::open(&game, "temple4").unwrap();
+        let mut log = Log::create("temple4-lucfire-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let fire = objects.emitters.iter().find(|e| e.file.eq_ignore_ascii_case("lucfire.kq"))
+            .expect("altar.cs loads lucfire.kq while the world runs");
+        assert!(fire.start_on_load);
+        assert!(!fire.start_on_attack);
+        assert_eq!(fire.settings.follow.as_deref(), Some("Lucreto"));
+        assert_eq!(fire.settings.follow_part.as_deref(), Some("Box01"));
+        assert_eq!(fire.settings.max_particles, 125);
+        assert!(fire.shape.is_some(), "the original flame.kqs must be prepared");
+        assert!(!objects.templates.iter().any(|t| t.file.eq_ignore_ascii_case("lucfire.kq")),
+            "an invisible emitter must use its no-model template path");
+        assert!(objects.animated.iter().any(|a| objects.placed[a.placed].0.name.eq_ignore_ascii_case("Lucreto")));
+
+        use kq8_core::{collide::Placement, object_checkpoint::ObjectCopy};
+        let saved = ObjectCopy { file: "lucfire.kq".into(), name: "lucfire".into(),
+            placement: Placement::at([0.0; 3]) };
+        let arrival = Arrival { no_name_from: 0, items: None, third_person_lists: None,
+            exit_movement: None, kept_vars: vec![], gone: Default::default(),
+            came_in: vec![], object_copies: vec![saved.clone()], states: Default::default(),
+            prop_placements: Default::default(), kept_maps: Default::default() };
+        let restored = load_objects(&game, &world, &ground.terrain, &mut log, Some(arrival), None);
+        assert_eq!(restored.object_copies, vec![saved]);
+        let fire = restored.emitters.iter().find(|e| e.file.eq_ignore_ascii_case("lucfire.kq"))
+            .expect("saved altar effect must rebuild from the installed file");
+        assert!(fire.start_on_load, "saved effect must follow the animated part after restoration");
+        assert!(fire.shape.is_some());
     }
 
     /// Uses the same world scripts, monster list and model loader as a new

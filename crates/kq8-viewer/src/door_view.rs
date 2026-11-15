@@ -814,7 +814,7 @@ pub fn spawn_doors(
     active.set_dormant(std::mem::take(&mut objects.dormant));
     // M5 5d-3, 5d-4: the templates for new copies: still ones, and
     // animated ones with their player as built (at the start).
-    let templates: Vec<(String, kq8_core::active::Template)> = objects
+    let mut templates: Vec<(String, kq8_core::active::Template)> = objects
         .templates
         .iter()
         .filter_map(|t| {
@@ -834,6 +834,19 @@ pub fn spawn_doors(
             Some((t.file.clone(), kq8_core::active::Template { name: t.name.clone(), script: t.script.clone(), placement, kind, dithered: p.dithered, class: p.class.clone().unwrap_or_else(|| "KQObject".into()) }))
         })
         .collect();
+    // Emitters have no visible model of their own, so the ordinary
+    // shape-backed template pass cannot prepare them. Core still needs
+    // their name when altar.cs later calls `loadKQ lucfire.kq`.
+    templates.extend(objects.emitters.iter().filter(|e| e.start_on_load).map(|e| {
+        let placement = kq8_core::collide::Placement {
+            rotation: kq8_data::objects::rotation(e.angles), position: e.position,
+        };
+        (e.file.to_ascii_lowercase(), kq8_core::active::Template {
+            name: e.name.clone(), script: None, placement,
+            kind: kq8_core::active::TemplateKind::Still { bounds: None, collision_type: 0 },
+            dithered: 0, class: "KQEmitter".into(),
+        })
+    }));
     let animated = templates.iter().filter(|(_, t)| matches!(t.kind, kq8_core::active::TemplateKind::Anim(_))).count();
     main_log.summary(format!("templates: {} for loadKQ while playing ({animated} animated; M5 5d-3, 5d-4)", templates.len()));
     active.world.set_templates(templates);

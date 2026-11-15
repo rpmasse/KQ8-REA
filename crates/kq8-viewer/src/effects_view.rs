@@ -82,6 +82,8 @@ struct DrawnEmitter {
     emitter: Emitter,
     target: Option<Target>,
     dynamic: bool,
+    /// A live copy made by a script's `loadKQ`, rather than a head attack.
+    runtime_copy: bool,
     /// One entity per particle (its model's meshes are children).
     entities: Vec<Entity>,
     /// Positions before the last update, for blending.
@@ -116,6 +118,7 @@ pub struct EffectsSim {
     prepared: Vec<PreparedEmitter>,
     rng: Rng,
     fire_active: std::collections::BTreeSet<String>,
+    runtime_started: std::collections::BTreeSet<String>,
     catchers: Vec<ActiveCatcher>,
     trackers: Vec<Tracker>,
     updates: u64,
@@ -147,11 +150,11 @@ pub fn spawn_emitters(
     let mut prepared = Vec::new();
     let (mut particles, mut not_started) = (0, Vec::new());
     for a in emitters {
-        if a.start_on_attack {
+        if a.start_on_attack || a.start_on_load {
             if let Some(shape) = a.shape {
                 prepared.push(PreparedEmitter { parts: built[shape].clone(), assets: a });
             } else {
-                main_log.summary(format!("effects: Dragon fire {} has no particle model", a.file));
+                main_log.summary(format!("effects: prepared emitter {} has no particle model", a.file));
             }
             continue;
         }
@@ -207,7 +210,7 @@ pub fn spawn_emitters(
                         e.loc[0],
                         e.loc[1],
                         e.loc[2],
-                        if s.follow_mesh { "; followMesh: restarts take the target's turn and a new velocity (its mesh-part name is not used yet: emitters.md rule 11 a, DESIGN 3r)" } else { "" }
+                        if s.follow_mesh { "; followMesh: restarts take the target's turn and a new velocity" } else { "" }
                     );
                     main_log.summary(format!("effects: {line}"));
                     log.detail(line);
@@ -248,7 +251,7 @@ pub fn spawn_emitters(
         particles += emitter.particles.len();
         let previous = emitter.particles.iter().map(|p| p.position).collect();
         let materials = parts.iter().map(|(_, m)| m.clone()).collect();
-        drawn.push(DrawnEmitter { emitter, target, dynamic: false, entities, previous, materials, haze_from: None, too_far: a.too_far, groups: a.groups, activity: None });
+        drawn.push(DrawnEmitter { emitter, target, dynamic: false, runtime_copy: false, entities, previous, materials, haze_from: None, too_far: a.too_far, groups: a.groups, activity: None });
     }
     // Particle catchers: names looked up once, after the start-up scripts
     // (rule 2); any case. Nothing found: the catcher does nothing.
@@ -310,8 +313,8 @@ pub fn spawn_emitters(
         trackers.iter().map(|t| drawn[t.emitter].emitter.name.clone()).collect::<Vec<_>>(),
         log.path().display()
     ));
-    main_log.summary(format!("effects: {} Dragon fire emitter recipes prepared", prepared.len()));
-    commands.insert_resource(EffectsSim { emitters: drawn, prepared, rng, fire_active: Default::default(), catchers: active_catchers, trackers, updates: 0, log });
+    main_log.summary(format!("effects: {} delayed emitter recipes prepared", prepared.len()));
+    commands.insert_resource(EffectsSim { emitters: drawn, prepared, rng, fire_active: Default::default(), runtime_started: Default::default(), catchers: active_catchers, trackers, updates: 0, log });
 }
 
 /// The current animated part in world space, including the movement's
@@ -325,6 +328,43 @@ fn animated_part(actor: &kq8_core::active::AnimObject, part: &str) -> Option<([f
     let owner = kq8_core::door::chain(&base, &movement.turn_at_frame(frame));
     let world = kq8_core::door::chain(&owner, local);
     Some((world.p, kq8_data::objects::angles_of(world.m), frame))
+}
+
+/// Begin a prepared effect after its owner enters the world. A script
+/// copy and a Dragon attack share the same particle and material rules.
+fn start_prepared(
+    sim: &mut EffectsSim, commands: &mut Commands, materials: &mut Assets<ObjectMaterial>,
+    recipe: &PreparedEmitter, name: &str, target: Option<Target>,
+    position: [f32; 3], angles: [f32; 3], runtime_copy: bool, update: u64,
+) {
+    let a = &recipe.assets;
+    let emitter = if target.is_some() {
+        Emitter::new_following(name, position, angles, a.settings.clone(), &mut sim.rng)
+    } else {
+        Emitter::new(name, position, a.settings.clone(), &mut sim.rng)
+    };
+    let opacity = if a.translucency >= 256.0 { 1.0 } else { (a.translucency / 255.0).clamp(0.0, 1.0) };
+    let parts: Vec<_> = recipe.parts.iter().map(|(mesh, material)| {
+        let material = materials.get(material).cloned().map(|m| materials.add(m)).unwrap_or_else(|| material.clone());
+        (mesh.clone(), for_object(materials, &material, opacity, a.haze.0, a.haze.1))
+    }).collect();
+    let mut entities = Vec::with_capacity(emitter.particles.len());
+    for p in &emitter.particles {
+        let transform = bevy_transform_from(kq8_data::objects::rotation(p.angles), p.position);
+        let visibility = if p.drawn() { Visibility::Inherited } else { Visibility::Hidden };
+        let parent = commands.spawn((transform, visibility)).id();
+        for (mesh, material) in &parts {
+            let child = commands.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(material.clone()))).id();
+            commands.entity(parent).add_child(child);
+        }
+        entities.push(parent);
+    }
+    sim.log.detail(format!("update {update} [{name}]: started {} from {} with {} particles at {:?}; {} model parts, groups {:?}",
+        a.name, a.file, emitter.particles.len(), emitter.loc, parts.len(), a.groups));
+    sim.emitters.push(DrawnEmitter { previous: emitter.particles.iter().map(|p| p.position).collect(),
+        emitter, target, dynamic: true, runtime_copy, entities,
+        materials: parts.iter().map(|(_, m)| m.clone()).collect(), haze_from: None,
+        too_far: a.too_far, groups: a.groups, activity: None });
 }
 
 /// One update of every emitter (15 per second), particles in list order.
@@ -357,30 +397,50 @@ pub fn effects_step(
         }
         sim.fire_active = active;
         for (recipe, target, position, angles) in starts {
-            let a = &recipe.assets;
-            let emitter = Emitter::new_following(&a.name, position, angles, a.settings.clone(), &mut sim.rng);
-            let opacity = if a.translucency >= 256.0 { 1.0 } else { (a.translucency / 255.0).clamp(0.0, 1.0) };
-            let parts: Vec<_> = recipe.parts.iter().map(|(mesh, material)| {
-                let material = materials.get(material).cloned().map(|m| materials.add(m)).unwrap_or_else(|| material.clone());
-                (mesh.clone(), for_object(&mut materials, &material, opacity, a.haze.0, a.haze.1))
-            }).collect();
-            let mut entities = Vec::with_capacity(emitter.particles.len());
-            for p in &emitter.particles {
-                let transform = bevy_transform_from(kq8_data::objects::rotation(p.angles), p.position);
-                let visibility = if p.drawn() { Visibility::Inherited } else { Visibility::Hidden };
-                let parent = commands.spawn((transform, visibility)).id();
-                for (mesh, material) in &parts {
-                    let child = commands.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(material.clone()))).id();
-                    commands.entity(parent).add_child(child);
-                }
-                entities.push(parent);
+            start_prepared(sim, &mut commands, &mut materials, &recipe, &recipe.assets.name,
+                Some(Target::Animated(target)), position, angles, false, n);
+        }
+        // `loadKQ lucfire.kq` creates a normal live copy in core. Its
+        // prepared effect begins only after that copy exists.
+        let mut runtime_starts = Vec::new();
+        for copy in &door.active.world.object_copies {
+            if door.active.world.is_deleted(&copy.name) {
+                sim.runtime_started.remove(&copy.name.to_ascii_lowercase());
+                continue;
             }
-            sim.log.detail(format!("update {n} [{target}]: started {} from {} with {} particles at {:?}; {} model parts, groups {:?}",
-                a.name, a.file, emitter.particles.len(), emitter.loc, parts.len(), a.groups));
-            sim.emitters.push(DrawnEmitter { previous: emitter.particles.iter().map(|p| p.position).collect(),
-                emitter, target: Some(Target::Animated(target)), dynamic: true, entities,
-                materials: parts.iter().map(|(_, m)| m.clone()).collect(), haze_from: None,
-                too_far: a.too_far, groups: a.groups, activity: None });
+            if sim.runtime_started.contains(&copy.name.to_ascii_lowercase()) {
+                continue;
+            }
+            let Some(recipe) = sim.prepared.iter()
+                .find(|r| r.assets.start_on_load && r.assets.file.eq_ignore_ascii_case(&copy.file)).cloned() else { continue };
+            let (target, position, angles) = if let Some(follow) = &recipe.assets.settings.follow {
+                let Some(actor) = door.active.world.anims.iter()
+                    .find(|a| !a.gone && a.player.name.eq_ignore_ascii_case(follow)) else { continue };
+                (Some(Target::Animated(follow.clone())), actor.player.base.position,
+                    kq8_data::objects::angles_of(actor.player.base.rotation))
+            } else {
+                (None, copy.placement.position, kq8_data::objects::angles_of(copy.placement.rotation))
+            };
+            runtime_starts.push((recipe, copy.name.clone(), target, position, angles));
+        }
+        for (recipe, name, target, position, angles) in runtime_starts {
+            start_prepared(sim, &mut commands, &mut materials, &recipe, &name,
+                target, position, angles, true, n);
+            sim.runtime_started.insert(name.to_ascii_lowercase());
+        }
+    }
+    // Explicit deletion removes an object at once. Losing its animated
+    // part is different: that begins the emitter's dying phase below.
+    let mut i = 0;
+    while i < sim.emitters.len() {
+        if sim.emitters[i].runtime_copy
+            && door.as_ref().is_some_and(|door| door.active.world.is_deleted(&sim.emitters[i].emitter.name)) {
+            let removed = sim.emitters.remove(i);
+            for entity in removed.entities { commands.entity(entity).despawn(); }
+            sim.runtime_started.remove(&removed.emitter.name.to_ascii_lowercase());
+            sim.log.detail(format!("update {n} [{}] deleted: particles removed", removed.emitter.name));
+        } else {
+            i += 1;
         }
     }
     for d in &mut sim.emitters {
@@ -393,7 +453,7 @@ pub fn effects_step(
             Some(Target::Animated(name)) => {
                 let pose = (!d.emitter.dying).then_some(()).and_then(|_| door.as_ref())
                     .and_then(|door| door.active.world.anims.iter().find(|a| !a.gone && a.player.name.eq_ignore_ascii_case(name)))
-                    .filter(|a| a.player.movement_name().eq_ignore_ascii_case("attack2"))
+                    .filter(|a| d.runtime_copy || a.player.movement_name().eq_ignore_ascii_case("attack2"))
                     .and_then(|a| d.emitter.settings.follow_part.as_deref().and_then(|part| animated_part(a, part)));
                 match pose {
                     Some((position, angles, frame)) => {

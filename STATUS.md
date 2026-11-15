@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-16 M5 Temple 4 Lucreto fire effect
+
+The original altar script's `loadKQ lucfire.kq` can now start a Rust
+particle effect on Lucreto's animated `Box01` part. An explicit delete
+removes it, a later same-name load restarts it, and loss of Lucreto lets
+the existing particles expire. The effect's original model and particle
+count are unchanged. The GOG-data loader test passes for both a new
+world and a saved runtime copy. Three unattended Windows routes passed;
+the moving route logged different part positions from animation frames
+6 through 51, and the target-loss route removed the effect at update 75.
+
+These are controlled Rust checks, not the entire altar script, a disk
+save/reload run, or comparison against the original executable. Q215
+asks the study session to settle the original's explicit-deletion and
+saved-emitter rules. No manual gameplay test was run. The GOG install
+was read only. M5 remains approximately 65%.
+
 ## 2026-11-16 M5 Dragon save continuation and surprise-line audit
 
 An unattended two-process IceWorld test now saves after one permanent Dragon

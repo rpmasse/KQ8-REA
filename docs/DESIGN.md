@@ -2864,6 +2864,23 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Temple 4 Lucreto fire emitter (2026-11-16).** The installed
+`altar.cs` loads `lucfire.kq` during Lucreto's altar sequence and later
+deletes `lucfire`. Its emitter follows the animated `Box01` part of
+Lucreto, as specified by `emitters.md` rules 10–11. Prepare the particle
+model for this script-loaded file while loading Temple 4, without
+starting it at world entry. Register a no-model, no-collider copy template
+for this effect, because an emitter has no `shapeName` and cannot use the
+normal visible-object template path. When the existing `loadKQ` copy becomes live,
+start the emitter once at Lucreto's current part; keep it on that part
+through successive movements. `deleteObject` removes the effect and its
+particles; if the animated part disappears while the object remains,
+let existing particles finish and then remove their entities. Recreating the
+same name after deletion must start a fresh emitter. Check this with an
+unattended original-data Temple 4 command route, logging particle counts,
+part positions, and the death/removal boundary. Keep the installed GOG
+files read-only and do not change particle textures or resolution.
+
 **Scripted Unborn transition (2026-11-15).** `characters.md` rule 16
 requires a character in the underground Birth state to be hidden and
 non-solid; the existing `setState Unborn` branch changes the state but
