@@ -1194,6 +1194,8 @@ pub struct ProjectileKeys {
     pub collider_mask: u32,
     /// `weaponType`: 2 Fire, 3 Ice, otherwise the hit is `Projectile`.
     pub weapon_type: Option<i64>,
+    /// Optional particle effect file named by the projectile's `emitter` key.
+    pub emitter: Option<String>,
     /// Authored arc height parameter and first horizontal progress rate
     /// (`rock-projectiles.md` Q202), not ballistic height/upward speed.
     pub parabola: Option<(f32, f32)>,
@@ -1263,6 +1265,7 @@ impl ProjectileKeys {
             mesh_name: s.get("meshName").map(|v| v.trim().to_string()).filter(|v| !v.is_empty()),
             collider_mask: number("colliderMask").map_or(if hammer { HAMMER_MASK } else { PROJECTILE_MASK }, |v| v as u32),
             weapon_type: number("weaponType").map(|v| v as i64),
+            emitter: s.get("emitter").map(str::trim).filter(|v| !v.is_empty() && !v.eq_ignore_ascii_case("none")).map(str::to_owned),
             parabola: (whole("parabola") != 0).then(|| (number("peakHeightOffset").unwrap_or(0.) as f32, number("upVelocity").unwrap_or(0.) as f32)),
             ouch_sound: s.get("ouchSound").map(str::trim).filter(|s| !s.is_empty() && !s.eq_ignore_ascii_case("none")).map(str::to_owned),
             drain,

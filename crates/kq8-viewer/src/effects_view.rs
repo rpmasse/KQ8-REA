@@ -72,6 +72,8 @@ pub enum Target {
     Fixed([f32; 3], [f32; 3]),
     /// A character's current named model part.
     Animated(String),
+    /// A projectile's moving origin and turn.
+    Bolt(String),
 }
 
 /// Finds a following emitter's target by name: what it is, its position
@@ -118,6 +120,7 @@ pub struct EffectsSim {
     prepared: Vec<PreparedEmitter>,
     rng: Rng,
     fire_active: std::collections::BTreeSet<String>,
+    bolt_started: std::collections::BTreeSet<String>,
     runtime_started: std::collections::BTreeSet<String>,
     catchers: Vec<ActiveCatcher>,
     trackers: Vec<Tracker>,
@@ -150,7 +153,7 @@ pub fn spawn_emitters(
     let mut prepared = Vec::new();
     let (mut particles, mut not_started) = (0, Vec::new());
     for a in emitters {
-        if a.start_on_attack || a.start_on_load {
+        if a.start_on_attack || a.start_on_load || a.start_on_projectile {
             if let Some(shape) = a.shape {
                 prepared.push(PreparedEmitter { parts: built[shape].clone(), assets: a });
             } else {
@@ -314,7 +317,7 @@ pub fn spawn_emitters(
         log.path().display()
     ));
     main_log.summary(format!("effects: {} delayed emitter recipes prepared", prepared.len()));
-    commands.insert_resource(EffectsSim { emitters: drawn, prepared, rng, fire_active: Default::default(), runtime_started: Default::default(), catchers: active_catchers, trackers, updates: 0, log });
+    commands.insert_resource(EffectsSim { emitters: drawn, prepared, rng, fire_active: Default::default(), bolt_started: Default::default(), runtime_started: Default::default(), catchers: active_catchers, trackers, updates: 0, log });
 }
 
 /// The current animated part in world space, including the movement's
@@ -370,16 +373,57 @@ fn start_prepared(
 /// One update of every emitter (15 per second), particles in list order.
 pub fn effects_step(
     sim: Option<ResMut<EffectsSim>>, shared: Res<Shared>, connor: Option<Res<ConnorSim>>,
-    camera: Option<Res<GameCam>>, door: Option<Res<DoorSim>>, mut commands: Commands,
+    camera: Option<Res<GameCam>>, mut door: Option<ResMut<DoorSim>>, mut commands: Commands,
     mut materials: ResMut<Assets<ObjectMaterial>>,
 ) {
     let Some(mut sim) = sim else { return };
     let sim = &mut *sim;
     sim.updates += 1;
     let n = sim.updates;
+    // A close target can remove a bolt in its launch update. Process its
+    // world-entry notice before looking at the survivors below.
+    if let Some(door) = &mut door {
+        for spawn in std::mem::take(&mut door.active.world.bolt_effect_spawns) {
+            let key = spawn.bolt.to_ascii_lowercase();
+            if sim.bolt_started.contains(&key) { continue }
+            if let Some(recipe) = sim.prepared.iter()
+                .find(|p| p.assets.start_on_projectile && p.assets.file.eq_ignore_ascii_case(&spawn.file)).cloned() {
+                let name = format!("{}:{}", spawn.bolt, recipe.assets.name);
+                start_prepared(sim, &mut commands, &mut materials, &recipe, &name,
+                    Some(Target::Bolt(spawn.bolt.clone())), spawn.position,
+                    kq8_data::objects::angles_of(spawn.rotation), false, n);
+            } else {
+                sim.log.detail(format!("update {n} [{}]: projectile emitter {} was not prepared", spawn.bolt, spawn.file));
+            }
+            sim.bolt_started.insert(key);
+        }
+    }
     // The first update that a Dragon head shows attack2 starts a fresh
     // emitter. An overlapping later attack may have its own particles.
     if let Some(door) = &door {
+        let mut live_bolts = std::collections::BTreeSet::new();
+        let mut bolt_starts = Vec::new();
+        for bolt in &door.active.world.bolts {
+            let Some(file) = &bolt.emitter else { continue };
+            let key = bolt.name.to_ascii_lowercase();
+            live_bolts.insert(key.clone());
+            if sim.bolt_started.contains(&key) { continue }
+            let Some(recipe) = sim.prepared.iter()
+                .find(|p| p.assets.start_on_projectile && p.assets.file.eq_ignore_ascii_case(file)).cloned() else {
+                sim.log.detail(format!("update {n} [{}]: projectile emitter {file} was not prepared", bolt.name));
+                sim.bolt_started.insert(key);
+                continue;
+            };
+            let angles = kq8_data::objects::angles_of(bolt.rotation());
+            bolt_starts.push((recipe, bolt.name.clone(), bolt.position, angles));
+            sim.bolt_started.insert(key);
+        }
+        sim.bolt_started.retain(|key| live_bolts.contains(key));
+        for (recipe, bolt, position, angles) in bolt_starts {
+            let name = format!("{}:{}", bolt, recipe.assets.name);
+            start_prepared(sim, &mut commands, &mut materials, &recipe, &name,
+                Some(Target::Bolt(bolt)), position, angles, false, n);
+        }
         let mut active = std::collections::BTreeSet::new();
         let mut starts = Vec::new();
         for actor in &door.active.world.anims {
@@ -450,6 +494,27 @@ pub fn effects_step(
             Some(Target::Connor) => connor.as_ref().map(|c| (c.mover.position, [0.0, 0.0, c.walker.heading])),
             Some(Target::Camera) => camera.as_ref().map(|c| (c.position(), [0.0; 3])),
             Some(Target::Fixed(p, a)) => Some((*p, *a)),
+            Some(Target::Bolt(name)) => {
+                let bolt = (!d.emitter.dying).then_some(()).and_then(|_| door.as_ref())
+                    .and_then(|door| door.active.world.bolts.iter().find(|b| b.name.eq_ignore_ascii_case(name)));
+                match bolt {
+                    Some(bolt) => {
+                        let angles = kq8_data::objects::angles_of(bolt.rotation());
+                        d.emitter.follow_to(bolt.position, angles);
+                        if n % 5 == 0 {
+                            sim.log.detail(format!("update {n} [{}] follows bolt {name}: loc {:?} turn {:?}, {} particles drawn",
+                                d.emitter.name, d.emitter.loc, angles,
+                                d.emitter.particles.iter().filter(|p| p.drawn()).count()));
+                        }
+                    }
+                    None if !d.emitter.dying => {
+                        d.emitter.begin_dying();
+                        sim.log.detail(format!("update {n} [{}] bolt {name} ended: dying", d.emitter.name));
+                    }
+                    None => {}
+                }
+                None
+            }
             Some(Target::Animated(name)) => {
                 let pose = (!d.emitter.dying).then_some(()).and_then(|_| door.as_ref())
                     .and_then(|door| door.active.world.anims.iter().find(|a| !a.gone && a.player.name.eq_ignore_ascii_case(name)))

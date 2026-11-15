@@ -1898,6 +1898,8 @@ pub struct EmitterAssets {
     pub file: String,
     /// Prepared during load, but started only by a Dragon head's `attack2`.
     pub start_on_attack: bool,
+    /// Prepared during load, but started for each live projectile naming it.
+    pub start_on_projectile: bool,
     /// Prepared during load, but started by a script's later `loadKQ`.
     pub start_on_load: bool,
     /// The position as the file or the `loadKQ` line gives it, and after
@@ -2507,6 +2509,30 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         crate::timeline::counters_line()
     ));
     placer.log.detail(format!("archive entries unpacked more than once (most first): {:?}", crate::timeline::most_repeated(crate::timeline::Counter::Unpack, 25)));
+    // Projectile files reference a separate emitter recipe. Its shape is
+    // needed before the renderer builds meshes, but no effect starts until
+    // an individual bolt enters the world.
+    let projectile_effects: std::collections::BTreeSet<String> = placer.projectiles.values()
+        .filter_map(|p| p.emitter.clone()).collect();
+    for file in projectile_effects {
+        let Some((label, bytes)) = world.load(&file).and_then(Result::ok) else {
+            placer.log.summary(format!("projectile emitter {file}: file not found"));
+            continue;
+        };
+        let sections = kq8_data::kq_text::parse(&bytes);
+        let Some(section) = sections.iter().find(|s| s.get("classType").is_some_and(|v| v.eq_ignore_ascii_case("KQEmitter"))) else {
+            placer.log.summary(format!("projectile emitter {file}: no KQEmitter section"));
+            continue;
+        };
+        let load = LoadKq { file: file.clone(), name: LoadName::Keep, position: None, angles: None,
+            ignored_numbers: 0, from: "(projectile emitter)".into(), line: 0, inside_if: false };
+        let placement = kq8_data::objects::Placement::from_load(section, &load);
+        placer.place_emitter(&label, section, &placement, &load);
+        if let Some(effect) = placer.emitters.last_mut() {
+            effect.start_on_projectile = true;
+            placer.log.summary(format!("projectile emitter {file}: prepared {} with particle model {:?}", effect.name, effect.settings.shape));
+        }
+    }
     let mut objects = placer.finish();
     if let Some(arrival) = &arrival {
         objects.object_copies.sort_by_key(|copy| arrival.object_copies.iter().position(|saved| saved.name.eq_ignore_ascii_case(&copy.name)).unwrap_or(usize::MAX));
@@ -3148,7 +3174,7 @@ impl Placer<'_> {
                     let table = self.game.find("GAME/patch/BOUNDS.KQ").and_then(|p| std::fs::read(p).ok()).map(|b| kq8_data::bounds::BoundingBoxes::parse(&b).0);
                     k.bounds = k.shape.as_ref().and_then(|s| table.as_ref()?.lookup(&s.to_ascii_lowercase())).map(|e| (e.min, e.max));
                     self.character_lines.push(format!(
-                        "[{who}]: shoots {file}: shape {:?} (box {:?}), speed {}, range {}, mask 0x{:X}, weaponType {:?}, part {:?} (ranged-weapons.md rule 26){}",
+                        "[{who}]: shoots {file}: shape {:?} (box {:?}), speed {}, range {}, mask 0x{:X}, weaponType {:?}, part {:?}, emitter {:?} (ranged-weapons.md rule 26){}",
                         k.shape,
                         k.bounds,
                         k.speed,
@@ -3156,6 +3182,7 @@ impl Placer<'_> {
                         k.collider_mask,
                         k.weapon_type,
                         k.mesh_name,
+                        k.emitter,
                         if k.hammer { format!("; KQHammer: modifier {}, minDamage {}, maxDamage {} (azriel-hammer.md rule 6)", k.modifier, k.min_damage, k.max_damage) } else { String::new() }
                     ));
                     self.projectiles.insert(key.clone(), k);
@@ -4720,6 +4747,7 @@ impl Placer<'_> {
             name: p.name.clone(),
             file: load.file.clone(),
             start_on_attack: false,
+            start_on_projectile: false,
             start_on_load: false,
             written,
             position: p.position,
@@ -6013,6 +6041,25 @@ mod campaign_tests {
 
     fn game_install() -> GameDir {
         GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap()
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_elemental_projectiles_name_their_effect_files() {
+        let game = game_install();
+        let world = World::open(&game, "DeadCity").unwrap();
+        for (file, expected) in [
+            ("Prfarrow.kq", Some("firebits.kq")),
+            ("PRicycle.kq", Some("icebits.kq")),
+            ("Prscbolt.kq", None),
+        ] {
+            let (_, bytes) = world.load(file).and_then(Result::ok).unwrap();
+            let keys = kq8_data::kq_text::parse(&bytes)
+                .iter()
+                .find_map(kq8_data::characters::ProjectileKeys::from_section)
+                .unwrap();
+            assert_eq!(keys.emitter.as_deref(), expected, "{file}");
+        }
     }
 
     #[test]

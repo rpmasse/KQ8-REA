@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-16 M5 Fire and Ice projectile trails
+
+The original Fire and Ice projectile files' `emitter` references now
+reach live Rust bolts and disk records. The viewer prepares the shipped
+particle models and creates a separate effect for each elemental bolt,
+including a bolt that hits in its launch update. While a bolt flies,
+the effect follows its position and turn. After removal, its existing
+particles finish and the effect disappears. No texture assets changed.
+
+The unattended GOG-data Fire/Ice attack and Fire range tests passed
+2/2 in 34.81 seconds. The range run compared the bolt and effect
+positions at update 90 and checked the dying tail. The enemy Fire/Ice
+attack regression passed 1/1 in 26.65 seconds, and the live-bolt disk
+record check passed 1/1. The earlier attack fixture stopped after 130
+rendered frames before the shot cue; changing it to 180 game updates
+made the attack route complete. Native in-flight emitter save state and
+the precise original impact/removal order remain open in Q212. These
+are controlled Rust checks, not original-executable comparisons. No
+manual gameplay test was run. M5 remains about 65%.
+
 ## 2026-11-16 M5 first-person weapon put-away matrix
 
 An unattended original-data Windows matrix now covers Alt put-away for

@@ -27,7 +27,7 @@ fn projectile() -> kq8_core::fight::Bolt {
     kq8_core::fight::Bolt { name: "rock1".into(), shooter: "Connor".into(), shape: None,
         position: [1.,2.,3.], direction: [0.,-1.,0.], heading: 0., pitch: 0., speed: 100.,
         travelled: 7., max: 1000., damage: 1, kind: kq8_core::fight::HitKind::Projectile,
-        mask: 0, balls: None, updates: 2, hammer: None, script: None, arc: None, ouch_sound: None, drain: None }
+        mask: 0, balls: None, updates: 2, hammer: None, script: None, arc: None, ouch_sound: None, drain: None, emitter: None }
 }
 
 #[test]

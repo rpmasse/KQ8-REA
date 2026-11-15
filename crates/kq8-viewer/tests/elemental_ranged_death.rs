@@ -14,10 +14,12 @@ fn flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths() {
         "../../kq8-artifacts/elemental-ranged-tests/{nonce}"
     ));
 
-    for (item, projectile, kind, target, movement, corpse) in [
+    for (item, projectile, emitter, particles, kind, target, movement, corpse) in [
         (
             "FlameBow",
             "Prfarrow.kq",
+            "firebits.kq",
+            4,
             "Fire",
             "skeleton2",
             "firedie",
@@ -26,6 +28,8 @@ fn flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths() {
         (
             "IceCrossbow",
             "PRicycle.kq",
+            "icebits.kq",
+            8,
             "Ice",
             "skeleton1",
             "icedie",
@@ -59,8 +63,8 @@ fn flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths() {
                 "KQConner::setDoMode 1,35",
                 "--aim",
                 &aim,
-                "--frames",
-                "130",
+                "--updates",
+                "180",
             ])
             .output()
             .unwrap();
@@ -74,6 +78,13 @@ fn flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths() {
         );
 
         let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+        let effects = fs::read_to_string(logs.join("effects.log")).unwrap();
+        assert!(effects.lines().any(|line| line.contains("[bolt1:")
+            && line.contains(&format!("from {emitter} with {particles} particles"))),
+            "{item} did not create its original effect; inspect {}", run.display());
+        assert!(effects.contains("[bolt1:") && effects.contains("bolt bolt1 ended: dying")
+            && effects.contains("all particles expired: removed"),
+            "{item} effect did not finish after impact; inspect {}", run.display());
         let shot = format!("shoots bolt1 ({projectile}, 6000 units/s = 400 per update, range 12000, mask 0x1F, {kind})");
         assert_eq!(
             fight.matches(&shot).count(),
@@ -138,4 +149,50 @@ fn flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths() {
             ),
         }
     }
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
+fn fire_arrow_effect_follows_flight_and_finishes_after_range_removal() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let run = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../kq8-artifacts/elemental-range-tests/{nonce}"));
+    fs::create_dir_all(&run).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+        .current_dir(&run).arg("--game").arg(&game)
+        .args(["--windowed", "--renderer", "dx12", "--sound", "off", "--no-ai", "--god",
+            "--world", "DeadCity", "--command", "KQMonster::inventory Connor INVITEM_FlameBow 1,20",
+            "--command", "KQConner::setDoMode 1,35", "--aim-point", "182000,55000,1800,60",
+            "--updates", "150"])
+        .output().unwrap();
+    fs::write(run.join("stdout.log"), &output.stdout).unwrap();
+    fs::write(run.join("stderr.log"), &output.stderr).unwrap();
+    let logs = run.join("kq8-artifacts/logs");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", run.display());
+    let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    let effects = fs::read_to_string(logs.join("effects.log")).unwrap();
+    assert!(fight.contains("shoots bolt1 (Prfarrow.kq")
+        && fight.contains("bolt1 update 30:") && fight.contains("more than its range 12000"),
+        "Fire bolt did not reach range removal; inspect {}", run.display());
+    assert_eq!(effects.matches("started firebits from firebits.kq with 4 particles").count(), 1);
+    let follow = effects.lines().find(|line| line.contains("follows bolt bolt1:")
+        && line.contains("particles drawn") && line.contains("update 90 ")).unwrap();
+    let bolt = fight.lines().find(|line| line.contains("update 90:")
+        && line.contains("bolt1 update ")).unwrap();
+    let triple = |line: &str, start: &str, end: char| -> [f32; 3] {
+        let values = line.split_once(start).unwrap().1.split_once(end).unwrap().0;
+        let numbers: Vec<f32> = values.split(',').map(|s| s.trim().parse().unwrap()).collect();
+        numbers.try_into().unwrap()
+    };
+    let at = triple(bolt, "at (", ')');
+    let loc = triple(follow, "loc [", ']');
+    assert!(at.iter().zip(loc).all(|(a, b)| (*a - b).abs() < 1.0),
+        "emitter origin did not follow the bolt at update 90: {at:?} vs {loc:?}");
+    assert!(effects.contains("bolt bolt1 ended: dying")
+        && effects.contains("[bolt1:firebits] all particles expired: removed"),
+        "the particle tail did not finish; inspect {}", run.display());
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

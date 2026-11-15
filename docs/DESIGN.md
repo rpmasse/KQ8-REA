@@ -3,6 +3,37 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 elemental projectile emitter reference (2026-11-16)
+
+The original Fire and Ice projectile files name `firebits.kq` and
+`icebits.kq` in their `emitter` key. Retain that optional resource name
+when reading a projectile and show it in the loader log. Carry the name
+on a live bolt and its optional disk record, validating it like the other
+resource names; old records without the field still load. Check the
+two references against the installed GOG files, alongside a plain
+projectile without an emitter, and check that a saved live bolt keeps
+the name. This is the data connection needed for the full attached
+effect. Q212's separate original-engine study has settled launch,
+follow and dying behavior; native in-flight save ordering and exact
+removal timing remain open.
+
+**Attached-effect step.** The Q212 original-engine trace establishes a
+separate emitter at bolt creation: it follows the bolt's own name, at
+the bolt origin with the bolt's turn, and enters its dying phase when
+the bolt ends. Prepare each referenced emitter recipe and its original
+particle model while loading the world. At runtime start one emitter
+per live elemental bolt, move its origin and turn with that bolt each
+update, then stop particle restarts when the bolt disappears; let its
+existing particles expire. Use unique runtime names so simultaneous
+arrows have independent effects. A restored live bolt may start its
+effect again, but exact saved particle phases and original save ordering
+remain Q212 until traced. Check original Fire/Ice recipes and an
+unattended launch, follow, impact and range-removal route; avoid manual
+gameplay and texture changes.
+Retain a transient spawn notice in core until the effect step consumes
+it, because a bolt can enter and hit during the same 15 Hz update;
+scanning only the remaining live bolts would miss that creation.
+
 ## M5 first-person weapon put-away matrix (2026-11-16)
 
 The attack matrix covers first-person hits but does not check putting

@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-16 Attach original Fire and Ice effects to bolts
+
+The projectile parser now retains `emitter`; live and saved bolts carry
+the validated file name. During world load, the viewer prepares each
+referenced original emitter and particle model. A launch notice covers
+bolts that hit in the same game update. Each live elemental bolt gets
+an independent moving effect; removal starts the normal particle tail.
+The GOG-data Fire/Ice attack and Fire range tests passed 2/2 in 34.81 s;
+the enemy attack regression passed 1/1 in 26.65 s, and the bolt disk
+record test passed 1/1. The first attack test stopped before the shot
+under a rendered-frame limit; its game-update limit fixed the fixture.
+No original game asset or texture was changed, and no manual gameplay
+test or original-executable comparison was run. Native particle save
+continuation and exact impact ordering remain Q212.
+
+## 2026-11-16 Study Fire and Ice projectile emitters
+
+Traced the installed original executable read-only and checked the GOG
+projectile and emitter data. `elemental-projectile-emitters.md` now
+describes effect creation at launch, following by the bolt's own name,
+and the particle tail after bolt removal. Q212 remains partly open for
+native in-flight save continuation and exact termination ordering.
+No Rust or original game file changed; no manual gameplay test was run.
+
 ## 2026-11-16 Check first-person put-away for every weapon
 
 Added an unattended GOG-data Alt put-away matrix for 13 hand and nine

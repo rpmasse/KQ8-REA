@@ -1084,6 +1084,8 @@ pub struct WorldState {
     pub projectiles: std::collections::BTreeMap<String, kq8_data::characters::ProjectileKeys>,
     /// Bolts in the air (M5 5c-9), and how many were shot (their names).
     pub bolts: Vec<crate::fight::Bolt>,
+    /// Elemental launch notices pending the renderer's effect step.
+    pub bolt_effect_spawns: Vec<crate::fight::BoltEffectSpawn>,
     pub weeper_drains: Vec<crate::weeper::Drain>,
     pub weeper_links: std::collections::BTreeSet<usize>,
     pub bolts_shot: u64,
@@ -5205,6 +5207,7 @@ impl Active {
                 new_inv_item: None,
                 projectiles: Default::default(),
                 bolts: Vec::new(),
+                bolt_effect_spawns: Vec::new(),
                 weeper_drains: Vec::new(),
                 weeper_links: Default::default(),
                 bolts_shot: 0,

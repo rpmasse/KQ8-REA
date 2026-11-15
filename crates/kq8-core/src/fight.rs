@@ -409,6 +409,19 @@ pub struct Bolt {
     #[serde(default)]
     pub ouch_sound: Option<String>,
     pub drain: Option<kq8_data::characters::DrainKeys>,
+    /// The projectile file's optional attached particle effect recipe.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub emitter: Option<String>,
+}
+
+/// A transient effect notice. It survives a bolt that hits during the
+/// same game update in which it was launched; the viewer consumes it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BoltEffectSpawn {
+    pub bolt: String,
+    pub file: String,
+    pub position: [f32; 3],
+    pub rotation: [[f32; 3]; 3],
 }
 
 /// World-owned projectiles in a version-2 disk slot. The count is kept even
@@ -439,6 +452,7 @@ impl SavedBolts {
                 && number.is_some_and(|n| n > 0 && n <= self.bolts_shot)
                 && names.insert(b.name.to_ascii_lowercase())
                 && b.shape.as_deref().is_none_or(resource)
+                && b.emitter.as_deref().is_none_or(resource)
                 && b.script.as_deref().is_none_or(name)
                 && b.position.iter().chain(&b.direction).all(|x| x.is_finite())
                 && ((b.direction.iter().map(|x| x * x).sum::<f32>()) - 1.0).abs() < 0.01
@@ -2077,6 +2091,7 @@ impl crate::active::WorldState {
             arc: p.parabola.map(|(peak, up)| RockArc::new(from, aim, peak, up, p.speed, p.max_distance, local_height, part_rotation)),
             ouch_sound: p.ouch_sound.clone(),
             drain: p.drain.clone(),
+            emitter: p.emitter.clone(),
         };
         let shape = match &bolt.balls {
             Some(b) => format!("box {:?} as {} ball(s) of radius {:.0} at {:?} above it (Q140 a)", p.bounds.unwrap_or_default(), b.heights.len(), b.radius, b.heights),
@@ -2112,6 +2127,12 @@ impl crate::active::WorldState {
                 pitch.to_degrees()
             ),
         );
+        if let Some(file) = &bolt.emitter {
+            self.bolt_effect_spawns.push(BoltEffectSpawn {
+                bolt: bolt.name.clone(), file: file.clone(), position: bolt.position,
+                rotation: bolt.rotation(),
+            });
+        }
         self.bolts.push(bolt);
     }
 
@@ -2692,7 +2713,7 @@ pub(crate) mod tests {
             heading: std::f32::consts::FRAC_PI_2, pitch: 0., speed: 6000., travelled: 800.,
             max: 12000., damage: 19, kind: HitKind::Projectile, mask: 0x1F,
             balls: Some(crate::collide::BallStack { radius: 235., heights: vec![235.] }),
-            updates: 2, hammer: None, script: None, arc: None, ouch_sound: None, drain: None,
+            updates: 2, hammer: None, script: None, arc: None, ouch_sound: None, drain: None, emitter: None,
         };
         let mut rock = ordinary.clone();
         rock.name = "rock2".into();
@@ -2710,15 +2731,25 @@ pub(crate) mod tests {
             hurt_anim: "magicReact".into(), done_anim: "stop".into(),
             shoot_height: 500., hit_height: 500.,
         });
-        let saved = SavedBolts { bolts: vec![ordinary, rock, hammer, weeper], bolts_shot: 4 };
+        let mut elemental = ordinary.clone();
+        elemental.name = "bolt5".into();
+        elemental.emitter = Some("firebits.kq".into());
+        let saved = SavedBolts { bolts: vec![ordinary, rock, hammer, weeper, elemental], bolts_shot: 5 };
         assert!(saved.valid());
         let decoded: SavedBolts = serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();
         assert_eq!(decoded, saved);
+        let mut legacy = serde_json::to_value(&saved).unwrap();
+        legacy["bolts"][4].as_object_mut().unwrap().remove("emitter");
+        let legacy: SavedBolts = serde_json::from_value(legacy).unwrap();
+        assert!(legacy.valid() && legacy.bolts[4].emitter.is_none());
         let mut bad = decoded.clone();
         bad.bolts[0].position[0] = f32::NAN;
         assert!(!bad.valid());
         bad = decoded.clone();
         bad.bolts[0].name = "../bolt1".into();
+        assert!(!bad.valid());
+        bad = decoded.clone();
+        bad.bolts[4].emitter = Some("../firebits.kq".into());
         assert!(!bad.valid());
         bad = decoded;
         bad.bolts_shot = 2;
