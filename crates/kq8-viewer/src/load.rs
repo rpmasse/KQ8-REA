@@ -1667,7 +1667,7 @@ pub struct WaitingCollision {
 pub struct Objects {
     /// Realm name for world-scoped script variables.
     pub realm: String,
-    /// The original type table and files used by scripts' `KQMonster::add`.
+    /// The original type table and available files for `KQMonster::add`.
     pub monster_types: Option<kq8_data::characters::MonsterTypes>,
     pub monster_add_targets: std::collections::BTreeSet<String>,
     pub terrain_changes: kq8_core::ground_anim::GroundChanges,
@@ -2136,9 +2136,9 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
     if world.name.eq_ignore_ascii_case("IceWorld") {
         load_targets.insert("dragdbox.kq".into());
     }
-    // A script can create a character by type rather than by `loadKQ`.
-    // Resolve those types before the unused-file pass so their otherwise
-    // unplaced .kq files (often at the origin) can supply model movements.
+    // KQMonster::add can use any Monstats type whose file is in this
+    // world, including types neither placed nor named by an authored
+    // script. Prepare their hidden models before the unused-file pass.
     let add_commands: Vec<(String, Vec<String>)> = all_scripts.iter().flat_map(|(script, text)| {
         text.lines().filter_map(move |line| {
             let words: Vec<String> = line.split('#').next().unwrap_or("").split_whitespace().map(str::to_string).collect();
@@ -2147,24 +2147,31 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
     }).collect();
     let mut monster_add_targets = std::collections::BTreeSet::new();
     let mut monster_types = None;
-    if !add_commands.is_empty() {
-        if let Some(Ok(bytes)) = game.find("GAME/Kq/Monstats.mtl").map(std::fs::read) {
-            let (types, problems) = kq8_data::characters::MonsterTypes::parse(&bytes);
-            for problem in problems { log.summary(format!("characters: Monstats.mtl: {problem}")); }
-            for (script, words) in &add_commands {
-                match kq8_data::characters::MonsterLine::from_command(words) {
-                    Ok(line) => match types.find(&line.type_name) {
-                        Some((kind, _)) => { monster_add_targets.insert(kind.file.to_ascii_lowercase()); }
-                        None => log.summary(format!("characters: {script}: KQMonster::add type {} undefined", line.type_name)),
-                    },
-                    Err(problem) => log.summary(format!("characters: {script}: {problem}")),
-                }
+    if let Some(Ok(bytes)) = game.find("GAME/Kq/Monstats.mtl").map(std::fs::read) {
+        let (types, problems) = kq8_data::characters::MonsterTypes::parse(&bytes);
+        for problem in problems { log.summary(format!("characters: Monstats.mtl: {problem}")); }
+        for kind in &types.types {
+            let file = kind.file.to_ascii_lowercase();
+            if world.patches.contains_key(&file)
+                || world.vols.iter().any(|(_, archive)| archive.find(&kind.file).is_some()) {
+                monster_add_targets.insert(file);
             }
-            monster_types = Some(types);
-        } else {
-            log.summary("characters: KQMonster::add files cannot be prepared: GAME/Kq/Monstats.mtl could not be read");
         }
-        log.summary(format!("characters: {} KQMonster::add commands refer to {} type files prepared before play", add_commands.len(), monster_add_targets.len()));
+        for (script, words) in &add_commands {
+            match kq8_data::characters::MonsterLine::from_command(words) {
+                Ok(line) => match types.find(&line.type_name) {
+                    Some((kind, _)) if !monster_add_targets.contains(&kind.file.to_ascii_lowercase()) =>
+                        log.summary(format!("characters: {script}: KQMonster::add type {} file {} not in the world", line.type_name, kind.file)),
+                    Some(_) => {},
+                    None => log.summary(format!("characters: {script}: KQMonster::add type {} undefined", line.type_name)),
+                },
+                Err(problem) => log.summary(format!("characters: {script}: {problem}")),
+            }
+        }
+        monster_types = Some(types);
+        log.summary(format!("characters: {} Monstats type files available for KQMonster::add before play; {} authored add commands", monster_add_targets.len(), add_commands.len()));
+    } else if !add_commands.is_empty() {
+        log.summary("characters: KQMonster::add files cannot be prepared: GAME/Kq/Monstats.mtl could not be read");
     }
     let mut items = item_types(game, log);
     // M6 6e-7: the movements of portals' own lists: this world's portals'

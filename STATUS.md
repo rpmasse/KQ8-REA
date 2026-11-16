@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-17 M5 all world-available monster types
+
+The original `KQMonster::add` type lookup is global, but the type's
+file must be in the current world. Rust now registers every such file
+found in that world's patch/archive index, rather than only types
+already placed or named in scripts. The installed character inventory
+contains at most 20 distinct table files per world. One combined
+release test passed 1/1 in 14.65 seconds: Daventry still creates and
+draws a second `goblin2`; Dead City creates and draws an unplaced
+`bigskel` with AI and combat state; Dead City rejects `goblin2` because
+its file is absent. An initial Swamp `zombie` fixture did not create
+an actor because its `.anm` file is missing there, and was replaced
+with the complete Dead City asset. This is Rust coverage of the
+documented command, not original-runtime parity. M5 remains about
+65% complete. No manual gameplay or GOG-file write occurred.
+
 ## 2026-11-17 M5 Mandragor root disk continuation
 
 The existing live Swamp fight now saves while `mand3l` is in its

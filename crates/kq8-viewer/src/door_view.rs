@@ -802,7 +802,7 @@ pub fn spawn_doors(
             let r = monster_recipes.iter().find(|r| r.file.eq_ignore_ascii_case(&kind.file))?;
             Some((kind.name.clone(), kq8_core::active::MonsterTemplate { actor: r.actor.clone(), keys: r.keys.clone(), kind: kind.clone(), combat_scaled: r.combat_scaled }))
         }).collect();
-        main_log.summary(format!("characters: {} scripted monster types have live actor recipes", prepared.len()));
+        main_log.summary(format!("characters: {} available monster types have live actor recipes", prepared.len()));
         active.world.set_monster_templates(prepared);
     }
     active.world.script_shapes = std::mem::take(&mut objects.script_shapes).into_iter().map(|(file, (_, model))| (file, model)).collect();

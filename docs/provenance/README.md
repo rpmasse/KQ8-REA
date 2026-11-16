@@ -1,5 +1,17 @@
 # Provenance
 
+**World-available monster type additions (2026-11-17).**
+[Characters rule 4](../behaviour/characters.md) resolves
+`KQMonster::add` through the global `Monstats.mtl` table and the type
+file in the current world. A read-only installed-data inventory found
+at most 20 distinct table files in any one world. Rust now considers
+each present file for later addition. An unattended combined check
+created and drew Daventry `goblin2` and Dead City `bigskel`, and
+rejected Dead City `goblin2`, whose file is absent. Swamp's loose
+`zombie.kq` lacks its `zombie.anm`, so file presence alone does not
+prove a live actor recipe. No executable parity or manual gameplay
+comparison was performed.
+
 **Mandragor root disk continuation (2026-11-17).**
 [Mandragor rules](../behaviour/mandragor.md) describe the linked root's
 temporary Die state, rebirth delay and restored class fields. Installed

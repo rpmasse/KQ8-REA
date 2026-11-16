@@ -1,5 +1,27 @@
 # MODLOG
 
+## 2026-11-17 Prepare all world-available monster types
+
+The loader now considers every global `Monstats.mtl` type whose
+`.kq` file is present in the current world's patch/archive index,
+including files neither placed nor named by an authored add command.
+The existing hidden model recipe path supplies drawing, AI and fight
+state; a defined type with no file in that world remains unavailable.
+The former `static_monster_add` check was renamed and expanded to one
+combined Daventry/Dead City test. It created and drew `testGoblin` and
+the previously unprepared `testBigskel`, and rejected cross-world
+`goblin2` in Dead City. The focused release check passed 1/1 in
+14.65 seconds:
+`cargo test --locked --release -p kq8-viewer --test available_monster_add -- --ignored --nocapture`.
+
+The first Swamp fixture failed because `zombie.kq` exists there but
+its required `zombie.anm` does not; no live actor recipe can be built
+from that incomplete asset. The corrected Dead City fixture uses
+installed `bigskel.anm` and its model. One Dead City load sample was
+1,584 ms versus 1,650 ms in an earlier run; these separate samples
+do not establish a performance change. No manual gameplay, texture
+change or GOG-file write occurred.
+
 ## 2026-11-17 Keep a Mandragor root's rebirth across disk load
 
 Extended the existing original-data Swamp root fight instead of adding
@@ -35,6 +57,7 @@ found during the Rock contact probe. One unattended original-data
 Daventry test created `testGoblin` with AI and combat state and drew its
 ten-part model. The focused release test passed 1/1 in 7.11 seconds:
 `cargo test --locked --release -p kq8-viewer --test static_monster_add -- --ignored --nocapture`.
+This test was renamed to `available_monster_add` later on 2026-11-17.
 Types absent from both the monster list and authored add commands are
 still outside the prepared set. No manual gameplay or GOG file changed.
 

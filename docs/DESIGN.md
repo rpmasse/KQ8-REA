@@ -3,6 +3,29 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 prepare every world-available monster type file (2026-11-17)
+
+`characters.md` rule 4 resolves `KQMonster::add` through the global
+`Monstats.mtl` table and then reads the named `.kq` file in the current
+world. Before this change, the viewer prepared only types named by authored add
+commands or the current world's placed monster list; this wrongly
+rejects a valid table type whose file exists but was not placed. Parse
+the table once during world loading and register every type file found
+in that world's patch/archive index. Keep missing files unavailable.
+The installed character inventory shows at most 20 distinct type files
+per world. Reuse the existing hidden recipe path and measure the combined
+Daventry placed-type and Dead City available-but-unplaced cases in one
+automated test. A type file alone is insufficient when its animation
+file is absent: Swamp includes `zombie.kq` but lacks `zombie.anm`, so
+that entry cannot supply a live actor recipe. Do not change monster
+stats, AI, texture quality or the original GOG installation.
+
+The combined release check passed 1/1. Dead City's unplaced
+`bigskel.kq` created a drawn live actor; a Dead City request for
+Daventry's `goblin2` remained undefined. The first Swamp `zombie`
+fixture exposed its missing `zombie.anm` and was replaced with the
+complete Dead City asset. The original runtime has not been compared.
+
 ## M5 Barren ant birth and combat (2026-11-16)
 
 Use the installed Barren `ant1` actor at its authored position with
