@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Dead City ordinary melee variants
+
+The combined original-data `deadcity_ordinary_variants_live` release
+test passed 1/1. Four placed actor types ran in one process. The
+`skeleton2` variant made zero-damage hit cues with unchanged Connor
+health; the `skeleton3` and hidden `zombie3` variants made Normal hits
+that lowered health, and the zombie completed its Birth. The `rat2`
+variant did not attack in its short observed interval. Four controlled
+Normal deaths verified distinct drops, corpses and experience once.
+Actors were relocated, so their earned regional routes remain open.
+M5 remains incomplete.
+
 ## 2026-11-17 M5 Dead City red bow and raised Weeper
 
 The combined original-data `deadcity_redbow_weeperup_live` release

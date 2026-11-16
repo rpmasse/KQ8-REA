@@ -289,6 +289,33 @@ item, one 500-experience award and its respective `skbdead.kqs` or
 `weepdead.kqs` corpse. The two scripted placements were relocated, so
 the original summon sequence remains unverified.
 
+## M5 Dead City ordinary variant group (2026-11-17)
+
+Use one original-data Dead City process in the measured crossbow lane
+for four distinct placed melee types: `skeleton1` (`skeleton2`),
+`Skfight1` (`skeleton3`), `zombie5` (`zombie3`) and `rat5` (`rat2`).
+Move each actor near Connor in sequence, leaving normal AI and damage
+enabled. `skeleton1` has zero hand damage; require an authored hit cue
+but no health loss rather than misreporting it as a damaging attack.
+Attempt normal `Skfight1` and `zombie5` attacks, checking source-specific
+health loss if they activate. Record `zombie5`'s hidden Birth and
+`rat5`'s zero alarm/attack distances. Controlled Normal deaths should
+check the four separate drop lists, corpses and single experience
+awards in the same process. A relocation does not establish the
+regional script that places or triggers each actor in normal play.
+
+The original-data release test passed 1/1. `skeleton1` made three
+Normal hit cues with authored hand damage zero and no Connor health
+loss, then dropped Strength and seven Silver Coins, left `skmdead.kqs`
+and gave 200 experience. `Skfight1` made Normal hits that lowered
+health, dropped one Round Key, left the same corpse and gave 500
+experience. The hidden `zombie5` joined the active list, completed
+Birth, landed a Normal health loss, dropped one Mushroom, left
+`zdead.kqs` and gave 252 experience. `rat5` did not attack in the short
+nearby interval; its controlled death dropped nothing, left
+`rt_dead.kqs` and gave 51 experience. Every death and reward occurred
+once. These are relocated original-data actors, not an earned route.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

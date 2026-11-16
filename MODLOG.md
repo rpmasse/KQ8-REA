@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-17 Check four Dead City ordinary combat variants (M5)
+
+One original-data release test passed 1/1 in about 28 seconds. It
+checks `skeleton1`'s zero-damage hit without health loss, `Skfight1`'s
+Normal hit and Round Key drop, hidden `zombie5`'s Birth, hit and
+Mushroom drop, and `rat5`'s no-attack interval and no-drop death.
+Each controlled Normal death checked its corpse and experience once.
+The actors were relocated to the measured lane; no production code
+or GOG file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test deadcity_ordinary_variants_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Link Dead City red bow and raised Weeper combat (M5)
 
 One original-data release test passed 1/1 in about 29 seconds. A

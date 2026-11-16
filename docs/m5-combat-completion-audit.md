@@ -44,6 +44,13 @@ completed 12 health-drain pulses. Both controlled Normal deaths checked
 no drops, one 500-experience award and their distinct corpses. These
 actors were moved from off-map script placements, leaving the original
 summon sequence open.
+The grouped Dead City ordinary-variant check now asserts a placed
+`skeleton2` zero-damage hit with no health loss, a `skeleton3` Round Key
+fighter and a hidden `zombie3` actor's Birth and Normal health loss.
+Its `rat2` actor has zero alarm/attack distances and made no attack
+in the observed interval. Four controlled deaths check their separate
+drop lists, corpses and one experience award each. All four actors were
+relocated to the measured lane; earned regional triggers remain open.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |
