@@ -1,5 +1,28 @@
 # MODLOG
 
+## 2026-11-16 Reach the final vortex with live Lucreto combat
+
+Changed: added an unattended Temple 4 fixture that starts the shipped
+altar Cue 6/7, equips Connor's shipped Temple Sword and Armour, uses an
+ordinary Invulnerable item, and lands normal sword hits until Lucreto's
+`reactback` enters `vortexTrap`. It requires the original `vortrap.cs`
+animation chain and `killGame` handoff, with enemy AI and Connor damage
+enabled. Why: form switching alone did not establish a surviving final
+boss victory. Tested how: from this worktree, set `$env:KQ8_GAME_DIR =
+(Resolve-Path "..\..\..\King's Quest 8 GOG").Path`, then run `cargo test
+--locked -p kq8-viewer --test live_lucreto_finale -- --ignored --nocapture`.
+Result: 1/1 passed in 74.80 seconds; two `reactback` staggers preceded
+`On LucEnd` and the finale handoff. The first shorter fixture failed in
+61.35 seconds because Connor never landed its second stagger and died;
+the strengthened route passed in 76.87 seconds, then passed again in
+77.22 seconds after removing three later position corrections, and in
+74.80 seconds after requiring both staggers to belong to `LucEnd`. A
+scheduled update-295 correction may still occur just after an early trap
+contact, so this check does not establish the unperturbed visual finale.
+The ending film was requested but this host has no FFmpeg executable;
+movie playback and credits remain separate. The GOG Options.cs bytes
+stayed unchanged. No manual gameplay test was run.
+
 ## 2026-11-16 Check the live Temple 4 Lucreto form cycle
 
 Changed: added an unattended original-data viewer check for the final

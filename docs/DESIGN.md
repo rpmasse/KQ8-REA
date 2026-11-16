@@ -3454,6 +3454,18 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Live Temple 4 vortex victory check (2026-11-16).** Start the last
+Lucreto fight with the installed altar Cue 6/7, Temple Sword and Temple
+Armour. Use supplied Invulnerable items through the normal inventory
+input, with ordinary enemy AI and damage still enabled. Move Connor
+within close-form range after the first stagger and send ordinary sword
+clicks at the visible fighter. Require two real `reactback` results, the
+vortex trap's `On LucEnd` contact, both authored suck animations and the
+ending's `killGame` handoff, while Connor remains alive. Keep the movie
+decoder and credits after that handoff in M4/M6; this fixture does not
+claim an earned campaign route or comparison with original-executable
+runtime.
+
 **Temple 4 Lucreto fire emitter (2026-11-16).** The installed
 `altar.cs` loads `lucfire.kq` during Lucreto's altar sequence and later
 deletes `lucfire`. Its emitter follows the animated `Box01` part of
