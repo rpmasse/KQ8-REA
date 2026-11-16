@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 Strength potion changes real melee hits
+
+An unattended Dead City run now uses the original Strength item and
+Mace against the Skeleton King. Through the normal inventory key,
+Connor's hand damage rose 65→97 while ranged damage stayed 19. The
+authored Mace hit once with 97 damage input; after the 20-second
+expiry it hit with 65. The King's health fell 800→729→681. The GOG-data
+test passed 1/1, with Options.cs unchanged. AI was disabled to keep
+the target in place, so this is a controlled potion/combat check, not
+the full boss encounter. No manual test was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 laid-weapon obstacle rule corrected
 
 The placed-weapon line after an enemy death now follows the studied

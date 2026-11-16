@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Verify Strength's damage in an original-data melee encounter
+
+Changed: added the unattended `strength_live_melee` test; gameplay code
+was unchanged. Why: the existing potion checks verified the stat timer,
+but did not connect Strength to real authored melee impacts on a live
+original enemy. Tested how: set `KQ8_GAME_DIR` to the GOG installation,
+then run `cargo test --locked -p kq8-viewer --test strength_live_melee
+-- --ignored`. Result: 1/1 passed in 50.18 seconds. The original Dead
+City Mace hit the Skeleton King once during Strength and once after its
+20-second expiry. Inventory raised hand damage 65→97, kept ranged 19,
+and restored hand damage to 65 at update 345. The two hit inputs were
+97 and 65; the King's health fell 800→729→681. His AI was disabled to
+keep the target in place, and the setup supplied the Mace and potion.
+GOG `Options.cs` bytes were unchanged. No manual gameplay or original
+binary comparison was performed; other M5 encounters remain open.
+
 ## 2026-11-16 Correct the laid-weapon obstacle test
 
 Changed: a dying enemy's retained weapon now uses the obstacle bits

@@ -374,6 +374,24 @@ alone in debug, including fresh-process rebirth. The core suite passed
 774 active tests. The first 6/8 serial pass and two root failures led
 to the alarm correction.
 
+## M5 Strength potion during original-data melee (2026-11-16)
+
+`potions.md` rules 21–23 say Strength adds half of Connor's current hand
+damage, leaves ranged damage alone, and removes that remembered half at
+expiry. Add an unattended Dead City encounter using the installed Mace,
+Strength item and high-health Skeleton King. Use the normal inventory key
+and authored Mace swing once while Strength runs and once after its
+20-second timer ends. Require the outgoing damage inputs to be 97 and 65
+from the installed level-eight 65, with the King's health falling on both
+hits and the ranged stat staying 19. This is a controlled potion/combat
+check; AI is disabled to hold the target in place through the timer.
+
+Checked: the GOG-data run passed 1/1. The inventory key raised hand damage
+65 to 97 without changing ranged 19, the first authored Mace `Do` hit
+used 97, the potion expired at update 345, and the later hit used 65.
+The King's health fell 800→729→681. No manual play or original binary
+comparison was performed.
+
 ## M5 defeated enemy's laid weapon obstacle rule (2026-11-16)
 
 `fighting.md` rule 31a.2 and Q170 specify that the line from a dying
