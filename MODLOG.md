@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Combine ordinary ranged weapons into one encounter
+
+Replaced five separate Dead City launches with one continuous test.
+The original skeleton receives enough health to survive five
+camera-selected shots, each from a different installed bow or
+crossbow. The test checks the selected projectile file, one in-flight
+contact and Projectile hit in each scheduled window, and falling
+target health. It omits the unused god switch. The release check
+passed 1/1 in 30.82 seconds:
+`cargo test --locked --release -p kq8-viewer --test ordinary_ranged_items -- --ignored --nocapture`.
+The earlier five-launch version was recorded at 224.38 seconds. No
+game logic, manual gameplay or GOG files changed.
+
 ## 2026-11-16 Combine all hand-weapon hits into one fight
 
 Replaced 12 separate Dead City test launches with one continuous

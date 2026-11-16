@@ -1268,6 +1268,25 @@ The shared AI now covers those paths. Q211 asks for original priority when retre
 
 **M5 ordinary ranged item matrix (2026-11-15).** The installed `Invinfo.itl` lists five ordinary player items beyond the already checked Small Crossbow: `SmCpndCBow`, `ShortBow`, `LongBow`, `CrossBow` and `CpndCrossbow`. Give each after Dead City's start script, then use the same isolated original skeleton route to verify its authored projectile file, one flight/contact and a Projectile-kind hit. This checks shared dispatch for the ordinary ranged catalog; it does not prove each weapon's full aim, save, moving shot or earned campaign route. If a case fails, diagnose the actual item/controller path before changing production behavior. No manual gameplay.
 
+**Combined ranged-weapon switch matrix (2026-11-16).** Replace the five
+separate launches of the ordinary ranged item matrix with one Dead City
+process. Keep the original skeleton alive through all five shots with a
+scripted health increase and disable its AI for this isolated catalog
+check. Give each installed bow/crossbow in turn while Ranged mode stays
+ready, wait for its ordinary swap, then use the camera-selected aim.
+Require each weapon's original projectile name, one in-flight contact,
+one Projectile hit in its own time window and continuing target health
+loss. Omit god mode; compare the GOG Options.cs bytes before and after.
+This verifies active weapon replacement as well as dispatch, while
+normal enemy AI remains in separate live combat routes.
+
+Checked: the one-process release route passed 1/1 in 30.82 seconds,
+versus the earlier five-launch matrix's recorded 224.38 seconds. All
+five installed weapons selected their own projectile, produced one
+contact and Projectile hit in their scheduled window, and reduced the
+same skeleton's health without killing it. No god mode or game-logic
+change was needed; the GOG Options.cs bytes stayed unchanged.
+
 **M5 ordinary hand-weapon matrix (2026-11-15).** The installed `Invinfo.itl` and `Connor.kq` map ten additional hand weapons beyond the already checked Small Axe and Flame Sword: Dagger, Broad Sword, Mace, Lake Sword, Skeleton King Sword, Battle Axe, War Hammer, Pike, Long Sword and Temple Sword. In one unattended Windows matrix, give each weapon after Dead City's start script, ready Hand mode, swing at the same original skeleton and check the mapped `.anm/attack` movement, one `Do` contact and the resulting Normal hit. Fists are a separate unarmed attack case. This verifies shared dispatch with original assets, not every distinct damage amount, special effect, save boundary or earned campaign encounter. Diagnose any case from its logs before changing production behavior. No manual gameplay.
 
 **M5 Fists earned-route audit (2026-11-15).** Recheck the existing unattended wizard-to-windmill route, which asserts that Connor's `confists.anm` `Do` hit kills the authored spriggan while earning the Small Axe. The initial fullscreen attempt was refused by the current host. A windowed wizard pass saved successfully, but its test helper still expected an update-number pickup-help deadline instead of the current game-time deadline. Subsequent windmill replays waited at unacknowledged help cases 140 and 137; the exploratory test-harness edits were restored after these bounded attempts. The last run nevertheless records four Fists `Do` hits and the archer's Normal death at update 1030 with AI and damage enabled. Count Fists contact and death as observed, while axe pickup, saved return and the full route remain open. A later route repair should handle help dialogs through one general acknowledgment path and validate the whole earned sequence without changing gameplay. No manual gameplay test.

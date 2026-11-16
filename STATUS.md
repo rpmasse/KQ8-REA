@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 combined ranged-weapon combat check
+
+The original-data ranged matrix now runs five bows and crossbows in
+one continuous Dead City encounter instead of five game launches.
+Each selected its installed projectile, contacted the same skeleton,
+and dealt one Projectile hit while the target stayed alive. The
+release check passed 1/1 in 30.82 seconds; the old five-launch result
+was 224.38 seconds. Enemy AI is disabled only for this isolated weapon
+matrix, with separate live fights covering ordinary attacks. M5
+remains about 65%; no manual gameplay or GOG-file write occurred.
+
 ## 2026-11-16 M5 combined hand-weapon combat check
 
 The original-data hand-weapon test now runs all 12 weapons in one
