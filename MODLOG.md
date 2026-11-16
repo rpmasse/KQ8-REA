@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-16 Record bounded Swamp slime live-fight attempt
+
+Changed: documented a local original-data Slime fight attempt; removed
+its unreliable automated test before publication. Gameplay code was
+unchanged. Why: the intended normal-input Fire Bow route passed once
+but failed on repeated runs across the slime's movement boundary.
+Tested how: ran the viewer against GOG Swamp data with ordinary AI and
+damage, Easy combat, and a supplied Flame Bow. The slime's bolt
+reduced Connor's health 150 to 147. A release probe and one debug run
+recorded one Fire hit, death and 5,000 experience. Two subsequent debug
+runs fired one update later and missed; an earlier request was refused
+while the bow's `out` movement could not be cut short. No automated
+regression is retained. GOG files were read-only and no manual test
+was run. The separate existing command is `cargo test --locked -p
+kq8-viewer --test swamp_slime_retreat -- --ignored --nocapture` with
+`KQ8_GAME_DIR` set to the GOG folder; it checks shot, retreat and leash,
+not the attempted full victory.
+
 ## 2026-11-16 Verify Henchman projectile refusal against melee
 
 Changed: added an unattended original-data test for Daventry's

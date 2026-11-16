@@ -3618,6 +3618,18 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Swamp slime live fight (2026-11-16, attempted; check withheld).**
+The installed `slime1` at its authored Swamp position fired an ordinary
+bolt and reduced Connor's health under Easy combat. A separate route
+already checks its retreat and leash. A supplied Flame Bow killed it
+once in a release probe and one debug run, but repeated debug runs
+missed by one update after it moved. An earlier aim was refused during
+Connor's uninterruptible bow draw. Stop timing variations here; no
+passing automated regression is claimed. A future route needs a
+deterministic normal input and must preserve ordinary AI, incoming
+damage and original data. This remains a local combat check, not an
+earned campaign or original-executable comparison.
+
 **Henchman projectile refusal (2026-11-16, checked).** Use the original
 Daventry Henchman actor at his scripted post-scene position and fire
 an ordinary Small Crossbow bolt at him. Q190's studied rule requires

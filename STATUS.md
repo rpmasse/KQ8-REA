@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-16 M5 Swamp slime live-fight timing handoff
+
+A local original-data probe with ordinary AI and damage showed
+`slime1` shooting Connor for 3 health on Easy. A supplied Flame Bow
+then killed it, and its ordinary Fire death awarded 5,000 experience
+once. This was observed once in a release probe and once in a debug
+test. The debug regression was not repeatable: the scheduled aim landed
+one update later in two repeats, after the slime had begun moving, and
+the arrow missed. An earlier aim entered during Connor's
+uninterruptible bow draw and did not fire. The failed test was removed;
+no live-fight regression or M5 completion is claimed. The separate
+slime shot/retreat/leash test remains. GOG files were read-only; no
+manual gameplay or original-executable comparison was run. M5 remains
+about 65%.
+
 ## 2026-11-16 M5 Henchman projectile refusal and melee contrast
 
 An unattended two-run original-data check passed 1/1 in 70.44 seconds.
