@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-17 M5 grouped Swamp plant and small creatures
+
+The original-data `swamp_plant_small_families_live` release test passed
+1/1. Placed `crvplant8` rose after its authored three-second Birth
+delay, landed Normal hits, then completed a no-drop, no-corpse death
+and 2,000 experience. Placed `frog0`, `weed2` and `bat1` made no attacks
+in the measured interval near Connor. The frog and bat completed
+no-drop, no-corpse deaths with 500 experience each. The weed entered
+Die and dropped nothing; its `weeds.anm` death movement repeats, and
+no finalizer or one-experience award occurred by update 400. All four
+were relocated for the check. Original-executable behavior and earned
+routes were not tested. M5 remains incomplete.
+
 ## 2026-11-17 M5 Daventry ambient non-attack families
 
 The original-data `daventry_ambient_families_live` release test passed

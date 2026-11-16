@@ -105,6 +105,15 @@ bat's absent corpse versus the chicken and pig corpse shapes. The same
 order checks the first-kill tutorial exclusion for bat and `chicken1`:
 only `chicken2` caused its first qualifying death event. This is a
 controlled lane, not an earned world route.
+The grouped `swamp_plant_small_families_live` check links a placed
+`crvplant` to its three-second Birth delay, ordinary Normal health loss,
+and completed no-drop, no-corpse death with 2,000 experience. A nearby
+frog with alarm radius 1.5, a zero-alarm weed and a zero-alarm bat made
+no ordinary attack in the observed interval. The frog and bat finished
+no-drop, no-corpse deaths with 500 experience each. The weed entered Die
+and dropped nothing but did not finalize by update 400; original
+`weeds.anm` marks `die` repeating. Original-runtime parity and earned
+Swamp approaches remain untested.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

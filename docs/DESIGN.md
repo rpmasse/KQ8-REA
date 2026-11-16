@@ -490,6 +490,26 @@ The same order checks the first-kill tutorial boundary: bat and
 `chicken1` are excluded, while `chicken2` can be the first qualifying
 death.
 
+## M5 Swamp plant and small-creature families (2026-11-17)
+
+Use one original-data Swamp process in the already measured fiend lane.
+Relocate placed `crvplant8` first, preserving its 3-second Birth delay,
+15,000 alarm radius, 2,000 melee reach and original type file. Require
+its rise, ordinary Normal health loss and one controlled Normal death.
+Then put the installed `frog0`, `weed2` and `bat1` near Connor. The frog
+has an authored alarm radius of 1.5 despite 1,500 attack reach; the
+weed and bat have zero alarm or attack distance. Observe them inside
+the frog's attack reach without an attack, then require one controlled
+Normal death each. Check the four separate stats, no-drop and
+experience outcomes, and their authored corpse behavior in one run.
+The installed `weeds.anm` marks the weed's `die` movement as repeating;
+the normal movement-end finalizer does not run for it. Require its
+death entry and no finalization during the observed interval, while
+the other three complete their deaths. This is a data-backed Rust
+observation, not an original-runtime play result.
+The relocation tests shared combat rules; it does not establish their
+earned Swamp routes or original-executable parity.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

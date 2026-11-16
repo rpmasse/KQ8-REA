@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-17 Group Swamp plant, frog, weed and bat (M5)
+
+Read the installed Swamp monster rows and `weeds.anm` without changing
+the game files. A single original-data fixture used the measured fiend
+lane for `crvplant8`, `frog0`, `weed2` and `bat1`. The plant's three-
+second Birth delay led to two natural Normal hits with authored hand
+damage 35. It then
+completed a no-drop, no-corpse death with 2,000 experience. The frog,
+weed and bat made no ordinary attacks in their observed interval. The
+frog and bat completed no-drop, no-corpse deaths with 500 experience
+each. The weed entered Die and dropped nothing, but had no death-end
+callback or one-experience award by update 400; its authored `die`
+movement repeats. The first fixture failed because it expected the
+weed to finalize. The source-backed assertion correction passed 1/1
+in about 30 seconds. No production code or GOG file changed. With
+`KQ8_GAME_DIR` set, run `cargo test --locked --release -p kq8-viewer
+--test swamp_plant_small_families_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Check Daventry ambient deaths together (M5)
 
 Read the installed Daventry placements and combat types for `bat5`,
