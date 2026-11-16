@@ -4025,6 +4025,21 @@ water and one crystal with `oh_death.kqs` and 15,000 experience, and no
 drop with `grb_dead.kqs` and zero experience. The combined automated
 route uses those observed effects as source-specific assertions.
 
+**Ice World flying Griffin extension (2026-11-17).** Reuse the same
+measured floor and process after the axe Griffin's death. Move one
+placed `griffly` into clear ranged reach, leaving its own authored
+`INVITEM_Orcbow` / `PRorcycle.kq` attack and flying box intact. Assert
+its Ice projectile contact, Connor health loss, and controlled Normal
+death/corpse/drop/experience. If local scenery stops the shot, inspect
+the logged contact rather than weakening the test to an attempted
+launch. Do not count the Griffin as an earned approach.
+
+The placed `EntranceGuard1` released two `PRorcycle.kq` Ice arrows from
+the documented zero shoot-offset fallback because its `Attack` frame
+had no `arrow` part. Both hit Connor and lowered health. Its controlled
+Normal death made no item drop, left `grf_dead.kqs` and awarded zero
+experience. The combined release run passed with all four families.
+
 **Temple 3 placed-family check (2026-11-17).** The installed list has
 two `zombie2` placements, one `skelhamr` and two `skelblue` bow skeletons
 on the same raised floor (z=3562). First run them together with Connor

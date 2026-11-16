@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 flying Griffin Ice shot and death
+
+The combined Ice World release test passed 1/1 after adding a placed
+flying Griffin. Two Ice arrows contacted Connor and lowered health;
+the `Attack` frames lacked an `arrow` part, so the documented offset
+fallback was used. A controlled Normal death checked no item drop,
+zero experience and its `grf_dead.kqs` corpse. This is a relocated
+original-data actor, not an earned encounter or original-executable
+comparison. M5 remains incomplete.
+
 ## 2026-11-17 M5 Ice World Frosty, hammer Orc and axe Griffin
 
 One original-data release test passed 1/1 for three placed Ice World

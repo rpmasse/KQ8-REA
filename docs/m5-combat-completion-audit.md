@@ -24,7 +24,9 @@ placement to observed health loss and distinct Normal death outcomes.
 The combined Ice World lane links Frosty, hammer Orc and axe Griffin
 Normal attacks to source-specific health loss and their distinct
 death/drop/corpse outcomes, while retaining ambient bow-guard hits as
-separate sources.
+separate sources. The same process now checks a flying Griffin's Ice
+projectile contact, zero shoot-offset fallback, and no-drop/zero-XP
+Normal death with its original corpse.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

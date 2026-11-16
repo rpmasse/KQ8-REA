@@ -1,9 +1,9 @@
-//! Three placed Ice World melee families attack and die in one original-data run.
+//! Three melee families and a flying ranged Griffin fight in one Ice World run.
 use std::{fs, path::Path, process::Command};
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
-fn frosty_hammer_orc_and_axe_griffin_damage_connor() {
+fn ice_world_melee_and_flying_griffin_damage_connor() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let options = fs::read(game.join("Options.cs")).unwrap();
     let nonce = std::time::SystemTime::now()
@@ -27,13 +27,16 @@ fn frosty_hammer_orc_and_axe_griffin_damage_connor() {
             "--command", "sendEvent 0 orcpath1 KQAttackEvent Connor 0 100000 0,170",
             "--command", "move griffbax2 0 267500 480983 31365 0 0 0,175",
             "--command", "sendEvent 0 griffbax2 KQAttackEvent Connor 0 100000 0,245",
-            "--updates", "310", "--frames", "10000",
+            "--command", "move EntranceGuard1 0 265500 480983 31365 0 0 0,285",
+            "--command", "sendEvent 0 EntranceGuard1 KQAttackEvent Connor 0 100000 0,360",
+            "--updates", "430", "--frames", "14000",
         ])
         .output().unwrap();
     fs::write(dir.join("stdout.log"), &output.stdout).unwrap();
     fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
     let logs = dir.join("kq8-artifacts/logs");
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     let items = fs::read_to_string(logs.join("items.log")).unwrap();
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
@@ -85,6 +88,36 @@ fn frosty_hammer_orc_and_axe_griffin_damage_connor() {
     assert_eq!(orc_drops.len(), 1, "hammer Orc drops did not occur once; inspect {}", dir.display());
     assert_eq!(orc_drops[0].matches("INVITEM_sacredwater x1").count(), 1);
     assert_eq!(orc_drops[0].matches("INVITEM_crystal x1").count(), 1);
+    assert!(viewer.contains("test --command move EntranceGuard1")
+        && fight.contains("EntranceGuard1: fights (rule 2): stats [1500, 75, 150, 30, 0]"),
+        "the placed flying Griffin was not relocated and loaded; inspect {}", dir.display());
+    assert!(characters.contains("EntranceGuard1: status: Wait, active")
+        || characters.contains("EntranceGuard1: status: Move, active"),
+        "the flying Griffin did not activate; inspect {}", dir.display());
+    assert!(fight.lines().any(|line| line.contains("EntranceGuard1: Do (Attack")
+        && line.contains("no part 'arrow' in frame")
+        && line.contains("shootOffsets fallback")
+        && line.contains("PRorcycle.kq") && line.contains("Ice")),
+        "the flying Griffin did not release its authored Ice shot; inspect {}", dir.display());
+    assert!(fight.lines().any(|line| line.contains("EntranceGuard1: bolt")
+        && line.contains("touches Connor") && line.contains("a hit of 150, Ice")),
+        "the flying Griffin's Ice shot did not contact Connor; inspect {}", dir.display());
+    let griffin_hits: Vec<_> = fight.lines()
+        .filter(|line| line.contains("Connor: hit by EntranceGuard1, Ice: D 150,")).collect();
+    assert!(!griffin_hits.is_empty(), "the flying Griffin made no Ice health loss; inspect {}", dir.display());
+    for hit in griffin_hits {
+        let health = hit.rsplit_once("health ").unwrap().1;
+        let (before, after) = health.split_once(" -> ").unwrap();
+        assert!(after.parse::<i64>().unwrap() < before.parse::<i64>().unwrap(),
+            "the flying Griffin did not lower Connor's health: {hit}");
+    }
+    assert_eq!(fight.matches("EntranceGuard1: dies (rule 30): kind Normal").count(), 1);
+    assert_eq!(fight.matches("EntranceGuard1: drops: nothing (rule 31)").count(), 1);
+    let griffin_finish = "EntranceGuard1: its death ended (rule 32): Connor gets its experience 0";
+    assert_eq!(fight.matches(griffin_finish).count(), 1);
+    assert!(fight.lines().any(|line| line.contains(griffin_finish)
+        && line.contains("a corpse grf_dead.kqs")),
+        "the flying Griffin has the wrong Normal corpse; inspect {}", dir.display());
     assert!(!fight.contains("Connor: hit by world") && !fight.contains("god mode is on"),
         "world hazards or god mode obscured combat; inspect {}", dir.display());
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);

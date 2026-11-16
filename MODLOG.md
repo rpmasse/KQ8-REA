@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-17 Add flying Griffin Ice contact to the Ice World route (M5)
+
+Extended the passing Ice World family route in the same process with
+the placed `EntranceGuard1` flying Griffin. It released two
+`PRorcycle.kq` Ice arrows from the `shootOffsets` fallback because its
+`Attack` frames lacked an `arrow` part; both contacted Connor and
+lowered health. Its controlled Normal death dropped nothing, left a
+`grf_dead.kqs` corpse and awarded zero experience. The combined release
+test passed 1/1. The Griffin was relocated into the measured lane;
+its earned regional approach remains open. No production code, GOG
+file or manual gameplay changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test ice_melee_families_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Link three Ice World melee families (M5)
 
 One original-data Ice World release test passed 1/1. It stages a placed
