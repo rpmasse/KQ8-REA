@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-17 Verify waiting crossbow turn cancellation (M5)
+
+Reused the existing saved turn-before-attack slot in
+`connor_shot_checkpoint` for one additional restore. A fixed-update
+turn-key input cancels the saved automatic turn before the waiting shot
+begins; the test requires the waiting-shot loss and no crossbow bolt.
+The first frame-based `--turn` attempt arrived only at update 4, after
+the shot had already started; the corrected `--hold` input arrived at
+update 0. The targeted release test passed 1/1 in 81.08 seconds with
+the other three checkpoint cases retained. Updated the ranged coverage
+and M5 audit tables. No manual gameplay or GOG-file write.
+
+With `KQ8_GAME_DIR` pointing to the GOG installation, reproduce with:
+
+`cargo test --locked --release -p kq8-viewer --test connor_shot_checkpoint crossbow_turn_and_attack_resume_from_disk_without_duplicate_bolts -- --ignored --nocapture`
+
 ## 2026-11-17 Verify an early standing crossbow click (M5)
 
 Extended the existing `connor_shot_checkpoint` test's

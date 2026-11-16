@@ -78,5 +78,19 @@ fn crossbow_turn_and_attack_resume_from_disk_without_duplicate_bolts() {
         } else {
             assert_eq!(restored_health, first_health, "a passed Do cue hit twice; inspect {}", case.display());
         }
+        if name == "turn" {
+            let cancelled = run("cancel-turn", &[
+                "--menu-input", "down,enter,release,enter,release",
+                "--hold", "0,1,0,0,10", "--updates", "20",
+            ]);
+            let cancel_fight = fs::read_to_string(case.join("cancel-turn/kq8-artifacts/logs/fight.log")).unwrap();
+            assert!(cancelled.contains("save restored in DeadCity without replaying Begin")
+                && cancelled.contains("auto-turn cancelled")
+                && cancel_fight.contains("the waiting shot is lost (rule 20)"),
+                "the new turn did not cancel the saved waiting shot; inspect {}", case.display());
+            assert!(!cancel_fight.contains("Connor: do (conscbow.anm/attack")
+                && !cancel_fight.contains("shoots bolt1 (Prscbolt.kq"),
+                "a cancelled waiting shot still released a bolt; inspect {}", case.display());
+        }
     }
 }

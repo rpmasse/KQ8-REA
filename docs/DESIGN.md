@@ -3,6 +3,25 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 waiting crossbow shot cancelled by a turn key (2026-11-17)
+
+`ranged-weapons.md` rule 20 says a new turn order loses a shot waiting
+for Connor's initial turn. Reuse slot 1 from the existing turn-before-
+attack crossbow checkpoint: after its normal restore has proved the shot
+can resume, restore that same slot once more and press a turn key before
+the pending shot is due, using fixed-update `--hold` input so the press
+arrives before the first restored game tick. Require auto-turn cancellation, waiting-
+shot loss, and no bolt release. Keep the existing standing interruption
+and both Do-cue cases in one targeted test invocation. No manual
+gameplay or GOG-file write.
+
+Checked: the targeted release test passed 1/1 in 81.08 seconds. The
+fixed-update turn key went down at restored update 0, cancelled the
+automatic turn at update 1, and the waiting shot was lost without a
+bolt. The first attempt used frame-based `--turn`; it arrived at update
+4 after the saved shot had already started, so it could not verify the
+boundary. The existing resume and interruption cases still passed.
+
 ## M5 standing crossbow click during an unfinished attack (2026-11-17)
 
 `ranged-weapons.md` rule 20 says a standing click during an attack

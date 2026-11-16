@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 waiting crossbow turn cancellation
+
+The crossbow checkpoint now restores its existing waiting-turn slot a
+second time and presses a turn key before the first game tick. The
+automatic turn cancels at update 1, the waiting shot is lost, and no
+bolt releases. The targeted release test passed 1/1 in 81.08 seconds,
+along with the previous resume and early-click cases. A frame-based
+`--turn` attempt arrived at update 4, after the shot had begun; the
+final check uses fixed-update `--hold` to cover the intended boundary.
+The ranged coverage and M5 audit tables now reflect this result. No
+manual gameplay or GOG file changed; M5 remains incomplete.
+
 ## 2026-11-17 M5 standing shot interruption boundary
 
 The existing crossbow save/restore test now clicks the installed Dead

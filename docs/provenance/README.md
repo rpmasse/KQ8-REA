@@ -1,5 +1,14 @@
 # Provenance
 
+**Waiting crossbow turn cancellation (2026-11-17).**
+[Ranged-weapons rule 20](../behaviour/ranged-weapons.md) says a new
+turn order loses a shot still waiting for the first turn. The original-
+data Dead City checkpoint now restores that waiting state and sends a
+fixed-update turn key before the shot begins. Its Rust log shows the
+automatic turn cancelled and the shot lost with no bolt. The targeted
+Windows test passed; original-executable parity and manual gameplay
+remain unverified.
+
 **Standing crossbow click during attack (2026-11-17).**
 [Ranged-weapons rule 20](../behaviour/ranged-weapons.md) says an
 uncuttable standing attack refuses another shot click. The existing
