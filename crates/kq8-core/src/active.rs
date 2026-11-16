@@ -12075,6 +12075,19 @@ deleteObject waterfall2
         a.handle_due(a.world.now());
         assert!(a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0] < health);
         assert!(a.world.fight_log.join("\n").contains("gob: hit by shooter, Projectile"));
+        // Standard level-1 projectiles cross one another without contact.
+        // Their 235-radius swept balls overlap, but there is no other
+        // collider in this lane and neither has reached its range.
+        let hits = a.world.fight_log.iter().filter(|line| line.contains(": hit by ")).count();
+        a.world.launch_bolt("left", "prscbolt.kq", &scbolt(), [-400.0, -30_000.0, 1000.0], [400.0, -30_000.0, 1000.0], 5, "crossing pair");
+        a.world.launch_bolt("right", "prscbolt.kq", &scbolt(), [400.0, -30_000.0, 1000.0], [-400.0, -30_000.0, 1000.0], 5, "crossing pair");
+        fly(&mut a);
+        assert_eq!(a.world.bolts.len(), 2, "crossing level-1 bolts must not stop each other");
+        assert!(a.world.bolts[0].position[0] > 0.0 && a.world.bolts[1].position[0] < 0.0,
+            "the swept projectile paths must cross");
+        a.handle_due(a.world.now());
+        assert_eq!(a.world.fight_log.iter().filter(|line| line.contains(": hit by ")).count(), hits,
+            "the projectile pair must not queue a hit");
     }
 
     #[test]

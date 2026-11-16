@@ -3,6 +3,24 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 crossing level-1 projectile pair (2026-11-17)
+
+`ranged-weapons.md` rule 29 says two ordinary level-1 projectiles do
+not touch each other. Extend the existing core bolt fixture after its
+shooter, floor, range and start-inside checks. Launch two ordinary bolts
+from opposite sides of an otherwise empty lane so their swept balls
+cross in one update; require both to remain in flight on the opposite
+sides, with no contact or damage event. This verifies the installed
+projectile family's noncontact boundary without another viewer world
+load. Run only the focused core test. No manual gameplay or GOG-file
+write.
+
+Checked: the focused core test passed 1/1. Two ordinary bolt paths
+crossed in one update and both bolts remained in flight; servicing
+queued events added no hit. The same fixture retained its shooter,
+floor, range and start-inside assertions. This is Rust behavior against
+the source-backed level-1 rule, not an original-executable comparison.
+
 ## M5 waiting crossbow shot cancelled by a turn key (2026-11-17)
 
 `ranged-weapons.md` rule 20 says a new turn order loses a shot waiting

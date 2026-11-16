@@ -1,5 +1,12 @@
 # Provenance
 
+**Crossing standard projectiles (2026-11-17).**
+[Ranged-weapons rule 29](../behaviour/ranged-weapons.md) establishes
+that two level-1 projectiles do not touch. The focused Rust core
+scenario now crosses two standard bolts and confirms both continue
+without a queued hit; it passed 1/1. This does not establish behavior
+for hypothetical non-level-1 projectiles or original-runtime parity.
+
 **Waiting crossbow turn cancellation (2026-11-17).**
 [Ranged-weapons rule 20](../behaviour/ranged-weapons.md) says a new
 turn order loses a shot still waiting for the first turn. The original-

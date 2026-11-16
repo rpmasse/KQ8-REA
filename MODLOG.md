@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-17 Verify crossing level-1 projectiles (M5)
+
+Extended the existing core bolt scenario with two standard bolts whose
+swept balls cross in an empty lane. Both remain in flight and event
+service adds no hit, matching `ranged-weapons.md` rule 29 for the
+shipped level-1 projectile family. The focused core test passed 1/1;
+the same scenario retains shooter exclusion, floor, range and
+start-inside checks. Updated the ranged coverage and M5 audit tables.
+No production code, viewer world load, manual gameplay or GOG-file
+write.
+
+Reproduce with:
+
+`cargo test --locked -p kq8-core a_bolt_ends_at_the_floor_grid_or_its_range_and_spares_its_shooter -- --nocapture`
+
 ## 2026-11-17 Verify waiting crossbow turn cancellation (M5)
 
 Reused the existing saved turn-before-attack slot in

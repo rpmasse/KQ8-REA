@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 crossing projectile pair
+
+The existing core bolt scenario now launches two ordinary level-1
+projectiles on crossing paths. Both remain in flight after their swept
+balls overlap, and event service adds no hit. Its shooter, floor,
+range and start-inside checks remain in the same fixture. The focused
+core test passed 1/1; the ranged coverage and M5 audit tables now
+reflect this source-backed boundary. No viewer load, manual gameplay
+or GOG file changed. M5 remains incomplete.
+
 ## 2026-11-17 M5 waiting crossbow turn cancellation
 
 The crossbow checkpoint now restores its existing waiting-turn slot a
