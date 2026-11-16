@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-17 Link existing Rock callback evidence to ranged rule 30 (M5)
+
+The shared projectile `Die` hook already has original-data evidence:
+`rock_throw` checks `rockHit.cs` recovering a Rock at contact, and
+`rock_flight_checkpoint` checks exactly one callback after a saved
+flight. Linked those cases in the ranged coverage table and retained
+the distinct building-only miss gap. This was a source/test audit plus
+`git diff --check`; no new test, production change, manual gameplay or
+GOG-file write. To reproduce the existing callback check, with
+`KQ8_GAME_DIR` pointing to the GOG installation, run:
+
+`cargo test --locked --release -p kq8-viewer --test rock_throw -- --ignored --nocapture`
+
 ## 2026-11-17 Verify crossing level-1 projectiles (M5)
 
 Extended the existing core bolt scenario with two standard bolts whose

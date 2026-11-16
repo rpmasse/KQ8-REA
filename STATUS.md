@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 projectile removal evidence audit
+
+The ranged rule-30 coverage table now cites existing original-data
+Rock checks for the shared projectile `Die` callback. `rock_throw`
+checks the contact recovery through `rockHit.cs`; the flight checkpoint
+checks one callback after disk reload. This corrects an overstated gap
+without a new test or gameplay run. A normal ranged bolt's
+building-only miss remains open, and the Rock check does not establish
+every possible scripted bolt. No production code or GOG file changed.
+
 ## 2026-11-17 M5 crossing projectile pair
 
 The existing core bolt scenario now launches two ordinary level-1

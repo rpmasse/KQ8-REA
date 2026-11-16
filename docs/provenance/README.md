@@ -1,5 +1,13 @@
 # Provenance
 
+**Scripted projectile removal evidence (2026-11-17).**
+[Rock projectile rule 19](../behaviour/rock-projectiles.md) identifies
+`rockHit.cs` as the installed projectile's `Die` handler. Existing
+`rock_throw` and `rock_flight_checkpoint` original-data tests check
+contact recovery and a single callback after disk reload. This source-
+to-scenario link does not cover a normal bolt hitting only a building
+or original-executable parity; no new runtime check was made here.
+
 **Crossing standard projectiles (2026-11-17).**
 [Ranged-weapons rule 29](../behaviour/ranged-weapons.md) establishes
 that two level-1 projectiles do not touch. The focused Rust core
