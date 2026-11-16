@@ -267,6 +267,28 @@ controlled Normal death dropped nothing, left no corpse and awarded
 500 experience once. Connor's health ceiling was raised without god
 mode so both death movements could complete in the same process.
 
+## M5 Dead City red bow and raised Weeper (2026-11-17)
+
+Use one installed Dead City process for the `skelrdbw` and `weeperup`
+ranged families. `sneezy11` and `weepy` are placed by the monster list
+off-map for a regional script. Move them in sequence to the already
+measured Dead City crossbow lane, with Connor's ordinary damage enabled
+and a raised health ceiling. Require the red bow's Projectile contact
+and health loss, then the raised Weeper's link and drain pulses while
+Connor lives.
+Then give each a controlled Normal death and check its installed drop,
+corpse and single experience award. Explicitly record that relocation
+does not verify the campaign script that originally summons them.
+
+The original-data release test passed 1/1. `sneezy11` used its `arrow`
+frame part for `Prmonarw.kq`; two Projectile contacts lowered Connor's
+health. `weepy` had no `flsh` part in its Attack frame, used the authored
+shoot-offset fallback, and `Prweeper.kq` linked to Connor for 12 drain
+pulses that reduced health. A controlled Normal death for each gave no
+item, one 500-experience award and its respective `skbdead.kqs` or
+`weepdead.kqs` corpse. The two scripted placements were relocated, so
+the original summon sequence remains unverified.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

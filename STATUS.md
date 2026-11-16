@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 Dead City red bow and raised Weeper
+
+The combined original-data `deadcity_redbow_weeperup_live` release
+test passed 1/1. `sneezy11` fired `Prmonarw.kq` and two Projectile
+contacts lowered living Connor's health. `weepy` used its missing-part
+fallback to release `Prweeper.kq`; the link completed 12 health-drain
+pulses. Controlled Normal deaths checked no drop, the distinct
+`skbdead.kqs` and `weepdead.kqs` corpses and 500 experience once each.
+Both actors were relocated from off-map script placements; the earned
+summon sequence remains unverified. M5 remains incomplete.
+
 ## 2026-11-17 M5 Barren ant2 and vulture family deaths
 
 The combined original-data `barren_ant2_vulture_live` release test

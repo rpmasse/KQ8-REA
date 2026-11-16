@@ -37,6 +37,13 @@ actor's normal AI melee health loss, Crystal drop, no corpse and 5,000
 experience, plus a nearby vulture's controlled no-drop/no-corpse death
 and 500 experience. The vulture did not make a live attack; its zero
 alarm and attack distances need a separate rule audit.
+One Dead City process now links the installed `skelrdbw` red bow and
+`weeperup` raised Weeper families. The bow's `Prmonarw.kq` Projectile
+contacts lowered Connor's health; the Weeper's `Prweeper.kq` linked and
+completed 12 health-drain pulses. Both controlled Normal deaths checked
+no drops, one 500-experience award and their distinct corpses. These
+actors were moved from off-map script placements, leaving the original
+summon sequence open.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

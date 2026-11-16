@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Link Dead City red bow and raised Weeper combat (M5)
+
+One original-data release test passed 1/1 in about 29 seconds. A
+script-placed red bow skeleton and raised Weeper were moved in sequence
+to the measured crossbow lane. The skeleton's original arrow made two
+Projectile contacts that lowered Connor's health; the Weeper's original
+bolt made a link and 12 drain pulses. Their controlled Normal deaths
+gave no drops, distinct corpses and 500 experience each. The test does
+not verify their original summon script. No production code or GOG
+file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test deadcity_redbow_weeperup_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Link Barren ant2 and vulture combat families (M5)
 
 One original-data Barren release test passed 1/1 in about 20 seconds.
