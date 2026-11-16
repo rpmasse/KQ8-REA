@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 enemy reach while Connor holds Back
+
+The existing seven-actor `deadcity_ordinary_variants_live` release test
+passed 1/1 after adding a held-Back boundary. Placed `Skelhamr`'s second
+Attack landed at distance 1,086, beyond its normal reach of 1,000 and
+within the logged 1,250 reach while Connor held Back. The same process
+retained all seven combat, death and reward checks. This is Rust
+original-data evidence; running-original parity is not tested. M5
+remains incomplete.
+
 ## 2026-11-17 M5 grouped Dead City ordinary variants
 
 The expanded original-data `deadcity_ordinary_variants_live` release

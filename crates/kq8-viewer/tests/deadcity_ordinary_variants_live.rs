@@ -53,6 +53,10 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
             "--command",
             "KQMonster::setHome Skelhamr 183300 45000 864,330",
             "--command",
+            "move Skelhamr 0 183300 45000 864 0 0 0,420",
+            "--command",
+            "move Connor 0 182221 45000 864 0 0 0,425",
+            "--command",
             "sendEvent 0 Skelhamr KQAttackEvent Connor 0 100000 0,440",
             "--command",
             "move wanderags1 0 182900 45000 864 0 0 0,480",
@@ -66,6 +70,8 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
             "KQMonster::setHome stinky 183300 45000 864,640",
             "--command",
             "sendEvent 0 stinky KQAttackEvent Connor 0 100000 0,780",
+            "--hold",
+            "-1,0,0,421,424",
             "--updates",
             "900",
             "--frames",
@@ -180,6 +186,32 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
             );
         }
     }
+    let extended_hit = fight
+        .lines()
+        .find(|line| {
+            line.contains("Skelhamr: Do (Attack")
+                && line.contains("hits Connor:")
+                && line.contains("reach 1250 (his back key held: 1.25 x)")
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "the hammer skeleton missed the held-Back boundary; inspect {}",
+                dir.display()
+            )
+        });
+    let distance: f32 = extended_hit
+        .split_once("distance ")
+        .unwrap()
+        .1
+        .split_once(',')
+        .unwrap()
+        .0
+        .parse()
+        .unwrap();
+    assert!(
+        distance > 1000.0 && distance <= 1250.0,
+        "the extended hit was not beyond normal reach: {extended_hit}"
+    );
     assert!(
         characters.contains("zombie5: rises (rule 30): Connor 679 away")
             && characters.contains("zombie5: joins the active list"),

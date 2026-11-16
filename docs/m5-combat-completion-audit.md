@@ -74,6 +74,10 @@ missing movement box, and hidden `skelredo` rising from Birth and
 landing 20-damage hits. Seven controlled deaths check separate drop
 lists, corpses and one experience award each. All seven actors were
 relocated to the measured lane; earned regional triggers remain open.
+The same Dead City process now checks an installed hammer skeleton's
+second Attack while Connor holds Back: the Do cue hits at 1,086 units,
+outside its normal 1,000-unit reach and inside the logged 1,250-unit
+extended reach. The seven death and reward checks still pass.
 One Gnome process now links the placed `sprigsurprise` and `zombiepit1`
 families. Both land authored Normal hits on living Connor before their
 controlled deaths. The test checks the Spriggan's 65 Silver Coins,

@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-17 Check held-Back enemy reach in a grouped run (M5)
+
+Reused `deadcity_ordinary_variants_live`: the placed hammer skeleton's
+second Attack began in range, then its position changed before the Do
+cue while Connor briefly held Back. Its ordinary Normal hit landed at
+1,086 units with the logged 1,250-unit extended reach, exceeding its
+1,000-unit normal reach. Connor's position was restored for the later
+actors. The complete seven-actor release test passed 1/1 in about
+64 seconds; no extra world load, production code or GOG file changed.
+With `KQ8_GAME_DIR` set, run `cargo test --locked --release -p
+kq8-viewer --test deadcity_ordinary_variants_live -- --ignored
+--nocapture`.
+
 ## 2026-11-17 Extend grouped Dead City ordinary combat (M5)
 
 Extended the existing original-data Dead City fixture from four to

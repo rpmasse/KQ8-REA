@@ -526,6 +526,18 @@ the first four actors' assertions in the same process.
 The relocation tests shared combat rules; it does not establish their
 earned Dead City routes or original-executable parity.
 
+## M5 enemy back-key reach in the grouped Dead City run (2026-11-17)
+
+Use the placed `Skelhamr`'s second ordinary Attack in the existing
+seven-actor Dead City process. After the movement begins but before its
+Do cue, move the skeleton outside its 1,000-unit normal reach and hold
+Connor's Back key for the cue. Require a logged distance above 1,000
+and no more than the rule's 1,250-unit extended reach, with a Normal
+hit and health loss. Release the key and restore Connor's position for
+the later actors. Keep all seven original death and reward assertions.
+This checks the installed animation's actual Do frame in Rust, not
+original-executable parity.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation
