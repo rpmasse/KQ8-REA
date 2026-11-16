@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-17 Cover Temple 2 bow guard in the combined fight (M5)
+
+Extended `temple_spear_live` after its two spear contacts: remove the
+observed spear carrier and melee guard, move the installed bow guard
+into the clear upper-floor lane, then assert its own `PRorcycle.kq`
+Ice contact and Connor health loss. The first expanded test failed on
+an overly specific Wait assertion for the melee guard, which was
+correctly in active Move. The corrected release test passed 1/1,
+covering all three Temple 2 combat type attacks in one process. No
+production code, GOG file or manual gameplay changed. Reproduce with
+`KQ8_GAME_DIR` set and
+`cargo test --locked --release -p kq8-viewer --test temple_spear_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Link Temple 2 spear and guard combat (M5)
 
 Added a single original-data Temple 2 scenario for the placed spear

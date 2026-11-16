@@ -1,5 +1,13 @@
 # Provenance
 
+**Temple 2 bow guard (2026-11-17, M5).**
+The installed monster list identifies `henchbow1` as type `henchbow`
+with `INVITEM_Orcbow` and `PRorcycle.kq`. The same windowed Rust
+original-data process that checks the spear carrier and melee guard
+now moves this original actor into their proven upper-floor lane after
+their hits, then asserts a live Ice arrow contact and Connor health
+loss. The release check passed; bow-guard death and drops remain open.
+
 **Temple 2 enemy families (2026-11-17, M5).**
 The read-only installed monster list identifies `spearchucker1` as
 `hencspr2` with `INVITEM_Spear` / `PRspear.kq`, and `Hallhench2` as

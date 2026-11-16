@@ -4024,6 +4024,19 @@ units onto that authored floor gave two spear contacts and a melee guard
 hit. The resulting one-process release scenario passed; the
 [placed-enemy matrix](m5-enemy-rule-matrix.md) records its scope.
 
+**Temple 2 bow guard in the same encounter (2026-11-17).** The remaining
+placed ranged type there is `henchbow`, with `INVITEM_Orcbow` selecting
+`PRorcycle.kq`. After the two asserted spear hits, remove the two
+already-observed fighters and move the original `henchbow1` actor into
+their clear upper-floor lane. Keep one process and require its own live
+attack, authored projectile contact and Connor health loss. This tests
+the remaining Temple 2 attack family without another world load.
+The original bow guard fired `PRorcycle.kq` after relocation into the
+already-proven lane; its Ice contact lowered Connor's health. The
+expanded one-process release test passed. The first expanded test run
+failed only because its guard status assertion expected Wait while the
+live melee guard was in Move; the corrected assertion passed.
+
 **Combined hand-weapon fight matrix (2026-11-16).** The existing
 original-data check launches Dead City once per hand weapon, so it
 never exercises changing weapons during an encounter. Keep one

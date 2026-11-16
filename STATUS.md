@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Temple 2 bow guard in the same process
+
+The previously passing Temple 2 spear/guard route now removes those
+two actors after their asserted hits, moves the installed `henchbow1`
+into the same upper-floor lane and checks its authored `PRorcycle.kq`
+Ice arrow contacting Connor and lowering health. One release process
+passed with all three Temple 2 type attacks. The first expanded test
+failed on a test-only status assertion expecting the melee guard to
+stand; it was actively moving, as the log showed. The corrected test
+passed 1/1. Bow-guard death and drops remain untested. No production
+code or GOG file changed; M5 remains incomplete.
+
 ## 2026-11-17 M5 placed-enemy inventory and Temple 2 fight
 
 The read-only original-data inventory found 81 monster-stat types,
