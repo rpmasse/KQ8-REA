@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 Barren chest Henchman fight
+
+The original-data `barren_henchman_live` release test passed 1/1. The
+installed `Chest1.cs` reveal cue showed the hidden Henchman, whose
+`drip,taunt` Special list ended into Wait. His ordinary 125-point Normal
+attack lowered Connor's health. A controlled Normal death checked one
+strength, one invulnerability and one sacred-water drop, the
+`hm_bded.kqs` corpse and 50,005 experience once. This shortcut did not
+play the final speech, so it did not register `brnhench.cs`'s death
+listener or verify its `Chest1` cue. A second attempt showed the
+diagnostic console rejects `KQTalkMessageCompleteEvent`; that callback
+remains **not tested**. The earned chest route is also open. M5 remains
+incomplete.
+
 ## 2026-11-17 M5 Snow exit archon classified
 
 Read-only original-data study shows the Snow exit Archon's script runs

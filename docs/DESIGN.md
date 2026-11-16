@@ -373,6 +373,25 @@ needs separate evidence before claiming it. The scenario also checks
 that world damage and god mode did not replace the fiend hit. These
 relocations do not establish earned approaches.
 
+## M5 Barren chest Henchman fight (2026-11-17)
+
+The installed Barren `Chest1.cs` reveals the hidden `Henchman` on its
+timed Cue 20 frame 50 and starts his two-movement `drip,taunt` Special
+list. Its final speech completion registers the Henchman's death
+listener. In one unattended original-data run, enter those script
+branches with Connor near the authored Henchman placement. Check that
+the list finishes into ordinary Wait and his own 125-point Normal
+attack lowers living Connor's health. Use a raised health ceiling, not
+god mode.
+Then use one controlled Normal death to check the authored strength,
+invulnerability and sacred-water drops, `hm_bded.kqs` corpse and
+50,005 experience. The `brnhench.cs` death cue requires the earlier
+authored speech completion to register its state-change listener.
+The diagnostic console cannot send that speech-completion event, so
+the callback remains unverified after two bounded attempts. Record
+the script entry and proximity; do not claim the earlier chest
+cutscene or an earned campaign route.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

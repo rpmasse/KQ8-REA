@@ -44,6 +44,11 @@ actor's normal AI melee health loss, Crystal drop, no corpse and 5,000
 experience, plus a nearby vulture's controlled no-drop/no-corpse death
 and 500 experience. The vulture did not make a live attack; its zero
 alarm and attack distances need a separate rule audit.
+The `barren_henchman_live` route starts at the installed chest reveal
+cue, observes the hidden Henchman's Special list finish and an ordinary
+125-point Normal hit, then checks his three-item drop, corpse and
+50,005 experience. It does not play the preceding or final speech,
+so the script's death-listener callback remains unverified.
 One Dead City process now links the installed `skelrdbw` red bow and
 `weeperup` raised Weeper families. The bow's `Prmonarw.kq` Projectile
 contacts lowered Connor's health; the Weeper's `Prweeper.kq` linked and

@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-17 Link Barren scripted Henchman combat (M5)
+
+One original-data release test passed 1/1 in about 37 seconds. The
+installed chest cue revealed the hidden Henchman, his Special list
+completed, and ordinary AI landed 125-point Normal hits. Controlled
+Normal death verified his three-item drop, corpse and single
+50,005-experience award. The first test run failed only on an
+unregistered death callback. A second attempt to trigger the authored
+speech-completion branch failed because the diagnostic `sendEvent`
+command does not recognize `KQTalkMessageCompleteEvent`. The passing
+test omits that unsupported shortcut and does not claim the callback.
+No production code or GOG file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test barren_henchman_live
+-- --ignored --nocapture`.
+
 ## 2026-11-17 Classify Snow exit Archon as a scripted guide (M5)
 
 Read the installed Snow exit `archon.cs`, `archon.anm` and placement
