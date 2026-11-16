@@ -1,6 +1,6 @@
 # M5 combat completion audit
 
-2026-11-16. This is an inventory of **automated Rust evidence**, not a
+2026-11-17. This is an inventory of **automated Rust evidence**, not a
 claim of original-game parity. M5's gate in `DESIGN.md` requires melee and
 ranged hits and misses, ammunition, health changes, potion expiry, rewards,
 drops and game over, with every distinct weapon and enemy rule linked to a
@@ -12,15 +12,17 @@ recreation is feature-complete.
 | Connor's 13 hand banks | `Connor.kq` lists 13; `hand_weapon_matrix` checks 12 weapon hits in one encounter, and `first_person_weapon_matrix` covers Fists and all hand banks. Core `connor_s_do_hits_his_target_misses_or_hits_dead_air` checks a hit, a missed swing and dead air; `daventry_hero_ring` records an ordinary Henchman miss. Q139(e) now confirms the ordinary object roll; a grouped core check covers its callbacks. | Finish source-to-scenario links for weapon-specific edge cases; specialized object receivers were not exhaustively traced. |
 | Connor's 9 ranged banks | `Connor.kq` lists 9; `ordinary_ranged_items` covers five in one encounter, `live_crossbow_combat` covers Small Crossbow, `elemental_ranged_death` covers Fire and Ice, and `hammer_hit_return` covers Azriel's Hammer. `ranged-weapons.md` rule 20 says ammunition is unlimited, and `live_crossbow_combat` fires three shots without an ammo count. | No separate ammunition depletion rule exists; finish source-to-scenario links for other ranged edge cases before claiming all rules covered. |
 | Held Rock | `rock_throw` now checks one Normal hit on an original skeleton, lower health and recovery at contact in a single launch; `rock_flight_checkpoint` keeps the Daventry wall/floor and fresh-process arc check. The grouped core matrix checks authored damage and hit kind at launch. | No distinct Rock-rule gap identified; original-runtime parity belongs to M7. |
-| Ordinary enemy AI | `goblin_live_combat`, `live_crossbow_combat`, `swamp_slime_retreat`, `elemental_enemy_attacks`, `built_in_alarm_cry`, `surprise_line`, `monster_friendly_fire` and `spawned_monster_combat` cover distinct attack, retreat, speech and contact paths. `available_monster_add` covers a placed type, an unplaced type whose live attack damages Connor, and a type file absent from the current world. | Confirm dynamic-monster combat scaling: Q3 in `fighting.md` still leaves a possible second factor on `KQMonster::add` unresolved. |
+| Ordinary enemy AI | `goblin_live_combat`, `live_crossbow_combat`, `swamp_slime_retreat`, `elemental_enemy_attacks`, `built_in_alarm_cry`, `surprise_line`, `monster_friendly_fire` and `spawned_monster_combat` cover distinct attack, retreat, speech and contact paths. `available_monster_add` covers a placed type, an unplaced type whose live Hard attack damages Connor, and a type file absent from the current world. The grouped Dead City rat core check covers both ordered difficulty cuts and the apply switch off. | Q218 resolves the runtime-add scaling rule; other distinct enemy rules still need source-to-scenario review before a completion claim. |
 | Damage and survival | `live_combat_difficulty`, `shield_live_combat`, `strength_live_melee`, `invisible_live_ai` and `terrain_hazards` cover difficulty, protection, potion expiry and liquid damage. Q139(e)'s ordinary-object roll, zero-damage and repeated-death boundaries now have a focused Rust check; `object_stats` covers a tomb door across a disk save. | Audit any specialized object hit overrides separately; original-runtime parity remains untested. |
 | Death, drops and game over | `death_checkpoint`, `sprgnbow_death_drops`, `corpse_skin_checkpoint`, `live_enemy_game_over` and boss checks cover ordinary death, rewards, named drops, corpse presentation and Connor's game-over transition. | Complete the unrelocated Tower Skeleton fall; `tower_live_fall` currently places the original actor at the cliff edge. A Connor-only lure/hit reached `reactback` on supported ground. The measured east edge is x=188000–188200; identify a side approach or authored displacement before another route. |
 | Special enemies and saves | Controlled Mandragor, Gnome Dragon, Ice Dragon, Skeleton King, Lucreto, Bossprig, Snowmane, Barren ant/dwarf and Weeper checks exercise their distinct controllers, several across fresh-process saves. The live Mandragor root fight now saves a linked down root and verifies timed rebirth in a fresh process. | Q209, Q210 and Q212 retain precise original-order or visual/save rules. Full karma scripts and earned campaign approaches are M6 work. |
 
 These test names identify the existing scenarios. The 2026-11-17
 object-damage check passed in core, and `object_stats` passed on the
-installed GOG data after its harness was set to windowed. Earlier pass
-results and limits are in `STATUS.md`.
+installed GOG data after its harness was set to windowed. The later
+runtime-add difficulty check passed in one grouped core fixture and
+the existing two-world Windows fixture at Hard. Earlier pass results
+and limits are in `STATUS.md`.
 
 ## Rock enemy-contact setup and result
 

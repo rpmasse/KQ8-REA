@@ -3,6 +3,32 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 runtime monster combat difficulty (2026-11-17)
+
+`fighting.md` open question 3 asks whether `KQMonster::add` scales a
+new monster's health and damage once or twice. First obtain the
+original-engine rule in the study session, including when each factor
+is applied and where integer values are cut. Then align the runtime
+addition path with that rule without changing the placed-monster path.
+Check Easy and Hard in a grouped core scenario, including health,
+hand damage, ranged damage, protection and experience. Extend the
+existing placed/unplaced `available_monster_add` Windows check to
+exercise one non-Normal difficulty without another world load. Keep
+normal AI and damage enabled there. No manual gameplay or GOG-file
+write is part of this step.
+
+The separate original-engine study found two ordered cuts for a
+script-added actor when the world-entry switch is on; the command
+still applies one cut when that switch is off. Rust now follows that
+sequence. The existing Dead City rat core fixture checks Easy 5 → 3
+→ 1, Hard 5 → 7 → 10, and switch-off Easy 5 → 3 without loading the
+archive again. The existing Windows placed/unplaced fixture now runs
+Dead City's unplaced `bigskel` at Hard: its health and damage become
+300/50 → 450/75 → 675/112, and its live attack damages Connor.
+Both focused tests pass. The core fixture also needed its saved-world
+simulation clock advanced with its update count; the old assertion
+was stale after the clock's earlier separation from update number.
+
 ## M5 replace the object damage stand-in (2026-11-17)
 
 Q139(e) leaves the damage calculation for barrels, doors and other

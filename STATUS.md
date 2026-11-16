@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-17 M5 runtime monster combat difficulty
+
+The separate study answered the original-engine scaling question:
+script-added monsters get the shared world-entry combat factor and a
+second command factor, with an integer cut after each. Rust now applies
+both when the world-entry switch is on and just the command factor when
+it is off. One grouped Dead City rat core check passed for Easy,
+Hard and switch-off. The existing Windows placed/unplaced test passed
+at Hard (1/1 in 15.68 seconds): `testBigskel` scaled from 300 health,
+50 damage to 675 health, 112 damage and hit Connor for 45. The first
+core run found a stale fixture clock and was repaired before the pass.
+This verifies Rust behavior against the documented rule, without an
+original-runtime comparison. M5 remains about 65% complete; no
+manual gameplay or GOG-file write occurred.
+
 ## 2026-11-17 M5 ordinary object damage rule and callbacks
 
 The separate original-engine study answered Q139(e): ordinary objects

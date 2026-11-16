@@ -2973,7 +2973,11 @@ impl WorldState {
         }
         let mut fight = crate::fight::Fight::new(kq8_data::characters::FightSettings::from_line(&template.keys, &line, &template.kind, &self.items.types));
         fight.combat_scaled = template.combat_scaled;
-        if fight.combat_scaled { fight.apply_combat_level(self.combat_level); }
+        // fighting.md rule 3, Q218: world entry scales when the apply
+        // switch is on; KQMonster::add then scales the current integer
+        // stats again even if that switch was off.
+        let entry_scale = fight.combat_scaled.then(|| fight.apply_combat_level(self.combat_level));
+        let command_scale = fight.apply_combat_level(self.combat_level);
         character.fight = Some(fight);
         if let Some((from, to)) = line.skin.clone() {
             self.bmp_swaps.insert(lower.clone(), (from, to));
@@ -2992,6 +2996,7 @@ impl WorldState {
         }
         self.vars_out.push(("ObjectName".into(), line.name.clone()));
         self.note(format!("{at}: KQMonster::add {} type {} at {:?}: live character, AI and fight created", line.name, template.kind.name, position));
+        self.fight_note(&line.name, format!("KQMonster::add combat scaling: entry {}; command {command_scale}", entry_scale.as_deref().unwrap_or("applyCombatLevel off")));
         "0".into()
     }
 
@@ -11703,6 +11708,31 @@ deleteObject waterfall2
         let script = volume.unpack(volume.find("ratkarma.cs").unwrap()).unwrap().data;
         let source = String::from_utf8_lossy(&script);
         let add = source.lines().map(str::trim).find(|line| line.starts_with("KQMonster::add rat1 ")).unwrap();
+        // One original-data fixture covers Easy, Hard and the world-entry
+        // switch without reloading the Dead City archive for each case.
+        let mut scaled = fighter();
+        let scaled_actor = scaled.world.anims[0].clone();
+        scaled.world.set_monster_templates([("rat".into(), MonsterTemplate {
+            actor: scaled_actor.clone(), keys: keys.clone(), kind: kind.clone(), combat_scaled: true,
+        })]);
+        for (name, factor, expected) in [
+            ("easyRat", 0.66, [1, 1, 1, 2, 1]),
+            ("hardRat", 1.5, [10, 10, 10, 2, 1]),
+        ] {
+            scaled.world.combat_level = factor;
+            assert_eq!(scaled.test_command(&format!("KQMonster::add {name} rat"), "difficulty").as_deref(), Some("0"));
+            let found = scaled.world.anims.iter().find(|a| a.player.name == name).unwrap();
+            assert_eq!(found.character.as_deref().unwrap().fight.as_ref().unwrap().stats.0, expected,
+                "{name}: the GOG rat's 5/5/5 stats need two separate cuts; protection and experience stay fixed");
+        }
+        scaled.world.set_monster_templates([("rat".into(), MonsterTemplate {
+            actor: scaled_actor, keys: keys.clone(), kind: kind.clone(), combat_scaled: false,
+        })]);
+        scaled.world.combat_level = 0.66;
+        assert_eq!(scaled.test_command("KQMonster::add offRat rat", "difficulty").as_deref(), Some("0"));
+        let off = scaled.world.anims.iter().find(|a| a.player.name == "offRat").unwrap();
+        assert_eq!(off.character.as_deref().unwrap().fight.as_ref().unwrap().stats.0, [3, 3, 3, 2, 1],
+            "with applyCombatLevel off, only the command's scale runs");
         let mut a = fighter();
         let actor = a.world.anims[0].clone();
         a.world.set_monster_templates([("rat".into(), MonsterTemplate { actor: actor.clone(), keys: keys.clone(), kind: kind.clone(), combat_scaled: false })]);
@@ -11720,6 +11750,7 @@ deleteObject waterfall2
         assert!(a.world.anims[1].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0] < 5,
             "the new actor must receive combat damage");
         a.world.updates = 135;
+        a.world.simulation_time = 9.0;
         let rat = &mut a.world.anims[1];
         rat.player.base.position = [1200., 1300., 100.];
         rat.player.phase = 0.37;

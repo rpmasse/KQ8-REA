@@ -78,6 +78,25 @@ Words used here:
    whole number. Protection and experience are not scaled. Loading a world
    switches `applyCombatLevel` off again until its `newworld.cs` runs.
    The factor also changes the damage roll against characters (rule 18).
+   **Script-added monsters (traced 2026-11-17, open question 3):**
+   `KQMonster::add` builds a new monster by the same route as a placed
+   `monsters.kq` entry, including its `xtra` values and held-item stat
+   additions. On entering the world, that route multiplies **health,
+   hand damage and ranged damage** by the factor and cuts each result
+   toward zero **if `applyCombatLevel` is on**. The add command then
+   multiplies those three current whole-number stats by the factor and
+   cuts them again **whether or not `applyCombatLevel` is on**. Thus an
+   ordinary placed monster is scaled once, and a monster added by a
+   script while the switch is on is scaled **twice, with a cut after
+   each multiplication**. If the switch is off, a script-added monster
+   is scaled once. Protection, experience and the remaining stats are
+   not multiplied by either pass. Changing the combat level later does
+   not rescale monsters already created. For example, a base health of
+   15 becomes 9 for a placed monster but 5 for a script-added one on
+   Easy (15 → 9 → 5); on Hard it becomes 22 versus 33 (15 → 22 → 33);
+   Normal leaves both at 15. The same sequence applies separately to
+   hand and ranged damage, including negative values, with each cut
+   toward zero.
 4. **Connor** (traced and data): `GAME/Kq/Connor.kq` `stats=10 10 0 0 0`
    (health 10, hand damage 10, ranged 0, protection 0, experience 0),
    `level=1`, `attackDist=2350`. Carried equipment adds its stats
@@ -1018,12 +1037,13 @@ experience sent, corpse shape, the `Die` line to the script.
    rules 21–31 (the shooter's ranged damage at the shot; no gravity;
    removed on the first touch, below the floor grid or past
    `maxDistance`; aim 0.75 × the target's box top).
-3. ~~Which menu sets the combat level~~: answered 2026-10-21 in
-   `main-menu.md` rule 10 (New → "Combat difficulty": Easy 0.66,
-   Normal 1.0, Hard 1.5). Still open: whether a character added by
-   the `KQMonster::add` command gets the combat factor twice (once when
-   added, once when it enters the world) (rule 3). Daventry's monsters all
-   come from `monsters.kq` (once).
+3. ~~Which menu sets the combat level, and whether `KQMonster::add`
+   scales twice~~: answered 2026-10-21 in `main-menu.md` rule 10
+   (New → "Combat difficulty": Easy 0.66, Normal 1.0, Hard 1.5), and
+   2026-11-17 in rule 3 above. A placed monster gets one pass; a
+   script-added monster gets the same pass when `applyCombatLevel` is
+   on, followed by the command's unconditional second pass. Daventry's
+   placed monsters come from `monsters.kq`.
 4. ~~Whether the dropped items are spread out~~: answered, they are
    thrown (rule 31, corrected after the user's check), except the
    weapon named like a part of the die model (rule 31a, Q169).

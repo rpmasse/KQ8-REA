@@ -1,5 +1,27 @@
 # MODLOG
 
+## 2026-11-17 Match runtime monster difficulty (M5, Q218)
+
+The separate original-engine study answered `fighting.md` question 3:
+`KQMonster::add` repeats the health/hand/ranged scaling after the
+shared world-entry scaling, cutting whole numbers after each pass.
+Rust now performs that command pass even when the world-entry apply
+switch is off. The existing Dead City rat core test checks Easy,
+Hard and switch-off values from one asset load. Its first run reached
+a stale checkpoint assertion because the fixture advanced `updates`
+without its separate simulation clock; setting both to the same nine
+seconds restored the intended remaining-time check. The core test
+passed 1/1. The existing two-world Windows test now uses Hard for
+Dead City's unplaced `bigskel`: 300/50 → 450/75 → 675/112; its live
+attack hit Connor for 45, and that test passed 1/1 in 15.68 seconds.
+No extra world-loading fixture, manual gameplay or GOG-file write.
+
+With `KQ8_GAME_DIR` pointing to the GOG installation, reproduce with:
+
+`cargo test --locked -p kq8-core original_dead_city_add_creates_a_live_rat_and_handles_short_form -- --ignored --nocapture`
+
+`cargo test --locked --release -p kq8-viewer --test available_monster_add -- --ignored --nocapture`
+
 ## 2026-11-17 Match ordinary object hit callbacks (M5, Q139 e)
 
 The separate study session traced the original ordinary-object damage

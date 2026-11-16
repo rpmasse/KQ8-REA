@@ -55,8 +55,9 @@ fn every_available_type_can_create_a_drawn_live_actor() {
         if world == "Daventry" {
             run.arg("--no-ai");
         } else {
-            // This is a defined global type, but its file is absent here.
-            run.args(["--command", "KQMonster::add testMissing goblin2,20"]);
+            // Hard difficulty also checks both ordered scaling passes on
+            // a live type absent from the world's placed monster list.
+            run.args(["--combat-level", "3", "--command", "KQMonster::add testMissing goblin2,20"]);
         }
         let output = run.output().unwrap();
         fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
@@ -89,6 +90,11 @@ fn every_available_type_can_create_a_drawn_live_actor() {
                 dir.display()
             );
         } else {
+            assert!(
+                fight.contains("testBigskel: KQMonster::add combat scaling: entry combat level x 1.5 (rule 3): [300, 50, 50, 20, 4000] -> [450, 75, 75, 20, 4000]; command combat level x 1.5 (rule 3): [450, 75, 75, 20, 4000] -> [675, 112, 112, 20, 4000]"),
+                "the script-added big skeleton did not receive two ordered Hard cuts; inspect {}",
+                dir.display()
+            );
             assert!(
                 doors.contains("Monster type undefined ('goblin2')")
                     && !doors.contains("copy testMissing"),

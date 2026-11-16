@@ -1,5 +1,15 @@
 # Provenance
 
+**Runtime monster combat difficulty (2026-11-17).**
+[Fighting rule 3](../behaviour/fighting.md), Q218, distinguishes the
+shared world-entry factor from `KQMonster::add`'s unconditional second
+factor. Both cut health, hand damage and ranged damage after their own
+multiplication. The Rust command now follows that order. An original
+Dead City rat core check covers Easy, Hard and the apply switch off;
+the existing Windows type-add route checks a live Hard `bigskel` hit.
+Neither run compared original executable gameplay, and no manual
+gameplay occurred.
+
 **Ordinary object hit callbacks (2026-11-17).**
 [Doors rules 19–21](../behaviour/doors.md), answered under Q139(e),
 establish the shared 75–125% object damage and protection rolls,
