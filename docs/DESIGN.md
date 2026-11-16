@@ -4656,6 +4656,21 @@ The current evidence and remaining distinct gaps are in
 [M5 combat completion audit](m5-combat-completion-audit.md). Use that
 inventory to select source-backed checks without rerunning whole matrices.
 
+**Q206 on-fire hazard slice (2026-11-17).** Follow the separate
+`terrain-hazards.md` study: the existing `lightOnFire` state on Connor
+overrides the sampled material with poison + fire and bypasses liquid
+presence and depth, while retaining the normal amount, immunity and
+world-attack path. Extend the shared hazard selector rather than adding
+a separate damage mechanism. Carry Connor's on-fire bit with the Journey
+and retain other live objects' bit in the kept-world state, with defaults
+for older Rust slots. Check dry ground, absent surface, immunity, command
+clear and fresh-process save continuation in one grouped core fixture;
+use an installed Temple 4 callback as a headless data check if it can be
+reached without a new world-load matrix. Correct the earlier
+`object-lighting.md` statement that no reader was known. The ontop
+collision-type gate is source-backed, but its physics restoration is
+still unproven; keep that movement branch separate from this slice.
+
 ### M6 · Complete saves and the campaign
 
 **Windmill exit handoff.** Both earlier runs fired Henchtp at tick 49, but

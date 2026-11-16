@@ -1,5 +1,18 @@
 # Provenance
 
+**On-fire terrain hazard (2026-11-17, Q206).**
+The separate original-engine study in
+[terrain-hazards.md](../behaviour/terrain-hazards.md) identifies the
+moving object's on-fire group bit 0x1000, poison + fire material
+substitution, dry-ground eligibility, native property save field and
+Connor collision-type gate for the distinct ontop branch. Rust's
+`terrain_hazards.rs` reads the already implemented script-command bit
+and uses the common world attack; Journey and kept-world records retain
+the bit with old-slot defaults. A grouped core test passed 5/5, the
+combined core run passed 787/787 active tests, and viewer `cargo check`
+passed. Original-runtime save timing and ontop
+physics recovery remain unverified.
+
 **Fighting-rule scenario audit (2026-11-17).**
 [Fighting rules 1–41](../behaviour/fighting.md) are mapped to existing
 Rust scenarios and remaining direct gaps in the

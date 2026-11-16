@@ -754,6 +754,13 @@ pub fn spawn_doors(
         std::mem::take(&mut objects.known).into_iter().chain(["Connor".to_string()]),
         sources,
     );
+    // The on-fire bit may also be authored in an object's initial
+    // groupsAlways mask, before any lightOnFire script command (Q206).
+    for (placed, _, _) in &objects.placed {
+        if placed.groups_always & 0x1000 != 0 {
+            active.world.on_fire.insert(placed.name.to_ascii_lowercase());
+        }
+    }
     active.world.camera_world = objects.realm.clone();
     active.world.prop_placements = std::mem::take(&mut objects.prop_placements);
     active.register_prop_colliders(objects.objects.iter().cloned());
@@ -868,6 +875,7 @@ pub fn spawn_doors(
     active.world.object_copies = std::mem::take(&mut objects.object_copies);
     objects.kept_interactions.restore_object_stats(&mut active.world);
     objects.kept_interactions.restore_animations(&mut active.world);
+    objects.kept_interactions.restore_on_fire(&mut active.world);
     // fighting.md (M5 5c-4): what Connor.kq gives the fight.
     if let Some(f) = &objects.connor_fight {
         main_log.summary(format!(

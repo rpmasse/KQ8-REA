@@ -312,6 +312,9 @@ impl Snapshot {
             if !kept.interactions.valid_object_stats() {
                 return Err("save has invalid ordinary-object combat state".into());
             }
+            if !kept.interactions.valid_on_fire() {
+                return Err("save has invalid on-fire object state".into());
+            }
             if !kept.interactions.valid_animations() || !kq8_core::object_checkpoint::valid_copies(&kept.object_copies) {
                 return Err("save has invalid ordinary-object identity or animation state".into());
             }

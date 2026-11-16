@@ -1,5 +1,30 @@
 # MODLOG
 
+## 2026-11-17 Implement the traced on-fire world attack (M5, Q206)
+
+The separately authorized original-engine study revised
+`terrain-hazards.md` and Q206: Connor's live collision type 4 gates
+`ontop`; the on-fire group bit forces poison-rate Fire damage without a
+liquid surface or depth. Rust now reads the existing `lightOnFire`
+state in the shared post-move hazard selector, retains the bit in
+Journey/kept-world saves, initializes authored group bits, and validates saved object names. Corrected
+`object-lighting.md`'s earlier “no reader” statement. Ontop movement
+is still outside this implementation because its physics recovery is
+unproven. The first core check failed only because its lethal fixture
+used the ordinary one-point rate; setting PoisonTime to zero exercised
+the traced 1,000-point case. The focused suite then passed 5/5 with
+one original-data case ignored. The final combined core run passed
+787 tests with 26 ignored. The authored-bit loader check first caught
+a two-field tuple pattern on a three-field placement; correcting it
+made viewer `cargo check` pass. No
+manual gameplay or GOG-file write. Reproduce with:
+
+`cargo test --locked -p kq8-core terrain_hazards_grouped -- --nocapture`
+
+`cargo test --locked -p kq8-core --lib --quiet`
+
+`cargo check --locked -p kq8-viewer`
+
 ## 2026-11-17 Map fighting rules and tighten two existing assertions (M5)
 
 Added `docs/m5-fighting-rule-coverage.md` to connect fighting rules

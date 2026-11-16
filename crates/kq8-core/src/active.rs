@@ -977,7 +977,7 @@ pub struct WorldState {
     /// the mode required (-1 none) and the script named.
     pub required_weapon_mode: (i64, Option<String>),
     /// Objects `KQObject::lightOnFire` set on fire (`object-lighting.md`
-    /// rule 37: the group bit 0x1000; nothing reads it).
+    /// rule 37: group bit 0x1000; the hazard path reads it).
     pub on_fire: BTreeSet<String>,
     /// The world's `KQMonster` objects (`talking.md` rule 6).
     pub monsters: Vec<Monster>,
@@ -3690,8 +3690,7 @@ impl WorldState {
     }
 
     /// `KQObject::lightOnFire <obj> <0|1>` (`object-lighting.md` rule 37,
-    /// batch 2): sets or clears the group bit 0x1000; nothing reads it, so
-    /// nothing visible.
+    /// Q206): sets or clears the group bit 0x1000 used by terrain hazards.
     fn light_on_fire(&mut self, words: &[String], at: &str) -> String {
         let (Some(who), Some(v)) = (words.get(1), words.get(2)) else {
             self.note(format!("{at}: usage: KQObject::lightOnFire <object> <0|1>; nothing"));
@@ -3704,7 +3703,7 @@ impl WorldState {
         } else {
             self.on_fire.remove(&key);
         }
-        self.note(format!("{at}: KQObject::lightOnFire {who} {}: group bit 0x1000 {}; nothing reads it, nothing visible (object-lighting.md rule 37)", u8::from(on), if on { "set" } else { "cleared" }));
+        self.note(format!("{at}: KQObject::lightOnFire {who} {}: group bit 0x1000 {}; terrain hazard reads it (object-lighting.md rule 37, Q206)", u8::from(on), if on { "set" } else { "cleared" }));
         "0".into()
     }
 
@@ -5777,20 +5776,22 @@ impl Active {
         self.traps_check(v, false, true)
     }
 
-    /// Q206 ordinary liquid path: after a movement request, use its final
-    /// position, even when collision left the coordinates unchanged.
+    /// Q206: after a movement request, use the final position and the
+    /// moving object's on-fire bit, even if coordinates are unchanged.
     pub fn connor_terrain_damage(&mut self, surface: Option<(f32, u32)>, feet: f32) {
         let now = self.world.now();
         let settings = crate::terrain_hazards::Settings::from_vars(&self.scripts.vars);
         let level = self.world.connor_stats.map(|c| c.level);
-        let Some(hit) = crate::terrain_hazards::ordinary(surface, feet,
+        let on_fire = self.world.on_fire.contains("connor");
+        let Some(hit) = crate::terrain_hazards::moving_object(surface, feet, on_fire,
             self.world.terrain_hazards.immunity, settings, level, now) else { return };
-        let (height, flags) = surface.unwrap();
+        let (height, flags) = surface.unwrap_or((feet, 0));
         let kind = match hit.kind { crate::fight::HitKind::Fire => "2", crate::fight::HitKind::Ice => "3", _ => "0" };
-        self.world.note(format!("terrain liquid flags {flags:#x}, depth {:.3}, {}: world attack {}, base {}, phase {:.6}",
-            height - feet, hit.source, hit.kind.name(), hit.base, now.fract()));
+        self.world.note(format!("terrain {} flags {flags:#x}, depth {:.3}, {}: world attack {}, base {}, phase {:.6}",
+            if on_fire { "on-fire" } else { "liquid" }, height - feet, hit.source, hit.kind.name(), hit.base, now.fract()));
         self.world.queue.send(now, 0.0, CONNOR, "KQAttackEvent",
-            &["world".into(), kind.into(), hit.base.to_string(), "0".into()], "ordinary terrain liquid");
+            &["world".into(), kind.into(), hit.base.to_string(), "0".into()],
+            if on_fire { "on-fire terrain hazard" } else { "ordinary terrain liquid" });
         self.handle_due(now);
     }
 

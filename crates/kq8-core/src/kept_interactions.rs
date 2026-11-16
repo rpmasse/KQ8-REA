@@ -24,6 +24,9 @@ pub struct KeptInteractions {
     object_stats: BTreeMap<String, ObjectCombat>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     animations: BTreeMap<String, OrdinaryAnimation>,
+    /// The original object's always-active on-fire group bit (Q206).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    on_fire: Option<BTreeSet<String>>,
     #[serde(default)]
     swamp_tiles: BTreeMap<String,crate::tile_objects::SwampTile>,
     #[serde(default)]
@@ -244,6 +247,22 @@ impl KeptInteractions {
         })
     }
 
+    pub fn valid_on_fire(&self) -> bool {
+        self.on_fire.as_ref().is_none_or(|on_fire| on_fire.len() <= 16384 && on_fire.iter().all(|name| {
+            !name.is_empty() && name.len() <= 1024 && name != "connor"
+                && name == &name.to_ascii_lowercase() && !name.chars().any(char::is_control)
+        }))
+    }
+
+    /// A kept world receives its own saved object flags after its objects exist.
+    pub fn restore_on_fire(&self, w: &mut WorldState) {
+        let Some(on_fire) = &self.on_fire else { return };
+        w.on_fire.retain(|name| name == "connor");
+        for name in on_fire {
+            if w.known.contains(name) && !w.is_gone(name) { w.on_fire.insert(name.clone()); }
+        }
+    }
+
     /// Original defaults are installed first; Init sees the retained stats.
     pub fn restore_object_stats(&self, w: &mut WorldState) {
         for (name, saved) in &self.object_stats {
@@ -339,7 +358,8 @@ impl KeptInteractions {
             let mut animation=Playback::take(&w.anims[i].player);animation.random_speed=None;
             Some((name.clone(),KeptLava {tile:t.clone(),animation,hidden:w.plain_hidden.get(name).copied().unwrap_or(true)}))
         }).collect();
-        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats, animations,swamp_tiles,lava_tiles }
+        let on_fire = Some(w.on_fire.iter().filter(|name| name.as_str() != "connor" && w.known.contains(*name) && !w.is_gone(name)).cloned().collect());
+        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats, animations,on_fire,swamp_tiles,lava_tiles }
     }
 
     pub fn restore_special_actors(&self, w: &mut WorldState) {

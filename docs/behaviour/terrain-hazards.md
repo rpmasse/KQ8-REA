@@ -5,8 +5,8 @@ come from static study of the original GOG executable. Regional
 configuration and pickup placements are original-data findings.
 No original runtime or original save/load comparison was performed:
 those are **not tested**. This note supplies the ordinary deep-liquid
-path; the remaining `ontop` and special-status questions are explicitly
-listed at the end. It does not close all of Q206.
+path and the traced `ontop` and on-fire branches. Remaining recovery
+and save questions are listed at the end. It does not close all of Q206.
 
 ## Purpose
 
@@ -178,25 +178,41 @@ Connor enters a river.
 
 ## Special paths and remaining uncertainty
 
-- An existing object status can force poison-rate fire flags and allow
-  the ordinary damage path without the liquid-depth condition. Its
-  full lifecycle and public meaning have not been established here.
-  Do not manufacture a script flag or infer it from the Rust model.
-- **`ontop` (`0x800`), partly traced.** If its amount is nonzero, its
+- **On fire, traced.** `KQObject::lightOnFire <object> 1` adds bit
+  `0x1000` to that object's always-active group mask; `0` clears it.
+  The post-move hazard check reads the moving object's resulting live
+  group bits, including Connor's own. When this bit is present it uses
+  material flags **poison + fire (`0x240`)** for the amount, immunity and
+  hit-kind checks, regardless of the sampled ground material. It still
+  performs the surface query, but its result and the ordinary **250-unit
+  depth gate are bypassed** for this branch: an on-fire Connor can
+  receive the fire-kind, `PoisonTime`-rate world hit even over dry ground
+  or if that query finds no liquid surface. The amount must still be
+  nonzero and at least one of these two flags must survive his terrain
+  immunity mask. The bit persists until the command clears it, another
+  group-mask change removes it, or the object is removed. The generic
+  object property codec reads/writes the always-active group mask, so
+  this bit is in an ordinary native object save; the full timing of a
+  disk-load continuation has not been compared in the original runtime.
+- **`ontop` (`0x800`), traced gate.** If its amount is nonzero, its
   material is not fully immune, and the surface is no more than 100
-  units below the feet, a separate branch is selected. It only performs
-  the sinking action for Connor in a particular animation/control
-  condition; the public meaning of that condition remains unresolved.
-  In the action, keep-on-ground and gravity are disabled. While the
-  surface is less than 250 above the feet, an additional movement lowers
-  him by **15 units**, then the branch queues the hazard attack. Its
-  kind has the same fire-before-ice priority as rule 9. The original
-  branch does not simply fall through to ordinary deep-liquid behavior
-  when its Connor/control gate rejects it.
-- What restores gravity/keep-on-ground after `ontop`, the additional
-  status's lifecycle, exact native immunity serialization and the
-  world-clock save restoration remain **open**. Treat the ordinary
-  non-`ontop`, non-special-status path separately from those cases.
+  units below the feet, a separate branch is selected. Sinking and the
+  attack require **Connor with live collision type exactly 4**, his
+  normal constructor type. This checks his current mover/collider type,
+  not his current animation or input. A state that has set his live type
+  to zero fails this gate. In the accepted branch keep-on-ground and
+  gravity are disabled. While the surface is less than 250 above the
+  feet, an additional movement lowers him by **15 units**, then the
+  branch queues the hazard attack. Its kind has the same fire-before-ice
+  priority as rule 9. Rejection does not fall through to ordinary
+  deep-liquid behavior in the same post-move check.
+- **Recovery boundary.** The post-move hazard routine has no exit action
+  that turns gravity or keep-on-ground back on after leaving `ontop`.
+  Other state transitions and script commands can change physics, but
+  this pass did not establish an automatic recovery path or the exact
+  native disk-load result for a Connor saved while those two controls
+  are off. Exact native immunity and world-clock save restoration also
+  remain open.
 
 ## How to check without manual playtesting
 

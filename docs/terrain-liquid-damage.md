@@ -1,8 +1,9 @@
-# Ordinary terrain-liquid damage
+# Terrain hazard damage
 
 Implementation B, 2026-11-07. Rules come from study A's
-[terrain-hazards.md](behaviour/terrain-hazards.md), rules 1–13. This
-change implements the ordinary non-`ontop`, non-special-status path.
+[terrain-hazards.md](behaviour/terrain-hazards.md), rules 1–13. The
+original change implemented the ordinary non-`ontop` path. The
+2026-11-17 follow-up adds the separately traced on-fire branch.
 No original executable, decompiled material or game assets were copied.
 
 ## Behavior and integration
@@ -119,12 +120,27 @@ Evidence is under
 
 ## Limits retained
 
-The `ontop` sinking/control branch is excluded rather than falling
-through into ordinary liquid damage. Its control gate and gravity/
-keep-on-ground restoration remain open, as do the special-status
-lifecycle and exact GodArmor path. Negative/nonfinite settings and
-nonpositive levels are outside the studied original data and produce no
-new speculative damage in this implementation.
+The on-fire branch reads the existing `lightOnFire` bit on Connor (or
+an authored initial group bit), substitutes poison + fire, and can
+queue a Fire world hit on dry ground
+or with no sampled surface. It retains the PoisonTime amount and full
+material immunity checks, then uses the same world attack/armor/death
+path as ordinary liquid. The bit is carried by Connor's Rust Journey;
+other live objects' bits are retained with the kept world. Older Rust
+slots default Connor to off and retain a world's Init state when no
+per-object bit snapshot exists. The grouped core test checks command
+set/clear, dry and absent surfaces, immunity, zero amount, Fire death,
+JSON roundtrip and old-slot defaults. It passes 5/5 in the focused
+suite; the original-data Wisp check remains ignored in this run. The
+viewer compiles with the change. This is Rust continuation evidence,
+not a native original save/load comparison.
+
+The `ontop` sinking/control branch remains excluded rather than falling
+through into ordinary liquid damage. Its collision-type gate is now
+traced (Connor's live type exactly 4); gravity/keep-on-ground recovery
+remains open, as does the exact GodArmor path. Negative/nonfinite
+settings and nonpositive levels are outside the studied original data.
+They produce no speculative damage in this implementation.
 
 The original hazard routine has no displacement-change guard; an
 unchanged result of a move request still qualifies. Its invocation on

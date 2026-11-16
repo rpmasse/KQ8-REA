@@ -1,6 +1,5 @@
-//! Ordinary deep-liquid attacks, from `behaviour/terrain-hazards.md`.
-//! `ontop` sinking and the untraced special status are deliberately outside
-//! this path. The sound checkpoint is Rust continuation, not evidence of
+//! Deep-liquid and on-fire attacks, from `behaviour/terrain-hazards.md`.
+//! `ontop` sinking remains outside this path. The sound checkpoint is Rust continuation, not evidence of
 //! the original executable's save format or clock restoration.
 
 use kq8_data::{envinfo::{FAST_POISON, LIQUID, POISON, SWAMP}, world_script::Vars};
@@ -69,6 +68,16 @@ pub fn ordinary(surface: Option<(f32, u32)>, feet: f32, immunity: u16,
     if base == 0 { return None; }
     let kind = if flags & FIRE != 0 { HitKind::Fire } else if flags & ICE != 0 { HitKind::Ice } else { HitKind::Normal };
     Some(Hit { base, kind, source })
+}
+
+/// Q206: on fire substitutes poison + fire material and bypasses the
+/// liquid/depth gates. The same world attack receives the resulting hit.
+pub fn moving_object(surface: Option<(f32, u32)>, feet: f32, on_fire: bool,
+    immunity: u16, settings: Settings, connor_level: Option<i64>, now: f64) -> Option<Hit> {
+    if !on_fire { return ordinary(surface, feet, immunity, settings, connor_level, now); }
+    if ((POISON | FIRE) as u16) & !immunity == 0 { return None; }
+    let base = amount(settings.poison, connor_level, now);
+    (base != 0).then_some(Hit { base, kind: HitKind::Fire, source: "PoisonTime (on fire)" })
 }
 
 /// Connor's live immunity and the separate world-hit sound gate (rules 8, 10).
@@ -298,5 +307,64 @@ mod tests {
         for invalid in [Saved { sound: 0, ..Saved::default() }, Saved { rearm_in: Some(-1.0), ..Saved::default() }, Saved { rearm_in: Some(2.6), ..Saved::default() }] {
             assert!(!invalid.valid());
         }
+    }
+
+    #[test]
+    fn terrain_hazards_grouped_on_fire_command_and_continuation() {
+        let dry = Some((0.0, 0));
+        for surface in [None, dry, Some((1000.0, POISON | ONTOP))] {
+            assert_eq!(moving_object(surface, 0.0, true, CONNOR_IMMUNITY, SETTINGS, Some(12), 0.0),
+                Some(Hit { base: 1, kind: HitKind::Fire, source: "PoisonTime (on fire)" }));
+            assert!(moving_object(surface, 0.0, false, CONNOR_IMMUNITY, SETTINGS, Some(12), 0.0).is_none());
+            assert!(moving_object(surface, 0.0, true, ALL_IMMUNE, SETTINGS, Some(12), 0.0).is_none());
+        }
+        assert!(moving_object(None, 0.0, true, CONNOR_IMMUNITY | POISON as u16 | FIRE as u16,
+            SETTINGS, Some(12), 0.0).is_none());
+        assert!(moving_object(None, 0.0, true, CONNOR_IMMUNITY, Settings { poison: 1000.0, ..SETTINGS },
+            Some(1), 1.0 / 15.0).is_none(), "a zero amount still blocks the on-fire attack");
+
+        let mut fatal = active(39, 11);
+        fatal.scripts.vars.set("KQWorld::PoisonTime", "0".into());
+        fatal.test_command("KQObject::lightOnFire Connor 1", "matrix");
+        fatal.connor_terrain_damage(None, 0.0);
+        assert!(fatal.world.connor_dying);
+        assert!(fatal.world.requests.iter().any(|r| matches!(r, Request::ConnorDies { kind: HitKind::Fire, .. })));
+        assert!(fatal.world.log.iter().any(|line| line.contains("terrain on-fire")));
+
+        let mut a = active(120, 100);
+        a.test_command("KQObject::lightOnFire Connor 1", "matrix");
+        a.test_command("KQObject::lightOnFire basket1 1", "matrix");
+        a.world.known.insert("basket1".into());
+        let journey = crate::journey::Journey::take(&a.world, &a.scripts.vars, "DeadCity");
+        assert!(journey.connor_on_fire);
+        let mut json = serde_json::to_value(&journey).unwrap();
+        let decoded: crate::journey::Journey = serde_json::from_value(json.clone()).unwrap();
+        let kept = crate::kept_interactions::KeptInteractions::take(&a.world);
+        let kept: crate::kept_interactions::KeptInteractions = serde_json::from_slice(&serde_json::to_vec(&kept).unwrap()).unwrap();
+        assert!(kept.valid_on_fire());
+        let mut restored = active(120, 100);
+        restored.world.known.insert("basket1".into());
+        decoded.give(&mut restored.world, &mut restored.scripts.vars);
+        kept.restore_on_fire(&mut restored.world);
+        assert!(restored.world.on_fire.contains("connor") && restored.world.on_fire.contains("basket1"));
+        a.test_command("KQObject::lightOnFire basket1 0", "matrix");
+        let cleared = crate::kept_interactions::KeptInteractions::take(&a.world);
+        cleared.restore_on_fire(&mut restored.world);
+        assert!(!restored.world.on_fire.contains("basket1"), "a saved cleared bit overrides an Init-time set bit");
+        restored.test_command("KQObject::lightOnFire Connor 0", "matrix");
+        assert!(restored.world.on_fire.is_empty());
+        restored.connor_terrain_damage(None, 0.0);
+        assert!(restored.world.requests.is_empty(), "clearing the bit ends its dry-ground attack");
+        json.as_object_mut().unwrap().remove("connor_on_fire");
+        let legacy: crate::journey::Journey = serde_json::from_value(json).unwrap();
+        assert!(!legacy.connor_on_fire);
+        let legacy_kept: crate::kept_interactions::KeptInteractions = serde_json::from_str("{\"doors\":{},\"chests\":{}}").unwrap();
+        let mut old = active(120, 100);
+        legacy.give(&mut old.world, &mut old.scripts.vars);
+        old.world.known.insert("basket1".into());
+        old.world.on_fire.insert("basket1".into());
+        legacy_kept.restore_on_fire(&mut old.world);
+        assert_eq!(old.world.on_fire.iter().map(String::as_str).collect::<Vec<_>>(), ["basket1"],
+            "an older Rust slot keeps the original Init result when no bit snapshot exists");
     }
 }

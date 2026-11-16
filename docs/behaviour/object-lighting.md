@@ -741,12 +741,15 @@ an object takes part in the game at all.
     `KQObject::lightOnFire`), not a list. The other bits put the object in
     lists not studied here.
     **`KQObject::lightOnFire <obj> <0|1>`** (traced 2026-10-28, batch 2)
-    sets or clears that bit and does nothing else; nothing was found that
-    reads it (not a full search). In Dead City it never runs
+    sets or clears that bit and does nothing else directly. The later
+    Q206 study found that the post-move terrain hazard check reads this
+    bit on the moving object, including Connor, and substitutes poison-
+    rate fire damage without requiring liquid or depth. See
+    `terrain-hazards.md` “On fire.” In Dead City it never runs
     (`coaltrap.kq` is commented out in `newWorld.cs`); only Temple 4's
     `fireTRAP.kq` (loaded by `altar.cs`) uses it. For B: accept it, log
-    it, no visible effect. (Open: whether Temple 4 shows a fire on
-    Connor some other way.)
+    it; the command itself has no direct drawing effect. (Open: whether
+    Temple 4 shows a fire on Connor some other way.)
 38. **Dead City's flames** (`flame.kq`, `flame_nd.kq`): no shape name, so
     radius 100; `groupsActive3DFar = 1089` (0x441) keeps them drawn when
     far. So they disappear when their position is more than

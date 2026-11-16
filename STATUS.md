@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-17 M5 Q206 on-fire terrain hazard
+
+Separate original-engine study established that `lightOnFire` toggles
+the moving object's saved group bit 0x1000. The hazard path uses poison
++ fire material even without liquid or 250-unit depth. Its `ontop`
+branch requires Connor's live collision type 4, but recovery of gravity
+and keep-on-ground remains unproven. Rust now reads the existing
+on-fire bit for Connor's post-move hazard, initializes authored group
+bits, dispatches a Fire world hit
+through the shared armor/death path, and carries the bit through
+Journey and kept-world saves. The focused terrain core suite passed
+5/5 (one original-data case ignored); the final combined core run
+passed 787 tests with 26 ignored, and viewer `cargo check` passed.
+The first core attempt failed because a fixture expected one damage
+point to kill a 39-health Connor; the corrected zero PoisonTime case
+passed. No original runtime or manual gameplay comparison occurred.
+M5 remains incomplete, with `ontop` movement still excluded.
+
 ## 2026-11-17 M5 fighting-rule coverage and grouped core check
 
 The new `docs/m5-fighting-rule-coverage.md` maps fighting rules 1–41 to
