@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-16 Check Gnome Demon Rocks ranged combat
+
+Expanded the unattended Gnome combat regression into one sequential
+two-run check. The installed `Rock2` leaves PreBirth through normal AI,
+starts its standing ranged attack, fires `PRdmnrck.kq`, and the moving
+projectile touches Connor and lowers health. The existing batmanta melee
+route still passes in the same check. Tested with `cargo test --locked
+--release -p kq8-viewer --test gnome_live_combat -- --ignored --nocapture`:
+1/1 in 20.57 seconds. In the first Rock2 diagnostic the projectile hit
+the other original door leaf at zero travel. The focused setup now
+removes both leaves so it can test the projectile path. The two routes
+use original actors and assets; Gnome's quest route and Dragon boss are
+not tested. No manual gameplay testing or GOG-file writes.
+
 ## 2026-11-16 Verify a live Gnome batmanta attack
 
 Added one ignored Windows original-data regression for `batmanta1`: it

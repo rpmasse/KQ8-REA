@@ -3744,6 +3744,22 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Gnome Demon Rocks encounter check (2026-11-16).** The installed Gnome
+monster list makes `Rock2` a ranged `rockguy` holding
+`INVITEM_DemonRocks`; its projectile is `PRdmnrck.kq`. Use an unattended
+Windows run with the original actor and assets at the already checked
+Gnome encounter floor. Require its ordinary sight, alarm, ranged shot,
+projectile movement and a resolved impact. Keep the setup separate from
+gameplay logic and preserve the GOG installation. If the route exposes a
+missing projectile or attack path, implement it from `fighting.md`,
+`ranged-weapons.md` and the installed data, then rerun this focused check.
+
+The combined Gnome test now passes for the original `batmanta1` melee
+attack and `Rock2` Demon Rocks shot in two sequential processes. The
+projectile touches Connor and lowers health. This verifies those enemy
+paths at a controlled encounter location, not Gnome's quest route or
+its `Dragon` boss.
+
 **Q203 disk-save item contact (2026-11-16).** A saved trap records occupant
 names, and the studied load path reattaches an item only when its restored
 collider touches the trap; that attachment does not send another On or Cue.

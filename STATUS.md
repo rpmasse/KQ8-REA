@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-16 M5 Gnome ranged enemy coverage
+
+One unattended Windows test now checks both a Gnome batmanta melee hit
+and `Rock2` firing its original Demon Rocks projectile into Connor.
+Both lower health through ordinary AI and combat rules. The check passed
+1/1 in 20.57 seconds. It uses a controlled encounter position; the
+authored Gnome route and its Dragon boss remain open. M5 is still about
+65%. No manual gameplay testing was performed.
+
 ## 2026-11-16 M5 Gnome enemy coverage
 
 An unattended original-data check now covers one Gnome batmanta waking
