@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-16 M5 live Temple 4 Lucreto form cycle
+
+An unattended original-data run passed 1/1 in 31.53 seconds. The final
+altar cue activated ranged Lucreto, Connor's move within 2,000 units
+switched to melee Lucreto, a melee cue hit him, and moving away restored
+the ranged form and projectile attacks. God mode was used to keep the
+form sequence running; damage, original-executable projectile contact,
+boss victory and saved continuation remain open. No manual gameplay
+test was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 Skeleton King victory survives a fresh process
 
 An unattended original-data test now defeats the Skeleton King with

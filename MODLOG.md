@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Check the live Temple 4 Lucreto form cycle
+
+Changed: added an unattended original-data viewer check for the final
+altar cue, both distance-driven Lucreto handoffs, the ranged projectile
+cue and a close-form hit on Connor. Why: the existing checks exercised
+form logic in memory but did not establish that the live Temple 4 world
+uses both forms through its authored attack movements. Tested how: from
+this worktree, set `$env:KQ8_GAME_DIR = (Resolve-Path
+"..\..\..\King's Quest 8 GOG").Path`, then run `cargo test --locked -p
+kq8-viewer --test live_lucreto_forms -- --ignored --nocapture`. Result:
+1/1 passed in 31.53 seconds. The ranged bolt hit the altar on this
+route, consistent with the current placed-object collision rule; this
+check does not establish the original executable's collision outcome
+there. God mode keeps Connor alive for the form cycle, so this check
+does not verify his damage or a complete boss victory. No manual test
+or original game-file write.
+
 ## 2026-11-16 Save and reload a live Skeleton King victory
 
 Changed: extended the unattended Temple Armour boss test through a
