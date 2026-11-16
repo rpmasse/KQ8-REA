@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-16 Apply Dead City interior skeleton gravity at startup
+
+Changed: the startup script loader now runs `KQMonster::setMonUseGravity`
+for a loaded character in script order. Dead City's `BowGuys1`–`BowGuys3`
+therefore start with gravity off as its original `newWorld.cs` requests.
+Why: the command was previously counted as unimplemented, so these
+interior skeletons could fall from their placed height. Tested how:
+`cargo test --locked -p kq8-data
+world_script::tests::monster_gravity_switch_runs_after_its_load_and_rejects_bad_values`;
+then set `$env:KQ8_GAME_DIR` to the original GOG folder and run
+`cargo test --locked -p kq8-viewer --bin kq8-viewer
+original_dead_city_interior_bow_skeletons_keep_their_height -- --ignored`.
+Both passed 1/1. The GOG-data check also confirms `BowGuys10` retains
+gravity on. The regenerated script-coverage report now marks the three
+Dead City calls as read by the loader. Full gameplay and original
+binary comparison were not tested;
+no manual play was requested. M5 remains about 65%.
+
 ## 2026-11-16 Stop the live Mandragor tree save route
 
 Changed: recorded a source-timing handoff after removing the failed

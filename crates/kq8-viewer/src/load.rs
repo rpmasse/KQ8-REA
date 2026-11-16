@@ -2860,6 +2860,18 @@ impl kq8_data::world_script::Host for Placer<'_> {
         self.log.summary(format!("{at}: allowShadows {} at world load", u8::from(on)));
     }
 
+    fn set_mon_use_gravity(&mut self, name: &str, on: bool, at: &str) {
+        let actor = self.animated.iter_mut().rev().find(|actor|
+            self.placed[actor.placed].0.name.eq_ignore_ascii_case(name) && actor.character.is_some());
+        match actor {
+            Some(actor) => {
+                actor.character.as_mut().unwrap().keys.gravity = on;
+                self.character_lines.push(format!("{at}: setMonUseGravity {name} {} (characters.md rule 8)", u8::from(on)));
+            }
+            None => self.character_lines.push(format!("{at}: setMonUseGravity {name}: loaded character not found")),
+        }
+    }
+
     fn connor_line(&mut self, words: &[String], at: &str) -> bool {
         // `sendEvent <delay> <target> ...`: only those to Connor are kept.
         let for_connor = !words[0].eq_ignore_ascii_case("sendEvent") || words.get(2).is_some_and(|t| t.eq_ignore_ascii_case("Connor"));
@@ -6154,6 +6166,23 @@ mod campaign_tests {
                 assert!(animations[movement.animation].frame_count > 0);
             }
         }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_dead_city_interior_bow_skeletons_keep_their_height() {
+        let game = game_install();
+        let world = World::open(&game, "DeadCity").unwrap();
+        let mut log = Log::create("deadcity-startup-gravity-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let gravity = |name: &str| objects.animated.iter().find(|actor|
+            objects.placed[actor.placed].0.name.eq_ignore_ascii_case(name))
+            .and_then(|actor| actor.character.as_ref()).map(|character| character.keys.gravity);
+        for name in ["BowGuys1", "BowGuys2", "BowGuys3"] {
+            assert_eq!(gravity(name), Some(false), "{name} ignored newWorld.cs");
+        }
+        assert_eq!(gravity("BowGuys10"), Some(true), "unmodified bow skeleton lost its gravity");
     }
 
     #[test]

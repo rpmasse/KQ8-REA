@@ -3120,6 +3120,7 @@ This replaces the stand-in "the old trap gets `Off` at his next move".
 | The state-allowed check ("only if the current one allows it") | Not built: only Talk's list is given and there is no Talk state yet | — |
 | A state set before the first update is kept (no restart, no Wait) | **Stand-in**, asked as Q121 (`sprdump`) | Unit test `a_state_set_before_the_first_update_is_kept` |
 | `setUseGravity`, `setMonUseGravity`, `setCanTurn` stored; `changeAnmFile` logged | Rules 8, 22, 23 (used from 4d-4 / 4d-6); `changeAnmFile` open question 4 | — |
+| Dead City startup applies `setMonUseGravity 0` to the three interior bow skeletons after loading them | `characters.md` rule 8; installed `DeadCity/kq/NEWWORLD.CS` lines 65–70 | `world_script::tests::monster_gravity_switch_runs_after_its_load_and_rejects_bad_values`; `load::campaign_tests::original_dead_city_interior_bow_skeletons_keep_their_height` (GOG data) |
 | Each character's random draws from its own generator seeded by its name | **Our choice** (the original's random source is not described) | Same numbers every run |
 | A dormant character (loaded by a script while playing) gets its draw-distance test when it comes in | As 3k-4 | Not tested (no run reaches those scripts) |
 

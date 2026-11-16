@@ -374,6 +374,21 @@ alone in debug, including fresh-process rebirth. The core suite passed
 774 active tests. The first 6/8 serial pass and two root failures led
 to the alarm correction.
 
+## M5 Dead City startup gravity switch (2026-11-16)
+
+Dead City's `newWorld.cs` loads its monster list, then turns gravity off for
+three named interior bow skeletons. The startup interpreter currently skips
+those commands, so their prepared character state still has gravity on.
+Recognize `KQMonster::setMonUseGravity <name> 0|1` in script order and apply
+it to the named loaded character before the live world is created. Keep the
+runtime command's existing behavior. Verify interpreter ordering and the
+three installed skeletons' final gravity values with automated checks.
+
+Checked: the focused startup interpreter test and the GOG-data Dead City
+loader test both pass. `BowGuys1`–`BowGuys3` finish with gravity off;
+`BowGuys10` retains gravity on. This verifies loaded character state, not a
+full encounter or original binary frame comparison.
+
 ## M5 IceWorld Dragon body combat completion (2026-11-16)
 
 The two Dragon heads already attack, rebirth or die, and a second

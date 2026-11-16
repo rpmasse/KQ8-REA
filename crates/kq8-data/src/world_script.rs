@@ -136,6 +136,8 @@ pub trait Host {
     /// `KQObject::setHidden <name> 0|1` (objects.md Q18); `at` names the
     /// script line, for the log.
     fn set_hidden(&mut self, name: &str, hidden: bool, at: &str);
+    /// Change a loaded character's gravity before the live world is built.
+    fn set_mon_use_gravity(&mut self, _name: &str, _on: bool, _at: &str) {}
     /// `KQMonster::inventory`, `give`, `KQObject::setScript`,
     /// `KQObject::setDontLook` with their words expanded (`words[0]` as
     /// written). Returns a new item's name, for `$NewInvItem`. By default
@@ -285,7 +287,7 @@ fn run_script(name: &str, args: &[String], host: &mut dyn Host, out: &mut Script
                 *out.other_commands.entry("set (alone)".into()).or_default() += 1;
                 continue;
             }
-            "set" | "loadkq" | "getloc" | "kqobject::getloc" | "move" | "kqobject::sethidden" => {}
+            "set" | "loadkq" | "getloc" | "kqobject::getloc" | "move" | "kqobject::sethidden" | "kqmonster::setmonusegravity" => {}
             "kqmonster::inventory" | "give" | "kqobject::setscript" | "kqobject::setdontlook" => {}
             "applycombatlevel" | "activatepersistmgr" | "kqconner::setlevel" | "stophelp" | "sendevent" => {}
             c if c.ends_with(".cs") => {}
@@ -366,6 +368,10 @@ fn run_script(name: &str, args: &[String], host: &mut dyn Host, out: &mut Script
                     host.set_hidden(who, v != 0, &at);
                 }
                 _ => out.bad_lines.push(format!("{at}: setHidden needs a name and a whole number: '{line}'")),
+            },
+            "kqmonster::setmonusegravity" => match (words.as_slice(), words.get(2).map(|v| v.parse::<i64>())) {
+                ([_, who, _], Some(Ok(v))) => host.set_mon_use_gravity(who, v != 0, &at),
+                _ => out.bad_lines.push(format!("{at}: setMonUseGravity needs a name and a whole number: '{line}'")),
             },
             "move" => match parse_move(&words[1..]) {
                 Ok((who, flags, position, turn)) => {
@@ -467,6 +473,7 @@ mod tests {
         moves: Vec<Move>,
         kq_values: Vec<String>,
         hidden: Vec<(String, bool)>,
+        gravity: Vec<(String, bool, usize)>,
         items: Vec<String>,
         persist: bool,
         persistent_loads: Vec<String>,
@@ -474,7 +481,7 @@ mod tests {
 
     impl TestHost {
         fn new(files: Vec<(&'static str, &'static str)>) -> Self {
-            TestHost { files, placed: Vec::new(), moves: Vec::new(), kq_values: Vec::new(), hidden: Vec::new(), items: Vec::new(), persist: true, persistent_loads: Vec::new() }
+            TestHost { files, placed: Vec::new(), moves: Vec::new(), kq_values: Vec::new(), hidden: Vec::new(), gravity: Vec::new(), items: Vec::new(), persist: true, persistent_loads: Vec::new() }
         }
     }
 
@@ -505,6 +512,9 @@ mod tests {
         fn set_hidden(&mut self, name: &str, hidden: bool, _at: &str) {
             self.hidden.push((name.to_string(), hidden));
         }
+        fn set_mon_use_gravity(&mut self, name: &str, on: bool, _at: &str) {
+            self.gravity.push((name.to_string(), on, self.placed.len()));
+        }
         fn item_command(&mut self, words: &[String], _at: &str) -> Option<String> {
             self.items.push(words.join(" "));
             let made = words[0].eq_ignore_ascii_case("give") || words[0].eq_ignore_ascii_case("KQMonster::inventory");
@@ -533,6 +543,16 @@ mod tests {
         ]);
         run("newworld.cs", &mut host);
         assert_eq!(host.persistent_loads, ["first.kq", "ax.kq"]);
+    }
+
+    #[test]
+    fn monster_gravity_switch_runs_after_its_load_and_rejects_bad_values() {
+        let mut host = TestHost::new(vec![("newworld.cs",
+            "loadKQ bow.kq BowGuys1\nKQMonster::setMonUseGravity BowGuys1 0\nKQMonster::setMonUseGravity BowGuys1 1\nKQMonster::setMonUseGravity BowGuys1 nope")]);
+        let run = run("newworld.cs", &mut host);
+        assert_eq!(host.gravity, [("BowGuys1".into(), false, 1), ("BowGuys1".into(), true, 1)]);
+        assert_eq!(run.bad_lines.len(), 1);
+        assert!(!run.other_commands.contains_key("kqmonster::setmonusegravity"));
     }
 
     #[test]
