@@ -31,8 +31,6 @@ fn temple_sword_staggers_lucreto_into_the_final_trap() {
         "--command",
         "move Connor 0 101180 95000 5938 0 0 0,170",
         "--command",
-        "move Connor 0 101180 95000 5938 0 0 0,295",
-        "--command",
         "KQMonster::inventory Connor INVITEM_Invulnerable 1,320",
         "--key",
         "5,25",
@@ -83,6 +81,18 @@ fn temple_sword_staggers_lucreto_into_the_final_trap() {
     let trapped = traps
         .find("trap vortexTrap: On LucEnd")
         .expect("LucEnd entered the vortex");
+    let last_reposition = traps
+        .rfind("test --command: applied: moved Connor")
+        .expect("Connor's fight placement");
+    assert!(
+        last_reposition < trapped
+            && traps
+                .matches("test --command: applied: moved Connor")
+                .count()
+                == 2,
+        "the fixture changed Connor's place after the vortex triggered; inspect {}",
+        root.display()
+    );
     let first = traps
         .find("loadAnim lsuck1: playing lu_suck1.kqs")
         .expect("first finale movement");

@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Remove the post-trap Lucreto test correction
+
+Changed: removed the fixture's update-295 Connor reposition and added
+an assertion that all remaining placements precede `vortexTrap`.
+Why: the prior test could alter Connor after the scripted finale had
+already started. Tested how: set `$env:KQ8_GAME_DIR =
+(Resolve-Path "..\..\..\King's Quest 8 GOG").Path`, then run `cargo test
+--locked -p kq8-viewer --test live_lucreto_finale -- --ignored
+--nocapture` from this worktree. Result: 1/1 passed in 76.99 seconds
+without the late command and 1/1 passed again in 78.35 seconds with
+the assertion. The final remaining Connor placement was update 171;
+Lucreto entered the vortex at update 291, and the finale reached
+`killGame`. The supplied Invulnerable item and earlier fight placement
+remain part of this controlled fixture. No visual parity or original
+binary-runtime comparison was made. No manual gameplay test was run.
+
 ## 2026-11-16 Preserve both Lucreto forms through a disk save
 
 Changed: added an unattended Temple 4 checkpoint test for the active

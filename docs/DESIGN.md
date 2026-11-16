@@ -3485,6 +3485,13 @@ decoder and credits after that handoff in M4/M6; this fixture does not
 claim an earned campaign route or comparison with original-executable
 runtime.
 
+Checked again without a post-trap Connor correction: two unattended
+GOG-data runs passed. The final fixture placement was update 171,
+Lucreto entered the vortex at update 291, and the authored finale
+reached `killGame`. The fixture still supplies an Invulnerable item and
+an earlier position correction; visual parity and earned campaign entry
+were not tested.
+
 **Temple 4 Lucreto fire emitter (2026-11-16).** The installed
 `altar.cs` loads `lucfire.kq` during Lucreto's altar sequence and later
 deletes `lucfire`. Its emitter follows the animated `Box01` part of

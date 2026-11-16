@@ -20,10 +20,12 @@ AI and Connor damage enabled. The shipped Temple Sword made real hits;
 two `reactback` staggers carried Lucreto into the vortex trap, whose
 script advanced through the finale animations to `killGame`. An
 Invulnerable item protected Connor. This is a controlled fight fixture:
-it supplies the item and corrects Connor's position after knockback; an
-update-295 correction can run just after an early trap contact. It does
-not prove an earned campaign route, the unperturbed visual finale, movie
-playback or credits. FFmpeg is unavailable on this host. The first
+it supplies the item and corrects Connor's position after knockback.
+The last correction is now before trap contact: two tighter reruns
+passed in 76.99 and 78.35 seconds, with the vortex firing at update 291
+after the final placement at update 171. This does not prove an earned
+campaign route, visual parity, movie playback or credits. FFmpeg is
+unavailable on this host. The first
 shorter test failed when Connor died without a second stagger; the
 strengthened route passed twice. No manual gameplay test was run; M5
 remains about 65% because other combat families are open.
