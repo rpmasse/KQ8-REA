@@ -3,6 +3,23 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Dragon Flame Sword combat route (2026-11-16)
+
+Run an isolated IceWorld encounter with the original regional startup,
+then supply the Flame Sword after that script, ready Hand mode and use
+named swing inputs. Keep enemy AI and Connor damage on at the original
+Easy combat level. Require both heads to take actual Flame Sword `Do`
+hits, die permanently, and trigger the body's finish while Connor
+takes real enemy hits. This tests live combat without scripted kills;
+the supplied sword, direct target inputs and isolated region start do
+not prove an earned campaign fight or ordinary mouse targeting.
+
+Checked: the four-swing original-data route passed 1/1 in 39.02
+seconds. Each head took two Fire hits and died permanently; Connor
+took damage and the body entered Die. The earlier `--item` probe failed
+to equip the Flame Sword because IceWorld's start script replaced it
+with a Long Sword; supplying it after startup resolved that setup.
+
 ## M5 Dragon contact evidence (2026-11-16)
 
 The installed Dragon types resolve to three active collision boxes. The
@@ -11,9 +28,9 @@ selected by a hand-weapon click; either head's type `0x4042` can be
 selected for a hand strike and consumes incoming projectiles with zero
 damage. The existing generic Rust collision and projectile paths have
 these rules. Keep the original-data IceWorld load check pinned to the
-three authored bounds and masks. Next, verify an earned sword encounter
-with normal AI and damage, including hand selection and the two-head
-finish. Do not infer the overlap winner for a particular projectile
+three authored bounds and masks. Next, verify an earned campaign sword
+encounter and ordinary mouse targeting. Do not infer the overlap
+winner for a particular projectile
 trajectory or original binary save ordering from these checks.
 
 ## M5 Mandragor alarm distance sample (2026-11-16)
