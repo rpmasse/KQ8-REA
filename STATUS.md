@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-16 M5 Gnome Dragon save continuation
+
+The unattended Dragon route now saves its completed victory and reloads
+it in a fresh process. A second save retains the Black Diamond and its
+script, the map icon, Gnome lights, both removed objects and the same
+experience. The combined Windows release check passed 1/1 in 42.96
+seconds. This does not establish the authored approach or normal Gnome
+equipment path. M5 remains about 65%; no manual gameplay testing.
+
 ## 2026-11-16 M5 Gnome Dragon defeat
 
 An unattended original-data route now covers Gnome's Dragon at its

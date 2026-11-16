@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Preserve the Gnome Dragon victory across a fresh process
+
+Extended the focused Dragon regression to save after its Die movement,
+load that slot in a fresh viewer process, and save again. It checks the
+Dragon and `dragblck` remain gone, the laid Black Diamond keeps its item
+script, the Gnome map icon and lights variable remain, and experience is
+not awarded again. The initial 1,000-frame restore diagnostic reached
+only the first game update because level construction used most frames;
+the scheduled second save did not fire. Raising that harness bound to
+2,500 frames produced a passing 1/1 release test in 42.96 seconds:
+`cargo test --locked --release -p kq8-viewer --test gnome_dragon_boss
+-- --ignored --nocapture`. No manual gameplay or GOG-file writes.
+
 ## 2026-11-16 Verify the Gnome Dragon's full defeat path
 
 Added a focused unattended Windows regression at the original Dragon's

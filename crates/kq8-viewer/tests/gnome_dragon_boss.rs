@@ -11,11 +11,14 @@ fn gnome_dragon_fights_dies_and_leaves_the_black_diamond() {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join(format!("../../kq8-artifacts/gnome-dragon-boss/{nonce}"));
+    let dir = root.join("fight");
+    let slots = root.join("slots");
     fs::create_dir_all(&dir).unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
         .current_dir(&dir)
+        .env("KQ8_SAVE_DIR", &slots)
         .arg("--game")
         .arg(&game)
         .args([
@@ -57,10 +60,12 @@ fn gnome_dragon_fights_dies_and_leaves_the_black_diamond() {
             "Dragon,250",
             "--swing",
             "Dragon,280",
+            "--key",
+            "menu:down:down:enter:release:enter:release:escape:type=DragonVictory:enter:release:escape,375",
             "--updates",
-            "390",
+            "440",
             "--frames",
-            "5000",
+            "5500",
         ])
         .output()
         .unwrap();
@@ -122,6 +127,104 @@ fn gnome_dragon_fights_dies_and_leaves_the_black_diamond() {
             && doors.contains("deleteObject dragblck: placed object deleted"),
         "the authored defeat script did not finish; inspect {}",
         dir.display()
+    );
+    assert!(
+        viewer.contains("Save screen -> Save(1, \"DragonVictory\")"),
+        "the victory was not saved; inspect {}",
+        dir.display()
+    );
+    let slot: serde_json::Value =
+        serde_json::from_slice(&fs::read(slots.join("slot-1.json")).unwrap()).unwrap();
+    let gone = slot["kept"]["gnome"]["gone"].as_array().unwrap();
+    for name in ["dragon", "dragblck"] {
+        assert!(
+            gone.iter()
+                .any(|entry| entry.as_str().is_some_and(|s| s.eq_ignore_ascii_case(name))),
+            "{name} was not saved as gone; inspect {}",
+            root.display()
+        );
+    }
+    let diamonds: Vec<_> = slot["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|item| item["kind"] == "INVITEM_BlackDiamond")
+        .collect();
+    assert_eq!(
+        diamonds.len(),
+        1,
+        "the Black Diamond was not saved once; inspect {}",
+        root.display()
+    );
+    assert_eq!(diamonds[0]["script"], "blackdmd.cs");
+    let saved_experience = slot["journey"]["stats"]["stats"][4].as_i64().unwrap();
+    assert!(saved_experience >= 25000);
+    assert!(slot["kept"]["gnome"]["vars"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|var| var[0] == "Gnome::Dragon::lights" && var[1] == "on"));
+    let gnome_map = &slot["journey"]["other_maps"]["3"][1];
+    assert!(
+        gnome_map["icons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|icon| { icon["file"] == "gn_dworm.bmp" && icon["x"] == 235 && icon["y"] == 91 }),
+        "the Dragon map icon was not saved; inspect {}",
+        root.display()
+    );
+
+    let restored_dir = root.join("restore");
+    fs::create_dir_all(&restored_dir).unwrap();
+    let restored = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+        .current_dir(&restored_dir)
+        .env("KQ8_SAVE_DIR", &slots)
+        .arg("--game")
+        .arg(&game)
+        .args([
+            "--windowed", "--renderer", "dx12", "--sound", "off",
+            "--menu-input", "down,enter,release,enter,release",
+            "--key", "menu:down:down:down:enter:release:enter:release:escape:type=DragonRestored:enter:release:escape,30",
+            "--updates", "65", "--frames", "2500",
+        ])
+        .output()
+        .unwrap();
+    fs::write(restored_dir.join("stdout.log"), &restored.stdout).unwrap();
+    fs::write(restored_dir.join("stderr.log"), &restored.stderr).unwrap();
+    let restored_logs = restored_dir.join("kq8-artifacts/logs");
+    let restored_viewer = fs::read_to_string(restored_logs.join("viewer.log")).unwrap();
+    let restored_fight = fs::read_to_string(restored_logs.join("fight.log")).unwrap();
+    assert!(
+        restored.status.success()
+            && restored_viewer.contains("RESULT: PASS")
+            && restored_viewer.contains("save restored in Gnome without replaying Begin")
+            && restored_viewer.contains("Save screen -> Save(2, \"DragonRestored\")")
+            && !restored_fight.contains("Dragon: its death ended"),
+        "the Dragon victory did not resume in a fresh process; inspect {}",
+        restored_dir.display()
+    );
+    let second: serde_json::Value =
+        serde_json::from_slice(&fs::read(slots.join("slot-2.json")).unwrap()).unwrap();
+    assert_eq!(second["journey"]["stats"]["stats"][4], saved_experience);
+    assert_eq!(second["items"].as_array().unwrap().iter()
+        .filter(|item| item["kind"] == "INVITEM_BlackDiamond" && item["script"] == "blackdmd.cs")
+        .count(), 1);
+    for name in ["dragon", "dragblck"] {
+        assert!(second["kept"]["gnome"]["gone"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|entry| entry.as_str().is_some_and(|s| s.eq_ignore_ascii_case(name))));
+    }
+    assert!(second["kept"]["gnome"]["vars"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|var| var[0] == "Gnome::Dragon::lights" && var[1] == "on"));
+    assert_eq!(
+        second["journey"]["other_maps"]["3"][1]["icons"],
+        gnome_map["icons"]
     );
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

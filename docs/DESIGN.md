@@ -3761,7 +3761,22 @@ Cue, takes ordinary sword hits, then completes its Die movement. Its
 Black Diamond, experience, map icon, item script and blocking-object
 deletion all occur once. The test gives Connor a later strong sword and
 god mode to keep the run bounded; reaching the chamber with normal Gnome
-equipment and saving through this encounter remain open.
+equipment remains open.
+
+**Dragon reward continuation.** Extend that same bounded route to save
+after `Die` and reopen the slot in a fresh Windows process. Check the
+Dragon stays removed, its laid Black Diamond retains `blackdmd.cs`, the
+map icon and lights state remain, and the 25,000 experience is not
+awarded again. Keep the authored approach and ordinary equipment as
+separate campaign gates.
+
+The continuation passed in the same unattended route. A fresh process
+loaded the victory slot without replaying Gnome Begin, then wrote a second
+slot. The Dragon and `dragblck` stayed gone; the Black Diamond, map icon,
+lights variable and experience were retained without another death reward.
+The initial 1,000-frame restore bound expired during level construction;
+2,500 frames allowed the scheduled save at update 30. This verifies the
+saved boss result, not the full quest route.
 
 **Gnome Demon Rocks encounter check (2026-11-16).** The installed Gnome
 monster list makes `Rock2` a ranged `rockguy` holding
