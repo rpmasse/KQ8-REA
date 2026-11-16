@@ -84,6 +84,11 @@ controlled deaths. The test checks the Spriggan's 65 Silver Coins,
 `spdeath.kqs` corpse and 5,007 experience, and the Zombie's no-drop,
 `zdead.kqs` corpse and 2,502 experience. Both were relocated, and the
 Zombie's home moved with it to retain its ordinary chase.
+The installed Temple 4 altar route now links both `lucend` forms to
+actual damage in one process: a `PrLuc.kq` bolt from `LucEndFar`
+contacts Connor and removes 115 health, then `LucEnd`'s Normal swing
+removes 64. It still switches far, near and far. The separate
+`lucfight` type remains unlinked.
 The existing Daventry `monster_friendly_fire` process now continues
 after three stationary bolt intercepts. Connor walks as the bow
 Spriggan releases its fourth bolt; the test compares his logged position

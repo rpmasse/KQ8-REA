@@ -538,6 +538,18 @@ the later actors. Keep all seven original death and reward assertions.
 This checks the installed animation's actual Do frame in Rust, not
 original-executable parity.
 
+## M5 Lucreto ranged contact during form switching (2026-11-17)
+
+The existing `live_lucreto_forms` route proves the far form launches
+`PrLuc.kq`, but its saved log shows the altar blocking every shot.
+Retain the installed altar cue and both form handoffs. Move Connor to
+a far-side point after the first handoff and before the first shot, so
+the bolt's line misses the altar. Replace god mode with a raised health
+ceiling and ordinary damage, then require a named `LucEndFar` bolt
+contact and a Projectile health loss while Connor lives. Keep the close
+form's Normal hit and the return to far form in the same process. This
+checks Rust behavior with GOG data, not original-executable parity.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

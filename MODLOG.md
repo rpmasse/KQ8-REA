@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-17 Link Lucreto's ranged contact and close damage (M5)
+
+The existing Temple 4 form-switch fixture previously logged three
+`PrLuc.kq` bolts striking the altar and ran in god mode. Moved Connor
+to a far-side point after the first handoff, raised his health ceiling,
+and allowed ordinary damage. The first far-form bolt touched Connor at
+update 39 and reduced health 10,000→9,885; the close form's Normal
+swing at update 86 reduced it to 9,821. The route still switched far,
+near and far, with no new world load. The release test passed 1/1 in
+about 13 seconds. No production code or GOG file changed. With
+`KQ8_GAME_DIR` set, run `cargo test --locked --release -p kq8-viewer
+--test live_lucreto_forms -- --ignored --nocapture`.
+
 ## 2026-11-17 Check held-Back enemy reach in a grouped run (M5)
 
 Reused `deadcity_ordinary_variants_live`: the placed hammer skeleton's

@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 Lucreto ranged and close damage in one form route
+
+The updated original-data `live_lucreto_forms` release test passed 1/1.
+The installed altar still switched from far to near and back. In the
+same process, `LucEndFar`'s `PrLuc.kq` bolt touched Connor and reduced
+health 10,000→9,885; `LucEnd`'s Normal swing then reduced it to 9,821.
+The earlier far bolt was blocked by the altar and god mode suppressed
+the close hit's damage; this fixture uses a clear line and ordinary
+damage. `lucfight` and earned campaign behavior remain unlinked. M5
+remains incomplete.
+
 ## 2026-11-17 M5 enemy reach while Connor holds Back
 
 The existing seven-actor `deadcity_ordinary_variants_live` release test
