@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-17 M5 active-list death coverage
+
+The existing `elemental_ranged_death` Fire/Ice fixture now runs with
+enemy AI enabled and passed 1/1 in 33.23 seconds. The placed Fire
+target joined the active list at update 23 and left it on Fire death
+at update 69; the Ice target joined at update 23 and left on Ice death
+at update 67. The projectile, emitter, health, corpse and reward
+checks stayed in the same two runs. Connor's Fire bolt was `bolt3`
+because active enemies created earlier bolts; the test now follows
+the name logged for Connor's shot. The Normal outhouse scenario gained
+the same active-list assertion and passed 1/1 in 19.89 seconds.
+Artifacts: `kq8-artifacts/elemental-ranged-tests/1794869142148331100`
+and `kq8-artifacts/daventry-outhouse-live/1794869257553911500`.
+No production code or GOG file changed. M5 remains incomplete.
+
 ## 2026-11-17 M5 Daventry outhouse encounter
 
 The one-process `daventry_outhouse_live` release test passed 1/1 in

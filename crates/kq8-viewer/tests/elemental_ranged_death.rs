@@ -49,7 +49,6 @@ fn flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths() {
                 "--windowed",
                 "--sound",
                 "off",
-                "--no-ai",
                 "--god",
                 "--world",
                 "DeadCity",
@@ -79,26 +78,60 @@ fn flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths() {
 
         let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
         let effects = fs::read_to_string(logs.join("effects.log")).unwrap();
-        assert!(effects.lines().any(|line| line.contains("[bolt1:")
-            && line.contains(&format!("from {emitter} with {particles} particles"))),
-            "{item} did not create its original effect; inspect {}", run.display());
-        assert!(effects.contains("[bolt1:") && effects.contains("bolt bolt1 ended: dying")
-            && effects.contains("all particles expired: removed"),
-            "{item} effect did not finish after impact; inspect {}", run.display());
-        let shot = format!("shoots bolt1 ({projectile}, 6000 units/s = 400 per update, range 12000, mask 0x1F, {kind})");
+        let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
+        let shot_suffix = format!(
+            "({projectile}, 6000 units/s = 400 per update, range 12000, mask 0x1F, {kind})"
+        );
+        let shots: Vec<_> = fight
+            .lines()
+            .filter(|line| {
+                line.contains("Connor: do (")
+                    && line.contains("shoots bolt")
+                    && line.contains(&shot_suffix)
+            })
+            .collect();
         assert_eq!(
-            fight.matches(&shot).count(),
+            shots.len(),
             1,
             "wrong weapon projectile; inspect {}",
             run.display()
         );
+        let bolt = shots[0]
+            .split_once("shoots ")
+            .unwrap()
+            .1
+            .split_once(" (")
+            .unwrap()
+            .0;
         assert!(
-            fight.contains("bolt1 update "),
+            effects
+                .lines()
+                .any(|line| line.contains(&format!("[{bolt}:"))
+                    && line.contains(&format!("from {emitter} with {particles} particles"))),
+            "{item} did not create its original effect; inspect {}",
+            run.display()
+        );
+        assert!(
+            effects.contains(&format!("[{bolt}:"))
+                && effects.contains(&format!("bolt {bolt} ended: dying"))
+                && effects
+                    .lines()
+                    .any(|line| line.contains(&format!("[{bolt}:"))
+                        && line.contains("all particles expired: removed")),
+            "{item} effect did not finish after impact; inspect {}",
+            run.display()
+        );
+        assert!(
+            fight.contains(&format!("Connor: {bolt} update ")),
             "bolt did not move; inspect {}",
             run.display()
         );
         assert_eq!(
-            fight.matches(&format!("touches {target}")).count(),
+            fight
+                .lines()
+                .filter(|line| line.contains(&format!("Connor: {bolt} update "))
+                    && line.contains(&format!("touches {target}")))
+                .count(),
             1,
             "bolt missed; inspect {}",
             run.display()
@@ -121,9 +154,14 @@ fn flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths() {
             "wrong death movement; inspect {}",
             run.display()
         );
-        let death = fight.lines().find(|line| line.contains(&format!("{target}: dies (rule 30): kind {kind}"))).unwrap();
-        assert!(death.contains("gravity off; not solid (collision type and mask 0); its state never changes again"),
-            "{kind} death did not clear gravity and collision; inspect {}", run.display());
+        let death = fight
+            .lines()
+            .find(|line| line.contains(&format!("{target}: dies (rule 30): kind {kind}")))
+            .unwrap();
+        assert!(characters.contains(&format!("{target}: joins the active list (rule 20)"))
+            && characters.contains(&format!("{target}: status: Wait, active"))
+            && death.contains("off the active list; gravity off; not solid (collision type and mask 0); its state never changes again"),
+            "{kind} death did not remove an active fighter and clear gravity/collision; inspect {}", run.display());
         assert_eq!(
             fight
                 .matches(&format!("{target}: its death ended (rule 32):"))

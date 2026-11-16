@@ -112,11 +112,16 @@ fn outhouse_dump_enables_placed_spriggan_fight() {
             .unwrap();
         assert!(after.parse::<i64>().unwrap() < before.parse::<i64>().unwrap());
     }
-    assert_eq!(
-        fight
-            .matches("sprdump: dies (rule 30): kind Normal")
-            .count(),
-        1
+    let death = fight
+        .lines()
+        .filter(|line| line.contains("sprdump: dies (rule 30): kind Normal"))
+        .collect::<Vec<_>>();
+    assert_eq!(death.len(), 1);
+    assert!(
+        characters.contains("sprdump: status: Wait, active")
+            && death[0].contains("off the active list; gravity off; not solid"),
+        "Normal death did not remove an active fighter; inspect {}",
+        dir.display()
     );
     assert_eq!(
         fight.matches("sprdump: drops: nothing (rule 31)").count(),

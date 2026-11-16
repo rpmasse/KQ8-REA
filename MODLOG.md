@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-17 Verify active Fire, Ice and Normal enemy deaths (M5)
+
+Enabled AI in the existing two-element original-data death fixture.
+Both original skeletons entered the active list before Connor's shot,
+then left it on Fire or Ice death. The fixture now reads Connor's bolt
+name from the shot log, since active enemies may create earlier bolts.
+Existing emitter, damage and reward checks remain in those two runs.
+The focused release test passed 1/1 in 33.23 seconds. Extended the
+existing outhouse test to assert the same removal on Normal death; it
+passed 1/1 in 19.89 seconds. Logs are in the artifact paths recorded
+in `STATUS.md`. Updated the M5 combat coverage files. No production
+code or GOG file changed. With `KQ8_GAME_DIR` set to the GOG install,
+run `cargo test --locked --release -p kq8-viewer --test
+elemental_ranged_death flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths
+-- --ignored --nocapture` and `cargo test --locked --release -p
+kq8-viewer --test daventry_outhouse_live -- --ignored --nocapture`;
+expect one passing test from each command. The running original
+executable was not tested.
+
 ## 2026-11-17 Link Daventry's scripted outhouse fight (M5)
 
 Added one original-data test that clicks the outhouse door, observes

@@ -3,6 +3,19 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 elemental death from the active list (2026-11-17)
+
+Strengthen the existing combined Fire and Ice original-data fixture
+with enemy AI enabled. Require each target to join the active list
+before Connor's shot, then to leave that list when it enters its
+authored death movement. Keep the existing projectile, emitter,
+damage, corpse and reward checks in the same two runs. Since active
+enemies can create their own projectiles first, identify Connor's bolt
+from his shot log instead of assuming its sequence number. Keep the
+separate range-only effect check unchanged; it tests flight removal,
+not a live enemy death. This closes the active-list death gap for Fire
+and Ice without another world load.
+
 ## M5 Daventry outhouse encounter check (2026-11-17)
 
 Use one unattended original-data process for the placed `sprdump` actor.
