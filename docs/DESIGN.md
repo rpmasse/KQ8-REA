@@ -3,6 +3,27 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 live Dragon combat through a disk save (2026-11-16)
+
+Use the installed IceWorld startup and Flame Sword, with ordinary
+Dragon AI and incoming damage enabled. Defeat the left head with real
+camera-picked sword cues and save while the right head remains alive.
+In a fresh process, retain the first head's permanent defeat, aim at
+the right head, finish it through normal sword damage, and require the
+Dragon body to enter and complete its special death sequence. Keep
+Connor alive without god mode or console kills and leave GOG Options.cs
+unchanged. This proves a controlled Rust encounter checkpoint, not an
+earned campaign approach or original binary-save compatibility.
+
+Checked: the two-process GOG-data route passed 1/1 in 81.63 seconds,
+then passed with explicit incoming-damage and surviving-right-head
+assertions in 80.19 seconds. The left head died from two real Flame
+Sword hits at update 85; the slot retained its Permanent phase, a live
+right head and Connor's sword and positive health. After reload,
+Connor took right-head damage, landed two more sword hits and completed
+the Dragon body's special death sequence. No god mode, AI suppression,
+console kill or manual gameplay test was used.
+
 ## M5 Lucreto form save continuation (2026-11-16)
 
 Start the installed Temple 4 final altar and move Connor into the

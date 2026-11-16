@@ -1,5 +1,13 @@
 # Provenance
 
+**Live Dragon combat save (2026-11-16).** The user's installed
+IceWorld data supplied the Dragon actors, Flame Sword and their combat
+rules. An unattended Rust route defeated the left head through normal
+weapon cues with AI and Connor damage enabled, saved, reloaded in a new
+process, then defeated the right head and completed the body's special
+death. It passed twice. This is a controlled Rust checkpoint, not an
+original-executable or native binary-save comparison.
+
 **Lucreto form save continuation (2026-11-16).** The installed Temple 4
 altar Cue 6/7 and Lucreto files were read from the user's GOG copy. An
 unattended two-process Rust check saved the live close-range form, then

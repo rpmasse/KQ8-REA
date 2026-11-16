@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-16 M5 live Dragon fight survives a disk checkpoint
+
+An unattended IceWorld fight defeated the left Dragon head with two
+real Flame Sword hits, saved while Connor and the right head remained
+alive, then resumed in a fresh process. Connor took normal Dragon
+damage in both processes, defeated the right head with two more sword
+hits, and the Dragon body finished its special death sequence. The
+two-process GOG-data check passed twice, finally 1/1 in 80.19 seconds,
+without god mode, AI suppression or console kills. The sword was
+supplied after IceWorld startup and camera aims were scheduled, so this
+is a controlled fight, not an earned campaign route or original binary
+save comparison. GOG Options.cs remained unchanged; no manual gameplay
+test was run. M5 remains about 65%.
+
 ## 2026-11-16 M5 Lucreto form survives a disk checkpoint
 
 An unattended original-data run saved the close-range Temple 4

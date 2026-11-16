@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-16 Continue the live Dragon fight after a disk save
+
+Changed: added an unattended two-process IceWorld combat check that
+saves after one Dragon head's real Flame Sword defeat, then finishes
+the second head and the body after reload. Why: the existing live
+fight did not cross a save, while the existing Dragon save check used
+console kills with AI and Connor damage disabled. Tested how: set
+`$env:KQ8_GAME_DIR = (Resolve-Path "..\..\..\King's Quest 8 GOG").Path`,
+then run `cargo test --locked -p kq8-viewer --test dragon_live_checkpoint
+-- --ignored --nocapture` from this worktree. Result: 1/1 passed in
+81.63 seconds; after asserting incoming hits in both processes and the
+saved right head's live state, 1/1 passed again in 80.19 seconds. The
+first head died at update 85, the second died at restored update 80,
+and the body death movement ended at restored update 187. Connor took
+normal damage and survived. The test supplies the sword after startup
+and schedules camera aims. Earned campaign entry, original binary-save
+compatibility and visual parity were not tested. GOG Options.cs bytes
+stayed unchanged; no manual gameplay test was run.
+
 ## 2026-11-16 Remove the post-trap Lucreto test correction
 
 Changed: removed the fixture's update-295 Connor reposition and added
