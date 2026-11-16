@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-16 Restore the earned Henchman encounter check
+
+The first supplied Windmill slot lacked the shield and mushrooms required
+by this encounter test. A second, previously earned slot had the Small
+Axe and both supplies, with normal AI and damage. Its first run failed
+before gameplay because exclusive fullscreen was unavailable on this
+display. Set only the two test windows to windowed presentation and
+their safety limits to game updates. The release test then passed 1/1
+in 92.26 seconds: four Small Axe `Do` hits defeated Henchman once,
+awarded his experience, ran his Die script, saved GuardDuel, restored
+in a fresh process, reached the west yard and saved WestYard. The test
+also checked GOG `Options.cs` was unchanged. This is a supplied earned
+checkpoint and scripted big-swing route, not every guard tactic or a
+full campaign. No gameplay code, assets or manual testing changed.
+
 ## 2026-11-16 Restore the earned windmill combat regression
 
 The unattended wizard-to-windmill route stopped after 3,800 rendered

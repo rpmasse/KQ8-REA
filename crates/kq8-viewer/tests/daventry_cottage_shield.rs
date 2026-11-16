@@ -415,9 +415,9 @@ fn defeat_henchman(play: &Play, earned: &Path) {
     let input = play.root.join("duel.json");
     fs::write(&input, serde_json::to_vec(&route).unwrap()).unwrap();
     let (viewer, items) = play.run("duel", &[
-        "--menu-input","down,enter,release,enter,release", "--walk-route",input.to_str().unwrap(),
+        "--windowed", "--menu-input","down,enter,release,enter,release", "--walk-route",input.to_str().unwrap(),
         "--key","menu:down:down:down:enter:release:enter:release:escape:type=GuardDuel:enter:release:escape,1080",
-        "--key","menu:up:enter:release:left:enter:release,1095", "--frames","4000",
+        "--key","menu:up:enter:release:left:enter:release,1095", "--updates","1350",
     ]);
     assert!(viewer.contains("walk-route scene complete at Henchman's approach trigger"));
     assert!(viewer.contains("walk-route at Windmill exit on update"));
@@ -465,9 +465,9 @@ fn defeat_henchman(play: &Play, earned: &Path) {
     ]});
     fs::write(&onward, serde_json::to_vec(&walk).unwrap()).unwrap();
     let (reload,_) = play.run("yard",&[
-        "--menu-input","down,enter,release,down,enter,release","--walk-route",onward.to_str().unwrap(),
+        "--windowed", "--menu-input","down,enter,release,down,enter,release","--walk-route",onward.to_str().unwrap(),
         "--key","menu:down:down:down:enter:release:enter:release:escape:type=WestYard:enter:release:escape,75",
-        "--key","menu:up:enter:release:left:enter:release,88","--frames","1600",
+        "--key","menu:up:enter:release:left:enter:release,88","--updates","180",
     ]);
     assert!(reload.contains("save restored in Daventry without replaying Begin"));
     assert!(reload.contains("walk-route at West of the defeated guard"));

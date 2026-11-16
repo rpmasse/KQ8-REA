@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 earned Henchman route
+
+An unattended route from a previously earned Windmill save now passes
+through Henchman with normal AI and damage. The first supplied save
+lacked the shield and mushrooms; a properly supplied save reached the
+test but exclusive fullscreen failed on the current display. Windowed
+presentation and update-based test limits let the rerun pass 1/1 in
+92.26 seconds. Four Small Axe `Do` hits killed Henchman once, his Die
+script opened the west yard, and a fresh process saved WestYard after
+the guard. This checks a scripted big-swing tactic, not all Henchman
+combat or the full campaign. No manual gameplay test was run; M5
+remains approximately 65%.
+
 ## 2026-11-16 M5 earned windmill route regression
 
 The automated wizard-checkpoint-to-windmill route again passes with

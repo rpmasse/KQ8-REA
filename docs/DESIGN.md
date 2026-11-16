@@ -3430,6 +3430,14 @@ controls, AI and damage. Record the continuation's actual stopping point.
 
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
+The separate earned-supplies guard route now passes from a Windmill
+checkpoint with shield, mushrooms and Small Axe. Its test windows use
+windowed mode and update-based limits on the current display. Four
+authored axe hits defeat the guard with ordinary AI and damage, then
+his Die script opens the yard and a fresh process saves beyond it.
+This uses the route's big-swing tactic; the retreat-and-return tactic
+above and the uninterrupted campaign remain separate checks.
+
 The windmill checkpoint also covers movable props. Push the bale, collect the axe, save while standing on the bale and relaunch. Check that the bale still supports Connor, the axe remains at its scripted location, and a second save preserves both positions. Permanent scenery reloads from the original world files.
 
 1. **Persist the world.** Restore Connor, inventory, quest flags, doors, containers, items, bodies, timers, terrain and map progress across travel and disk saves according to the original's rules. Automate opening the cottage door, collecting five mushrooms, consuming one, saving, quitting, launching a new process and loading. Verify four mushrooms, the expected door state and a working next interaction. Repeat across a Daventry–CastleD round trip.
