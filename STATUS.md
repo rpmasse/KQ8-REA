@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 completion evidence and Rock contact handoff
+
+`docs/m5-combat-completion-audit.md` now maps the M5 completion gate to
+recorded automated scenarios and lists the remaining distinct rule gaps.
+Two unattended Rock enemy-contact probes did not reach an enemy hit:
+Daventry rejected an unavailable monster type in the first, while the
+installed goblin moved out of the second throw's path before launch and
+the Rock met a wall. The existing Rock throw/recovery still worked in
+both runs. No further timing or coordinate variations were attempted.
+The next check requires a collision-backed open path and actor bounds.
+M5 is incomplete at about 65%; no manual gameplay or GOG-file write
+occurred.
+
 ## 2026-11-16 M5 script-created monster combat
 
 One unattended Dead City encounter now checks two script-created

@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-16 Audit M5 coverage and hand off Rock enemy contact
+
+Added a concise M5 completion audit linking recorded automated combat
+scenarios to the milestone gate and naming the remaining distinct rule
+gaps. Two isolated Daventry viewer probes tried to make an ordinary
+held Rock hit a fighter without changing production code. One had no
+target because `goblin2` was unavailable to `KQMonster::add` in
+Daventry. In the other, the real `goblin22` left the path before launch;
+the Rock met a wall on update 61 and recovered on the floor at update
+65. Both viewer runs exited successfully, but neither proves Rock
+enemy damage. The audit records the measured positions and requires a
+geometry-backed setup before another attempt. No manual gameplay or
+GOG-file write occurred.
+
 ## 2026-11-16 Check live combat by script-created monsters
 
 Added one unattended Dead City encounter for two `KQMonster::add`

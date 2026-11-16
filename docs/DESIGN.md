@@ -4448,6 +4448,10 @@ Inventory the original weapons, ammunition, enemy attacks, damage rules and diff
 
 **Completion check.** Replay controlled melee and ranged encounters. Check hits and misses, ammunition, health before and after impact, potion expiry, rewards, drops and game-over transitions. Link every weapon and enemy rule to a passing scenario.
 
+The current evidence and remaining distinct gaps are in
+[M5 combat completion audit](m5-combat-completion-audit.md). Use that
+inventory to select source-backed checks without rerunning whole matrices.
+
 ### M6 · Complete saves and the campaign
 
 **Windmill exit handoff.** Both earlier runs fired Henchtp at tick 49, but
