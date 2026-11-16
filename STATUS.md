@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-16 M5 ammunition and miss evidence
+
+The M5 audit now records that original ranged ammunition is unlimited,
+so there is no depletion behavior to implement. Existing automated
+checks cover repeated Small Crossbow shots, a player hit/miss/dead-air
+decision and a Henchman miss. These were source and test-code checks,
+not new test runs or original-runtime comparisons. Other M5 gaps
+remain; no manual gameplay or GOG-file write occurred.
+
 ## 2026-11-16 M5 Rock hit and recovery in one encounter
 
 The original-data Rock test now uses one Dead City launch to verify its

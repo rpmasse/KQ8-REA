@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-16 Correct the M5 ammunition and misses audit
+
+The M5 coverage audit now uses the original ranged-weapon rule that
+ammunition is unlimited, instead of listing depletion as a gap. It
+links the existing live three-shot crossbow fight, the core Connor
+hit/miss/dead-air case and the earned Hero Ring route's Henchman miss.
+This is an evidence correction only; no tests, game logic, manual
+gameplay or GOG files changed.
+
 ## 2026-11-16 Replace standalone Rock recovery with fighter contact
 
 Reused the existing `rock_throw` viewer test for one original-data Dead
