@@ -4980,7 +4980,7 @@ impl ScriptHost for WorldState {
             "KQConner::conversation" => Some(self.conversation_command(words, at)),
             "KQMonster::clearSpeak" => Some(self.clear_speak(words, at)),
             "KQMonster::testMessage" => Some(self.test_message(words, at)),
-            "KQMonster::stateChangeNotify" | "KQMonster::clearStateChangeNotify" => Some(self.state_change_notify(words, at)),
+            "KQMonster::stateChangeNotify" | "KQMonster::clearStateChangeNotify" | "KQMonster::clearstateChangeNotify" => Some(self.state_change_notify(words, at)),
             "KQObject::setScript" => Some(self.set_script(words, at)),
             "KQObject::setDontLook" | "KQObject::setHidden" => Some(self.item_change(words, at)),
             _ => None,

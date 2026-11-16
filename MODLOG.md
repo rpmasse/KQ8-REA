@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-16 Accept Skeleton King's authored clear-notify command
+
+Changed: accepted `KQMonster::clearstateChangeNotify` as the existing
+notification removal command and added an unattended Dead City death
+route using the installed Skeleton King actor and script. Regenerated
+script coverage also records the built command and class names added
+by earlier M5 work. Why: the original boss Die callback uses this
+spelling; a pre-fix GOG-data run logged an unknown command at line 4.
+Tested how: set `$env:KQ8_GAME_DIR = (Resolve-Path "..\..\..\King's
+Quest 8 GOG").Path` from this worktree, then run `cargo test --locked
+-p kq8-viewer --test skeleton_king_death -- --ignored --nocapture`,
+`cargo test --locked -p kq8-core --lib -- --quiet`, and `cargo run
+--locked -q -p kq8-cli -- script-coverage --out
+kq8-artifacts/script-coverage-skelking.md --game $env:KQ8_GAME_DIR`.
+Result: the GOG-data route passed 1/1 in 41.22 seconds; 776 active
+core tests passed; script coverage lists the command as built.
+The GOG Options.cs bytes stayed unchanged. The route supplies a lethal
+hit with AI off and god mode on; the live boss fight remains open.
+No manual gameplay test was run.
+
 ## 2026-11-16 Check shield expiry against live root damage
 
 Changed: added an unattended original-data Swamp encounter that gives

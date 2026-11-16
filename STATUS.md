@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-16 M5 Skeleton King death callback
+
+The installed Dead City `skelking.cs` uses a lowercase spelling of
+`clearstateChangeNotify` that Rust previously rejected. A GOG-data
+probe reached the boss's Die callback and logged that unknown command.
+Rust now accepts the authored spelling. The unattended original-data
+route passed 1/1 in 41.22 seconds: the King removed his own listener,
+laid the Skeleton King Sword once, awarded 20,000 experience once, and
+left the original corpse. The full core suite passed 776 active tests;
+regenerated script coverage marks the command built. This isolated
+route supplies a lethal hit with AI off and god mode on, so it does not
+verify the campaign fight. No manual gameplay test was run; M5 remains
+about 65%.
+
 ## 2026-11-16 M5 shield protection during live combat
 
 An unattended original-data Swamp run applied the Invulnerable shield

@@ -3,6 +3,24 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Skeleton King death notification cleanup (2026-11-16)
+
+The installed Dead City `skelking.cs` Die callback spells the clear
+command `KQMonster::clearstateChangeNotify`, with a lowercase `s` in
+`state`. Accept that authored spelling as the existing notification
+removal operation. Run an unattended GOG-data Dead City route that
+registers the King to hear himself, triggers his death, and checks that
+his Die script removes that listener, awards experience, and finishes
+its corpse and drop sequence. This isolates the script callback with a
+supplied lethal hit; it does not establish a live campaign boss fight.
+
+Checked: the first GOG-data probe reached `skelking.cs` Die and reported
+the command unknown at line 4. After accepting the authored spelling,
+the unattended route passed 1/1 in 41.22 seconds: its listener was
+cleared, the sword was laid once, 20,000 experience was awarded once,
+and the original corpse appeared. Script coverage now marks the command
+built. The fixture still supplies its lethal hit with AI disabled.
+
 ## M5 shield protection during live combat (2026-11-16)
 
 Use the installed Swamp start script and an original Invulnerable potion
