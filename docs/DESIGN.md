@@ -3618,6 +3618,21 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Daventry live fight save continuation (2026-11-16, checked).** Save the live
+`goblin22` fight after two ordinary Small Crossbow hits, while the
+goblin's next attack is running. Require the slot to retain the
+goblin's injured health, attack movement, active alarm and Connor's
+health and readied crossbow. Load the slot in a fresh process, require
+the pending goblin `Do` to hit once, then finish the fight through
+ordinary aim inputs and verify one death, drops and experience award.
+Keep AI and incoming damage enabled. This checks Rust disk continuation
+for one enemy, not original binary-save compatibility or the earned
+Daventry route. No manual gameplay test.
+The unattended two-process check passed 1/1. The saved goblin retained
+health 6, its active alarm and the `attack` movement. Its pending `Do`
+hit Connor at restored update 7; two further crossbow hits killed it,
+and its death awarded 3 experience once at update 119.
+
 **Daventry live goblin encounter check (2026-11-16, checked).** Use the installed
 `goblin22` at its authored location with normal AI and incoming damage.
 Place Connor on clear ground north of it, grant the original Small

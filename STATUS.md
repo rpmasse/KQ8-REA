@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-16 M5 live Daventry fight across a disk save
+
+An unattended two-process original-data check now saves the active
+`goblin22` fight with the goblin at health 6 and its attack movement
+under way. The fresh process restores Connor's health 8 and Small
+Crossbow; the goblin's pending `Do` lands at restored update 7. Two
+ordinary shots then reduce the goblin's health 6 to -4, and its death
+finishes once with two mushroom drops and 3 experience. AI and incoming
+damage remain enabled. The test passed 1/1 in 83.29 seconds and left
+GOG `Options.cs` unchanged. An initial restore aim at update 70 was
+refused while Connor flinched; the later input at update 85 succeeded.
+The probe's frame cap stopped before the death animation ended; the
+test runs to 140 game updates and verifies that end. This is a Rust
+checkpoint for one local fight, not an original binary-save comparison
+or the earned Daventry route. No manual gameplay was run; M5 remains
+about 65%.
+
 ## 2026-11-16 M5 live Daventry goblin encounter
 
 An unattended original-data Daventry fight now passes from the

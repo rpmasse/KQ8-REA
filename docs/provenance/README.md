@@ -1,5 +1,14 @@
 # Provenance
 
+**Live goblin combat checkpoint (2026-11-16).** The same installed
+Daventry `goblin22` data and [fighting rules](../behaviour/fighting.md)
+underlie the two-process combat check in
+`crates/kq8-viewer/tests/goblin_live_checkpoint.rs`. The Rust slot
+retained injured health, active alarm and a running attack. A fresh
+process delivered its pending `Do` hit before two ordinary crossbow
+shots killed it, with drops and experience once. This checks Rust disk
+continuation, not the original executable's binary-save behavior.
+
 **Live Daventry goblin fight (2026-11-16).** The installed Daventry
 monster list places `goblin22` north of Sara's cottage, and
 [fighting rules 7, 13–18 and 30–32](../behaviour/fighting.md) describe

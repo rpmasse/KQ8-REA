@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-16 Verify a live goblin fight through disk reload
+
+Changed: added an unattended two-process GOG-data check that saves
+`goblin22` during a live attack, reloads in a fresh process, and finishes
+the fight through normal Small Crossbow inputs. Gameplay code was
+unchanged. Why: the previous complete goblin fight did not cover an
+injured, active enemy's attack and health across a disk checkpoint.
+Tested how: set `KQ8_GAME_DIR` to the GOG folder and run `cargo test
+--locked -p kq8-viewer --test goblin_live_checkpoint -- --ignored
+--nocapture`. It passed 1/1 in 83.29 seconds. The saved slot held goblin
+health 6, an active alarm and `attack` movement, Connor health 8 and the
+readied crossbow. On load, the pending goblin `Do` hit at update 7;
+Connor's later shots reduced health 6 to 1 to -4, with one death,
+two mushroom drops and 3 experience at update 119. A probe's second
+aim at update 70 was blocked by Connor's logged hit reaction; update
+85 succeeded. That probe used a rendered-frame cap and stopped before
+the death end; the final test counts game updates. GOG `Options.cs`
+was unchanged. No manual gameplay or original-executable comparison
+was run; other M5 encounters and native save parity remain open.
+
 ## 2026-11-16 Verify a live Daventry goblin fight
 
 Changed: added one unattended GOG-data encounter test using the original
