@@ -18,11 +18,8 @@ fn barren_flame_bow_and_iceworld_orc_bow_damage_connor() {
     let run = |world: &str, place: &str, updates: &str| {
         let dir = root.join(world);
         fs::create_dir_all(&dir).unwrap();
-        let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
-            .current_dir(&dir)
-            .arg("--game")
-            .arg(&game)
-            .args([
+        let mut command = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"));
+        command.current_dir(&dir).arg("--game").arg(&game).args([
                 "--world",
                 world,
                 "--windowed",
@@ -32,11 +29,16 @@ fn barren_flame_bow_and_iceworld_orc_bow_damage_connor() {
                 "off",
                 "--at",
                 place,
-                "--updates",
-                updates,
-            ])
-            .output()
-            .unwrap();
+            ]);
+        if world == "Barren" {
+            // This spawn can land in a continuous Fire terrain volume. Keep Connor
+            // alive long enough to observe both bow starts and their contacts.
+            command.args([
+                "--command", "KQConner::setLevel 10000,1",
+                "--command", "sendEvent 0 Connor KQStatsChangeRequestEvent 100000 0 0 0 0,2",
+            ]);
+        }
+        let output = command.args(["--updates", updates]).output().unwrap();
         fs::write(dir.join("stdout.log"), &output.stdout).unwrap();
         fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
         let logs = dir.join("kq8-artifacts/logs");
@@ -69,6 +71,19 @@ fn barren_flame_bow_and_iceworld_orc_bow_damage_connor() {
     };
 
     let (barren, _) = run("Barren", "22495,34877,0", "100");
+    for name in ["eledwarf1", "walkdwarf2"] {
+        let shots: Vec<_> = barren
+            .lines()
+            .filter(|line| line.contains(&format!("{name}: Do (Attack")))
+            .collect();
+        assert!(shots.len() >= 2, "{name} did not fire twice; inspect {}", root.display());
+        assert!(shots[0].contains("start offset (-247, 171, 804): its part 'arrow' in frame 3 of 'Attack'")
+            && shots[0].contains("shoots bolt"),
+            "{name} did not launch from the installed arrow part at Do; inspect {}", root.display());
+        assert!(shots[1].contains("start offset (-247, 171, 804): kept from an earlier shot")
+            && shots[1].contains("shoots bolt"),
+            "{name} did not retain the arrow start; inspect {}", root.display());
+    }
     assert!(barren.lines().any(|line| {
         line.contains("eledwarf1: bolt")
             && line.contains("touches Connor")
@@ -83,6 +98,17 @@ fn barren_flame_bow_and_iceworld_orc_bow_damage_connor() {
     assert!(!barren.contains("Connor: hit by walkdwarf2, Fire:"));
 
     let (iceworld, connor) = run("IceWorld", "268329,480983,0", "200");
+    let guard_shots: Vec<_> = iceworld
+        .lines()
+        .filter(|line| line.contains("WLGuard1B: Do (Attack"))
+        .collect();
+    assert!(guard_shots.len() >= 2, "the orc bow guard did not fire twice; inspect {}", root.display());
+    assert!(guard_shots[0].contains("start offset (-3, -1048, 1032): its part 'arrow' in frame 3 of 'Attack'")
+        && guard_shots[0].contains("shoots bolt"),
+        "the orc bow guard did not launch from its installed arrow part at Do; inspect {}", root.display());
+    assert!(guard_shots[1].contains("start offset (-3, -1048, 1032): kept from an earlier shot")
+        && guard_shots[1].contains("shoots bolt"),
+        "the orc bow guard did not retain its arrow start; inspect {}", root.display());
     assert!(iceworld.lines().any(|line| {
         line.contains("WLGuard1B: bolt")
             && line.contains("touches Connor")

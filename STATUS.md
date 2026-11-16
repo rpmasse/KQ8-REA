@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 elemental enemy bow starts
+
+The existing Barren and Ice World combat process now asserts that two
+flame bow dwarfs and one orc bow guard use their installed `arrow` part
+in frame 3 of `Attack` for the first shot and retain each launch offset
+on later shots. The grouped original-data release test passed 1/1 in
+29.61 seconds; Fire/Ice contact and health-loss checks still pass.
+Artifact: `kq8-artifacts/elemental-enemy-attacks/1794873257679247400`.
+The first two runs failed because Barren's Fire terrain killed Connor
+before the bow contact. A stat-change command alone did not heal his
+current health; the successful setup also used `setLevel` first, as in
+the existing Pyrod test. No production code or GOG file changed.
+Other character weapon launch frames remain open. M5 stays at ~65%.
+
 ## 2026-11-17 M5 held equipment stat categories
 
 Two existing original-data encounter processes now assert that held

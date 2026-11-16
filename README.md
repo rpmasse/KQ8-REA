@@ -19,7 +19,7 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 
 These percentages describe individual phases, not overall game completion. All 12 regions load, but combat, campaign progression and visual fidelity still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
 
-Automated combat checks include script-created enemies and terrain hazards; the full campaign remains unfinished.
+Automated combat checks cover many enemy attacks, elemental bow shots, drops and terrain hazards; the full campaign remains unfinished.
 The [fighting](docs/m5-fighting-rule-coverage.md) and [ranged](docs/m5-ranged-rule-coverage.md) tables track remaining M5 checks.
 
 ## Bring your own game

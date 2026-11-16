@@ -176,6 +176,13 @@ carrier, second bow guard and two script-parked spear carriers. Their
 controlled Normal deaths each finalize and award experience once; the
 parked actors' authored summons remain outside this fixture.
 
+The existing two-world `elemental_enemy_attacks` process now checks the
+first and later bow starts for both Barren flame bow dwarfs and the Ice
+World orc bow guard. Each first shot uses the installed `arrow` part in
+frame 3 of `Attack`; later shots retain that distinct offset. The
+Barren spawn can overlap continuous Fire terrain, so the test gives
+Connor a high current-health ceiling before observing the bow contacts.
+
 The existing Swamp fiend-and-bubble process now releases the placed
 bubble from `sgohome1.cs`'s unalarmable `goHome` state after relocation.
 Its own attack then lowered Connor's health twice before the already

@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Assert elemental enemy bow launch parts (M5)
+
+Extended the existing Barren/Ice World encounter check to assert the
+installed `arrow` frame-3 launch offsets and their reuse for three bow
+enemies. Raised Connor's current health in the Barren fixture so a
+continuous Fire terrain hit cannot end the fight before the bow shots.
+The first two test attempts failed before the bow hit because the first
+survival change increased maximum health without healing current health.
+The corrected combined release check passed 1/1 in 29.61 seconds.
+No production code or original GOG file changed.
+With `KQ8_GAME_DIR` set to the GOG install, run
+`cargo test -p kq8-viewer --release --test elemental_enemy_attacks --
+--ignored --nocapture`; expect one passing test.
+
 ## 2026-11-17 Link held enemy equipment to original stats (M5)
 
 Added source-to-result assertions to two existing original-data
