@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-16 Study Fire and Ice bolt contact timing
+
+Traced the original projectile contact path and shared event insertion
+read-only. On eligible contact the bolt builds a targeted hit and queues
+it at current simulation time, then moves to the contact point, calls
+its ordinary `Die` hook, and requests deferred deletion. Its emitter
+enters the dying tail when removal actually processes the bolt. The
+static trace did not establish event delivery versus removal and first
+particle update, or floor/range tie order; Q212 keeps these open along
+with in-flight save identity. Updated only the behavior note and Q212.
+No Rust, GOG data, or manual gameplay changed.
+
 ## 2026-11-16 Exercise the IceWorld Dragon fight with normal damage
 
 Changed: added an unattended original-data route that gives Connor

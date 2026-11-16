@@ -3,6 +3,22 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 projectile contact event order (2026-11-16)
+
+Q212 establishes that an ordinary Fire or Ice bolt queues a targeted
+attack at current simulation time before moving to its contact point,
+calling its own `Die` hook, and requesting deferred deletion. Rust
+currently delivers damage inside the bolt step. Route contact hits
+through the existing `KQAttackEvent` queue, preserving target, shooter,
+kind, damage, and zero damage for projectile immunity. Keep the
+projectile's `ProjImmune` and `Die` callbacks, contact location, and
+single removal. A focused core check should observe no target health
+change just after the bolt step, then one hit after due-event service;
+the original-data Fire and Ice impact checks should still pass. The
+original event-service position relative to deferred removal and the
+first dying particle update remains open; do not claim exact subframe
+parity from the Rust service schedule.
+
 ## M5 Dragon Flame Sword combat route (2026-11-16)
 
 Run an isolated IceWorld encounter with the original regional startup,

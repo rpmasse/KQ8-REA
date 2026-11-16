@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 original projectile hit queue
+
+The Q212 original-engine study establishes that Fire and Ice bolt
+contact queues a targeted hit at current simulation time before the
+bolt moves to the contact point, runs its `Die` hook and requests
+deferred deletion. Rust currently applies the hit inside its bolt
+step, so this is a known timing difference to address. The original
+service order against removal and the first particle-tail update is
+still unestablished. No code or manual gameplay changed in this study;
+M5 remains ~65%.
+
 ## 2026-11-16 M5 isolated Dragon Flame Sword fight
 
 An unattended GOG-data IceWorld run now defeats both Dragon heads
