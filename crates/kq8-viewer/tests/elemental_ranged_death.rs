@@ -121,6 +121,9 @@ fn flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths() {
             "wrong death movement; inspect {}",
             run.display()
         );
+        let death = fight.lines().find(|line| line.contains(&format!("{target}: dies (rule 30): kind {kind}"))).unwrap();
+        assert!(death.contains("gravity off; not solid (collision type and mask 0); its state never changes again"),
+            "{kind} death did not clear gravity and collision; inspect {}", run.display());
         assert_eq!(
             fight
                 .matches(&format!("{target}: its death ended (rule 32):"))

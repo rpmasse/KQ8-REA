@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-17 Tighten ordinary death coverage (M5)
+
+The existing `live_crossbow_combat` fixture now asserts that the
+installed skeleton joins the active list before its Projectile death,
+then leaves that list, loses gravity and becomes non-solid. Its old
+190-frame ceiling stopped at about update 30, before the first scripted
+shot at update 60, so the first run failed before the new assertion.
+Setting a 190-update target and a larger frame ceiling let the same
+fixture pass once, covering all three shots and the death. No production
+combat code or GOG file changed. The fighting coverage audit also found
+that bat/chicken first-kill exclusions already have grouped core
+assertions (the focused core check passes) and that original-data Shift `attack2` is already asserted in
+the Daventry/first-person routes. The corresponding rows now cite those
+tests and narrow the remaining gaps. Reproduce with
+`cargo test --locked --release -p kq8-viewer --test live_crossbow_combat -- --ignored --nocapture`
+after setting `KQ8_GAME_DIR` to the GOG install. The grouped
+`elemental_ranged_death` fixture now also asserts gravity and collision
+clearing for Fire and Ice death entry; both shots and deaths passed in
+one native test. Reproduce with
+`cargo test --locked --release -p kq8-viewer --test elemental_ranged_death flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths -- --ignored --nocapture`.
+
 ## 2026-11-17 Add the traced ontop world attack and extra mover (M5, Q206)
 
 Study A established the exact post-move eligibility and that the extra

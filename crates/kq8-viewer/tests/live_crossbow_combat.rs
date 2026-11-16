@@ -34,8 +34,10 @@ fn small_crossbow_defeats_a_live_bow_skeleton() {
             "skeleton2,100",
             "--aim",
             "skeleton2,140",
-            "--frames",
+            "--updates",
             "190",
+            "--frames",
+            "9000",
         ])
         .output()
         .unwrap();
@@ -44,6 +46,7 @@ fn small_crossbow_defeats_a_live_bow_skeleton() {
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
+    let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
     assert!(
         output.status.success() && viewer.contains("RESULT: PASS"),
         "inspect {}",
@@ -112,6 +115,11 @@ fn small_crossbow_defeats_a_live_bow_skeleton() {
             .count(),
         1
     );
+    let death = fight.lines().find(|line| line.contains("skeleton2: dies (rule 30): kind Projectile"))
+        .unwrap();
+    assert!(characters.contains("skeleton2: joins the active list (rule 20)")
+        && death.contains("off the active list; gravity off; not solid (collision type and mask 0); its state never changes again"),
+        "the live skeleton's ordinary death did not remove its active and solid states; inspect {}", dir.display());
     let drops = fight
         .lines()
         .find(|line| line.contains("skeleton2: drops (rule 31;"))

@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-17 M5 first-kill and ordinary death evidence
+
+The first-kill exclusion gap in the fighting coverage table was already
+covered by the grouped `starting_help` core matrix: it asserts bat,
+chicken and literal `checken2` exclusions, plus `chicken2` eligibility;
+that focused core check passes in the current tree.
+The existing native Dead City crossbow fight now also asserts that an
+active skeleton's Projectile death removes it from the active list,
+turns gravity off and clears both collision values. Its first test run
+exposed a stale fixture limit: 190 render frames ended near update 30,
+before shots scheduled from update 60. With 190 game updates and a larger
+frame ceiling, the full native fight passed. The grouped elemental
+fixture now also asserts that Fire and Ice deaths clear gravity and
+collision; both original-data shots and deaths passed in one test. No
+original-executable or manual gameplay comparison occurred. M5 remains
+incomplete; Normal death and distinct enemy rules need direct scenario
+links.
+
 ## 2026-11-17 M5 Q206 ontop hazard and goblin audio
 
 The separate original-engine follow-up traced the `ontop` post-move

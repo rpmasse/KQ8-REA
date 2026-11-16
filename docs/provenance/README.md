@@ -1,5 +1,16 @@
 # Provenance
 
+**Ordinary Projectile death evidence (2026-11-17, M5).**
+The active-list, gravity and collision effects are specified by
+[fighting.md rule 30](../behaviour/fighting.md). The installed Dead City
+`live_crossbow_combat` route now asserts them for an ordinary bow
+skeleton's Projectile death; it passes after its update budget was
+corrected. The grouped `elemental_ranged_death` scenario passes Fire and
+Ice movement and gravity/collision assertions on installed data. These
+do not establish every death kind or running-original parity.
+[First-kill exclusions](../behaviour/pickup-tutorials.md) were
+already asserted by the grouped `starting_help` core matrix.
+
 **Ontop terrain hazard (2026-11-17, Q206).** The separate original-engine
 [terrain hazard study](../behaviour/terrain-hazards.md) gives the exact
 post-move gates and a regular extra mover call with collision checks
