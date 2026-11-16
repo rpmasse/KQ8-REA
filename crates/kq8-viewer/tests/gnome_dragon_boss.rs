@@ -27,7 +27,6 @@ fn gnome_dragon_fights_dies_and_leaves_the_black_diamond() {
             "dx12",
             "--sound",
             "off",
-            "--god",
             "--world",
             "Gnome",
             "--at",
@@ -40,6 +39,10 @@ fn gnome_dragon_fights_dies_and_leaves_the_black_diamond() {
             // ordinary attack, damage roll, death and drop paths still run.
             "--command",
             "KQMonster::inventory Connor INVITEM_TempleSword 1,20",
+            "--command",
+            "KQMonster::inventory Connor INVITEM_Invulnerable 1,20",
+            "--key",
+            "5,25",
             "--command",
             "KQConner::setDoMode 0,35",
             // Fusebox Init first sets darkness. Its authored Cue then
@@ -90,8 +93,15 @@ fn gnome_dragon_fights_dies_and_leaves_the_black_diamond() {
     );
     assert!(
         fight.contains("Dragon: attack (rule 7, standing)")
-            && fight.contains("Connor: hit by Dragon, Normal, damage 85"),
+            && fight.contains("Connor: hit by Dragon, Normal: D 85")
+            && !fight.contains("god mode is on"),
         "the Dragon did not attack through ordinary AI; inspect {}",
+        dir.display()
+    );
+    assert!(
+        items.contains("slot 5, INVITEM_Invulnerable, HealthItem")
+            && items.contains("the shield: protection 32 -> 50"),
+        "the original shield did not protect Connor; inspect {}",
         dir.display()
     );
     assert!(

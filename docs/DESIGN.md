@@ -3877,9 +3877,12 @@ The focused boss route passed at the authored Dragon location. It sees
 and hits Connor, speaks its dark-room line, receives the fuse-box light
 Cue, takes ordinary sword hits, then completes its Die movement. Its
 Black Diamond, experience, map icon, item script and blocking-object
-deletion all occur once. The test gives Connor a later strong sword and
-god mode to keep the run bounded; reaching the chamber with normal Gnome
-equipment remains open.
+deletion all occur once. The test gives Connor a later strong sword
+and the original Invulnerable item through its inventory key. With
+god mode off, seven normal Dragon hits reduced his health from 220 to
+12 before the Dragon died. The combined fresh-process victory save
+check passed 1/1 in 46.06 seconds. Reaching the chamber with normal
+Gnome equipment remains open.
 
 **Dragon reward continuation.** Extend that same bounded route to save
 after `Die` and reopen the slot in a fresh Windows process. Check the

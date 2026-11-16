@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Replace Gnome Dragon god switch with original shield
+
+Updated the existing boss and fresh-process victory save regression
+to give Connor the original Invulnerable item and use it through the
+inventory key. Removed the god switch and required ordinary Dragon
+damage and the shield's 32-to-50 protection change. Seven hits left
+Connor at 12 health before the normal sword defeat, Black Diamond,
+experience and saved victory completed. The combined release check
+passed 1/1 in 46.06 seconds:
+`cargo test --locked --release -p kq8-viewer --test gnome_dragon_boss -- --ignored --nocapture`.
+The later-game sword, controlled chamber position and fuse-box Cue
+remain. No game logic, manual gameplay or GOG files were changed.
+
 ## 2026-11-16 Verify Barren hammer-dwarf camera combat and death drops
 
 Added one original-data Windows regression for the authored Barren

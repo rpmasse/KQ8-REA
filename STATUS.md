@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 Gnome Dragon victory with ordinary incoming damage
+
+The existing Gnome Dragon boss and fresh-process save regression now
+runs with god mode off. Connor uses the original Invulnerable item
+through the inventory key, takes seven ordinary Dragon hits, survives
+with 12 health, defeats the Dragon with the supplied Temple Sword,
+then retains the Black Diamond, experience, map icon and lights state
+through a fresh-process save. The combined release test passed 1/1 in
+46.06 seconds. The authored approach and normal Gnome equipment path
+remain open. M5 is still about 65%; no manual gameplay or GOG-file
+write occurred.
+
 ## 2026-11-16 M5 Barren hammer-dwarf camera fight
 
 An unattended original-data Windows regression now verifies
