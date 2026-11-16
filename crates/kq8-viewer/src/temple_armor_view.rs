@@ -46,15 +46,7 @@ impl ConnorSim {
         ]
         .into_iter()
         .flatten()
-        .filter(|file| {
-            !self.movements.iter().any(|movement| {
-                !movement.first_person
-                    && movement
-                        .qualified
-                        .split_once('/')
-                        .is_some_and(|(loaded, _)| loaded.eq_ignore_ascii_case(file))
-            })
-        })
+        .filter(|file| !bank_walk_loaded(&self.movements, file, false))
         .map(str::to_ascii_lowercase)
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()

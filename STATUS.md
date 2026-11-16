@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 weapon walking banks
+
+The live loader now brings in each acquired weapon's ordinary movement
+list even when startup had already loaded its attack/swap clips. In one
+unattended original-data Windows run, Connor drew the mapped `walk`
+animation for all 22 hand and ranged weapon banks. The focused release
+check passed 1/1 in 54.17 seconds. Other movements, earned campaign
+routes and original-executable parity remain open. Two affected loader
+tests also passed. M5 remains about
+65%; no manual gameplay testing was performed.
+
 ## 2026-11-16 M5 combat help delivery
 
 One unattended Daventry fight now verifies first-hit, low-health and

@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Load each acquired weapon's ordinary walking movement
+
+Fixed a live animation-loader error: startup attack/swap clips from a
+late weapon bank previously made the inventory scan think its whole
+movement list was loaded. Connor then drew the base walk instead of
+that weapon's own walk. The loader now uses the bank's `walk` movement
+as its full-list marker. A single unattended Dead City route acquired
+all 22 mapped real weapons and verified each drawn walk. An earlier
+route entered the `introtp` scripted scene during ranged checks; the
+final route starts outside that trigger. The release integration check
+passed 1/1 in 54.17 seconds: `cargo test --locked --release -p
+kq8-viewer --test weapon_walk_banks -- --ignored --nocapture`. GOG data
+was read-only; no manual gameplay testing. The affected Temple armor
+loader tests also passed 2/2 with `cargo test --locked --release -p
+kq8-viewer --bin kq8-viewer connor_view::temple_armor_view::tests::
+-- --ignored --nocapture`.
+
 ## 2026-11-16 Verify combat help delivery in one Daventry fight
 
 Added one unattended original-data Windows route with `goblin22`. A

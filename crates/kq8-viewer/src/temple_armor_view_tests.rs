@@ -67,7 +67,7 @@ fn controller() -> ConnorSim {
         "newranged.anm",
         "fpnewranged.anm",
     ] {
-        for action in ["stop", "attack", "away", "out"] {
+        for action in ["stop", "walk", "attack", "away", "out"] {
             let qualified = kq8_core::connor::intern(&format!("{bank}/{action}"));
             let name = if bank == "conner.anm" {
                 kq8_core::connor::intern(action)

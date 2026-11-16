@@ -3744,6 +3744,30 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Weapon-bank walking selection.** Read the installed `Connor.kq` hand
+and ranged animation-list mappings. In one unattended Windows process,
+ready Fists, then give each other authored hand weapon while hand mode is
+active; switch to ranged and give each authored ranged weapon. After
+each settled assignment, hold a short ordinary walk and record the
+movement actually selected for drawing. Require the weapon's own `walk`
+entry from its mapped animation bank for all 22 real weapons. This
+checks one nonattack movement in a combined route, leaving other
+movement names and original-executable comparison for later gates.
+
+The first diagnostic exposed a loader bug: Dead City starts with Small
+Axe equipped, so the proposed Fists setup was wrong; more importantly,
+late weapon banks had only attack/swap clips loaded. Both the inventory
+scan and the duplicate-load filter treated one such clip as proof of a
+complete bank, leaving the installed `walk` unused. Every real hand and
+ranged bank named by `Connor.kq` has a `walk` entry. Use that core
+movement as the loaded-bank marker, then check each selected drawn clip
+after enough held updates for the `stopwalk` transition to finish.
+The combined route passed for all 22 banks in 54.17 seconds. It starts
+at an open Dead City position outside the `introtp` scripted trigger;
+an earlier route entered that scene and lost ordinary movement control
+during the ranged checks. The check covers Rust drawing selection with
+installed GOG assets, not original-executable visual parity.
+
 **Daventry combat help delivery (2026-11-16).** Use one unattended
 original-data fight with the installed `goblin22`. Start with empty hands,
 lower Connor's health through the existing scripted health command, and

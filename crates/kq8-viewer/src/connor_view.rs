@@ -1451,12 +1451,19 @@ pub fn late_set_step(
 
 /// The startup catalogue and live mapping scan can overlap. Resolve that
 /// before model/material allocation; movement-name deduplication is too late.
+fn bank_walk_loaded(movements: &[DrawnMovement], file: &str, first_person: bool) -> bool {
+    // Startup special steps can load attack/away/out for a late bank without
+    // loading its ordinary movement list. Every installed weapon bank has walk.
+    movements.iter().any(|movement| movement.first_person == first_person
+        && movement.qualified.split_once('/').is_some_and(|(bank, action)|
+            bank.eq_ignore_ascii_case(file) && action.eq_ignore_ascii_case("walk")))
+}
+
 fn plan_late_banks(movements: &[DrawnMovement], candidates: Vec<(String, String, bool)>) -> Vec<(String, String, bool)> {
     let mut planned = std::collections::BTreeSet::new();
     candidates.into_iter().filter(|(_, file, first_person)| {
         let key = (file.to_ascii_lowercase(), *first_person);
-        planned.insert(key) && !movements.iter().any(|movement| movement.first_person == *first_person
-            && movement.qualified.split_once('/').is_some_and(|(loaded, _)| loaded.eq_ignore_ascii_case(file)))
+        planned.insert(key) && !bank_walk_loaded(movements, file, *first_person)
     }).collect()
 }
 
@@ -3662,6 +3669,9 @@ pub fn connor_draw(
             sim.log.detail(format!("connor update {}: {line}", sim.updates));
         }
         if shown_at.is_some() {
+            if *drawn_name != now {
+                sim.log.detail(format!("connor update {}: drawn movement {now} for {movement} with set {:?}", sim.updates, sim.weapon_set));
+            }
             *drawn_name = now;
         }
     }

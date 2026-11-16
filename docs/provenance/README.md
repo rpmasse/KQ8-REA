@@ -1,5 +1,15 @@
 # Provenance
 
+**Late weapon-bank walking (2026-11-16).** [Ranged-weapons rule
+10](../behaviour/ranged-weapons.md) switches Connor's ordinary movement
+list with his weapon. The installed `GAME/Kq/Connor.kq` maps 22 real
+hand/ranged weapons to animation banks, each with a `walk` movement.
+Startup loads some attack/swap clips from late banks, so the Rust loader
+now requires the ordinary `walk` entry before treating such a bank as
+fully loaded. A single unattended original-data Windows route drew all
+22 banks' own walk clips. This proves Rust selection, not exact timing
+or appearance against the original executable.
+
 **Last-item drop edge (2026-11-16).** [Items rule 11](../behaviour/items.md)
 and [traps Q203](../behaviour/traps.md) distinguish Rock's fresh
 landing identity from the old last-carried identity returned to world
