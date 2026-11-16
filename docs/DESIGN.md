@@ -30,6 +30,19 @@ route supplies the boss state and equipment; the authored intro sequence
 is separate campaign work. Its Die callback still rejects an eight-word
 `KQMonster::speak` line, which remains open.
 
+Follow-up: the installed `skelking.cs` has an eight-word Die speech call,
+so Q216 asks whether the original accepts it; do not invent a missing
+argument. Strengthen the same unattended live-fight check to require the
+authored sword, coins, two crystals and potion drops once, their completed
+throw arcs, and the script's Dead City progression flag after death. These
+checks use original data and the existing fight route, with no manual play.
+
+Checked: the strengthened GOG-data boss route passed 1/1 in 56.89 seconds.
+It found one sword, 25 coins, two crystals and one Invulnerable potion,
+then saw all five finish their throws. The Die script set
+`DeadCity::Reaper::ConFoundBridge` to true. Q216 remains open on its
+shortened `KQMonster::speak` form; the test does not claim that line plays.
+
 ## M5 live combat difficulty (2026-11-16)
 
 Use the same original Dead City bow-skeleton encounter as the live Small

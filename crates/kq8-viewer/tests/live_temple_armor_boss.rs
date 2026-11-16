@@ -125,9 +125,39 @@ fn temple_armor_flame_sword_defeats_live_skeleton_king() {
     );
     assert!(
         fight.contains("no corpse (Fire: burnt away)")
-            && doors.contains("script skelking.cs Skelking Die Fire"),
+            && doors.contains("script skelking.cs Skelking Die Fire")
+            && doors.contains("set DeadCity::Reaper::ConFoundBridge = 'true'"),
         "the authored Fire death did not complete; inspect {}",
         dir.display()
     );
+    let drops = fight
+        .lines()
+        .filter(|line| line.contains("Skelking: drops (rule 31;"))
+        .collect::<Vec<_>>();
+    assert_eq!(drops.len(), 1, "inspect {}", dir.display());
+    for item in [
+        "INVITEM_SkelKingSword x1",
+        "INVITEM_SilverCoins x25",
+        "INVITEM_invulnerable x1",
+    ] {
+        assert!(
+            drops[0].contains(item),
+            "missing {item}; inspect {}",
+            dir.display()
+        );
+    }
+    assert_eq!(drops[0].matches("INVITEM_crystal x1").count(), 2);
+    for item in [
+        "INVITEM_SkelKingSword",
+        "INVITEM_SilverCoins",
+        "INVITEM_Invulnerable",
+    ] {
+        assert!(
+            items.contains(&format!("({item}) flight ends")),
+            "{item} did not finish its throw; inspect {}",
+            dir.display()
+        );
+    }
+    assert_eq!(items.matches("(INVITEM_Crystal) flight ends").count(), 2);
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-16 M5 Skeleton King drops and progression flag
+
+The unattended Temple Armour boss fight now checks the King's sword,
+25 coins, two crystals and Invulnerable potion drop once and complete
+their throws, and that the Die script sets Dead City's Reaper bridge
+flag. The original-data route passed 1/1 in 56.89 seconds. The installed
+script has an eight-word `KQMonster::speak` line whose original behavior
+is not established; Q216 asks the study session to settle it. No manual
+gameplay test was run. M5 remains about 65%.
+
 ## 2026-11-16 M5 Temple Armour weapon actions and live boss fight
 
 Temple Armour remaps Connor's weapons to new animation lists after

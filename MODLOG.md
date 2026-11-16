@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-16 Check Skeleton King drops and death-script flag
+
+Changed: the unattended Temple Armour boss test now requires the King's
+one sword, 25 coins, two crystals and Invulnerable potion to drop and
+finish their throws, plus the original Die script's Dead City bridge
+flag. Why: a live health-zero and experience check did not establish
+those combat rewards or the script's progression effect. Tested how:
+from the worktree, set `$env:KQ8_GAME_DIR = (Resolve-Path
+"..\..\..\King's Quest 8 GOG").Path`, then run `cargo test --locked -p
+kq8-viewer --test live_temple_armor_boss -- --ignored --nocapture`.
+Result: 1/1 passed in 56.89 seconds. The original `skelking.cs` Die
+speech call omits one argument; Q216 asks whether the original accepts
+it. No interpreter guess, game-file write or manual test was made.
+
 ## 2026-11-16 Load late Temple Armour weapon actions
 
 Changed: the viewer's late third-person weapon loader now includes
