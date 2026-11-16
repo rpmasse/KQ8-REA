@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-16 Verify the original hand-weapon hit matrix
+
+Changed: added `hand_weapon_matrix`, an unattended original-data test;
+gameplay code was unchanged. Why: isolated weapon checks did not cover
+all twelve player hand weapons in the installed `Invinfo.itl`. The
+test supplies one weapon at a time, readies it and swings at an
+original Dead City skeleton with AI off. It checks the expected ready
+item, one authored `Do`, one hit with the installed damage bonus and
+Normal/Fire kind, and reduced target health. Tested how: set
+`KQ8_GAME_DIR` to the GOG installation, then run `cargo test --locked
+-p kq8-viewer --test hand_weapon_matrix -- --ignored`. The first
+version passed 1/1 in 376.83 seconds, proving one damaging hit per
+weapon. The tighter final version also checked each exact damage
+input and passed 1/1 in 370.15 seconds. A shorter 82-update limit did
+not materially reduce the twelve fresh-process runtimes. GOG
+`Options.cs` stayed unchanged. No manual play or original-executable
+comparison was run; encounter AI, aiming and save paths remain open.
+
 ## 2026-11-16 Verify Invisible's loss and recovery of enemy sight
 
 Changed: added the unattended `invisible_live_ai` GOG-data check; no

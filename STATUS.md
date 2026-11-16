@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 original player hand-weapon matrix
+
+The twelve hand weapons listed in the GOG `Invinfo.itl` each readied,
+ran an authored swing cue and hit an original Dead City skeleton once.
+Every hit used the expected item damage bonus; Flame Sword used Fire
+and the others Normal. Target health fell in all twelve cases. The
+unattended GOG-data test passed 1/1 in 370.15 seconds and left
+`Options.cs` unchanged. Target AI was off and Connor was protected, so
+these are controlled hits rather than complete encounters. No manual
+gameplay test was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 Invisible potion drives original goblin AI
 
 An unattended GOG-data Daventry check follows `goblin22` through a

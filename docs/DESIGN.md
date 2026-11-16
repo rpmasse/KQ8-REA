@@ -3588,6 +3588,21 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Original hand-weapon live-hit matrix (2026-11-16, checked).** The
+installed `Invinfo.itl` lists twelve ordinary player hand weapons from
+Dagger through Temple Sword. Run each through the normal inventory and
+weapon-ready paths against an original Dead City skeleton. Require one
+authored swing cue and one actual hit with the weapon's damage kind;
+record the target's health change or death. Keep enemy AI disabled and
+the target at a fixed place so this checks weapon coverage, not encounter
+strategy. Preserve the original installation and do not alter its assets.
+All twelve GOG-data cases passed in one unattended test (370.15 s).
+Each readied the expected item, ran one authored `Do` cue and applied
+one hit with the installed `SDam` bonus and correct Normal/Fire kind.
+The original skeleton lost health in every case; strong weapons killed
+it. GOG `Options.cs` was unchanged. This covers a controlled player
+hand-weapon hit, not every enemy decision or full encounter route.
+
 **Live Temple 4 vortex victory check (2026-11-16).** Start the last
 Lucreto fight with the installed altar Cue 6/7, Temple Sword and Temple
 Armour. Use supplied Invulnerable items through the normal inventory

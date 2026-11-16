@@ -1,5 +1,15 @@
 # Provenance
 
+**M5 player hand-weapon matrix (2026-11-16).** The installed GOG
+`GAME/Kq/Invinfo.itl` names the twelve ordinary hand weapons and their
+`SDam` values. [Fighting rules 1, 4 and 14](../behaviour/fighting.md)
+specify equipment's hand-damage addition and Flame Sword's Fire kind;
+the existing inventory and swing paths are exercised by
+`crates/kq8-viewer/tests/hand_weapon_matrix.rs`. Twelve controlled
+GOG-data Dead City cases readied, hit and damaged an original skeleton
+with the expected damage values. This verifies the Rust hit paths,
+not original-executable combat parity or complete encounters.
+
 **Live Dragon combat save (2026-11-16).** The user's installed
 IceWorld data supplied the Dragon actors, Flame Sword and their combat
 rules. An unattended Rust route defeated the left head through normal
