@@ -50,6 +50,7 @@ fn original_barren_ant2_attack_and_two_family_deaths() {
     fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
     let logs = dir.join("kq8-artifacts/logs");
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     let items = fs::read_to_string(logs.join("items.log")).unwrap();
     assert!(
@@ -80,6 +81,13 @@ fn original_barren_ant2_attack_and_two_family_deaths() {
         "the placed vulture has wrong stats; inspect {}",
         dir.display()
     );
+    assert!(characters.lines().any(|line| line.contains("[vulture2] KQMonster:")
+        && line.contains("alarm radius 0;")
+        && line.contains("attack distance 0;"))
+        && characters.contains("vulture2: status: Move, active")
+        && !fight.contains("vulture2: attack (rule 7,")
+        && !fight.contains("Connor: hit by vulture2,"),
+        "the active Vulture did not follow its zero-range data; inspect {}", dir.display());
     assert!(
         fight.contains("ant11: attack (rule 7,")
             && fight

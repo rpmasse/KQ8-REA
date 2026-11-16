@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-17 Check Barren Vulture's zero attack range (M5)
+
+Extended the existing ant/Vulture original-data test without adding a
+world load. It now checks the placed Vulture's authored zero alarm and
+attack distances in the loaded character log, observes active
+wandering, and requires no attack or Connor hit before the existing
+controlled death. The one combined release test passed in 19.65
+seconds; ant combat and both distinct death/reward assertions stayed
+intact. Logs are in
+`kq8-artifacts/barren-ant2-vulture-live/1794867412418004700`.
+No production code or GOG file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test
+barren_ant2_vulture_live -- --ignored --nocapture`; expect one passing
+test. No original-executable or manual gameplay comparison was run.
+
 ## 2026-11-17 Link Barren Henchman's death callback (M5)
 
 Extended the existing original-data Barren Henchman test with the

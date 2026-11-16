@@ -50,8 +50,10 @@ terrain evidence, not a resolved terrain-fidelity claim.
 The one-process `barren_ant2_vulture_live` route adds a placed `ant2`
 actor's normal AI melee health loss, Crystal drop, no corpse and 5,000
 experience, plus a nearby vulture's controlled no-drop/no-corpse death
-and 500 experience. The vulture did not make a live attack; its zero
-alarm and attack distances need a separate rule audit.
+and 500 experience. The same process now asserts the placed vulture's
+zero alarm and attack distances, active wandering at update 34 and no
+attack or Connor hit before its controlled death at update 130. This
+links its nonattacking interval without forcing an invented attack.
 The `barren_henchman_live` route starts at the installed chest reveal
 cue, observes the hidden Henchman's Special list finish and an ordinary
 125-point Normal hit, then checks his three-item drop, corpse and

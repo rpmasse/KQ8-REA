@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 Barren Vulture zero-range behavior
+
+The existing combined `barren_ant2_vulture_live` release test passed
+1/1 in 19.65 seconds with new data-backed Vulture assertions. The
+placed `vulture2` had authored zero alarm and attack distances, became
+active and wandered by update 34, then made no attack or Connor hit
+before its controlled death at update 130. The same process retained
+the ant's live hit and both death/reward checks. This is a Rust
+original-data observation; the running original was not tested. M5
+remains incomplete.
+
 ## 2026-11-17 M5 Barren Henchman death-listener continuation
 
 The extended original-data `barren_henchman_live` release test passed
