@@ -9,6 +9,9 @@ recreation is feature-complete.
 
 The [ranged rule coverage table](m5-ranged-rule-coverage.md) links
 rules 13–31 to current assertions and names the remaining direct gaps.
+One combined Daventry crossbow run now checks a Cottage building pick
+ahead of a goblin, harmless building contact, an open-sky far-end pick
+and the 32.7-degree shot limit without another world load.
 The [fighting rule coverage table](m5-fighting-rule-coverage.md) now
 maps rules 1–41 to existing scenarios and direct gaps. Its first audit
 found the Henchman save/retreat miss and the back-key/90-degree hit-test

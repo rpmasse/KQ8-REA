@@ -392,6 +392,18 @@ the callback remains unverified after two bounded attempts. Record
 the script entry and proximity; do not claim the earlier chest
 cutscene or an earned campaign route.
 
+## M5 ranged building and sky picks in one Daventry process (2026-11-17)
+
+The grouped original-data run reuses the measured Cottage camera lane.
+It puts the installed Small Crossbow in Connor's inventory and readies
+it with enemy AI off, aims at `goblin22` behind the Cottage, then parks
+the diagnostic camera in open air for a sky click. The first line picks
+the Cottage before the goblin; bolt 1 touches it without damage. The
+second line picks the sky's far endpoint and bolt 2 fires at the
+32.7-degree steepness limit. The sky bolt later also touches the
+Cottage; this does not change the click's sky pick. One release test
+asserts both choices and the relevant bolt outcomes.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

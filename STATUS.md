@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 grouped building and sky crossbow picks
+
+The original-data `ranged_building_sky_picks` release test passed 1/1.
+From the measured Cottage lane, an installed Small Crossbow click at
+`goblin22` picked the Cottage first. Bolt 1 touched the Cottage and
+caused no damage; the goblin took no hit. After the diagnostic camera
+moved to open air, the second click picked the sky's far endpoint and
+bolt 2 fired at the 32.7-degree steepness limit. The first attempt had
+put the crossbow on the pointer rather than in the ranged slot and
+left the sky line inside the Cottage; the corrected grouped test uses
+the installed inventory command. M5 remains incomplete.
+
 ## 2026-11-17 M5 Barren chest Henchman fight
 
 The original-data `barren_henchman_live` release test passed 1/1. The

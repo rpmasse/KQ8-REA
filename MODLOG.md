@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-17 Group ranged building and sky checks (M5)
+
+One original-data Daventry release test passed 1/1 in about 15
+seconds. It verifies a Cottage pick ahead of a goblin, a harmless
+Small Crossbow bolt contact with the building, a separate sky pick and
+the resulting 32.7-degree bolt pitch. The first run exposed a test
+setup error: `--item` held the crossbow on the pointer, so the ranged
+mode had no real weapon, and the sky line intersected the Cottage.
+The passing run uses the installed inventory command and an open-air
+diagnostic camera for the second click. No production code or GOG file
+changed. With `KQ8_GAME_DIR` set, run `cargo test --locked --release
+-p kq8-viewer --test ranged_building_sky_picks -- --ignored --nocapture`.
+
 ## 2026-11-17 Link Barren scripted Henchman combat (M5)
 
 One original-data release test passed 1/1 in about 37 seconds. The
