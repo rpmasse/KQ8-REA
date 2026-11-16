@@ -468,9 +468,12 @@ four-process automated Daventry check passed for authored skin, disk
 reload, scripted replacement and `normal` reset. Saved corpses supply
 their own replacement picture names when the dead monster is skipped
 on world reload. Two ordinary `kill` probes did not reach the end of
-Bossprig's movement after he left update range; the material check
-used `Die now`. Ordinary animation completion and original-executable
-pixels remain unverified. No texture pixels or dimensions were changed.
+Bossprig's movement after he left update range; the first material check
+used `Die now`. A subsequent controlled console kill kept Bossprig near
+Connor: its normal Die movement ended at update 50, the authored corpse
+skin was drawn, and the four-process save/reload check passed. An earned
+fight and original-executable pixels remain unverified. No texture pixels
+or dimensions were changed.
 
 ## M5 Strength potion during original-data melee (2026-11-16)
 

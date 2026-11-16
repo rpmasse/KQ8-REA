@@ -27,11 +27,15 @@ fn bossprig_corpse_skin_survives_script_changes_and_a_fresh_process() {
     };
 
     let (first, fight) = run("authored", &[
-        "--world", "Daventry", "--command", "KQMonster::setState bossprig Die now,10",
+        "--world", "Daventry", "--at", "277744,199295,13633",
+        "--command", "move bossprig 0 277744 199295 13633 0 0 0,5",
+        "--console", "kill bossprig,10", "--key", "popup:autohelp,0",
         "--key", "menu:down:down:enter:release:enter:release:escape:type=BossSkin:enter:release:escape,110",
         "--updates", "140", "--frames", "900",
     ]);
-    assert!(fight.contains("bossprig: its death ended (rule 32)"), "inspect {}", root.display());
+    assert!(fight.contains("bossprig: console kill: dies as from a normal hit (ours)")
+        && fight.contains("bossprig: its death ended (rule 32)"),
+        "ordinary Bossprig death did not finish; inspect {}", root.display());
     assert!(first.contains("corpse of bossprig: spdeath.kqs drawn")
         && first.contains("skin pairs [(\"test2.bmp\", \"test3.bmp\")], 1 material(s) changed"),
         "authored skin was not drawn on its corpse; inspect {}", root.display());

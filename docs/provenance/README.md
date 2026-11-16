@@ -8,7 +8,9 @@ corpse now carries the authored and current scripted pairs through a
 disk slot. An unattended four-process check exercised `Die now`, fresh
 reload, scripted replacement and `normal` reset. This proves Rust
 material selection; it does not prove pixel parity with the original
-executable or an ordinary Bossprig death sequence.
+executable. A later controlled console kill completed Bossprig's normal
+Die movement at update 50 and drew the same skinned corpse through a
+fresh-process save/reload. This still does not establish an earned fight.
 
 **Combat corpse persistence (2026-11-16).** [Fighting rule 32](../behaviour/fighting.md)
 creates a plain corpse object at a monster's death, and [world-change

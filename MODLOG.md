@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Check ordinary Bossprig death and corpse reload
+
+Changed: strengthened the four-process Bossprig corpse-skin regression.
+The authored-skin case now places the installed monster near Connor and
+uses a controlled normal kill, allowing its Die movement to finish
+before the save. Why: the earlier test jumped straight to `Die now` and
+did not cover the animation-end path. Tested how: with `KQ8_GAME_DIR`
+set to the GOG installation, `cargo test --locked -p kq8-viewer --test
+corpse_skin_checkpoint -- --ignored --nocapture` passed 1/1 in 165.49
+seconds. The fight log recorded the kill at update 10, death completion
+at update 50, and the viewer drew `spdeath.kqs` with the authored bitmap.
+The fresh-process reload and scripted/normal bitmap cases still passed.
+Artifact: `kq8-artifacts/corpse-skin-checkpoint/1794824854346991300/`.
+No production code or source textures changed. This controlled kill
+does not establish an earned Bossprig fight or original-executable
+visual parity. No manual gameplay ran.
+
 ## 2026-11-16 Keep alternate monster skin on a combat corpse
 
 Changed: a generated corpse now records the monster's authored bitmap

@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 ordinary Bossprig death reaches its corpse
+
+The existing four-process corpse-skin check now lets the installed
+`bossprig` finish its normal death movement before saving. A controlled
+console kill at update 10 ended at update 50; the viewer drew the
+`spdeath.kqs` corpse with the authored alternate bitmap, and the saved
+corpse survived a fresh-process reload. The check passed 1/1 in 165.49
+seconds. This uses a controlled kill and disabled AI, so an earned
+Bossprig fight and original-executable visual parity remain unverified.
+No manual gameplay ran. M5 remains about 65%.
+
 ## 2026-11-16 M5 alternate skin on combat corpses
 
 Generated corpses now retain their monster's authored skin and current
@@ -10,10 +21,9 @@ after fresh-process reload, a script could replace it, and `normal`
 restored the authored skin. The test passed 1/1 in 163.60 seconds;
 780 active core and 66 active viewer unit tests passed; the existing
 plain Mandragor corpse save/reload check also passed in 85.10 seconds.
-The Bossprig check used
-`Die now`; an ordinary Bossprig death animation to its end remains
-untested. Original-executable visual parity and manual gameplay remain
-untested. M5 is still about 65%.
+The first Bossprig check used `Die now`; the subsequent ordinary-death
+check above covers its death movement. Original-executable visual parity
+and manual gameplay remain untested. M5 is still about 65%.
 
 ## 2026-11-16 M5 combat corpses survive Rust saves
 
