@@ -11615,6 +11615,51 @@ deleteObject waterfall2
     }
 
     #[test]
+    fn tower_fall_checkpoint_restores_controller_and_accepts_old_slots() {
+        use crate::character::state_number;
+        let keys = kq8_data::characters::TowerKeys { real_alarm: 5000., react_pause: 1.2, stun_pause: 1.5, move_time: 0. };
+        let mut a = fighter();
+        let name = a.world.anims[0].player.name.clone();
+        a.world.simulation_time = 10.0;
+        a.world.anims[0].character.as_deref_mut().unwrap().tower = Some(crate::tower_skeleton::Tower::new(keys));
+        a.world.tower_notified(&name, &["Connor".into(), "0".into(), state_number::ROPE.to_string()]);
+        a.world.tower_fall_start(0);
+        {
+            let tower = a.world.anims[0].character.as_deref_mut().unwrap().tower.as_mut().unwrap();
+            tower.move_time = 14.0;
+            tower.time_to_run = 12.0;
+            tower.stagger_ended = true;
+            tower.flinch_pause = 1.2;
+        }
+        let value = serde_json::to_value(a.world.saved_placed_characters_for_disk_save()).unwrap();
+        assert!(value[0]["character"]["tower"]["fall"].is_object());
+        assert_eq!(value[0]["character"]["tower"]["move_due"], 4.0);
+        let records: Vec<SavedPlacedCharacter> = serde_json::from_value(value.clone()).unwrap();
+
+        let mut restored = fighter();
+        restored.world.simulation_time = 2.0;
+        restored.world.anims[0].character.as_deref_mut().unwrap().tower = Some(crate::tower_skeleton::Tower::new(keys));
+        restored.world.restore_placed_characters(&records);
+        let tower = restored.world.anims[0].character.as_deref().unwrap().tower.as_ref().unwrap();
+        assert_eq!((tower.move_time, tower.time_to_run, tower.flinch_pause), (6.0, 4.0, 1.2));
+        assert!(tower.stagger_ended);
+        restored.world.tower_notified(&name, &["Connor".into(), "0".into(), state_number::ROPE.to_string()]);
+        assert!(!restored.world.fight_log.iter().any(|line| line.contains("tower line 2000 16 0 18 1")), "the greeting must not repeat");
+        assert!(restored.world.tower_cue(&name, Some(&"50".into())));
+        assert!(restored.world.fight_log.iter().any(|line| line.contains("tower line 2000 16 12 22 2")), "the saved fall must continue to its second scream");
+
+        let mut old = value;
+        old[0]["character"].as_object_mut().unwrap().remove("tower");
+        let old: Vec<SavedPlacedCharacter> = serde_json::from_value(old).unwrap();
+        let mut legacy = fighter();
+        legacy.world.anims[0].character.as_deref_mut().unwrap().tower = Some(crate::tower_skeleton::Tower::new(keys));
+        legacy.world.restore_placed_characters(&old);
+        let tower = legacy.world.anims[0].character.as_deref().unwrap().tower.as_ref().unwrap();
+        assert_eq!((tower.move_time, tower.time_to_run), (0.0, 5.0));
+        assert!(!legacy.world.tower_cue(&name, Some(&"50".into())));
+    }
+
+    #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn original_dead_city_add_creates_a_live_rat_and_handles_short_form() {
         use kq8_data::characters::{CharacterKeys, MonsterTypes};

@@ -1,5 +1,13 @@
 # Provenance
 
+**Tower skeleton disk continuation (2026-11-16).** The separate
+[tower behavior study](../behaviour/fighting.md#7a-the-tower-skeleton-kqtowerskeleton-traced-2026-10-28-batch-2)
+describes the mutable move timer, saved-only run time, greeting and
+scripted fall. The Rust placed-character slot now retains these values.
+A focused core test restores an in-progress fall and reads a legacy
+slot. This establishes Rust checkpoint continuity only; the original
+Dead City encounter and executable save format have not been verified.
+
 **Henchman projectile refusal (2026-11-16).** The separate
 [Henchman study](../behaviour/henchman.md) Q190 rule 13 establishes
 projectile immunity from collision type `0x4042`, delivery of the

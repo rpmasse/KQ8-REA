@@ -10,13 +10,15 @@ use kq8_data::{characters::TowerKeys, msg::Tuple};
 pub struct Tower {
     pub keys: TowerKeys,
     pub move_time: f64,
+    /// Original save-only time of day, five seconds after world entry.
+    pub time_to_run: f64,
     pub stagger_ended: bool,
     pub flinch_pause: f64,
     greeted: bool,
     fall: Option<Fall>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct Fall {
     origin: Placement,
     landing: Option<[f32; 3]>,
@@ -25,9 +27,51 @@ struct Fall {
     mail: Option<String>,
 }
 
+/// Mutable tower-only state; its immutable rules still come from GOG data.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub(crate) struct SavedTower {
+    move_due: f64,
+    time_to_run_due: f64,
+    stagger_ended: bool,
+    flinch_pause: f64,
+    greeted: bool,
+    fall: Option<Fall>,
+}
+
+impl SavedTower {
+    pub(crate) fn valid(&self) -> bool {
+        let finite = |point: [f32; 3]| point.into_iter().all(f32::is_finite);
+        self.move_due.is_finite() && self.time_to_run_due.is_finite()
+            && self.flinch_pause.is_finite() && self.flinch_pause >= 0.0
+            && self.fall.as_ref().is_none_or(|fall| {
+                finite(fall.origin.position) && fall.origin.rotation.into_iter().all(finite)
+                    && fall.landing.is_none_or(finite)
+                    && fall.mail.as_ref().is_none_or(|name| !name.is_empty() && name.len() <= 256 && !name.chars().any(char::is_control))
+            })
+    }
+}
+
 impl Tower {
     pub fn new(keys: TowerKeys) -> Self {
-        Self { move_time: keys.move_time, keys, stagger_ended: false, flinch_pause: crate::fight::FLINCH_PAUSE, greeted: false, fall: None }
+        Self { move_time: keys.move_time, time_to_run: 5.0, keys, stagger_ended: false, flinch_pause: crate::fight::FLINCH_PAUSE, greeted: false, fall: None }
+    }
+
+    pub(crate) fn take(&self, now: f64) -> SavedTower {
+        SavedTower {
+            move_due: if self.move_time == 0.0 { 0.0 } else { self.move_time - now },
+            time_to_run_due: self.time_to_run - now,
+            stagger_ended: self.stagger_ended, flinch_pause: self.flinch_pause,
+            greeted: self.greeted, fall: self.fall.clone(),
+        }
+    }
+
+    pub(crate) fn restore(&mut self, saved: &SavedTower, now: f64) {
+        self.move_time = if saved.move_due == 0.0 { 0.0 } else { saved.move_due + now };
+        self.time_to_run = saved.time_to_run_due + now;
+        self.stagger_ended = saved.stagger_ended;
+        self.flinch_pause = saved.flinch_pause;
+        self.greeted = saved.greeted;
+        self.fall.clone_from(&saved.fall);
     }
 }
 

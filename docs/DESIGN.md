@@ -3618,6 +3618,18 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Tower controller disk checkpoint (2026-11-16).** The installed Dead
+City `KQTowerSkeleton` has dedicated move, greeting, stagger and fall
+state described in `fighting.md` section 7a. Ordinary placed-character
+saves already keep its shared AI, fight and animation, but omit the
+specialized controller. Add an optional, validated tower record to the
+existing character checkpoint. Store its move deadline relative to
+save time, save-only `timeToRun`, greeting mark, stagger pause and fall
+origin/landing/cue/drop state; rebuild immutable keys from the GOG data.
+Prove an in-progress fall continues after a fresh core restore and that
+older slots without the optional field still load. This is Rust save
+continuation, not original binary-save parity or an earned encounter.
+
 **Dead City tower skeleton encounter (2026-11-16, attempted; check open).** Use the installed
 `Skeltowr` actor at its authored tower position. Check that the
 studied Cue 201 activates its `realAlarm` radius, then exercise an

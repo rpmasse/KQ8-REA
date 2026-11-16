@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 tower skeleton disk checkpoint
+
+The specialized Dead City tower controller now saves its move deadline,
+save-only run time, greeting, stagger pause and in-progress fall alongside
+the placed character. A focused core test restored a fall at a different
+world time, continued its second scream, and loaded an older slot without
+the new field. All 780 active core tests passed; the viewer builds with
+six existing warnings. The original-data tower encounter is still open:
+no earned fight, fall, chain mail drop or reward has been verified.
+No manual gameplay or original-executable comparison ran. M5 remains
+about 65%.
+
 ## 2026-11-16 M5 tower skeleton encounter handoff
 
 The GOG character verifier counted 595 monster-list lines across all

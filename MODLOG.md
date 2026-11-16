@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-16 Preserve tower skeleton fall across a Rust save
+
+Changed: added the specialized tower controller to placed-character disk
+checkpoints, including its move deadline, save-only run time, greeting,
+stagger state and fall sequence. Older slots without this record still
+load. Why: the shared character checkpoint omitted the controller, so
+a save during its scripted fall would restart that state.
+Tested how: `cargo test --locked -p kq8-core --lib
+tower_fall_checkpoint_restores_controller_and_accepts_old_slots --
+--nocapture` passed 1/1. The full core library passed 780 tests with
+26 ignored. `cargo check --locked -p kq8-viewer` passed with six existing
+warnings. No original-data encounter, manual gameplay or running
+original-executable comparison was performed.
+
 ## 2026-11-16 Audit Dead City tower skeleton encounter
 
 Changed: recorded the missing original-data check for the specialized

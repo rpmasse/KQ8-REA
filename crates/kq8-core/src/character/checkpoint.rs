@@ -128,6 +128,8 @@ pub(crate) struct SpawnedCharacter {
     mandragor_root: Option<SavedMandragorRoot>,
     #[serde(default)]
     dragon_head: Option<SavedDragonHead>,
+    #[serde(default)]
+    tower: Option<crate::tower_skeleton::SavedTower>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -201,6 +203,7 @@ impl SpawnedCharacter {
             mover_started: c.mover_started, collision_type: c.collision_type,
             collision_mask: c.collision_mask,
             mandragor_down_roots: c.mandragor_down_roots, mandragor_root, dragon_head,
+            tower: c.tower.as_ref().map(|tower| tower.take(now)),
         }
     }
 
@@ -268,6 +271,9 @@ impl SpawnedCharacter {
                 phase => phase,
             };
         }
+        if let (Some(saved), Some(tower)) = (&self.tower, c.tower.as_mut()) {
+            tower.restore(saved, now);
+        }
     }
 
     pub(crate) fn valid(&self) -> bool {
@@ -286,6 +292,7 @@ impl SpawnedCharacter {
                     super::DragonHeadPhase::Waiting(due) => due.is_finite(),
                     _ => true,
                 })
+            && self.tower.as_ref().is_none_or(crate::tower_skeleton::SavedTower::valid)
     }
 }
 
