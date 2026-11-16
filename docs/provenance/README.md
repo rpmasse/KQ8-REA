@@ -1,5 +1,15 @@
 # Provenance
 
+**Fighting-rule scenario audit (2026-11-17).**
+[Fighting rules 1–41](../behaviour/fighting.md) are mapped to existing
+Rust scenarios and remaining direct gaps in the
+[M5 fighting coverage table](../m5-fighting-rule-coverage.md).
+The Henchman save/retreat miss and core back-key/90-degree limits were
+already present. Existing core character scenarios gained direct
+assertions for a dying character's later health loss (rule 21) and the
+ordinary ouch interval (rule 24). The combined core test passed 786,
+with 26 ignored. No original executable was run for comparison.
+
 **Mandragor death-phase disk restoration (2026-11-17).**
 [Mandragor behavior](../behaviour/mandragor.md) and Q209 record the
 bounded original-engine follow-up. The codec keeps configured collider

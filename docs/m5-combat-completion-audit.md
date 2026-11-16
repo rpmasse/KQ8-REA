@@ -9,6 +9,12 @@ recreation is feature-complete.
 
 The [ranged rule coverage table](m5-ranged-rule-coverage.md) links
 rules 13–31 to current assertions and names the remaining direct gaps.
+The [fighting rule coverage table](m5-fighting-rule-coverage.md) now
+maps rules 1–41 to existing scenarios and direct gaps. Its first audit
+found the Henchman save/retreat miss and the back-key/90-degree hit-test
+limits already covered. Two existing core character scenarios now
+assert later health loss during death and the ordinary ouch interval;
+the combined core run passed 786 tests (26 ignored).
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

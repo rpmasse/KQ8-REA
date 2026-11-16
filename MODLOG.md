@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Map fighting rules and tighten two existing assertions (M5)
+
+Added `docs/m5-fighting-rule-coverage.md` to connect fighting rules
+1–41 with existing automated scenarios and explicit remaining gaps.
+The audit found two supposed gaps already covered: the Henchman
+save/retreat miss and core back-key/90-degree hit-test limits. In the
+existing core character fixtures, asserted health loss from a later
+hit during an ordinary death movement and a minimum 15-update gap
+between ordinary ouch sounds. No production code, manual gameplay or
+GOG file changed. The combined core run passed 786 tests, with 26
+ignored and none failed. Reproduce with:
+
+`cargo test --locked -p kq8-core --lib`
+
 ## 2026-11-17 Bound Mandragor death-phase disk restoration (M5, Q209)
 
 The separate original-engine study updated `mandragor.md` and Q209.

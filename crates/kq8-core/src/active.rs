@@ -10406,6 +10406,13 @@ endif
         }
         let log = a.world.fight_log.join("\n");
         assert!(flinches > 0 && ouches > 0, "{log}");
+        let ouch_updates: Vec<u64> = a.world.fight_log.iter()
+            .filter(|line| line.contains("ouch sound sword.aud"))
+            .map(|line| line["update ".len()..].split(':').next().unwrap().parse().unwrap())
+            .collect();
+        for pair in ouch_updates.windows(2) {
+            assert!(pair[1] - pair[0] >= 15, "ordinary ouch sounds are at most once a second: {ouch_updates:?}");
+        }
         assert!(log.contains("chase timer 5 s, hit count 1 (rule 22)"), "{log}");
         assert!(log.contains("the alarm with run (rule 26): gob (hit count 2, chase timer 10 s"), "{log}");
         assert!(log.contains("its last flinch ended") || log.contains("can't be cut short"), "a flinch refused at some point: {log}");
@@ -10497,6 +10504,8 @@ endif
         assert_eq!(a.world.anims[0].character.as_ref().unwrap().state, crate::character::State::Die);
         a.world.hit_character(0, "Connor", 10, crate::fight::HitKind::Normal);
         assert!(a.world.fight_log.join("\n").contains("it is dying: nothing else (rule 21)"));
+        assert!(a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0] < 0,
+            "a later hit still removes health during the death movement (rule 21)");
         assert_eq!(a.test_command("exist gob", "t").as_deref(), Some("0"), "dying: still there");
         // Experience only when the death movement ends (1 s).
         assert_eq!(a.world.connor_stats.unwrap().stats.0[4], 0);

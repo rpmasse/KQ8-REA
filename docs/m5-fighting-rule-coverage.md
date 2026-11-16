@@ -1,0 +1,34 @@
+# M5 fighting rule coverage
+
+2026-11-17. This maps the numbered rules in
+[fighting.md](behaviour/fighting.md) to automated Rust scenarios. A named
+scenario is evidence only for the branch it asserts. It does not prove
+parity with the running original executable. The existing pass results
+are in `STATUS.md`; this inventory itself adds no test run.
+
+| Rules | Existing automated evidence | Direct gap to close before the M5 gate |
+| --- | --- | --- |
+| 1–5 stats, type, level and installed fighters | `live_combat_difficulty`, `available_monster_add`, and core `the_combat_level_scales_health_and_damage_cut` cover loading and scaling. | The Daventry data examples are inputs, not each a separate combat assertion; confirm the distinct equipment effects in the weapon and enemy matrix. |
+| 6–10 attack due, reach, movement, finish | Core `a_character_attacks_at_once_then_every_swing_plus_its_delay`, `the_first_attack_is_due_at_once_and_attack_ends_count`, and `the_hit_test_needs_reach_and_the_front_half`; `goblin_live_combat` and `henchman_combat` exercise original-data attacks. The Henchman route saves an attack before Do, retreats, then observes its miss after reload. | The original-data Henchman route covers one standing attack and retreat; other distinct movement starts stay in the final enemy matrix. |
+| 11 interrupted attack deadline | Core `a_standing_hit_repairs_the_attack_deadline_only_if_it_reacts` checks the corrected Wait branch. | Moving hurt interruption has not been traced in the original note. Rule 11b's swallowed swing is explicitly listed under “Do not reproduce.” |
+| 12 authored movement timings | `goblin_live_combat` and `henchman_combat` use installed attack lists; core attack tests check the Do timing. | The data table is not a separate claim that every listed enemy movement has a direct timing assertion. |
+| 13 reach, back key and facing at Do | Core `the_hit_test_needs_reach_and_the_front_half` asserts the back-key 1.25× extension and exactly 90° miss; `a_swing_misses_when_connor_is_behind_it` checks live AI, and `henchman_combat` checks ordinary reach after release of the back key. `connor_s_do_hits_his_target_misses_or_hits_dead_air` checks Connor's branch. | No separate original-data exactly 90° placement; core covers that boundary. |
+| 14 damage and Flame Sword kind | `flame_sword_death`, `dragon_flame_sword_combat`, and `hand_weapon_matrix` exercise fire and ordinary melee. | None identified for the installed Flame Sword branch. |
+| 15 unboxed returning character | Core `unboxed_character_zaps_connor_while_returning_home` checks the direct Normal hit without an attack movement. | No installed original-data encounter known for this rare branch. |
+| 16–19 damage roll, protection, zero and below-zero | Core combat-factor and death checks, `shield_live_combat`, `strength_live_melee`, and `live_combat_difficulty`. | Random boundaries are core assertions; original-runtime random parity belongs to M7. |
+| 20–22 hit ordering, dying guard and target reaction | Core `a_hit_character_flinches_or_says_ouch_and_runs_after_connor`, `a_standing_hit_repairs_the_attack_deadline_only_if_it_reacts`, `a_character_dies_then_gives_experience_a_corpse_and_goes` (later dying hit removes health); `death_checkpoint` covers saved character death. | Hit ordering is core evidence; distinct death controllers still need their own scenario links. |
+| 23 flinch selection and pause | Core `a_second_flinch_waits_past_the_full_pause_for_ordinary_and_tower_fighters`, `a_hit_character_flinches_or_says_ouch_and_runs_after_connor`; `tower_live_fall` covers special reactback. | Distinguish ordinary flinch and special-react edge cases in the final enemy matrix. |
+| 24 ouch sound | Core `a_hit_character_flinches_or_says_ouch_and_runs_after_connor` asserts ordinary ouch events are at least 15 updates apart; `goblin_live_combat` dispatches installed sound. | No distinct missing ordinary sound branch identified. |
+| 25 unseen surprise line | Core `unseen_surviving_hits_share_a_strict_speech_deadline` and `surprise_sequence_rounds_across_the_authored_span`; `surprise_line` uses installed Dead City data. | Speech overlap remains an original-study limit, as the rule states. |
+| 26–28 alarm, run and no-target hunt | Core `a_hit_character_flinches_or_says_ouch_and_runs_after_connor` and `hit_unseen_with_no_team_it_runs_with_no_target`; `built_in_alarm_cry`, `swamp_witch_alarm`, and `goblin_live_combat`. | The note leaves tied-to-object semantics open; no Daventry actor uses them. |
+| 29 Connor receives a hit | `live_combat_difficulty`, `shield_live_combat`, `terrain_hazards`, `connor_death_checkpoint`, and core `scripted_death_reincarnates_or_checks_connors_state_at_the_deadline`. | Exact original save continuity and special-state eligibility remain separate from these Rust checks. |
+| 30 ordinary character death entry | `death_checkpoint`, `elemental_ranged_death`, `flame_sword_death`, and core `fatal_monster_stats_event_uses_last_hit_and_waits_for_death_completion`. | Confirm each kind's collision-off and active-list removal assertions in the final death matrix. |
+| 31–32 drops, held part, experience, corpse and script | `sprgnbow_death_drops`, `corpse_skin_checkpoint`, `tower_live_fall`, `skeleton_king_death`, and core `a_dying_characters_weapon_is_laid_where_the_death_leaves_it`. | Check the blocked kept-weapon fallback and each elemental corpse branch against direct assertions; earned pickup is a campaign question. |
+| 33 first-kill tip | `combat_tutorial_delivery` verifies the original-data help delivery. | None identified for the tested eligible kill; excluded chicken and bat type boundaries need a direct assertion if claimed complete. |
+| 34–38 enemy ranged mode, shot and retreat | `live_crossbow_combat`, `monster_friendly_fire`, `swamp_slime_retreat`, `sprgnbow_death_drops`, and core `ranged_retreat_precedes_a_due_shot_on_its_own_update_phase`. | Exact moving-target lead remains open in [the ranged matrix](m5-ranged-rule-coverage.md); special retreat save phase is not established. |
+| 39–41 Connor controls, swing and hit | `hand_weapon_matrix`, `first_person_weapon_matrix`, `strength_live_melee`, and core `connor_s_do_hits_his_target_misses_or_hits_dead_air`. | Audit a direct original-data plain/Shift swing selection and the back-key reach edge before claiming every control branch. |
+
+The next work should add assertions to existing grouped checks where a
+listed gap is real. A source-to-scenario link is complete only when the
+assertion observes the effect or lack of effect, not merely when a
+production function contains the branch.

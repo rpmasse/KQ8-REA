@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 fighting-rule coverage and grouped core check
+
+The new `docs/m5-fighting-rule-coverage.md` maps fighting rules 1–41 to
+existing Rust scenarios and records the direct gaps. The audit found
+that the Henchman save/retreat test already observes a post-Do miss and
+the core hit test already checks the back-key reach and 90-degree
+boundary. The existing character tests now also assert that a hit
+during the death movement removes more health and that ordinary ouch
+sounds are at least 15 updates apart. One combined core run passed:
+786 passed, 26 ignored, 0 failed. This is Rust evidence, not an
+original-executable comparison. M5 remains incomplete.
+
 ## 2026-11-17 M5 Q209 root death save boundary
 
 The separate original-engine follow-up confirmed that ordinary save
