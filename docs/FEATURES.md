@@ -847,10 +847,13 @@ miss, roll, flinch, death, drop and shot is in
   checks Alt put-away for all 22 items, including the Hammer.
 - **Combat level:** `--combat-level 1|2|3` (0.66 / 1.0 / 1.5 × the
   creatures' health and damage; stand-in for the menu).
+- **Combat help:** one unattended original-data Daventry fight confirms
+  the unarmed first-hit, low-health and first-kill help cases 140, 130,
+  137 and 149 open and are acknowledged in order.
 - Remaining combat work includes nonattack weapon movements outside
-  the tested cases, the original same-update shot/retreat priority and
-  the other combat tutorial triggers. The Swamp slime's ranged retreat
-  passes an isolated original-data Windows route.
+  the tested cases and original-executable comparison for same-update
+  shot/retreat priority. The Swamp slime's ranged retreat passes an
+  isolated original-data Windows route.
 
 ## The on-screen interface (milestone M4, step 4c)
 

@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-16 Verify combat help delivery in one Daventry fight
+
+Added one unattended original-data Windows route with `goblin22`. A
+scripted health reduction and ordinary unarmed hit produced first-hit
+case 140 and low-health case 130. After a bounded god-mode switch,
+ordinary Small Crossbow shots killed the goblin once and produced
+first-kill cases 137 and 149. All four original 500.MSG help screens
+opened and were acknowledged in order. The initial run exposed a test
+assertion looking for the god message in `viewer.log`; it is recorded in
+`fight.log`. The corrected release check passed 1/1 in 36.39 seconds:
+`cargo test --locked --release -p kq8-viewer --test combat_tutorial_delivery
+-- --ignored --nocapture`. This verifies Rust's combined delivery path,
+not exact original-executable timing. No manual gameplay or GOG-file writes.
+
 ## 2026-11-16 Preserve the Gnome Dragon victory across a fresh process
 
 Extended the focused Dragon regression to save after its Die movement,

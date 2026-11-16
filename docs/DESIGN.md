@@ -3744,6 +3744,26 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Daventry combat help delivery (2026-11-16).** Use one unattended
+original-data fight with the installed `goblin22`. Start with empty hands,
+lower Connor's health through the existing scripted health command, and
+let an ordinary goblin hit trigger first-hit case 140 and low-health case
+130. Acknowledge each original 500.MSG popup automatically. After that
+hit, bound the encounter with god mode, ready the installed Small
+Crossbow and defeat the same goblin through ordinary shots. Check the
+first-kill cases 137 and 149, their order, one kill and the GOG files'
+unchanged bytes. This checks the combined delivery path, not exact
+original-executable presentation or an earned campaign encounter.
+
+The combined Windows route passed 1/1 in 36.39 seconds. Connor took a
+normal hit at health 5→4; cases 140 and 130 opened and were acknowledged
+at updates 54 and 105. After the god switch, four ordinary crossbow shots
+defeated `goblin22` once; cases 137 and 149 opened and were acknowledged
+at updates 361 and 406. The first diagnostic had all four events but its
+assertion looked for the god message in `viewer.log`; that message is in
+`fight.log`. The corrected check passes. This confirms delivery in this
+controlled Rust route, not exact timing in the original executable.
+
 **Gnome Dragon encounter (2026-11-16).** The installed `dragworm.kq`
 starts `Dragon` with collision type `0x4002`; the original fuse-box Cue
 adds bit `0x40` when lights are on. Begin from Gnome's authored Dragon

@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-16 M5 combat help delivery
+
+One unattended Daventry fight now verifies first-hit, low-health and
+first-kill help delivery together. Original 500.MSG cases 140, 130,
+137 and 149 opened and were acknowledged in order after an unarmed
+goblin hit and the goblin's ordinary crossbow death. The combined
+release check passed 1/1 in 36.39 seconds. This is a controlled Rust
+route, not an original-executable timing comparison. M5 remains about
+65%; no manual gameplay testing was performed.
+
 ## 2026-11-16 M5 Gnome Dragon save continuation
 
 The unattended Dragon route now saves its completed victory and reloads
