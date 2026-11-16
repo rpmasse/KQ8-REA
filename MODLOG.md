@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Audit Dead City tower skeleton encounter
+
+Changed: recorded the missing original-data check for the specialized
+Dead City tower skeleton and the result of two unattended probes.
+Gameplay code was unchanged. Why: the existing dedicated controller
+has no integrated check of its scripted fall, chain mail and reward.
+Tested how: ran `cargo run --locked -p kq8-cli -- character-verify
+--game <GOG folder>` and two windowed viewer probes using the
+installed Dead City data, `--world DeadCity`, `--god`, and
+`--command 'sendEvent 0 Skeltowr KQCueEvent 201,101'` in the second.
+The verifier found one `KQTowerSkeleton` character file. Cue 201 set
+the actor's real alarm; a near Connor placement activated it from
+Birth, but it had not risen at update 176. Connor's collision balls
+overlapped its cylinder. The first probe's initial position was
+replaced by a scripted move. No fall or reward was verified. GOG files
+were read-only; no manual gameplay test was run.
+
 ## 2026-11-16 Record bounded Swamp slime live-fight attempt
 
 Changed: documented a local original-data Slime fight attempt; removed

@@ -3618,6 +3618,25 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Dead City tower skeleton encounter (2026-11-16, attempted; check open).** Use the installed
+`Skeltowr` actor at its authored tower position. Check that the
+studied Cue 201 activates its `realAlarm` radius, then exercise an
+ordinary Connor hit and the specialized stagger/fall path. Require
+the authored fall movements, control and camera handoff, chain mail
+drop, one experience award and final removal. Keep the original GOG
+files read-only; a controlled start is not an earned campaign route.
+The separate `fighting.md` section 7a supplies these rules. A
+successful original-data test is needed before claiming this family
+is checked.
+Two unattended read-only probes reached the authored actor. Cue 201
+enabled its real alarm radius, and it acquired Connor from Birth after
+Connor was placed near the tower. The first `--at` position was later
+replaced by a Dead City scripted movement. The second placed Connor
+inside the skeleton's logged collision cylinder; the actor stayed in
+Birth through update 176. No fall, chain-mail drop or reward was
+observed. Stop placement variations here and establish a route that
+keeps Connor on the platform while clear of the birth collider.
+
 **Swamp slime live fight (2026-11-16, attempted; check withheld).**
 The installed `slime1` at its authored Swamp position fired an ordinary
 bolt and reduced Connor's health under Easy combat. A separate route

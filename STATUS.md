@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-16 M5 tower skeleton encounter handoff
+
+The GOG character verifier counted 595 monster-list lines across all
+worlds and one specialized `KQTowerSkeleton` file in Dead City. No
+original-data tower combat test exists yet. Two unattended viewer
+probes reached `Skeltowr` at its authored tower position. A studied
+Cue 201 enabled `realAlarm` 5,000; in the second probe the actor
+noticed Connor and became active from Birth, but remained in Birth
+through update 176. Connor's balls were logged inside its collision
+cylinder. The first probe's initial `--at` position was replaced by a
+scripted Dead City movement, leaving Connor about 105,000 units away.
+No tower fight, fall sequence, chain mail drop or reward was verified.
+The next route must keep Connor on the platform outside the birth
+collider and use the original actor and scripts. GOG files were
+read-only; no manual gameplay or original-executable comparison ran.
+M5 remains about 65%.
+
 ## 2026-11-16 M5 Swamp slime live-fight timing handoff
 
 A local original-data probe with ordinary AI and damage showed
