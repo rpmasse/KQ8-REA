@@ -8,7 +8,7 @@ changes, not on every commit.
 Q212 establishes that an ordinary Fire or Ice bolt queues a targeted
 attack at current simulation time before moving to its contact point,
 calling its own `Die` hook, and requesting deferred deletion. Rust
-currently delivers damage inside the bolt step. Route contact hits
+previously delivered damage inside the bolt step. Route contact hits
 through the existing `KQAttackEvent` queue, preserving target, shooter,
 kind, damage, and zero damage for projectile immunity. Keep the
 projectile's `ProjImmune` and `Die` callbacks, contact location, and
@@ -18,6 +18,17 @@ the original-data Fire and Ice impact checks should still pass. The
 original event-service position relative to deferred removal and the
 first dying particle update remains open; do not claim exact subframe
 parity from the Rust service schedule.
+
+Checked: conventional bolt contacts now enqueue the existing attack
+event before moving the bolt to the contact point. The core check
+observes unchanged health after flight and one hit after event service;
+the full core suite passes 776 active tests. The GOG-data Fire and Ice
+impact route passed 1/1 in 72.98 seconds after the queue change.
+Projectile immunity still queues a zero-damage hit and sends the bolt's
+own `ProjImmune` callback at contact; the victim callback waits until
+that hit is serviced. A later focused immune-callback correction passed
+the core suite again. Exact original within-update service and emitter
+timing remain open.
 
 ## M5 Dragon Flame Sword combat route (2026-11-16)
 

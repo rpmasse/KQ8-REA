@@ -1043,13 +1043,21 @@ impl crate::active::WorldState {
             self.note(format!("{source}: invalid KQAttackEvent damage {strength}"));
             return;
         };
+        let immune_projectile = damage == 0 && matches!(kind, HitKind::Projectile | HitKind::Fire | HitKind::Ice);
         if target.eq_ignore_ascii_case(crate::talk::CONNOR) {
             let forced = crate::script::number_value(flag) as i64 != 0;
             self.hit_connor_with_flag(attacker, damage, kind, forced);
         } else if let Some(i) = self.character_index(target) {
+            let immune = immune_projectile && self.anims[i].character.as_deref()
+                .is_some_and(|c| c.collision_type & IMMUNE_TO_PROJECTILES != 0);
             self.hit_character(i, attacker, damage, kind);
+            if immune { self.immune_calls.push(target.to_string()); }
         } else {
+            let immune = immune_projectile && self.collision_type_of(target)
+                .is_some_and(|t| t & IMMUNE_TO_PROJECTILES != 0);
+            let door = self.door_index(target).is_some();
             let outcome = self.object_takes(target, damage, kind);
+            if immune && !door { self.immune_calls.push(target.to_string()); }
             self.fight_note(target, format!("KQAttackEvent from {attacker}: {outcome}"));
         }
     }
@@ -2286,8 +2294,8 @@ impl crate::active::WorldState {
                 continue;
             };
             b.travelled += d;
-            b.position = p;
             if b.arc.as_mut().is_some_and(|arc| arc.steep_contact(p, &normals)) {
+                b.position = p;
                 self.fight_note(&b.shooter, format!("{}: steep contact {p:?}, normals {normals:?}; horizontal motion stops, initialized -8000/s fall safeguard (Q202)", b.name));
                 if let Some((floor, _)) = ground.ground(p[0], p[1]).filter(|(h, _)| p[2] <= *h) {
                     b.position[2] = floor;
@@ -2297,6 +2305,7 @@ impl crate::active::WorldState {
             }
             let at = format!("{} update {}: touches {{}} at ({:.0}, {:.0}, {:.0}), {:.0} travelled; removed there (rule 30)", b.name, b.updates, p[0], p[1], p[2], b.travelled);
             if let Some(keys) = b.drain.take() {
+                b.position = p;
                 let target = match what {
                     Touched::Connor => Some("Connor".to_string()),
                     Touched::Character(j) => Some(self.anims[j].player.name.clone()),
@@ -2308,6 +2317,7 @@ impl crate::active::WorldState {
                 continue;
             }
             self.bolt_hits(&b, what, &at);
+            b.position = p;
             self.projectile_event(&b, "Die");
         }
         self.bolts.extend(kept);
@@ -2326,44 +2336,52 @@ impl crate::active::WorldState {
         }
     }
 
-    /// Rule 30: what a bolt's touch does. `at`: the log line, with `{}`
-    /// for what it touched.
+    /// Rule 30, Q212: queue the target's attack event before the bolt moves
+    /// to its contact point and runs its own Die callback. `at` is the log
+    /// line, with `{}` for what it touched.
     fn bolt_hits(&mut self, b: &Bolt, what: Touched, at: &str) {
         let shooter = b.shooter.clone();
         match what {
             Touched::Building(n) => self.fight_note(&shooter, at.replace("{}", &format!("building {n}")) + ": no damage"),
             Touched::Connor => {
                 self.fight_note(&shooter, at.replace("{}", "Connor") + &format!(": a hit of {}, {} (fighting.md rule 29)", b.damage, b.kind.name()));
-                self.hit_connor(&shooter, b.damage, b.kind);
+                self.queue_bolt_hit(b, "Connor", b.damage);
             }
             Touched::Character(j) => {
                 let who = self.anims[j].player.name.clone();
                 let t = self.anims[j].character.as_deref().map_or(0, |c| c.collision_type);
                 if t & IMMUNE_TO_PROJECTILES != 0 {
                     self.fight_note(&shooter, at.replace("{}", &who) + &format!(": its type 0x{t:X} has the immune bit 0x4000: a hit of 0, its script gets ProjImmune"));
-                    self.hit_character(j, &shooter, 0, b.kind);
-                    self.immune_calls.push(who);
+                    self.queue_bolt_hit(b, &who, 0);
                     self.projectile_event(b, "ProjImmune");
                 } else {
                     self.fight_note(&shooter, at.replace("{}", &who) + &format!(": a hit of {}, {} (fighting.md rules 16-33)", b.damage, b.kind.name()));
-                    self.hit_character(j, &shooter, b.damage, b.kind);
+                    self.queue_bolt_hit(b, &who, b.damage);
                 }
             }
             Touched::Object(n, t) => {
                 if t & IMMUNE_TO_PROJECTILES != 0 {
-                    self.swamp_attack(&n, 0);
                     self.fight_note(&shooter, at.replace("{}", &format!("object {n}")) + &format!(": its type 0x{t:X} has the immune bit 0x4000: a hit of 0, its script gets ProjImmune"));
-                    self.immune_calls.push(n);
+                    self.queue_bolt_hit(b, &n, 0);
                     self.projectile_event(b, "ProjImmune");
                 } else if self.object_at(&n).is_some() {
                     self.fight_note(&shooter, at.replace("{}", &format!("object {n}")) + &format!(": a hit of {}, {}", b.damage, b.kind.name()));
-                    let line = self.object_takes(&n, b.damage, b.kind);
-                    self.fight_note(&shooter, format!("{}: {line}", b.name));
+                    self.queue_bolt_hit(b, &n, b.damage);
                 } else {
                     self.fight_note(&shooter, at.replace("{}", &format!("object {n}")) + ": no script: nothing (how objects take damage: Q139 e)");
                 }
             }
         }
+    }
+
+    fn queue_bolt_hit(&mut self, b: &Bolt, target: &str, damage: i64) {
+        let kind = match b.kind {
+            HitKind::Normal => "0", HitKind::Projectile => "1",
+            HitKind::Fire => "2", HitKind::Ice => "3",
+        };
+        self.queue.send(self.now(), 0.0, target, "KQAttackEvent",
+            &[b.shooter.clone(), kind.into(), damage.to_string(), "0".into()],
+            &format!("{} contact", b.name));
     }
 }
 

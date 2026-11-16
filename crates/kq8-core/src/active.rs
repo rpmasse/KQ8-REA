@@ -6726,6 +6726,14 @@ impl Active {
         std::mem::take(&mut self.world.item_log)
     }
 
+    fn deliver_immune_calls(&mut self) {
+        for name in std::mem::take(&mut self.world.immune_calls) {
+            if !self.call_named(&name, &["ProjImmune"]) {
+                self.world.fight_note(&name, "no script: ProjImmune not called (ranged-weapons.md rule 30)");
+            }
+        }
+    }
+
     /// The events due by `now`, in time order, until none is left: what
     /// they send with delay 0 is handled in the same pass (`anim-scripts.md`
     /// rule 8, Q119).
@@ -7012,11 +7020,7 @@ impl Active {
                 self.world.deleted.insert(name.to_ascii_lowercase());
             }
         }
-        for name in std::mem::take(&mut self.world.immune_calls) {
-            if !self.call_named(&name, &["ProjImmune"]) {
-                self.world.fight_note(&name, "no script: ProjImmune not called (ranged-weapons.md rule 30)");
-            }
-        }
+        self.deliver_immune_calls();
         // rockHit.cs asks for the projectile's final placement before
         // dropping one inventory rock there. Keep it resolvable only
         // during its callback, even when several land on the same tick.
@@ -7312,6 +7316,7 @@ impl Active {
         }
         if e.kind == "KQAttackEvent" {
             self.world.scripted_attack(&e.target, &e.data, &e.from);
+            self.deliver_immune_calls();
             return;
         }
         // objects.md "Loops that move the whole object" rule 3 (batch 2,
@@ -11859,6 +11864,7 @@ deleteObject waterfall2
         for _ in 0..10 {
             fly(&mut a);
         }
+        a.handle_due(a.world.now());
         assert!(a.world.bolts.is_empty());
         let log = a.world.fight_log.join("\n");
         // Gob's cylinder: radius 800 (+235), so the ball touches it at y −1,035.
@@ -11947,6 +11953,7 @@ deleteObject waterfall2
         for _ in 0..10 {
             fly(&mut a);
         }
+        a.handle_due(a.world.now());
         assert!(a.world.fight_log.join("\n").contains("gob: hit by Connor, Projectile"));
         // No part in the frame: his shoot offset; NoRanged: no bolt.
         a.world.connor_shoot([0.0, -5000.0, 100.0], r, None, [0.0, 0.0, 1167.0], "attack");
@@ -11969,8 +11976,31 @@ deleteObject waterfall2
         }
         let log = a.world.fight_log.join("\n");
         assert!(log.contains("has the immune bit 0x4000: a hit of 0, its script gets ProjImmune"), "{log}");
+        assert!(a.world.immune_calls.is_empty(), "victim callback waits for the queued hit");
+        a.handle_due(a.world.now());
         assert_eq!(a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0], 15);
-        assert_eq!(a.world.immune_calls, vec!["gob".to_string()]);
+        assert!(a.world.immune_calls.is_empty());
+        assert!(a.world.fight_log.join("\n").contains("gob: no script: ProjImmune not called"));
+    }
+
+    #[test]
+    fn ordinary_bolt_queues_contact_damage_until_event_service() {
+        let mut a = fighter();
+        a.world.anims[0].character.as_mut().unwrap().collision_type = 0x42;
+        a.world.characters_solid.insert("gob".into());
+        a.world.connor_at = None;
+        a.world.launch_bolt("shooter", "prscbolt.kq", &scbolt(),
+            [0.0, -3000.0, 1000.0], [0.0, 0.0, 1000.0], 5, "test");
+        for _ in 0..6 {
+            a.world.bolts_step(&FlatGround, &[], &[]);
+        }
+        assert_eq!(a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0], 15,
+            "contact must enqueue, not deliver damage during the bolt step");
+        assert_eq!(a.world.queue.len(), 1, "one zero-delay attack event is due");
+        a.handle_due(a.world.now());
+        assert!(a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0] < 15);
+        assert!(a.world.fight_log.join("\n").contains("gob: hit by shooter, Projectile:"));
+        assert!(a.world.queue.is_empty(), "the hit must be delivered exactly once");
     }
 
     #[test]

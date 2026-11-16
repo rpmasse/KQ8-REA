@@ -1,5 +1,31 @@
 # MODLOG
 
+## 2026-11-16 Queue projectile impact damage through the event service
+
+Changed: conventional bolt contacts now enqueue a zero-delay
+`KQAttackEvent` before moving to the swept contact point and running
+the bolt's `Die` hook. The event carries shooter, damage, weapon kind
+and an immunity-adjusted zero when needed. The bolt's own
+`ProjImmune` hook stays at contact; the victim callback follows
+delivery of the queued zero-damage hit. Why: Q212 traced queue
+insertion in the original, whereas Rust previously applied damage
+inside its projectile step. Tested how: `cargo test --locked -p
+kq8-core`; set `$env:KQ8_GAME_DIR = (Resolve-Path
+"..\..\..\King's Quest 8 GOG").Path` from this worktree, then run
+`cargo test --locked -p kq8-viewer --test elemental_ranged_death
+flame_bow_and_ice_crossbow_use_their_original_projectiles_and_deaths
+-- --ignored --nocapture`; `git diff --check`. Result: 776 active
+core tests passed after the final immune-callback change; the GOG-data
+Fire and Ice route passed 1/1 in 72.98 seconds after the queue change.
+`cargo check --locked -p kq8-viewer --bin kq8-viewer` passed after the
+callback change. The separate Weeper contact branch kept its contact
+position and its focused core check passed after that preservation.
+The first core run failed two older bolt checks because they asserted
+damage before servicing the queued event; both now service it and the
+full suite passes. The original order of event delivery against
+deferred removal and the first particle-tail update remains open.
+No manual gameplay test was run.
+
 ## 2026-11-16 Study Fire and Ice bolt contact timing
 
 Traced the original projectile contact path and shared event insertion

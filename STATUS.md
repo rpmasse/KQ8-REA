@@ -5,11 +5,16 @@
 The Q212 original-engine study establishes that Fire and Ice bolt
 contact queues a targeted hit at current simulation time before the
 bolt moves to the contact point, runs its `Die` hook and requests
-deferred deletion. Rust currently applies the hit inside its bolt
-step, so this is a known timing difference to address. The original
-service order against removal and the first particle-tail update is
-still unestablished. No code or manual gameplay changed in this study;
-M5 remains ~65%.
+deferred deletion. Rust now queues conventional projectile contact
+through its existing attack-event service. The focused core test
+confirms damage waits for service, and all 776 active core tests pass.
+The GOG-data Fire and Ice impact route passed 1/1 in 72.98 seconds
+after the queue change. Immune victims now receive their callback
+after delivery of the zero-damage event; the final core rerun passes.
+The viewer build and focused Weeper contact check also pass.
+The original service order against removal and the first particle-tail
+update is still unestablished. No manual gameplay test was run; M5
+remains ~65%.
 
 ## 2026-11-16 M5 isolated Dragon Flame Sword fight
 
