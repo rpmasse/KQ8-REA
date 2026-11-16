@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 combined hand-weapon combat check
+
+The original-data hand-weapon test now runs all 12 weapons in one
+continuous Dead City encounter instead of 12 game launches. Each
+weapon becomes ready, lands one hit with its installed damage and
+Normal or Fire kind, and reduces the same skeleton's health. The
+release check passed 1/1 in 56.20 seconds without god mode. Its first
+run had all correct hits but looked for ready changes in the wrong
+log; the corrected inventory-log check passed. Enemy AI is disabled
+for this isolated weapon matrix; separate live fights cover it. M5
+remains about 65%; no manual gameplay or GOG-file write occurred.
+
 ## 2026-11-16 M5 combat help with ordinary damage and healing
 
 The combined Daventry combat-help route now uses an original Mushroom

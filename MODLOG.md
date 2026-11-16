@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-16 Combine all hand-weapon hits into one fight
+
+Replaced 12 separate Dead City test launches with one continuous
+encounter against an installed skeleton given enough health to survive
+the matrix. The test grants and readies each of the 12 original hand
+weapons in turn, checks one ordinary hit in its scheduled interval,
+the installed damage and hit kind, and the target's continuing health
+loss. Removed the unused god switch. The combined release check passed
+1/1 in 56.20 seconds:
+`cargo test --locked --release -p kq8-viewer --test hand_weapon_matrix -- --ignored --nocapture`.
+The first run produced all 12 correct hits but failed an assertion
+that read later ready changes from the fight log rather than the
+inventory log. No game logic, manual gameplay or GOG files changed.
+
 ## 2026-11-16 Use original healing in the combat-help fight
 
 Replaced the test-only god switch in the combined Daventry help route

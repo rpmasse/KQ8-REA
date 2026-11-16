@@ -3802,6 +3802,27 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Combined hand-weapon fight matrix (2026-11-16).** The existing
+original-data check launches Dead City once per hand weapon, so it
+never exercises changing weapons during an encounter. Keep one
+installed `skeleton1` alive with a scripted health increase, disable
+its AI for this isolated weapon check, and run all 12 installed hand
+weapons sequentially in one viewer process. After each inventory grant,
+let the normal ready animation settle, make one ordinary sword/axe/etc.
+attack, and require the weapon's own damage number and Normal or Fire
+kind on the same target. Check exactly one hit per scheduled weapon,
+the target's continuing health loss, no god mode and unchanged GOG
+Options.cs. This tests mid-fight weapon changes and reduces repeated
+world loads; normal enemy AI remains covered by separate live fights.
+
+Checked: the one-process release route passed 1/1 in 56.20 seconds.
+All 12 weapons became ready in sequence and landed exactly one hit with
+their installed damage and Normal or Fire kind. The skeleton's health
+fell on every hit and stayed above zero. The first run's 12 hits were
+correct, but its assertion looked for later ready changes in the fight
+log; those changes are recorded in the inventory log. No game logic or
+original game file changed.
+
 **Weapon-bank run and back selection (2026-11-16).** The installed
 `Connor.kq` maps 22 real weapons to separate animation banks, and every
 mapped bank defines `walk`, `run` and `back`. Extend the existing
