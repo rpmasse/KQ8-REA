@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-16 M5 Skeleton King victory survives a fresh process
+
+An unattended original-data test now defeats the Skeleton King with
+Temple Armour and normal AI/damage, saves after the drops settle, and
+loads the victory in a new viewer process. The King stays gone, his
+five drops remain in the world, Connor's health and equipment return,
+and a second saved slot retains the Dead City bridge flag. The test
+passed 1/1 in 105.42 seconds. Its earlier fixture counted unrelated
+crystals, stopped the restore during loading, and tried a console echo
+that did not expand the variable; those test errors were corrected.
+This verifies a controlled Rust checkpoint, not an earned route to the
+boss or original binary-save compatibility. No manual gameplay test
+was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 Skeleton King drops and progression flag
 
 The unattended Temple Armour boss fight now checks the King's sword,

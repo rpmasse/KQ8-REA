@@ -3,6 +3,32 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 live Skeleton King victory across a disk save (2026-11-16)
+
+Use the same original-data Temple Armour fight that already exercises
+real AI, damage, Fire death and the King's drops. After its death script
+and thrown items settle, save through the Rust menu and inspect the
+slot for the King's removal, the bridge progression variable and the
+five dropped items. Start a fresh viewer process from that slot and
+require the King to remain absent, the drops and variable to remain,
+and Connor to keep his surviving health, equipment and weapon mode.
+Keep enemy AI and damage on during the fight; use no console kill, god
+mode, game-file write or manual play. This is a controlled checkpoint
+of the isolated victory, not an earned route to the boss or original
+binary save compatibility.
+
+Checked: the two-process GOG-data test passed 1/1 in 105.42 seconds.
+The first slot has the King in the removed-object list, the bridge flag,
+five settled drops near the fight and Connor alive with the Flame Sword
+ready. The fresh process excluded the King, restored all five dropped
+items and Connor's health, sword and armour, then saved a second slot
+that retained the flag. The first assertion accidentally counted three
+unrelated crystals elsewhere in Dead City; it now checks the fight area.
+A 150-render-frame restore ended during world loading, and direct console
+`echo` left the variable name literal; the final route waits for game
+updates and verifies the flag in the second slot. No original binary
+save or manual gameplay comparison was made.
+
 ## M5 late-loaded weapon actions after Temple Armour (2026-11-16)
 
 The original Temple Armour refresh maps Connor's currently carried hand

@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Save and reload a live Skeleton King victory
+
+Changed: extended the unattended Temple Armour boss test through a
+menu save, fresh viewer process and second save. Why: live death and
+drops alone did not establish that the defeated boss, rewards, Connor's
+state and Dead City bridge flag persist. Tested how: from the worktree,
+set `$env:KQ8_GAME_DIR = (Resolve-Path "..\..\..\King's Quest 8
+GOG").Path`, then run `cargo test --locked -p kq8-viewer --test
+live_temple_armor_boss -- --ignored --nocapture`. Result: 1/1 passed in
+105.42 seconds; the first slot and restored logs show the King gone,
+five dropped items and a surviving, equipped Connor, and the second
+slot keeps the bridge flag. Initial checks failed by counting three
+unrelated Dead City crystals, ending a 150-frame restore before world
+load, and expecting direct console `echo` to expand a variable. The
+final check uses a fight-area filter, an update-bound restore and a
+second disk slot. No manual gameplay or original game-file write.
+
 ## 2026-11-16 Check Skeleton King drops and death-script flag
 
 Changed: the unattended Temple Armour boss test now requires the King's
