@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 Barren Pyrod Fire hit
+
+The original-data `pyrod_live_fire` release test passed 1/1. A placed
+Pyrod's `Prpyrolv.kq` Fire bolt contacted living Connor and lowered his
+health. Controlled Normal death then checked no item drop, no corpse
+and 8,000 experience once. The test raises Connor's health cap and does
+not establish an earned approach. Prior same-coordinate probes logged
+fatal lava damage; this passing run had no world hit, with the cause
+unresolved. M5 remains incomplete.
+
 ## 2026-11-17 M5 flying Griffin Ice shot and death
 
 The combined Ice World release test passed 1/1 after adding a placed

@@ -4098,6 +4098,26 @@ Stop coordinate guessing. The next untested projectile family is the
 Temple 2 spear carrier (`hencspr2`, `PRspear.kq`); use its original
 placement and require the spear's live contact and damage if the route
 offers a safe floor.
+
+**Pyrod hazard-resilient recheck (2026-11-17).** Later Temple combat
+scenarios established that `KQConner::setLevel` changes the health cap
+without changing current combat stats, and a positive stats event can
+then fill that cap. Reuse the already measured (116065,50000) original
+Pyrod lane, with ordinary terrain damage enabled and no god mode. Raise Connor's
+health ceiling before lava contact, then require `pyrod1`'s own
+`Prpyrolv.kq` Fire hit to reduce health while he is alive. Treat world
+Fire damage as separate source evidence. A controlled Normal death can
+check Pyrod's no-drop/no-corpse and 8,000 experience in the same run.
+This tests the combat rule in a hazard lane; it does not establish that
+the lane is a survivable earned encounter at Connor's normal level.
+
+The original-data release run passed: `pyrod1` released `Prpyrolv.kq`
+from its missing-frame-part fallback, the bolt contacted Connor at
+update 86, and a Fire hit lowered health 100000→99982 while he was
+alive. A controlled Normal death gave no drop/corpse and 8,000
+experience. Unlike the earlier two probes, this run logged no world
+hit at the same coordinate. The reason for that difference is not
+established; keep terrain damage outside this Pyrod assertion.
 The first Temple 2 probe put Connor at terrain z=0 while the carrier
 stood at z≈6040, so the building blocked sight. Lifting Connor 6050
 units onto that authored floor gave two spear contacts and a melee guard

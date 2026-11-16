@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-17 Close the placed Pyrod Fire-damage gap (M5)
+
+A new original-data Barren release test passed 1/1. It reuses the
+previously measured Pyrod lane but raises Connor's health ceiling
+without god mode. `pyrod1` released `Prpyrolv.kq` from the missing
+`arrow` frame-part fallback; its Fire bolt contacted Connor and lowered
+his health from 100000 to 99982 while he was alive. A controlled Normal
+death gave no drop or corpse and awarded 8,000 experience once. Earlier
+probes at this coordinate killed Connor with lava before the Pyrod hit;
+the passing run logged no world hit. The cause of that terrain difference
+is not established, so the test asserts Pyrod's named hit rather than
+terrain behavior. No production code, GOG file or manual gameplay
+changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test pyrod_live_fire -- --ignored --nocapture`.
+
 ## 2026-11-17 Add flying Griffin Ice contact to the Ice World route (M5)
 
 Extended the passing Ice World family route in the same process with

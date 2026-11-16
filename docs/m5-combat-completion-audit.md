@@ -27,6 +27,11 @@ death/drop/corpse outcomes, while retaining ambient bow-guard hits as
 separate sources. The same process now checks a flying Griffin's Ice
 projectile contact, zero shoot-offset fallback, and no-drop/zero-XP
 Normal death with its original corpse.
+The Barren `pyrod_live_fire` route now verifies a placed Pyrod's Lava
+weapon, Fire contact and health loss while Connor is alive, followed by
+its no-drop/no-corpse Normal death and 8,000 experience. Earlier same-lane
+lava deaths and the passing run's lack of world hits remain separate
+terrain evidence, not a resolved terrain-fidelity claim.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |
