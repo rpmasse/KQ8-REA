@@ -56,6 +56,9 @@ fn dragon_heads_rebirth_or_stay_defeated_by_equipped_sword() {
                 "Dragon finish did not make the box and remove the old actors; inspect {}", run.display());
             assert!(fight.contains("dragbody: Dragon body 'die' movement ended"),
                 "Dragon body did not finish its authored death movement; inspect {}", run.display());
+            assert!(!fight.contains("Connor gets its experience 50000")
+                && !fight.contains("dragbody: its death ended (rule 32)"),
+                "Dragon body used the ordinary monster reward/corpse finalizer; inspect {}", run.display());
             assert!(doors.contains("loadKQ: dragdbox came in: 1 drawn part(s) shown; registered collision [\"object box\"]")
                 && doors.contains("deleteObject dragwall: clickable object deleted"),
                 "Dragon box or wall collision transition failed; inspect {}", run.display());

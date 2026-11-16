@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-16 M5 IceWorld Dragon shared fighter state
+
+The Dragon body now retains its original fighter statistics and shared
+monster AI. A scripted 5,000-point hit reached it but 100 protection
+kept health at 300; its hit bookkeeping ran. The second permanent head
+now enters the body's shared Die state, setting health to zero and
+running the ordinary entry checks. The body-specific finalizer keeps
+the final pose and box; it does not award the body's listed 50,000 XP
+or create a separate corpse, as the original-engine study confirms.
+Six focused core checks and three unattended GOG-data Dragon checks
+passed. The first core reruns failed on literal `Die`/`die` assertions;
+case-insensitive assertions passed. Exact physical contacts, an earned
+body attack, and original binary save ordering remain open. No manual
+gameplay or original-executable comparison was run. M5 remains ~65%.
+
 ## 2026-11-16 M5 IceWorld Dragon body death callback
 
 After the second permanent head defeat, the post-fight box still loads

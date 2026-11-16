@@ -1442,16 +1442,7 @@ impl crate::active::WorldState {
         if !self.anims[i].character.as_deref().is_some_and(|c| c.dragon_body && c.state != crate::character::State::Die) {
             return;
         }
-        {
-            let a = &mut self.anims[i];
-            let c = a.character.as_deref_mut().unwrap();
-            c.state = crate::character::State::Die;
-            c.gravity = false;
-            c.set_collision(0, 0);
-            c.turn_to = None;
-            a.player.start("die");
-        }
-        self.active_list.retain(|n| !n.eq_ignore_ascii_case("dragbody"));
+        self.character_dies(i, HitKind::Normal, false);
         self.fight_note("dragbody", "both heads permanently defeated: body enters Die, becomes non-solid and starts 'die' (Q210)");
         let result = self.load_kq(&["loadKQ".into(), "dragdbox.kq".into()], "Dragon body death");
         self.fight_note("dragbody", format!("dragdbox.kq load result {result}"));
@@ -1462,6 +1453,7 @@ impl crate::active::WorldState {
     }
 
     pub(crate) fn dragon_body_death_ended(&mut self, i: usize) -> String {
+        self.lay_kept_drop(i);
         let name = self.anims[i].player.name.clone();
         self.anims[i].script = Some("dragwall.cs".into());
         self.fight_note(&name, "Dragon body 'die' movement ended; final frame retained with dragdbox available; dragwall.cs assigned and Init called (Q210)");

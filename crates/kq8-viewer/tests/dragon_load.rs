@@ -13,12 +13,15 @@ fn iceworld_dragon_body_and_heads_load_their_own_models() {
     let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
         .current_dir(&dir).arg("--game").arg(&game)
         .args(["--world", "IceWorld", "--at", "182334,490176,30902",
-            "--windowed", "--sound", "off", "--no-ai", "--god", "--updates", "20"])
+            "--windowed", "--sound", "off", "--no-ai", "--god",
+            "--command", "sendEvent 0 dragbody KQAttackEvent Connor 0 5000 0,10",
+            "--updates", "35"])
         .output().unwrap();
     fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
     let logs = dir.join("kq8-artifacts/logs");
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
+    let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
     for (name, class, shape, position) in [
         ("dragbody", "KQDragonBody", "db_", "182334, 490176, 30902"),
@@ -33,5 +36,9 @@ fn iceworld_dragon_body_and_heads_load_their_own_models() {
         assert!(!viewer.contains(&format!("marker [{name}] class={class}")),
             "{name} remained a marker; inspect {}", dir.display());
     }
+    assert!(fight.contains("dragbody: fights (rule 2): stats [300, 25, 25, 100")
+        && fight.contains("dragbody: hit by Connor, Normal:")
+        && fight.contains("health 300 -> 300"),
+        "Dragon body did not retain shared fighter stats or protection; inspect {}", dir.display());
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

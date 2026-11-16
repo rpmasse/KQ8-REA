@@ -48,7 +48,8 @@ common drawing path; no distinct dragon draw override was found.
 ## Initial state and collision
 
 `Monstats.mtl` gives the body 300 health, 25 hand damage, 100
-protection, alarm 4000, reach 2000 and a 1-second attack delay. Each
+protection, **50,000 experience**, alarm 4000, reach 2000 and a
+1-second attack delay. Each
 head has 600 health, 200 hand damage, 25 protection, alarm 6000 and
 reach 6000; the left/right attack delays are 1.5/1.7 seconds. The
 body's file sets `isActive3D=1`, `noTurn=1`, `monUseGravity=0`,
@@ -171,20 +172,45 @@ at the second head's permanent-defeat transition, not at the body's
 animation completion. Its file names `dragwall.cs` as its script,
 sets collision type 33, and locates it at (182974, 490884, 30902).
 
-The body enters its own death-state implementation and plays its
-authored `die` movement. When that death movement completes, its
-finalizer first runs the inherited completion action, then changes
+The head requests the body's **Die state directly**, without an
+incoming attack. Its generic Die-state entry sets the body's health
+to **zero**, starts its authored `die` movement, removes it from the
+active monster list, disables its movement and gravity, and sets both
+collision type and mask to **zero**. This is a dying actor, not a new
+corpse object. The state entry runs the ordinary item-drop helper and
+may schedule the normal once-only first-kill tip for Connor if no
+earlier non-chicken kill has done so. It does not add a hit count,
+play an ouch, or invoke an unseen-hit surprise line. The shipped body
+has no held or dropped item, so its item-drop call produces none.
+
+When the body's `die` movement completes, its specialized finalizer
+calls the **same inherited item-drop helper** again (the helper also
+handles a pending weapon kept until death completion), then changes
 the body's script to `dragwall.cs` and **executes that script's `Init`
-event synchronously**. `dragwall.cs` has no `Init` branch, so this
+event synchronously**. The body finalizer bypasses ordinary monster
+death completion: the authored **50,000 experience is not awarded**,
+no separate `db_dead.KQS` corpse is created despite its `deadDts` key,
+no `Die` script event is sent, and `dragbody` is not deleted. The body
+actor stays in its final death pose with zero collision. `dragwall.cs`
+has no `Init` branch, so this
 call does not speak a line or move the box. Its only action is on
 `ConnorAction` with action `do`: it asks Connor to speak
 6000/35/14/**53** while `dragwall` exists, or
 6000/35/14/**106** after it has been removed. The newly loaded
 `dragdbox.kq` uses this same script for a later Connor action. Exact
-subframe timing of the visual collision change at death entry and
-the inherited completion action's full effects remain open; the
+subframe timing of the visual collision change at death entry remains
+open; the
 ordering of box load, named removals, script assignment and `Init`
 execution is established statically.
+
+A late ordinary physical projectile cannot select the dying body
+through its zero collision type and mask. If a `KQAttackEvent` is
+delivered directly while `die` plays, the generic dying-state hit
+handling still runs, but the shipped 100 protection prevents health
+loss from any ordinary positive-damage hit. Health therefore stays
+at zero, no new Die-state request is made, and the death movement is
+not interrupted. Behavior after a script changes the body's
+protection or directly forces another state was not traced.
 
 An additional head handler changes the `chains.bmp` material flag
 when it enters a special state, and the body has a corresponding
@@ -213,8 +239,9 @@ Remaining questions for Q210:
   independently of the two permanently defeated heads; ordinary
   shipped combat damage cannot.
 - Subframe order of head collision removal, rebirth restoration and
-  the body's visual collision change at death entry; the box-load and
-  later `dragwall.cs` `Init` ordering is established above.
+  the body's visual collision change at death entry; the box-load,
+  body health/Die entry and later `dragwall.cs` `Init` ordering is
+  established above.
 - Binary disk-load reattachment of head state/timers, temporary fire
   emitters, and the named body/wall references.
 - Whether the authored dragon bounds names resolve to active shapes;

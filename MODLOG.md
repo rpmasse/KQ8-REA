@@ -1,5 +1,32 @@
 # MODLOG
 
+## 2026-11-16 Restore the Dragon body's shared fighter state
+
+Removed the temporary Dragon-body recipe exclusions so the installed
+fighter stats and common AI are retained. Its head-triggered death now
+uses the shared Die entry, including health zero, item-drop and
+first-kill-tip checks; its own completion keeps the body and skips the
+ordinary 50,000 XP/corpse/Die-script finalizer. A 5,000-point GOG-data
+hit left health at 300 with hit bookkeeping; six focused core checks
+and the two original-data defeat/save routes passed. An AI-enabled
+probe showed ordinary sight checks, but the tested IceWorld location
+blocked Connor from view. Initial core reruns failed only because
+assertions compared `Die` and `die` literally; corrected assertions
+passed. No original game files changed or manual gameplay test ran.
+
+## 2026-11-16 Study Dragon body death completion and late hits
+
+Traced the original head's direct body-Die request, generic Die-state
+entry, body-specific death finalizer and shipped 50,000-experience type
+read-only. `dragon.md` now records health/collision zeroing, the normal
+item-drop and first-kill-tip checks at entry, and the same item helper
+called again at completion. The body finalizer skips the ordinary
+monster XP, separate corpse, `Die` callback and removal, then runs
+`dragwall.cs` `Init`; shipped-data late hits cannot interrupt its
+death movement. Q210 retains altered-protection late hits and native
+save order as open. No Rust or original game file changed; no manual
+gameplay test was run.
+
 ## 2026-11-16 Remove inherited funding link
 
 Deleted the upstream `.github/FUNDING.yml` from this fork so its

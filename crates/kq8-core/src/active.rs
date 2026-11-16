@@ -6983,14 +6983,14 @@ impl Active {
                 // fighting.md rule 32 (M5 5c-7): its die movement ended.
                 self.world.lava_ended(i, &m);
                 let dying = self.world.anims[i].character.as_deref().and_then(|c| c.fight.as_ref()).and_then(|f| f.dying.clone());
-                if dying.flatten().is_some_and(|d| d.eq_ignore_ascii_case(&m)) {
-                    if !self.world.tower_fall_end(i, &m) {
-                        self.world.death_ended(i, now);
-                    }
-                } else if m.eq_ignore_ascii_case("die") && self.world.anims[i].character.as_deref()
+                if m.eq_ignore_ascii_case("die") && self.world.anims[i].character.as_deref()
                     .is_some_and(|c| c.dragon_body && c.state == crate::character::State::Die) {
                     let name = self.world.dragon_body_death_ended(i);
                     self.call_named(&name, &["Init"]);
+                } else if dying.flatten().is_some_and(|d| d.eq_ignore_ascii_case(&m)) {
+                    if !self.world.tower_fall_end(i, &m) {
+                        self.world.death_ended(i, now);
+                    }
                 }
             }
         }
@@ -9356,8 +9356,10 @@ endif
         let c = body.character.as_deref_mut().unwrap();
         c.dragon_head = None;
         c.dragon_body = true;
-        c.fight = None;
-        c.ai = None;
+        c.fight = Some(crate::fight::Fight::new(crate::fight::tests::settings([300, 25, 25, 100, 50_000], 1.0)));
+        if let Some(ai) = c.ai.as_mut() {
+            (ai.settings.alarm_radius, ai.settings.attack_dist, ai.settings.chase_radius) = (4000.0, 2000.0, 0.0);
+        }
         c.state = crate::character::State::Wait;
         a.world.anims.push(body);
         for name in ["draglhed", "dragrhed", "dragbody", "dragwall"] {
@@ -9387,11 +9389,18 @@ endif
         let body = &loaded.world.anims[2];
         assert!(body.character.as_deref().unwrap().dragon_body);
         assert_eq!(body.character.as_deref().unwrap().state, crate::character::State::Die);
-        assert_eq!(body.player.movement_name(), "die");
+        assert!(body.player.movement_name().eq_ignore_ascii_case("die"));
         assert_eq!(body.character.as_deref().unwrap().collision_type, 0);
         assert!(loaded.world.came_in.iter().any(|(file, name)| file == "dragdbox.kq" && name == "dragdbox"));
         assert!(["draglhed", "dragrhed", "dragwall"].iter().all(|n| loaded.world.is_deleted(n)));
         assert!(loaded.world.anims[0].gone && loaded.world.anims[1].gone && !loaded.world.anims[2].gone);
+        let body = loaded.world.anims[2].character.as_deref().unwrap();
+        assert!(body.fight.as_ref().unwrap().dying.as_ref().and_then(|m| m.as_deref())
+            .is_some_and(|m| m.eq_ignore_ascii_case("die")));
+        assert!(!body.ai.as_ref().unwrap().active);
+        loaded.world.hit_character(2, "Connor", 5000, crate::fight::HitKind::Fire);
+        assert_eq!(loaded.world.anims[2].character.as_deref().unwrap().fight.as_ref().unwrap().stats.0[0], 0);
+        assert!(loaded.world.anims[2].player.movement_name().eq_ignore_ascii_case("die"), "late hit interrupted body death");
         loaded.world.dragon_body_death_ended(2);
         assert!(!loaded.world.anims[2].gone && !loaded.world.is_deleted("dragdbox"));
     }

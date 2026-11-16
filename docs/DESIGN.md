@@ -27,6 +27,38 @@ defeat. The box precedes the body's `Init` call, and the GOG options
 file stayed unchanged. The viewer still excludes the body from its
 shared `Fight` state; follow up on ordinary hit bookkeeping separately.
 
+**M5 Dragon body shared fighter state (2026-11-16).** Q210 found no
+body-specific hit or contact-damage override: it inherits the common
+monster fight and attack-state machinery. Remove the temporary
+`DragonBody` exclusions in the viewer recipe so it retains the
+installed 300 health, 25 hand damage and 100 protection, plus ordinary
+AI timing. Its authored `attack` has no `Do` cue, so no body melee hit
+is sent. A body hit that reaches the shared handler must record its
+kind and combat bookkeeping without health loss at protection 100.
+Keep the two-head death trigger and its body-specific finalizer.
+Check the installed fighter values and an automated high-damage hit,
+then rerun the Dragon defeat route. Since the body now owns a shared
+fighter, its head-triggered Die state must mark that fighter as dying
+and clear active AI so late scripted hits cannot start a flinch. Give
+its specialized `die` completion priority over the generic fighter
+corpse/experience finalizer. Check that a late hit retains the death
+movement and the box remains after completion. Do not infer exact physical
+contacts from the still-open bounds-name resolution. No manual test.
+
+Checked 2026-11-16: the GOG-data load/hit route passed 1/1 with the
+body's authored [300, 25, 25, 100, 50000] stats and a 5,000-point
+Normal hit leaving health at 300 while incrementing hit bookkeeping.
+Six focused Dragon core cases passed 6/6. The head-defeat and
+fresh-process restoration routes passed 2/2 after the body began using
+the shared Die entry. Its health reaches zero, the special finalizer
+retains its last pose and post-fight box, and no 50,000 XP award or
+ordinary corpse finalizer occurs. A first core assertion compared
+`Die` and `die` literally; the movement lookup is case insensitive,
+and the corrected assertions passed. The GOG options file remained
+unchanged. AI-enabled sight logs show the body taking ordinary sight
+checks, though the tested position has a blocking IceWorld building;
+an earned body attack was not established by that probe.
+
 ## M5 ranged shot and retreat priority (2026-11-16)
 
 Q211 asks which action wins when a ranged enemy's shot and close-range
