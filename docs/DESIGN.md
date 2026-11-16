@@ -341,6 +341,25 @@ health. A controlled Normal death dropped nothing, left `gry_dead.kqs`
 and awarded zero experience once. The world script's rescue trigger
 and the Ice Lord cutscene were not run by this combat fixture.
 
+## M5 Ice World Henchman chest-cue fight (2026-11-17)
+
+The installed `LRDCHEST.CS` reveals `Henchman` at `Cue 300 0 cn_ims09`,
+places him and Connor at `cn_ims10`, and at `cn_ims11` gives him an
+8,000-unit alarm radius, leaves chase/home radii at zero, loads two
+clickers and returns control. An automated original-data replay of
+those three cues shows that the reveal and placements work. It also
+shows `Henchman` staying in Special after `hm_bod10,hm_ice11,stop`:
+the terminal `stop` repeats and the Rust controller does not advance
+to Wait. The original engine's handling of a repeating terminal item
+in a monster Special list needs independent evidence before changing
+the runtime. Do not use a forced Wait or forced hit to claim a live
+fight. Once the transition is settled, approach within his 2,500-unit
+reach (the authored post-scene separation is about 2,810), check his
+250-point Normal hit with a raised Connor health ceiling but no god
+mode, and check controlled Normal death, 10,000 experience and the
+`hench.cs` cleanup callback. Keep this one grouped scenario; no
+manual gameplay test is needed at this stage.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

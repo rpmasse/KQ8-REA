@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-17 M5 Ice World chest Henchman transition unresolved
+
+Two unattended original-data diagnostics replayed the installed
+`LRDCHEST.CS` chest cues. The final `cn_ims11` cue alone did not reveal
+the hidden actor. Replaying `cn_ims09`, `cn_ims10` and `cn_ims11` did:
+the Henchman became visible, was placed by the script, and received the
+8,000-unit alarm radius. His Special list advanced through `hm_bod10`
+and `hm_ice11`, then stayed on its repeating terminal `stop`. Rust kept
+him in Special and inactive through the observed interval; no ordinary
+attack occurred. The original-engine rule for a repeating last Special
+item is not established by the existing study notes. No runtime change
+or claimed fight coverage follows from these diagnostics. The authored
+post-scene separation is about 2,810 units, above his 2,500 reach, so
+a later resolved scenario must also approach him. M5 remains incomplete.
+
 ## 2026-11-17 M5 script-gated Ice World sword Griffin
 
 The extended original-data `ice_melee_families_live` release test

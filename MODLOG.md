@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Bound Ice World chest Henchman investigation (M5)
+
+Two unattended diagnostics with installed Ice World data isolated the
+three required chest cues. They exposed an unresolved transition after
+the Henchman's terminal repeating `stop` movement. Updated the design
+plan, status and enemy-rule matrix to retain this gap. No production
+code, original GOG file or permanent scenario test changed. The
+diagnostic invocation was `target\debug\kq8-viewer.exe --game
+<GOG path> --world IceWorld --windowed --renderer dx12 --sound off
+--at 280226,499238,0 --lift 276 --command 'KQConner::setLevel 1000,1'
+--command 'sendEvent 0 Connor KQStatsChangeRequestEvent 10000 0 0 0 0,2'
+--command 'sendEvent 0 Lrdchest KQCueEvent 300 0 cn_ims09,20'
+--command 'sendEvent 0 Lrdchest KQCueEvent 300 0 cn_ims10,40'
+--command 'sendEvent 0 Lrdchest KQCueEvent 300 0 cn_ims11,60'
+--updates 360 --frames 10000`. It exited successfully; the expected
+ordinary Henchman attack did not occur. No third variant was attempted.
+
 ## 2026-11-17 Extend combined Ice World run with Grysword (M5)
 
 The existing original-data release test now covers a fifth Ice World
