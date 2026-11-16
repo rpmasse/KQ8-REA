@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-16 M5 live Bossprig combat path
+
+An unattended original-data Daventry check now fights the installed
+`bossprig` with its AI enabled and normal sword-click attacks. It saw
+Connor, pursued and landed repeated attack cues. The sword reduced its
+health to exactly zero without killing it, then the next ordinary hit
+started its normal death. Four authored items were thrown, its
+`spdeath.kqs` corpse kept the alternate skin, and seven experience were
+awarded once. The test passed 1/1 in 38.58 seconds; the GOG `Options.cs`
+file was unchanged. The actor was moved to open ground, a late-game sword
+was supplied and Connor used the test-only god switch. This does not
+prove the earned Bossprig encounter or original-executable visual parity.
+No manual gameplay ran. M5 remains about 65%.
+
 ## 2026-11-16 M5 bow-spriggan crossbow drop on normal and fire death
 
 An unattended two-process Daventry check used the installed `sprgnbow`

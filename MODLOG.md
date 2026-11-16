@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-16 Check Bossprig in a live AI fight
+
+Changed: added an unattended original-data combat regression for the
+installed Daventry `bossprig`. Why: the previous corpse check used a
+controlled kill with AI disabled, leaving its attack, normal incoming
+hits and rewards untested together. Tested how: with `KQ8_GAME_DIR` set
+to the GOG installation, `cargo test --release -p kq8-viewer --test
+bossprig_live_combat -- --ignored --nocapture` passed 1/1 in 38.58
+seconds. The boss saw and attacked Connor, survived exactly zero health,
+then died below zero; four drops, the skinned corpse and one experience
+award followed. Earlier probes used a ranged aim on a hand weapon and
+then left the sword unequipped; the corrected fixture equips it through
+the original command path. Artifact:
+`kq8-artifacts/bossprig-live-combat/1794828125585905500/`. The GOG
+`Options.cs` file was unchanged. Connor used test-only god mode and both
+actor placement and sword were supplied; this is not the earned fight.
+No manual gameplay or original-executable comparison ran.
+
 ## 2026-11-16 Check bow-spriggan crossbow drops by death kind
 
 Changed: added an unattended two-process original-data regression for

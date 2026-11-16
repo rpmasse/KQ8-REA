@@ -1,5 +1,15 @@
 # Provenance
 
+**Live Bossprig combat (2026-11-16).** [Fighting rules 13–32](../behaviour/fighting.md)
+define ordinary melee hits, the below-zero death threshold, drops,
+corpse and reward. The installed Daventry monster list and `sprigan.kq`
+provide `bossprig`'s fight and AI settings. A controlled Windows run
+kept that AI enabled, supplied the Skeleton King Sword and moved the
+actor to open ground. The log shows its attacks, nine landed sword hits,
+the zero-health boundary, normal death, four drops, skinned corpse and
+one reward. God mode protected Connor. This is Rust combat evidence,
+not an earned route or original-executable comparison.
+
 **Bow-spriggan death drops (2026-11-16).** [Fighting rules 31–32](../behaviour/fighting.md)
 specify that a drop matching the death model's named part is laid after
 the movement, while a drop without a matching part is thrown at death

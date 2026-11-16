@@ -3744,6 +3744,23 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Daventry Bossprig live-fight check (2026-11-16).** Exercise the
+installed `bossprig` with its ordinary AI enabled, using original
+game data and regular sword-click attacks. Place it in the known open
+Daventry encounter area, give Connor the installed Skeleton King Sword,
+and use the test-only god switch so his low starting health does not
+end the controlled route. Check that the boss attacks, takes successive
+normal hits, dies only below zero health, throws its four authored
+items, leaves its skinned corpse and awards experience once. This is
+combat-path coverage for a distinct enemy, not an earned campaign
+fight or a comparison with the original executable.
+The unattended original-data check passed 1/1 in 38.58 seconds. Its
+normal AI saw Connor, pursued and landed repeated attack cues; Connor's
+regular sword hits left the boss at exactly zero health, then killed it
+only on the next hit. All four drops, skinned corpse and one seven-point
+experience award followed. The controlled placement and god switch mean
+this still does not establish the earned campaign fight.
+
 **Tower fall with original data and normal damage (2026-11-16).**
 Keep the installed Dead City `Skeltowr` actor and its GOG movements,
 fight settings, scripts, item and message data. Use ordinary Small Axe
