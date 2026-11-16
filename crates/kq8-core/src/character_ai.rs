@@ -102,6 +102,10 @@ pub struct Ai {
     /// decisions and wrapped after 150 (fighting.md rule 37, Q211).
     #[serde(default)]
     pub mon_tick_count: u16,
+    /// Q209: refreshed before this monster's state decision on every
+    /// running update. A team alarm before its update sees the prior value.
+    #[serde(default = "initial_connor_distance")]
+    pub connor_distance: f32,
     /// Updates since it last saw Connor (rule 20; used by rule 26).
     pub unseen: u32,
     /// On its way home (rules 21, 28).
@@ -160,7 +164,7 @@ pub struct Ai {
 
 impl Ai {
     pub fn new(settings: AiSettings, home: [f32; 3], eye: f32, has_hide: bool) -> Self {
-        Ai { settings, home, eye, has_hide, active: false, sees: false, blocked_by: None, checked: false, mon_tick_count: 0, unseen: 0, on_way_home: false, has_birth: false, route: None, point: 0, closest: f32::MAX, wander_done: false, idle_due: 0.0, fidget: None, alarmed: false, keyed_alarm_spoken: false, react_at: 0.0, chase_until: 0.0, last_seen: None, go_home: false, rise_at: None, retaking: false, following: false, sinking: false, hit_count: 0, hunting: false, keeping_distance: false }
+        Ai { settings, home, eye, has_hide, active: false, sees: false, blocked_by: None, checked: false, mon_tick_count: 0, connor_distance: initial_connor_distance(), unseen: 0, on_way_home: false, has_birth: false, route: None, point: 0, closest: f32::MAX, wander_done: false, idle_due: 0.0, fidget: None, alarmed: false, keyed_alarm_spoken: false, react_at: 0.0, chase_until: 0.0, last_seen: None, go_home: false, rise_at: None, retaking: false, following: false, sinking: false, hit_count: 0, hunting: false, keeping_distance: false }
     }
 
     /// Alarmed and past its reaction delay: the chase rules drive it, not
@@ -219,6 +223,8 @@ fn distance(a: [f32; 3], b: [f32; 3]) -> f32 {
     ((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)).sqrt()
 }
 
+fn initial_connor_distance() -> f32 { 1_000_000.0 }
+
 impl WorldState {
     /// One update of the characters' movement rules (M5 5a), after their
     /// own update and before their movers: losing and joining the active
@@ -260,9 +266,13 @@ impl WorldState {
                 }
                 c.state
             };
+            let actor_position = self.anims[i].player.base.position;
             let check = {
                 let ai = self.anims[i].character.as_deref_mut().unwrap().ai.as_mut().unwrap();
                 ai.mon_tick_count = (ai.mon_tick_count % 150 + 1) % 150;
+                if let Some(at) = connor {
+                    ai.connor_distance = distance(at, actor_position);
+                }
                 ai.mon_tick_count.is_multiple_of(SIGHT_EVERY as u16)
             };
             let a = &self.anims[i];
@@ -953,13 +963,13 @@ impl WorldState {
         ai.alarmed = true;
         ai.on_way_home = false;
         let tree_target_copy = tree && ai.settings.team.is_some()
-            && connor.is_some_and(|at| distance(at, a.player.base.position) <= ai.settings.alarm_radius);
+            && ai.connor_distance <= ai.settings.alarm_radius;
         if tree {
             // The original requires a resolved team object and its stored
             // Connor distance inside the alarm radius for this position copy.
-            // Shipped Mandragor trees all name a team in monsters.kq. This
-            // path uses the currently reported Connor distance; team-alert
-            // update order remains open in Q209.
+            // Shipped Mandragor trees all name a team in monsters.kq.
+            // This actor refreshes the distance before its own state, but a
+            // teammate's earlier alarm can see the previous sample (Q209).
             if tree_target_copy {
                 ai.last_seen = connor;
             }

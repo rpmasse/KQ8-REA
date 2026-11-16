@@ -3,6 +3,33 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Mandragor alarm distance sample (2026-11-16)
+
+The tree's special alarm currently measures Connor's position at the
+alarm call. The Q209 follow-up establishes a stored 3D distance that
+starts at 1,000,000 units and refreshes on every running monster update,
+before sight and state decisions. A team alarm delivered before the
+tree's update must still see its previous sample. Add this distance to
+the existing monster AI state, preserve it in Rust checkpoints, and let
+only the tree's special target-position gate read it. Use the current
+reported Connor position as the available movement-notice position;
+the exact cross-actor notice delivery phase remains open in Q209.
+
+Check the constructor value, a team alarm before the first tree update,
+the next update's 3D sample and a Rust checkpoint boundary in core.
+Run the installed Swamp alarm/root rise route to make sure tree and root
+behavior still advances. Do not run manual gameplay tests or write to
+the GOG installation.
+
+Implemented: the distance starts at 1,000,000, refreshes every running
+monster update before sight/state work, and is preserved in Rust
+checkpoints. The tree's alarm now uses that sample. A focused core
+check passes for a team alarm before the tree's first update, the next
+3D sample and checkpoint/default values. The full core suite passes
+775 active tests. Both unattended original-data Swamp tree alarm and
+root-rise routes pass. Native movement-notice ordering and original
+binary save continuation remain open.
+
 ## M5 Swamp Mandragor tree decision state (2026-11-16)
 
 The 11 trees load their original stats and animation lists, but the

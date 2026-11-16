@@ -189,6 +189,25 @@ team name, and common setup resolves or creates the shared team object.
 This gate is distinct from the active-monster-list flag. The roots use
 the common alarm method, including its random reaction deadline.
 
+**Distance sample used by the tree's alarm (Q209 follow-up).** The
+ordinary monster constructor starts its stored Connor distance at
+1,000,000 world units. A saved monster can instead restore its
+`connerDist` property. The monster keeps the latest Connor position
+delivered by his movement notification; that is the position used
+for this distance, rather than a fresh direct read of Connor's
+transform at the alarm call. On every monster update that runs, even
+when the monster is not on the active list, it measures the straight
+**3D** distance from its current position to that stored Connor
+position. This happens before the update's periodic sight check and
+before its current state runs. Thus an alarm raised by the tree's own
+Wait update uses the distance refreshed in that update. A team alarm
+delivered by another actor before the tree's next update can still
+use its prior sample; before any update that is the constructor's
+1,000,000 unless a saved value was restored. The common near/far
+update gate still applies, so this rule does not imply that out-of-range
+monsters keep sampling. The exact delivery order of two actors' same
+tick updates and their queued notifications was not established.
+
 Ordinary Wait may turn the tree while roots are alive. The tree's
 `noTurn` is set when a root enters its timed death and cleared only
 when the down-root count returns to zero. A root listens to its tree's

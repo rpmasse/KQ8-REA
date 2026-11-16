@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-16 Use the Mandragor tree's stored alarm distance
+
+Added the studied 1,000,000-unit initial distance to shared monster AI,
+refreshed it from Connor's reported 3D position before each running
+monster's sight and state work, and made the tree alarm read that sample.
+Rust checkpoints keep it; older checkpoints default to the constructor
+value. A focused prior-sample/3D/checkpoint test passed, as did the
+full core suite (775 active) and unattended original-data Swamp tree
+alarm and team-root-rise routes. Existing viewer warnings remain.
+Native notification timing and original binary save continuation are
+still open. No game assets changed and no manual gameplay test ran.
+
+## 2026-11-16 Study Mandragor distance sampling
+
+Traced the original monster's stored Connor distance and movement
+notification read-only. It begins at 1,000,000, then each running
+monster update measures 3D distance to the latest notified Connor
+position before sight and state logic, even if the monster is inactive.
+An alarm raised from the tree's own Wait uses that update's sample;
+another actor's earlier team alarm can see the previous one. Updated
+`mandragor.md` and Q209. Cross-actor and root turn-notice timing remain
+open; no Rust or original game files changed and no manual gameplay
+test ran.
+
 ## 2026-11-16 Study explicit deletion of Temple 4 fire
 
 Traced `deleteObject lucfire` through the common deletion rule and the

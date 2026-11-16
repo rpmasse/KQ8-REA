@@ -16,10 +16,13 @@ and root `Do` hit/death/rebirth routes pass. This is a Rust route, not
 an original-executable comparison. Seven serial release Mandragor
 routes pass; the release checkpoint route missed its automated Save
 menu, while the same fresh-process restore passed alone in debug.
-The core suite passes 774 active tests. The Rust alarm computes
-distance from its current reported Connor
-position, while the original describes a stored distance. Team-alert
-ordering and the within-update root notification order remain open.
+The core suite now passes 775 active tests. The Q209 distance follow-up
+establishes a 1,000,000-unit initial value and a 3D sample before each
+monster state update. Rust preserves that sample in checkpoints and
+uses it for the tree's alarm; a focused prior-sample case and both
+original-data Swamp tree alarm/root-rise routes pass. Rust samples the
+current reported Connor position; exact native movement-notice,
+cross-actor and root notification ordering remain open.
 
 **Ranged retreat and sight timing (2026-11-16).**
 [Fighting rule 37](../behaviour/fighting.md) and Q211 establish the

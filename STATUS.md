@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 Mandragor alarm distance sample
+
+The tree's alarm now reads a stored 3D Connor distance. Each in-range
+monster refreshes its sample before its own state update; the initial
+value is 1,000,000 units, so a teammate's alarm before the tree's first
+update leaves its target point unchanged. Rust checkpoints retain the
+sample, and older checkpoints use the initial value. The focused
+prior-sample check and 775 active core tests pass. Unattended GOG-data
+Swamp tree alarm and team-root-rise routes pass. Exact original
+movement-notice timing, cross-actor notification order and binary save
+continuation remain open. No manual gameplay test was run; M5 is still
+approximately 65%.
+
 ## 2026-11-16 M5 Swamp Mandragor tree standing AI
 
 The 11 trees now keep the shared monster AI that their class inherits.

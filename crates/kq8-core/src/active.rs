@@ -9001,6 +9001,46 @@ endif
     }
 
     #[test]
+    fn mandragor_tree_team_alarm_reads_its_prior_three_dimensional_distance() {
+        let mut a = watchers(&[("scout", Some("mand"), 4000.0), ("tree", Some("mand"), 4000.0)]);
+        a.world.connor_at = Some([0.0, -3000.0, 100.0]);
+        a.world.anims[1].character.as_deref_mut().unwrap().mandragor_tree = true;
+        a.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap().mon_tick_count = 14;
+        let tree_ai = a.world.anims[1].character.as_deref().unwrap().ai.as_ref().unwrap();
+        assert_eq!(tree_ai.connor_distance, 1_000_000.0);
+        watch(&mut a, &[], 1);
+        let log = a.world.character_log.join("\n");
+        assert!(log.contains("tree: alarmed: told by its team member scout")
+            && log.contains("target position unchanged"), "{log}");
+        let tree_ai = a.world.anims[1].character.as_deref().unwrap().ai.as_ref().unwrap();
+        assert_eq!(tree_ai.last_seen, None);
+        assert!((tree_ai.connor_distance - (1000.0_f32.powi(2) + 3000.0_f32.powi(2)).sqrt()).abs() < 0.01);
+
+        // The next update measures the full 3D separation, including height.
+        a.world.connor_at = Some([0.0, -3000.0, 3100.0]);
+        watch(&mut a, &[], 2);
+        let tree_ai = a.world.anims[1].character.as_deref().unwrap().ai.as_ref().unwrap();
+        assert!((tree_ai.connor_distance - (1000.0_f32.powi(2) + 3000.0_f32.powi(2) + 3000.0_f32.powi(2)).sqrt()).abs() < 0.01);
+        assert!(tree_ai.connor_distance > tree_ai.settings.alarm_radius);
+
+        let saved = serde_json::to_value(tree_ai).unwrap();
+        let loaded: crate::character_ai::Ai = serde_json::from_value(saved.clone()).unwrap();
+        assert_eq!(loaded.connor_distance, tree_ai.connor_distance);
+        let records: Vec<SavedPlacedCharacter> = serde_json::from_slice(
+            &serde_json::to_vec(&a.world.saved_placed_characters_for_disk_save()).unwrap(),
+        ).unwrap();
+        let mut resumed = watchers(&[("scout", Some("mand"), 4000.0), ("tree", Some("mand"), 4000.0)]);
+        resumed.world.anims[1].character.as_deref_mut().unwrap().mandragor_tree = true;
+        resumed.world.restore_placed_characters(&records);
+        let resumed_ai = resumed.world.anims[1].character.as_deref().unwrap().ai.as_ref().unwrap();
+        assert_eq!(resumed_ai.connor_distance, tree_ai.connor_distance);
+        let mut old = saved;
+        old.as_object_mut().unwrap().remove("connor_distance");
+        let loaded_old: crate::character_ai::Ai = serde_json::from_value(old).unwrap();
+        assert_eq!(loaded_old.connor_distance, 1_000_000.0);
+    }
+
+    #[test]
     fn characters_see_connor_and_join_the_active_list() {
         // Rule 20: the sight test every 15th update, from the box top; in
         // Wait, seen → active (at most MaxMonsters).
