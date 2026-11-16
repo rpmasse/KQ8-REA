@@ -12,6 +12,12 @@ rejected Dead City `goblin2`, whose file is absent. Swamp's loose
 prove a live actor recipe. No executable parity or manual gameplay
 comparison was performed.
 
+The follow-up kept Dead City's AI and damage active in the same
+combined test. The new `bigskel` attacked through its installed `Do`
+cue and lowered Connor's health 80 → 60. This confirms the prepared
+actor participates in Rust combat, without answering the original
+dynamic-add combat-scaling question.
+
 **Mandragor root disk continuation (2026-11-17).**
 [Mandragor rules](../behaviour/mandragor.md) describe the linked root's
 temporary Die state, rebirth delay and restored class fields. Installed

@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Exercise an unplaced monster's live attack
+
+Strengthened the existing combined type-add test without adding a
+third world load. Daventry's goblin remains isolated, while Dead City's
+unplaced `bigskel` now runs with normal AI and damage. It joined the
+active list, attacked through its installed `Do` cue at update 47 and
+lowered Connor's health from 80 to 60. The same process still rejects
+the type file absent from Dead City. The focused release check passed
+1/1 in 15.69 seconds:
+`cargo test --locked --release -p kq8-viewer --test available_monster_add -- --ignored --nocapture`.
+No production code, manual gameplay or GOG file changed.
+
 ## 2026-11-17 Prepare all world-available monster types
 
 The loader now considers every global `Monstats.mtl` type whose

@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-17 M5 unplaced type joins live combat
+
+The combined original-data `available_monster_add` check now keeps
+normal AI and damage active for Dead City's unplaced `bigskel` type.
+The script-created actor joined the active list at update 26, began
+its authored attack at update 38, delivered its `Do` hit at update 47
+and lowered Connor's health 80 → 60. Daventry's placed-type check and
+Dead City's absent-file rejection remain in that same passing test
+(1/1 in 15.69 seconds). This supports live Rust combat for the newly
+prepared type; it does not resolve the original engine's possible
+double combat-level factor for dynamic additions. M5 remains about
+65% complete. No manual gameplay or GOG-file write occurred.
+
 ## 2026-11-17 M5 all world-available monster types
 
 The original `KQMonster::add` type lookup is global, but the type's

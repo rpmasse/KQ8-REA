@@ -25,7 +25,7 @@ fn every_available_type_can_create_a_drawn_live_actor() {
         ),
         (
             "DeadCity",
-            "182221,45000,864",
+            "182450,45000,864",
             "KQMonster::add testBigskel bigskel @ @ @ @ @ 183300 45000 864 0 @ @ @ @ @ @ @ @ @,10",
             "testBigskel",
             "bigskel",
@@ -39,7 +39,6 @@ fn every_available_type_can_create_a_drawn_live_actor() {
             "--windowed",
             "--sound",
             "off",
-            "--no-ai",
             "--world",
             world,
             "--at",
@@ -49,11 +48,13 @@ fn every_available_type_can_create_a_drawn_live_actor() {
             "--command",
             command,
             "--updates",
-            "45",
+            if world == "DeadCity" { "55" } else { "45" },
             "--frames",
             "3000",
         ]);
-        if world == "DeadCity" {
+        if world == "Daventry" {
+            run.arg("--no-ai");
+        } else {
             // This is a defined global type, but its file is absent here.
             run.args(["--command", "KQMonster::add testMissing goblin2,20"]);
         }
@@ -62,6 +63,7 @@ fn every_available_type_can_create_a_drawn_live_actor() {
         let logs = dir.join("kq8-artifacts/logs");
         let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
         let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
+        let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
         assert!(
             output.status.success() && viewer.contains("RESULT: PASS"),
             "inspect {}",
@@ -91,6 +93,16 @@ fn every_available_type_can_create_a_drawn_live_actor() {
                 doors.contains("Monster type undefined ('goblin2')")
                     && !doors.contains("copy testMissing"),
                 "a type file absent from Dead City was accepted; inspect {}",
+                dir.display()
+            );
+            assert!(
+                fight
+                    .lines()
+                    .any(|line| line.contains("Connor: hit by testBigskel, Normal:")
+                        && line.contains("; health ")
+                        && !line.contains("loss 0"))
+                    && !fight.contains("god mode is on"),
+                "the new big skeleton did not deal ordinary damage; inspect {}",
                 dir.display()
             );
         }
