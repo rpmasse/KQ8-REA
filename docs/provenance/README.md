@@ -1,5 +1,14 @@
 # Provenance
 
+**Monster projectile friendly fire (2026-11-16).**
+[Ranged-weapons rule 31](../behaviour/ranged-weapons.md) says a monster
+bolt can hit another character before reaching Connor. The shipped
+Daventry `sprgnbow` shoots `Prscbolt.kq`; `goblin22` supplies a distinct
+character collider and health. In an unattended Rust run, normal AI
+launched three bolts, each travelled 561 units and injured the goblin
+once. The GOG data and files were read-only. This checks the Rust
+collision and damage path, not the original executable's exact flight.
+
 **Live Bossprig combat (2026-11-16).** [Fighting rules 13–32](../behaviour/fighting.md)
 define ordinary melee hits, the below-zero death threshold, drops,
 corpse and reward. The installed Daventry monster list and `sprigan.kq`

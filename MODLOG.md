@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Check monster bolts hitting another monster
+
+Changed: added an unattended original-data test for a Daventry bow
+spriggan's bolt striking the goblin between it and Connor. Why: the
+studied ranged rule allows monster friendly fire, but the Windows
+encounter path had no check. Tested how: with `KQ8_GAME_DIR` set to the
+GOG installation, `cargo test --locked --release -p kq8-viewer --test
+monster_friendly_fire -- --ignored --nocapture` passed 1/1 in 13.07
+seconds. Three AI shots travelled before collision, removed their bolts
+and reduced goblin health from 15 to 9 without hitting Connor. The
+first diagnostic placement was behind the Cottage; the second placed
+the goblin at the launch point. Artifact:
+`kq8-artifacts/monster-friendly-fire/1794828540264858200/`. No
+production code or GOG file changed. Controlled placement does not
+establish an earned encounter or original-executable trajectory parity.
+No manual gameplay ran.
+
 ## 2026-11-16 Check Bossprig in a live AI fight
 
 Changed: added an unattended original-data combat regression for the

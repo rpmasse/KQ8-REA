@@ -3744,6 +3744,23 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Monster projectile friendly fire (2026-11-16).** The original ranged
+rule allows an enemy bolt to strike another character on its path to
+Connor. Keep the installed Daventry bow spriggan, goblin and their
+shipped projectile and animations. On a controlled open-ground line,
+let the spriggan acquire Connor through normal AI and shoot; require
+the bolt to travel before hitting the goblin, reduce its health once,
+and leave Connor unharmed by that intercepted shot. This checks the
+ordinary inter-character collision path, not an earned encounter or
+the original executable's exact projectile trajectory.
+The unattended GOG-data test passed 1/1 in 13.07 seconds. Three normal
+AI shots each travelled 561 units before touching `goblin22`; each
+dealt one Projectile hit, reducing its health from 15 to 9 while none
+of those bolts hit Connor. An earlier placement put the archer behind
+the Cottage, where it could not see Connor; another left the goblin
+inside the bolt's launch point. The final placement checks an actual
+in-flight intercept.
+
 **Daventry Bossprig live-fight check (2026-11-16).** Exercise the
 installed `bossprig` with its ordinary AI enabled, using original
 game data and regular sword-click attacks. Place it in the known open

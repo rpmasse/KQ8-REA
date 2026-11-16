@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-16 M5 monster projectile friendly fire
+
+An unattended Daventry check used the installed bow spriggan, goblin,
+animations and `Prscbolt.kq`. With both actors' AI enabled, the
+spriggan acquired Connor and fired three ordinary shots. Each bolt
+travelled 561 units, hit the goblin once as Projectile damage, and
+reduced its health from 15 to 9; none reached Connor. The regression
+passed 1/1 in 13.07 seconds and the GOG `Options.cs` file was unchanged.
+Initial diagnostics exposed a Cottage sight obstruction and a goblin
+overlapping the launch point; the final test uses a clear in-flight
+intercept. This is controlled placement, not an earned encounter or
+original-executable trajectory comparison. No manual gameplay ran.
+M5 remains about 65%.
+
 ## 2026-11-16 M5 live Bossprig combat path
 
 An unattended original-data Daventry check now fights the installed
