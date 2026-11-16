@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 Mandragor tree fight without god mode
+
+The existing unattended Swamp tree fight and fresh-process save check
+now runs without god mode. Both linked roots deal ordinary damage;
+Connor survives with 107 of 150 health, lands three King's Sword hits,
+and kills the tree. The corpse, linked root deaths and experience
+survive a fresh-process restore. The combined release test passed 1/1
+in 27.80 seconds. The first attempt stopped before its scripted save;
+the second stopped while restoring the world. Both were test frame
+limits, now corrected. The route still starts Connor beside the tree
+with a supplied late-game sword. M5 remains about 65%; no manual
+gameplay or GOG-file write occurred.
+
 ## 2026-11-16 M5 Gnome Dragon victory with ordinary incoming damage
 
 The existing Gnome Dragon boss and fresh-process save regression now

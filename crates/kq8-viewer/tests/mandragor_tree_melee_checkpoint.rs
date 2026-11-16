@@ -22,7 +22,7 @@ fn sword_killed_tree_and_its_corpse_survive_a_fresh_process() {
             .env("KQ8_SAVE_DIR", &slots)
             .arg("--game")
             .arg(&game)
-            .args(["--windowed", "--sound", "off", "--god"])
+            .args(["--windowed", "--sound", "off"])
             .args(args)
             .output()
             .unwrap();
@@ -42,11 +42,18 @@ fn sword_killed_tree_and_its_corpse_survive_a_fresh_process() {
         "--aim", "mand3t,45", "--aim", "mand3t,75",
         "--aim", "mand3t,105", "--aim", "mand3t,135",
         "--key", "menu:down:down:enter:release:enter:release:escape:type=TreeDead:enter:release:escape,190",
-        "--updates", "205", "--frames", "1100",
+        "--updates", "205", "--frames", "1600",
     ]);
     assert!(first.contains("Save screen -> Save(1, \"TreeDead\")"), "inspect {}", root.display());
     assert_eq!(doors.matches("swing pick meets character mand3t (type 0x4042)").count(), 4);
-    assert_eq!(fight.matches("hits mand3t:").count(), 4);
+    assert_eq!(fight.matches("hits mand3t:").count(), 3);
+    assert!(
+        fight.contains("Connor: hit by mand3r, Normal:")
+            && fight.contains("Connor: hit by mand3l, Normal:")
+            && !fight.contains("god mode is on"),
+        "both roots must deal ordinary damage; inspect {}",
+        root.display()
+    );
     assert!(fight.contains("mand3t: its death ended (rule 32): Connor gets its experience 20000")
         && fight.contains("a corpse mt_dead.kqs")
         && fight.contains("mand3r: Mandragor tree mand3t enters Die: root link cleared")
@@ -70,7 +77,7 @@ fn sword_killed_tree_and_its_corpse_survive_a_fresh_process() {
     let (restored, second_fight, _) = run("restore", &[
         "--menu-input", "down,enter,release,enter,release",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=TreeStillDead:enter:release:escape,35",
-        "--updates", "55", "--frames", "750",
+        "--updates", "55", "--frames", "1300",
     ]);
     assert!(restored.contains("save restored in Swamp without replaying Begin")
         && restored.contains("corpse of mand3t: mt_dead.kqs drawn")

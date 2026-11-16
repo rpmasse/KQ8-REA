@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Verify Mandragor tree kill with ordinary root damage
+
+Removed god mode from the existing Swamp tree fight and fresh-process
+save regression. Both linked roots now hit Connor, interrupting one of
+four camera-selected swings; three King's Sword hits still kill the
+tree. Extended each process's frame allowance so the first reaches
+its scripted save and the second finishes loading before its restore
+checks. The combined release test passed 1/1 in 27.80 seconds:
+`cargo test --locked --release -p kq8-viewer --test mandragor_tree_melee_checkpoint -- --ignored --nocapture`.
+The first two attempts reached the fight and save respectively but
+stopped at their frame limits. This remains a controlled late-game
+equipment route; no game logic, manual gameplay or GOG files changed.
+
 ## 2026-11-16 Replace Gnome Dragon god switch with original shield
 
 Updated the existing boss and fresh-process victory save regression
