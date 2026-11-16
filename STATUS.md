@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 Snowmane live Clarity fight
+
+The original-data Snowmane check now leaves AI and incoming damage
+on. Its own Normal attack lowered Connor's health at 350 hand damage
+before Clarity and 200 afterward. In the same process Connor's two
+Flame Sword hits used Snowmane protection 30 then 0. The focused
+release test passed 1/1 in 15.11 seconds without god mode; a
+test-controlled health ceiling kept Connor alive. No production code
+or GOG file changed. The earned Ice World approach and
+original-executable parity remain untested. M5 remains incomplete.
+
 ## 2026-11-17 M5 Swamp bubble live attack
 
 The placed `swmpbb2a` in the existing combined Swamp test now leaves

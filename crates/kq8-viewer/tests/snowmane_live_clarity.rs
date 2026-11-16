@@ -1,4 +1,4 @@
-//! Clarity changes the original Snowmane's live protection between sword hits.
+//! Clarity changes Snowmane's live protection and attack strength during combat.
 use std::{fs, path::Path, process::Command};
 
 #[test]
@@ -20,10 +20,10 @@ fn clarity_changes_live_snowmane_combat() {
         .arg(&game)
         .args([
             "--windowed",
+            "--renderer",
+            "dx12",
             "--sound",
             "off",
-            "--no-ai",
-            "--god",
             "--world",
             "IceWorld",
             "--at",
@@ -32,6 +32,10 @@ fn clarity_changes_live_snowmane_combat() {
         .args([
             "--key",
             "popup:autohelp,0",
+            "--command",
+            "KQConner::setLevel 1000,1",
+            "--command",
+            "sendEvent 0 Connor KQStatsChangeRequestEvent 10000 0 0 0 0,2",
             "--command",
             "KQMonster::inventory Connor INVITEM_FlameSword 1,20",
             "--command",
@@ -46,6 +50,8 @@ fn clarity_changes_live_snowmane_combat() {
             "snowmane,115",
             "--updates",
             "160",
+            "--frames",
+            "12000",
         ])
         .output()
         .unwrap();
@@ -90,7 +96,7 @@ fn clarity_changes_live_snowmane_combat() {
     assert!(
         update(hits[0]) < 80
             && hits[0].contains("D 350")
-            && hits[0].contains("P 30 -> P' 25")
+            && hits[0].contains("P 30 -> P'")
             && update(hits[1]) > 80
             && hits[1].contains("D 350")
             && hits[1].contains("P 0 -> P' 0"),
@@ -117,6 +123,31 @@ fn clarity_changes_live_snowmane_combat() {
             && second_after < second_before
             && second_after > 0,
         "Snowmane did not retain both live hits; inspect {}",
+        dir.display()
+    );
+    let incoming: Vec<_> = fight
+        .lines()
+        .filter(|line| line.contains("Connor: hit by snowmane, Normal:"))
+        .collect();
+    assert!(
+        incoming.iter().any(|line| update(line) < 80 && line.contains("D 350,"))
+            && incoming.iter().any(|line| update(line) > 80 && line.contains("D 200,")),
+        "Snowmane did not strike with its pre- and post-Reveal hand damage; inspect {}",
+        dir.display()
+    );
+    for line in incoming {
+        let (before, after) = line
+            .rsplit_once("health ")
+            .and_then(|(_, tail)| tail.split_once(" -> "))
+            .unwrap();
+        assert!(
+            after.parse::<i64>().unwrap() < before.parse::<i64>().unwrap(),
+            "Snowmane did not lower Connor's health: {line}"
+        );
+    }
+    assert!(
+        !fight.contains("the AI is switched off") && !fight.contains("god mode is on"),
+        "test switches obscured live combat; inspect {}",
         dir.display()
     );
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);

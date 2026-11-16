@@ -9574,3 +9574,26 @@ Connor's health both times. Its controlled Normal death still finished
 with no drop or corpse and 10,000 experience once; the earlier fiend
 hit and death checks passed in the same process. This release is
 test-controlled; the earned Swamp trap route remains untested.
+
+### M5 Snowmane Clarity under live enemy attack (2026-11-17)
+
+The current `snowmane_live_clarity` original-data route measures
+Flame Sword damage before and after Clarity reveals Snowmane, but it
+suppresses enemy AI and incoming damage. Reuse that same encounter and
+its two sword cues with normal AI and damage enabled. Give Connor a
+large health ceiling without god mode, then require Snowmane's own
+authored `Attack` Do hit to reduce his health as well as the two
+existing Fire hits and protection change. Diagnose once from numeric
+logs before changing assertions; if the active fighter displaces a
+sword cue, adjust the route from observed timing. This is a controlled
+Rust fight on original GOG data, not the earned Ice World approach or
+original-executable parity.
+
+Checked: the revised focused release test passed 1/1 in 15.11 seconds.
+Snowmane's own `Attack` Do hit Connor at update 39 for authored 350
+hand damage and again after the Clarity Reveal for 200 hand damage;
+both reduced health with AI and damage enabled. Connor's Flame Sword
+hit at updates 65 and 125, using Snowmane's protection 30 and 0
+respectively. The test-controlled high health ceiling kept Connor
+alive without god mode. The earned approach and original-executable
+parity remain untested.

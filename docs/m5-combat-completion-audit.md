@@ -42,6 +42,11 @@ attack. Controlled death verifies no drop, `gry_dead.kqs` corpse and
 zero experience. The preceding rescue trigger remains outside this
 combat fixture. The placed Icelord's script describes a cutscene, not
 an ordinary attack; it should not be force-killed to claim coverage.
+The existing `snowmane_live_clarity` process now keeps enemy AI and
+incoming damage enabled. Snowmane's own attacks lower Connor's health
+at 350 hand damage before Clarity and 200 afterward, while two real
+Flame Sword hits see its protection change from 30 to 0. The high
+health ceiling is test-controlled; the earned approach remains open.
 Static original-engine study of the Ice Henchman's chest sequence finds
 that terminal repeating `stop` leaves him in Special. Ordinary attack
 AI runs in Wait, and the installed chest script does not request Wait.

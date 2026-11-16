@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-17 Check Snowmane's live fight across Clarity (M5)
+
+The existing original-data Snowmane Clarity test now runs normal enemy
+AI and incoming damage. A high Connor health ceiling, without god
+mode, lets Snowmane land its own Normal `Attack` Do hits before and
+after Reveal: authored hand damage falls from 350 to 200, and both
+hits reduce Connor's health. Connor's two Flame Sword hits in the same
+process observe Snowmane protection 30 then 0. The focused release
+test passed 1/1 in 15.11 seconds; no production code or GOG file
+changed. Artifact: `kq8-artifacts/snowmane-live-clarity/1794872483214482300`.
+With `KQ8_GAME_DIR` set to the GOG install, run `cargo test --locked
+--release -p kq8-viewer --test snowmane_live_clarity -- --ignored
+--nocapture`; expect one passing test. The high health ceiling is
+test-controlled; the earned approach and original-executable parity
+remain untested.
+
 ## 2026-11-17 Link the Swamp bubble's live attack (M5)
 
 The combined fiend-and-bubble test had moved `swmpbb2a` near Connor,
