@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Measure the Tower Skeleton's unrelocated approach
+
+Two unattended diagnostics moved only Connor. The first process hit
+its frame cap before the planned swing. The second reached the
+installed skeleton's normal rise and eastward chase; a later westward
+Connor move let an ordinary Small Axe hit select `reactback`, but the
+skeleton remained on supported ground and did not fall. STATUS records
+the route and positions. A separate original-data collision-map check
+then located the east edge of `Tower2` between x=188000 and 188200 at
+the tested y coordinates. A straight chase stops too far from that edge
+for the 400-behind stagger probe. The one-off mapping test was removed;
+its ignored output is retained. This is a failed fall check, not a
+production change. No manual gameplay or GOG file changed.
+
 ## 2026-11-17 Prepare placed monster types for later additions
 
 `KQMonster::add` now reuses a type's already loaded model and movement

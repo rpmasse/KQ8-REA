@@ -1,5 +1,38 @@
 # STATUS
 
+## 2026-11-17 Unrelocated Tower Skeleton route handoff
+
+An unattended Dead City probe kept the installed `Skeltowr` actor at
+its original placement and moved only Connor. Cue 201 activated the
+actor. Connor moved east to (188000, 123776, 9593) at update 190; the
+skeleton walked east from (185481, 124053, 9593) and reached
+(187187, 123712, 9593) by update 236. Connor moved west to
+(186100, 123776, 9593) at update 268. The skeleton turned and walked
+west; Connor's update-283 Small Axe swing hit at update 288 and selected
+`reactback`, but the actor stayed on supported ground. It was at
+(186971, 123719, 9593) by update 309 and did not start the tower fall.
+The 400-update process exited PASS, meaning the viewer ran, not that
+the M5 fall gate passed. Logs are in the ignored
+`kq8-artifacts/tower-natural-probe-2` directory. A shorter scouting run
+with a 2,100-frame cap stopped before its scheduled swing and is in
+`kq8-artifacts/tower-natural-probe`.
+
+The earlier rope-side unrelocated swing also found support, so avoid
+more timing guesses. A separate original-data collision map passed
+1/1: at y=123712, 123776 and 124053, `Tower2` supports the top from
+x=182600 through 188000 (sampled every 200); x=182400 and 188200 have
+no support within 1,000 below z=9593. The actor's x=187187 chase stop
+and x=186971 stagger both leave its 400-behind probe on this platform.
+The 1,000-ahead walking guard makes a straight eastward lure insufficient
+to reach the 400-unit cliff band. Installed `monsters.kq` places
+`Skeltowr` at (185481, 124053, 9814); its `.kq` has no script field
+that moves it toward the cliff. Before another viewer route, identify
+a supported side approach or an authored displacement that reaches the
+band. The temporary diagnostic test was removed after recording its
+results; its ignored output remains in
+`kq8-artifacts/tower-support-profile-test.log`. No production code,
+manual gameplay or GOG file changed.
+
 ## 2026-11-17 M5 placed monster type additions
 
 The first Daventry Rock probe exposed a Rust loader gap: `goblin2` was
