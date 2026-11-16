@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Exercise a live Mandragor root fight
+
+Changed: added an unattended original-data Swamp route using the
+regional SkelKingSword, normal AI and damage, and scheduled camera-ray
+aims. It checks Connor's blocked first swing during a hit reaction,
+selection of the nearer root, three sword hit cues, temporary root
+death, timed rebirth, and incoming damage while Connor survives. Why:
+prior root rebirth checks used scripted lethal events and god mode.
+Tested how: from the worktree, set `$env:KQ8_GAME_DIR = (Resolve-Path
+"..\..\..\King's Quest 8 GOG").Path`, then run `cargo test --locked -p
+kq8-viewer --test mandragor_live_combat -- --ignored --nocapture`.
+Result: 1/1 passed in 53.73 seconds; the GOG Options.cs bytes stayed
+unchanged. The route starts directly in Swamp and schedules named
+aims, so campaign progression and physical mouse targeting remain
+open. No manual gameplay test was run.
+
 ## 2026-11-16 Queue projectile impact damage through the event service
 
 Changed: conventional bolt contacts now enqueue a zero-delay

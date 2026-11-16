@@ -3,6 +3,25 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Mandragor live root fight (2026-11-16)
+
+Exercise a Swamp root with the original regional SkelKingSword, normal AI,
+normal incoming damage, and named camera-ray aims. Require the swing picker
+to select the nearer left root even when the right root is named, then
+require three actual sword `Do` hits to defeat it. Keep Connor alive under
+ordinary attacks from both roots. Follow the temporary root Die through
+its own rebirth timer, restored health and restored collision. This is an
+isolated region route with scheduled aims, so it does not establish a
+campaign-earned encounter or physical mouse targeting. Check it with an
+unattended GOG-data test and leave the GOG installation unchanged.
+
+Checked: the original-data run passed 1/1 in 53.73 seconds. The first
+aim was blocked by Connor's ordinary hit reaction; later camera picks
+selected the nearer left root, and three SkelKingSword `Do` hits took it
+down. Both roots damaged Connor without god mode, and the left root
+completed its timed health and collision restoration. The test does not
+cover an earned campaign approach or physical mouse pixel targeting.
+
 ## M5 projectile contact event order (2026-11-16)
 
 Q212 establishes that an ordinary Fire or Ice bolt queues a targeted

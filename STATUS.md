@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 live Mandragor root fight
+
+An unattended GOG-data Swamp run now fights a root with the regional
+SkelKingSword and normal AI and damage. The first scheduled aim is
+blocked by Connor's hit reaction; the later camera picks select the
+nearer left root, which takes three actual sword cues, falls, and
+rebirths with restored health and collision. Both roots damage Connor,
+who survives. The isolated route passed 1/1 in 53.73 seconds and did
+not change the GOG Options.cs file. It does not prove an earned campaign
+approach or physical mouse targeting. No manual gameplay test was run;
+M5 remains approximately 65%.
+
 ## 2026-11-16 M5 original projectile hit queue
 
 The Q212 original-engine study establishes that Fire and Ice bolt
