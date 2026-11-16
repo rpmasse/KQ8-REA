@@ -1,5 +1,15 @@
 # Provenance
 
+**Placed monster type additions (2026-11-17).**
+[Characters rule 4](../behaviour/characters.md) identifies each
+`monsters.kq` line as the same operation as `KQMonster::add` and resolves
+its type through the global `Monstats.mtl` table. Installed Daventry
+data defines `goblin2` and places several goblins of that type. Rust
+now reuses their loaded model and movement recipe for a later addition.
+An unattended Daventry run created and drew one more goblin. This is
+loader coverage, not an original-executable comparison or a claim that
+unreferenced types are prepared.
+
 **Held Rock fighter contact (2026-11-16).**
 [Rock projectile rules 1–18](../behaviour/rock-projectiles.md) define the
 terrain-clipped aim, authored arc, Normal hit kind and contact handling;

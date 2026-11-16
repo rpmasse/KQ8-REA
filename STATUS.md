@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-17 M5 placed monster type additions
+
+The first Daventry Rock probe exposed a Rust loader gap: `goblin2` was
+defined in the installed `Monstats.mtl` and used by placed goblins, but
+the later `KQMonster::add` command could not create it. The loader now
+prepares the dynamic recipe from those placed actors. A focused release
+test passed 1/1 in 7.11 seconds, recording a new `testGoblin` with live
+AI and combat state and ten drawn model parts. This is a Rust check,
+not original-runtime parity. Types referenced by neither a placed
+monster nor an authored add command remain unprepared; that broader
+console/modding case is open. M5 remains about 65% complete. No manual
+gameplay or GOG-file write occurred.
+
 ## 2026-11-16 M5 ammunition and miss evidence
 
 The M5 audit now records that original ranged ammunition is unlimited,

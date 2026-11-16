@@ -24,7 +24,7 @@ rerun for this update; earlier pass results and limits are in `STATUS.md`.
 
 Two automated Daventry probes used the already passing Rock throw and
 recovery input. The first requested `KQMonster::add rockGoblin goblin2`;
-the world reported that type undefined, so there was no target. The
+the Rust world reported that type undefined, so there was no target. The
 second moved the installed `goblin22` to (277790, 198700, 13594) at update
 10. It then walked south to (277790, 197610, 13531) by update 48. Connor
 launched the Rock at update 59 from (277813, 198922, 15585). It met a
@@ -32,6 +32,13 @@ wall at (277783, 198618, 15574) on update 61, entered falling, and
 recovered on the floor at update 65. No enemy contact or damage occurred.
 Logs are in the ignored `kq8-artifacts/rock-enemy-probe` and
 `kq8-artifacts/rock-enemy-probe-2` directories.
+
+The first probe exposed a Rust loader gap, rather than an absent
+original type: installed `Monstats.mtl` defines `goblin2`, and the
+Daventry list places it. The 2026-11-17 loader change now prepares its
+model and movements for later `KQMonster::add` use. An unattended
+Daventry check created and drew `testGoblin` with live AI and combat
+state (1/1 passed); it did not repeat the Rock throw.
 
 The follow-up used the existing Dead City corridor where prior
 projectiles reached `skeleton1` at (183300, 45000, 864), and its logged

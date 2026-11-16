@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Prepare placed monster types for later additions
+
+`KQMonster::add` now reuses a type's already loaded model and movement
+recipe when that type appears in the world's monster list, even if no
+script explicitly adds it. This closes the Daventry `goblin2` failure
+found during the Rock contact probe. One unattended original-data
+Daventry test created `testGoblin` with AI and combat state and drew its
+ten-part model. The focused release test passed 1/1 in 7.11 seconds:
+`cargo test --locked --release -p kq8-viewer --test static_monster_add -- --ignored --nocapture`.
+Types absent from both the monster list and authored add commands are
+still outside the prepared set. No manual gameplay or GOG file changed.
+
 ## 2026-11-16 Correct the M5 ammunition and misses audit
 
 The M5 coverage audit now uses the original ranged-weapon rule that

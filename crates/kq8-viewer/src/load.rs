@@ -5038,6 +5038,10 @@ impl Placer<'_> {
                 }
             };
             self.list_files.insert(kind.file.to_ascii_lowercase());
+            // The same type can be named by a later KQMonster::add command.
+            // Its placed instance already supplies the model and movement
+            // recipe, even when no authored script mentions that type.
+            self.monster_add_targets.insert(kind.file.to_ascii_lowercase());
             let from = format!("{label} {} (type {}{}, file {})", line.key, kind.name, if folded { ", matched ignoring capitals" } else { "" }, kind.file);
             let sub = kq8_data::world_script::LoadKq {
                 file: kind.file.clone(),
