@@ -3,6 +3,25 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 live combat difficulty (2026-11-16)
+
+Use the same original Dead City bow-skeleton encounter as the live Small
+Crossbow check at Easy and Hard combat levels, alongside its existing
+Normal run. Keep enemy AI and Connor damage enabled. Check that the
+original skeleton's health and ranged damage scale by the authored
+factor while protection and experience stay fixed; check the outgoing
+damage roll range, real arrow hits, crossbow hits needed to win, and one
+death reward. Keep the GOG install unchanged. The command-line difficulty
+selector isolates the combat rule; menu selection is covered separately.
+
+Checked: the unattended GOG-data test passed 1/1 in 84.30 seconds. At
+Easy, the bow skeleton entered with 33 health and 6 ranged damage and
+died after two crossbow hits. At Hard, it entered with 75 health and 15
+ranged damage and died after five hits. Protection 10 and experience
+150 stayed fixed; both fights included actual enemy arrow damage and
+ended with a surviving Connor, one reward and the original corpse.
+The GOG Options.cs bytes stayed unchanged.
+
 ## M5 live Small Crossbow fight (2026-11-16)
 
 Run an unattended Dead City fight using Connor's original regional Small

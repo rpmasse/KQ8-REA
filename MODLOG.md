@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Verify Easy and Hard in live ranged combat
+
+Changed: added an unattended original-data Dead City fight at Easy and
+Hard combat levels with the same bow skeleton and Small Crossbow used by
+the Normal live-fight test. Why: the core scaling rule alone did not prove
+that a live enemy uses the selected difficulty's health, ranged damage
+and player damage-roll range while protection and experience stay fixed.
+Tested how: from the worktree, set `$env:KQ8_GAME_DIR = (Resolve-Path
+"..\..\..\King's Quest 8 GOG").Path`, then run `cargo test --locked -p
+kq8-viewer --test live_combat_difficulty -- --ignored --nocapture`.
+Result: 1/1 passed in 84.30 seconds. Easy used 33 health/6 ranged damage
+and took two player shots; Hard used 75/15 and took five. Both enemies
+fired damaging arrows, died once, awarded 150 experience and left the
+original corpse. The GOG Options.cs bytes stayed unchanged. No manual
+gameplay test was run.
+
 ## 2026-11-16 Verify live Small Crossbow combat
 
 Changed: added an unattended Dead City encounter using Connor's

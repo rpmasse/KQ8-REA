@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 live combat difficulty
+
+An unattended original-data Dead City check now runs the same live
+crossbow fight at Easy and Hard. The bow skeleton's health and ranged
+damage scale from 50/10 to 33/6 or 75/15, while protection and
+experience stay at 10/150. Connor took normal arrow damage and survived;
+the skeleton died from two player hits on Easy or five on Hard, each
+time producing one reward and its corpse. The test passed 1/1 in
+84.30 seconds and left GOG Options.cs unchanged. The test isolates the
+combat factor through the command-line option; it does not repeat the
+menu difficulty selection or an earned campaign encounter. No manual
+gameplay test was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 live Small Crossbow fight
 
 An unattended original-data Dead City encounter now readies Connor's
