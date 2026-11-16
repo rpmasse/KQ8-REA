@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 Lucreto form survives a disk checkpoint
+
+An unattended original-data run saved the close-range Temple 4
+Lucreto fight and loaded it in a fresh process. The slot retained both
+actors at the same place, with the close form shown and the ranged form
+hidden. After reload, the close form attacked; moving Connor beyond its
+2,000-unit change distance switched to the ranged form, which fired a
+projectile. The two-process check passed 1/1 in 61.53 seconds. God mode
+kept this isolated fixture alive, so incoming damage, earned campaign
+entry and original binary-save compatibility were not tested. The GOG
+Options.cs bytes stayed unchanged. No manual gameplay test was run;
+M5 remains about 65%.
+
 ## 2026-11-16 M5 final Lucreto trap victory
 
 An unattended original-data test passed 1/1 in 74.80 seconds with enemy

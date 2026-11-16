@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Preserve both Lucreto forms through a disk save
+
+Changed: added an unattended Temple 4 checkpoint test for the active
+close-range Lucreto form and its hidden ranged partner. Why: the live
+form-cycle check stopped before save and reload, leaving boss fight
+continuation unverified. Tested how: set `$env:KQ8_GAME_DIR =
+(Resolve-Path "..\..\..\King's Quest 8 GOG").Path`, then run `cargo test
+--locked -p kq8-viewer --test lucreto_form_checkpoint -- --ignored
+--nocapture` from this worktree. Result: 1/1 passed in 65.75 seconds;
+after strengthening assertions for the saved visibility and restored
+close-form attack, 1/1 passed again in 61.53 seconds. The first slot
+held both forms at the same place, the fresh process resumed close-form
+attacks, and distance triggered the ranged form and its bolt. God mode
+kept this fixture alive; normal damage, earned campaign entry and
+original binary-save compatibility were not tested. The original GOG
+Options.cs bytes were unchanged. No manual gameplay test was run.
+
 ## 2026-11-16 Reach the final vortex with live Lucreto combat
 
 Changed: added an unattended Temple 4 fixture that starts the shipped

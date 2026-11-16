@@ -1,5 +1,13 @@
 # Provenance
 
+**Lucreto form save continuation (2026-11-16).** The installed Temple 4
+altar Cue 6/7 and Lucreto files were read from the user's GOG copy. An
+unattended two-process Rust check saved the live close-range form, then
+reloaded it and observed a close attack followed by the authored
+distance switch and ranged bolt. The saved actors had matching positions
+and opposite visibility. This verifies the Rust checkpoint only; it is
+not an original-executable comparison or native binary-save check.
+
 **Mandragor tree standing AI (2026-11-16).** The separate
 [Mandragor study](../behaviour/mandragor.md) establishes that the tree
 retains common monster update, Wait and Attack, but its shipped list

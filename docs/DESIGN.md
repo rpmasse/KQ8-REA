@@ -3,6 +3,25 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Lucreto form save continuation (2026-11-16)
+
+Start the installed Temple 4 final altar and move Connor into the
+close-range Lucreto form. Save while the close form is active, then start
+a fresh viewer process from that slot. The near form must still be the
+visible, attacking fighter with the far form hidden. Move Connor outside
+the authored change distance and require the far form to take over and
+fire its original projectile. Check that both actors share the saved
+place and that the original GOG Options.cs remains unchanged. Use
+automated original-data runs only. This is an isolated encounter
+checkpoint, not an earned campaign route or an original binary save.
+
+Checked: the two-process GOG-data route passed 1/1 in 61.53 seconds.
+The first slot kept close Lucreto visible and far Lucreto hidden at the
+same place. The fresh process resumed close-form attacks before Connor
+moved away, then switched to the ranged form and fired a bolt. God mode
+kept the fixture alive; ordinary incoming damage and earned campaign
+entry were not tested. GOG Options.cs was unchanged.
+
 ## M5 live Skeleton King victory across a disk save (2026-11-16)
 
 Use the same original-data Temple Armour fight that already exercises
