@@ -3,6 +3,21 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Daventry outhouse encounter check (2026-11-17)
+
+Use one unattended original-data process for the placed `sprdump` actor.
+Move Connor to the outhouse and click its original `outdoor` door. Check
+the starting zero alarm radius, the door script's reveal and `Special
+dump` request, the `EndLoop dump` callback that sets all three combat
+radii to 8,000, and a later normal AI hit that reduces Connor's health.
+Then apply one controlled Normal killing blow and check its authored
+no-drop, corpse and 23-experience outcome. Keep the cutscene, fight and
+death assertions together because they form one scripted encounter;
+do not add another world load or change installed game data. If the
+source-backed sequence exposes a Rust gap, fix that gap before marking
+the scenario covered. This automated check does not establish parity
+with a running original executable.
+
 ## M5 Barren Henchman death-listener continuation (2026-11-17)
 
 The existing Barren chest-cue combat run begins at the original

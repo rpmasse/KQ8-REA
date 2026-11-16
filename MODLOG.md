@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-17 Link Daventry's scripted outhouse fight (M5)
+
+Added one original-data test that clicks the outhouse door, observes
+the hidden Spriggan's `dump` cutscene and three 8,000-unit combat
+radii, then checks a live Normal hit, a no-drop death, its corpse and
+23 experience. The release test passed 1/1 in 19.94 seconds; logs are
+in `kq8-artifacts/daventry-outhouse-live/1794868788582917300`.
+Updated the placed-enemy matrix and combat audit. No production code
+or GOG file changed. With `KQ8_GAME_DIR` set to the GOG install, run
+`cargo test --locked --release -p kq8-viewer --test daventry_outhouse_live
+-- --ignored --nocapture`; expect one passing test. The running
+original executable was not tested.
+
 ## 2026-11-17 Resolve Dead City Spirit from its animation data (M5)
 
 After two failed assumptions about Spirit's hit and death, read the

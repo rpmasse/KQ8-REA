@@ -54,6 +54,14 @@ and 500 experience. The same process now asserts the placed vulture's
 zero alarm and attack distances, active wandering at update 34 and no
 attack or Connor hit before its controlled death at update 130. This
 links its nonattacking interval without forcing an invented attack.
+The `daventry_outhouse_live` route clicks the installed outhouse door
+and checks the placed hidden `sprdump` actor's `Special dump` scene.
+Its EndLoop callback raises alarm, home and chase radii from zero to
+8,000; normal AI then deals a named 15-point Normal hand hit that
+lowers Connor's health. The same process checks its no-drop Normal
+death, `spd_deth.kqs` corpse and one 23-experience award. This is a
+scripted encounter from the original data, not a forced ordinary
+spawn; the running original executable remains untested.
 The `barren_henchman_live` route starts at the installed chest reveal
 cue, observes the hidden Henchman's Special list finish and an ordinary
 125-point Normal hit, then checks his three-item drop, corpse and

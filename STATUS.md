@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Daventry outhouse encounter
+
+The one-process `daventry_outhouse_live` release test passed 1/1 in
+19.94 seconds. The original door script revealed the placed hidden
+`sprdump` on update 8. Its `dump` EndLoop raised alarm, home and chase
+radii from zero to 8,000 on update 88. Normal AI hits on updates 115
+and 145 lowered Connor's health 10,000 → 9,993 → 9,982. A controlled
+Normal kill at update 165 gave no drop; death completed on update 203
+with `spd_deth.kqs` and 23 experience. No production code or GOG file
+changed. Logs: `kq8-artifacts/daventry-outhouse-live/1794868788582917300`.
+The running original executable was not compared. M5 remains incomplete.
+
 ## 2026-11-17 M5 Dead City Spirit source-backed resolution
 
 The installed `spirit.anm` has one sound cue in its `attack` movement
