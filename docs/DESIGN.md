@@ -3,6 +3,54 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Barren ant birth and combat (2026-11-16)
+
+Use the installed Barren `ant1` actor at its authored position with
+normal enemy AI and Connor damage enabled. Place Connor within the
+actor's strict 3,000-unit alarm radius, let the hidden Birth state
+raise the ant, and require its ordinary movement and melee `Do` hit.
+Supply the original Flame Sword through a script command and use real
+targeted hand inputs after the ant has attacked. Require its authored
+220 health and 41 protection, one completed death, one Crystal drop
+and one 5,000-experience reward. Keep original GOG data read only.
+This is a controlled original-data Rust fight, not an earned Barren
+route or comparison with the original executable.
+
+Stop/handoff: two unattended sword routes saw `ant1` rise and land
+ordinary melee hits, but `--aim ant1` selected `anthill.01` on every
+attempt. Changing Connor's test heading did not move the camera line
+away from the hill; no ant damage or death was observed. Do not try
+more timing or heading variations before establishing the intended
+camera/target line at this authored anthill. The observed Birth and
+incoming-hit steps are useful evidence, but the planned full fight
+has not passed.
+The existing `--swing` test helper picks a named live character's
+current feet without a camera ray. It can check the ant's damage,
+death and reward path separately, while leaving the camera-selected
+fight open and clearly labelled as such.
+That controlled direct-pick route passed 1/1 in 18.58 seconds. Normal
+AI raised `ant1` and landed a hit on Connor; two authored Flame Sword
+hits killed it, the Fire death threw one Crystal, and its completed
+death awarded 5,000 experience once. No god mode, AI suppression or
+manual play was used. Two later swings while it was dying had no
+further death or reward effect.
+
+## M5 Barren hammer-dwarf live fight (2026-11-16)
+
+Use the installed Barren `hidwarf` (`dwarfham.kq`) at its authored
+position and normal enemy AI. Place Connor within its 5,000-unit alarm
+radius, supply the original Temple Sword and Invulnerable item, then
+use named camera-picked hand attacks after the dwarf can fight.
+Require its ordinary 110-point melee attack, incoming damage to Connor
+under the shield, the authored 1,100 health and 31 protection, then
+one death, Sacred Water and War Hammer drops, a corpse and one
+30,000-experience award. The original GOG files stay read only. This
+is a controlled encounter, not an earned Barren campaign route.
+An initial `--aim hidwarf` route could not reach this fight: the camera
+line hit a building before the dwarf on every aim. No dwarf damage or
+death was observed. Do not repeat timing variations until there is a
+source-backed camera route or unobstructed authored approach.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

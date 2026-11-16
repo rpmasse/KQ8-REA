@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Verify Barren ant birth and combat without camera-line assumptions
+
+Added one unattended original-data Windows regression for Barren's
+hidden `ant1`. Normal AI raised the ant, it hit Connor, two Flame Sword
+hits killed it, its Fire death threw one Crystal, and completion awarded
+5,000 experience once. The release check passed 1/1 in 18.58 seconds:
+`cargo test --locked --release -p kq8-viewer --test barren_ant_live --
+--ignored --nocapture`. The test uses the existing direct named swing
+pick. Two preceding camera-picked sword probes hit `anthill.01` rather
+than the ant; a Barren hammer-dwarf camera probe hit a building before
+the target. Those camera-selected fights remain open. No game logic,
+manual gameplay or GOG files were changed.
+
 ## 2026-11-16 Check walking, running and backing for every weapon bank
 
 Extended the original-data weapon route to select three ordinary drawn

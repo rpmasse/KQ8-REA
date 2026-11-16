@@ -1,5 +1,15 @@
 # Provenance
 
+**Barren ant controlled fight (2026-11-16).** [Character-movement rule
+30](../behaviour/character-movement.md) defines the hidden Birth and
+rise, and [fighting rules 13–32](../behaviour/fighting.md) define melee
+hits, death, drops and experience. The installed Barren monster list
+places `ant1` and supplies its 220 health, 41 protection, Crystal drop
+and 5,000 experience. One unattended Rust run with normal AI and damage
+verified those transitions through a direct named swing pick. The
+authored anthill blocks the current camera-selected test ray, so that
+input route and original-executable comparison remain open.
+
 **Late weapon-bank walking (2026-11-16).** [Ranged-weapons rule
 10](../behaviour/ranged-weapons.md) switches Connor's ordinary movement
 list with his weapon. The installed `GAME/Kq/Connor.kq` maps 22 real

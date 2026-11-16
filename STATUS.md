@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-16 M5 Barren ant controlled fight
+
+An unattended Barren run now verifies `ant1`'s Birth, movement, melee
+damage to Connor, two-hit Flame Sword defeat, Crystal drop and single
+5,000-experience reward. The release test passed 1/1 in 18.58 seconds
+with normal AI and damage enabled. Its named swing helper skips the
+camera ray; the camera-selected route remains blocked by the authored
+anthill. A separate hammer-dwarf probe's camera line hit a building,
+so its live fight is also open. M5 remains about 65%; no manual test
+or GOG-file write occurred.
+
+## 2026-11-16 M5 Barren ant target-line handoff
+
+An unattended original-data probe made Barren's hidden `ant1` rise at
+update 19, move toward Connor and deliver ordinary melee hits. Two
+sword routes could not test its defeat: each named aim selected
+`anthill.01` from the camera instead of the moving ant, and a changed
+Connor heading left the camera line at the hill. The ant death, Crystal
+drop and reward are not tested. The next step needs a source-backed
+camera/target-line setup rather than more timing guesses. M5 remains
+incomplete; no manual gameplay test or GOG-file write occurred.
+
 ## 2026-11-16 M5 ordinary weapon movements
 
 One unattended original-data Windows process now checks all 22 real

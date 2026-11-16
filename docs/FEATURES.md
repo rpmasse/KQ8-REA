@@ -767,6 +767,10 @@ too). Details and numbers in `kq8-artifacts/logs/characters.log`.
 
 ## The fight (milestone M5, step 5c, 2026-10-20)
 
+- A controlled original-data Barren ant fight now covers its hidden
+  Birth, approach, melee hit, Fire death, Crystal drop and one reward.
+  Its camera-picked targeting at the anthill remains open.
+
 From `docs/behaviour/fighting.md` (A, 2026-10-20). Every attack, hit,
 miss, roll, flinch, death, drop and shot is in
 `kq8-artifacts/logs/fight.log`. **Checked in the logs only, not by eye.**
