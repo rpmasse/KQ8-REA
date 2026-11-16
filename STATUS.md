@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-17 M5 progress recalibration
+
+The README's M5 estimate is now ~80%, up from a stale ~65%. The earlier
+number did not reflect the added Dragon and Mandragor combat controllers,
+elemental projectiles and effects, terrain hazards, combat save paths,
+and the many installed-data encounters recorded below. This estimate
+is qualitative, not a test-pass fraction or a completion claim. The
+M5 audit now separates distinct combat-rule gaps from repeated
+placement variants, M6 earned routes and M7 original-runtime parity.
+No production code or original GOG file changed in this recalibration;
+the documented M5 gate remains open. Documentation was inspected but
+no test was run for this documentation-only change.
+
 ## 2026-11-17 M5 elemental enemy bow starts
 
 The existing Barren and Ice World combat process now asserts that two

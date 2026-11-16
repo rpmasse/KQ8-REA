@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-17 Recalibrate M5 and narrow the completion gate
+
+Raised the stale README estimate from ~65% to ~80% after reviewing the
+implemented combat systems, original-data encounter checks and the
+remaining distinct rule gaps. The M5 audit and plan now prioritize
+special enemy behavior and distinct death/drop mechanisms, while
+placing earned routes in M6 and final parity in M7. No production code
+or GOG file changed. Documentation-only change; not tested. To check
+it, run `rg -n 'M5 · Recreate combat|M5 finish strategy|Current gate and next work' README.md docs/DESIGN.md docs/m5-combat-completion-audit.md`;
+expect the ~80% README row and both new planning sections.
+
 ## 2026-11-17 Assert elemental enemy bow launch parts (M5)
 
 Extended the existing Barren/Ice World encounter check to assert the

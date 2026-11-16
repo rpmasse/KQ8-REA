@@ -1,5 +1,26 @@
 # M5 combat completion audit
 
+## Current gate and next work
+
+As of 2026-11-17, M5 is estimated at **~80%**. The old ~65% README
+figure was left unchanged while major M5 behavior was added: Dragon and
+Mandragor controllers, enemy attacks and reactions, elemental effects,
+terrain hazards, combat save continuation and original-data fights.
+This is a qualitative estimate, not a passing-test ratio. The gate in
+`DESIGN.md` still requires a scenario link for each distinct weapon and
+enemy rule.
+
+| Gate area | Current evidence | Work before M5 completion |
+| --- | --- | --- |
+| Shared melee, ranged, equipment, damage, potions and game over | Original-data encounters and the fighting/ranged rule maps exercise the main branches. | Close a documented *distinct* rule only where its present assertion is partial or the Rust behavior is missing; do not enumerate every placement with the same rule. |
+| Specialized enemies and combat receivers | Dragon, Mandragor, Lucreto, Skeleton King, Snowmane, Weeper and ordinary-object checks cover their principal attacks, deaths and several Rust save boundaries. | Resolve the remaining Q209/Q210/Q212 behavior that can change a shipped encounter, including death-phase collision/visibility and save continuation; check specialized receiver boundaries where the original study identifies a different rule. |
+| Death, drops and combat scripts | Grouped original-data scenarios cover no drop, tossed items, laid weapons, corpses, one-time experience and game over. | Inventory remaining *distinct* death or drop mechanisms and link each to one grouped scenario; data-only placement variants using an already checked mechanism do not each need a new combat test. |
+
+The next implementation should target the first uncovered behavior found
+in those two latter rows. Earned routes belong to M6; original-runtime
+comparison and presentation parity belong to M7. The detailed history
+below records narrower assertions without turning each into a new gate.
+
 2026-11-17. This is an inventory of **automated Rust evidence**, not a
 claim of original-game parity. M5's gate in `DESIGN.md` requires melee and
 ranged hits and misses, ammunition, health changes, potion expiry, rewards,

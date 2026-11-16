@@ -5236,6 +5236,18 @@ Inventory the original weapons, ammunition, enemy attacks, damage rules and diff
 
 **Completion check.** Replay controlled melee and ranged encounters. Check hits and misses, ammunition, health before and after impact, potion expiry, rewards, drops and game-over transitions. Link every weapon and enemy rule to a passing scenario.
 
+**M5 finish strategy (2026-11-17).** Count distinct combat behavior, not
+the number of installed monster placements or extra assertions added to
+an already covered branch. Finish the remaining specialized enemy,
+damage-receiver, death/drop and save-continuation rules with a small
+number of grouped original-data scenarios. Keep earned quest approaches
+in M6 and final comparison with the running original in M7. Do not add
+another same-rule placement check solely to raise an M5 percentage.
+The README's ~80% is a qualitative implementation estimate based on the
+current rule maps and special-encounter checks; it is not a fraction of
+the 595 placement rows or of all tests passing. The completion gate
+above remains unchanged.
+
 The current evidence and remaining distinct gaps are in
 [M5 combat completion audit](m5-combat-completion-audit.md). Use that
 inventory to select source-backed checks without rerunning whole matrices.
