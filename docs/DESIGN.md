@@ -456,11 +456,23 @@ Knight scene when the bow actor dies and moves Connor far from the lane.
 
 The same lane was attempted twice with the installed `zograv2` Zombie.
 Relocating it and then requesting Wait did not produce a live attack;
-both runs showed only its forced death and two mushroom drops. Keep
-its Birth/activation and live attack open for a separate source-backed
-investigation. The first combined order killed the bow actor before
+both runs showed only its forced death and two mushroom drops. The
+later reordered run below identified the bow death script's relocation
+of Connor as the cause. The first combined order killed the bow actor before
 the melee actor; its script moved Connor away and the melee death did
 not finish by update 530. The reversed order completed both deaths.
+
+## M5 Daventry Zombie before the scripted Spriggan death (2026-11-17)
+
+The previous `zograv2` attempts ran after `sprigan2.cs` moved Connor far
+from the encounter lane. Extend the one-process Daventry fixture by
+relocating this installed Zombie before either Spriggan death. Keep
+Connor 900 units away, move the Zombie's home with it, and let its
+authored Birth and ordinary AI run without forcing Wait. Require a
+live Normal health loss, its two distinct mushroom drops, `zdead.kqs`
+corpse and one 2-experience award. Then run the melee Spriggan followed
+by the bow Spriggan, whose death script starts the Knight scene. This
+does not establish the Zombie's earned approach.
 
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 

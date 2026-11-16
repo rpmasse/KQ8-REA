@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Link Daventry Zombie Birth and combat (M5)
+
+The previous Zombie attempts occurred after the bow Spriggan's death
+script moved Connor roughly 100,000 units away. Reordered the existing
+Daventry fixture to run the placed `zograv2` first, then melee
+`sprigan1`, then bow `sprigan`. In one unattended original-data process,
+the Zombie rose from Birth, landed two Normal hits, dropped two
+Mushrooms and completed its `zdead.kqs` corpse and 2-experience award.
+The two Spriggans retained their live hits, distinct drops, corpses and
+7/12 experience. The release test passed 1/1 in about 43 seconds;
+`Options.cs` was unchanged. No production code or GOG file changed.
+With `KQ8_GAME_DIR` set, run `cargo test --locked --release -p
+kq8-viewer --test daventry_enemy_variants_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Trace Ice World Henchman terminal Special (study A, Q220)
 
 The authorized study agent traced the installed executable's Special
@@ -23,9 +37,8 @@ after its relocation, with the same result. That actor's activation
 remains unresolved. The first encounter order let the bow death script
 move Connor far away before the melee death finished, even by update
 530. Reversing the encounter order completed both deaths. No production
-code or GOG file changed. With `KQ8_GAME_DIR` set, run
-`cargo test --locked --release -p kq8-viewer
---test daventry_spriggan_variants_live -- --ignored --nocapture`.
+code or GOG file changed. The fixture was later extended to include
+the Zombie, as described above.
 
 ## 2026-11-17 Verify Ice World icewater plain click (M5)
 

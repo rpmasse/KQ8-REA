@@ -87,15 +87,16 @@ The Ice World `icewater_plain_click` process opens the installed
 After the authored cutscene releases controls and Connor readies the
 Small Crossbow, the aim pick invokes `icewater.cs` with no bolt. This
 links the object-name branch of ranged rule 15.
-The combined Daventry `daventry_spriggan_variants_live` process links
+The combined Daventry `daventry_enemy_variants_live` process links
 the second placed bow Spriggan type to live `Prscbolt.kq` Projectile
 health loss, no-drop death, corpse and 12 experience. The placed
 `sprigan1` lands Normal hits, drops its six Silver Coins and completes
-its corpse and 7-experience award. The first order let the bow's death
-script move Connor away before the melee death completed; reversing
-the order allowed both deaths to finish. A nearby `zograv2` remained
-without a live attack in two controlled attempts, including an explicit Wait request, so
-that zombie's Birth and alarm route remains open.
+its corpse and 7-experience award. The placed `zograv2` rises from Birth,
+lands Normal hits, drops two Mushrooms and completes its corpse and
+2-experience award. All three were relocated into the measured lane.
+The first order let the bow's death script move Connor away before the
+other deaths completed; putting the Zombie and melee Spriggan first
+completed all three in one process. Earned routes remain untested.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |
