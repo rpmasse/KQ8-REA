@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Dead City Spirit source-backed resolution
+
+The installed `spirit.anm` has one sound cue in its `attack` movement
+and no `Do` hit cue. The expanded seven-fighter Dead City release test
+passed 1/1 in 78.73 seconds. Placed `spirit1` started close-range
+attacks at updates 887, 943, 999 and 1055 with no Connor hit; a
+controlled 100,000-point Normal event at update 1000 caused zero loss
+at its 100 protection, leaving health at 1,000. The two earlier failed
+assumptions remain documented below. This resolves the Rust
+original-data encounter expectation; original-executable gameplay
+was not tested. M5 remains incomplete.
+
 ## 2026-11-17 M5 Barren Vulture zero-range behavior
 
 The existing combined `barren_ant2_vulture_live` release test passed

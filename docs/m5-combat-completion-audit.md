@@ -83,6 +83,13 @@ The same Dead City process now checks an installed hammer skeleton's
 second Attack while Connor holds Back: the Do cue hits at 1,086 units,
 outside its normal 1,000-unit reach and inside the logged 1,250-unit
 extended reach. The seven death and reward checks still pass.
+The same Dead City run now checks the placed `spirit` family after the
+other seven fighters. Its installed `spirit.anm` attack has only a
+sound cue, no `Do`; the actor started four close-range attacks without
+damaging Connor. A controlled 100,000-point Normal hit caused zero
+loss at its 100 protection. This source-backed check resolves the
+earlier failed expectation that Spirit should land an ordinary hit or
+die from that Normal event.
 One Gnome process now links the placed `sprigsurprise` and `zombiepit1`
 families. Both land authored Normal hits on living Connor before their
 controlled deaths. The test checks the Spriggan's 65 Silver Coins,

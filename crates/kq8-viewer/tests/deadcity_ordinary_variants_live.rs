@@ -1,5 +1,6 @@
-//! Seven placed Dead City melee variants share one original-data combat run.
+//! Seven placed Dead City fighters and one Spirit share an original-data run.
 use std::{fs, path::Path, process::Command};
+use kq8_data::{kq_text, GameDir, VolArchive};
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
@@ -7,6 +8,18 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
     let game =
         fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let options = fs::read(game.join("Options.cs")).unwrap();
+    let install = GameDir::open(&game).unwrap();
+    let vol = VolArchive::open(&install.volume_path("DeadCity", "kq").unwrap()).unwrap();
+    let patches = install.patch_files("DeadCity").unwrap();
+    let spirit_anm = if let Some(path) = patches.get("spirit.anm") {
+        fs::read(path).unwrap()
+    } else {
+        vol.unpack(vol.find("spirit.anm").unwrap()).unwrap().data
+    };
+    let sections = kq_text::parse(&spirit_anm);
+    let attack = sections.iter().find(|s| s.name.eq_ignore_ascii_case("movement0")).unwrap();
+    assert_eq!(attack.get("nCue"), Some("1"));
+    assert_eq!(attack.get("cue0"), Some("0.00 playsound sprtroam.wav"));
     let nonce = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
@@ -70,12 +83,18 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
             "KQMonster::setHome stinky 183300 45000 864,640",
             "--command",
             "sendEvent 0 stinky KQAttackEvent Connor 0 100000 0,780",
+            "--command",
+            "move spirit1 0 182700 45000 864 0 0 0,850",
+            "--command",
+            "KQMonster::setHome spirit1 182700 45000 864,850",
+            "--command",
+            "sendEvent 0 spirit1 KQAttackEvent Connor 0 100000 0,1000",
             "--hold",
             "-1,0,0,421,424",
             "--updates",
-            "900",
+            "1100",
             "--frames",
-            "25000",
+            "31000",
         ])
         .output()
         .unwrap();
@@ -284,6 +303,15 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
             1
         );
     }
+    assert!(fight.contains("spirit1: fights (rule 2): stats [1000, 20, 20, 100, 0]")
+        && fight.matches("spirit1: attack (rule 7, standing): Connor 479 away (closer than 750)").count() >= 2
+        && !fight.contains("spirit1: Do (Attack")
+        && !fight.contains("Connor: hit by spirit1,")
+        && fight.lines().any(|line| line.contains("spirit1: hit by Connor, Normal: D 100000,")
+            && line.contains("P 100: no loss, loss 0")
+            && line.contains("health 1000 -> 1000"))
+        && !fight.contains("spirit1: dies (rule 30)"),
+        "the placed Spirit did not follow its sound-only Attack and full protection; inspect {}", dir.display());
     assert!(
         !fight.contains("god mode is on"),
         "god mode obscured combat; inspect {}",

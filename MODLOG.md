@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Resolve Dead City Spirit from its animation data (M5)
+
+After two failed assumptions about Spirit's hit and death, read the
+installed GOG `DeadCity/kq/spirit.anm` directly. Its `attack` movement
+has only a `sprtroam.wav` sound cue and no `Do` hit cue. Extended the
+existing seven-fighter Dead City process with a placed Spirit at 479
+units, four sound-only Attack starts, no Connor damage, and a
+100,000-point Normal hit blocked by its 100 protection. The test also
+asserts the original animation cue data. Its release run passed 1/1
+in 78.73 seconds; the prior seven death/reward checks remained intact.
+Logs are in
+`kq8-artifacts/deadcity-ordinary-variants-live/1794867806732669300`.
+No production code or GOG file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test
+deadcity_ordinary_variants_live -- --ignored --nocapture`; expect one
+passing test. Original-executable gameplay parity is not tested.
+
 ## 2026-11-17 Check Barren Vulture's zero attack range (M5)
 
 Extended the existing ant/Vulture original-data test without adding a

@@ -5255,7 +5255,7 @@ The windmill checkpoint also covers movable props. Push the bale, collect the ax
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
 
-#### Dead City Spirit placed-family check (2026-11-17, stopped after two attempts)
+#### Dead City Spirit placed-family check (2026-11-17, resolved from source data)
 
 The installed Dead City monster list places five `spirit` fighters. The
 read-only character inventory reports 1,000 health, 20-point melee damage,
@@ -5267,10 +5267,30 @@ Spirit was 1,079 units from Connor, beyond its 750 reach; its 100
 protection made a 100,000-point Normal hit cause zero loss. In the second,
 Spirit was 479 units away and started four `Attack` movements, but none
 produced a `Do` hit cue or Connor health loss. The Normal event again
-left Spirit at 1,000 health. Stop this route under the two-attempt rule;
-the previous seven-actor test is restored. Study the installed Spirit
-attack movement/cues and the original encounter before choosing a new
-assertion. The running-original behavior remains unverified.
+left Spirit at 1,000 health. The route then stopped under the
+two-attempt rule; the previous seven-actor test was restored while
+the installed Spirit cues were marked for study. The running-original
+behavior remains unverified.
+
+**Source-backed continuation, 2026-11-17.** Read the installed
+`DeadCity/kq/spirit.anm` from the GOG archive. Its `movement0=attack`
+has `nCue=1`, and `cue0` only plays `sprtroam.wav`; it has no `Do`
+cue. The second diagnostic's four close-range `Attack` movements with
+no hit therefore match the authored movement, rather than proving an
+AI failure. Extend the existing seven-actor process at its end, and
+assert this source cue, the placed actor's repeated close-range attack
+starts, no `Do` or Connor health loss, and the 100-protection Normal
+hit leaving Spirit at 1,000 health. Keep the two failed attempts in
+the record. This check resolves the Rust original-data route, while
+the running original remains untested.
+
+The extended combined release check passed 1/1 in 78.73 seconds. The
+GOG `movement0` contains only the `sprtroam.wav` cue. In the same
+process as the seven existing fighters, placed `spirit1` began Attack
+at updates 887, 943, 999 and 1055 from 479 units away, with no `Do`
+cue or Connor hit. The controlled Normal event at update 1000 left
+its health 1,000 → 1,000. No original-executable gameplay comparison
+was made.
 
 #### Choice movement-end callback (2026-11-06, implemented)
 
