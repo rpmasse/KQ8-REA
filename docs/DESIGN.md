@@ -3618,6 +3618,20 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Henchman projectile refusal (2026-11-16, checked).** Use the original
+Daventry Henchman actor at his scripted post-scene position and fire
+an ordinary Small Crossbow bolt at him. Q190's studied rule requires
+collision type `0x4042` to turn its damage to zero, deliver the
+`ProjImmune` callback and play `laugh` without lowering health. Then
+use an ordinary hand hit to confirm the same actor can lose health in
+melee. Keep the installed GOG files read-only; this controlled combat
+check does not replace the earned Henchman victory route.
+The unattended two-run original-data check passed 1/1. A Small Crossbow
+bolt touched Henchman as type `0x4042`, left his health 300, delivered
+`ProjImmune` and completed `laugh`. A separate ordinary Small Axe swing
+reduced his health 300 to 281. The test uses protected placement and
+does not compare against a running original executable.
+
 **Daventry live fight save continuation (2026-11-16, checked).** Save the live
 `goblin22` fight after two ordinary Small Crossbow hits, while the
 goblin's next attack is running. Require the slot to retain the

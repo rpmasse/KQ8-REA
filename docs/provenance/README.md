@@ -1,5 +1,14 @@
 # Provenance
 
+**Henchman projectile refusal (2026-11-16).** The separate
+[Henchman study](../behaviour/henchman.md) Q190 rule 13 establishes
+projectile immunity from collision type `0x4042`, delivery of the
+installed `henchman.cs` `ProjImmune` callback and the `laugh` movement,
+while normal melee remains damageable. The unattended test
+`crates/kq8-viewer/tests/henchman_projectile_refusal.rs` uses the GOG
+actor and script at the studied post-scene placement. It verifies the
+Rust paths but does not compare with a running original executable.
+
 **Live goblin combat checkpoint (2026-11-16).** The same installed
 Daventry `goblin22` data and [fighting rules](../behaviour/fighting.md)
 underlie the two-process combat check in

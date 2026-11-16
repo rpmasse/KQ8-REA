@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Verify Henchman projectile refusal against melee
+
+Changed: added an unattended original-data test for Daventry's
+Henchman. It fires a normal Small Crossbow bolt at his scripted
+post-scene placement, then in a separate run lands a normal Small Axe
+swing. Gameplay code was unchanged. Why: the projectile-immunity bit
+must trigger his installed `ProjImmune` script and `laugh` without
+granting a general shield against hand weapons.
+Tested how: set `KQ8_GAME_DIR` to the GOG folder and run `cargo test
+--locked -p kq8-viewer --test henchman_projectile_refusal -- --ignored
+--nocapture`. It passed 1/1 in 70.44 seconds. The bolt contacted type
+`0x4042`, dealt zero damage and left health 300; `laugh` completed.
+The axe hit lowered health 300 to 281. A first melee probe started
+beyond Connor's 2350-unit reach and missed; the closer probe succeeded.
+GOG `Options.cs` was unchanged. No manual gameplay or original-binary
+comparison was run; this does not complete M5.
+
 ## 2026-11-16 Verify a live goblin fight through disk reload
 
 Changed: added an unattended two-process GOG-data check that saves

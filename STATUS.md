@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 Henchman projectile refusal and melee contrast
+
+An unattended two-run original-data check passed 1/1 in 70.44 seconds.
+The Small Crossbow bolt contacted the original Daventry Henchman, whose
+collision type `0x4042` made its damage zero and kept health 300. His
+installed `henchman.cs` received `ProjImmune`, played `laugh` and reached
+its end callback. In a separate run, an ordinary Small Axe swing landed
+and lowered his health from 300 to 281. The first melee probe began
+outside Connor's reach; the closer placement used in the test landed.
+GOG `Options.cs` was unchanged. This is a controlled Rust encounter
+check, not a new earned victory route or an original-executable
+comparison. No manual gameplay was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 live Daventry fight across a disk save
 
 An unattended two-process original-data check now saves the active
