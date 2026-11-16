@@ -56,8 +56,23 @@ body's file sets `isActive3D=1`, `noTurn=1`, `monUseGravity=0`,
 `isActive3D=1`, `noTurn=1`, and `colliderMask=0`. The head constructor
 also sets a special collision type containing the projectile-immunity
 bit described in `ranged-weapons.md`. These are the authored/initial
-values; the precise interaction of mask zero with every ray and
-physical collision test has not been separately traced.
+values. For the ordinary collision pair rule, mask zero means the
+dragon actor is not told about a touch and its own mover cannot use
+other objects or terrain as obstacles (`character-movement.md` rule 35;
+`characters.md` rule 8). It does **not** erase the actor's collision
+type: Connor's and a projectile's own masks can still select that type
+for a hit, if the dragon has a collision shape (`connor-collision.md`
+rules 2–4; `ranged-weapons.md` rule 29). The heads' type contains the
+projectile-immunity bit, so a projectile contact sends zero damage
+(`ranged-weapons.md` rule 30); the body's type 1 does not contain that
+bit, although its 100 protection blocks ordinary health loss. The
+body has no gravity, so
+the lack of a terrain bit does not make it fall. The installed bounds
+list has `dragonbody` and `dragonheadleft`/`dragonheadright` entries,
+but no literal `dragbody`, `draglhed` or `dragrhed` entry; how these
+names are resolved to active collision shapes remains untraced. Thus
+the exact physical obstruction and projectile interception in this
+encounter are not claimed from the mask values alone.
 
 The head's property reader accepts `firstLoad`, `deadPause`,
 `fullHealth`, `reallyDead`, `attackLoc`, `biteRad`, `fireRad`, and
@@ -111,12 +126,24 @@ default is zero. Thus it does not displace the target check in the
 traced shipped attack path. Any other use of this property is open.
 
 The body keeps the common monster attack-state machinery; its authored
-`attack` movement has no `Do` cue. Its 25 hand-damage statistic must
-therefore not be treated as proof that this animation hits Connor.
-Whether a different common contact or special route uses that value
-in this encounter remains open. The body has 100 protection in the
-installed type data; the class trace did not establish a separate
-body-specific damage formula.
+`attack` movement has no `Do` cue. The common monster melee hit is
+delivered at that cue (`fighting.md` rule 13), so this authored attack
+does **not** deal its 25 hand damage. No independent body contact-damage
+handler or specialized incoming-hit/damage rule appears in the body
+class methods: a physical touch alone sends no damage to Connor. A
+script could still request a hit by another route; none was established
+for this encounter.
+
+The body's collision type is 1, so the ordinary Connor click filter
+for types with bit 0x20 or 0x40 (`ranged-weapons.md` rule 32) does not
+select it for a hand swing. If a projectile or direct scripted hit
+does reach it, the common monster hit rules apply. Its shipped
+protection is **exactly 100**; under `fighting.md` rule 16, ordinary
+hits of any damage kind then cause **zero health loss**, although
+other common hit bookkeeping can still run. The body therefore does
+not independently die from ordinary shipped combat damage. A script
+that changes its protection or death state would be a separate path;
+no such IceWorld command was established here.
 
 ## Head defeat, rebirth and encounter completion
 
@@ -136,17 +163,28 @@ and `rebirthed` flag, as well as the disabled-pose flag.
 
 With both permanent-route conditions, the head marks `reallyDead`, requests
 `synge`, and contributes to a shared permanent-defeat count. The
-encounter-ending branch runs when that count exceeds one. It asks the
-named `dragbody` to enter its death state, handles the authored
-`dragdbox.kq` collision object, and removes `draglhed`, `dragrhed`,
-and `dragwall` by name, in that order after the body-state request.
-The body has its own replacement for entering
-the death state and a later death finalizer. The finalizer arranges a
-`dragwall.cs` callback. In the installed script, Connor's action at
-the wall speaks one of two lines according to whether `dragwall`
-still exists. Exact body animation/collision ordering and the
-callback's scheduling arguments need a narrower trace before they
-can be specified as a frame-exact rule.
+encounter-ending branch runs when that count exceeds one. It **first**
+asks the named `dragbody` to enter its death state, **then** loads the
+authored `dragdbox.kq` object, **then** removes `draglhed`,
+`dragrhed`, and `dragwall` by name, in that order. The box is loaded
+at the second head's permanent-defeat transition, not at the body's
+animation completion. Its file names `dragwall.cs` as its script,
+sets collision type 33, and locates it at (182974, 490884, 30902).
+
+The body enters its own death-state implementation and plays its
+authored `die` movement. When that death movement completes, its
+finalizer first runs the inherited completion action, then changes
+the body's script to `dragwall.cs` and **executes that script's `Init`
+event synchronously**. `dragwall.cs` has no `Init` branch, so this
+call does not speak a line or move the box. Its only action is on
+`ConnorAction` with action `do`: it asks Connor to speak
+6000/35/14/**53** while `dragwall` exists, or
+6000/35/14/**106** after it has been removed. The newly loaded
+`dragdbox.kq` uses this same script for a later Connor action. Exact
+subframe timing of the visual collision change at death entry and
+the inherited completion action's full effects remain open; the
+ordering of box load, named removals, script assignment and `Init`
+execution is established statically.
 
 An additional head handler changes the `chains.bmp` material flag
 when it enters a special state, and the body has a corresponding
@@ -171,14 +209,16 @@ Remaining questions for Q210:
 
 - Whether `attackLoc` has an effect outside the traced head attack
   selector and cue handler; the shipped files do not set it.
-- Every body damage/contact route and whether it can enter death
-  independently of the two permanently defeated heads.
-- Frame order of head collision removal, rebirth restoration, body
-  death animation and `dragwall.cs` callback.
+- Whether any script can alter the body's protection or force its death
+  independently of the two permanently defeated heads; ordinary
+  shipped combat damage cannot.
+- Subframe order of head collision removal, rebirth restoration and
+  the body's visual collision change at death entry; the box-load and
+  later `dragwall.cs` `Init` ordering is established above.
 - Binary disk-load reattachment of head state/timers, temporary fire
   emitters, and the named body/wall references.
-- The effect of authored `colliderMask=0` on all physical and weapon
-  collision queries.
+- Whether the authored dragon bounds names resolve to active shapes;
+  the generic meaning of `colliderMask=0` is established above.
 
 An unattended original-data encounter check can assert separate
 body/head ownership and assets, head `Do` timing, bite versus fire

@@ -1461,9 +1461,11 @@ impl crate::active::WorldState {
         }
     }
 
-    pub(crate) fn dragon_body_death_ended(&mut self, i: usize) {
+    pub(crate) fn dragon_body_death_ended(&mut self, i: usize) -> String {
         let name = self.anims[i].player.name.clone();
-        self.fight_note(&name, "Dragon body 'die' movement ended; final frame retained with dragdbox available (Q210)");
+        self.anims[i].script = Some("dragwall.cs".into());
+        self.fight_note(&name, "Dragon body 'die' movement ended; final frame retained with dragdbox available; dragwall.cs assigned and Init called (Q210)");
+        name
     }
 
     pub(crate) fn dragon_heads_due(&mut self, now: f64) {

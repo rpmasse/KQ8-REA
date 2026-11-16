@@ -3,6 +3,30 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 IceWorld Dragon body combat completion (2026-11-16)
+
+The two Dragon heads already attack, rebirth or die, and a second
+permanent defeat starts the body's authored death movement. Q210 now
+establishes that the body has no attack hit cue or separate contact hit;
+ordinary hits cannot reduce its health because protection is 100.
+The second permanent head already loads the post-fight box and removes
+the heads and wall in the right order. At the later body death-movement
+completion, the original assigns `dragwall.cs` to the body and calls
+its `Init` synchronously. Add that missing finalizer call after the
+inherited movement-end handling. Check the script assignment and call
+in a focused core case and the installed IceWorld encounter. Keep
+untraced physical contacts and original binary save order open. Do
+not infer a body hit from its unused hand-damage statistic, and do not
+use manual gameplay testing.
+
+Checked 2026-11-16: a focused core case passed 1/1 after putting the
+synthetic body in active range. The first run failed because its death
+movement did not advance outside that range. Both unattended GOG-data
+IceWorld routes passed 2/2, including a fresh-process saved first-head
+defeat. The box precedes the body's `Init` call, and the GOG options
+file stayed unchanged. The viewer still excludes the body from its
+shared `Fight` state; follow up on ordinary hit bookkeeping separately.
+
 ## M5 ranged shot and retreat priority (2026-11-16)
 
 Q211 asks which action wins when a ranged enemy's shot and close-range

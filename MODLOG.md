@@ -1,11 +1,44 @@
 # MODLOG
 
+## 2026-11-16 Remove inherited funding link
+
+Deleted the upstream `.github/FUNDING.yml` from this fork so its
+donation account is no longer presented as this project's
+funding link. Checked the tracked main-branch files for remaining
+funding references; none remain. The upstream author credit stays in
+the README. No gameplay code or original game files changed.
+
+## 2026-11-16 Finish the IceWorld Dragon body's death callback
+
+The body now assigns `dragwall.cs` and synchronously runs its `Init`
+when its authored death movement finishes, after the box loads and the
+old wall and heads are removed. A focused core check passed 1/1 after
+the synthetic fixture was put in active range; the first run failed
+because that fixture did not advance the body animation. Both unattended
+GOG-data Dragon routes passed 2/2, including fresh-process save restore.
+The original GOG `Options.cs` stayed unchanged. Exact physical contacts,
+body hit bookkeeping and original binary save ordering remain open.
+No manual gameplay or original-executable comparison was run.
+
 ## 2026-11-16 Clarify public project overview
 
 Shortened the README's explanation of the KQ8R lineage, planned REA-guided
 Rust conversion, phase progress, GOG copy requirement and later enhancement
 goals. The percentages remain unchanged. Checked the README links and diff;
 no gameplay code, original game files or manual testing were involved.
+
+## 2026-11-16 Study IceWorld dragon body and finalizer
+
+Traced the original dragon body class and second-head completion path
+read-only, and checked the installed body, box, bounds and wall-script
+data. `dragon.md` now distinguishes the body's cue-free attack and
+protection from contact damage, records the generic mask-zero rule and
+its shape-name limit, and fixes the ordering: request body death, load
+the box, remove heads/wall, then at body death completion attach
+`dragwall.cs` and synchronously execute its `Init`. Q210 retains exact
+physical contacts, subframe state timing and binary save continuation
+as open. No Rust or original game file changed; no manual gameplay
+test was run.
 
 ## 2026-11-16 Use each monster's retreat and sight phase
 

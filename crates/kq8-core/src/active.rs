@@ -6989,7 +6989,8 @@ impl Active {
                     }
                 } else if m.eq_ignore_ascii_case("die") && self.world.anims[i].character.as_deref()
                     .is_some_and(|c| c.dragon_body && c.state == crate::character::State::Die) {
-                    self.world.dragon_body_death_ended(i);
+                    let name = self.world.dragon_body_death_ended(i);
+                    self.call_named(&name, &["Init"]);
                 }
             }
         }
@@ -9393,6 +9394,24 @@ endif
         assert!(loaded.world.anims[0].gone && loaded.world.anims[1].gone && !loaded.world.anims[2].gone);
         loaded.world.dragon_body_death_ended(2);
         assert!(!loaded.world.anims[2].gone && !loaded.world.is_deleted("dragdbox"));
+    }
+
+    #[test]
+    fn dragon_body_death_completion_assigns_script_and_calls_init() {
+        let mut a = dragon_encounter_fixture();
+        a.world.sources.insert("dragwall.cs".into(),
+            b"if test $2 == Init\n if test $1 == dragbody\n  set Dragon::BodyInit $1\n endif\nendif\n".to_vec());
+        a.world.items.add_named("Sword", "FlameSword", 1, -1, crate::item::Place::Carried("Connor".into())).unwrap();
+        a.world.weapon_mode = crate::weapons::WeaponMode::Hand;
+        a.world.character_dies(0, crate::fight::HitKind::Normal, false);
+        a.world.character_dies(1, crate::fight::HitKind::Normal, false);
+        assert_eq!(a.world.anims[2].script, None, "body script must wait for its death movement");
+        assert_eq!(a.scripts.vars.get("Dragon::BodyInit"), None);
+        a.world.characters_in_range.insert("dragbody".into());
+        for _ in 0..20 { a.update(); }
+        assert_eq!(a.world.anims[2].script.as_deref(), Some("dragwall.cs"));
+        assert_eq!(a.scripts.vars.get("Dragon::BodyInit"), Some("dragbody"));
+        assert!(!a.world.anims[2].gone && !a.world.is_deleted("dragdbox"));
     }
 
     #[test]

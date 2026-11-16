@@ -59,6 +59,9 @@ fn dragon_heads_rebirth_or_stay_defeated_by_equipped_sword() {
             assert!(doors.contains("loadKQ: dragdbox came in: 1 drawn part(s) shown; registered collision [\"object box\"]")
                 && doors.contains("deleteObject dragwall: clickable object deleted"),
                 "Dragon box or wall collision transition failed; inspect {}", run.display());
+            let box_loaded = doors.find("loadKQ: dragdbox came in:").unwrap();
+            let body_init = doors.find("dragwall.cs line 1: echo dragbody Init").expect("Dragon body did not run dragwall.cs Init");
+            assert!(box_loaded < body_init, "body Init ran before the box loaded; inspect {}", run.display());
             assert!(doors.contains("click on dragdbox (test --click) -> Script")
                 && doors.contains("dragwall.cs line 7: KQMonster::speak Connor to Connor: 6000 35 14 106"),
                 "post-fight box did not use the wall's authored callback; inspect {}", run.display());
@@ -125,6 +128,7 @@ fn first_permanent_head_finish_survives_a_fresh_process() {
         && fight_after.contains("dragbody: Dragon body 'die' movement ended"), "inspect {}", root.display());
     assert!(doors_after.contains("loadKQ: dragdbox came in: 1 drawn part(s) shown; registered collision [\"object box\"]")
         && doors_after.contains("deleteObject dragwall: clickable object deleted")
+        && doors_after.contains("dragwall.cs line 1: echo dragbody Init")
         && doors_after.contains("dragwall.cs line 7: KQMonster::speak Connor to Connor: 6000 35 14 106"),
         "restored encounter did not reach the post-fight box response; inspect {}", root.display());
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);

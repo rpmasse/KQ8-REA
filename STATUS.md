@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 IceWorld Dragon body death callback
+
+After the second permanent head defeat, the post-fight box still loads
+before the body finishes dying. At the end of that movement, the body
+now receives `dragwall.cs` and runs its `Init`, matching the original
+engine study. A focused core check passed 1/1, and both unattended
+GOG-data Dragon routes passed 2/2, including a restored first-head
+defeat. The initial focused run failed because the synthetic body was
+outside active range; the corrected fixture passed. Physical contact
+details, ordinary body hit bookkeeping and original binary save order
+remain open. No manual gameplay or original-executable comparison was
+run. M5 remains about 65%.
+
 ## 2026-11-16 M5 ranged retreat and due-shot priority
 
 The original-engine study found that each monster has its own 15-update
