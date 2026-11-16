@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 Invisible potion drives original goblin AI
+
+An unattended GOG-data Daventry check follows `goblin22` through a
+chase, an Invisible potion and its expiry. It alarmed at update 19,
+lost sight after the potion began at 45, and gave up after 45 unseen
+updates at 93. The potion expired at 270. A controlled move put it
+back in sight; it alarmed again at 289. The test passed 1/1 with AI
+enabled and god mode protecting Connor; Options.cs was unchanged.
+This verifies the visibility and timer path, not an uninterrupted
+natural encounter or original-executable comparison. No manual play
+was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 Strength potion changes real melee hits
 
 An unattended Dead City run now uses the original Strength item and

@@ -374,6 +374,26 @@ alone in debug, including fresh-process rebirth. The core suite passed
 774 active tests. The first 6/8 serial pass and two root failures led
 to the alarm correction.
 
+## M5 Invisible potion against original enemy AI (2026-11-16)
+
+`potions.md` rules 26–28 place Connor 100,000 units below his actual
+position for enemy sight and distance while Invisible runs. Use the
+installed Daventry `goblin22` with ordinary AI enabled: let it first
+see and chase Connor, use the original Invisible item with inventory
+key 8, and require loss of sight and the documented 45-update give-up.
+After the 15-second expiry, move the goblin back within its authored
+4,000-unit alarm radius, because its normal route took it beyond sight
+while the potion ran. Require the original sight/alarm path to resume.
+God mode keeps Connor alive through this AI check. Acknowledge original
+help popups automatically, and leave the GOG installation unchanged.
+
+Checked: the unattended GOG-data run passed 1/1. `goblin22` first saw
+Connor at 2,473 units and became alarmed at update 19. Invisible began
+at 45; it lost sight and gave up after 45 unseen updates at 93. The
+potion ended at 270. The controlled move at 275 restored a nearby
+sightline, and the ordinary alarm fired again at 289. The run checks AI
+and timer behavior, not a natural return path or original binary frames.
+
 ## M5 Strength potion during original-data melee (2026-11-16)
 
 `potions.md` rules 21–23 say Strength adds half of Connor's current hand

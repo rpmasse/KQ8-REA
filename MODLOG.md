@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-16 Verify Invisible's loss and recovery of enemy sight
+
+Changed: added the unattended `invisible_live_ai` GOG-data check; no
+gameplay rule changed. Why: earlier potion tests did not run the
+original Daventry goblin AI through invisibility and its 15-second
+expiry. Tested how: set `KQ8_GAME_DIR` to the GOG folder and run
+`cargo test --locked -p kq8-viewer --test invisible_live_ai --
+--ignored`. Result: 1/1 passed in 47.05 seconds. `goblin22` saw Connor
+and alarmed at update 19; key 8 started Invisible at 45; the goblin
+lost sight and gave up at 93 after 45 unseen updates. The potion
+expired at 270. Because the goblin had wandered beyond its alarm
+radius behind the Cottage, the test moved it nearby at 275; normal
+sight and alarm resumed at 289. AI stayed on, and god mode kept Connor
+alive. GOG Options.cs stayed unchanged. An earlier diagnostic paused
+at the original help popup until stopped; a later completed run showed
+the give-up but no natural reacquisition because the goblin was far
+away. Those probes remain in ignored artifacts. No manual gameplay or
+original-executable visual comparison was performed.
+
 ## 2026-11-16 Verify Strength's damage in an original-data melee encounter
 
 Changed: added the unattended `strength_live_melee` test; gameplay code
