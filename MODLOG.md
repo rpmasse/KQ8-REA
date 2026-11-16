@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-16 Verify Barren ant combat through the camera ray
+
+Moved the controlled original-data Barren start point within the
+ant's alarm radius so the ant walks beyond its anthill before
+Connor's two Flame Sword swings. Reused the existing Birth, melee,
+Fire death, Crystal and experience checks in one regression, now
+driven by `--aim` rather than the named direct-pick helper. The
+release check passed 1/1 in 19.09 seconds:
+`cargo test --locked --release -p kq8-viewer --test barren_ant_live -- --ignored --nocapture`.
+The initial camera route picked the hill because the ant was still
+inside its box; a temporary position diagnostic showed the live
+named target was correct. No game logic, manual gameplay or GOG
+files were changed.
+
 ## 2026-11-16 Verify Barren ant birth and combat without camera-line assumptions
 
 Added one unattended original-data Windows regression for Barren's

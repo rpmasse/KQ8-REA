@@ -27,19 +27,15 @@ fn original_barren_ant_birth_attack_and_death() {
             "--sound",
             "off",
             "--at",
-            "167105,104868,0",
+            "167105,105750,0",
             "--command",
             "KQMonster::inventory Connor INVITEM_FlameSword 1,20",
             "--command",
             "KQConner::setDoMode 0,35",
-            "--swing",
+            "--aim",
             "ant1,85",
-            "--swing",
+            "--aim",
             "ant1,115",
-            "--swing",
-            "ant1,145",
-            "--swing",
-            "ant1,175",
             "--updates",
             "220",
             "--frames",
@@ -76,14 +72,20 @@ fn original_barren_ant_birth_attack_and_death() {
         "ant did not injure Connor; inspect {}",
         dir.display()
     );
+    assert!(
+        viewer.contains("swing pick meets character ant1")
+            && !viewer.contains("swing pick meets object anthill.01"),
+        "the camera attack line must reach the ant; inspect {}",
+        dir.display()
+    );
     let sword_hits = fight
         .lines()
         .filter(|line| line.contains("Connor: Do (") && line.contains("hits ant1:"))
         .count();
     assert_eq!(
         sword_hits,
-        4,
-        "unexpected direct-picked sword cues; inspect {}",
+        2,
+        "unexpected camera-picked sword cues; inspect {}",
         dir.display()
     );
     assert_eq!(

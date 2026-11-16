@@ -16,24 +16,22 @@ and one 5,000-experience reward. Keep original GOG data read only.
 This is a controlled original-data Rust fight, not an earned Barren
 route or comparison with the original executable.
 
-Stop/handoff: two unattended sword routes saw `ant1` rise and land
-ordinary melee hits, but `--aim ant1` selected `anthill.01` on every
-attempt. Changing Connor's test heading did not move the camera line
-away from the hill; no ant damage or death was observed. Do not try
-more timing or heading variations before establishing the intended
-camera/target line at this authored anthill. The observed Birth and
-incoming-hit steps are useful evidence, but the planned full fight
-has not passed.
-The existing `--swing` test helper picks a named live character's
-current feet without a camera ray. It can check the ant's damage,
-death and reward path separately, while leaving the camera-selected
-fight open and clearly labelled as such.
-That controlled direct-pick route passed 1/1 in 18.58 seconds. Normal
-AI raised `ant1` and landed a hit on Connor; two authored Flame Sword
-hits killed it, the Fire death threw one Crystal, and its completed
-death awarded 5,000 experience once. No god mode, AI suppression or
-manual play was used. Two later swings while it was dying had no
-further death or reward effect.
+The first camera-selected route started Connor at (167105, 104868).
+The ant stopped at (167068, 104212), still inside the anthill's box,
+so the sword's attack ray picked `anthill.01`. A one-run position
+diagnostic confirmed that `--aim ant1` pointed at the ant's *live*
+box; its target was not stale. Starting Connor at (167105, 105750)
+is still inside the strict alarm radius and draws the ant to about
+(167065, 104959), beyond the hill's box. The same camera-selected
+sword ray then picks the ant. This is an authored encounter setup;
+no animation or combat rule was changed.
+
+The combined original-data Windows regression now uses two `--aim`
+swings and checks the ant's Birth, movement, attack, Fire death,
+Crystal drop and single 5,000-experience reward. It passed 1/1 in
+19.09 seconds. Normal AI and damage remained enabled, and the GOG
+data stayed read only. This verifies a controlled fight in Rust,
+not an earned Barren campaign route or original-executable parity.
 
 ## M5 Barren hammer-dwarf live fight (2026-11-16)
 

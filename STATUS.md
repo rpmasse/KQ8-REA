@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 Barren ant camera-selected fight
+
+The controlled original-data Barren fight now uses the ordinary
+camera-selected Flame Sword ray. Connor starts within the ant's alarm
+radius but far enough away that `ant1` walks clear of `anthill.01`.
+The one combined release regression verifies Birth, movement, an
+ordinary hit on Connor, two sword hits, Fire death, Crystal drop and
+one 5,000-experience reward. It passed 1/1 in 19.09 seconds. A
+position diagnostic established that the earlier target point was
+correct; the ant had remained within the hill's box. The separate
+hammer-dwarf camera route is still open. M5 remains about 65%; no
+manual test or GOG-file write occurred.
+
 ## 2026-11-16 M5 Barren ant controlled fight
 
 An unattended Barren run now verifies `ant1`'s Birth, movement, melee
