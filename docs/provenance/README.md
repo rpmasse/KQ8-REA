@@ -415,6 +415,14 @@ original game's runtime ordering remains Q211. The earlier "Gnome slime"
 label was a location error in project notes; study session A must fix
 its `fighting.md` rule 37 wording.
 
+**Swamp slime live fight (2026-11-16).** The read-only GOG Swamp actor,
+its `Prslime.kq` projectile, Connor's installed Flame Bow movements and
+`Prfarrow.kq` drive the unattended `swamp_slime_live_combat` check.
+Two runs keep ordinary AI and incoming damage: the slime's shot hurts
+Connor, one Fire arrow kills it, and its death awards experience. The
+supplied bow and direct world start are test setup, not an earned route.
+No original executable or disassembly was read by this session.
+
 **Ranged keeping-distance AI (2026-11-15).**
 [fighting.md](../behaviour/fighting.md) rule 37 supplies the eligibility,
 one-second choice, `mustFlee` and chance behavior, away direction and

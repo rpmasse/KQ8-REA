@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 Swamp slime live fight
+
+The previously unreliable slime fight now has an unattended two-run
+regression. A new test-only aim input waits for Connor's Flame Bow draw
+to finish before sending one ordinary world click. With original GOG
+data, enemy AI and incoming damage enabled, `slime1` hit Connor once
+in each run. Connor's Fire arrow then hit and killed the slime; its
+authored death awarded 5,000 experience once. The test passed 1/1 in
+54.82 seconds, and GOG `Options.cs` was unchanged. This is a controlled
+Swamp start with a supplied weapon, not an earned campaign fight or an
+original-executable comparison. No manual gameplay ran. M5 remains
+incomplete.
+
 ## 2026-11-16 M5 controlled Tower Skeleton fall
 
 An unattended original-data test now completes the Tower Skeleton's

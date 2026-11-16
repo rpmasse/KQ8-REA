@@ -149,6 +149,8 @@ struct Args {
     click: Vec<(String, u64)>,
     /// `--aim NAME,N`: a ray from the camera to NAME at update N (3e-4b).
     aim: Vec<(String, u64)>,
+    /// Test: send one ordinary aim click after the ranged draw has finished.
+    aim_when_ready: Vec<(String, u64)>,
     /// `--swing NAME,N[,big]`: at update N Connor readies his hand weapon
     /// (if none is ready) and swings at NAME, as a click on it with the
     /// weapon ready (Shift with `big`; M5 5c-5 test, repeatable).
@@ -229,6 +231,7 @@ fn parse_args() -> Result<Args, String> {
         at: None,
         click: Vec::new(),
         aim: Vec::new(),
+        aim_when_ready: Vec::new(),
         swing: Vec::new(),
         combat_level: None,
         no_ai: false,
@@ -316,6 +319,12 @@ fn parse_args() -> Result<Args, String> {
                 let (name, n) = v.rsplit_once(',').ok_or("--aim needs NAME,UPDATE e.g. smlchst3,30".to_string())?;
                 let n = n.trim().parse::<u64>().map_err(|_| "--aim needs NAME,UPDATE e.g. smlchst3,30".to_string())?;
                 a.aim.push((name.trim().to_string(), n));
+            }
+            "--aim-when-ready" => {
+                let v = value()?;
+                let (name, n) = v.rsplit_once(',').ok_or("--aim-when-ready needs NAME,UPDATE".to_string())?;
+                let n = n.trim().parse::<u64>().map_err(|_| "--aim-when-ready needs NAME,UPDATE".to_string())?;
+                a.aim_when_ready.push((name.trim().to_string(), n));
             }
             "--aim-point" => {
                 // M5 5f-5 test: a click along the line from the camera to (x, y, z).
@@ -498,6 +507,7 @@ N is an update number (15 updates per second):
   --click NAME,N             click object NAME before update N + 1 (repeatable;
                              skips the line-of-sight test)
   --aim NAME,N               like --click, but only if the camera can see it
+  --aim-when-ready NAME,N    aim once after Connor's ranged draw ends
   --aim-point X,Y,Z,N        a click along the line from the camera to X,Y,Z
                              at update N (the ground, a shot's aim)
   --swing NAME,N[,big]       at update N ready the hand weapon and swing at NAME
@@ -743,7 +753,7 @@ fn main() -> ExitCode {
                 .insert_resource(console::ConsoleAt(args.console))
                 .insert_resource(door_view::RightAt(args.right))
                 .init_resource::<object_light::SetHaze>()
-                .insert_resource(door_view::AimAt { probes: args.aim, landmark: None, orbit: false })
+                .insert_resource(door_view::AimAt { probes: args.aim, ready_probes: args.aim_when_ready, landmark: None, orbit: false })
                 .insert_resource(door_view::SwingAt(args.swing))
                 .insert_resource(door_view::HeldItem(args.item, args.combat_level))
                 .insert_resource(door_view::AiOff(args.no_ai))

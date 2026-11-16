@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-16 Stabilize the Swamp slime live-fight check
+
+Changed: added test-only `--aim-when-ready NAME,N`, which waits for
+Connor's ranged draw to finish and sends one ordinary world aim click;
+added a two-run original-data slime fight regression. No gameplay
+rules or original game files changed. Why: fixed-update scheduled
+clicks sometimes arrived during the bow draw or one update after the
+slime started to retreat. Tested how: `cargo check --locked -p
+kq8-viewer` passed with six existing warnings. Set `KQ8_GAME_DIR` to
+the GOG folder and run `cargo test --locked -p kq8-viewer --test
+swamp_slime_live_combat -- --ignored --nocapture`; it passed 1/1 in
+54.82 seconds across two independent processes. In both, the slime's
+projectile damaged Connor, Connor's Fire arrow killed the slime, and
+its death awarded 5,000 experience once. A heading-only probe still
+clicked during the bow draw and did not fire. The GOG `Options.cs`
+file was unchanged; no manual gameplay or original-executable test
+ran. The earned Swamp campaign fight remains open.
+
 ## 2026-11-16 Check the Tower Skeleton fall with original data
 
 Changed: added an unattended Dead City regression for the original

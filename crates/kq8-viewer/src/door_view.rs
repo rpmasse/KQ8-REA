@@ -335,6 +335,7 @@ pub struct RightAt(pub Option<u64>);
 #[derive(Resource)]
 pub struct AimAt {
     pub probes: Vec<(String, u64)>,
+    pub ready_probes: Vec<(String, u64)>,
     pub landmark: Option<(String, u64)>,
     pub orbit: bool,
 }
@@ -1826,6 +1827,9 @@ pub fn door_click_input(
     let Some(mut sim) = sim else { return };
     let updates = sim.active.world.updates;
     let landmark = aim.landmark.as_ref().is_some_and(|(_, tick)| updates >= *tick);
+    let ready = sim.active.world.weapon_mode == kq8_core::weapons::WeaponMode::Ranged
+        && connor.as_ref().is_some_and(|c| c.walker.mode == kq8_core::connor::Mode::Free
+            && c.walker.special.is_empty() && c.shot.is_none() && !c.hands_off);
     let due = if landmark {
         let (name, start) = aim.landmark.as_ref().unwrap();
         // A horizontal drag of 2% of the window per tick turns the view
@@ -1838,8 +1842,13 @@ pub fn door_click_input(
             return;
         }
         Some(name.clone())
+    } else if let Some(i) = aim.probes.iter().position(|(_, tick)| updates >= *tick) {
+        Some(aim.probes.remove(i).0)
+    } else if ready {
+        aim.ready_probes.iter().position(|(_, tick)| updates >= *tick)
+            .map(|i| aim.ready_probes.remove(i).0)
     } else {
-        aim.probes.iter().position(|(_, tick)| updates >= *tick).map(|i| aim.probes.remove(i).0)
+        None
     };
     if due.is_none() && !buttons.just_pressed(MouseButton::Left) {
         return;

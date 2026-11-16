@@ -3703,6 +3703,24 @@ deterministic normal input and must preserve ordinary AI, incoming
 damage and original data. This remains a local combat check, not an
 earned campaign or original-executable comparison.
 
+**Swamp slime ready-click replay.** Add an unattended `--aim-when-ready
+NAME,N` input that waits until update N or later, when Connor has his
+ranged weapon equipped and his ordinary free stance has resumed after
+the authored draw. It then sends one click through the existing world
+ray and shot controller. Keep AI, incoming damage, projectile flight and
+the original actor unchanged. Start Connor facing the installed slime,
+give him the installed Flame Bow after world startup, and check the
+slime's outgoing hit, Connor's ordinary shot and the slime's death in
+two independent Windows runs. Do not treat the supplied bow or direct
+Swamp start as an earned campaign route.
+The two independent unattended GOG-data runs passed 1/1 in 54.82 s.
+The ready click landed at update 30 and 29, Connor's authored bow cue
+released a Fire arrow at update 33 and 32, and both arrows hit the
+original slime before it retreated. Its projectile hit Connor once in
+each run; `firedie` completed and awarded 5,000 experience once. The
+earlier fixed-update click missed or arrived during the draw. The new
+gate changes only test input timing, not combat or animation rules.
+
 **Henchman projectile refusal (2026-11-16, checked).** Use the original
 Daventry Henchman actor at his scripted post-scene position and fire
 an ordinary Small Crossbow bolt at him. Q190's studied rule requires
