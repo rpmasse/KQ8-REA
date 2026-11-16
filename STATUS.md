@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 script-gated Ice World sword Griffin
+
+The extended original-data `ice_melee_families_live` release test
+passed 1/1. The installed Grysword completed `gry_ltgo`, its original
+script raised alarm/chase/home radii to 8,000, and normal AI then
+landed a 100-point Normal attack that lowered Connor's health.
+Controlled death checked no drop, `gry_dead.kqs` and zero experience
+once. The initial rescue trigger remains unverified. The installed
+Icelord's script is a cutscene, so a forced kill would not prove a
+combat rule. M5 remains incomplete.
+
 ## 2026-11-17 M5 Dead City ordinary melee variants
 
 The combined original-data `deadcity_ordinary_variants_live` release

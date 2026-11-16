@@ -1,4 +1,4 @@
-//! Three melee families and a flying ranged Griffin fight in one Ice World run.
+//! Four melee families and a flying ranged Griffin fight in one Ice World run.
 use std::{fs, path::Path, process::Command};
 
 #[test]
@@ -29,7 +29,11 @@ fn ice_world_melee_and_flying_griffin_damage_connor() {
             "--command", "sendEvent 0 griffbax2 KQAttackEvent Connor 0 100000 0,245",
             "--command", "move EntranceGuard1 0 265500 480983 31365 0 0 0,285",
             "--command", "sendEvent 0 EntranceGuard1 KQAttackEvent Connor 0 100000 0,360",
-            "--updates", "430", "--frames", "14000",
+            // grifnymp.cs raises Grysword's combat radii when gry_ltgo ends.
+            "--command", "move Grysword 0 267550 480983 31365 0 0 0,430",
+            "--command", "KQMonster::setState Grysword Special gry_ltgo,431",
+            "--command", "sendEvent 0 Grysword KQAttackEvent Connor 0 100000 0,590",
+            "--updates", "670", "--frames", "18000",
         ])
         .output().unwrap();
     fs::write(dir.join("stdout.log"), &output.stdout).unwrap();
@@ -118,6 +122,34 @@ fn ice_world_melee_and_flying_griffin_damage_connor() {
     assert!(fight.lines().any(|line| line.contains(griffin_finish)
         && line.contains("a corpse grf_dead.kqs")),
         "the flying Griffin has the wrong Normal corpse; inspect {}", dir.display());
+    assert!(viewer.contains("test --command move Grysword")
+        && viewer.contains("test --command KQMonster::setState Grysword Special gry_ltgo: Some(\"0\")")
+        && fight.contains("Grysword: fights (rule 2): stats [1700, 100, 100, 25, 0]"),
+        "the placed sword Griffin was not staged from its authored data; inspect {}", dir.display());
+    assert!(characters.contains("Grysword: grifnymp.cs line 46: KQMonster::setAlarmRadius: alarm radius 8000")
+        && characters.contains("Grysword: grifnymp.cs line 47: KQMonster::setChaseRadius: chase radius 8000")
+        && characters.contains("Grysword: grifnymp.cs line 48: KQMonster::setHomeRadius: home radius 8000"),
+        "the script did not arm Grysword after gry_ltgo; inspect {}", dir.display());
+    assert!(fight.lines().any(|line| line.contains("Grysword: Do (Attack")
+        && line.contains("hits Connor:") && line.contains("hand damage 100, Normal")),
+        "script-activated Grysword did not land its melee attack; inspect {}", dir.display());
+    let sword_griffin_hits: Vec<_> = fight.lines()
+        .filter(|line| line.contains("Connor: hit by Grysword, Normal: D 100,")).collect();
+    assert!(!sword_griffin_hits.is_empty(),
+        "the sword Griffin made no Normal health loss; inspect {}", dir.display());
+    for hit in sword_griffin_hits {
+        let health = hit.rsplit_once("health ").unwrap().1;
+        let (before, after) = health.split_once(" -> ").unwrap();
+        assert!(after.parse::<i64>().unwrap() < before.parse::<i64>().unwrap(),
+            "Grysword did not lower Connor's health: {hit}");
+    }
+    assert_eq!(fight.matches("Grysword: dies (rule 30): kind Normal").count(), 1);
+    assert_eq!(fight.matches("Grysword: drops: nothing (rule 31)").count(), 1);
+    let sword_griffin_finish = "Grysword: its death ended (rule 32): Connor gets its experience 0";
+    assert_eq!(fight.matches(sword_griffin_finish).count(), 1);
+    assert!(fight.lines().any(|line| line.contains(sword_griffin_finish)
+        && line.contains("a corpse gry_dead.kqs")),
+        "the sword Griffin has the wrong Normal corpse; inspect {}", dir.display());
     assert!(!fight.contains("Connor: hit by world") && !fight.contains("god mode is on"),
         "world hazards or god mode obscured combat; inspect {}", dir.display());
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);

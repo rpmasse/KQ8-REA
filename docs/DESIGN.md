@@ -316,6 +316,31 @@ nearby interval; its controlled death dropped nothing, left
 `rt_dead.kqs` and gave 51 experience. Every death and reward occurred
 once. These are relocated original-data actors, not an earned route.
 
+## M5 Ice World script-gated sword Griffin (2026-11-17)
+
+The installed `grifnymp.cs` gives `Grysword` (`griffswd`) zero alarm,
+home and chase radii until its `gry_ltgo` movement ends, then sets all
+three to 8,000. Its original animation has an Attack Do cue. Extend
+the existing combined Ice World combat process after the four passing
+families: relocate Grysword to the measured ground lane, request the
+script's `Special gry_ltgo` state, and require the EndLoop callback to
+set those radii. Observe a normal AI sword attack and source-specific
+health loss before a controlled Normal death; check its no-drop,
+`gry_dead.kqs` corpse and zero experience. If the script cannot activate
+the actor as observed, preserve that as an M5 gap rather than forcing
+an attack with a fabricated radius setting. `icelord.cs` describes a
+cutscene and its placed actor has alarm radius zero; do not count a
+forced Icelord death as combat evidence. The hidden ice Henchman has
+its own script and remains a separate combat case.
+
+The extended original-data release test passed 1/1. After the placed
+Grysword was moved to the measured lane, `Special gry_ltgo` completed
+and its installed script set alarm, chase and home radii to 8,000 on
+EndLoop. Normal AI then began `Attack`; its Do cue lowered Connor's
+health. A controlled Normal death dropped nothing, left `gry_dead.kqs`
+and awarded zero experience once. The world script's rescue trigger
+and the Ice Lord cutscene were not run by this combat fixture.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

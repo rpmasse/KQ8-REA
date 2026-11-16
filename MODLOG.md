@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Extend combined Ice World run with Grysword (M5)
+
+The existing original-data release test now covers a fifth Ice World
+fighter in the same process and passed 1/1 in about 48 seconds.
+Grysword's `gry_ltgo` EndLoop ran its original script, which raised
+three combat radii; normal AI then made a named 100-point Normal hit
+that lowered Connor's health. Controlled Normal death left no drop,
+the authored corpse and zero experience. The source audit classified
+Icelord's placement as a cutscene rather than an ordinary AI fight.
+No production code or GOG file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test ice_melee_families_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Check four Dead City ordinary combat variants (M5)
 
 One original-data release test passed 1/1 in about 28 seconds. It

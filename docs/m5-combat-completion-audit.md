@@ -27,6 +27,13 @@ death/drop/corpse outcomes, while retaining ambient bow-guard hits as
 separate sources. The same process now checks a flying Griffin's Ice
 projectile contact, zero shoot-offset fallback, and no-drop/zero-XP
 Normal death with its original corpse.
+The extended Ice World process now runs the installed Grysword's
+`gry_ltgo` movement. Its `grifnymp.cs` EndLoop callback raises three
+combat radii to 8,000; normal AI then lands a named 100-point Normal
+attack. Controlled death verifies no drop, `gry_dead.kqs` corpse and
+zero experience. The preceding rescue trigger remains outside this
+combat fixture. The placed Icelord's script describes a cutscene, not
+an ordinary attack; it should not be force-killed to claim coverage.
 The Barren `pyrod_live_fire` route now verifies a placed Pyrod's Lava
 weapon, Fire contact and health loss while Connor is alive, followed by
 its no-drop/no-corpse Normal death and 8,000 experience. Earlier same-lane
