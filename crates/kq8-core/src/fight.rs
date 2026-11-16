@@ -652,7 +652,7 @@ pub fn lead(from: [f32; 3], at: [f32; 3], v: [f32; 3], speed: f32) -> ([f32; 3],
 
 /// A body left where a character died (rule 32; M5 5c-7), drawn by the
 /// viewer.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Corpse {
     /// The character's name (the body is `<name>_corpse` in the logs).
     pub name: String,
@@ -666,6 +666,15 @@ pub struct Corpse {
 }
 
 impl Corpse {
+    pub fn valid(&self) -> bool {
+        !self.name.is_empty() && self.name.len() <= 256
+            && !self.name.chars().any(char::is_control)
+            && !self.shape.is_empty() && self.shape.len() <= 256
+            && !self.shape.chars().any(char::is_control)
+            && self.position.iter().all(|v| v.is_finite())
+            && self.rotation.iter().flatten().all(|v| v.is_finite())
+    }
+
     /// The name its drawn object goes by.
     pub fn drawn_name(&self) -> String {
         if self.loaded { self.name.clone() } else { format!("{}_corpse", self.name) }

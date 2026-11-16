@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-16 Keep combat corpses in Rust world saves
+
+Changed: retained generated combat corpses in the kept-world record,
+restored them after loading, and validated their resource names and
+poses. Script-loaded named shapes are excluded from this record. Why:
+the live `WorldState` corpse list was not saved, so defeating a monster
+could leave no corpse after a disk reload or world return. Tested how:
+set `KQ8_GAME_DIR` to the GOG folder and run `cargo test --locked -p
+kq8-viewer --test mandragor_tree_melee_checkpoint -- --ignored
+--nocapture`; it passed 1/1 in 95.50 seconds across two fresh Windows
+processes. A normal King's Sword kill of the installed Swamp tree
+awarded 20,000 experience once, killed both linked roots, and left its
+corpse in both consecutive slots; the restored viewer drew it. Run
+`cargo test --locked -p kq8-viewer --bin kq8-viewer
+combat_corpses_survive_slots_without_duplicating_script_loaded_shapes
+-- --nocapture`; it passed 1/1, including older slots and invalid
+records. The initial read-only probe without a save took 35.67 seconds
+and established four sword hits, death, roots and corpse before the
+change. Artifact: `kq8-artifacts/mandragor-tree-melee-checkpoint/
+1794821742289800000/`. GOG `Options.cs` was unchanged. This is a
+protected-Connor fixture; original binary-save parity and an earned
+campaign fight were not tested. No manual gameplay ran.
+The full viewer unit suite passed 65 active tests (52 ignored).
+
 ## 2026-11-16 Check Dragon fire across a Rust save
 
 Changed: added an unattended two-process IceWorld check that saves

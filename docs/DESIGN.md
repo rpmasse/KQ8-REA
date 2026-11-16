@@ -424,6 +424,30 @@ potion ended at 270. The controlled move at 275 restored a nearby
 sightline, and the ordinary alarm fired again at 289. The run checks AI
 and timer behavior, not a natural return path or original binary frames.
 
+## M5 retain ordinary combat corpses after saving (2026-11-16)
+
+`fighting.md` rule 32 creates a plain object where a monster died, and
+`world-change.md` rule 12 keeps objects created during play. The live
+corpse list currently disappears when a Rust disk slot is loaded or a
+visited world is entered again. Save the generated corpse's name, shape,
+position and turn in the kept world, then restore it after the original
+world objects load. Keep script-loaded named shapes on their existing
+object path so they are not duplicated. Validate stored shapes and finite
+poses; old slots without this field remain readable. Check a normal
+King's Sword kill of the installed Swamp Mandragor tree with its AI on:
+its original `mt_dead.kqs` corpse, 20,000 experience and dead linked
+roots must survive a fresh-process save/load without a second award.
+This is a protected Connor combat fixture, not a full campaign route.
+Use automated checks only and keep the GOG installation read-only.
+
+Checked: the two-process Swamp scenario passed 1/1 in 95.50 seconds.
+Four original King's Sword cues killed `mand3t`; its linked roots died,
+the corpse drew from `mt_dead.kqs` after a fresh-process load, and a
+second slot retained the corpse and experience 20,010 without another
+reward. A focused save-format check passed, including old slots and
+invalid shapes or poses. Original executable save parity and the earned
+Swamp route remain unverified.
+
 ## M5 Strength potion during original-data melee (2026-11-16)
 
 `potions.md` rules 21–23 say Strength adds half of Connor's current hand

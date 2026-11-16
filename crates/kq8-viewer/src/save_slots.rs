@@ -318,6 +318,11 @@ impl Snapshot {
             if kept.characters.iter().any(|character| !character.valid()) {
                 return Err("save has an invalid placed character".into());
             }
+            if kept.corpses.len() > 8192 || kept.corpses.iter().any(|corpse| {
+                corpse.loaded || !corpse.valid() || !safe_path(&corpse.shape)
+            }) {
+                return Err("save has an invalid combat corpse".into());
+            }
             if kept.group_masks.len() > 8192 || kept.group_masks.iter().any(|(name, masks)| name.is_empty() || name.len() > 256 || name != &name.to_ascii_lowercase() || masks.iter().all(Option::is_none)) {
                 return Err("save has invalid object group masks".into());
             }
@@ -453,6 +458,7 @@ impl Snapshot {
                 sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
                 if let Some(list) = kept.active_list.as_deref() { sim.active.world.restore_active_list(list); }
                 sim.active.world.group_masks.clone_from(&kept.group_masks);
+                sim.active.world.corpses.clone_from(&kept.corpses);
             }
             if let Some(traps) = &self.traps {
                 let w = &mut sim.active.world;
@@ -1329,6 +1335,7 @@ mod tests {
                 }],
                 spawned_monsters: Vec::new(),
                 characters: Vec::new(),
+                corpses: Vec::new(),
                 group_masks: Default::default(),
                 active_list: None,
             },
@@ -1379,6 +1386,41 @@ mod tests {
             panels: None,
             journey: take_journey(&sim, "Daventry"),
             kept,
+        }
+    }
+
+    #[test]
+    fn combat_corpses_survive_slots_without_duplicating_script_loaded_shapes() {
+        let mut sim = active();
+        let body = kq8_core::fight::Corpse {
+            name: "mand3t".into(), shape: "mt_dead.kqs".into(),
+            position: [10., 20., 30.],
+            rotation: [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
+            loaded: false,
+        };
+        sim.world.corpses.push(body.clone());
+        sim.world.corpses.push(kq8_core::fight::Corpse { loaded: true, ..body.clone() });
+        let kept = KeptWorld::take(&sim, "Swamp", None);
+        assert_eq!(kept.corpses, vec![body.clone()]);
+
+        let mut save = fixture();
+        save.kept.get_mut("swamp").unwrap().corpses = kept.corpses;
+        assert!(save.validate().is_ok());
+        let encoded = serde_json::to_value(&save).unwrap();
+        let decoded: Snapshot = serde_json::from_value(encoded.clone()).unwrap();
+        assert_eq!(decoded.kept["swamp"].corpses, vec![body.clone()]);
+        let mut legacy = encoded;
+        legacy["kept"]["swamp"].as_object_mut().unwrap().remove("corpses");
+        let old: Snapshot = serde_json::from_value(legacy).unwrap();
+        assert!(old.kept["swamp"].corpses.is_empty());
+
+        for invalid in [
+            kq8_core::fight::Corpse { shape: "../outside.kqs".into(), ..body.clone() },
+            kq8_core::fight::Corpse { position: [f32::NAN, 20., 30.], ..body.clone() },
+            kq8_core::fight::Corpse { loaded: true, ..body },
+        ] {
+            save.kept.get_mut("swamp").unwrap().corpses = vec![invalid];
+            assert!(save.validate().unwrap_err().contains("combat corpse"));
         }
     }
 

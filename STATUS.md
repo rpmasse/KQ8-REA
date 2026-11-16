@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-16 M5 combat corpses survive Rust saves
+
+Generated combat corpses now remain in a saved world. Script-loaded
+named shapes keep their existing object path, and older slots still
+load without a corpse field. An unattended original-data Swamp test
+used four normal King's Sword cues to defeat `mand3t` with its AI on;
+both linked roots died, the tree awarded 20,000 experience once, and
+its `mt_dead.kqs` corpse was drawn after a fresh-process reload. A
+second slot kept the corpse and the same 20,010 experience total. The
+two-process test passed 1/1 in 95.50 seconds and the save-format unit
+check passed 1/1. Connor was protected by the test's god switch, so
+this is not an earned campaign fight. Original binary-save matching
+and manual gameplay remain untested. M5 is still incomplete.
+
 ## 2026-11-16 M5 Dragon fire after a Rust save
 
 An unattended IceWorld save/reload check now captures both original

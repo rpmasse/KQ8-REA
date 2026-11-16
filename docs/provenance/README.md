@@ -1,5 +1,16 @@
 # Provenance
 
+**Combat corpse persistence (2026-11-16).** [Fighting rule 32](../behaviour/fighting.md)
+creates a plain corpse object at a monster's death, and [world-change
+rule 12](../behaviour/world-change.md) keeps objects created during play.
+The Rust kept-world record now retains generated combat corpses, while
+script-loaded named shapes continue through their ordinary object path.
+The unattended `mandragor_tree_melee_checkpoint` test used the installed
+Swamp tree, King's Sword and `mt_dead.kqs`; the corpse and one 20,000
+experience award survived a fresh-process reload and a second slot.
+Connor was protected for this controlled fight. This does not verify
+original executable binary saves or an earned Swamp route.
+
 **Tower Skeleton controlled fall (2026-11-16).** The installed Dead
 City `Skeltowr` actor, animation list, fight values, speech and chain
 mail supply the [tower rules](../behaviour/fighting.md#7a-the-tower-skeleton-kqtowerskeleton-traced-2026-10-28-batch-2).
