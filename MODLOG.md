@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-17 Check Daventry ambient deaths together (M5)
+
+Read the installed Daventry placements and combat types for `bat5`,
+`chicken1`, `chicken2` and `piggy1`. Their alarm and attack distances
+are zero. A single unattended original-data fixture relocated all four
+near Connor, watched 45 updates without an attack, then sent one
+controlled Normal hit to each. The release test passed 1/1 in about
+17 seconds: no drops or experience, distinct bat/chicken/pig corpse
+outcomes, and one first-kill tutorial event from `chicken2`. The first
+run failed only because its no-drop assertion read `items.log`; the
+message is in `fight.log`, which the corrected test checks. No
+production code or GOG file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test
+daventry_ambient_families_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Link Daventry Zombie Birth and combat (M5)
 
 The previous Zombie attempts occurred after the bow Spriggan's death

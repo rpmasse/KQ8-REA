@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Daventry ambient non-attack families
+
+The original-data `daventry_ambient_families_live` release test passed
+1/1. Placed `bat5`, `chicken1`, `chicken2` and `piggy1` loaded with zero
+alarm and attack distances, made no attack during a 45-update
+controlled interval near Connor, and completed one Normal death each.
+All four dropped nothing and awarded zero experience. The bat left no
+corpse, both chickens left `Chk_rded.KQS`, and the pig left
+`pigdead2.kqs`. After the bat and `chicken1` deaths, `chicken2` alone
+triggered the first-kill tutorial event. These actors were relocated;
+their earned world routes were not tested. M5 remains incomplete.
+
 ## 2026-11-17 M5 Daventry Zombie and Spriggan variants
 
 The original-data `daventry_enemy_variants_live` release test passed

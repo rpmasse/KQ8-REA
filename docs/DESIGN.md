@@ -474,6 +474,22 @@ corpse and one 2-experience award. Then run the melee Spriggan followed
 by the bow Spriggan, whose death script starts the Knight scene. This
 does not establish the Zombie's earned approach.
 
+## M5 Daventry ambient non-attack families (2026-11-17)
+
+Use one original-data Daventry process for placed `bat5`, `chicken1`,
+`chicken2` and `piggy1` in the measured Cottage-side lane. Their
+installed monster rows have alarm and attack distance zero. Move all
+four near Connor, leave them alive for an observed interval and require
+no attack cue or health loss from any of them. Then send one controlled
+Normal hit to each. Require no drop and zero experience for all, no
+corpse for the bat, the shared chicken corpse for both chicken types,
+and the pig's distinct corpse. This checks noncombat actor behavior and
+death presentation, not an earned route or a claim about their movement
+outside the controlled lane.
+The same order checks the first-kill tutorial boundary: bat and
+`chicken1` are excluded, while `chicken2` can be the first qualifying
+death.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

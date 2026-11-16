@@ -97,6 +97,14 @@ lands Normal hits, drops two Mushrooms and completes its corpse and
 The first order let the bow's death script move Connor away before the
 other deaths completed; putting the Zombie and melee Spriggan first
 completed all three in one process. Earned routes remain untested.
+The grouped `daventry_ambient_families_live` check adds the placed bat,
+both chicken types and pig as zero-alarm, zero-attack-distance actors.
+None attacked during the observed 45 updates near Connor. Controlled
+Normal deaths checked their no-drop, zero-experience outcomes and the
+bat's absent corpse versus the chicken and pig corpse shapes. The same
+order checks the first-kill tutorial exclusion for bat and `chicken1`:
+only `chicken2` caused its first qualifying death event. This is a
+controlled lane, not an earned world route.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |
