@@ -439,6 +439,26 @@ pick to meet that object first, call its `ConnorAction do do` script and
 produce no projectile. Keep this one process and distinguish the
 object-name branch from the Wizard's character-type branch.
 
+## M5 Daventry Spriggan variants (2026-11-17)
+
+Use one original-data Daventry process in the measured Cottage-side
+combat lane. Relocate the installed `sprigan` bow actor of type
+`sprgnbowtype2`, then `sprigan1`. Remove the known intervening goblin
+and set the relocated melee actor's home to that lane so its ordinary
+chase stays local. Keep their authored types, movements and drop lists.
+Require a live Projectile health loss from the bow actor and Normal
+health loss from the melee actor before controlled Normal deaths. Check
+the bow's no-drop, corpse and 12 experience, and the melee actor's
+six-coin drop. Document any unfinished death completion separately.
+This is direct rule coverage, not an earned approach.
+
+The same lane was attempted twice with the installed `zograv2` Zombie.
+Relocating it and then requesting Wait did not produce a live attack;
+both runs showed only its forced death and two mushroom drops. Keep
+its Birth/activation and live attack open for a separate source-backed
+investigation. The melee Spriggan's death completion also did not log
+by update 530, despite its attack, death entry and drop.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

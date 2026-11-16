@@ -206,3 +206,39 @@ they have **not been run against the original runtime** in this study.
   does not call that helper.
 - A winning ordinary-controls Rust campaign replay remains the
   implementation session's work; this study changes no replay or Rust.
+
+## Ice World's Henchman: terminal `stop` (Q220)
+
+Study session A, 2026-11-17. This is a static trace of the installed
+GOG 1.03 `Mask.exe` and the original IceWorld script and animation list.
+Original-engine play and save/load were **not tested**. This finding is
+separate from Daventry's `cdhm5` in rule 4, which plays once and ends.
+
+1. `LRDCHEST.CS` Cue 300 for `cn_ims09` asks `Henchman` for Special
+   `hm_bod10,hm_ice11,stop`. Its `cn_ims11` branch later sets alarm
+   radius 8000, chase and home radii 0, and subscribes the chest with
+   `getEndLoop Henchman $1 1`. `hench.anm` movement 25 maps `stop` to
+   `hm_stop.kqs` with repeat switches `1 1`; `hm_bod10` and `hm_ice11`
+   are play-once (`0 0`).
+2. The Special parser (`Mask.exe` `0x49b700`) moves its list cursor to
+   null when it reads the last word (`0x49b755–0x49b75d`) and starts
+   that word's movement (`0x49bebe–0x49becd`). It does **not** request
+   Wait at that point. Its movement-end handler (`0x49bef0`) processes
+   the next word if the ended name matches the current movement; only
+   with no word left does it request state 2, Wait (`0x49bf16–0x49bf4b`).
+   A repeating movement never ends (`anim-scripts.md` rule 10), so the
+   terminal `stop` cannot trigger that automatic Wait request. Without
+   another state request, the Henchman stays in Special.
+3. Once the cursor is null, Special's acceptance check (`0x49b530`)
+   would allow an **explicit** Wait request despite the repeating
+   movement. No such request appears in `LRDCHEST.CS` or `HENCH.CS`.
+   Ordinary attack and activation belong to Wait/Move: Special's update
+   vtable points at the generic state update `0x43d190`, while Wait's
+   update points at `0x476fe0`, which extends that update with combat
+   decisions (`character-movement.md` rules 20 and 23; `fighting.md`
+   rule 7). Thus the alarm-radius change alone cannot make this
+   Special-state Henchman fight.
+4. `getEndLoop` reports movement ends to the chest as Cue 300; it does
+   not end or replace a movement. The chest's Cue 300 branches name only
+   Connor's `cn_ims01`–`cn_ims11`, so even a notice for `hm_ice11` would
+   not request Wait. Repeating `stop` supplies no end notice.

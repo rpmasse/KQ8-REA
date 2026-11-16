@@ -1,5 +1,31 @@
 # MODLOG
 
+## 2026-11-17 Trace Ice World Henchman terminal Special (study A, Q220)
+
+The authorized study agent traced the installed executable's Special
+parser and movement-end handler against Ice World's `LRDCHEST.CS` and
+`hench.anm`. Its terminal repeating `stop` leaves the Henchman in
+Special; the later alarm-radius change and `getEndLoop` subscription
+do not start ordinary fighting. The result is recorded in
+`docs/behaviour/henchman.md` and Q220. Original-runtime play and
+save/load were not tested. No GOG or Rust files changed in this study.
+
+## 2026-11-17 Check Daventry Spriggan variants (M5)
+
+Added one unattended original-data encounter using installed `sprigan`
+(`sprgnbowtype2`) and `sprigan1` placements. The release test passed
+1/1 in about 27 seconds: the second bow type landed `Prscbolt.kq`
+Projectile hits and completed its no-drop death, corpse and 12
+experience; the melee variant landed Normal hits and dropped its six
+Silver Coins on controlled death. The first grouped run also moved
+`zograv2` but observed no live attack. A second run requested Wait
+after its relocation, with the same result. That actor's activation
+remains unresolved. The melee Spriggan's death completion and 7
+experience were absent even at update 530. The final fixture makes no
+claim for those effects. No production code or GOG file changed. With
+`KQ8_GAME_DIR` set, run `cargo test --locked --release -p kq8-viewer
+--test daventry_spriggan_variants_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Verify Ice World icewater plain click (M5)
 
 Read the installed Ice World `icewater.kq`, `icewater.cs` and

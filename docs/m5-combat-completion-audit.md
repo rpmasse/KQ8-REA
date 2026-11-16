@@ -37,6 +37,11 @@ attack. Controlled death verifies no drop, `gry_dead.kqs` corpse and
 zero experience. The preceding rescue trigger remains outside this
 combat fixture. The placed Icelord's script describes a cutscene, not
 an ordinary attack; it should not be force-killed to claim coverage.
+Static original-engine study of the Ice Henchman's chest sequence finds
+that terminal repeating `stop` leaves him in Special. Ordinary attack
+AI runs in Wait, and the installed chest script does not request Wait.
+The lack of combat in the unattended chest-cue diagnostic is
+consistent with that rule; original-runtime play has not been checked.
 The Barren `pyrod_live_fire` route now verifies a placed Pyrod's Lava
 weapon, Fire contact and health loss while Connor is alive, followed by
 its no-drop/no-corpse Normal death and 8,000 experience. Earlier same-lane
@@ -82,6 +87,14 @@ The Ice World `icewater_plain_click` process opens the installed
 After the authored cutscene releases controls and Connor readies the
 Small Crossbow, the aim pick invokes `icewater.cs` with no bolt. This
 links the object-name branch of ranged rule 15.
+The combined Daventry `daventry_spriggan_variants_live` process links
+the second placed bow Spriggan type to live `Prscbolt.kq` Projectile
+health loss, no-drop death, corpse and 12 experience. The placed
+`sprigan1` lands a Normal hit and drops its six Silver Coins on a
+controlled death. Its death completion and 7 experience did not occur
+within 530 updates. A nearby `zograv2` remained without a live attack
+in two controlled attempts, including an explicit Wait request, so
+that zombie's Birth and alarm route remains open.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

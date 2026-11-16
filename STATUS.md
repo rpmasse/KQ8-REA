@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 Daventry Spriggan variants
+
+The original-data `daventry_spriggan_variants_live` release test passed
+1/1. A placed second bow Spriggan type fired its authored bolt into
+Connor, then completed a no-drop death, corpse and 12-experience award.
+The placed melee `sprigan1` landed Normal hits and dropped six Silver
+Coins on a controlled death. Its death completion and 7-experience
+award were not seen by update 530. A relocated `zograv2` Zombie made no
+live attack in two attempts, even with a Wait request; its Birth/alarm
+route remains open. M5 remains incomplete.
+
 ## 2026-11-17 M5 Ice World crossbow click on icewater
 
 The original-data `icewater_plain_click` release test passed 1/1. The
