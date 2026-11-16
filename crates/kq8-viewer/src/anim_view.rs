@@ -166,6 +166,12 @@ pub struct AnimSim {
     fight: Option<Log>,
 }
 
+impl AnimSim {
+    pub(crate) fn swap_image(&self, name: &str) -> Option<Handle<Image>> {
+        self.swap_images.get(&name.to_ascii_lowercase()).cloned()
+    }
+}
+
 /// Class-controlled replacements overlay normal object overrides by original
 /// texture name. Reveal changes its named targets, not unrelated materials.
 fn bitmap_pairs(world: &kq8_core::active::WorldState, name: &str) -> Vec<(String, String)> {

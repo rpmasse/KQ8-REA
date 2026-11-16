@@ -120,6 +120,9 @@ pub const TALK_TURN_EVERY: u64 = 4;
 /// A character's own values and state.
 #[derive(Debug, Clone)]
 pub struct Character {
+    /// Authored `old.bmp` -> `new.bmp` skin from its monster type. Scripted
+    /// `changeBmp` is kept separately in the world's current overrides.
+    pub skin: Option<(String, String)>,
     /// `KQGeometryTalker` (rule 27; used from 4d-5).
     pub geometry: bool,
     /// `KQDeath` (`talking.md` rule 18a, F-4): mouth shapes 0–7 play
@@ -336,6 +339,7 @@ impl Character {
     /// A character as loaded; `seed` makes its random draws its own.
     pub fn new(geometry: bool, flags: u32, birth_delay: f32, has_birth: bool, no_turn: bool, gravity: bool, seed: u64) -> Self {
         Character {
+            skin: None,
             geometry,
             mouth_moves: false,
             tower: None,

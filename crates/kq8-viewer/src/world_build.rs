@@ -859,6 +859,7 @@ pub fn world_change_step(world: &mut World) {
                 exit_movement,
                 kept_vars: kept.vars.clone(),
                 gone: kept.gone.clone(),
+                corpse_skins: kept.corpses.iter().flat_map(|corpse| corpse.skins.iter().cloned()).collect(),
                 came_in: kept.came_in.clone(),
                 object_copies: kept.object_copies.clone(),
                 states: kept.states.iter().map(|s| (s.name.to_ascii_lowercase(), s.clone())).collect(),

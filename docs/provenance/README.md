@@ -1,5 +1,15 @@
 # Provenance
 
+**Alternate corpse skin (2026-11-16).** [Fighting rule 32](../behaviour/fighting.md)
+requires a dead monster's alternate texture on its corpse. The installed
+Daventry monster list gives `bossprig` the `test2.bmp` to `test3.bmp`
+pair, and the installed `spdeath.kqs` model uses `test2.bmp`. The Rust
+corpse now carries the authored and current scripted pairs through a
+disk slot. An unattended four-process check exercised `Die now`, fresh
+reload, scripted replacement and `normal` reset. This proves Rust
+material selection; it does not prove pixel parity with the original
+executable or an ordinary Bossprig death sequence.
+
 **Combat corpse persistence (2026-11-16).** [Fighting rule 32](../behaviour/fighting.md)
 creates a plain corpse object at a monster's death, and [world-change
 rule 12](../behaviour/world-change.md) keeps objects created during play.

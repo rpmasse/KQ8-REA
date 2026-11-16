@@ -320,6 +320,7 @@ impl Snapshot {
             }
             if kept.corpses.len() > 8192 || kept.corpses.iter().any(|corpse| {
                 corpse.loaded || !corpse.valid() || !safe_path(&corpse.shape)
+                    || corpse.skins.iter().any(|(from, to)| !safe_path(from) || !safe_path(to))
             }) {
                 return Err("save has an invalid combat corpse".into());
             }
@@ -1396,6 +1397,7 @@ mod tests {
             name: "mand3t".into(), shape: "mt_dead.kqs".into(),
             position: [10., 20., 30.],
             rotation: [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
+            skins: vec![("test2.bmp".into(), "test3.bmp".into())],
             loaded: false,
         };
         sim.world.corpses.push(body.clone());
@@ -1409,13 +1411,19 @@ mod tests {
         let encoded = serde_json::to_value(&save).unwrap();
         let decoded: Snapshot = serde_json::from_value(encoded.clone()).unwrap();
         assert_eq!(decoded.kept["swamp"].corpses, vec![body.clone()]);
-        let mut legacy = encoded;
+        let mut legacy = encoded.clone();
         legacy["kept"]["swamp"].as_object_mut().unwrap().remove("corpses");
         let old: Snapshot = serde_json::from_value(legacy).unwrap();
         assert!(old.kept["swamp"].corpses.is_empty());
 
+        let mut old_corpse = encoded;
+        old_corpse["kept"]["swamp"]["corpses"][0].as_object_mut().unwrap().remove("skins");
+        let old: Snapshot = serde_json::from_value(old_corpse).unwrap();
+        assert!(old.kept["swamp"].corpses[0].skins.is_empty());
+
         for invalid in [
             kq8_core::fight::Corpse { shape: "../outside.kqs".into(), ..body.clone() },
+            kq8_core::fight::Corpse { skins: vec![("test2.bmp".into(), "../outside.bmp".into())], ..body.clone() },
             kq8_core::fight::Corpse { position: [f32::NAN, 20., 30.], ..body.clone() },
             kq8_core::fight::Corpse { loaded: true, ..body },
         ] {

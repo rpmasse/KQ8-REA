@@ -448,6 +448,30 @@ reward. A focused save-format check passed, including old slots and
 invalid shapes or poses. Original executable save parity and the earned
 Swamp route remain unverified.
 
+## M5 keep a monster's alternate skin on its corpse (2026-11-16)
+
+`fighting.md` rule 32 says a corpse uses the dead monster's last
+alternate texture. Daventry's installed `bossprig` type swaps
+`test2.bmp` for `test3.bmp`, but the current corpse renderer loads only
+the plain `spdeath.kqs` model. Carry its authored skin and any current
+scripted `changeBmp` replacement as ordered pairs on the generated corpse;
+`normal` removes only the scripted pair. Give each corpse its own material
+when its texture changes, leaving shared models and source texture
+dimensions unchanged. Save the optional pairs with generated
+corpses and retain old slots without it. Check the installed bossprig
+model and a controlled death using logs and material names, then a
+fresh-process corpse reload. Do not claim visual or original runtime
+parity from these automated checks.
+
+Outcome: the installed `spdeath.kqs` model uses `test2.bmp`; the
+four-process automated Daventry check passed for authored skin, disk
+reload, scripted replacement and `normal` reset. Saved corpses supply
+their own replacement picture names when the dead monster is skipped
+on world reload. Two ordinary `kill` probes did not reach the end of
+Bossprig's movement after he left update range; the material check
+used `Die now`. Ordinary animation completion and original-executable
+pixels remain unverified. No texture pixels or dimensions were changed.
+
 ## M5 Strength potion during original-data melee (2026-11-16)
 
 `potions.md` rules 21–23 say Strength adds half of Connor's current hand

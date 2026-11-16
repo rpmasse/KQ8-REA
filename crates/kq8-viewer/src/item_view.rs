@@ -111,8 +111,8 @@ pub fn item_draw(mut commands: Commands, sim: Option<Res<DoorSim>>, draw: Option
 /// drawn so far.
 #[derive(Resource)]
 pub struct CorpseDraw {
-    /// Lower-case shape name -> its model.
-    parts: BTreeMap<String, Parts>,
+    /// Lower-case shape name -> mesh, shared material and original texture.
+    parts: BTreeMap<String, Vec<(Handle<Mesh>, Handle<ObjectMaterial>, Option<String>)>>,
     /// How many of the world's corpses have their entity.
     drawn: usize,
     /// The bolts in the air drawn now (M5 5c-9), by name, and their places
@@ -121,16 +121,31 @@ pub struct CorpseDraw {
 }
 
 /// `shapes`: lower-case shape name -> index into `built`.
-pub fn spawn_corpses(commands: &mut Commands, shapes: BTreeMap<String, usize>, built: &[Parts]) {
-    let parts = shapes.into_iter().filter_map(|(k, slot)| built.get(slot).map(|p| (k, p.clone()))).collect();
+pub fn spawn_corpses(commands: &mut Commands, shapes: BTreeMap<String, usize>, built: &[Parts], textures: &[Vec<Option<String>>]) {
+    let parts = shapes.into_iter().filter_map(|(k, slot)| {
+        let parts = built.get(slot)?;
+        let names = textures.get(slot)?;
+        Some((k, parts.iter().zip(names).map(|((mesh, material), name)| (mesh.clone(), material.clone(), name.clone())).collect()))
+    }).collect();
     commands.insert_resource(CorpseDraw { parts, drawn: 0, bolts: BTreeMap::new() });
+}
+
+/// Apply the authored skin first, then the current scripted replacement.
+fn corpse_skin_target<'a>(original: &'a str, skins: &'a [(String, String)]) -> Option<&'a str> {
+    // Loaded texture labels include the volume path; monster skin rules
+    // name only the bitmap file.
+    let original = original.rsplit(['/', '\\']).next().unwrap_or(original);
+    let mut shown = original;
+    for (from, to) in skins {
+        if from.eq_ignore_ascii_case(shown) { shown = to; }
+    }
+    (!shown.eq_ignore_ascii_case(original)).then_some(shown)
 }
 
 /// Each new corpse: its model where the character stood, turned the same
 /// way (rule 32). **Ours**: no shadow (not a caster) and no draw-distance
-/// test (always drawn when in view); the skin swap is not applied (only
-/// `bossprig` has one in Daventry).
-pub fn corpse_draw(mut commands: Commands, sim: Option<Res<DoorSim>>, draw: Option<ResMut<CorpseDraw>>, shared: Res<crate::Shared>) {
+/// test (always drawn when in view).
+pub fn corpse_draw(mut commands: Commands, sim: Option<Res<DoorSim>>, draw: Option<ResMut<CorpseDraw>>, anim: Option<Res<crate::anim_view::AnimSim>>, mut materials: ResMut<Assets<ObjectMaterial>>, shared: Res<crate::Shared>) {
     let (Some(sim), Some(mut draw)) = (sim, draw) else { return };
     let corpses = &sim.active.world.corpses;
     while draw.drawn < corpses.len() {
@@ -141,11 +156,18 @@ pub fn corpse_draw(mut commands: Commands, sim: Option<Res<DoorSim>>, draw: Opti
             continue;
         };
         let body = commands.spawn((bevy_transform_from(c.rotation, c.position), Visibility::Inherited, crate::terrain_view::ObjectName(c.drawn_name()))).id();
-        for (mesh, material) in parts {
-            let part = commands.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(material.clone()))).id();
+        let mut changed = 0;
+        for (mesh, material, original) in parts {
+            let replacement = original.as_deref().and_then(|name| corpse_skin_target(name, &c.skins))
+                .and_then(|name| anim.as_ref()?.swap_image(name));
+            let material = match replacement.and_then(|image| materials.get(material).cloned().map(|mut m| { m.texture = Some(image); m })) {
+                Some(copy) => { changed += 1; materials.add(copy) },
+                None => material.clone(),
+            };
+            let part = commands.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(material))).id();
             commands.entity(body).add_child(part);
         }
-        shared.log.lock().unwrap().summary(format!("corpse of {}: {} drawn at ({:.0}, {:.0}, {:.0})", c.name, c.shape, c.position[0], c.position[1], c.position[2]));
+        shared.log.lock().unwrap().summary(format!("corpse of {}: {} drawn at ({:.0}, {:.0}, {:.0}); skin pairs {:?}, {changed} material(s) changed", c.name, c.shape, c.position[0], c.position[1], c.position[2], c.skins));
     }
 }
 
@@ -177,7 +199,7 @@ pub fn bolt_draw(mut commands: Commands, sim: Option<Res<DoorSim>>, draw: Option
             None => {
                 let Some(parts) = b.shape.as_ref().and_then(|s| draw.parts.get(&s.to_ascii_lowercase())) else { continue };
                 let body = commands.spawn((bevy_transform_from(place.rotation, place.position), Visibility::Inherited)).id();
-                for (mesh, material) in parts {
+                for (mesh, material, _) in parts {
                     let part = commands.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(material.clone()))).id();
                     commands.entity(body).add_child(part);
                 }
@@ -186,5 +208,21 @@ pub fn bolt_draw(mut commands: Commands, sim: Option<Res<DoorSim>>, draw: Option
                 draw.bolts.insert(b.name.clone(), (body, glide));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod corpse_tests {
+    use super::corpse_skin_target;
+
+    #[test]
+    fn corpse_keeps_authored_skin_then_current_script_change() {
+        let base = ("test2.bmp".into(), "test3.bmp".into());
+        let script = ("test3.bmp".into(), "test4.bmp".into());
+        let source = "vol:Daventry/resource/TEST2.BMP";
+        assert_eq!(corpse_skin_target(source, &[]), None);
+        assert_eq!(corpse_skin_target(source, &[base.clone()]), Some("test3.bmp"));
+        assert_eq!(corpse_skin_target(source, &[base, script]), Some("test4.bmp"));
+        assert_eq!(corpse_skin_target("other.bmp", &[("test2.bmp".into(), "test3.bmp".into())]), None);
     }
 }

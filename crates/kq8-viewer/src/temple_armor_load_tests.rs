@@ -47,6 +47,7 @@ fn original_temple_armor_banks_load_matrix() {
         exit_movement: None,
         kept_vars: vec![],
         gone: Default::default(),
+        corpse_skins: vec![],
         came_in: vec![],
         object_copies: vec![],
         states: Default::default(),

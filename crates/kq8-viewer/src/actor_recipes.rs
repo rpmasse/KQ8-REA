@@ -159,6 +159,7 @@ pub fn character(
         k.class == Class::GeometryTalker, k.flags, c.birth_delay, has_birth,
         k.no_turn, k.gravity, Character::seed_for(&p.name),
     ));
+    ch.skin = c.skin.clone();
     if k.class == Class::Lucreto {
         ch.lucreto_react_pause = k.react_pause;
     }

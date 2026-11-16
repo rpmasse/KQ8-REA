@@ -2064,6 +2064,9 @@ pub struct Arrival {
     /// not loaded again), lower case.
     pub kept_vars: Vec<(String, String)>,
     pub gone: std::collections::BTreeSet<String>,
+    /// Bitmap pairs on saved combat corpses, which may belong to monsters
+    /// skipped by `gone` when this world is rebuilt.
+    pub corpse_skins: Vec<(String, String)>,
     /// Files a script's `loadKQ` brought in on an earlier visit (rule 12),
     /// lower case, in order: loaded again after the start script (rule
     /// 14.5), as objects in the world from the start.
@@ -2197,6 +2200,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
             _ => Default::default(),
         },
         gone: arrival.as_ref().map(|a| a.gone.clone()).unwrap_or_default(),
+        saved_corpse_skins: arrival.as_ref().map(|a| a.corpse_skins.clone()).unwrap_or_default(),
         gone_skipped: Vec::new(),
         kept_states: arrival.as_ref().map(|a| a.states.clone()).unwrap_or_default(),
         saved_copies: arrival.as_ref().map(|a| a.object_copies.iter().map(|copy| (copy.name.to_ascii_lowercase(), copy.clone())).collect()).unwrap_or_default(),
@@ -2623,6 +2627,7 @@ struct Placer<'a> {
     /// Objects that left this world on an earlier visit (M6 6e-8), lower
     /// case, and those skipped.
     gone: std::collections::BTreeSet<String>,
+    saved_corpse_skins: Vec<(String, String)>,
     gone_skipped: Vec<String>,
     /// A kept world's object states (K-2), and the names they were put on.
     kept_states: BTreeMap<String, kq8_core::active::KeptState>,
@@ -4832,6 +4837,8 @@ impl Placer<'_> {
                 (w.len() == 4 && w[0] == "kqobject::changebmp").then(|| w[3].to_string())
             })
             .collect();
+        names.extend(self.animated.iter().filter_map(|a| a.character.as_ref()?.skin.as_ref()).flat_map(|(from, to)| [from.to_ascii_lowercase(), to.to_ascii_lowercase()]));
+        names.extend(self.saved_corpse_skins.iter().flat_map(|(from, to)| [from.to_ascii_lowercase(), to.to_ascii_lowercase()]));
         if !self.swamp_tiles.is_empty() {names.extend(kq8_core::tile_objects::REVEAL_BITMAPS.map(|s|s.to_ascii_lowercase()));}
         if !self.lava_tiles.is_empty() {names.extend(kq8_core::secondary_tiles::LAVA_BITMAPS.map(str::to_string));}
         let Ok(palette) = self.object_palette() else { return Vec::new() };
@@ -4839,7 +4846,7 @@ impl Placer<'_> {
         let looks: Vec<(String, Look)> = names.iter().map(|n| (n.clone(), load_texture(self.world, self.game, n, &palette, self.log))).collect();
         self.log.quiet = false;
         let read = looks.iter().filter(|(_, l)| matches!(l, Look::Texture { .. })).count();
-        self.log.summary(format!("changeBmp: {} picture(s) named by the scripts, {read} read: {:?} (characters.md rule 4a)", names.len(), names));
+        self.log.summary(format!("bitmap replacements: {} script, class or authored skin picture(s), {read} read: {:?} (characters.md rules 4, 4a)", names.len(), names));
         looks
     }
 
@@ -6066,6 +6073,19 @@ mod campaign_tests {
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_bossprig_corpse_uses_authored_skin_source() {
+        let game = game_install();
+        let world = World::open(&game, "Daventry").unwrap();
+        let (_, shape, _) = model_shape(&game, &world, "spdeath.kqs").unwrap();
+        let names: Vec<_> = shape.materials.as_ref().unwrap().materials.iter()
+            .filter(|m| m.kind() == MaterialKind::Texture)
+            .map(|m| m.texture.to_ascii_lowercase()).collect();
+        assert!(names.iter().any(|name| name == "test2.bmp"), "spdeath.kqs texture names: {names:?}");
+        assert!(world.load("test3.bmp").is_some(), "authored replacement is absent");
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn original_elemental_projectiles_name_their_effect_files() {
         let game = game_install();
         let world = World::open(&game, "DeadCity").unwrap();
@@ -6345,7 +6365,7 @@ mod campaign_tests {
         let arrival = Arrival { no_name_from: 0, items: None, third_person_lists: None, exit_movement: None,
             kept_vars: active.scripts.vars.iter().filter(|(name, _)| name.starts_with("Gnome::"))
                 .map(|(name, value)| (name.to_string(), value.to_string())).collect(),
-            gone: Default::default(), came_in: vec![], object_copies: vec![],
+            gone: Default::default(), corpse_skins: vec![], came_in: vec![], object_copies: vec![],
             states: Default::default(), prop_placements: saved_props, kept_maps: Default::default() };
         let restored = load_objects(&game, &world, &ground.terrain, &mut log, Some(arrival), None);
         let expected = active.world.place_of("boulder").unwrap();
@@ -6603,7 +6623,7 @@ mod campaign_tests {
         let saved = ObjectCopy { file: "lucfire.kq".into(), name: "lucfire".into(),
             placement: Placement::at([0.0; 3]) };
         let arrival = Arrival { no_name_from: 0, items: None, third_person_lists: None,
-            exit_movement: None, kept_vars: vec![], gone: Default::default(),
+            exit_movement: None, kept_vars: vec![], gone: Default::default(), corpse_skins: vec![],
             came_in: vec![], object_copies: vec![saved.clone()], states: Default::default(),
             prop_placements: Default::default(), kept_maps: Default::default() };
         let restored = load_objects(&game, &world, &ground.terrain, &mut log, Some(arrival), None);
@@ -7278,6 +7298,7 @@ mod runtime_stat_default_checks {
         ];
         let arrival = Arrival { no_name_from: 12, items: None, third_person_lists: None, exit_movement: None, kept_vars: vec![],
             gone: ["zedprobe".into(), "belstnd1".into()].into_iter().collect(),
+            corpse_skins: vec![],
             came_in: vec!["boardpx.kq".into()], object_copies: copies.clone(), states: Default::default(),
             prop_placements: Default::default(), kept_maps: Default::default() };
         let objects = load_objects(&game, &world, &ground.terrain, &mut log, Some(arrival), None);
@@ -7301,7 +7322,7 @@ mod regional_item_checks {
 
     fn arrival(no_name_from: usize, items: Option<ItemLoad>) -> Arrival {
         Arrival { no_name_from, items, third_person_lists: None, exit_movement: None, kept_vars: vec![],
-            gone: Default::default(), came_in: vec![], object_copies: vec![],
+            gone: Default::default(), corpse_skins: vec![], came_in: vec![], object_copies: vec![],
             states: Default::default(), prop_placements: Default::default(), kept_maps: Default::default() }
     }
 

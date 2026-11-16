@@ -3022,7 +3022,7 @@ impl WorldState {
             }
         }
         let rotation = kq8_data::objects::rotation([n[3], n[4], n[5]]);
-        self.corpses.push(crate::fight::Corpse { name: name.clone(), shape: file.clone(), position, rotation, loaded: true });
+        self.corpses.push(crate::fight::Corpse { name: name.clone(), shape: file.clone(), position, rotation, skins: Vec::new(), loaded: true });
         // A world object by that name now (`deleteObject` finds it).
         let key = name.to_ascii_lowercase();
         self.deleted.remove(&key);
@@ -10452,6 +10452,8 @@ endif
         // fighting.md rules 30, 32, 33 (M5 5c-7).
         let mut a = fighter();
         let o = &mut a.world.anims[0];
+        o.character.as_deref_mut().unwrap().skin = Some(("test2.bmp".into(), "test3.bmp".into()));
+        a.world.bmp_swaps.insert("gob".into(), ("test3.bmp".into(), "test4.bmp".into()));
         o.player.movements.push(crate::named_anim::tests::movement("die", 0.0, 1.0, false, false, vec![]));
         let f = o.character.as_mut().unwrap().fight.as_mut().unwrap();
         f.settings.dead_dts = Some("g2dead.kqs".into());
@@ -10477,6 +10479,7 @@ endif
         assert_eq!(a.world.connor_stats.unwrap().stats.0[4], 3);
         assert_eq!(a.world.corpses.len(), 1);
         assert_eq!((a.world.corpses[0].shape.as_str(), a.world.corpses[0].position), ("g2dead.kqs", a.world.anims[0].player.base.position));
+        assert_eq!(a.world.corpses[0].skins, [("test2.bmp".into(), "test3.bmp".into()), ("test3.bmp".into(), "test4.bmp".into())]);
         assert!(a.world.anims[0].gone);
         assert!(log.contains("first qualifying character death: intermediate help event due at game time"), "{log}");
         assert_ne!(a.world.help_prompts.history(a.world.updates).start_help & crate::starting_help::FIRST_KILL, 0);

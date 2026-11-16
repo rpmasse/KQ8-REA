@@ -660,6 +660,9 @@ pub struct Corpse {
     pub shape: String,
     pub position: [f32; 3],
     pub rotation: [[f32; 3]; 3],
+    /// Authored skin followed by the live `changeBmp` override at death.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub skins: Vec<(String, String)>,
     /// Made by a script's `loadObject` (`anim-scripts.md` rule 34): drawn
     /// under its own name (so `deleteObject` finds it), not `<name>_corpse`.
     pub loaded: bool,
@@ -671,6 +674,10 @@ impl Corpse {
             && !self.name.chars().any(char::is_control)
             && !self.shape.is_empty() && self.shape.len() <= 256
             && !self.shape.chars().any(char::is_control)
+            && self.skins.len() <= 2
+            && self.skins.iter().all(|(from, to)| [from, to].iter().all(|name| {
+                !name.is_empty() && name.len() <= 256 && !name.chars().any(char::is_control)
+            }))
             && self.position.iter().all(|v| v.is_finite())
             && self.rotation.iter().flatten().all(|v| v.is_finite())
     }
@@ -1964,6 +1971,8 @@ impl crate::active::WorldState {
         let a = &mut self.anims[j];
         let name = a.player.name.clone();
         let (position, rotation) = (a.player.base.position, a.player.base.rotation);
+        let mut skins = a.character.as_deref().and_then(|c| c.skin.clone()).into_iter().collect::<Vec<_>>();
+        skins.extend(self.bmp_swaps.get(&name.to_ascii_lowercase()).cloned());
         let Some(f) = a.character.as_deref().and_then(|c| c.fight.as_ref()) else { return };
         let kind = f.last_kind.unwrap_or(HitKind::Normal);
         let exp = f.stats.0[4];
@@ -2000,7 +2009,7 @@ impl crate::active::WorldState {
         let corpse = match shape {
             Some(shape) => {
                 let line = format!("a corpse {shape} where it stood ({:.0}, {:.0}, {:.0}), turned the same way, no shadow, not solid", position[0], position[1], position[2]);
-                self.corpses.push(Corpse { name: name.clone(), shape, position, rotation, loaded: false });
+                self.corpses.push(Corpse { name: name.clone(), shape, position, rotation, skins, loaded: false });
                 line
             }
             None => format!("no corpse ({})", if kind == HitKind::Fire { "Fire: burnt away" } else { "no shape for this kind" }),

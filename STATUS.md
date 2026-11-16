@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-16 M5 alternate skin on combat corpses
+
+Generated corpses now retain their monster's authored skin and current
+scripted bitmap replacement, including through a Rust disk save. An
+unattended four-process Daventry check used the installed `bossprig`
+and `spdeath.kqs`: the replacement material was selected on death and
+after fresh-process reload, a script could replace it, and `normal`
+restored the authored skin. The test passed 1/1 in 163.60 seconds;
+780 active core and 66 active viewer unit tests passed; the existing
+plain Mandragor corpse save/reload check also passed in 85.10 seconds.
+The Bossprig check used
+`Die now`; an ordinary Bossprig death animation to its end remains
+untested. Original-executable visual parity and manual gameplay remain
+untested. M5 is still about 65%.
+
 ## 2026-11-16 M5 combat corpses survive Rust saves
 
 Generated combat corpses now remain in a saved world. Script-loaded

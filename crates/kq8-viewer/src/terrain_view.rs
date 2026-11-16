@@ -465,7 +465,7 @@ pub fn setup_objects(
     }
     crate::item_view::spawn_items(&mut commands, item_looks, &built, &mut object_materials, &balls);
     // fighting.md rule 32 (M5 5c-7): the corpses' models.
-    crate::item_view::spawn_corpses(&mut commands, std::mem::take(&mut objects.corpse_shapes), &built);
+    crate::item_view::spawn_corpses(&mut commands, std::mem::take(&mut objects.corpse_shapes), &built, &texture_names);
     // potions.md rule 20 (M5 5g-4): the shield's orbit.
     crate::potion_view::spawn_orbit(&mut commands, std::mem::take(&mut objects.orbit), &built, &mut object_materials);
     // M5 5d-3: the templates' models, for copies loaded while playing.

@@ -1,5 +1,32 @@
 # MODLOG
 
+## 2026-11-16 Keep alternate monster skin on a combat corpse
+
+Changed: a generated corpse now records the monster's authored bitmap
+replacement and its current scripted `changeBmp` pair. The viewer gives
+the corpse its own material when a bitmap changes; a saved world's loader
+prepares the replacement even after the dead monster is skipped. `normal`
+removes the scripted pair and retains the authored one. Why: Daventry's
+`bossprig` has `test2.bmp` -> `test3.bmp`, but its `spdeath.kqs` corpse
+used the plain source texture. Tested how: the installed GOG corpse model
+material check passed 1/1; the core death test passed 1/1; the Rust
+save-format test passed 1/1, including legacy slots and unsafe paths.
+`cargo test --locked -p kq8-viewer --test corpse_skin_checkpoint --
+--ignored --nocapture` passed 1/1 in 163.60 seconds across four
+unattended Windows processes. It checked an authored corpse, fresh
+reload, scripted bitmap replacement and `normal` reset. The full core
+suite passed 780 active tests; the viewer suite passed 66 active tests.
+The existing plain Mandragor corpse save/reload check passed again
+1/1 in 85.10 seconds after this change.
+Artifact: `kq8-artifacts/corpse-skin-checkpoint/1794823878160410600/`.
+Two earlier attempts with ordinary console `kill` stopped before the
+death movement ended: first because Bossprig was far away, then after
+Connor moved out of update range. The final material test used the
+documented `Die now` command to make the corpse immediately. Ordinary
+Bossprig death to its last animation frame, visual parity with the
+original executable and manual gameplay were not tested. GOG
+`Options.cs` stayed unchanged. M5 remains incomplete.
+
 ## 2026-11-16 Keep combat corpses in Rust world saves
 
 Changed: retained generated combat corpses in the kept-world record,
