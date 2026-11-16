@@ -1,5 +1,14 @@
 # Provenance
 
+**Bow-spriggan death drops (2026-11-16).** [Fighting rules 31–32](../behaviour/fighting.md)
+specify that a drop matching the death model's named part is laid after
+the movement, while a drop without a matching part is thrown at death
+entry; Fire leaves no corpse. The installed Daventry `sprgnbow` normal
+Die model has `SmCrossbow`, and its fire model has `scbow` instead. An
+unattended two-process Rust check verified the different crossbow
+timing, one experience award per death, and corpse presence by kind.
+The deaths were controlled fixtures, not earned combat.
+
 **Alternate corpse skin (2026-11-16).** [Fighting rule 32](../behaviour/fighting.md)
 requires a dead monster's alternate texture on its corpse. The installed
 Daventry monster list gives `bossprig` the `test2.bmp` to `test3.bmp`

@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 bow-spriggan crossbow drop on normal and fire death
+
+An unattended two-process Daventry check used the installed `sprgnbow`
+actor and animation files. Normal death kept its crossbow until the
+94-frame movement ended, then laid it on the named part and left a
+corpse. Fire death threw the crossbow at once and left no corpse. Both
+awarded experience exactly once. The check passed 1/1 in 74.58 seconds;
+the GOG `Options.cs` file was unchanged. These were controlled deaths
+with AI off, not earned fights or original-executable comparisons. No
+manual gameplay ran. M5 remains about 65%.
+
 ## 2026-11-16 M5 ordinary Bossprig death reaches its corpse
 
 The existing four-process corpse-skin check now lets the installed

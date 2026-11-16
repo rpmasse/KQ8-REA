@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-16 Check bow-spriggan crossbow drops by death kind
+
+Changed: added an unattended two-process original-data regression for
+the Daventry bow spriggan's normal and fire deaths. Why: the model-part
+rule kept its Small Crossbow until the normal Die movement's end, but
+the fire model has no matching part and should throw it immediately;
+the latter viewer path was untested. Tested how: with `KQ8_GAME_DIR` set
+to the GOG installation, `cargo test --locked -p kq8-viewer --test
+sprgnbow_death_drops -- --ignored --nocapture` passed 1/1 in 74.58
+seconds. Normal death laid the crossbow on `SmCrossbow` at update 103
+and left a corpse; Fire threw it at update 10, ended at update 50 and
+left no corpse. Both gave experience once. The initial 100-update
+normal probe stopped before its 94-frame Die movement ended; the final
+fixture runs 140 updates. Artifact:
+`kq8-artifacts/sprgnbow-death-drops/1794825636783572000/`.
+No production code or source texture changed. The GOG `Options.cs`
+file stayed unchanged. Earned fighting, original-executable visual
+parity and manual gameplay remain untested.
+
 ## 2026-11-16 Check ordinary Bossprig death and corpse reload
 
 Changed: strengthened the four-process Bossprig corpse-skin regression.

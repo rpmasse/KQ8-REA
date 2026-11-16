@@ -3,6 +3,30 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
+
+Use the installed Daventry `sprgnbow` actor and its original animation
+and item data in two controlled, unattended Windows runs. Keep it near
+Connor so both death movements complete without the draw-distance gate
+stopping its update. On a normal death, require the Small Crossbow to
+wait until the 94-frame Die movement ends, then be laid on its named
+part with no flight and leave the ordinary corpse. On a Fire death,
+require the crossbow to be thrown at death entry because the 41-frame
+fire model lacks an `SmCrossbow` part, and require no corpse. Check the
+item, fight and presentation logs and keep the GOG installation
+read-only. These fixtures establish Rust behavior with original data;
+they do not establish an earned combat route or original-executable
+visual parity.
+
+Outcome: the installed normal Die loop is 94 frames, and the Rust run
+kept the crossbow at death entry, laid it on the named part at update
+103, awarded experience once and drew `spbdeath.kqs`. The installed
+Fire loop is 41 frames; the second run threw the crossbow at update 10,
+awarded experience once at update 50 and left no corpse. The unattended
+two-process check passed 1/1 in 74.58 seconds after explicit one-award
+assertions. An initial 100-update normal probe stopped before the
+94-frame animation ended; the data justified the 140-update bound.
+
 ## M5 Dragon projectile-contact audit (2026-11-16)
 
 The [Dragon behavior note](behaviour/dragon.md) Q210 says the two
