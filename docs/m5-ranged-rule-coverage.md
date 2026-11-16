@@ -11,7 +11,7 @@ row is still open for the M5 rule-to-scenario gate.
 | Rule | Current automated evidence | Direct gap |
 | --- | --- | --- |
 | 13 click priority | Core `an_item_or_control_lock_takes_precedence_over_an_attack_click` checks a held item, blocked input and weapon mode. | None identified for the common branch. |
-| 14 Ctrl | The same core check routes a ranged Ctrl click to plain interaction. | No separate original-data Ctrl route. |
+| 14 Ctrl | The core check routes a ranged Ctrl click to plain interaction. `moving_shot_checkpoint` now holds the installed Control key across a later original-data aim click with the Small Crossbow ready: the world click stays plain and no third bolt fires, after two ordinary moving shots. | Original-executable parity is separate. |
 | 15 talk instead of shooting | `goblin_live_combat` checks four normal crossbow releases, then Wizard type `0xC021` taking conversation with no fifth release in the same Daventry process. `icewater_plain_click` opens the installed Ice World door to load `icewater`, waits for the cutscene to return control, then checks a ready crossbow click calls `icewater.cs` without a bolt. | No distinct branch remains unlinked for this rule. |
 | 16 aim pick | `live_crossbow_combat` checks three character camera picks and hits. The Fire-arrow range/emitter test asserts the drawn-ground fallback. The grouped `ranged_building_sky_picks` run checks the Cottage ahead of a goblin and an open-sky line using its far endpoint. | No distinct common branch remains unlinked; the camera was placed in open air for the sky case. |
 | 17 shoot offset | Core `connor_s_bolt_starts_at_the_crossbow_part_and_flies_to_the_aim_point` checks fallback and retained part offset. | No distinct missing branch identified. |

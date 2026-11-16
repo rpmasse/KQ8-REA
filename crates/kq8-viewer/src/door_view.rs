@@ -1982,7 +1982,7 @@ pub fn door_click_input(
     };
     let walls = ClickBuildings { buildings: buildings.as_deref().map_or(&[][..], |b| &b.0[..]), active: &sim.active };
     let pick = sim.active.pick_line(origin, dir, &walls);
-    let from = format!("update {updates}: {how}: line from ({:.0}, {:.0}, {:.0})", origin[0], origin[1], origin[2]);
+    let from = format!("update {updates}: {how}{}: line from ({:.0}, {:.0}, {:.0})", if ctrl { " (Ctrl held)" } else { "" }, origin[0], origin[1], origin[2]);
     let (line, picked) = match pick {
         Pick::Seen { name, t } => (format!("{from} hits {name} first, at {t:.0} units (box)"), Some(name)),
         Pick::Building { name, t, behind } => {

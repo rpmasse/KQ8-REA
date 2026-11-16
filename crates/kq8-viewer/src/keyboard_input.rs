@@ -199,14 +199,38 @@ fn scripted_key(
     menu: Option<Res<crate::startup_menu::Menu>>,
     mut raw: ResMut<ButtonInput<KeyCode>>,
     mut release: Local<Vec<KeyCode>>,
+    mut held: Local<Vec<(KeyCode, u64)>>,
 ) {
     for k in release.drain(..) {
         raw.release(k);
     }
+    let now = sim.as_ref().map(|s| s.active.world.updates);
+    held.retain(|(key, until)| {
+        if now.is_none_or(|n| n >= *until) {
+            raw.release(*key);
+            false
+        } else {
+            true
+        }
+    });
     let (Some(mut queue), Some(sim), None) = (queue, sim, menu) else {
         return;
     };
     queue.0.retain(|(name, tick)| {
+        // A fixed-update click may happen many render frames after a one-frame
+        // test key. Keep this physical key down through the requested update.
+        if let Some(spec) = name.strip_prefix("physical-hold:") {
+            if *tick > sim.active.world.updates { return true; }
+            if let Some((word, until)) = spec.rsplit_once(':') {
+                if let (Some(key), Ok(until)) = (keyboard_menu::virtual_key(word).and_then(physical), until.parse::<u64>()) {
+                    if until > sim.active.world.updates {
+                        raw.press(key);
+                        held.push((key, until));
+                    }
+                }
+            }
+            return false;
+        }
         let Some(word) = name.strip_prefix("physical:") else {
             return true;
         };

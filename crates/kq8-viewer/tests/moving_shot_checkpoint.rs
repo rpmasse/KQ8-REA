@@ -84,6 +84,8 @@ fn moving_crossbow_cooldown_resumes_after_disk_reload() {
         "--hold", "1,0,0,0,65",
         "--aim-point", "182000,55000,1800,2",
         "--aim-point", "182000,55000,1800,8",
+        "--key", "physical-hold:control:50,35",
+        "--aim-point", "182000,55000,1800,40",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=AfterMoving:enter:release:escape,30",
     ]);
     assert!(after.contains("save restored in DeadCity without replaying Begin")
@@ -93,6 +95,12 @@ fn moving_crossbow_cooldown_resumes_after_disk_reload() {
         "the shot during the saved cooldown was accepted; inspect {}", root.display());
     assert_eq!(fight.matches("shoots bolt2 (Prscbolt.kq").count(), 1,
         "the later moving shot did not fire once; inspect {}", root.display());
+    assert!(!fight.contains("shoots bolt3 ("),
+        "Ctrl-click fired a third bolt; inspect {}", root.display());
+    let doors = fs::read_to_string(root.join("restore/kq8-artifacts/logs/doors.log")).unwrap();
+    assert!(doors.lines().any(|line| line.starts_with("update 40: test --aim-point")
+        && line.contains("(Ctrl held)") && !line.contains("the aim pick")),
+        "the ranged Ctrl-click did not take the plain interaction path; inspect {}", root.display());
     let update = |line: &str| -> u64 { line.strip_prefix("update ").unwrap().split(':').next().unwrap().parse().unwrap() };
     let shot_tick = update(fight.lines().find(|line| line.contains("shoots bolt2 (Prscbolt.kq")).unwrap());
     let return_tick = update(fight.lines().find(|line| line.contains("Connor: 1 s after the last moving shot: the run is switched on again")).unwrap());

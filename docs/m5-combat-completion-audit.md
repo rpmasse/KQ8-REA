@@ -11,7 +11,9 @@ The [ranged rule coverage table](m5-ranged-rule-coverage.md) links
 rules 13–31 to current assertions and names the remaining direct gaps.
 The existing moving-crossbow save scenario now also checks the installed
 `arrow` part's bolt start during Connor's run lean, using logged position,
-bank and heading. Its release check passed 1/1 on 2026-11-17.
+bank and heading. It now holds Control across a later click with that
+crossbow still ready and checks that the click stays a plain interaction
+without a third bolt. The combined release check passed 1/1 on 2026-11-17.
 One combined Daventry crossbow run now checks a Cottage building pick
 ahead of a goblin, harmless building contact, an open-sky far-end pick
 and the 32.7-degree shot limit without another world load.

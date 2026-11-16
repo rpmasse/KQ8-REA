@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 ranged Control click
+
+The installed Small Crossbow's held-Control click now has original-data
+Rust evidence in the existing moving-shot save scenario. A test key
+remained physically held across updates 35–49; the click at update 40
+took the plain world-interaction path, and no third bolt fired. Two
+ordinary moving shots, the saved cooldown and the run-return checks
+still passed. The focused release test passed 1/1 in 28.66 seconds.
+Artifact: `kq8-artifacts/moving-shot-checkpoint/1794871153793394700`.
+No GOG file changed; original-executable parity remains untested and
+M5 remains incomplete.
+
 ## 2026-11-17 M5 moving-shot start with lean
 
 The existing original-data moving-crossbow save test passed 1/1 in

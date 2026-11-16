@@ -9495,3 +9495,15 @@ would visibly move it. Keep the existing cooldown and save/restore assertions
 in the same scenario. Run only this focused check, then record the result in
 the M5 ranged coverage and change log. This tests the original-data Rust path;
 it does not establish original executable parity.
+
+### M5 ranged rule 14: held Ctrl during a shot click (2026-11-17)
+
+The existing scripted physical-key input lasts one render frame, which
+does not reliably overlap a fixed-update click. Extend that test input
+helper with a held physical-key interval in game updates, using the same
+configured keyboard mapping as live input. In the existing two-process
+moving-crossbow scenario, hold Control across a later aim click after the
+saved cooldown and run-return checks. Require the plain interaction path
+and no third bolt, while the earlier ordinary clicks still release their
+bolts. Run only that combined scenario. This tests original-data Rust
+behavior without implying original-executable parity.

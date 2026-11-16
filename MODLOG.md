@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Check held Ctrl with a ready crossbow (M5)
+
+Added a test-input interval that holds a physical key across fixed game
+updates, through the existing keyboard mapping. Extended the two-process
+moving-crossbow scenario: after the saved moving shot and run return, it
+holds Control for a third aim click. The installed Small Crossbow stays
+ready; the update-40 log reports a plain click with Control held and no
+third bolt. The focused release test passed 1/1 in 28.66 seconds, with
+artifact `kq8-artifacts/moving-shot-checkpoint/1794871153793394700`.
+A one-frame Control probe fired because the key ended before its click;
+the first interval run also fired because the GUI test-key handler
+consumed the new command. The passing run routes held keys to the input
+handler. No GOG file changed. With `KQ8_GAME_DIR` set to the GOG install,
+run `cargo test --locked --release -p kq8-viewer --test
+moving_shot_checkpoint -- --ignored --nocapture`; expect one passing
+test. Original-executable parity remains untested.
+
 ## 2026-11-17 Check the moving crossbow's lean-dependent start (M5)
 
 Extended `moving_shot_checkpoint` to turn Connor while running and check

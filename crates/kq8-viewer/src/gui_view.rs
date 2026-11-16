@@ -1517,7 +1517,7 @@ pub fn gui_step(
     let updates = sim.active.world.updates;
     // Test keys (`--key NAME,N`); `popup:` ones are the popup step's
     // (M6 6e-6).
-    let (due, later): (Vec<_>, Vec<_>) = std::mem::take(&mut key_at.0).into_iter().partition(|(name, n)| updates >= *n && name != "f1" && !name.starts_with("popup:") && !name.starts_with("physical:"));
+    let (due, later): (Vec<_>, Vec<_>) = std::mem::take(&mut key_at.0).into_iter().partition(|(name, n)| updates >= *n && name != "f1" && !name.starts_with("popup:") && !name.starts_with("physical:") && !name.starts_with("physical-hold:"));
     key_at.0 = later;
     for (name, _) in due {
         let how = format!("test --key {name} before update {updates}");
