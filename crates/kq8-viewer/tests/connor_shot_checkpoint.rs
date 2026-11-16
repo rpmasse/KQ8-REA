@@ -19,7 +19,7 @@ fn crossbow_turn_and_attack_resume_from_disk_without_duplicate_bolts() {
             fs::create_dir_all(&dir).unwrap();
             let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
                 .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
-                .args(["--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
+                .args(["--windowed", "--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
             fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
             let viewer = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
             assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
@@ -31,7 +31,7 @@ fn crossbow_turn_and_attack_resume_from_disk_without_duplicate_bolts() {
             "--world", "DeadCity", "--item", "INVITEM_SmCrossbow",
             "--command", "move skeleton1 0 183300 45000 864 0 0 0,5",
             "--command", "KQConner::setDoMode 1,25",
-            "--aim", &aim, "--frames", "120", "--key", &save_key,
+            "--aim", &aim, "--updates", "100", "--key", &save_key,
         ]);
         assert!(before.contains("Save screen -> Save(1, \"Crossbow\")"), "inspect {}", case.display());
         let read = |n| -> serde_json::Value {
@@ -55,13 +55,21 @@ fn crossbow_turn_and_attack_resume_from_disk_without_duplicate_bolts() {
         let first_health = health(&first);
         assert_eq!(first_health == 60, before_do, "the saved health is on the wrong side of the hit; inspect {}", case.display());
 
-        let after = run("restore", &[
-            "--menu-input", "down,enter,release,enter,release", "--frames", "700",
+        let mut restore_args = vec![
+            "--menu-input", "down,enter,release,enter,release", "--updates", "75",
             "--key", "menu:down:down:down:enter:release:enter:release:escape:type=AfterShot:enter:release:escape,25",
-        ]);
+        ];
+        if name == "attack-before-do" {
+            restore_args.extend(["--aim", "skeleton1,2"]);
+        }
+        let after = run("restore", &restore_args);
         assert!(after.contains("save restored in DeadCity without replaying Begin")
             && after.contains("Save screen -> Save(2, \"AfterShot\")"), "inspect {}", case.display());
         let fight = fs::read_to_string(case.join("restore/kq8-artifacts/logs/fight.log")).unwrap();
+        if name == "attack-before-do" {
+            assert!(fight.contains("can't be cut short") && fight.contains("no shot (rule 20)"),
+                "the click during an unfinished standing attack was not refused; inspect {}", case.display());
+        }
         let releases = fight.matches("Connor: do (conscbow.anm/attack").count();
         assert_eq!(releases, usize::from(before_do), "the release cue fired the wrong number of times; inspect {}", case.display());
         let restored_health = health(&read(2));

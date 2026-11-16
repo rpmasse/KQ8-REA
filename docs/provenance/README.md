@@ -1,5 +1,13 @@
 # Provenance
 
+**Standing crossbow click during attack (2026-11-17).**
+[Ranged-weapons rule 20](../behaviour/ranged-weapons.md) says an
+uncuttable standing attack refuses another shot click. The existing
+original-data Dead City checkpoint now checks that refusal after a disk
+restore and still checks one release and hit. It passed 1/1 in the
+targeted Windows run. Waiting-turn cancellation and original-executable
+parity remain unverified; no manual gameplay occurred.
+
 **Mandragor disk-load linkage (2026-11-17).**
 [Mandragor behavior](../behaviour/mandragor.md) and Q209 record a
 bounded original-engine study. A root links to its matching tree only

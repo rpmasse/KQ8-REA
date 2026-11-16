@@ -3,6 +3,25 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 standing crossbow click during an unfinished attack (2026-11-17)
+
+`ranged-weapons.md` rule 20 says a standing click during an attack
+without an interruptable cue does nothing. Reuse the existing
+fresh-process shot checkpoint. In its attack-before-Do restore case,
+send one early click at the same installed skeleton, require the
+uncuttable-attack refusal and still exactly one eventual bolt and hit.
+This adds an assertion to an already needed world load. Run only the
+targeted checkpoint test. No manual gameplay or GOG-file write.
+
+Checked: the targeted release test passed 1/1 in 73.08 seconds. On
+restore, update 2 selected the installed skeleton while Connor's
+standing attack was still playing; the new click was refused, and the
+saved attack still released exactly one bolt and hit. The harness now
+uses windowed presentation and world-update limits because exclusive
+fullscreen failed in the remote display and frame limits expired during
+loading. The first attempted restored click at update 1 met Sylph from
+an uninitialized camera position; update 2 uses the ready camera.
+
 ## M5 ranged drawn-ground aim in the elemental flight run (2026-11-17)
 
 `ranged-weapons.md` rule 16 uses drawn ground when the shot line meets

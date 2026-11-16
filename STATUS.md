@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-17 M5 standing shot interruption boundary
+
+The existing crossbow save/restore test now clicks the installed Dead
+City skeleton at restored update 2 while Connor's saved standing attack
+is still playing. It asserts refusal, exactly one eventual release and
+hit, and the existing turn and both Do-cue checkpoint cases. The
+targeted release test passed 1/1 in 73.08 seconds. Its harness now
+uses windowed presentation and world-update limits: exclusive
+fullscreen failed in this remote display, and frame limits ended the
+restore during loading. An update-1 aim met Sylph before the camera was
+initialized, so the final check uses update 2. Waiting-turn
+cancellation remains open. No manual gameplay or GOG file changed.
+
 ## 2026-11-17 M5 Q209 Mandragor disk-load boundary
 
 The separate original-engine study narrowed Mandragor root restoration.

@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-17 Verify an early standing crossbow click (M5)
+
+Extended the existing `connor_shot_checkpoint` test's
+attack-before-Do restore case. A second click at the installed skeleton
+while the standing attack is still uncuttable must be refused; the
+saved attack must still release and hit once. The same test retains its
+waiting-turn and after-Do cases. Changed its harness to explicit
+windowed presentation and world-update limits. The initial fullscreen
+run failed at window creation in this remote display; a frame-limited
+windowed run ended before its scheduled save, and a longer restore
+ended during loading. An update-1 click used the uninitialized camera
+and selected Sylph, so the final check clicks at update 2. The
+targeted release test then passed 1/1 in 73.08 seconds. No manual
+gameplay or GOG-file write.
+
+With `KQ8_GAME_DIR` pointing to the GOG installation, reproduce with:
+
+`cargo test --locked --release -p kq8-viewer --test connor_shot_checkpoint crossbow_turn_and_attack_resume_from_disk_without_duplicate_bolts -- --ignored --nocapture`
+
 ## 2026-11-17 Bound Mandragor disk-load linkage (M5, Q209)
 
 The separate original-engine study updated `mandragor.md` and Q209.
