@@ -34,8 +34,10 @@ fn goblin_hit_and_death_deliver_the_four_combat_help_pages() {
             "popup:autohelp,0",
             "--command",
             "KQConner::reduceHealth .5 0,20",
+            "--command",
+            "KQMonster::inventory Connor INVITEM_Mushroom 1,85",
             "--key",
-            "f3,90",
+            "1,90",
             "--command",
             "KQMonster::inventory Connor INVITEM_SmCrossbow 1,105",
             "--command",
@@ -45,7 +47,7 @@ fn goblin_hit_and_death_deliver_the_four_combat_help_pages() {
             "--aim",
             "goblin22,175",
             "--aim",
-            "goblin22,210",
+            "goblin22,225",
             "--aim",
             "goblin22,245",
             "--updates",
@@ -60,6 +62,7 @@ fn goblin_hit_and_death_deliver_the_four_combat_help_pages() {
     let logs = dir.join("kq8-artifacts/logs");
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    let items = fs::read_to_string(logs.join("items.log")).unwrap();
     assert!(
         output.status.success() && viewer.contains("RESULT: PASS"),
         "inspect {}",
@@ -68,8 +71,15 @@ fn goblin_hit_and_death_deliver_the_four_combat_help_pages() {
     assert!(
         fight.contains("Connor: hit by goblin22, Normal:")
             && fight.contains("; health 5 -> ")
-            && fight.contains("god mode is on (test switch, ours)"),
-        "the unarmed low-health hit or later safety switch was missed; inspect {}",
+            && !fight.contains("god mode is on")
+            && !fight.contains("Connor: hit by goblin22: dies"),
+        "the unarmed low-health hit or ordinary damage was missed; inspect {}",
+        dir.display()
+    );
+    assert!(
+        items.contains("slot 1, INVITEM_Mushroom, HealthItem")
+            && items.contains("INVITEM_Mushroom, slot used"),
+        "the original Mushroom was not used through inventory; inspect {}",
         dir.display()
     );
     assert_eq!(

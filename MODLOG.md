@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Use original healing in the combat-help fight
+
+Replaced the test-only god switch in the combined Daventry help route
+with an original Mushroom, added through the normal inventory command
+and used with the slot-1 key. Kept incoming goblin damage enabled and
+moved one crossbow aim past an observed Connor flinch, allowing four
+normal shots to finish the fight. The release check passed 1/1 in
+36.40 seconds:
+`cargo test --locked --release -p kq8-viewer --test combat_tutorial_delivery -- --ignored --nocapture`.
+The first attempt pressed empty slot 5; the second used the Mushroom
+but aimed during an uninterruptible reaction, leaving too few shots.
+No game logic, manual gameplay or GOG files changed.
+
 ## 2026-11-16 Verify Mandragor tree kill with ordinary root damage
 
 Removed god mode from the existing Swamp tree fight and fresh-process

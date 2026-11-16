@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 combat help with ordinary damage and healing
+
+The combined Daventry combat-help route now uses an original Mushroom
+through inventory slot 1 instead of god mode. Connor takes ordinary
+goblin hits, heals from 3 to 8 health, lands four normal crossbow
+shots and defeats the goblin once. The four combat-help pages still
+open in order; health-item help also appears. The release check passed
+1/1 in 36.40 seconds. Two earlier attempts exposed an empty-slot key
+and a shot refused during Connor's flinch, both corrected from logs.
+This remains a controlled encounter with a supplied crossbow. M5 is
+still about 65%; no manual gameplay or GOG-file write occurred.
+
 ## 2026-11-16 M5 Mandragor tree fight without god mode
 
 The existing unattended Swamp tree fight and fresh-process save check
