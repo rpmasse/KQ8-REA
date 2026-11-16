@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-17 Stop the Dead City Spirit encounter after two attempts (M5)
+
+Read the installed Spirit stats from the existing GOG-data character
+inventory and attempted to add `spirit1` to the grouped Dead City
+combat test. The first release run failed its death assertion: at
+1,079 units Spirit was beyond its 750 reach, and its 100 protection
+blocked a 100,000-point Normal event. The second release run placed it
+479 units away; it started four `Attack` movements but logged no `Do`
+hit cue or Connor damage, so the hit assertion failed. The test change
+was reverted and the prior seven-actor test remains as previously
+verified. No production code or original GOG file changed. The two
+failed test artifacts are under
+`kq8-artifacts/deadcity-ordinary-variants-live/1794866560880662200`
+and `1794866678488720800`. The next step requires specific Spirit
+movement-cue and original-encounter evidence, not another placement
+guess. The unchanged test can be run with `KQ8_GAME_DIR` set using
+`cargo test --locked --release -p kq8-viewer --test
+deadcity_ordinary_variants_live -- --ignored --nocapture`; its last
+seven-actor version passed before this attempted extension.
+
 ## 2026-11-17 Group Swamp Witch and Henchman combat (M5)
 
 Extended the existing Witch alarm fixture instead of loading Swamp

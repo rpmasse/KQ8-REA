@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Dead City Spirit encounter deferred
+
+Two unattended original-data extensions to the grouped Dead City test
+failed to establish a Spirit hit. At 1,079 units, `spirit1` was outside
+its 750-unit reach; at 479 units, it started four `Attack` movements but
+logged no `Do` hit cue or Connor health loss. Its installed 100 protection
+made a 100,000-point Normal event cause zero loss, leaving health at
+1,000. The attempted test extension was reverted, preserving the
+previous passing seven-actor run. Spirit attack movement cues and the
+original encounter need study before a new implementation assertion.
+The original executable was not tested. M5 remains incomplete.
+
 ## 2026-11-17 M5 grouped Swamp Witch and Henchman combat
 
 The expanded original-data `swamp_witch_alarm` release test passed

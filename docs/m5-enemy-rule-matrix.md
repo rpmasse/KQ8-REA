@@ -23,6 +23,13 @@ The [combat audit](m5-combat-completion-audit.md) tracks the shared rules.
 | Temple 3 | Melee: `skelhamr`, `zombie2`. Ranged: `skelblue`. | `temple_three_families_live` asserts the placed hammer skeleton's Normal hit, both blue bow skeletons' `Prmonarw.kq` Projectile hits, and both `zombie2` placements' Normal hits at their distinct 1 and 1.2-second attack delays. Five controlled Normal deaths check the hammer's elixir, the bows' and zombies' sacred water, their respective corpses and one experience award each. | The two zombies have no exact-case `BOUNDS.KQ` box, so they become active but cannot move from their authored points. Both are relocated within melee reach; this does not prove an earned zombie encounter or the regional scripts. |
 | Temple 4 | Melee: `lucend`, `lucfight`. Ranged: `lucend` on one placement. | `live_lucreto_forms` checks the installed altar's far–near–far handoffs, a `PrLuc.kq` Projectile hit from the ranged `lucend` form and a Normal hit from its close form, both lowering living Connor's health. `temple4_lucfight_live` starts the first authored altar fighter from Cue `(2,6)`, checks its Birth, Normal hits, no-drop/no-corpse death, 75,000 experience and delayed Die-script altar handoff. `live_lucreto_finale` and `lucreto_form_checkpoint` cover the finale and saved-form branches. | The preceding puzzle and later two `lucfight` placements remain untested; earned campaign approach is M6. |
 
+Dead City `spirit` remains unlinked. Two attempts to extend the grouped
+fixture showed that 100 protection blocks a 100,000-point Normal event;
+at 479 units the placed Spirit started four `Attack` movements without
+a `Do` cue or Connor hit. The attempted extension was reverted under
+the two-attempt rule. Study its movement cues and original encounter
+before claiming a combat or death outcome.
+
 The source inventory includes different placements of the same type in
 different regions. The table groups shared mechanics but keeps regional
 scripts and special classes open until a scenario observes their effects.

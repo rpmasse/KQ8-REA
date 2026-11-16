@@ -5229,6 +5229,23 @@ The windmill checkpoint also covers movable props. Push the bale, collect the ax
 2. **Finish all 12 regions.** For each, inventory entry conditions, required quests, optional branches, NPCs, items, enemies, hazards, puzzles, exits and return visits. Complete missing scripts and actors in quest order. Include the Dead City puzzles and Temple 4's Lucreto encounter, movies, ending and credits. Give mutually exclusive paths separate scenarios.
 3. **Prove the regions connect.** Run an unattended campaign from New Game to the ending using ordinary controls and save/load. The campaign runner must advance through the real triggers with debug travel, forced quest flags and invulnerability disabled. Assert inventory, quest outcomes and destination after each major transition. Keep a per-region report and a reproducible checkpoint for each failure.
 
+#### Dead City Spirit placed-family check (2026-11-17, stopped after two attempts)
+
+The installed Dead City monster list places five `spirit` fighters. The
+read-only character inventory reports 1,000 health, 20-point melee damage,
+100 protection, zero experience, no drop and no corpse for these fighters.
+The existing spirit-trap tests exercise a separate trap controller and do
+not assert this placed monster's attack or death. Two attempts to extend
+the grouped Dead City run did not establish a Spirit hit. In the first,
+Spirit was 1,079 units from Connor, beyond its 750 reach; its 100
+protection made a 100,000-point Normal hit cause zero loss. In the second,
+Spirit was 479 units away and started four `Attack` movements, but none
+produced a `Do` hit cue or Connor health loss. The Normal event again
+left Spirit at 1,000 health. Stop this route under the two-attempt rule;
+the previous seven-actor test is restored. Study the installed Spirit
+attack movement/cues and the original encounter before choosing a new
+assertion. The running-original behavior remains unverified.
+
 #### Choice movement-end callback (2026-11-06, implemented)
 
 Characters' Choice rule 9 calls StartChoice again when a non-repeating
