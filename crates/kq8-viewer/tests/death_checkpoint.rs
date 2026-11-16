@@ -13,7 +13,7 @@ fn original_skeleton_finishes_dying_after_a_fresh_process() {
         fs::create_dir_all(&dir).unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
             .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
-            .args(["--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
+            .args(["--windowed", "--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
         fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
         let viewer = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
         assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
@@ -23,7 +23,7 @@ fn original_skeleton_finishes_dying_after_a_fresh_process() {
         "--world", "DeadCity", "--item", "INVITEM_SmallAx",
         "--command", "move skeleton1 0 183300 45000 864 0 0 0,5",
         "--swing", "skeleton1,20", "--swing", "skeleton1,50", "--swing", "skeleton1,80",
-        "--frames", "300",
+        "--updates", "100", "--frames", "9000",
         "--key", "menu:down:down:enter:release:enter:release:escape:type=DyingSkeleton:enter:release:escape,90",
     ]);
     assert!(before.contains("Save screen -> Save(1, \"DyingSkeleton\")"), "inspect {}", root.display());
@@ -34,11 +34,16 @@ fn original_skeleton_finishes_dying_after_a_fresh_process() {
     let dying = first["kept"]["deadcity"]["characters"].as_array().unwrap().iter()
         .find(|actor| actor["name"].as_str().is_some_and(|name| name.eq_ignore_ascii_case("skeleton1"))).unwrap();
     assert!(!dying["character"]["fight"]["dying"].is_null(), "the first slot missed the death movement; inspect {}", root.display());
+    assert_eq!(dying["character"]["fight"]["dying"], "Die", "Normal hit must select Die; inspect {}", root.display());
+    assert_eq!(dying["character"]["state"], "Die", "Normal death must enter the Die state; inspect {}", root.display());
+    assert_eq!(dying["character"]["gravity"], false, "Normal death must turn gravity off; inspect {}", root.display());
+    assert_eq!(dying["character"]["collision_type"], 0, "Normal death must clear collision type; inspect {}", root.display());
+    assert_eq!(dying["character"]["collision_mask"], 0, "Normal death must clear collision mask; inspect {}", root.display());
     assert!(!first["kept"]["deadcity"]["gone"].as_array().unwrap().iter().any(|n| n == "skeleton1"));
     let xp_before = first["journey"]["stats"]["stats"][4].as_i64().unwrap();
 
     let after = run("restore", &[
-        "--menu-input", "down,enter,release,enter,release", "--frames", "700",
+        "--menu-input", "down,enter,release,enter,release", "--updates", "45", "--frames", "9000",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=DeathFinished:enter:release:escape,25",
     ]);
     assert!(after.contains("save restored in DeadCity without replaying Begin"), "inspect {}", root.display());
@@ -61,7 +66,7 @@ fn script_created_rat_finishes_dying_after_a_fresh_process() {
         fs::create_dir_all(&dir).unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
             .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
-            .args(["--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
+            .args(["--windowed", "--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
         fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
         let viewer = fs::read_to_string(dir.join("kq8-artifacts/logs/viewer.log")).unwrap();
         assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
@@ -72,7 +77,7 @@ fn script_created_rat_finishes_dying_after_a_fresh_process() {
         "--command", "KQMonster::add testRat rat,8",
         "--command", "move testRat 0 183300 45000 864 0 0 0,10",
         "--swing", "testRat,20", "--swing", "testRat,50",
-        "--frames", "300",
+        "--updates", "70", "--frames", "9000",
         "--key", "menu:down:down:enter:release:enter:release:escape:type=DyingRat:enter:release:escape,60",
     ]);
     assert!(before.contains("Save screen -> Save(1, \"DyingRat\")"), "inspect {}", root.display());
@@ -87,7 +92,7 @@ fn script_created_rat_finishes_dying_after_a_fresh_process() {
     let xp_before = first["journey"]["stats"]["stats"][4].as_i64().unwrap();
 
     let after = run("restore", &[
-        "--menu-input", "down,enter,release,enter,release", "--frames", "700",
+        "--menu-input", "down,enter,release,enter,release", "--updates", "45", "--frames", "9000",
         "--key", "menu:down:down:down:enter:release:enter:release:escape:type=RatFinished:enter:release:escape,25",
     ]);
     assert!(after.contains("save restored in DeadCity without replaying Begin"), "inspect {}", root.display());

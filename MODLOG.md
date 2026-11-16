@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-17 Check Normal death entry and ordinary swing variants (M5)
+
+The existing `death_checkpoint` route now checks the installed skeleton's
+saved Normal `Die` movement and state, gravity off and cleared collision,
+then its fresh-process death completion. Both skeleton and spawned-rat
+fixtures were stopping before their scheduled saves or requesting an
+unavailable exclusive display mode; explicit update targets and windowed
+presentation fixed those fixtures. The existing 12-weapon combined fight
+now requires Do cues from both plain `Attack` and `AttackB`, with no other
+movement. The first grouped run failed on those stale checkpoint limits;
+the corrected release run passed all three native tests. No production
+code, GOG file or manual gameplay changed. With `KQ8_GAME_DIR` set to the
+GOG folder, reproduce using
+`cargo test --locked --release -p kq8-viewer --test hand_weapon_matrix --test death_checkpoint -- --ignored --test-threads=1`.
+
 ## 2026-11-17 Tighten ordinary death coverage (M5)
 
 The existing `live_crossbow_combat` fixture now asserts that the

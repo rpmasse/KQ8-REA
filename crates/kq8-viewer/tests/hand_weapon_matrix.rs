@@ -68,6 +68,8 @@ fn original_hand_weapons_hit_with_their_authored_damage_kind() {
 
     let hit_lines: Vec<_> = fight.lines().filter(|line| line.contains("skeleton1: hit by Connor, ")).collect();
     assert_eq!(hit_lines.len(), weapons.len(), "not one hit per weapon; inspect {}", dir.display());
+    let mut plain_attack = 0;
+    let mut alternate_attack = 0;
     for (i, (item, kind, damage)) in weapons.iter().enumerate() {
         let swing_at = 60 + i as u64 * 60;
         let ready = if i == 0 {
@@ -85,6 +87,17 @@ fn original_hand_weapons_hit_with_their_authored_damage_kind() {
         }).unwrap_or_else(|| panic!("{item}: no hit after update {swing_at}; inspect {}", dir.display()));
         assert!(hit.contains(&format!("skeleton1: hit by Connor, {kind}: D {damage}, ")),
             "{item}: wrong damage or hit kind: {hit}");
+        let do_line = fight.lines().find(|line| {
+            line.contains("Do (")
+                && line.contains("hits skeleton1:")
+                && line.strip_prefix("update ")
+                    .and_then(|rest| rest.split_once(':'))
+                    .and_then(|(n, _)| n.parse::<u64>().ok())
+                    .is_some_and(|n| n >= swing_at && n < swing_at + 60)
+        }).unwrap_or_else(|| panic!("{item}: no Do cue after update {swing_at}; inspect {}", dir.display()));
+        if do_line.contains("/attackb)") { alternate_attack += 1; }
+        else if do_line.contains("/attack)") { plain_attack += 1; }
+        else { panic!("{item}: ordinary click used an unexpected movement: {do_line}"); }
         let (before, after) = hit
             .split_once("; health ")
             .and_then(|(_, tail)| tail.split(';').next())
@@ -94,5 +107,7 @@ fn original_hand_weapons_hit_with_their_authored_damage_kind() {
         assert!(after < before && after > 0,
             "{item}: target health did not fall while staying alive ({before} -> {after}); inspect {}", dir.display());
     }
+    assert!(plain_attack > 0 && alternate_attack > 0,
+        "ordinary clicks did not exercise both Attack and AttackB (Attack {plain_attack}, AttackB {alternate_attack}); inspect {}", dir.display());
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

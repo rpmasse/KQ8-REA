@@ -1,5 +1,15 @@
 # Provenance
 
+**Normal death and plain swings (2026-11-17, M5).**
+The installed Dead City skeleton's Normal `Die` entry is now asserted in
+the Rust save: state `Die`, gravity off and collision type/mask zero. Its
+fresh-process finish and the script-created rat's finish pass. The
+one-process original-data `hand_weapon_matrix` route now asserts that
+plain clicks produce both `Attack` and `AttackB` Do cues across the 12
+installed hand weapons. These are Rust-original-data checks, not a
+running-original comparison; the special always-`Attack` condition is
+still untraced.
+
 **Ordinary Projectile death evidence (2026-11-17, M5).**
 The active-list, gravity and collision effects are specified by
 [fighting.md rule 30](../behaviour/fighting.md). The installed Dead City

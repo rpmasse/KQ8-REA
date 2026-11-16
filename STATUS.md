@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 Normal death and plain-swing variants
+
+The installed Dead City skeleton's Normal death now has direct saved-state
+assertions for its `Die` movement and state, disabled gravity and cleared
+collision. The same fixture confirms death completion after a fresh-process
+load; the spawned rat checkpoint passes too. Both fixtures had stale frame
+ceilings that stopped before their scheduled saves, and one still requested
+exclusive fullscreen. They now use explicit update targets, sufficient
+frame ceilings and windowed presentation. The existing one-process
+12-weapon fight also passes with direct assertions that plain clicks use
+both `Attack` and `AttackB` and no other movement. The grouped release
+run passed 3/3. These checks do not establish original-executable parity,
+and M5 remains incomplete.
+
 ## 2026-11-17 M5 first-kill and ordinary death evidence
 
 The first-kill exclusion gap in the fighting coverage table was already
