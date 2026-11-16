@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-17 M5 installed bow Spriggan leads moving Connor
+
+The expanded original-data `monster_friendly_fire` release test passed
+1/1. Three stationary bow shots still intercepted the goblin. Connor
+then moved during a fourth shot; the bow Spriggan led him using his
+logged velocity and flight time. The aim was more than 300 units ahead
+of his current position. This links the moving-target branch of ranged
+rule 25 without another world load. M5 remains incomplete.
+
 ## 2026-11-17 M5 grouped Gnome Spriggan and Zombie combat
 
 The original-data `gnome_spriggan_zombie_live` release test passed 1/1.

@@ -419,6 +419,16 @@ then one controlled Normal death per actor. Require the Spriggan's
 one world load; document the relocation and do not infer an earned
 approach from it.
 
+## M5 original-data moving-target lead (2026-11-17)
+
+Extend the existing Daventry bow Spriggan and goblin intercept process.
+Keep its first three stationary bolt contacts, then move Connor during
+the fourth shot. Compare the fourth projectile's aim against Connor's
+logged position plus his velocity times the logged flight time and the
+975-unit height raise from his installed box. Require a clear lead
+distance beyond ordinary position rounding. One world load covers both
+the first-contact collision rule and enemy moving-target lead.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

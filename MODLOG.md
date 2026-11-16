@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-17 Link installed enemy moving-target lead (M5)
+
+Extended the existing original-data Daventry bow Spriggan intercept
+test. Its three stationary bolts still touched the intervening goblin;
+Connor then walked during the fourth release. The test compares the
+fourth aim with Connor's logged position, velocity, flight time and
+975-unit box-height raise. One release test passed 1/1 in about 15
+seconds. An initial diagnostic stopped at update 111 because its frame
+limit was too low; increasing that limit allowed the planned movement
+and shot. A later run showed terrain steering Connor across the other
+map axis, so the assertion checks full horizontal lead distance. No
+production code or GOG file changed. With `KQ8_GAME_DIR`
+set, run `cargo test --locked --release -p kq8-viewer --test
+monster_friendly_fire -- --ignored --nocapture`.
+
 ## 2026-11-17 Group Gnome Spriggan and Zombie combat (M5)
 
 One original-data release test passed 1/1 in about 38 seconds. The
