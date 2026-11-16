@@ -49,6 +49,13 @@ fn skeleton_king_death_clears_notify_and_finishes_rewards() {
         dir.display()
     );
     assert!(
+        fight.lines().any(|line| line.contains("Skelking: fights (rule 2): stats [800, 80, 50, 20, 20000]")
+            && line.contains("from type skelking [300, 50, 20, 20000] + extra [500, 0, 0, 0]")
+            && line.contains("holds INVITEM_SkelKingSword (hand +30, health +0, protection +0)")),
+        "the Skeleton King did not add its held sword to hand damage; inspect {}",
+        dir.display()
+    );
+    assert!(
         talk.contains("Skelking now hears Skelking's TalkComplete and StateChange")
             && doors.contains("script skelking.cs Skelking Die Normal")
             && talk

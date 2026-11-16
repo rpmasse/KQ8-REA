@@ -9597,3 +9597,28 @@ hit at updates 65 and 125, using Snowmane's protection 30 and 0
 respectively. The test-controlled high health ceiling kept Connor
 alive without god mode. The earned approach and original-executable
 parity remain untested.
+
+### M5 held enemy equipment stat contributions (2026-11-17)
+
+`fighting.md` rule 2 distinguishes held LongWeapon, armour and other
+item effects. Existing original-data logs show Daventry's bow
+`sprigan` starts with hand damage 8 and Small Crossbow ranged bonus
+5, for ranged damage 13; `bossprig` starts with type protection 5,
+placement bonus 25 and Leather Armor bonus 2, for protection 32.
+Dead City's `Skelking` starts with hand damage 50 and its held sword
+adds 30, for hand damage 80. Add explicit source-to-result assertions
+to the already grouped Daventry variant and Skeleton King death tests.
+Retain their current live fight and death checks; do not create another
+world process merely to recheck the same loader rule. This verifies
+Rust stat assembly against the installed data, not original-executable
+parity or earned approach.
+
+Checked: the two focused release tests passed 2/2, in 44.11 and 11.99
+seconds. The Daventry process retained its live second-bow,
+Spriggan and Zombie fights and now asserts the placed bow's +5
+ranged bonus and boss Spriggan's +2 armour protection from the same
+loaded world. The existing Skeleton King death process asserts its
+held sword's +30 hand bonus before the unchanged death/drop checks.
+The installed monster inventory has no held item with a positive
+health bonus, so that uncommon arithmetic is not claimed from these
+original-data scenarios.

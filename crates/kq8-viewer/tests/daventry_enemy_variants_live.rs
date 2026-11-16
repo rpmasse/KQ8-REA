@@ -172,6 +172,20 @@ fn daventry_zombie_melee_and_second_bow_spriggan_fight() {
                 .lines()
                 .any(|line| line.contains("zograv2: Do (Attack") && line.contains("hits Connor"))
     );
+    assert!(
+        fight.lines().any(|line| line.contains("sprigan: fights (rule 2): stats [130, 8, 13, 15, 12]")
+            && line.contains("from type sprgnbowtype2 [30, 10, 5, 7] + extra [100, -2, 10, 5]")
+            && line.contains("holds INVITEM_SmCrossbow (LongWeapon: ranged +5")),
+        "the placed bow Spriggan did not add its held crossbow to ranged damage; inspect {}",
+        dir.display()
+    );
+    assert!(
+        fight.lines().any(|line| line.contains("bossprig: fights (rule 2): stats [230, 23, 23, 32, 7]")
+            && line.contains("from type sprigan [30, 10, 5, 7] + extra [200, 13, 25, 0]")
+            && line.contains("holds INVITEM_LeatherArmor (hand +0, health +0, protection +2)")),
+        "the placed boss Spriggan did not add its held armour to protection; inspect {}",
+        dir.display()
+    );
     assert!(!fight.contains("Connor: hit by world") && !fight.contains("god mode is on"));
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-17 Link held enemy equipment to original stats (M5)
+
+Added source-to-result assertions to two existing original-data
+encounter tests. In Daventry, the placed `sprigan` has hand damage 8
+and its held Small Crossbow adds 5 ranged damage for 13; `bossprig`
+gets 5 type protection, 25 placement protection and 2 from Leather
+Armor for 32. Dead City's `Skelking` gets 50 type hand damage plus
+30 from its held sword for 80. Existing live Daventry attacks and
+Skeleton King death/drop assertions still pass. The two focused
+release tests passed 2/2 in 44.11 and 11.99 seconds. Artifacts:
+`kq8-artifacts/daventry-enemy-variants/1794872755871585200` and
+`kq8-artifacts/skeleton-king-death/1794872800098552000`.
+No production code or GOG file changed. With `KQ8_GAME_DIR` set to
+the GOG install, run `cargo test --locked --release -p kq8-viewer
+--test daventry_enemy_variants_live --test skeleton_king_death --
+--ignored --test-threads=1 --nocapture`; expect two passing tests.
+No installed held item has a positive health bonus; that branch is
+not claimed from this original-data check.
+
 ## 2026-11-17 Check Snowmane's live fight across Clarity (M5)
 
 The existing original-data Snowmane Clarity test now runs normal enemy

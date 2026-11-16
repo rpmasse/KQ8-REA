@@ -182,6 +182,13 @@ Its own attack then lowered Connor's health twice before the already
 checked no-drop, no-corpse death. The release was test-controlled;
 the earned Swamp route remains outside this fixture.
 
+Two existing encounter processes now assert all three held-item stat
+categories with installed actors: Daventry's Small Crossbow adds 5
+ranged damage and Leather Armor adds 2 protection, while Dead City's
+Skeleton King sword adds 30 hand damage. The live Daventry fights and
+Skeleton King death checks still pass. No installed held item in the
+current monster inventory has a positive health bonus.
+
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |
 | Connor's 13 hand banks | `Connor.kq` lists 13; `hand_weapon_matrix` checks 12 weapon hits and both plain `Attack`/`AttackB` variants in one encounter, and `first_person_weapon_matrix` covers Fists and all hand banks. Core `connor_s_do_hits_his_target_misses_or_hits_dead_air` checks a hit, a missed swing and dead air; `daventry_hero_ring` records an ordinary Henchman miss. Q139(e) now confirms the ordinary object roll; a grouped core check covers its callbacks. | Finish source-to-scenario links for weapon-specific edge cases and attack reachability. Q219 bounds the checked non-character receiver classes. |

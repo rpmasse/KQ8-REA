@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 held equipment stat categories
+
+Two existing original-data encounter processes now assert that held
+LongWeapon, armour and hand weapon items add their stats to enemies:
+Small Crossbow +5 ranged, Leather Armor +2 protection, Skeleton King
+sword +30 hand. The live Daventry variant fights and Skeleton King
+death/drop checks still pass. Focused release tests passed 2/2
+(44.11 and 11.99 seconds). No production code or GOG file changed.
+No installed held item has a positive health bonus, so that branch
+remains outside this original-data evidence. M5 remains incomplete.
+
 ## 2026-11-17 M5 Snowmane live Clarity fight
 
 The original-data Snowmane check now leaves AI and incoming damage
