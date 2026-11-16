@@ -15,7 +15,7 @@ impl Fixture {
         fs::create_dir_all(&dir).unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
             .current_dir(&dir).env("KQ8_SAVE_DIR", &self.slots).arg("--game").arg(&self.game)
-            .args(["--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
+            .args(["--windowed", "--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
         fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
         let logs = dir.join("kq8-artifacts/logs");
         let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
@@ -37,13 +37,15 @@ fn actor<'a>(s: &'a serde_json::Value, world: &str, name: &str) -> &'a serde_jso
 #[ignore = "requires KQ8_GAME_DIR and a graphics device"]
 fn original_snowmane_reveal_changes_combat_stats_across_disk_reload() {
     let f = Fixture::new("snowmane");
-    let first_log = f.run("reveal", &["--world", "IceWorld", "--frames", "1700", "--item", "INVITEM_Clarity",
+    let first_log = f.run("reveal", &["--world", "IceWorld", "--at", "362147,478000,0", "--frames", "1700", "--item", "INVITEM_Clarity",
         "--key", "7,20",
         "--key", "menu:down:down:enter:release:enter:release:escape:type=Revealed:enter:release:down:down:down:enter:release:left:enter:release,35"]);
     let first = f.slot(1);
     let stats = &actor(&first, "iceworld", "snowmane")["character"]["fight"]["stats"];
     assert_eq!(stats[1], 200, "Reveal did not remove the original +150 short damage; inspect {}", f.root.display());
     assert_eq!(stats[3], 0, "Reveal did not remove 30 protection");
+    assert_eq!(first["kept"]["iceworld"]["group_masks"]["snowmane"], serde_json::json!([1097, 1088]));
+    assert!(fs::read_to_string(f.root.join("reveal/kq8-artifacts/logs/viewer.log")).unwrap().contains("draw distance: [snowmane] scripted groups: drawn false -> true"));
     assert!(first_log.contains("live combat stats"));
     assert_eq!(first["journey"]["potions"].as_array().unwrap().len(), 1);
     f.run("hide-after-load", &["--menu-input", "down,enter,release,enter,release", "--frames", "6000",
@@ -52,6 +54,8 @@ fn original_snowmane_reveal_changes_combat_stats_across_disk_reload() {
     let after = &actor(&second, "iceworld", "snowmane")["character"]["fight"]["stats"];
     assert_eq!(after[1], 350);
     assert_eq!(after[3], 30);
+    assert_eq!(second["kept"]["iceworld"]["group_masks"]["snowmane"], serde_json::json!([9, 0]));
+    assert!(fs::read_to_string(f.root.join("hide-after-load/kq8-artifacts/logs/viewer.log")).unwrap().contains("draw distance: [snowmane] scripted groups: drawn true -> false"));
     for i in [0, 2, 4] { assert_eq!(after[i], stats[i]); }
     assert!(second["journey"]["potions"].as_array().unwrap().is_empty());
     f.unchanged();

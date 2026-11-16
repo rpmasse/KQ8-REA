@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 Snowmane Clarity controls combat and visibility
+
+The original IceWorld Clarity script now changes Snowmane's near and far
+group masks as well as its combat protection. A focused core test and an
+unattended live Flame Sword fight passed; the first hit used protection
+30 and the second 0. A two-process save test passed 1/1 in 125.17
+seconds, retaining masks 1097/1088 while revealed and restoring 9/0
+after Clarity expired. The renderer logged the corresponding hidden to
+drawn and drawn to hidden transitions. The script-coverage list was
+regenerated. Numeric object-ID lookup and native first-frame reload
+timing remain open. No manual gameplay was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 original player hand-weapon matrix
 
 The twelve hand weapons listed in the GOG `Invinfo.itl` each readied,

@@ -19,7 +19,7 @@ What the game's scripts (`.cs`) and object files (`.kq`) ask of the program, fro
 | Swamp | 93 | 82 | 6 (7) | 0 (0) | — |
 | Gnome | 111 | 79 | 5 (5) | 1 (1) | — |
 | Barren | 118 | 88 | 4 (4) | 0 (0) | — |
-| IceWorld | 78 | 86 | 7 (11) | 1 (29) | — |
+| IceWorld | 78 | 86 | 5 (5) | 1 (29) | — |
 | Snowexit | 13 | 35 | 4 (4) | 0 (0) | — |
 | temple1 | 59 | 51 | 5 (6) | 0 (0) | — |
 | temple2 | 37 | 55 | 6 (8) | 0 (0) | — |
@@ -44,8 +44,6 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `resetHazeColor` | **missing** | 11 (0) | Daventry 1, DeadCity 1, Swamp 1, Gnome 1, Barren 1, IceWorld 1, Snowexit 1, temple1 1, temple2 1, temple3 1, temple4 1 | `Daventry/WORLD.CS` |
 | `setFirstPerson` | **missing** | 8 (0) | Swamp 2, temple1 2, temple2 2, temple3 2 | `Swamp/SWDOOR.CS` |
 | `KQCamera::setHeight` | **missing** | 3 (0) | temple3 2, temple4 1 | `temple3/traphz1.cs` |
-| `KQObject::setGroupsActive3D` | **missing** | 3 (0) | IceWorld 3 | `IceWorld/snowmane.cs` |
-| `KQObject::setGroupsActive3DFar` | **missing** | 3 (0) | IceWorld 3 | `IceWorld/snowmane.cs` |
 | `purgeResources` | **missing** | 3 (0) | IceWorld 1, temple2 2 | `IceWorld/icelord.cs` |
 | `checkSave` | **missing** | 2 (0) | Daventry 1, Common 1 | `Daventry/savegmh.cs` |
 | `mouseAction` | **missing** | 2 (0) | Daventry 2 | `Daventry/AX.CS` |
@@ -158,6 +156,8 @@ Not counted as commands: 139 calls of other scripts by name, 0 lines starting wi
 | `KQMap::stopLoc` | built | 3 (0) | DeadCity 3 | `DeadCity/DDOOR4.CS` |
 | `KQMonster::setReactPercent` | built | 3 (0) | DeadCity 2, temple4 1 | `DeadCity/towSklTp.CS` |
 | `KQMonster::setSpecialReact` | built | 3 (0) | DeadCity 2, temple4 1 | `DeadCity/towSklTp.CS` |
+| `KQObject::setGroupsActive3D` | built | 3 (0) | IceWorld 3 | `IceWorld/snowmane.cs` |
+| `KQObject::setGroupsActive3DFar` | built | 3 (0) | IceWorld 3 | `IceWorld/snowmane.cs` |
 | `setcat` | built | 3 (0) | Barren 3 | `Barren/dockup.cs` |
 | `KQCamera::setCamRelConner` | built | 2 (0) | Daventry 1, DeadCity 1 | `Daventry/RAVENCNR.CS` |
 | `KQConner::inTrap` | built | 2 (0) | Barren 1, IceWorld 1 | `Barren/Elevator.cs` |

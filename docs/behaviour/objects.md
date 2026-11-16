@@ -492,6 +492,58 @@ All traced in `Mask.exe` unless marked "scripts" (read in the world's
    `groupsAlways` includes 0x40 (e.g. `groupsAlways=1097` = 0x449, one
    object in the game) would still be drawn when hidden.
 
+## Scripted near and far group masks (Q217, 2026-11-16)
+
+**Purpose.** The two `KQObject` commands change an existing object's
+near and far group masks while a world is running. Ice World's
+`snowmane.cs` uses them when Clarity reveals and then hides Snowmane.
+
+1. `KQObject::setGroupsActive3D <object> <flags>` changes the near
+   mask; `KQObject::setGroupsActive3DFar <object> <flags>` changes the far
+   mask. Each command requires exactly those three words. Otherwise it
+   prints its own usage line and changes nothing. The object is sought
+   by name first, then by a decimal object number; no resolved object
+   means no change. Both commands report result 0, including after a
+   successful change. (Static original-engine study.)
+2. The flag text is read as a decimal integer and its low **16 bits**
+   **replace** the chosen mask. They are not added to the old mask.
+   Invalid numeric text follows the original integer conversion to 0;
+   negative and oversized values retain only their low 16 bits. There
+   is no per-bit validation in either command. (Traced.)
+3. A change to the mask for a live object in the affected near or far
+   state immediately runs the ordinary group switch; draw-list and
+   collider membership do not wait for the next animation tick. A
+   hidden/off object retains only `groupsAlways` until it becomes
+   active again. An explicit active-group override keeps controlling
+   effective membership while present; the new near/far mask takes
+   effect when that override is released. The normal distance update
+   later selects `groupsAlways` plus the relevant near or far mask as
+   in `object-lighting.md` rule 37. (Traced for ordinary live paths;
+   original runtime timing was not checked.)
+4. The ordinary object property visitor includes both masks, so their
+   changed values are available to object save/load alongside
+   `groupsAlways`. The exact first displayed/collidable frame after a
+   native game reload, particularly when a character has an active
+   override or Clarity expires during restoration, is **not tested**.
+5. The installed Snowmane Reveal True branch sets near **1097**
+   (0x449) and far **1088** (0x440). Reveal False sets near **9** (0x9)
+   and far **0**. With the usual `groupsAlways` value 6, revealed
+   Snowmane gains draw/light membership near and far and remains
+   collidable while near; after Reveal False it is still near-collidable
+   but has no draw group, and becomes neither drawn nor collidable when
+   far. This is a mask consequence, not a separate Snowmane draw rule.
+
+**How to check.** In an automated Ice World run, put Connor near
+Snowmane and use the original Clarity item. Record the two mask changes,
+the effective draw/collision group before the next game update, and
+the inverse after the 60-second expiry. Save during Clarity and reload
+in a fresh process to check mask retention. No manual play is needed.
+
+**Open.** A native original-game save/reload and the first restored
+frame were not observed. See Q217. The group's immediate switch for
+an object already far when only its near mask changes is also not
+established by an original runtime check.
+
 ## Script variables, `getLoc` and `move` (Q20)
 
 1. **(a) `KQObject::getLoc <name>`** (scripts also write just `getLoc`,

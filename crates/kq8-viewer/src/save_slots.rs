@@ -318,6 +318,9 @@ impl Snapshot {
             if kept.characters.iter().any(|character| !character.valid()) {
                 return Err("save has an invalid placed character".into());
             }
+            if kept.group_masks.len() > 8192 || kept.group_masks.iter().any(|(name, masks)| name.is_empty() || name.len() > 256 || name != &name.to_ascii_lowercase() || masks.iter().all(Option::is_none)) {
+                return Err("save has invalid object group masks".into());
+            }
             if kept.active_list.as_ref().is_some_and(|list| list.len() > 256 || list.iter().any(|name| name.is_empty() || name.len() > 256 || name != &name.to_ascii_lowercase())) {
                 return Err("save has an invalid active-monster list".into());
             }
@@ -449,6 +452,7 @@ impl Snapshot {
                 sim.active.world.restore_placed_characters(&kept.characters);
                 sim.active.world.restore_spawned_monsters(&kept.spawned_monsters);
                 if let Some(list) = kept.active_list.as_deref() { sim.active.world.restore_active_list(list); }
+                sim.active.world.group_masks.clone_from(&kept.group_masks);
             }
             if let Some(traps) = &self.traps {
                 let w = &mut sim.active.world;
@@ -1325,6 +1329,7 @@ mod tests {
                 }],
                 spawned_monsters: Vec::new(),
                 characters: Vec::new(),
+                group_masks: Default::default(),
                 active_list: None,
             },
         );

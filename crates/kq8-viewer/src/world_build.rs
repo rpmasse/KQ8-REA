@@ -176,6 +176,9 @@ pub struct KeptWorld {
     /// Runtime state of living characters from the installed world files.
     #[serde(default)]
     pub characters: Vec<kq8_core::active::SavedPlacedCharacter>,
+    /// Script-replaced near/far group masks for live objects (Q217).
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub group_masks: std::collections::BTreeMap<String, [Option<u16>; 2]>,
     /// `None` means a slot written before this field existed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_list: Option<Vec<String>>,
@@ -230,11 +233,15 @@ impl KeptWorld {
             .filter_map(|(name, place)| place.map(|p| (name.clone(), p)))
             .collect();
         let items = (!disk_save).then(|| kq8_core::item::RegionItems::capture(&active.world.items, &gone));
+        let group_masks = active.world.group_masks.iter()
+            .filter(|(name, _)| !gone.contains(*name))
+            .map(|(name, masks)| (name.clone(), *masks)).collect();
         Self {
             vars: active.scripts.vars.iter().filter(|(n, _)| kq8_core::journey::belongs_to_world(n, from)).map(|(n, v)| (n.to_owned(), v.to_owned())).collect(),
             gone, came_in, object_copies, items, states: active.world.kept_states_including(&prior_states),
             spawned_monsters: if disk_save { active.world.saved_spawned_monsters_for_disk_save() } else { active.world.saved_spawned_monsters() },
             characters: if disk_save { active.world.saved_placed_characters_for_disk_save() } else { active.world.saved_placed_characters() },
+            group_masks,
             active_list: Some(active.world.active_list.clone()),
             interactions: kq8_core::kept_interactions::KeptInteractions::take(&active.world),
             prop_placements,
@@ -981,6 +988,7 @@ pub fn world_change_step(world: &mut World) {
                     w.restore_spawned_monsters(&kept.spawned_monsters);
                     if let Some(list) = kept.active_list.as_deref() { w.restore_active_list(list); }
                 }
+                w.group_masks.clone_from(&kept.group_masks);
                 if kept.traps.is_some() {
                     let surviving: std::collections::BTreeSet<_> = w.known.iter()
                         .filter(|name| !w.is_deleted(name)).cloned().collect();

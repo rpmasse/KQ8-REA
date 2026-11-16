@@ -1,5 +1,45 @@
 # MODLOG
 
+## 2026-11-16 Apply Snowmane's scripted group masks (B)
+
+Changed: handled both `KQObject::setGroupsActive3D*` commands in the
+running world, applied their near/far masks to drawing and collision,
+and preserved them through kept-world and disk saves. Added focused
+core and unattended GOG-data live-fight tests, and expanded the
+existing Snowmane save/expiry route. Why: the original Clarity script
+adjusts Snowmane's combat stats and visible geometry together. Tested
+how: set `KQ8_GAME_DIR` to the GOG folder; run `cargo test --locked -p
+kq8-core scripted_distance_group_setters_replace_low_16_bits` and
+`cargo test --locked -p kq8-viewer --test snowmane_live_clarity --
+--ignored`, then `cargo test --locked -p kq8-viewer --test monster_stats
+original_snowmane_reveal_changes_combat_stats_across_disk_reload --
+--ignored`. The core case and live fight passed; the two-process save
+route passed 1/1 in 125.17 seconds. An earlier red live run reported
+both commands unknown. The first renderer diagnostic exceeded Bevy's
+system-parameter limit at compile time and was folded into an existing
+local state. The first expanded save route used exclusive fullscreen,
+which failed under the active Windows display; the windowed retry
+reached Snowmane but he killed Connor before the expiry save. A
+distance probe found a near-render position outside his alarm radius;
+the adjusted route passed. No GOG file or manual gameplay was changed.
+Numeric object-ID lookup and native first-frame reload remain open.
+
+## 2026-11-16 Study Snowmane's scripted group masks (A)
+
+Changed: documented the two `KQObject::setGroupsActive3D*` commands
+in `docs/behaviour/objects.md` and opened Q217 for native reload
+timing. Why: Ice World's Clarity script calls both commands, but the
+Rust viewer currently rejects them. Read-only static analysis of the
+original engine established exact three-word usage, name then numeric
+lookup, decimal-to-16-bit replacement masks, result 0, and immediate
+group switching for the relevant live near/far state. The original
+object property visitor includes both masks. The Ghidra MCP was not
+available in this study session, so the existing local PE/Capstone
+helper was used without writing to the GOG install. No Rust code,
+original game files, or manual gameplay were changed or run. Native
+save/reload first-frame behavior is **not tested**; the implementation
+session can check its Rust continuation after applying the prose rule.
+
 ## 2026-11-16 Verify the original hand-weapon hit matrix
 
 Changed: added `hand_weapon_matrix`, an unattended original-data test;

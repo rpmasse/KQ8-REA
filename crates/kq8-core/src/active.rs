@@ -793,6 +793,9 @@ pub struct WorldState {
     /// `KQObject::setHidden` on other placed objects (3k-2), by
     /// lower-case name: overrides their file's `hidden=`.
     pub(crate) plain_hidden: BTreeMap<String, bool>,
+    /// Script replacements for the near/far group masks, by lower-case
+    /// object name (`objects.md` Q217). None in either slot uses the file.
+    pub group_masks: BTreeMap<String, [Option<u16>; 2]>,
     /// Objects prepared for a script's `loadKQ` (3k-4): lower-case file
     /// name → the object's name and script.
     dormant: BTreeMap<String, (String, Option<String>)>,
@@ -2308,6 +2311,39 @@ impl WorldState {
             }
         };
         self.item_note(format!("{at}: {line}"));
+        "0".into()
+    }
+
+    /// The original setters replace one 16-bit distance group mask.
+    fn set_distance_groups(&mut self, words: &[String], at: &str) -> String {
+        let command = words[0].as_str();
+        if words.len() != 3 {
+            self.note(format!("{at}: usage: {command} <object> <flags>"));
+            return "0".into();
+        }
+        let name = words[1].to_ascii_lowercase();
+        if !self.known.contains(&name) || self.is_deleted(&name) {
+            // The authored scripts use names. Numeric original object IDs
+            // have no stable counterpart in this recreation yet (Q217).
+            self.note(format!("{at}: {command}: object '{}' not found; nothing", words[1]));
+            return "0".into();
+        }
+        let text = words[2].trim_start();
+        let (negative, digits) = match text.as_bytes().first() {
+            Some(b'-') => (true, &text[1..]),
+            Some(b'+') => (false, &text[1..]),
+            _ => (false, text),
+        };
+        let mut flags = 0u16;
+        for digit in digits.bytes().take_while(u8::is_ascii_digit) {
+            flags = flags.wrapping_mul(10).wrapping_add(u16::from(digit - b'0'));
+        }
+        if negative {
+            flags = flags.wrapping_neg();
+        }
+        let slot = usize::from(command == "KQObject::setGroupsActive3DFar");
+        self.group_masks.entry(name.clone()).or_insert([None, None])[slot] = Some(flags);
+        self.note(format!("{at}: {command} {name}: {} mask replaced with {flags} (objects.md Q217)", if slot == 0 { "near" } else { "far" }));
         "0".into()
     }
 
@@ -4982,6 +5018,7 @@ impl ScriptHost for WorldState {
             "KQMonster::testMessage" => Some(self.test_message(words, at)),
             "KQMonster::stateChangeNotify" | "KQMonster::clearStateChangeNotify" | "KQMonster::clearstateChangeNotify" => Some(self.state_change_notify(words, at)),
             "KQObject::setScript" => Some(self.set_script(words, at)),
+            "KQObject::setGroupsActive3D" | "KQObject::setGroupsActive3DFar" => Some(self.set_distance_groups(words, at)),
             "KQObject::setDontLook" | "KQObject::setHidden" => Some(self.item_change(words, at)),
             _ => None,
         }
@@ -5141,6 +5178,7 @@ impl Active {
                 object_hit_kinds: BTreeMap::new(),
                 object_stat_defaults: BTreeMap::new(),
                 plain_hidden: BTreeMap::new(),
+                group_masks: BTreeMap::new(),
                 dormant: BTreeMap::new(),
                 came_in: Vec::new(),
                 object_copies: Vec::new(),
@@ -11248,6 +11286,25 @@ endif
         b.world.known.insert("table".into());
         b.click("basket1", [0.0, -1000.0, 0.0], 2350.0, None);
         assert!(!b.world.hidden_now("Table", true), "a script's 0 wins over hidden=1");
+    }
+
+    #[test]
+    fn scripted_distance_group_setters_replace_low_16_bits() {
+        let mut a = with_object("", "x");
+        a.world.known.insert("snowmane".into());
+        assert_eq!(a.test_command("KQObject::setGroupsActive3D Snowmane 1097", "t"), Some("0".into()));
+        assert_eq!(a.test_command("KQObject::setGroupsActive3DFar snowmane 1088", "t"), Some("0".into()));
+        assert_eq!(a.world.group_masks["snowmane"], [Some(1097), Some(1088)]);
+        assert_eq!(a.test_command("KQObject::setGroupsActive3D snowmane 65545", "t"), Some("0".into()));
+        assert_eq!(a.world.group_masks["snowmane"], [Some(9), Some(1088)]);
+        a.test_command("KQObject::setGroupsActive3DFar snowmane -1", "t");
+        assert_eq!(a.world.group_masks["snowmane"], [Some(9), Some(u16::MAX)]);
+        a.test_command("KQObject::setGroupsActive3DFar snowmane nonsense", "t");
+        assert_eq!(a.world.group_masks["snowmane"], [Some(9), Some(0)]);
+        a.test_command("KQObject::setGroupsActive3D nobody 20", "t");
+        a.test_command("KQObject::setGroupsActive3D snowmane", "t");
+        assert_eq!(a.world.group_masks.len(), 1);
+        assert!(a.take_log().join("\n").contains("usage: KQObject::setGroupsActive3D"));
     }
 
     #[test]

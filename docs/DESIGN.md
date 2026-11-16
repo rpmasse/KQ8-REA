@@ -3588,6 +3588,39 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Snowmane Clarity combat check (2026-11-16, checked).** The installed
+Ice World `snowmane.cs` changes Snowmane's hand damage and protection
+when Connor uses Clarity. The existing original-data test checks those
+numbers through a save, but no live hit. Place Connor near the original
+Snowmane, equip an original hand weapon and land a hit before Clarity
+and another while it is active. Require the first hit to use the
+unrevealed protection and the second the revealed protection, with
+health decreasing once per cue. Keep the target's AI disabled and
+Connor protected for this combat-path check; preserve the existing
+save-and-expiry regression separately. Do not change GOG files.
+
+The first live probe landed both hits but exposed the script's
+unimplemented `KQObject::setGroupsActive3D` and
+`KQObject::setGroupsActive3DFar` calls. The separate study in
+`objects.md` Q217 establishes exact three-word command parsing,
+16-bit mask replacement, and immediate switching of live near/far
+groups. Store the changed masks by object identity in the running
+world, apply them to the distance renderer's draw/collider groups and
+retain them in the kept world across disk save or travel. Re-run the
+same live fight with no unknown-command errors, and expand the
+existing Snowmane save/expiry check to require the revealed and hidden
+masks on both sides of a fresh-process load. Native first-frame reload
+timing and numeric object-ID lookup remain separately bounded gaps.
+
+The focused core setter case passed, and the unattended IceWorld live
+fight passed with Fire hits before and during Clarity. Snowmane's
+protection changed 30 to 0, and the renderer switched its scripted
+groups from hidden to drawn. The two-process save route passed 1/1 in
+125.17 seconds: it saved near/far masks 1097/1088 while revealed,
+restored them after loading, then saved 9/0 after the potion expired;
+the rendered state changed from drawn to hidden. No manual play or
+native first-frame reload comparison was performed.
+
 **Original hand-weapon live-hit matrix (2026-11-16, checked).** The
 installed `Invinfo.itl` lists twelve ordinary player hand weapons from
 Dagger through Temple Sword. Run each through the normal inventory and

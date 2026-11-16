@@ -323,7 +323,7 @@ pub fn update_activity(
     layered: Query<(), (With<Mesh3d>, With<RenderLayers>)>,
     mut point: ResMut<ActivePoint>,
     mut states: ResMut<ObjectActivity>,
-    mut solid: Local<HashMap<u32, bool>>,
+    mut effective: Local<HashMap<u32, (bool, bool)>>,
     mut log_state: ResMut<ActivityLog>,
     rules: Res<ActiveRules>,
     mut switches: ResMut<ColliderSwitches>,
@@ -334,7 +334,7 @@ pub fn update_activity(
 ) {
     // A new world's objects (M6 6e-2).
     if crate::world_build::new_world(&change, &mut seen) {
-        solid.clear();
+        effective.clear();
     }
     lights_group.0.clear();
     characters.0.clear();
@@ -389,7 +389,18 @@ pub fn update_activity(
         let risen = test.born_groups.filter(|_| {
             sim.as_ref().is_some_and(|s| s.active.world.character_index(&test.name).and_then(|i| s.active.world.anims[i].character.as_deref()).is_some_and(|c| !c.unborn))
         });
-        let [always, near, far] = risen.unwrap_or(test.groups);
+        let [always, mut near, mut far] = risen.unwrap_or(test.groups);
+        // An Unborn character keeps its temporary non-drawing groups;
+        // otherwise scripts' replacement masks take effect at this frame's
+        // group switch, including for a character that has since risen.
+        let mut scripted_masks = false;
+        if test.born_groups.is_none() || risen.is_some() {
+            if let Some(masks) = sim.as_ref().and_then(|s| s.active.world.group_masks.get(&test.name.to_ascii_lowercase())) {
+                near = masks[0].map(u32::from).unwrap_or(near);
+                far = masks[1].map(u32::from).unwrap_or(far);
+                scripted_masks = true;
+            }
+        }
         let drawn = !light.haze_on || activity.groups(always, near, far) & DRAW_BITS != 0;
         if !drawn && !has_layer {
             commands.entity(entity).insert(Propagate(RenderLayers::layer(OFF_LAYER)));
@@ -409,8 +420,11 @@ pub fn update_activity(
         if activity.groups(always, near, far) & crate::scene_lights::LIGHTS_BIT != 0 {
             lights_group.0.insert(test.object);
         }
-        let was = solid.insert(test.object, has_collider);
-        if was.unwrap_or(true) != has_collider {
+        let was = effective.insert(test.object, (has_collider, drawn));
+        if scripted_masks && was.is_some_and(|(_, before)| before != drawn) {
+            changes.push(format!("draw distance: [{}] scripted groups: drawn {} -> {}; {activity:?}, always {always:#x}, near {near:#x}, far {far:#x}", test.name, was.unwrap().1, drawn));
+        }
+        if was.map(|(before, _)| before).unwrap_or(true) != has_collider {
             switches.0.push((test.name.clone(), has_collider, activity, d + test.radius));
         }
         *counts.entry(activity).or_default() += 1;

@@ -1,5 +1,16 @@
 # Provenance
 
+**Snowmane scripted group masks (2026-11-16).** The separate
+[object-behavior study](../behaviour/objects.md) Q217 describes the
+original `setGroupsActive3D` and `setGroupsActive3DFar` commands:
+three-word parsing, replacement of one 16-bit near/far mask and a live
+group switch. The installed IceWorld `snowmane.cs` uses them for
+Clarity Reveal True/False. The Rust script dispatcher, distance
+renderer and kept-world save now apply those rules. A focused core
+case, a live IceWorld fight and a fresh-process expiry/save check pass.
+The Rust check does not establish the original executable's first
+rendered frame after reload; numeric object-ID fallback remains open.
+
 **M5 player hand-weapon matrix (2026-11-16).** The installed GOG
 `GAME/Kq/Invinfo.itl` names the twelve ordinary hand weapons and their
 `SDam` values. [Fighting rules 1, 4 and 14](../behaviour/fighting.md)
