@@ -3,21 +3,22 @@
 ## 2026-11-16 Exercise the IceWorld Dragon fight with normal damage
 
 Changed: added an unattended original-data route that gives Connor
-the Flame Sword after IceWorld startup, then drives four hand swings
+the Flame Sword after IceWorld startup, then aims four camera rays
 against the two heads with normal enemy AI and damage at Easy combat
-level. It requires two Fire `Do` hits per head, each permanent death,
+level. It requires the hand-weapon mask to select each head, two Fire
+`Do` hits per head, each permanent death,
 incoming head hits on Connor, and the body's two-head finish.
 Why: prior Dragon checks used scripted kills and god mode, leaving a
 live combat sequence unverified. Tested how: set `$env:KQ8_GAME_DIR =
 (Resolve-Path "..\..\..\King's Quest 8 GOG").Path` from this worktree,
 then run `cargo test --locked -p kq8-viewer --test dragon_flame_sword_combat -- --ignored --nocapture`.
-Result: 1/1 passed in 39.02 seconds; Connor took damage and survived,
+Result: 1/1 passed in 38.24 seconds; Connor took damage and survived,
 both heads died permanently, and the body entered Die. The GOG
 `Options.cs` bytes remained unchanged. An earlier diagnostic with
 `--item` failed to equip the sword because the regional start script
 replaced it with a Long Sword; supplying it at update 20 worked.
-The test supplies a weapon and named swing targets, so it does not
-verify an earned campaign route or ordinary mouse picking. No manual
+The test supplies a weapon and named camera-ray targets, so it does not
+verify an earned campaign route or physical mouse pixel input. No manual
 gameplay test was run.
 
 ## 2026-11-16 Verify Dragon collision bounds in the GOG-data route

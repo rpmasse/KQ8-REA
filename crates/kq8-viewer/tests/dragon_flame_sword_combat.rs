@@ -1,4 +1,4 @@
-//! Isolated IceWorld fight through real Flame Sword and Dragon animation cues.
+//! Isolated IceWorld fight through camera picks, Flame Sword and Dragon cues.
 use std::{fs, path::Path, process::Command};
 
 #[test]
@@ -30,18 +30,18 @@ fn flame_sword_defeats_both_dragon_heads_with_normal_damage() {
             "--at",
             "182334,490176,0",
             // The regional start script equips a Long Sword first; supply
-            // the Flame Sword after it and ready the hand slot before swings.
+            // the Flame Sword after it and ready the hand slot before aiming.
             "--command",
             "KQMonster::inventory Connor INVITEM_FlameSword 1,20",
             "--command",
             "KQConner::setDoMode 0,25",
-            "--swing",
+            "--aim",
             "draglhed,40",
-            "--swing",
+            "--aim",
             "draglhed,75",
-            "--swing",
+            "--aim",
             "dragrhed,135",
-            "--swing",
+            "--aim",
             "dragrhed,170",
             "--updates",
             "230",
@@ -52,6 +52,7 @@ fn flame_sword_defeats_both_dragon_heads_with_normal_damage() {
     let logs = dir.join("kq8-artifacts/logs");
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
     let items = fs::read_to_string(logs.join("items.log")).unwrap();
     assert!(
         output.status.success() && viewer.contains("RESULT: PASS"),
@@ -65,6 +66,13 @@ fn flame_sword_defeats_both_dragon_heads_with_normal_damage() {
         dir.display()
     );
     for head in ["draglhed", "dragrhed"] {
+        assert!(
+            doors.contains(&format!(
+                "test --aim {head} (camera to the middle of its box): line from"
+            )) && doors.contains(&format!("swing pick meets character {head} (type 0x4042)")),
+            "the camera ray did not select {head} through the hand-weapon mask; inspect {}",
+            dir.display()
+        );
         assert_eq!(
             fight.matches(&format!("hits {head}:")).count(),
             2,

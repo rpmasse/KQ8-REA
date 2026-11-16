@@ -3,12 +3,13 @@
 ## 2026-11-16 M5 isolated Dragon Flame Sword fight
 
 An unattended GOG-data IceWorld run now defeats both Dragon heads
-through four real Flame Sword swing cues, with enemy AI and Connor
-damage enabled at Easy combat level. Both heads die permanently,
+through four camera-ray picks and real Flame Sword swing cues, with
+enemy AI and Connor damage enabled at Easy combat level. Both heads die permanently,
 the body enters Die and loads the post-fight box, and Connor takes
-real head hits before surviving the fight. The test passed 1/1 in
-39.02 seconds. It supplies the sword after the regional start script
-and drives named targets, so ordinary mouse selection and an earned
+real head hits before surviving the fight. The camera rays picked both
+heads through their hand-weapon collision type. The test passed 1/1 in
+38.24 seconds. It supplies the sword after the regional start script
+and names the aim targets, so physical mouse pixel input and an earned
 campaign route remain open. The first diagnostic gave the sword before
 startup, and IceWorld replaced it with a Long Sword; the corrected
 timing passed. No manual gameplay test was run; M5 remains ~65%.
