@@ -40,19 +40,19 @@ fn daventry_second_bow_and_melee_spriggan_fight() {
             "--command",
             "deleteObject goblin22,21",
             "--command",
-            "move sprigan 0 289284 193500 13770 0 0 0,25",
+            "move sprigan1 0 287855 190454 13770 0 0 0,25",
             "--command",
-            "sendEvent 0 sprigan KQAttackEvent Connor 0 100000 0,155",
+            "KQMonster::setHome sprigan1 287855 190454 13770,25",
             "--command",
-            "move sprigan1 0 287855 190454 13770 0 0 0,190",
+            "sendEvent 0 sprigan1 KQAttackEvent Connor 0 100000 0,110",
             "--command",
-            "KQMonster::setHome sprigan1 287855 190454 13770,190",
+            "move sprigan 0 289284 193500 13770 0 0 0,150",
             "--command",
-            "sendEvent 0 sprigan1 KQAttackEvent Connor 0 100000 0,270",
+            "sendEvent 0 sprigan KQAttackEvent Connor 0 100000 0,280",
             "--updates",
-            "340",
+            "430",
             "--frames",
-            "10000",
+            "12000",
         ])
         .output()
         .unwrap();
@@ -121,11 +121,16 @@ fn daventry_second_bow_and_melee_spriggan_fight() {
             dir.display()
         );
     }
-    let bow_finish = "sprigan: its death ended (rule 32): Connor gets its experience 12";
-    assert_eq!(fight.matches(bow_finish).count(), 1);
-    assert!(fight
-        .lines()
-        .any(|line| line.contains(bow_finish) && line.contains("a corpse spbdeath.kqs")));
+    for (name, xp, corpse) in [
+        ("sprigan1", 7, "spdeath.kqs"),
+        ("sprigan", 12, "spbdeath.kqs"),
+    ] {
+        let finish = format!("{name}: its death ended (rule 32): Connor gets its experience {xp}");
+        assert_eq!(fight.matches(&finish).count(), 1);
+        assert!(fight
+            .lines()
+            .any(|line| line.contains(&finish) && line.contains(&format!("a corpse {corpse}"))));
+    }
     assert_eq!(
         fight.matches("sprigan: drops: nothing (rule 31)").count(),
         1

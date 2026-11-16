@@ -14,16 +14,17 @@ save/load were not tested. No GOG or Rust files changed in this study.
 
 Added one unattended original-data encounter using installed `sprigan`
 (`sprgnbowtype2`) and `sprigan1` placements. The release test passed
-1/1 in about 27 seconds: the second bow type landed `Prscbolt.kq`
+1/1 in about 33 seconds: the second bow type landed `Prscbolt.kq`
 Projectile hits and completed its no-drop death, corpse and 12
-experience; the melee variant landed Normal hits and dropped its six
-Silver Coins on controlled death. The first grouped run also moved
-`zograv2` but observed no live attack. A second run requested Wait
+experience; the melee variant landed Normal hits, dropped its six
+Silver Coins, then completed its corpse and 7 experience. The first
+grouped run also moved `zograv2` but observed no live attack. A second run requested Wait
 after its relocation, with the same result. That actor's activation
-remains unresolved. The melee Spriggan's death completion and 7
-experience were absent even at update 530. The final fixture makes no
-claim for those effects. No production code or GOG file changed. With
-`KQ8_GAME_DIR` set, run `cargo test --locked --release -p kq8-viewer
+remains unresolved. The first encounter order let the bow death script
+move Connor far away before the melee death finished, even by update
+530. Reversing the encounter order completed both deaths. No production
+code or GOG file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer
 --test daventry_spriggan_variants_live -- --ignored --nocapture`.
 
 ## 2026-11-17 Verify Ice World icewater plain click (M5)
