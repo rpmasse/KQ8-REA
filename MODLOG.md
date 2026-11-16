@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Link Swamp fiend fight and bubble death (M5)
+
+One original-data release test passed 1/1 in about 29 seconds. The
+fiend's ordinary Normal attack lowered Connor's health, then both
+placed actors completed controlled Normal deaths with their distinct
+corpse and experience outcomes. Two prior attempts did not produce a
+live bubble hit: its patrol continued through the measured lane, even
+after a Wait request. That rule remains open and is not asserted by the
+passing test. No production code or GOG file changed. With
+`KQ8_GAME_DIR` set, run `cargo test --locked --release -p kq8-viewer
+--test swamp_fiend_bubble_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Bound Ice World chest Henchman investigation (M5)
 
 Two unattended diagnostics with installed Ice World data isolated the

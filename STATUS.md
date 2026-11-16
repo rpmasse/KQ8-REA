@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-17 M5 Swamp fiend live hit and bubble death
+
+The combined original-data `swamp_fiend_bubble_live` release test
+passed 1/1. A placed fiend landed multiple 35-point Normal attacks
+that lowered living Connor's health. Controlled Normal deaths checked
+the fiend's no-drop, `Sf_death.KQS` corpse and 7,500 experience, plus a
+placed swamp bubble's no-drop, no-corpse and 10,000-experience outcome.
+The bubble's live attack is **not tested successfully**: two earlier
+versions of this scenario moved it near Connor, and one also requested
+Wait, but it resumed its authored patrol and made no attack. The
+passing scenario claims only its death path. No third attack tactic
+was attempted. M5 remains incomplete.
+
 ## 2026-11-17 M5 Ice World chest Henchman transition unresolved
 
 Two unattended original-data diagnostics replayed the installed

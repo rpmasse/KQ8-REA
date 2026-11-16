@@ -360,6 +360,19 @@ mode, and check controlled Normal death, 10,000 experience and the
 `hench.cs` cleanup callback. Keep this one grouped scenario; no
 manual gameplay test is needed at this stage.
 
+## M5 Swamp fiend and bubble combat families (2026-11-17)
+
+One unattended original-data process moves a placed fiend and a placed
+swamp bubble in sequence into the measured Swamp lane. Connor has a
+raised health ceiling and ordinary damage. The fiend's own Normal
+attack lowers his health; controlled Normal death checks both actors'
+installed stats, no-drop rule, corpse choice and single experience
+award. The bubble made no attack in two attempts: its authored patrol
+continued past Connor even after a Wait request. Its live attack rule
+needs separate evidence before claiming it. The scenario also checks
+that world damage and god mode did not replace the fiend hit. These
+relocations do not establish earned approaches.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation
