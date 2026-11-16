@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-16 Resume Fire and Ice bolt effects after a Rust save
+
+Changed: the ranged-shot checkpoint accepts a finished attack whose
+walker has just returned to Free stance, before the normal next-update
+cleanup. Added an unattended original-data save/reload check for Fire
+and Ice bolt effects. Why: Ice could reach a menu save during that
+brief valid state and the validator refused it even while its bolt was
+flying. Tested how: set `KQ8_GAME_DIR` to the GOG folder and run `cargo
+test --locked -p kq8-viewer --test elemental_emitter_checkpoint --
+--ignored --nocapture`; it passed 1/1 in 145.87 seconds across four
+fresh processes. Both restored bolts advanced from flight update 7 to
+8, each started one following effect, and both effects died and
+expired after range removal without another attack. `cargo test
+--locked -p kq8-viewer --bin kq8-viewer` passed 64 active tests with
+52 ignored. The first fixture could loop in a paused save menu; a
+rendered-frame cap fixed that. A later attempt edited the similarly
+named melee validator by mistake; it failed to change the Ice result,
+and the melee edit was reverted before correcting the ranged one.
+The GOG `Options.cs` file was unchanged. Original saved particle phases
+and exact event ordering remain unverified; no manual gameplay ran.
+
 ## 2026-11-16 Stabilize the Swamp slime live-fight check
 
 Changed: added test-only `--aim-when-ready NAME,N`, which waits for

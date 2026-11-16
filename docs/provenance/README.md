@@ -423,6 +423,15 @@ Connor, one Fire arrow kills it, and its death awards experience. The
 supplied bow and direct world start are test setup, not an earned route.
 No original executable or disassembly was read by this session.
 
+**Elemental emitter Rust save continuation (2026-11-16).** The installed
+Dead City Flame Bow, Ice Crossbow, `Prfarrow.kq`, `PRicycle.kq`,
+`firebits.kq` and `icebits.kq` drive the unattended
+`elemental_emitter_checkpoint` regression. It saves each bolt in flight
+and verifies one following emitter after a fresh Rust process loads.
+The original executable's saved emitter identities, particle ages and
+within-update event order remain unresolved in Q212. GOG files were
+read-only; no original executable or disassembly was inspected here.
+
 **Ranged keeping-distance AI (2026-11-15).**
 [fighting.md](../behaviour/fighting.md) rule 37 supplies the eligibility,
 one-second choice, `mustFlee` and chance behavior, away direction and

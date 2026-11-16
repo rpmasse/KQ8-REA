@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-16 M5 elemental bolt effects across a Rust save
+
+An unattended four-process GOG-data check now saves a flying Fire and
+Ice bolt and resumes each in a fresh process. Both slots retain the
+original effect filename after flight update 7; each restored bolt
+continues at update 8 with one attached effect, reaches range removal,
+and leaves a particle tail that expires. No attack cue replays. The
+Ice save also covers the animation-end boundary: Connor has returned
+to Free stance while the finished shot awaits its next cleanup step.
+The validator now accepts that state and the restore clears it on the
+next update. The regression passed 1/1 in 145.87 seconds; 64 active
+viewer unit tests passed. The GOG `Options.cs` file was unchanged.
+This checks Rust saves, not original saved particle phases or exact
+event/removal ordering. No manual gameplay ran. M5 remains incomplete.
+
 ## 2026-11-16 M5 Swamp slime live fight
 
 The previously unreliable slime fight now has an unattended two-run
@@ -586,8 +601,8 @@ positions at update 90 and checked the dying tail. The enemy Fire/Ice
 attack regression passed 1/1 in 26.65 seconds, and the live-bolt disk
 record check passed 1/1. The earlier attack fixture stopped after 130
 rendered frames before the shot cue; changing it to 180 game updates
-made the attack route complete. Native in-flight emitter save state and
-the precise original impact/removal order remain open in Q212. These
+made the attack route complete. The original executable's in-flight
+emitter save state and precise impact/removal order remain open in Q212. These
 are controlled Rust checks, not original-executable comparisons. No
 manual gameplay test was run. M5 remains about 65%.
 

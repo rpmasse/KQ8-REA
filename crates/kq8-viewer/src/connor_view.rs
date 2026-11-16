@@ -646,8 +646,9 @@ impl SavedShot {
             && self.aim.iter().all(|p| p.is_finite())
             && self.waiting != self.started
             && matches!(self.walker_mode, Mode::Free | Mode::Special)
-            && self.waiting == (self.walker_mode == Mode::Free)
-            && (self.waiting || self.walker_movement.eq_ignore_ascii_case(&self.movement))
+            && (!self.waiting || self.walker_mode == Mode::Free)
+            && (self.waiting || self.walker_mode == Mode::Free
+                || self.walker_movement.eq_ignore_ascii_case(&self.movement))
             && (!self.waiting || self.auto.as_ref().is_some_and(|auto| auto.target == [self.aim[0], self.aim[1]]))
             && self.phase.is_finite() && (0.0..=1.0).contains(&self.phase) && self.bank.is_finite()
             && self.wanted.as_ref().is_none_or(|name| valid_swing_name(name))

@@ -582,6 +582,36 @@ Retain a transient spawn notice in core until the effect step consumes
 it, because a bolt can enter and hit during the same 15 Hz update;
 scanning only the remaining live bolts would miss that creation.
 
+**Fire and Ice effect continuation across a Rust save.** For each
+installed elemental weapon, launch an ordinary bolt into clear space,
+save while it is flying, then load that slot in a fresh Windows process.
+Require the saved bolt to retain its emitter filename, one effect to
+start from the restored bolt, follow its later positions, enter dying
+on range removal and expire after its particles finish. Keep the GOG
+installation read-only. This checks the Rust continuation, not the
+unresolved original saved particle ages, identities or within-update
+ordering in Q212.
+The first Fire run saved and resumed, but Ice reached the save in the
+update where its attack animation had ended and the shot controller
+was still pending its next cleanup step. The disk validator rejected
+that valid transition, and the menu stopped the game-update exit
+counter. Add a rendered-frame cap to this fixture. Permit a started
+shot paired with Connor's free stance in the checkpoint; on reload,
+the existing next-update cleanup must clear it without replaying `do`.
+Keep a still-running Special attack tied to its attack movement.
+The corrected four-process GOG-data regression passed 1/1 in 145.87 s.
+Both slots captured `bolt1` after flight update 7 with its installed
+effect filename. Ice captured the animation-end Free stance with its
+shot still marked started. After fresh reload, each bolt continued at
+update 8, one effect followed it, range removal made that effect die,
+and its particle tail expired. No attack cue replayed. The 64 active
+viewer unit tests passed; 52 data-dependent or child-process cases
+were ignored. The first draft could stall after an unsuccessful Ice
+save because its exit counted paused game updates. A frame cap fixed
+that harness failure; a subsequent edit mistakenly changed the melee
+validator and was reverted before the ranged validator was corrected.
+Original saved particle phases and event/removal ordering remain Q212.
+
 ## M5 settled weapon save matrix (2026-11-16)
 
 The existing cross-process weapon checkpoint checks Small Crossbow and
