@@ -40,6 +40,8 @@ fn swamp_fiend_hits_and_both_families_follow_death_rules() {
             "--command",
             "move swmpbb2a 0 167000 72961 5355 0 0 0,190",
             "--command",
+            "KQMonster::goHome swmpbb2a 0,191",
+            "--command",
             "sendEvent 0 swmpbb2a KQAttackEvent Connor 0 100000 0,300",
             "--updates",
             "390",
@@ -137,6 +139,36 @@ fn swamp_fiend_hits_and_both_families_follow_death_rules() {
         fight.find("fiend2: Do (Attack").unwrap()
             < fight.find("fiend2: dies (rule 30): kind Normal").unwrap(),
         "the fiend died before its checked attack; inspect {}",
+        dir.display()
+    );
+    assert!(
+        fight.lines().any(|line| line.contains("swmpbb2a: Do (Attack")
+            && line.contains("hits Connor")
+            && line.contains("hand damage 25, Normal")),
+        "the released bubble made no authored melee hit; inspect {}",
+        dir.display()
+    );
+    let bubble_hits: Vec<_> = fight
+        .lines()
+        .filter(|line| line.contains("Connor: hit by swmpbb2a, Normal: D 25,"))
+        .collect();
+    assert!(
+        !bubble_hits.is_empty(),
+        "the bubble did not reach Connor; inspect {}",
+        dir.display()
+    );
+    for hit in bubble_hits {
+        let health = hit.rsplit_once("health ").unwrap().1;
+        let (before, after) = health.split_once(" -> ").unwrap();
+        assert!(
+            after.parse::<i64>().unwrap() < before.parse::<i64>().unwrap(),
+            "the bubble did not lower health: {hit}"
+        );
+    }
+    assert!(
+        fight.find("swmpbb2a: Do (Attack").unwrap()
+            < fight.find("swmpbb2a: dies (rule 30): kind Normal").unwrap(),
+        "the bubble died before its checked attack; inspect {}",
         dir.display()
     );
     assert!(

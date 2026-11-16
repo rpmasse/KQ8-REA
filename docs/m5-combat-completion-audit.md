@@ -171,6 +171,12 @@ carrier, second bow guard and two script-parked spear carriers. Their
 controlled Normal deaths each finalize and award experience once; the
 parked actors' authored summons remain outside this fixture.
 
+The existing Swamp fiend-and-bubble process now releases the placed
+bubble from `sgohome1.cs`'s unalarmable `goHome` state after relocation.
+Its own attack then lowered Connor's health twice before the already
+checked no-drop, no-corpse death. The release was test-controlled;
+the earned Swamp route remains outside this fixture.
+
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |
 | Connor's 13 hand banks | `Connor.kq` lists 13; `hand_weapon_matrix` checks 12 weapon hits and both plain `Attack`/`AttackB` variants in one encounter, and `first_person_weapon_matrix` covers Fists and all hand banks. Core `connor_s_do_hits_his_target_misses_or_hits_dead_air` checks a hit, a missed swing and dead air; `daventry_hero_ring` records an ordinary Henchman miss. Q139(e) now confirms the ordinary object roll; a grouped core check covers its callbacks. | Finish source-to-scenario links for weapon-specific edge cases and attack reachability. Q219 bounds the checked non-character receiver classes. |

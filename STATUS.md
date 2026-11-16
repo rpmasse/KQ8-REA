@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 Swamp bubble live attack
+
+The placed `swmpbb2a` in the existing combined Swamp test now leaves
+its scripted `goHome` state after test relocation. It alarmed Connor
+at update 192 and landed 25-point Normal `Attack` Do hits at updates
+220 and 268, both reducing health. Its no-drop, no-corpse death and
+10,000-experience reward still passed, alongside the fiend's live
+hit and distinct death in the same process. The focused release test
+passed 1/1 in 29.83 seconds. Artifact:
+`kq8-artifacts/swamp-fiend-bubble-live/1794872166189363400`.
+No production code or GOG file changed. The release is test-controlled;
+earned Swamp progression and original-executable parity are untested.
+M5 remains incomplete.
+
 ## 2026-11-17 M5 Temple 2 placement drop lists
 
 The existing Temple 2 original-data fight test now links four more

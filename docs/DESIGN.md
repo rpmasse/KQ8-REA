@@ -9553,3 +9553,24 @@ and invulnerability, and `Mhench2` dropped sacred water and
 invulnerability. All four completed Normal death and awarded their
 authored experience once. The parked actors were test-relocated; their
 summon and original-executable behavior remain untested.
+
+### M5 Swamp bubble live attack after home release (2026-11-17)
+
+The existing fiend-and-bubble route did not observe a bubble attack.
+Its log shows `sgohome1.cs` giving `swmpbb2a` the unalarmable
+`goHome` state at startup. The test later moved that actor near Connor
+but left the state in place. Extend the same process by issuing the
+documented `KQMonster::goHome swmpbb2a 0` command after relocation.
+Require the placed bubble's own `Attack` Do cue to lower Connor's
+health before its controlled death, while retaining the fiend and
+both death outcomes. This checks a live original-data Rust combat
+path with a test-controlled release, not the earned Swamp route or
+original-executable parity.
+
+Checked: the same original-data release test passed 1/1 in 29.83
+seconds. After `goHome 0` at update 191, `swmpbb2a` alarmed at update
+192, made its own `Attack` Do hits at updates 220 and 268, and reduced
+Connor's health both times. Its controlled Normal death still finished
+with no drop or corpse and 10,000 experience once; the earlier fiend
+hit and death checks passed in the same process. This release is
+test-controlled; the earned Swamp trap route remains untested.

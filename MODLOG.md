@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Link the Swamp bubble's live attack (M5)
+
+The combined fiend-and-bubble test had moved `swmpbb2a` near Connor,
+but its startup `sgohome1.cs` trap had left it unalarmable. After
+relocation, the test now issues the documented `KQMonster::goHome
+swmpbb2a 0` release. The placed bubble alarmed, landed two of its own
+25-point Normal `Attack` Do hits and lowered Connor's health before
+its existing no-drop, no-corpse, 10,000-experience death. The earlier
+fiend hit and death checks still pass in the same process. Release
+test: 1/1 in 29.83 seconds. Artifact:
+`kq8-artifacts/swamp-fiend-bubble-live/1794872166189363400`.
+No production code or GOG file changed. With `KQ8_GAME_DIR` set to the
+GOG install, run `cargo test --locked --release -p kq8-viewer --test
+swamp_fiend_bubble_live -- --ignored --nocapture`; expect one passing
+test. The release is test-controlled; the earned Swamp trap route and
+original-executable parity remain untested.
+
 ## 2026-11-17 Check Temple 2 placement-specific drops (M5)
 
 Extended the existing one-process Temple 2 live fight with four more
