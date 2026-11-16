@@ -171,12 +171,12 @@ regression run scheduled a swing during Connor's hit reaction and failed
 its four-hit assertion; the final run allows that interruption and adds
 a later aim. The GOG Options.cs bytes stayed unchanged. The isolated
 route supplies the boss state and equipment; the authored intro sequence
-is separate campaign work. Its Die callback still rejects an eight-word
-`KQMonster::speak` line, which remains open.
+is separate campaign work. Its Die callback rejects an eight-word
+`KQMonster::speak` line; Q216 now confirms the original rejects it too.
 
-Follow-up: the installed `skelking.cs` has an eight-word Die speech call,
-so Q216 asks whether the original accepts it; do not invent a missing
-argument. Strengthen the same unattended live-fight check to require the
+Follow-up: the installed `skelking.cs` has an eight-word Die speech call.
+Q216 confirms that the original prints usage, returns zero and does not
+speak; no missing argument is invented. Strengthen the same unattended live-fight check to require the
 authored sword, coins, two crystals and potion drops once, their completed
 throw arcs, and the script's Dead City progression flag after death. These
 checks use original data and the existing fight route, with no manual play.
@@ -184,8 +184,8 @@ checks use original data and the existing fight route, with no manual play.
 Checked: the strengthened GOG-data boss route passed 1/1 in 56.89 seconds.
 It found one sword, 25 coins, two crystals and one Invulnerable potion,
 then saw all five finish their throws. The Die script set
-`DeadCity::Reaper::ConFoundBridge` to true. Q216 remains open on its
-shortened `KQMonster::speak` form; the test does not claim that line plays.
+`DeadCity::Reaper::ConFoundBridge` to true. Q216 confirms its shortened
+`KQMonster::speak` form does not play a line.
 
 ## M5 live combat difficulty (2026-11-16)
 
@@ -3790,8 +3790,9 @@ origin entry and departure without destination On; and a larger
 non-Rock stack remaining carried. The already existing Windows
 `rock_flight_checkpoint` test compares two final Rock records after
 an uninterrupted throw and fresh-process continuation; it was not
-rerun for this test-only addition. Saved trap-name reattachment and
-other registration paths remain separate Q203 work.
+rerun for this test-only addition. Saved item trap names now reattach
+through contact during disk load (the separate Q203 step above); other
+registration paths remain open.
 
 **Monster projectile friendly fire (2026-11-16).** The original ranged
 rule allows an enemy bolt to strike another character on its path to

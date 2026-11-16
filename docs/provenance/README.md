@@ -2875,7 +2875,7 @@ layouts are also in the community notes `kq8msg.txt` and `kq8lip.txt`
 
 | What | Source | Check |
 | --- | --- | --- |
-| `KQMonster::speak` words, `<last>` 0, `nofade` only as the 10th word, the issuer must be a `KQMonster` or Connor | `talking.md` rule 6 | Unit test `connor_turns_to_the_listener_only_in_wait_or_move`; `talk.log` of the sign run: `1000 55 0 0 1…1 (<last> 0)` |
+| `KQMonster::speak` words, `<last>` 0, `nofade` only as the 10th word, the issuer must be a `KQMonster` or Connor; fewer than nine words print usage and return zero | `talking.md` rules 6, 6a (Q216 separate original-engine static study) | Unit tests `connor_turns_to_the_listener_only_in_wait_or_move` and `eight_word_speak_returns_zero_and_queues_no_line`; `talk.log` of the sign run: `1000 55 0 0 1…1 (<last> 0)` |
 | `<to>` another object: Connor turns with the scripted turn (`pointAndCue`'s, no cue), only in Wait or Move; the lines 0.5 s later; one waiting slot per issuer | `talking.md` rule 7, "Edge cases" | `connor.log` updates 32–42: the turn; `talk.log`: speak at 2.000 s, line at 2.533 s (the first update at or after 2.5 s); unit test `the_wait_after_turning_has_one_slot` |
 | A monster issuer's turn not done (monsters don't move yet); the 0.5 s wait kept | ~~**Stand-in** (Q103 d)~~ `talking.md` rule 7 (Q103 d, 2026-10-18): it always turns, the same 0.5 s; the turn is logged only (4a-8) | — |
 | One queue per character; the duplicate check by file, noun, verb, case and first sequence; the next line starts at once | `talking.md` rules 9, 11 | Sign run: three clicks during the line "duplicate: not queued"; a click after it ended plays it again (line #1); unit test `lines_play_in_turn_…` |

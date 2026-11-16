@@ -101,6 +101,13 @@ Words used here:
    sequence numbers; **`<last>` = 0 means "up to the last sequence that
    exists"** (the highest of the unbroken run first, first + 1, … in the
    file). `nofade` is only recognised as the 10th word exactly.
+6a. **Too few words (Q216, static study 2026-11-16):** fewer than nine
+    words print the built-in usage, return `0`, and queue no speech.
+    Dead City's `skelking.cs` Die call has only eight words, so that call
+    cannot speak after either Normal or Fire death. This was established
+    from the original executable's command branch; an original-runtime
+    death was not tested. The handling of more than ten words was not
+    established by this study.
 7. **Turning to face the listener:** if `<to>` names another object than
    the issuer (names compared ignoring capitals), the issuer turns to
    face it with the automatic turn (for Connor the 3.5 rad/s turn of

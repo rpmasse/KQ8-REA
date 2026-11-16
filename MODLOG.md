@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Match the original short speech command result
+
+Changed: `KQMonster::speak` with fewer than nine words now returns zero
+after its usage note, and a focused core test confirms no speech is
+queued. Why: separate original-engine study of Q216 found that the
+eight-word Skeleton King Die line follows this usage branch. Tested
+how: `cargo test --locked -p kq8-core
+eight_word_speak_returns_zero_and_queues_no_line -- --nocapture` passed
+1/1; `cargo test --locked -p kq8-core active::talk_tests:: -- --quiet`
+passed 4/4 related speech cases. The original-engine result is static control-flow evidence; an
+original-runtime death and manual gameplay are not tested. The handling
+of more than ten words remains outside this study. No GOG file changed.
+
 ## 2026-11-16 Reattach disk-saved world items through trap contact
 
 Changed: the disk loader prepares saved trap names before world build,

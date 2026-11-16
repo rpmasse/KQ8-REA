@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-16 M5 Skeleton King speech command result
+
+The separate original-engine study resolved Q216: the eight-word
+`KQMonster::speak` call in the King's Die script prints usage, returns
+zero and queues no speech. Rust already rejected the line without
+speaking but returned one; it now returns zero. One focused core test
+passes for the short command, usage note and empty speech queue.
+This is static original-engine evidence, not an original-runtime death
+test. No manual gameplay ran. M5 remains about 65%.
+
 ## 2026-11-16 Q203 disk-save Rock contact
 
 Disk loading now prepares saved trap names before world construction and
@@ -432,8 +442,8 @@ The unattended Temple Armour boss fight now checks the King's sword,
 25 coins, two crystals and Invulnerable potion drop once and complete
 their throws, and that the Die script sets Dead City's Reaper bridge
 flag. The original-data route passed 1/1 in 56.89 seconds. The installed
-script has an eight-word `KQMonster::speak` line whose original behavior
-is not established; Q216 asks the study session to settle it. No manual
+script has an eight-word `KQMonster::speak` line; Q216 was later resolved
+as a usage error, recorded at the top of this status file. No manual
 gameplay test was run. M5 remains about 65%.
 
 ## 2026-11-16 M5 Temple Armour weapon actions and live boss fight
@@ -451,7 +461,8 @@ run failed because a scheduled swing fell during Connor's hit reaction;
 the final fixture admits that normal interruption. The GOG Options.cs
 bytes stayed unchanged. This is an isolated fight with supplied boss
 state and equipment, not the authored intro or campaign route. The
-King's Die script still rejects an eight-word `KQMonster::speak` line.
+King's Die script rejects an eight-word `KQMonster::speak` line, as the
+original does (Q216).
 No manual gameplay test was run; M5 remains about 65%.
 
 ## 2026-11-16 M5 live combat difficulty

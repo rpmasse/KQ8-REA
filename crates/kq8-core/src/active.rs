@@ -4453,7 +4453,9 @@ impl WorldState {
         let usage = "usage: KQMonster::speak <issuer> <to> <file> <noun> <verb> <case> <first> <last> [nofade]";
         if !(9..=10).contains(&words.len()) {
             self.note(format!("{at}: {usage} (got {} words); nothing", words.len()));
-            return "1".into();
+            // The original handler returns zero from its too-few-words
+            // usage path (Q216, including skelking.cs's eight-word line).
+            return if words.len() < 9 { "0" } else { "1" }.into();
         }
         let Some(first) = tuple_of(&words[3..8]) else {
             self.note(format!("{at}: {usage}: a number is not a number: '{}'; nothing", words.join(" ")));
@@ -12592,6 +12594,19 @@ mod talk_tests {
         assert!(log.contains("1000 55 0 0 1…2 waits 0.5 s"), "{log}");
         // Not a KQMonster: nothing.
         assert_eq!(a.world.speak(&["KQMonster::speak".into(), door.clone(), "Connor".into(), "0".into(), "0".into(), "0".into(), "1".into(), "1".into(), "1".into()], "t"), "1");
+    }
+
+    #[test]
+    fn eight_word_speak_returns_zero_and_queues_no_line() {
+        let mut a = active("", &[]);
+        let words: Vec<String> = "KQMonster::speak Connor Connor 1000 1 0 1 1"
+            .split_whitespace().map(str::to_string).collect();
+        assert_eq!(words.len(), 8);
+        assert_eq!(a.world.speak(&words, "short speech"), "0");
+        assert!(!a.world.talk.is_talking("Connor"));
+        assert!(a.world.requests.is_empty());
+        assert!(a.take_log().iter().any(|line| line.contains("usage: KQMonster::speak")
+            && line.contains("got 8 words")));
     }
 
     #[test]
