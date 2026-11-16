@@ -68,8 +68,11 @@ The grouped Dead City ordinary-variant check now asserts a placed
 `skeleton2` zero-damage hit with no health loss, a `skeleton3` Round Key
 fighter and a hidden `zombie3` actor's Birth and Normal health loss.
 Its `rat2` actor has zero alarm/attack distances and made no attack
-in the observed interval. Four controlled deaths check their separate
-drop lists, corpses and one experience award each. All four actors were
+in the observed interval. The same process now checks `skelhamr`'s
+delayed 50-damage attack, `zombie2`'s 30-damage attack despite its
+missing movement box, and hidden `skelredo` rising from Birth and
+landing 20-damage hits. Seven controlled deaths check separate drop
+lists, corpses and one experience award each. All seven actors were
 relocated to the measured lane; earned regional triggers remain open.
 One Gnome process now links the placed `sprigsurprise` and `zombiepit1`
 families. Both land authored Normal hits on living Connor before their

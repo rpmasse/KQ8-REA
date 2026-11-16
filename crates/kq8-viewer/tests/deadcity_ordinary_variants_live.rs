@@ -1,4 +1,4 @@
-//! Four placed Dead City melee variants share one original-data combat run.
+//! Seven placed Dead City melee variants share one original-data combat run.
 use std::{fs, path::Path, process::Command};
 
 #[test]
@@ -27,7 +27,7 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
             "dx12",
             "--sound",
             "off",
-            // Use the measured crossbow lane for four different placed types.
+            // Use the measured crossbow lane for seven different placed types.
             "--command",
             "KQConner::setLevel 1000,1",
             "--command",
@@ -48,10 +48,28 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
             "move rat5 0 183000 45000 864 0 0 0,265",
             "--command",
             "sendEvent 0 rat5 KQAttackEvent Connor 0 100000 0,290",
+            "--command",
+            "move Skelhamr 0 183300 45000 864 0 0 0,330",
+            "--command",
+            "KQMonster::setHome Skelhamr 183300 45000 864,330",
+            "--command",
+            "sendEvent 0 Skelhamr KQAttackEvent Connor 0 100000 0,440",
+            "--command",
+            "move wanderags1 0 182900 45000 864 0 0 0,480",
+            "--command",
+            "KQMonster::setHome wanderags1 182900 45000 864,480",
+            "--command",
+            "sendEvent 0 wanderags1 KQAttackEvent Connor 0 100000 0,590",
+            "--command",
+            "move stinky 0 183300 45000 864 0 0 0,640",
+            "--command",
+            "KQMonster::setHome stinky 183300 45000 864,640",
+            "--command",
+            "sendEvent 0 stinky KQAttackEvent Connor 0 100000 0,780",
             "--updates",
-            "360",
+            "900",
             "--frames",
-            "8000",
+            "25000",
         ])
         .output()
         .unwrap();
@@ -72,6 +90,9 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
         ("Skfight1", "skeleton3", "[105, 15, 15, 15, 500]"),
         ("zombie5", "zombie3", "[310, 33, 33, 2, 252]"),
         ("rat5", "rat2", "[5, 5, 5, 2, 51]"),
+        ("Skelhamr", "skelhamr", "[700, 50, 50, 20, 10000]"),
+        ("wanderags1", "zombie2", "[120, 30, 30, 5, 103]"),
+        ("stinky", "skelredo", "[100, 20, 20, 20, 300]"),
     ] {
         assert!(viewer.contains(&format!("test --command move {name}"))
             && viewer.contains(&format!("test --command sendEvent 0 {name} KQAttackEvent Connor 0 100000 0: Some(\"0\")")),
@@ -118,7 +139,13 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
             "the zero-damage skeleton lowered health: {hit}"
         );
     }
-    for (name, damage) in [("Skfight1", 15), ("zombie5", 33)] {
+    for (name, damage) in [
+        ("Skfight1", 15),
+        ("zombie5", 33),
+        ("Skelhamr", 50),
+        ("wanderags1", 30),
+        ("stinky", 20),
+    ] {
         assert!(
             fight
                 .lines()
@@ -169,6 +196,9 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
         ("Skfight1", 500, "skmdead.kqs"),
         ("zombie5", 252, "zdead.kqs"),
         ("rat5", 51, "rt_dead.kqs"),
+        ("Skelhamr", 10000, "sk_dead.kqs"),
+        ("wanderags1", 103, "zdead.kqs"),
+        ("stinky", 300, "skbsdead.kqs"),
     ] {
         let finish =
             format!("{name}: its death ended (rule 32): Connor gets its experience {experience}");
@@ -193,6 +223,7 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
         ),
         ("Skfight1", ["INVITEM_RoundKey x1"].as_slice()),
         ("zombie5", ["INVITEM_mushroom x1"].as_slice()),
+        ("wanderags1", ["INVITEM_Mushroom x1"].as_slice()),
     ] {
         let drops: Vec<_> = items
             .lines()
@@ -213,6 +244,14 @@ fn original_dead_city_zero_hit_key_zombie_birth_and_rat_death() {
         }
     }
     assert_eq!(fight.matches("rat5: drops: nothing (rule 31)").count(), 1);
+    for name in ["Skelhamr", "stinky"] {
+        assert_eq!(
+            fight
+                .matches(&format!("{name}: drops: nothing (rule 31)"))
+                .count(),
+            1
+        );
+    }
     assert!(
         !fight.contains("god mode is on"),
         "god mode obscured combat; inspect {}",

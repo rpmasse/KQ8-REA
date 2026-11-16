@@ -510,6 +510,22 @@ observation, not an original-runtime play result.
 The relocation tests shared combat rules; it does not establish their
 earned Swamp routes or original-executable parity.
 
+## M5 Dead City hammer, rags and red skeleton variants (2026-11-17)
+
+Extend the existing one-process `deadcity_ordinary_variants_live`
+fixture after its four checked actors. In the measured combat lane,
+relocate placed `Skelhamr` with its half-second start delay,
+`wanderags1` (`zombie2`, whose type lacks an exact bounds box), and
+off-map `stinky` (`skelredo`, hidden in Birth), one at a time. Move each
+home with its placement and leave enough updates for ordinary AI to
+land a Normal hit on living Connor before one controlled Normal death.
+Require the installed health, hand damage, drop list, corpse shape and
+one experience award for each. Keep `stinky` last because it has a
+regional script. Do not count relocation as an earned route, and retain
+the first four actors' assertions in the same process.
+The relocation tests shared combat rules; it does not establish their
+earned Dead City routes or original-executable parity.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

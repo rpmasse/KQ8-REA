@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Extend grouped Dead City ordinary combat (M5)
+
+Extended the existing original-data Dead City fixture from four to
+seven placed actors in one unattended process. `Skelhamr` landed
+50-damage Normal hits and completed a no-drop, `sk_dead.kqs`,
+10,000-experience death. `wanderags1` (`zombie2`) has no exact movement
+box, so it could not walk into range at the first measured position;
+moving its test placement inside its 900-unit reach let it land
+30-damage hits. It dropped one Mushroom, left `zdead.kqs`, and gave
+103 experience. Hidden `stinky` (`skelredo`) rose from Birth, landed
+20-damage hits, then gave no drop, `skbsdead.kqs` and 300 experience.
+The first run exposed only the fixture distance; the corrected release
+test passed 1/1 in about 64 seconds. No production code or GOG file
+changed. With `KQ8_GAME_DIR` set, run `cargo test --locked --release
+-p kq8-viewer --test deadcity_ordinary_variants_live -- --ignored
+--nocapture`.
+
 ## 2026-11-17 Group Swamp plant, frog, weed and bat (M5)
 
 Read the installed Swamp monster rows and `weeds.anm` without changing

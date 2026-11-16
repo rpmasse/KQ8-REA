@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 grouped Dead City ordinary variants
+
+The expanded original-data `deadcity_ordinary_variants_live` release
+test passed 1/1. In the same process as its four prior actors, placed
+`Skelhamr` landed 50-damage Normal hits after its half-second start,
+`wanderags1` (`zombie2`) landed 30-damage hits despite having no exact
+movement box, and hidden `stinky` (`skelredo`) rose from Birth and
+landed 20-damage hits. Their controlled Normal deaths checked distinct
+no-drop or Mushroom outcomes, corpses and one experience award each.
+All three were relocated to a measured lane; earned routes and
+original-executable behavior remain untested. M5 remains incomplete.
+
 ## 2026-11-17 M5 grouped Swamp plant and small creatures
 
 The original-data `swamp_plant_small_families_live` release test passed
