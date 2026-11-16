@@ -1,5 +1,13 @@
 # Provenance
 
+**Ranged Wizard click after combat (2026-11-17).**
+[Ranged-weapons rule 15](../behaviour/ranged-weapons.md) describes the
+ordinary click when a ranged weapon is ready and the first talk pick
+is an interactive character. The existing original-data Daventry
+goblin fight now checks four crossbow shots and then Wizard's type-0xC021
+conversation branch without a fifth shot. The targeted Windows test
+passed; no original-executable or manual gameplay comparison occurred.
+
 **Tower Skeleton fall without actor relocation (2026-11-17).**
 [Fighting tower rules](../behaviour/fighting.md) and the installed
 Dead City `Tower2` collider guided the supported side-corridor route.

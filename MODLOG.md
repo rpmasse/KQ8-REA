@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Check the ranged Wizard click in the existing fight (M5)
+
+Extended the original-data `goblin_live_combat` test rather than adding
+another Daventry load. After four crossbow hits and the goblin's death,
+the test moves Connor near the installed Wizard and clicks him while
+the crossbow is still ready. The release test passed 1/1 in 25.92
+seconds: `doors.log` shows the type-0xC021 Wizard selected the plain
+conversation branch at update 250, and `fight.log` still has exactly
+four crossbow release cues. The existing normal-damage, reward and GOG
+Options.cs checks remained in the same run. This verifies
+`ranged-weapons.md` rule 15 without a new viewer scenario. No
+production code, manual gameplay or GOG-file write.
+
+With `KQ8_GAME_DIR` pointing to the GOG installation, reproduce with:
+
+`cargo test --locked --release -p kq8-viewer --test goblin_live_combat -- --ignored --nocapture`
+
 ## 2026-11-17 Complete the unrelocated Tower Skeleton fall check (M5)
 
 Read the original `Tower2` collider in the existing original-data core test:

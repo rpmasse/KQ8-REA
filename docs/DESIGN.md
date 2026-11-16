@@ -3,6 +3,25 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 ranged click on a conversation character (2026-11-17)
+
+`ranged-weapons.md` rule 15 sends a ranged click on the Wizard through
+the ordinary interaction path, while a click on a combat character
+shoots. Reuse the existing one-process Daventry goblin crossbow fight.
+After its four hits and death, move only Connor near the installed
+Wizard and aim at him with the crossbow still ready. Require the
+original-data log to show the plain-click branch and no fifth bolt;
+retain all existing goblin damage, death and reward assertions. If the
+camera line is blocked, inspect its logged obstacle before changing
+the route. This is an unattended combined check, not manual gameplay.
+
+Checked: the revised `goblin_live_combat` release test passed 1/1 in
+25.92 seconds. Its four ordinary crossbow shots killed `goblin22`;
+after Connor moved near the installed Wizard, the ranged click at
+update 250 selected Wizard's ordinary conversation instead of a fifth
+shot. The target's type was 0xC021. No new world load or production
+code was needed; no manual gameplay or GOG write occurred.
+
 ## M5 runtime monster combat difficulty (2026-11-17)
 
 `fighting.md` open question 3 asks whether `KQMonster::add` scales a

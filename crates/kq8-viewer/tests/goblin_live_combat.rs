@@ -41,8 +41,12 @@ fn original_goblin_attacks_and_dies_in_a_live_crossbow_fight() {
             "goblin22,140",
             "--aim",
             "goblin22,165",
+            "--command",
+            "move Connor 0 192171 198091 6700 0 0 0,200",
+            "--aim",
+            "Wizard,250",
             "--updates",
-            "230",
+            "300",
         ])
         .output()
         .unwrap();
@@ -51,6 +55,7 @@ fn original_goblin_attacks_and_dies_in_a_live_crossbow_fight() {
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
     assert!(
         output.status.success() && viewer.contains("RESULT: PASS"),
         "inspect {}",
@@ -119,5 +124,9 @@ fn original_goblin_attacks_and_dies_in_a_live_crossbow_fight() {
         "the fight did not finish normally; inspect {}",
         dir.display()
     );
+    assert!(doors.contains("the ranged weapon is ready, the talk pick meets Wizard")
+        && fight.matches("Connor: do (conscbow.anm/attack").count() == 4,
+        "the ranged Wizard click did not take the plain interaction path; inspect {}",
+        dir.display());
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

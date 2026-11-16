@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 ranged Wizard click after a live fight
+
+The existing one-process Daventry `goblin_live_combat` Windows test now
+checks the installed Wizard after the goblin dies. Four crossbow hits
+and one goblin death still pass; the ranged click at update 250 picks
+Wizard (type 0xC021), takes the ordinary conversation path, and fires
+no fifth bolt. The targeted release test passed 1/1 in 25.92 seconds.
+Aim-priority and other ranged edge links remain open. No production
+code, manual gameplay or GOG file changed; M5 remains incomplete.
+
 ## 2026-11-17 M5 Tower Skeleton fall without actor relocation
 
 The revised original-data `tower_live_fall` Windows test passed 1/1 in
