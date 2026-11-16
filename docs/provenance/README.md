@@ -1,5 +1,15 @@
 # Provenance
 
+**Ordinary object hit callbacks (2026-11-17).**
+[Doors rules 19–21](../behaviour/doors.md), answered under Q139(e),
+establish the shared 75–125% object damage and protection rolls,
+zero-damage `ProjImmune`, repeated `Die` below zero, and callback order.
+Rust's existing roll matched the study. The object hit path now keeps
+the kind on zero-damage hits and delivers `ProjImmune` before `Die`;
+one grouped core test and the installed tomb-door save route pass.
+Specialized object receivers were not fully traced, and no original
+runtime comparison or manual gameplay test was performed.
+
 **World-available monster type additions (2026-11-17).**
 [Characters rule 4](../behaviour/characters.md) resolves
 `KQMonster::add` through the global `Monstats.mtl` table and the type

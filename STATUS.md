@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-17 M5 ordinary object damage rule and callbacks
+
+The separate original-engine study answered Q139(e): ordinary objects
+use the 75–125% damage roll already implemented in Rust, regardless of
+combat level. Rust now also remembers zero-damage hit kinds, sends
+ProjImmune before Die on an already broken scripted object, and repeats
+Die after later hits below zero, even when protection blocks damage.
+A grouped core check covers zero, negative and fully protected hits;
+the existing door boundary check passes. The installed GOG tomb-door
+save/reload route passed 1/1 in 23.36 seconds after its harness was
+made windowed. Its first run could not enter gameplay because this
+display lacks exclusive 640×480. Specialized object overrides and
+original-runtime parity remain unverified; M5 is about 65% complete.
+No manual gameplay or original game file changed.
+
 ## 2026-11-17 M5 unplaced type joins live combat
 
 The combined original-data `available_monster_add` check now keeps

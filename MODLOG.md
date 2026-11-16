@@ -1,5 +1,36 @@
 # MODLOG
 
+## 2026-11-17 Match ordinary object hit callbacks (M5, Q139 e)
+
+The separate study session traced the original ordinary-object damage
+and death rules in `docs/behaviour/doors.md`. The Rust damage formula
+already matched. The shared hit path now remembers every hit kind,
+notifies a scripted object of zero damage, and repeats its Die callback
+after any hit while health is below zero. A zero-damage hit sends
+ProjImmune before Die; the event service now preserves that order and
+avoids a duplicate callback on projectile-immune objects. One grouped
+core test covers those boundaries, full protection and negative
+nonzero input; the existing door boundary test also passes. The
+original-data tomb-door save test passed 1/1 after its harness was set
+to windowed; its first attempt failed before gameplay because this
+display has no exclusive 640×480 mode.
+
+The first core build had a `&str` versus `String` test-fixture typo,
+which was fixed. The old door test then failed because it expected no
+Die callback after a protected hit below zero; its assertion was
+updated to the traced rule and passed on rerun.
+
+Exact commands:
+
+`cargo test --locked -p kq8-core connor_s_hit_on_a_scripted_object_kills_it_below_0`
+
+`cargo test --locked -p kq8-core a_zero_strength_door_hit_sends_projimmune_but_a_blocked_hit_does_not`
+
+`cargo test --locked --release -p kq8-viewer --test object_stats -- --ignored --nocapture`
+
+The last command needs `KQ8_GAME_DIR` set to the GOG installation and
+returns one passing test. No manual gameplay or GOG-file write occurred.
+
 ## 2026-11-17 Exercise an unplaced monster's live attack
 
 Strengthened the existing combined type-add test without adding a

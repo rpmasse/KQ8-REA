@@ -13,7 +13,7 @@ fn tomb_door_health_and_fire_kind_survive_reload_before_its_original_die_script(
         let dir = root.join(part); fs::create_dir_all(&dir).unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
             .current_dir(&dir).env("KQ8_SAVE_DIR", &slots).arg("--game").arg(&game)
-            .args(["--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
+            .args(["--windowed", "--sound", "off", "--no-ai", "--god"]).args(args).output().unwrap();
         fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
         let logs = dir.join("kq8-artifacts/logs");
         let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();

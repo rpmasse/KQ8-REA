@@ -7066,6 +7066,9 @@ impl Active {
             self.world.note(format!("NewInvItem = {item} (made by a death, fighting.md rules 31, 31a)"));
             self.scripts.vars.set("NewInvItem", item);
         }
+        // doors.md rule 21: an ordinary object hit of zero sends
+        // ProjImmune before Die when its health was already below zero.
+        self.deliver_immune_calls();
         // Rule 32.3: the dead's scripts get `Die <kind>`.
         for (name, kind) in std::mem::take(&mut self.world.die_calls) {
             if !self.call_named(&name, &["Die", kind]) {
@@ -7078,7 +7081,6 @@ impl Active {
                 self.world.deleted.insert(name.to_ascii_lowercase());
             }
         }
-        self.deliver_immune_calls();
         // rockHit.cs asks for the projectile's final placement before
         // dropping one inventory rock there. Keep it resolvable only
         // during its callback, even when several land on the same tick.
@@ -12180,12 +12182,13 @@ deleteObject waterfall2
 
     #[test]
     fn connor_s_hit_on_a_scripted_object_kills_it_below_0() {
-        // M5 5c fix 5: doors.md rules 19-20, anim-scripts.md rule 19 (all 0
-        // without a stats= line); a barrel's type 0x141 (not clickable).
-        let script = "if test $2 == Die\n set B::died $1 $3\nendif\n";
+        // M5 Q139 e: a barrel's type 0x141 is not plain-clickable;
+        // ordinary objects share the damage roll and zero-hit callbacks.
+        let script = "if test $2 == ProjImmune\n inc B::immuneCount\n set B::immune yes\nendif\nif test $2 == Die\n set B::died $1 $3\n set B::order $B::immune\nendif\n";
         let mut barrel = Clickable::plain("barrel.07", "KQObject", [-300.0, -310.0, 0.0], [300.0, 310.0, 680.0], Placement::at([0.0, 0.0, 100.0]), 0x141);
         barrel.script = Some("barelup.cs".into());
-        let mut a = Active::new(Vars::default(), vec![], vec![barrel], ["Connor".to_string()], [("barelup.cs".to_string(), script.as_bytes().to_vec())]);
+        let plain = Clickable::plain("plain", "KQObject", [-300.0, -310.0, 0.0], [300.0, 310.0, 680.0], Placement::at([4000.0, 0.0, 100.0]), 0x41);
+        let mut a = Active::new(Vars::default(), vec![], vec![barrel, plain], ["Connor".to_string()], [("barelup.cs".to_string(), script.as_bytes().to_vec())]);
         a.start();
         a.set_connor_stats(ConnorStats { stats: Stats([10, 10, 0, 0, 0]), level: 1 });
         assert_eq!(a.pick_attack([0.0, -5000.0, 400.0], [0.0, 1.0, 0.0]).map(|(n, _)| n).as_deref(), Some("barrel.07"));
@@ -12195,6 +12198,29 @@ deleteObject waterfall2
         assert!(log.contains("hits object barrel.07") && log.contains("health 0 -> -") && log.contains("Die Normal"), "{log}");
         a.update();
         assert_eq!(a.scripts.vars.get("B::died"), Some("barrel.07 Normal"));
+
+        // A zero-damage hit on an already broken object still sends
+        // ProjImmune first and then repeats Die with the new hit kind.
+        a.scripts.vars.set("B::immune", "no".into());
+        a.world.clickables.iter_mut().find(|c| c.name == "barrel.07").unwrap().collision_type |= 0x4000;
+        let before = a.world.stats["barrel.07"].0[0];
+        a.world.scripted_attack("barrel.07", &["test", "2", "0", "0"].map(str::to_string), "test");
+        assert_eq!(a.world.stats["barrel.07"].0[0], before);
+        assert_eq!(a.world.object_hit_kinds["barrel.07"], crate::fight::HitKind::Fire);
+        a.update();
+        assert_eq!(a.scripts.vars.get("B::immune"), Some("yes"));
+        assert_eq!(a.scripts.vars.get("B::immuneCount"), Some("1"));
+        assert_eq!(a.scripts.vars.get("B::order"), Some("yes"));
+        assert_eq!(a.scripts.vars.get("B::died"), Some("barrel.07 Fire"));
+
+        // The same receiver protects an unscripted object, and negative
+        // nonzero damage takes the minimum one point instead of healing.
+        a.world.stats.insert("plain".into(), Stats([5, 0, 0, 100, 0]));
+        a.world.scripted_attack("plain", &["test", "0", "10", "0"].map(str::to_string), "test");
+        assert_eq!(a.world.stats["plain"].0[0], 5);
+        a.world.stats.insert("plain".into(), Stats([5, 0, 0, 0, 0]));
+        a.world.scripted_attack("plain", &["test", "0", "-20", "0"].map(str::to_string), "test");
+        assert_eq!(a.world.stats["plain"].0[0], 4);
     }
 
     #[test]
@@ -12283,7 +12309,7 @@ deleteObject waterfall2
 
     #[test]
     fn a_zero_strength_door_hit_sends_projimmune_but_a_blocked_hit_does_not() {
-        let script = "if test $2 == ProjImmune\n set D::immune $1\nendif\nif test $2 == Die\n set D::died $1\nendif\n";
+        let script = "if test $2 == ProjImmune\n set D::immune $1\nendif\nif test $2 == Die\n inc D::dieCount\n set D::died $1\nendif\n";
         let mut a = active(script, &[]);
         a.start();
         // This door has already been broken. It remains in the world until
@@ -12296,10 +12322,11 @@ deleteObject waterfall2
         };
         strike(&mut a, 10);
         assert_eq!(a.scripts.vars.get("D::immune"), None);
-        assert_eq!(a.scripts.vars.get("D::died"), None);
+        assert_eq!(a.scripts.vars.get("D::died"), Some("Condoor"));
+        assert_eq!(a.scripts.vars.get("D::dieCount"), Some("1"));
         strike(&mut a, 0);
         assert_eq!(a.scripts.vars.get("D::immune"), Some("Condoor"));
-        assert_eq!(a.scripts.vars.get("D::died"), None);
+        assert_eq!(a.scripts.vars.get("D::dieCount"), Some("2"));
         assert_eq!(a.world.stats["condoor"].0[0], -1);
     }
 

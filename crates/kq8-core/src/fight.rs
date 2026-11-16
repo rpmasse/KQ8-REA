@@ -1009,10 +1009,9 @@ impl crate::active::WorldState {
     /// Connor's swing on an object (M5 5c fix 5; the barrels): rule 13's
     /// test with his reach, then `doors.md` rules 19-20 on its stats
     /// (`stats=`, all 0 without one, `anim-scripts.md` rule 19): damage
-    /// rolled as on a character (rule 16's 75-125 % and its protection,
-    /// the 4th stat; **stand-in**, doors.md says only "random, at least
-    /// 1"), taken off its health; below 0 its script gets `Die <kind>`
-    /// (every hit while below 0 again).
+    /// rolled as an ordinary object (rule 19's 75-125 % and its
+    /// protection, the 4th stat), taken off its health; below 0 its
+    /// script gets `Die <kind>` (every hit while below 0 again).
     #[allow(clippy::too_many_arguments)]
     fn connor_hits_object(&mut self, name: &str, at: [f32; 3], from: [f32; 3], heading: f32, reach: f32, big: bool, movement: &str) {
         let facing = [heading.sin(), -heading.cos(), 0.0];
@@ -1067,43 +1066,36 @@ impl crate::active::WorldState {
             self.hit_character(i, attacker, damage, kind);
             if immune { self.immune_calls.push(target.to_string()); }
         } else {
-            let immune = immune_projectile && self.collision_type_of(target)
-                .is_some_and(|t| t & IMMUNE_TO_PROJECTILES != 0);
-            let door = self.door_index(target).is_some();
             let outcome = self.object_takes(target, damage, kind);
-            if immune && !door { self.immune_calls.push(target.to_string()); }
             self.fight_note(target, format!("KQAttackEvent from {attacker}: {outcome}"));
         }
     }
 
-    /// A hit of damage `d` on object `name` (M5 5c fix 5, **stand-in**,
-    /// Q139 e; a bolt's hit too, M5 5f-1): `doors.md` rules 19-20 on its
-    /// stats (`stats=`, all 0 without one), the damage rolled as on a
-    /// character (75-125 %, its protection the 4th stat); below 0 its
-    /// script gets `Die <kind>`. Returns the log text.
+    /// A hit of damage `d` on an ordinary object (`doors.md` rules
+    /// 19-21, Q139 e): 75-125 % damage and a separate protection roll.
+    /// A zero-damage hit asks for `ProjImmune` before any `Die` callback;
+    /// every hit remembers its kind and can repeat `Die` below zero.
     fn object_takes(&mut self, name: &str, d: i64, kind: HitKind) -> String {
         if self.swamp_attack(name, d) { return "KQSwampTile class attack receiver".into(); }
-        // A door distinguishes an incoming hit of zero from a damaging
-        // hit stopped by its own protection (doors.md rules 19–21).
-        if d == 0 && self.door_index(name).is_some() {
-            self.immune_calls.push(name.to_string());
-            return "hit of 0: its script gets ProjImmune (doors.md rule 21)".into();
-        }
         let key = name.to_ascii_lowercase();
         let known = self.stats.contains_key(&key);
         let s = *self.stats.entry(key.clone()).or_default();
         let rng = &mut self.fight_rng;
         let dmg = Damage::roll(d, s.0[3].min(PROTECTION_CAP), ROLL_ON_CHARACTER, &mut || rng.fraction());
-        if dmg.loss > 0 { self.object_hit_kinds.insert(key.clone(), kind); }
+        self.object_hit_kinds.insert(key.clone(), kind);
         let mut after = s;
         after.0[0] -= dmg.loss;
         self.stats.insert(key, after);
         let start = if known { "" } else { " (no stats= line: all 0)" };
-        if dmg.loss > 0 && after.0[0] < 0 {
+        if d == 0 {
+            self.immune_calls.push(name.to_string());
+            self.fight_note(name, "hit of 0: its script gets ProjImmune if present (doors.md rule 21)");
+        }
+        if after.0[0] < 0 {
             self.fight_note(name, format!("health below 0: its script gets Die {} (doors.md rule 20)", kind.name()));
             self.die_calls.push((name.to_string(), kind.name()));
         }
-        format!("{} (75-125 %, stand-in); health {} -> {}{start} (doors.md rule 19)", dmg.describe(), s.0[0], after.0[0])
+        format!("{} (75-125 %); health {} -> {}{start} (doors.md rule 19)", dmg.describe(), s.0[0], after.0[0])
     }
 
     /// Rules 16–18, 20–28 on a character (M5 5c-6), in rule 22's order:

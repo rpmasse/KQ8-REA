@@ -3,6 +3,30 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 replace the object damage stand-in (2026-11-17)
+
+Q139(e) leaves the damage calculation for barrels, doors and other
+non-character targets unresolved. The current Rust path reuses the
+character roll. Study the original rule first and record its observable
+inputs, rounding, protection, zero-damage and death boundaries in
+`docs/behaviour/`. Then change the shared `object_takes` path used by
+ordinary melee and projectile hits, while retaining the existing
+queued-hit order and saved last-hit kind. Check the rule in one grouped
+core scenario with an unprotected object, a protected object, a
+zero-damage hit and the zero/below-zero death boundary. Use the existing
+original-data tomb-door save route as the integration check; do not add
+another world-loading fixture unless it reveals a distinct missing path.
+No manual gameplay or original-game file changes are part of this step.
+
+The study confirmed the existing damage and protection arithmetic.
+The implementation now remembers zero-damage hit kinds, sends
+`ProjImmune` before `Die` on an already broken scripted object, and
+repeats `Die` after any later hit below zero, including a fully
+protected hit. A grouped core check and the original-data tomb-door
+save route pass. The latter runs windowed because this display does
+not advertise exclusive 640×480. Original-runtime parity remains
+unverified.
+
 ## M5 prepare every world-available monster type file (2026-11-17)
 
 `characters.md` rule 4 resolves `KQMonster::add` through the global

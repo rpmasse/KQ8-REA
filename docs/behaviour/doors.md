@@ -150,19 +150,44 @@ All of them: `classType=KQDoor`, `currAnimName=closed`, `keepOnGround=0`
 18. A door has hit points: the **first number of `stats=`** (five whole
     numbers). **Default for a door: 10,000** (other objects differ).
     `Tombdor2` and `Tombdor` set `stats=1 0 0 0 0`.
-19. When a weapon hit with damage reaches a door, the damage (random,
-    at least 1; combat details are for the combat study) is taken off its
-    hit points. If the 4th `stats` number is 100 the object takes no
-    damage (values above 100 are cut to 100).
+19. A door uses the ordinary object's hit rule (traced 2026-11-17,
+    Q139 e). A hand-weapon hit or a projectile hit supplies its damage
+    *D* and kind; the kind does not change the arithmetic. For
+    nonnegative *D*, with a fresh random number from 0 up to but not
+    including 1, the initial roll is
+    round(*D* × (0.75 + random × 0.5)) (halves up). If *D* is 0, or the
+    fourth `stats` number (protection *P*) is exactly 100, health does
+    not change. Otherwise a second random number rolls protection:
+    *P'* = min(100, round(*P* × (0.75 + random × 0.5))). Health falls by
+    max(1, cut(initial roll × (100 − *P'*) ÷ 100)), where cut drops the
+    fraction toward zero. This 75–125% object roll does not switch with
+    combat difficulty. Protection above 100 is capped when set. The
+    same rule applies to ordinary non-character objects reached by the
+    attack click, including barrels, and to ordinary objects struck by
+    projectiles. A script is not required for health loss. The attack
+    click's type, range and facing tests are in `ranged-weapons.md`
+    rule 32 and `fighting.md` rule 41; projectile contact is in
+    `ranged-weapons.md` rule 30. If *D* is **negative** and protection is
+    below 100, it still removes **one** health point rather than
+    healing; negative damage does not trigger `ProjImmune`. One random
+    number is consumed even for zero damage or 100 protection; the
+    second is consumed only when *D* is nonzero and protection differs
+    from 100.
 20. When the hit points are **below 0** after a hit, the script runs with
     `$2` = `Die` and `$3` = the kind of the last damage: `Normal`,
     `Projectile`, `Fire` or `Ice`. The door is not removed and nothing
     else happens: it is up to the script (`tombdor2.cs` opens the door and
-    clears its clickable bit). Every further damaging hit runs `Die`
-    again, because the hit points stay below 0.
+    clears its clickable bit). Every further hit runs `Die` again while
+    the hit points stay below 0, even one carrying zero damage.
 21. A hit that carries **no damage** runs the script with `$2` =
-    `ProjImmune` instead (`Alchdoor.cs` uses it for a remark while the
-    boards are up).
+    `ProjImmune` if it has a script (`Alchdoor.cs` uses it for a remark
+    while the boards are up). It still remembers the hit kind and
+    checks for death, but does not lower health. If health was already
+    below 0, both `ProjImmune` and `Die` are sent, in that order. A
+    nonzero hit blocked by 100 protection does **not** send
+    `ProjImmune`. The object's death callback reports kinds 0–3 as
+    `Normal`, `Projectile`, `Fire`, `Ice`; any other kind reports
+    `Normal` (the rock's kind 4 is one such case).
 
 ### Other script calls a door can get (traced)
 
