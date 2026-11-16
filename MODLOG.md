@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-16 Replace standalone Rock recovery with fighter contact
+
+Reused the existing `rock_throw` viewer test for one original-data Dead
+City encounter instead of adding another launch. Its Rock now hits the
+installed `skeleton1` once for Normal damage, lowers health 60 to 47,
+and becomes a recoverable world item at the contact point. The separate
+Daventry `rock_flight_checkpoint` retains wall/floor landing and disk
+continuation coverage. A direct chest-height aim followed its camera
+line to terrain beyond the target; the actor's ground point gave the
+documented Rock aim and one contact. The first test build had a local
+`Option::next` typo; after correcting it, the focused release check
+passed 1/1 in 12.39 seconds:
+`cargo test --locked --release -p kq8-viewer --test rock_throw -- --ignored --nocapture`.
+No production logic, manual gameplay or GOG files changed.
+
 ## 2026-11-16 Audit M5 coverage and hand off Rock enemy contact
 
 Added a concise M5 completion audit linking recorded automated combat

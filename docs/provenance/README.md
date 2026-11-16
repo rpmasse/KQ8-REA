@@ -1,5 +1,14 @@
 # Provenance
 
+**Held Rock fighter contact (2026-11-16).**
+[Rock projectile rules 1–18](../behaviour/rock-projectiles.md) define the
+terrain-clipped aim, authored arc, Normal hit kind and contact handling;
+[rules 19 onward](../behaviour/rock-projectiles.md) and the installed
+`rockHit.cs` define recovery. A single unattended Dead City route now
+hits the installed skeleton once and creates the Rock at that contact.
+The older Daventry checkpoint retains wall/floor flight and fresh-process
+continuation. Original executable parity was not tested.
+
 **Barren ant controlled fight (2026-11-16).** [Character-movement rule
 30](../behaviour/character-movement.md) defines the hidden Birth and
 rise, and [fighting rules 13–32](../behaviour/fighting.md) define melee

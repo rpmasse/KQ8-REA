@@ -1,31 +1,108 @@
-//! Exercise the real HUD, click ray, Connor's animation cue, and landing script.
+//! A held Rock hits an original fighter and becomes recoverable at contact.
 use std::{env, fs, path::Path, process::Command};
 
 #[test]
-#[ignore = "requires KQ8_GAME_DIR and a graphics device"]
-fn throw_and_recover_a_rock_in_daventry() {
+#[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
+fn rock_hits_original_skeleton_and_recovers_at_contact() {
     let game = fs::canonicalize(env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../kq8-artifacts/rock-tests")
-        .join(std::process::id().to_string());
+        .join(format!("../../kq8-artifacts/rock-tests/{nonce}"));
     fs::create_dir_all(&dir).unwrap();
-    // --item gives one genuine inventory object a stable name. The two
-    // bar clicks put it back, then take it from the ordinary rock slot.
-    let run = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+    // The Daventry wall/floor landing and fresh-process continuation remain
+    // covered by rock_flight_checkpoint. This one launch adds enemy contact.
+    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
         .current_dir(&dir)
-        .arg("--game").arg(game).arg("--windowed")
-        .args(["--world", "Daventry", "--at", "277744,199295,0", "--no-ai", "--god",
-            "--sound", "off", "--item", "Rock", "--key", "left:IDCTL_INVBAR_ROCKS,10",
-            "--key", "left:IDCTL_INVBAR_ROCKS,14", "--aim-point", "277744,198000,13580,24",
-            "--aim", "TestItem,110", "--frames", "900"])
-        .output().unwrap();
-    fs::write(dir.join("stderr.log"), run.stderr).unwrap();
-    assert!(run.status.success(), "see {}", dir.display());
+        .arg("--game")
+        .arg(&game)
+        .args([
+            "--windowed",
+            "--sound",
+            "off",
+            "--world",
+            "DeadCity",
+            "--no-ai",
+            "--item",
+            "Rock",
+            "--key",
+            "left:IDCTL_INVBAR_ROCKS,10",
+            "--key",
+            "left:IDCTL_INVBAR_ROCKS,14",
+            "--command",
+            "move skeleton1 0 183300 45000 864 0 0 0,5",
+            // Rock's pointer line clips at drawn terrain. Aim through the
+            // skeleton's ground point; aiming through its chest overshoots.
+            "--aim-point",
+            "183300,45000,864,24",
+            "--updates",
+            "120",
+            "--frames",
+            "900",
+        ])
+        .output()
+        .unwrap();
+    fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
     let logs = dir.join("kq8-artifacts/logs");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     let items = fs::read_to_string(logs.join("items.log")).unwrap();
-    assert!(fight.contains("ThrowRock: started=true") && fight.contains("shoots rock"), "see {}", logs.display());
-    assert!(items.to_ascii_lowercase().contains("rockhit.cs"), "see {}", logs.display());
-    assert!(items.contains("dropItem: fresh landing") && items.contains("old identity TestItem retained"),
-        "the Rock was not recovered in the world; see {}", logs.display());
+    assert!(
+        output.status.success() && viewer.contains("RESULT: PASS"),
+        "inspect {}",
+        dir.display()
+    );
+    assert!(
+        !fight.contains("god mode is on"),
+        "god mode was used; inspect {}",
+        dir.display()
+    );
+    assert!(
+        fight.contains("Rock do (throw)") && fight.contains("fixed aim [183300.0, 45000.0, 864.0]"),
+        "the authored Rock throw did not aim at the ground point; inspect {}",
+        dir.display()
+    );
+    assert_eq!(
+        fight.matches("skeleton1: hit by Connor, Normal:").count(),
+        1,
+        "the Rock did not deliver one Normal hit; inspect {}",
+        dir.display()
+    );
+    assert!(
+        fight
+            .lines()
+            .any(|line| line.contains("rock1 update ") && line.contains("touches skeleton1")),
+        "the Rock did not touch the fighter; inspect {}",
+        dir.display()
+    );
+    let hit = fight
+        .lines()
+        .find(|line| line.contains("skeleton1: hit by Connor, Normal:"))
+        .unwrap();
+    let (before, after) = hit
+        .split_once("; health ")
+        .and_then(|(_, pair)| pair.split(';').next())
+        .and_then(|pair| pair.split_once(" -> "))
+        .map(|(before, after)| {
+            (
+                before.parse::<i64>().unwrap(),
+                after.parse::<i64>().unwrap(),
+            )
+        })
+        .unwrap();
+    assert!(
+        after < before && after > 0,
+        "the original skeleton did not lose health and survive ({before} -> {after}); inspect {}",
+        dir.display()
+    );
+    assert!(
+        items.contains("rockHit.cs line 22: dropItem: fresh landing")
+            && items.contains("old identity TestItem retained"),
+        "the Rock was not recovered at contact; inspect {}",
+        dir.display()
+    );
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

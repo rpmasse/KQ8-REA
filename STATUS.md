@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-16 M5 Rock hit and recovery in one encounter
+
+The original-data Rock test now uses one Dead City launch to verify its
+HUD selection, authored throw cue, Normal contact with `skeleton1`,
+health 60 → 47 and recovery at the impact point. The release test
+passed 1/1 in 12.39 seconds without god mode. The existing three-process
+Daventry checkpoint still covers wall/floor landing and flight-save
+continuation, so no extra world load was added to the focused Rock
+suite. A chest-height aim overshot because the Rock path clips its ray
+at terrain; the actor's ground point gave the calculated contact.
+This is a controlled Rust check, not original-runtime parity. M5
+remains incomplete at about 65%; no manual gameplay or GOG-file write
+occurred.
+
 ## 2026-11-16 M5 completion evidence and Rock contact handoff
 
 `docs/m5-combat-completion-audit.md` now maps the M5 completion gate to
