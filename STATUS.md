@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Barren Henchman death-listener continuation
+
+The extended original-data `barren_henchman_live` release test passed
+1/1 in 37.26 seconds. The installed chest script's Cue `(20,124)` ran
+at update 140; Henchman's final dialogue completed and set its quest
+flag at 257. His controlled Die entry at 360 delivered Chest1 Cue 30
+once and requested Connor's `attack3` aftermath. The existing live
+125-point attacks, three original item drops, corpse and single
+50,005-experience award still passed; death completed at 443. This
+tests a controlled script continuation, not the earned chest opening
+or running-original parity. M5 remains incomplete.
+
 ## 2026-11-17 M5 Dead City Spirit encounter deferred
 
 Two unattended original-data extensions to the grouped Dead City test

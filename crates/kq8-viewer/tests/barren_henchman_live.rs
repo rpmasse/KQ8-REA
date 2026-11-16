@@ -36,6 +36,8 @@ fn barren_chest_reveals_henchman_for_live_attack_and_death() {
             "--command",
             "sendEvent 0 Chest1 KQCueEvent 20 50,20",
             "--command",
+            "sendEvent 0 Chest1 KQCueEvent 20 124,140",
+            "--command",
             "sendEvent 0 Henchman KQAttackEvent Connor 0 100000 0,360",
             "--updates",
             "500",
@@ -49,6 +51,7 @@ fn barren_chest_reveals_henchman_for_live_attack_and_death() {
     let logs = dir.join("kq8-artifacts/logs");
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     let items = fs::read_to_string(logs.join("items.log")).unwrap();
     assert!(
@@ -125,6 +128,22 @@ fn barren_chest_reveals_henchman_for_live_attack_and_death() {
         "Henchman left the wrong Normal corpse; inspect {}",
         dir.display()
     );
+    let mut previous = 0;
+    for marker in [
+        "script chest1.cs Chest1 Cue 20 124",
+        "script chest1.cs Chest1 TalkComplete 5000 11 0 42 2",
+        "chest1.cs line 100: set Barren::Henchman::dead = '1'",
+        "script chest1.cs Chest1 Cue 30",
+        "chest1.cs line 71: KQMonster::setState Connor special attack3",
+    ] {
+        let at = doors.find(marker).unwrap_or_else(|| {
+            panic!("missing Barren chest continuation {marker}; inspect {}", dir.display())
+        });
+        assert!(at > previous, "Barren chest events are out of order; inspect {}", dir.display());
+        previous = at;
+    }
+    assert_eq!(doors.matches("script chest1.cs Chest1 Cue 30").count(), 1,
+        "Henchman's death delivered the chest callback more than once; inspect {}", dir.display());
     assert!(
         !fight.contains("Connor: hit by world") && !fight.contains("god mode is on"),
         "world damage or god mode obscured combat; inspect {}",

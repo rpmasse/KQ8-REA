@@ -55,8 +55,11 @@ alarm and attack distances need a separate rule audit.
 The `barren_henchman_live` route starts at the installed chest reveal
 cue, observes the hidden Henchman's Special list finish and an ordinary
 125-point Normal hit, then checks his three-item drop, corpse and
-50,005 experience. It does not play the preceding or final speech,
-so the script's death-listener callback remains unverified.
+50,005 experience. The same run now sends the later authored Cue 124;
+the final speech completes, sets the quest flag, and registers the
+death listener. The fatal hit delivers Chest1 Cue 30 once, starting
+Connor's `attack3` aftermath. The opening chest interaction remains
+untested.
 One Dead City process now links the installed `skelrdbw` red bow and
 `weeperup` raised Weeper families. The bow's `Prmonarw.kq` Projectile
 contacts lowered Connor's health; the Weeper's `Prweeper.kq` linked and

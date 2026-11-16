@@ -3,6 +3,32 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Barren Henchman death-listener continuation (2026-11-17)
+
+The existing Barren chest-cue combat run begins at the original
+`chest1.cs` Cue `(20,50)` and verifies Henchman's Normal attack, drops,
+corpse and experience, but it skips the later authored Cue `(20,124)`.
+That cue grants the quest items and experience, registers Chest1 for
+Henchman's state changes and starts his speech. On speech completion,
+Chest1 registers Henchman as his own state listener; his `brnhench.cs`
+then sends Chest1 Cue `30` when he enters Die. Extend this same
+original-data process with the later cue before the controlled fatal
+hit. Assert the ordered dialogue/listener and the resulting Cue `30`
+starts Connor's authored `attack3` aftermath, while retaining the live
+hit, three drops and one death reward. This is a controlled script
+continuation, not an earned chest approach or original-executable
+comparison. Run only the one affected release test and do not modify
+the GOG installation.
+
+Checked in the existing one-process release route (1/1 pass, 37.26 s):
+Cue `(20,124)` ran at update 140, the final dialogue completed and set
+the Henchman quest flag at 257, and his Die entry delivered Chest1 Cue
+`30` exactly once at 360. That cue requested Connor's `attack3` Special
+aftermath. The original three drops and 50,005-experience death still
+completed at update 443. This is Rust behavior using the installed
+scripts; the opening chest interaction and original-executable parity
+are not tested.
+
 ## M5 crossing level-1 projectile pair (2026-11-17)
 
 `ranged-weapons.md` rule 29 says two ordinary level-1 projectiles do

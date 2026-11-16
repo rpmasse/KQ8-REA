@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-17 Link Barren Henchman's death callback (M5)
+
+Extended the existing original-data Barren Henchman test with the
+later `chest1.cs` Cue `(20,124)`. Its dialogue completes before the
+controlled fatal hit, registering the listener that lets
+`brnhench.cs` send Chest1 Cue 30 on entry to Die. The test asserts
+cue/dialogue/quest-flag/death-cue/Connor-`attack3` order and exactly
+one death cue, while retaining the live damage, three-item drop,
+corpse and 50,005-experience checks. Both the first observation run
+and the final assertion run passed 1/1; the final release run took
+37.26 seconds. Final logs are in
+`kq8-artifacts/barren-henchman-live/1794867187352545300`.
+No production code or GOG file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test
+barren_henchman_live -- --ignored --nocapture`; expect one passing
+test. The earned chest interaction and original-executable parity
+remain untested.
+
 ## 2026-11-17 Stop the Dead City Spirit encounter after two attempts (M5)
 
 Read the installed Spirit stats from the existing GOG-data character
