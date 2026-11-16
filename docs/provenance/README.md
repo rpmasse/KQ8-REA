@@ -1,5 +1,14 @@
 # Provenance
 
+**Temple 2 enemy families (2026-11-17, M5).**
+The read-only installed monster list identifies `spearchucker1` as
+`hencspr2` with `INVITEM_Spear` / `PRspear.kq`, and `Hallhench2` as
+`hencspr1`. The windowed Rust original-data scenario asserts two
+projectile contacts and health losses, first-frame spear part and
+retained offset, plus one melee loss. It passed in one process. The
+[placed-enemy matrix](../m5-enemy-rule-matrix.md) inventories the other
+source types without claiming their unasserted behavior passes.
+
 **Normal death and plain swings (2026-11-17, M5).**
 The installed Dead City skeleton's Normal `Die` entry is now asserted in
 the Rust save: state `Die`, gravity off and collision type/mask zero. Its

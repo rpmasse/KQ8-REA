@@ -4002,6 +4002,28 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Pyrod ranged-family check (2026-11-17).** The installed Barren
+monster list places Pyrod fighters whose `INVITEM_Lava` selects
+`Prpyrolv.kq`; the current original-data combat routes do not assert
+that family. Use one placed Pyrod in a single windowed Barren process.
+Record its live activation, its authored ranged shot and the resulting
+collision/damage outcome. Require an observed state change rather than
+counting the loaded type alone. Add its rule-to-scenario link to the M5
+enemy audit. This is a Rust check on GOG data, with no manual gameplay.
+Two original-placement probes at y=50000 and y=58000 both put Connor on
+lava before Pyrod's shot, so a direct damage assertion is pending a
+terrain-selected safe point. The first probe did confirm a live Pyrod
+`Do`, `Prpyrolv.kq` launch and Fire contact that the dying guard ignored.
+Stop coordinate guessing. The next untested projectile family is the
+Temple 2 spear carrier (`hencspr2`, `PRspear.kq`); use its original
+placement and require the spear's live contact and damage if the route
+offers a safe floor.
+The first Temple 2 probe put Connor at terrain z=0 while the carrier
+stood at z≈6040, so the building blocked sight. Lifting Connor 6050
+units onto that authored floor gave two spear contacts and a melee guard
+hit. The resulting one-process release scenario passed; the
+[placed-enemy matrix](m5-enemy-rule-matrix.md) records its scope.
+
 **Combined hand-weapon fight matrix (2026-11-16).** The existing
 original-data check launches Dead City once per hand weapon, so it
 never exercises changing weapons during an encounter. Keep one

@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-17 M5 placed-enemy inventory and Temple 2 fight
+
+The read-only original-data inventory found 81 monster-stat types,
+595 placed monster-list rows and 72 distinct placed type names across
+12 regions. The new placed-enemy matrix lists those type families,
+passing direct combat examples and remaining links. The Temple 2
+`temple_spear_live` release test passed 1/1 in one process: a placed
+`hencspr2` carrier launched two original `PRspear.kq` projectiles,
+both contacted Connor and lowered health; the second shot retained the
+first shot's spear-part offset. A placed `hencspr1` guard also landed a
+Normal melee hit. The first Temple 2 probe failed to activate combat
+because Connor was at terrain z=0 below the authored upper floor at
+z≈6050; a 6050-unit lift resolved that setup.
+
+Two Barren Pyrod probes are bounded diagnostics, not a passing damage
+scenario. The first showed the installed `Prpyrolv.kq` Fire bolt contact,
+but lava killed Connor first, so the dying guard ignored the hit. The
+second location also triggered lava before any useful fight. Coordinate
+guessing stopped. No production code, GOG file or manual gameplay changed.
+M5 remains incomplete.
+
 ## 2026-11-17 M5 Normal death and plain-swing variants
 
 The installed Dead City skeleton's Normal death now has direct saved-state

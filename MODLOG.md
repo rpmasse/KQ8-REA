@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-17 Link Temple 2 spear and guard combat (M5)
+
+Added a single original-data Temple 2 scenario for the placed spear
+carrier and nearby melee guard. It asserts two `PRspear.kq` launches,
+contacts and health losses, the current animation part on the first
+shot and retained offset on the second, plus one guard melee loss. The
+release test passed 1/1. A first probe put Connor at terrain z=0 below
+the carrier's upper floor; lifting him 6050 units produced the live
+encounter. The installed monster-list audit yielded 72 distinct placed
+type names in 595 entries, now mapped in `docs/m5-enemy-rule-matrix.md`.
+Two Barren Pyrod probes were recorded but not counted: its Lava bolt
+reached Connor after a lava surface had already killed him. No production
+code, GOG file or manual gameplay changed. Reproduce with `KQ8_GAME_DIR`
+set to the GOG folder, then run
+`cargo test --locked --release -p kq8-viewer --test temple_spear_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Check Normal death entry and ordinary swing variants (M5)
 
 The existing `death_checkpoint` route now checks the installed skeleton's

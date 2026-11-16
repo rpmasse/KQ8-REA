@@ -1,0 +1,30 @@
+# M5 placed-enemy rule matrix
+
+2026-11-17. The read-only `character-verify` pass over the installed GOG
+data found 81 monster-stat types, 595 placed monster-list rows and 72
+distinct placed type names across 12 regions. Seven classes occur in
+those placements: ordinary `KQMonster` plus Tower Skeleton, Dragon Body,
+Dragon Head, Mandragor Root, Mandragor Tree and Lucreto. This table is a
+source-to-scenario checklist, not a claim that each type behaves like the
+running original. A named test counts here only for the effect it asserts.
+The [combat audit](m5-combat-completion-audit.md) tracks the shared rules.
+
+| Region | Placed type names from GOG data | Direct Rust scenario evidence | Still unlinked or incomplete |
+| --- | --- | --- | --- |
+| Barren | Melee: `ant`, `ant2`, `brnhenchtype`, `dwarfham`, `vulture`. Ranged: `dwarfbow`, `pyrod`. | `barren_ant_live` (ant), `barren_dwarf_live` (hammer dwarf) and `elemental_enemy_attacks` (flame bow dwarf) assert live damage or death. | `pyrod` launched `Prpyrolv.kq` and made Fire contact in a diagnostic, but Connor was already dying from the local lava; damage is unasserted. `ant2`, `brnhenchtype`, `vulture` have no direct combat link here. |
+| Daventry | Melee: `bat`, `chicken`, `chicken2`, `goblin`, `goblin2`, `henchman`, `knighttype`, `piggy`, `sprgndmptype`, `sprigan`, `zombie`. Ranged: `sprgnbowtype`, `sprgnbowtype2`. | `goblin_live_combat`, `henchman_combat`, `daventry_cottage_shield`, `sprgnbow_death_drops` and `monster_friendly_fire` cover selected ordinary attacks, a scripted fight, ranged fire and weapon drops. | Ambient and other listed melee types, the second bow-spriggan type and distinct death/drop variants need direct rule links. A type's mere presence in the world does not close this row. |
+| Dead City | Melee: `rat`, `rat2`, `skeleton`, `skeleton2`, `skeleton3`, `skelhamr`, `skelking`, `skelredo`, `spirit`, `towerskeleton`, `zombie`, `zombie2`, `zombie3`. Ranged: `skelbow`, `skelrdbw`, `weeper`, `weeperup`. | `live_crossbow_combat`, `death_checkpoint`, `skeleton_king_death`, `tower_live_fall`, `weeper` and `spawned_monster_combat` assert representative hits, saves, boss/fall outcomes and drain. | The remaining ordinary variants, red bow and raised Weeper variants need their distinct rules checked; the current representative routes do not prove every drop or death script. |
+| Gnome | Melee: `batmanta`, `dragworm`, `sprigan`, `zombie`. Ranged: `rockguy`. | `gnome_live_combat` asserts Batmanta and rock attacks; `gnome_dragon_boss` exercises Dragworm's encounter. | Region-specific Spriggan/Zombie rules and Dragworm's remaining fight branches need an explicit audit. |
+| Ice World | Melee: `dragonbody`, `dragonheadleft`, `dragonheadright`, `frosty`, `griffbax`, `griffswd`, `icehenchtype`, `icelordtype`, `orcham`, `snowmane`. Ranged: `griffly`, `orcbow`. | Ice Dragon body/head routes, `snowmane_live_clarity`, and `elemental_enemy_attacks` (Orc bow) assert distinct controller, protection and Ice projectile effects. | Frosty, griffin variants, ice Henchman/Lord and hammer Orc lack direct combat links in this matrix; Q210 retains Dragon visual/save questions. |
+| Snow exit | Melee: `archon`. | No direct combat assertion identified. | Establish whether its authored attack creates a distinct combat rule and link a scenario if it does. |
+| Swamp | Melee: `bat`, `crvplant`, `fiend`, `frog`, `henchmantype`, `mandragorrootl`, `mandragorrootr`, `mandragortree`, `swmpbub`, `weedtype`. Ranged: `slime`, `swmpwich`. | `mandragor_live_combat` and related checkpoints cover linked root/tree phases; `swamp_slime_live_combat`, `swamp_slime_retreat` and `swamp_witch_alarm` cover selected ranged behavior. | Other listed types need a rule audit. Q209 still leaves Mandragor disk-load setup and death-phase visibility/collision open. |
+| Temple 1 | Melee: `hencspr1`, `vicbeast`, `watdemon`. Ranged: `hencspr2`, `shadmon`. | The same `hencspr1` and `hencspr2` type mechanics have live hit evidence in Temple 2. | Temple 1 placements and its Water Demon, beast and Shadow Monster attacks/drops have no direct combat scenario here. |
+| Temple 2 | Melee: `hencspr1`. Ranged: `hencspr2`, `henchbow`. | `temple_spear_live` asserts a placed `hencspr2` spear carrier's two `PRspear.kq` contacts and health losses, plus a placed `hencspr1` guard's Normal melee loss in one process. | `henchbow`'s attack and drops remain unlinked. |
+| Temple 3 | Melee: `skelhamr`, `zombie2`. Ranged: `skelblue`. | No direct combat assertion identified for these placements. | Link the hammer skeleton, blue bow skeleton and zombie rules if they differ from already tested families. |
+| Temple 4 | Melee: `lucend`, `lucfight`. Ranged: `lucend` on one placement. | `live_lucreto_forms`, `live_lucreto_finale` and `lucreto_form_checkpoint` cover Lucreto's special form and finale branches. | `lucfight` and the ranged `lucend` placement need direct rule links; earned campaign approach is M6. |
+
+The source inventory includes different placements of the same type in
+different regions. The table groups shared mechanics but keeps regional
+scripts and special classes open until a scenario observes their effects.
+Next work should close a distinct open family in one original-data process
+where practical, then update this table with the asserted result.
