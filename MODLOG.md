@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-16 Check Dragon fire across a Rust save
+
+Changed: added an unattended two-process IceWorld check that saves
+both Dragon heads during `attack2` and verifies that their fire effects
+and pending `Do` cues resume once. Updated the older head-attack test's
+effect log labels to match the current per-file output. No gameplay or
+particle code changed. Why: the original-data attack test did not
+cover effects after a fresh-process disk load. Tested how: set
+`KQ8_GAME_DIR` to the GOG folder and run `cargo test --locked -p
+kq8-viewer --test dragon_fire_checkpoint -- --ignored --nocapture`;
+it passed 1/1 in 65.44 seconds. The slot held both `attack2` phases,
+and the restored effects followed their own heads' moving `fire` parts
+with one Fire cue each. `cargo test --locked -p kq8-viewer --test
+dragon_head_attack -- --ignored --nocapture` passed 1/1 in 38.48
+seconds. The first new test failed because it expected the head name
+instead of the effect name in the start log. The older test also had a
+stale aggregate summary assertion; both assertions were corrected
+against the actual logs. A final compile check of the new test passed
+after removing one unused variable. GOG `Options.cs` was unchanged;
+original saved particle phases remain unverified. No manual play ran.
+
 ## 2026-11-16 Resume Fire and Ice bolt effects after a Rust save
 
 Changed: the ranged-shot checkpoint accepts a finished attack whose

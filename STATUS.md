@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 Dragon fire after a Rust save
+
+An unattended IceWorld save/reload check now captures both original
+Dragon heads during `attack2`, before their Fire cues. In a fresh
+process, each head's side-specific effect starts once, follows its
+changing animated `fire` part, and its pending attack cue fires once.
+The two-process check passed 1/1 in 65.44 seconds; the uninterrupted
+head-attack regression passed 1/1 in 38.48 seconds after its stale log
+labels were corrected. No gameplay code or GOG file changed. Rust
+rebuilds fresh particles here; original saved particle ages and binary
+save matching remain unverified. No manual gameplay ran. M5 remains
+incomplete.
+
 ## 2026-11-16 M5 elemental bolt effects across a Rust save
 
 An unattended four-process GOG-data check now saves a flying Fire and
@@ -719,8 +732,9 @@ within the near draw group, with 56 and 63 drawable particles at update
 Core passes 764 active tests and data 159 active. The installed GOG
 fire-file check and unattended IceWorld attack check each pass 1/1.
 The GOG installation was read only; no manual gameplay test or original
-executable comparison was run. An in-flight emitter is not yet saved
-across a fresh process. M5 remains approximately 65%.
+executable comparison was run. The later Rust save check above restores
+fresh effects; original saved particle ages remain unknown. M5 remains
+approximately 65%.
 
 ## 2026-11-15 M5 Dragon head bite and fire attacks
 

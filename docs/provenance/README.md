@@ -432,6 +432,14 @@ The original executable's saved emitter identities, particle ages and
 within-update event order remain unresolved in Q212. GOG files were
 read-only; no original executable or disassembly was inspected here.
 
+**Dragon fire Rust save continuation (2026-11-16).** The installed
+IceWorld head actors, their `attack2` movements, `draglfir.kq` and
+`dragrfir.kq` effects drive `dragon_fire_checkpoint`. A saved Rust
+world resumes both pending Fire cues and reconstructs one effect per
+head, following their animated `fire` parts. This does not establish
+the original executable's particle ages or binary-save behavior.
+The GOG files were read-only; no executable or disassembly was read.
+
 **Ranged keeping-distance AI (2026-11-15).**
 [fighting.md](../behaviour/fighting.md) rule 37 supplies the eligibility,
 one-second choice, `mustFlee` and chance behavior, away direction and

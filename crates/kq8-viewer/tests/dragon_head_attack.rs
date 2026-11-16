@@ -37,11 +37,12 @@ fn dragon_heads_alarm_and_deliver_bite_and_fire_cues() {
     assert!(fight.contains("within 3000; 200 Normal damage")
         && fight.contains("within 6000; 200 Fire damage"),
         "bite/Fire radius or kind missing; inspect {}", root.display());
-    assert!(viewer.contains("effects: 2 Dragon fire emitter recipes prepared")
+    assert!(viewer.contains("Dragon fire draglfir.kq: prepared draglfire")
+        && viewer.contains("Dragon fire dragrfir.kq: prepared dragrfire")
         && viewer.contains("effects: 2 emitters running, 375 particles"),
         "fire recipes were not prepared separately from startup emitters; inspect {}", root.display());
     for (head, fire, file) in [("draglhed", "draglfire", "draglfir.kq"), ("dragrhed", "dragrfire", "dragrfir.kq")] {
-        assert!(effects.contains(&format!("[{head}]: started {fire} from {file} with 100 particles")),
+        assert!(effects.contains(&format!("[{fire}]: started {fire} from {file} with 100 particles")),
             "{head} did not start its authored emitter; inspect {}", root.display());
         let positions: Vec<&str> = effects.lines().filter(|line| line.contains(&format!("[{fire}] follows {head} part Some(\"fire\") frame")))
             .filter_map(|line| line.split("loc ").nth(1)).collect();

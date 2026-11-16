@@ -1062,6 +1062,27 @@ The installed-data check confirms `biteRad=3000` and each side's fire file. A de
 
 **M5 Dragon fire emitter (2026-11-15).** The authored `fireFile` creates an emitter when a head starts `attack2`; its `followMesh=fire` follows that moving model part. The current viewer only builds emitters at world startup and reduces `followMesh` to a Boolean, so the attack has no fire particles yet. Preserve the part name from the original file and verify both fire files and their particle models. Prepare their models during IceWorld load without starting the emitters. When a head actually starts `attack2`, create a fresh emitter from its prepared settings and follow the current animated `fire` part each update. When the part disappears or its target is gone, let existing particles finish and remove the emitter; an overlapping later attack may have another emitter. Implement that dying rule in the shared emitter simulation, retain startup `snow` behavior, and test the particle positions/lifetime with unattended logs. Then check the original-data IceWorld run for both side-specific files, animated part following, and clean termination. A saved in-flight emitter needs a checkpoint in the subsequent save-continuation step. No texture resolution changes or manual gameplay test.
 
+**M5 Dragon fire after a Rust save.** Start both installed IceWorld heads'
+ordinary `attack2` from the existing AI route and save while both fire
+effects are following their animated `fire` parts. In a fresh process,
+require the saved head movements to continue, one side-specific effect
+per head to start, each pending `Do` cue to fire once, and each effect to
+follow more than one animated part position. Preserve ordinary AI and
+use god mode only to keep Connor alive through this isolated effect
+check. Compare against the uninterrupted original-data fire route for
+later tail behavior. Original particle ages and binary-save ordering
+remain untraced; this verifies Rust continuation only.
+The unattended two-process GOG-data check passed 1/1 in 65.44 s.
+Both saved heads remained in `attack2` before their `Do` cues, at
+phases 0.24 and 0.27. After reload, each effect started once at update
+1, followed changing `fire` part positions, and its pending Fire `Do`
+ran once at update 7 or 8. The existing uninterrupted head-attack
+regression also passed 1/1 in 38.48 s after its old summary-label
+assertions were updated to the current per-file effect logs. The first
+checkpoint draft failed for the same effect-name label mismatch. No
+combat or particle behavior changed. Exact original saved particle
+phases and native binary-save matching remain open.
+
 Implemented and checked 2026-11-16: the two GOG fire files each name their own head, `followMesh=fire`, `flame.kqs`, 100 particles and an 18-update life. The IceWorld original-data run starts separate emitters on both heads' `attack2`, follows moving frame-part positions and turns, shows drawable particles in the near draw group, and removes the emitters after the attacks end and their particles expire. The ordinary startup emitters still start separately. Core passes 764 active tests, data 159 active; the focused GOG-data and unattended IceWorld checks each pass 1/1. In-flight emitter checkpointing remains open; no manual gameplay or original-executable comparison was run.
 
 **M5 Dragon two-head finish (2026-11-16).** When the second head enters permanent defeat, count the two head phases from the current world rather than a transient counter, so a saved first defeat still contributes. Request `dragbody`'s authored `die` movement and non-solid death state, make the installed `dragdbox.kq` available as a runtime object with its `dragwall.cs` callback, then remove `draglhed`, `dragrhed` and `dragwall` in the studied order. The body has no ordinary fight path in the current recipe; keep this transition separate from ordinary monster experience, drops and attack handling. Retain the body's final death pose and the new box for the wall's post-fight response. Use a core two-head matrix for temporary/permanent order and save-reload state, then an unattended IceWorld run for the authored body animation, box model/collision and wall callback. Exact original frame scheduling and independent body contact/damage are still Q210; do not claim them from this fixture. No manual gameplay test or original game-file writes.
