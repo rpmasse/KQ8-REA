@@ -3744,6 +3744,22 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Weapon-bank run and back selection (2026-11-16).** The installed
+`Connor.kq` maps 22 real weapons to separate animation banks, and every
+mapped bank defines `walk`, `run` and `back`. Extend the existing
+unattended original-data route to hold forward walk, forward run and
+backward walk for each acquired weapon. Require the movement selected
+for drawing to come from that weapon's own bank in each input window.
+Use the same open Dead City test location and one combined process so
+the inventory and renderer are exercised without 22 separate launches.
+This checks ordinary Rust movement selection, not original-executable
+timing or visual parity.
+The first expanded route used the test hold's run value as though it
+changed per hold; that helper deliberately sets the run switch only
+once. The corrected route uses the original `KQConner::setRun` command
+at each transition. One release process passed all 66 selected clips
+in 138.14 seconds, with no separate weapon launches.
+
 **Weapon-bank walking selection.** Read the installed `Connor.kq` hand
 and ranged animation-list mappings. In one unattended Windows process,
 ready Fists, then give each other authored hand weapon while hand mode is

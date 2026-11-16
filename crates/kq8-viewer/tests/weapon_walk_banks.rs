@@ -1,9 +1,34 @@
-//! The drawn walking clip follows each installed weapon's animation bank.
+//! Ordinary drawn movements follow each installed weapon's animation bank.
 use std::{fs, path::Path, process::Command};
+
+type MovementCheck = (String, String, &'static str, u64, u64);
+
+fn schedule_motions(
+    args: &mut Vec<String>,
+    checks: &mut Vec<MovementCheck>,
+    item: &str,
+    bank: &str,
+    at: u64,
+) {
+    args.extend([
+        "--command".into(),
+        format!("KQConner::setRun 1,{}", at + 34),
+        "--command".into(),
+        format!("KQConner::setRun 0,{}", at + 59),
+    ]);
+    for (movement, forward, from, until) in [
+        ("walk", 1, at + 10, at + 30),
+        ("run", 1, at + 35, at + 55),
+        ("back", -1, at + 60, at + 80),
+    ] {
+        args.extend(["--hold".into(), format!("{forward},0,0,{from},{until}")]);
+        checks.push((item.to_owned(), bank.to_owned(), movement, from, until + 5));
+    }
+}
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
-fn all_authored_weapons_draw_their_own_walk() {
+fn all_authored_weapons_draw_their_own_walk_run_and_back() {
     use kq8_data::characters::ConnorAnimLists;
 
     let game =
@@ -53,28 +78,25 @@ fn all_authored_weapons_draw_their_own_walk() {
         "KQMonster::inventory Connor INVITEM_Fists 1,20",
         "--command",
         "KQConner::setDoMode 0,35",
-        "--hold",
-        "1,0,0,50,70",
     ]
     .into_iter()
     .map(str::to_owned)
     .collect();
-    let mut checks = vec![(fists.0.clone(), fists.1.clone(), 50_u64, 70_u64)];
+    let mut checks = Vec::new();
+    schedule_motions(&mut args, &mut checks, &fists.0, &fists.1, 40);
     for (i, (item, bank)) in hand.into_iter().enumerate() {
-        let at = 70 + i as u64 * 26;
+        let at = 130 + i as u64 * 85;
         args.extend([
             "--command".into(),
             format!("KQMonster::inventory Connor INVITEM_{item} 1,{at}"),
-            "--hold".into(),
-            format!("1,0,0,{},{}", at + 5, at + 25),
         ]);
-        checks.push((item.clone(), bank.clone(), at, at + 26));
+        schedule_motions(&mut args, &mut checks, item, bank, at);
     }
     for (i, (item, bank)) in ranged.into_iter().enumerate() {
         let at = if i == 0 {
-            400
+            1170
         } else {
-            460 + (i as u64 - 1) * 26
+            1280 + (i as u64 - 1) * 85
         };
         args.extend([
             "--command".into(),
@@ -86,21 +108,20 @@ fn all_authored_weapons_draw_their_own_walk() {
                 format!("KQConner::setDoMode 1,{}", at + 10),
             ]);
         }
-        let from = if i == 0 { at + 30 } else { at + 5 };
-        let until = if i == 0 { at + 55 } else { at + 25 };
-        args.extend(["--hold".into(), format!("1,0,0,{from},{until}")]);
-        checks.push((
-            item.clone(),
-            bank.clone(),
-            if i == 0 { from } else { at },
-            if i == 0 { at + 60 } else { at + 26 },
-        ));
+        schedule_motions(
+            &mut args,
+            &mut checks,
+            item,
+            bank,
+            if i == 0 { at + 20 } else { at },
+        );
     }
+    assert_eq!(checks.len(), 66);
     args.extend([
         "--updates".into(),
-        "720".into(),
+        "1980".into(),
         "--frames".into(),
-        "12000".into(),
+        "35000".into(),
     ]);
     let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
         .current_dir(&dir)
@@ -120,8 +141,8 @@ fn all_authored_weapons_draw_their_own_walk() {
         "inspect {}",
         dir.display()
     );
-    for (item, bank, from, until) in checks {
-        let expected = format!("drawn movement {bank}/walk ");
+    for (item, bank, movement, from, until) in checks {
+        let expected = format!("drawn movement {bank}/{movement} ");
         let selected = connor.lines().any(|line| {
             let Some(rest) = line.strip_prefix("connor update ") else {
                 return false;
@@ -139,7 +160,7 @@ fn all_authored_weapons_draw_their_own_walk() {
         });
         assert!(
             selected,
-            "{item}: {bank}/walk was not drawn during updates {from}..{until}; inspect {}",
+            "{item}: {bank}/{movement} was not drawn during updates {from}..{until}; inspect {}",
             dir.display()
         );
     }

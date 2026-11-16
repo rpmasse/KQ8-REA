@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-16 M5 ordinary weapon movements
+
+One unattended original-data Windows process now checks all 22 real
+weapon animation banks through walking, running and backing: 66 drawn
+clip selections passed in 138.14 seconds. This extends movement
+coverage without changing game logic. Other authored movements,
+campaign routes and original-executable parity remain open. M5 is
+still about 65%; no manual gameplay testing was performed.
+
 ## 2026-11-16 M5 weapon walking banks
 
 The live loader now brings in each acquired weapon's ordinary movement

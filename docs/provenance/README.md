@@ -9,6 +9,8 @@ now requires the ordinary `walk` entry before treating such a bank as
 fully loaded. A single unattended original-data Windows route drew all
 22 banks' own walk clips. This proves Rust selection, not exact timing
 or appearance against the original executable.
+The same original-data route now also checks each bank's authored `run`
+and `back` clip, for 66 selected movements in one process.
 
 **Last-item drop edge (2026-11-16).** [Items rule 11](../behaviour/items.md)
 and [traps Q203](../behaviour/traps.md) distinguish Rock's fresh

@@ -798,8 +798,8 @@ miss, roll, flinch, death, drop and shot is in
 - **Walking with a weapon:** all 22 installed hand and ranged animation
   banks now load their ordinary movement list when acquired. One
   unattended original-data route selected and drew each bank's own
-  `walk` clip. Other movement names and original-executable comparison
-  remain open.
+  `walk`, `run` and `back` clips. Other movement names and
+  original-executable comparison remain open.
 - **Shooting (M5 5f-5):** with the crossbow ready a left click aims at
   what it points at (a creature, an object, a building, the ground, or
   far away into the sky; never steeper than about 33°); Connor turns to

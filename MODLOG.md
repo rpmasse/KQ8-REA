@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-16 Check walking, running and backing for every weapon bank
+
+Extended the original-data weapon route to select three ordinary drawn
+movements for every real hand and ranged weapon: 66 selections in one
+Windows process. The first expanded run exposed a test-helper mistake:
+`--hold` initializes the run switch only once. The corrected route
+uses the original `KQConner::setRun` command at each run/back boundary.
+The release integration test passed 1/1 in 138.14 seconds with all 66
+clip assertions: `cargo test --locked --release -p kq8-viewer --test
+weapon_walk_banks -- --ignored --nocapture`. No game logic changed, no
+manual testing occurred, and GOG files were read only.
+
 ## 2026-11-16 Load each acquired weapon's ordinary walking movement
 
 Fixed a live animation-loader error: startup attack/swap clips from a
