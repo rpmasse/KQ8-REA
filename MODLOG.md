@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-16 Verify Barren hammer-dwarf camera combat and death drops
+
+Added one original-data Windows regression for the authored Barren
+`hidwarf` encounter. Connor starts on the same building layer, uses
+the original Invulnerable item through its inventory key, and swings
+the Temple Sword along three normal camera-selected attack rays.
+The test checks the dwarf's sight, attack, authored stats, incoming
+damage, three sword hits, one death, Sacred Water flight, War Hammer
+placement, corpse and single 30,000-experience award. It passed 1/1
+in 17.24 seconds:
+`cargo test --locked --release -p kq8-viewer --test barren_dwarf_live -- --ignored --nocapture`.
+The first route's building obstruction was documented and resolved
+by placing Connor on the dwarf's side of the wall. No game logic,
+manual gameplay or GOG files were changed.
+
 ## 2026-11-16 Verify Barren ant combat through the camera ray
 
 Moved the controlled original-data Barren start point within the

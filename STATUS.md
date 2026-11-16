@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 Barren hammer-dwarf camera fight
+
+An unattended original-data Windows regression now verifies
+`hidwarf`'s ordinary sight and melee, shielded damage to Connor,
+three camera-selected Temple Sword hits, normal death, Sacred Water
+and War Hammer drops, corpse and one 30,000-experience award. The
+release test passed 1/1 in 17.24 seconds. The earlier line failure
+was caused by starting Connor below a building layer; the corrected
+route places him on the dwarf's side of its wall. This is a controlled
+fight, not an earned Barren campaign path. M5 remains in progress at
+about 65%; no manual test or GOG-file write occurred.
+
 ## 2026-11-16 M5 Barren ant camera-selected fight
 
 The controlled original-data Barren fight now uses the ordinary

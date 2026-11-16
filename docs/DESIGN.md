@@ -44,10 +44,22 @@ under the shield, the authored 1,100 health and 31 protection, then
 one death, Sacred Water and War Hammer drops, a corpse and one
 30,000-experience award. The original GOG files stay read only. This
 is a controlled encounter, not an earned Barren campaign route.
-An initial `--aim hidwarf` route could not reach this fight: the camera
-line hit a building before the dwarf on every aim. No dwarf damage or
-death was observed. Do not repeat timing variations until there is a
-source-backed camera route or unobstructed authored approach.
+The first route placed Connor at (27891, 21900), below the `sublayer`
+building. The dwarf could not see him, and the attack ray hit that
+building. Lifting Connor onto the authored platform at the start and
+placing him at (27891, 18000), on the dwarf's side of its wall,
+establishes normal sight. Facing the dwarf, he uses the inventory key
+for the shield and three `--aim` inputs for the Temple Sword. The
+ordinary click line still meets `sublayer`; the hand weapon's attack
+ray picks `hidwarf` as the original combat route requires.
+
+The combined original-data Windows regression passed 1/1 in 17.24
+seconds. It checks the dwarf's 1,100 health, 110 hand damage, 31
+protection, normal hit on shielded Connor, three sword hits, one
+normal death, Sacred Water flight, War Hammer laid on the death
+model, corpse and one 30,000-experience reward. No AI or damage switch
+was disabled. This is a controlled fight in Rust, not an earned Barren
+campaign route or original-executable parity.
 
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
