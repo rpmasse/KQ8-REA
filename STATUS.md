@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 Ice World crossbow click on icewater
+
+The original-data `icewater_plain_click` release test passed 1/1. The
+installed `ildorlok.cs` door action loaded the dormant `icewater`
+object. After the cutscene returned control, Connor readied the Small
+Crossbow; a click on `icewater` ran its plain `ConnorAction` script and
+spoke a line, with no bolt fired. This closes the second installed
+branch of ranged rule 15 in the Rust scenario matrix. M5 remains
+incomplete.
+
 ## 2026-11-17 M5 installed bow Spriggan leads moving Connor
 
 The expanded original-data `monster_friendly_fire` release test passed

@@ -77,6 +77,11 @@ after three stationary bolt intercepts. Connor walks as the bow
 Spriggan releases its fourth bolt; the test compares his logged position
 and speed with the projectile's aim, lead time and 975-unit height raise.
 This directly links moving-target lead to an installed ranged enemy.
+The Ice World `icewater_plain_click` process opens the installed
+`ildorlok` door, whose script loads the dormant `icewater` object.
+After the authored cutscene releases controls and Connor readies the
+Small Crossbow, the aim pick invokes `icewater.cs` with no bolt. This
+links the object-name branch of ranged rule 15.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

@@ -429,6 +429,16 @@ logged position plus his velocity times the logged flight time and the
 distance beyond ordinary position rounding. One world load covers both
 the first-contact collision rule and enemy moving-target lead.
 
+## M5 Ice World ranged plain click (2026-11-17)
+
+The installed `icewater.kq` object starts dormant. Use the nearby
+`ildorlok` door's authored `ConnorAction` script to load it, then wait
+for `icewater.cs` to restore control after the opening cutscene. Ready
+the installed Small Crossbow and aim at `icewater`. Require the talk
+pick to meet that object first, call its `ConnorAction do do` script and
+produce no projectile. Keep this one process and distinguish the
+object-name branch from the Wizard's character-type branch.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

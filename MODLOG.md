@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Verify Ice World icewater plain click (M5)
+
+Read the installed Ice World `icewater.kq`, `icewater.cs` and
+`ildorlok.cs` without changing them. The first diagnostic showed
+`icewater` dormant behind the door. The second opened `ildorlok`,
+which loaded the object and ran its cutscene. A final one-process
+release test passed 1/1 in about 18 seconds: after `handsOff 0`, a
+ready Small Crossbow click met `icewater`, called its plain script and
+fired no bolt. No production code or GOG file changed. With
+`KQ8_GAME_DIR` set, run `cargo test --locked --release -p kq8-viewer
+--test icewater_plain_click -- --ignored --nocapture`.
+
 ## 2026-11-17 Link installed enemy moving-target lead (M5)
 
 Extended the existing original-data Daventry bow Spriggan intercept
