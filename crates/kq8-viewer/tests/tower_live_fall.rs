@@ -1,4 +1,4 @@
-//! Controlled original-data Tower Skeleton fall with ordinary hits and damage.
+//! Original-data Tower Skeleton fall without moving the actor; Connor's test route is controlled.
 use std::{fs, path::Path, process::Command};
 
 #[test]
@@ -18,13 +18,11 @@ fn original_tower_fall_drops_mail_and_returns_control() {
             "--windowed", "--sound", "off", "--world", "DeadCity",
             "--command", "move Connor 0 183616 123639 9714 0 0 1.57,100",
             "--command", "sendEvent 0 Skeltowr KQCueEvent 201,101",
-            "--aim", "Skeltowr,212",
-            // This controlled geometry fixture keeps the same GOG actor.
-            // It does not establish an earned route to the tower edge.
-            "--command", "move Skeltowr 0 188400 123776 9593 0 0 -1.57,268",
-            "--command", "move Connor 0 186600 123776 9593 0 0 1.57,268",
-            "--aim", "Skeltowr,270",
-            "--updates", "520", "--frames", "2700",
+            "--command", "move Connor 0 188000 123776 9593 0 0 -1.57,190",
+            "--command", "move Connor 0 188400 127000 9593 0 0 -1.57,268",
+            "--command", "move Connor 0 187100 126050 9593 0 0 1.57,332",
+            "--aim", "Skeltowr,343",
+            "--updates", "600", "--frames", "7000",
         ])
         .output().unwrap();
     fs::write(dir.join("stdout.log"), &output.stdout).unwrap();
@@ -39,12 +37,14 @@ fn original_tower_fall_drops_mail_and_returns_control() {
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
     assert!(characters.contains("[Skeltowr] KQTowerSkeleton: from vol:DeadCity/kq/MONSTERS.KQ")
         && characters.contains("Skeltowr: rises (rule 30)")
+        && characters.contains("at (185481, 124053, 9814)")
+        && !viewer.contains("test --command move Skeltowr")
         && fight.contains("Skeltowr: tower Cue 201: enabled its real alarm radius"),
         "the installed actor did not enter combat; inspect {}", dir.display());
-    assert_eq!(fight.matches("Connor: Do (conaxe.anm/").count(), 2,
-        "two authored Small Axe swings did not complete; inspect {}", dir.display());
-    assert_eq!(fight.matches("Skeltowr: hit by Connor, Normal:").count(), 2,
-        "both ordinary hits did not land; inspect {}", dir.display());
+    assert_eq!(fight.matches("Connor: Do (conaxe.anm/").count(), 1,
+        "the authored Small Axe swing did not complete; inspect {}", dir.display());
+    assert_eq!(fight.matches("Skeltowr: hit by Connor, Normal:").count(), 1,
+        "the ordinary hit did not land; inspect {}", dir.display());
     assert!(fight.matches("Connor: hit by Skeltowr, Normal:").count() >= 1
         && !fight.contains("god mode is on") && !fight.contains("Connor: dies"),
         "normal incoming damage was not active or Connor died; inspect {}", dir.display());

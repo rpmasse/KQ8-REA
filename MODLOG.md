@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-17 Complete the unrelocated Tower Skeleton fall check (M5)
+
+Read the original `Tower2` collider in the existing original-data core test:
+the upper side corridor supports a lure to (188400, 127000). Four
+bounded unattended probes established the actor's approach and the
+post-attack timing; the first hit in the final probe selected
+`reactback` and began the fall with no actor relocation. Replaced the
+old actor-relocation commands in `tower_live_fall` with the supported
+Connor-only route and extended its frame budget through the complete
+fall. The targeted release test passed 1/1 in 45.64 seconds; logs show
+fall at update 349, chain mail at 456, experience at 509 and control
+restoration at 510. The temporary collider print was removed from the
+core test. An earlier test command used `--lib` on a binary-only package
+and failed before compilation; the corrected `--bin kq8-viewer` command
+passed. No production code, manual gameplay or GOG file changed.
+
+With `KQ8_GAME_DIR` pointing to the GOG installation, reproduce with:
+
+`cargo test --locked --release -p kq8-viewer --test tower_live_fall -- --ignored --nocapture`
+
 ## 2026-11-17 Inventory non-character hit receivers (M5, Q219)
 
 The separate original-engine study found one shared hit receiver for 18

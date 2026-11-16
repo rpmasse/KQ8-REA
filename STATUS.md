@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 Tower Skeleton fall without actor relocation
+
+The revised original-data `tower_live_fall` Windows test passed 1/1 in
+45.64 seconds. Its original `Skeltowr` actor chased test-positioned
+Connor east and along a supported side corridor; no test command moved
+the actor. One normal Small Axe hit at update 348 selected `reactback`;
+the 400-behind probe found no support at 349. The complete teeter/die/
+die2/fallend sequence, both speech lines, chain-mail drop, single
+experience award, actor removal and input restoration completed by
+update 510. Incoming damage stayed active, and GOG Options.cs was
+unchanged. Connor's positions were controlled by the automated test;
+uninterrupted player traversal and item pickup remain open. No manual
+gameplay or original game file changed. M5 remains incomplete.
+
 ## 2026-11-17 M5 non-character hit receiver inventory
 
 The separate original-engine study answered Q219 for 18 ordinary object
@@ -87,6 +101,9 @@ M5 remains about 65% complete. No manual gameplay or GOG-file write
 occurred.
 
 ## 2026-11-17 Unrelocated Tower Skeleton route handoff
+
+This earlier straight-route handoff was superseded by the supported
+side-corridor route recorded above.
 
 An unattended Dead City probe kept the installed `Skeltowr` actor at
 its original placement and moved only Connor. Cue 201 activated the

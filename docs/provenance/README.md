@@ -1,5 +1,15 @@
 # Provenance
 
+**Tower Skeleton fall without actor relocation (2026-11-17).**
+[Fighting tower rules](../behaviour/fighting.md) and the installed
+Dead City `Tower2` collider guided the supported side-corridor route.
+The revised `tower_live_fall` original-data test kept the actor at its
+authored placement, used normal AI and damage, and passed the full
+fall, drop, reward and return-of-control checks. Connor's positions
+were controlled by test commands, so uninterrupted player traversal
+and later chain-mail pickup remain untested. No original executable or
+manual gameplay comparison was performed.
+
 **Non-character hit receivers (2026-11-17).**
 [Object-hit receiver rules](../behaviour/object-hit-receivers.md), Q219,
 record a bounded original-engine class scan: 18 ordinary classes share

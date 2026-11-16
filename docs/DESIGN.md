@@ -4114,6 +4114,28 @@ only on the next hit. All four drops, skinned corpse and one seven-point
 experience award followed. The controlled placement and god switch mean
 this still does not establish the earned campaign fight.
 
+**Unrelocated Tower Skeleton fall route (2026-11-17).** The original
+`Tower2` collider supports a side corridor to x=188400, y=127000.
+An unattended probe kept `Skeltowr` at its installed placement and
+let its ordinary AI chase Connor first east, then along that corridor.
+Moving only Connor west at update 332 and landing one Small Axe swing
+at update 348 made its `reactback` probe find no support at update 349.
+Replace the controlled actor-relocation sequence in the existing
+`tower_live_fall` test with this route, keep normal incoming damage,
+and extend the run through the complete scripted fall, drop, reward and
+control restoration. Assert that no `move Skeltowr` test command ran.
+The diagnostic used test-controlled Connor positions; an uninterrupted
+player traversal remains a separate campaign check. Run one targeted
+Windows test using the installed GOG data, without manual gameplay.
+
+Checked: the revised `tower_live_fall` release test passed 1/1 in
+45.64 seconds. The original actor walked along the side corridor under
+normal AI, the ordinary Small Axe hit started `reactback`, and the rear
+probe found no support at update 349. Its scripted movements ended,
+chain mail fell at update 456, experience arrived at update 509, and
+camera and input control returned at update 510. Normal incoming damage
+stayed enabled. No actor relocation, manual gameplay or GOG write.
+
 **Tower fall with original data and normal damage (2026-11-16).**
 Keep the installed Dead City `Skeltowr` actor and its GOG movements,
 fight settings, scripts, item and message data. Use ordinary Small Axe
@@ -4133,8 +4155,9 @@ no support, the four fall movements completed, both speech lines ran,
 chain mail was thrown, the camera and controls returned, and one
 4,000-experience award preceded actor removal. The initial rope-side
 probe without relocation landed `reactback` but found support, so it
-did not fall. The natural player route and the dropped item's later
-pickup remain open.
+did not fall. The actor-relocation fixture has now been replaced by the
+unrelocated route above. An uninterrupted player traversal and the
+dropped item's later pickup remain open.
 
 **Visible PreBirth rise (2026-11-16).** The installed Dead City
 `Skeltowr` has both `birth` and `prebirth` in its animation list.
