@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 ranged rule coverage inventory
+
+`docs/m5-ranged-rule-coverage.md` now maps each ranged rule 13–31 to
+specific existing assertions and records direct gaps rather than
+counting implementation alone as evidence. The inventory identifies
+aim priority, waiting-shot cancellation, precise frame/lead cases and
+projectile collision edges for compact follow-up checks. It adds no
+production behavior and does not claim that the full M5 gate passes.
+This documentation-only audit used source and test inspection plus
+`git diff --check`; no gameplay run or GOG write.
+
 ## 2026-11-17 M5 Q212 emitter save boundary
 
 The separate original-engine study checked the projectile and emitter

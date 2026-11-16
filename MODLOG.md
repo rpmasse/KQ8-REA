@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-17 Inventory ranged rule-to-scenario coverage (M5)
+
+Added `docs/m5-ranged-rule-coverage.md` with a rule-by-rule link for
+`ranged-weapons.md` rules 13–31. The table separates current direct
+assertions from missing original-data or edge assertions and is linked
+from the M5 audit and README. This narrows the next automated checks
+without reloading worlds merely to inventory them. Verified test names
+against the current source and ran `git diff --check`; no gameplay test,
+production code change or GOG write.
+
 ## 2026-11-17 Bound the elemental emitter save gap (M5, Q212)
 
 The separate study session checked the original projectile and emitter

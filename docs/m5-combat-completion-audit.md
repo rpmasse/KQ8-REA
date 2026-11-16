@@ -7,6 +7,9 @@ drops and game over, with every distinct weapon and enemy rule linked to a
 passing scenario. Manual gameplay comparison belongs after the Rust
 recreation is feature-complete.
 
+The [ranged rule coverage table](m5-ranged-rule-coverage.md) links
+rules 13–31 to current assertions and names the remaining direct gaps.
+
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |
 | Connor's 13 hand banks | `Connor.kq` lists 13; `hand_weapon_matrix` checks 12 weapon hits in one encounter, and `first_person_weapon_matrix` covers Fists and all hand banks. Core `connor_s_do_hits_his_target_misses_or_hits_dead_air` checks a hit, a missed swing and dead air; `daventry_hero_ring` records an ordinary Henchman miss. Q139(e) now confirms the ordinary object roll; a grouped core check covers its callbacks. | Finish source-to-scenario links for weapon-specific edge cases and attack reachability. Q219 bounds the checked non-character receiver classes. |

@@ -20,6 +20,7 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 These percentages describe individual phases, not overall game completion. All 12 regions load, but combat, campaign progression and visual fidelity still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
 
 Automated combat checks now include script-created enemies; the full campaign remains unfinished.
+The [ranged combat coverage table](docs/m5-ranged-rule-coverage.md) tracks remaining M5 checks.
 
 ## Bring your own game
 
