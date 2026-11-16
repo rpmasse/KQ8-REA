@@ -3744,6 +3744,33 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Q203 disk-save item contact (2026-11-16).** A saved trap records occupant
+names, and the studied load path reattaches an item only when its restored
+collider touches the trap; that attachment does not send another On or Cue.
+Before this step, the Rust disk loader copied saved trap membership after
+world construction. Before constructing a disk-restored world, prepare the saved
+names and trap fields on its loaded traps. Register only saved items named
+by those traps through the existing active item registration queue before
+Init. On the later legacy restore pass, preserve the resulting live item
+contacts and unresolved item names while restoring Connor and other
+occupants as before. An item that no longer touches must stay pending,
+not become a phantom occupant. Check the mixed item/Connor state in core,
+then use the earned WesternPlateRockReload slot in an unattended fresh
+Windows process to require the world Rock on triptrp5, no repeated On,
+and the same portal state. This does not settle every object's original
+contact-before-Init order or the remaining Q203 registration paths. No
+manual gameplay test or GOG-file writes.
+
+The first implementation passed the mixed item/Connor core case and the
+785 active core checks. The existing earned WesternPlateRockReload save
+then passed a windowed, unattended pickup and fresh-process reload:
+one saved item candidate registered before Init, its prior plate
+occupancy caused no repeated On, and pickup caused
+`triptrp5 Off NoName98`. The first attempt stopped at the remote display's absent
+640×480 exclusive mode before loading the world; `--windowed` supplied
+a diagnostic surface. Original-executable save ordering for other
+object classes remains unverified.
+
 **Q203 last-item drop continuation (2026-11-16).** Verify the studied
 Rock projectile landing handoff at the inventory boundary. With a
 single carried Rock, ordinary removal must return its old identity to

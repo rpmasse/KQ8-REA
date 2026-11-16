@@ -97,11 +97,13 @@ retained carried identity. All 10 item-removal cases pass. The existing
 records across a fresh-process reload; it was not repeated for this
 test-only change. One additional synthetic core case verifies that the
 active item registration queue silently reattaches a saved trap name.
-The production disk loader still copies membership after world construction;
-contact-before-Init and fresh-process saved-name reattachment remain untested.
+The production disk loader now prepares trap names before construction
+and reattaches saved items by contact. An earned Rock pickup/reload route
+passed in windowed diagnostic mode: the saved item registered before
+Init without a second On, then its pickup produced the plate's Off.
+Other saved object classes still use bulk membership.
 Other registration paths and collision-type/mask overrides remain. The
 loaded trap-list ordering is not proof of the original spatial traversal
-(Q205). Original
-aim/arc remains Q202. This release work does not prove portal traversal,
+(Q205). Original aim/arc remains Q202. This release work does not prove portal traversal,
 the remaining Dead City quests, or the later campaign. Manual testing
 and original-engine runtime comparison are **not tested**.

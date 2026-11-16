@@ -868,6 +868,8 @@ pub fn world_change_step(world: &mut World) {
             });
             let percent = Arc::new(AtomicU32::new(0));
             let (name, shared_log, thread_percent) = (request.world.clone(), log.clone(), percent.clone());
+            let disk_traps = world.resource::<WorldChange>().restoring.as_ref()
+                .and_then(|save| save.traps_for_registration());
             let read = std::thread::Builder::new().name("world read".into()).spawn(move || {
                 let mut log = shared_log.lock().unwrap();
                 let game = GameDir::open(&opts.game).map_err(|e| e.to_string())?;
@@ -875,6 +877,13 @@ pub fn world_change_step(world: &mut World) {
                 if let Some(saved) = &kept.traps {
                     saved.restore_for_arrival(&mut read.objects.traps)?;
                     log.summary(format!("world change: restored persistent traps in {name} before Init"));
+                }
+                if let Some(saved) = &disk_traps {
+                    for trap in &mut read.objects.traps {
+                        saved.restore_before_registration(trap)?;
+                    }
+                    read.objects.saved_trap_item_registration = true;
+                    log.summary(format!("disk restore: prepared saved trap names in {name} before item registration"));
                 }
                 Ok(read)
             });
@@ -976,11 +985,12 @@ pub fn world_change_step(world: &mut World) {
                     held.1 = combat_level_number(j.combat_level);
                 }
             }
+            let prepared_trap_item_contacts = read.objects.saved_trap_item_registration;
             world.resource_mut::<PendingWorld>().0 = Some((read, opts));
             build_pending(world);
             give_journey(world, journey.as_deref(), &request.world, &log);
             if let Some(save) = world.resource_mut::<WorldChange>().restoring.take() {
-                match save.restore_current(world) {
+                match save.restore_current(world, prepared_trap_item_contacts) {
                     Ok(()) => log.lock().unwrap().summary(format!("save restored in {} without replaying Begin", request.world)),
                     Err(error) => log.lock().unwrap().summary(format!("save restore failed in {}: {error}", request.world)),
                 }

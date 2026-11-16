@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-16 Reattach disk-saved world items through trap contact
+
+Changed: the disk loader prepares saved trap names before world build,
+registers matching saved items before Init, and merges actual item
+contacts with legacy Connor and other occupants during final restore.
+Added a mixed occupant core test and ran the existing earned Rock pickup
+and fresh-process reload route in a windowed diagnostic display. Why:
+copying saved item names directly into live trap membership could leave
+an item on a plate without a qualifying contact. Tested how:
+`cargo test --locked -p kq8-core --lib -- --quiet` passed 785 with 26
+ignored; `cargo check --locked --release -p kq8-viewer` passed; and the
+targeted earned Rock route passed 1/1 in 39.34 seconds. Its log prepared
+the names before construction, registered one saved item before Init,
+recorded no Rock On, then recorded `triptrp5 Off NoName98` when that
+same Rock was picked up. The first Windows attempt stopped at the
+remote display's missing 640×480 exclusive mode before world load;
+the diagnostic `--windowed` rerun passed. Artifact:
+`kq8-artifacts/earned-western-plate-rock-pickup/1794829854883975300/`.
+No GOG file changed. Other saved object classes still use legacy bulk
+membership; original-executable timing and manual gameplay are not tested.
+
 ## 2026-11-16 Check saved item contact through active registration
 
 Changed: added one synthetic core regression for a saved item on a trap.

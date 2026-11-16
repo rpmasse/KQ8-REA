@@ -77,9 +77,11 @@ remain intact. No original game files were modified.
 
 ## Remaining work
 
-Q203 is only partly implemented. The last-carried-Rock old-identity edge,
-non-Rock stack removal/activation and full saved-contact reattachment
-rules still need implementation. Pickup and deferred deletion release now
+Q203 is only partly implemented. Last-carried-Rock identity and non-Rock
+stack removal now have focused core checks; saved item names reattach
+through contact during disk load, with an earned Rock pickup/reload pass.
+Full saved-contact ordering for other object classes remains open.
+Pickup and deferred deletion release now
 pass focused and earned-save checks in [item-removal-traps.md](item-removal-traps.md).
 The older non-Rock drop tests describe legacy behavior, not proof of
 the newly studied original lifecycle. Other creation paths, including

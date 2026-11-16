@@ -1,14 +1,27 @@
 # STATUS
 
+## 2026-11-16 Q203 disk-save Rock contact
+
+Disk loading now prepares saved trap names before world construction and
+reattaches matching saved items through their actual stationary collider
+registration. Connor and other occupant classes retain the existing bulk
+restore path. An earned Dead City Rock save passed a windowed,
+fresh-process pickup/reload route: one saved item registered before Init,
+the Rock caused no second On, and its later pickup caused the plate's
+Off event. The 811-case core suite passed 785 with 26 ignored. The
+first automated Windows attempt could not enter fullscreen on this remote
+display; windowed diagnostic mode passed. Original-executable timing and
+manual gameplay are not tested. M5 remains about 65%.
+
 ## 2026-11-16 Q203 saved-item contact mechanism
 
 A new core check passes for a saved stationary item reattaching to a
 trap through the ordinary active registration queue without a second On
-callback. It uses synthetic items and a trap, not the production disk
-loader. The current disk loader still copies saved trap membership after
-world construction, so original contact-before-Init ordering and a
-fresh-process pressure-plate replay are not established. No production
-code changed; no manual gameplay ran. M5 remains about 65%.
+callback. It uses synthetic items and a trap. At that checkpoint, the
+disk loader still copied saved trap membership after world construction;
+the production integration and fresh-process replay are recorded above.
+No production code changed in this earlier checkpoint; no manual gameplay
+ran. M5 remained about 65%.
 
 ## 2026-11-16 M5/M6 last-item Rock handoff and ordinary drop edges
 

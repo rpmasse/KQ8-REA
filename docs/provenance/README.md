@@ -854,8 +854,10 @@ effects; `active.rs` supplies item registration and live position queries;
 `trap.rs` supplies oriented ball-stack contact. Synthetic checks and the
 existing earned Dead City route validate this partial implementation.
 Core checks now cover last Rock and non-Rock removal plus one saved item
-contact through active registration. The production disk loader still bulk
-restores trap membership, so saved-contact ordering remains open;
+contact through active registration. The production disk loader prepares
+saved trap names before building the world and reattaches saved items by
+contact. Connor and other classes still use bulk membership, so their
+original saved-contact ordering remains open;
 pickup/deletion is implemented above. B did not read the original
 executable, decompilation or disassembly. [Evidence](../item-registration-traps.md)
 

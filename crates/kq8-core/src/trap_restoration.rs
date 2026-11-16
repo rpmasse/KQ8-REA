@@ -71,6 +71,28 @@ mod tests {
     }
 
     #[test]
+    fn disk_restore_keeps_only_contacted_items_live_and_preserves_connor() {
+        let balls = BallStack::from_box([-1.; 3], [1.; 3]);
+        let known = BTreeSet::from(["connor".to_string(), "crystal.1".to_string()]);
+        let item_names = BTreeSet::from(["crystal.1".to_string()]);
+        let mut source = trap();
+        source.inside = vec!["Connor".into(), "Crystal.1".into()];
+        let saved = SavedTraps::capture([&source]);
+        for touching in [false, true] {
+            let mut restored = trap();
+            assert!(saved.restore_before_registration(&mut restored).unwrap());
+            assert!(restored.inside.is_empty());
+            if touching {
+                assert!(restored.check(&visitor("CRYSTAL.1", 0., VisitorShape::Balls(&balls))).call.is_none());
+            }
+            saved.restore_after_item_registration(std::slice::from_mut(&mut restored), &known, &item_names).unwrap();
+            assert_eq!(restored.inside, if touching { vec!["Connor", "CRYSTAL.1"] } else { vec!["Connor"] });
+            assert_eq!(restored.pending_occupants,
+                if touching { Vec::<String>::new() } else { vec!["Crystal.1".to_string()] });
+        }
+    }
+
+    #[test]
     fn saved_trap_contact_and_command_matrix() {
         let balls = BallStack::from_box([-1.; 3], [1.; 3]);
         let shapes = [VisitorShape::Balls(&balls), VisitorShape::Box([[1.,0.,0.],[0.,1.,0.],[0.,0.,1.]])];

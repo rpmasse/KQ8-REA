@@ -1798,6 +1798,8 @@ pub struct Objects {
     /// The item types and the item objects the start-up scripts made (M3
     /// step 3e-3; items.md rule 9).
     pub items: kq8_core::item::Items,
+    /// A disk save prepared trap names before this world is constructed.
+    pub saved_trap_item_registration: bool,
     /// Each item type that can appear in this world (`IDName`) -> its
     /// model in `shapes`.
     pub item_shapes: BTreeMap<String, usize>,
@@ -5551,6 +5553,7 @@ impl Placer<'_> {
             script_shapes,
             pack: None,
             items: Default::default(),
+            saved_trap_item_registration: false,
             item_shapes: BTreeMap::new(),
             corpse_shapes: self.corpse_shapes,
             projectiles: self.projectiles,

@@ -3105,13 +3105,15 @@ fn picking_up_earned_rock_releases_western_plate_and_reloads() {
             "radius":140,"run":false,"aim":name}
     ]})).unwrap()).unwrap();
     let (picked, viewer) = leg(&play, 1, "WesternPlateRockPickup", 160,
-        &["--walk-route", path.to_str().unwrap()]);
+        &["--windowed", "--walk-route", path.to_str().unwrap()]);
+    assert!(viewer.contains("disk restore: prepared saved trap names"));
+    assert!(viewer.contains("disk restore: registered") && viewer.contains("saved trap item candidate(s) before Init"));
     assert!(viewer.lines().any(|line| line.contains(&format!("test --aim {name} (camera through gameplay pixel"))
         && line.contains(&format!("hits {name} first"))));
     let items = log(&play, "WesternPlateRockPickup", "items.log");
     assert!(items.contains(&format!("item destruction {name}: trap triptrp5 Off {name}")));
     assert!(items.contains(&format!("{name}: item destruction completed after trap departures")));
-    let (restored, _) = leg(&play, 2, "WesternPlateRockPickupReload", 45, &[]);
+    let (restored, _) = leg(&play, 2, "WesternPlateRockPickupReload", 45, &["--windowed"]);
     for saved in [&picked, &restored] {
         assert_eq!(rocks(saved), 2);
         assert_eq!(others(saved), others(&start));

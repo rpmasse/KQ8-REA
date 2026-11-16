@@ -964,6 +964,10 @@ pub fn spawn_doors(
     let initial_item_reference = objects.connor.as_ref().map(|(p, _)| p.position)
         .or(objects.camera_start).unwrap_or([0.; 3]);
     active.initialize_item_activity(initial_item_reference, light.haze.visible);
+    if objects.saved_trap_item_registration {
+        let count = active.register_saved_item_contacts();
+        main_log.summary(format!("disk restore: registered {count} saved trap item candidate(s) before Init"));
+    }
     let start = std::mem::take(&mut objects.connor_start);
     for line in kq8_core::connor_start::run(&mut active.world, &start) {
         main_log.summary(format!("connor start: {line}"));

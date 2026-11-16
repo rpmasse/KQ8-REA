@@ -5319,6 +5319,24 @@ impl Active {
         }
     }
 
+    /// A disk-loaded trap has saved names but no live occupants yet. Give
+    /// matching saved items their ordinary first collider registration before
+    /// Init; far or carried items stay pending until they become active.
+    pub fn register_saved_item_contacts(&mut self) -> usize {
+        let pending: BTreeSet<_> = self.world.traps.iter().flat_map(|trap| trap.pending_occupants.iter())
+            .map(|name| name.to_ascii_lowercase()).collect();
+        let names: Vec<_> = self.world.items.objects.iter()
+            .filter(|item| pending.contains(&item.name.to_ascii_lowercase()))
+            .map(|item| item.name.clone()).collect();
+        for name in &names {
+            self.world.item_collider_states.insert(name.to_ascii_lowercase(), false);
+            self.world.queue_item_registration(name, false);
+        }
+        self.scripts.finish_host_effects(&mut self.world, "saved item registration", 0);
+        self.finish_item_events();
+        names.len()
+    }
+
     /// Publish the effective frame's distance inputs, then register stationary
     /// items whose collider changes from off to on. Script-requested reference
     /// and forced-near changes arrive here only when the viewer applies them.

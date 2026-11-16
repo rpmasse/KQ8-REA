@@ -131,6 +131,9 @@ impl Snapshot {
             third_person_banks: self.weapon_state.as_ref().map(|state| state.third_person_banks().to_vec()).unwrap_or_default(),
         }
     }
+    pub(super) fn traps_for_registration(&self) -> Option<kq8_core::trap::SavedTraps> {
+        self.traps.clone()
+    }
     // A conversation finishes `away` in trap_step after weapon synchronization.
     // Keep the old drawn list until the next door_step switches to bare hands.
     fn conversation_weapon_change_pending(&self) -> bool {
@@ -424,7 +427,8 @@ impl Snapshot {
         Ok(())
     }
 
-    pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World) -> Result<(), String> {
+    pub(super) fn restore_current(mut self, world: &mut bevy::prelude::World,
+        prepared_trap_item_contacts: bool) -> Result<(), String> {
         let actor_view = self.weapon_state.as_ref().map_or(self.view_flags.active,
             |state| state.actor_first_person(self.view_flags.active));
         if let Some(sources) = &self.speech_sources {
@@ -463,7 +467,12 @@ impl Snapshot {
             }
             if let Some(traps) = &self.traps {
                 let w = &mut sim.active.world;
-                traps.restore(&mut w.traps, &w.known)?;
+                if prepared_trap_item_contacts {
+                    let item_names = w.items.objects.iter().map(|item| item.name.to_ascii_lowercase()).collect();
+                    traps.restore_after_item_registration(&mut w.traps, &w.known, &item_names)?;
+                } else {
+                    traps.restore(&mut w.traps, &w.known)?;
+                }
                 sim.connor_checked_at = self.trap_checked_at;
             }
             if let Some(drains) = &self.drains {

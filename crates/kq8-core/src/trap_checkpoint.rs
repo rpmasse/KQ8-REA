@@ -43,6 +43,44 @@ impl SavedTraps {
         self.apply(traps, |name| known.contains(&name.to_ascii_lowercase()))
     }
 
+    /// Complete a disk restore after saved items have had their initial
+    /// collider contact. Other occupant classes still use the bulk loader.
+    /// A saved item without actual contact remains pending, never live.
+    pub fn restore_after_item_registration(&self, traps: &mut [Trap], known: &BTreeSet<String>,
+        item_names: &BTreeSet<String>) -> Result<(), String> {
+        let contacted: Vec<_> = traps.iter().map(|trap| {
+            (trap.settings.name.to_ascii_lowercase(), trap.inside.iter()
+                .filter(|name| item_names.contains(&name.to_ascii_lowercase())).cloned().collect::<Vec<_>>())
+        }).collect();
+        self.restore(traps, known)?;
+        for trap in traps {
+            let Some(state) = self.states.iter().find(|s| s.name.eq_ignore_ascii_case(&trap.settings.name)) else { continue };
+            let live_items = &contacted.iter().find(|(name, _)| name.eq_ignore_ascii_case(&trap.settings.name))
+                .expect("every restored trap was captured before bulk restore").1;
+            let legacy = std::mem::take(&mut trap.inside);
+            let mut inside = Vec::new();
+            for saved in state.inside.iter().chain(&state.pending_inside) {
+                let source = if item_names.contains(&saved.to_ascii_lowercase()) { live_items } else { &legacy };
+                if let Some(found) = source.iter().find(|name| name.eq_ignore_ascii_case(saved)) {
+                    if !inside.iter().any(|name: &String| name.eq_ignore_ascii_case(found)) { inside.push(found.clone()); }
+                }
+            }
+            for live in live_items {
+                if !inside.iter().any(|name| name.eq_ignore_ascii_case(live)) { inside.push(live.clone()); }
+            }
+            trap.inside = inside;
+            trap.pending_occupants = state.inside.iter().chain(&state.pending_inside)
+                .filter(|name| {
+                    // Non-item saved `inside` names are handled by the
+                    // legacy restore. Only unresolved items stay pending.
+                    (item_names.contains(&name.to_ascii_lowercase()) || state.pending_inside.iter()
+                        .any(|pending| pending.eq_ignore_ascii_case(name)))
+                        && !trap.inside.iter().any(|live| live.eq_ignore_ascii_case(name))
+                }).cloned().collect();
+        }
+        Ok(())
+    }
+
     /// Legacy bulk-loader compatibility only: names are copied to membership.
     /// This does not establish the original contact-before-Init behavior.
     pub fn restore_for_arrival(&self, traps: &mut [Trap]) -> Result<(), String> {
