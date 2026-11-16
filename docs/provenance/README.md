@@ -1,5 +1,14 @@
 # Provenance
 
+**Non-character hit receivers (2026-11-17).**
+[Object-hit receiver rules](../behaviour/object-hit-receivers.md), Q219,
+record a bounded original-engine class scan: 18 ordinary classes share
+the damage rule, while `KQSwampTile` ignores nonzero hits and makes gas
+on a powered, scriptless zero hit. Existing Rust grouped secondary-tile
+checks cover that exception (7 passed in one run). Contact masks and
+regional scripts were not exhaustively studied. No original-runtime or
+manual gameplay comparison was performed.
+
 **Runtime monster combat difficulty (2026-11-17).**
 [Fighting rule 3](../behaviour/fighting.md), Q218, distinguishes the
 shared world-entry factor from `KQMonster::add`'s unconditional second

@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 non-character hit receiver inventory
+
+The separate original-engine study answered Q219 for 18 ordinary object
+classes and the distinct `KQSwampTile` receiver. The tile ignores nonzero
+hits; a zero hit creates gas only when both power switches are on and no
+script is attached. The existing Rust swamp path follows that rule, and
+seven grouped secondary-tile core checks passed in one command. The study
+did not exhaustively cover attack contact masks, regional scripts or other
+character receivers. This is automated Rust evidence, not an original
+runtime comparison. M5 remains about 65% complete. No manual gameplay or
+original game file changed.
+
 ## 2026-11-17 M5 runtime monster combat difficulty
 
 The separate study answered the original-engine scaling question:

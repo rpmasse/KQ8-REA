@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Inventory non-character hit receivers (M5, Q219)
+
+The separate original-engine study found one shared hit receiver for 18
+checked ordinary object classes. `KQSwampTile` uses a distinct receiver:
+nonzero hits do nothing, and zero hits create gas only with both tile
+switches on and no attached script. `KQTrap` and `KQSpiriTrap` are trigger
+classes outside object-health hits. Added the bounded behavior note and
+linked it from the doors rules, Q219 and the M5 audit. Existing Rust
+`swamp_attack` and its grouped secondary-tile tests already model the
+exception, so no production code changed. Tested with
+`cargo test --locked -p kq8-core secondary_tiles_grouped_ -- --nocapture`:
+7 passed, 0 failed. Contact masks and regional scripts remain outside
+this scan; no manual gameplay, original-runtime comparison or GOG write.
+
 ## 2026-11-17 Match runtime monster difficulty (M5, Q218)
 
 The separate original-engine study answered `fighting.md` question 3:

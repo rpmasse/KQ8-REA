@@ -189,6 +189,9 @@ All of them: `classType=KQDoor`, `currAnimName=closed`, `keepOnGround=0`
     `Normal`, `Projectile`, `Fire`, `Ice`; any other kind reports
     `Normal` (the rock's kind 4 is one such case).
 
+The checked class scope and `KQSwampTile` exception are recorded in
+[`object-hit-receivers.md`](object-hit-receivers.md).
+
 ### Other script calls a door can get (traced)
 
 22. `$2` = `Init` when the object enters the world (only `urn1.cs`
