@@ -22,6 +22,7 @@ fn iceworld_dragon_body_and_heads_load_their_own_models() {
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
     for (name, class, shape, position) in [
         ("dragbody", "KQDragonBody", "db_", "182334, 490176, 30902"),
@@ -40,5 +41,15 @@ fn iceworld_dragon_body_and_heads_load_their_own_models() {
         && fight.contains("dragbody: hit by Connor, Normal:")
         && fight.contains("health 300 -> 300"),
         "Dragon body did not retain shared fighter stats or protection; inspect {}", dir.display());
+    for (name, radius, height, kind) in [
+        ("dragbody", 1365, 2730, "0x1"),
+        ("draglhed", 460, 2170, "0x4042"),
+        ("dragrhed", 485, 2150, "0x4042"),
+    ] {
+        assert!(doors.lines().any(|line| line.contains(&format!(
+            "{name}: solid for Connor: cylinder radius {radius} (+ his ball radius), height {height}"
+        )) && line.contains(&format!("type {kind} mask 0x0"))),
+            "{name} did not resolve its authored type to active Dragon bounds; inspect {}", dir.display());
+    }
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }

@@ -1,5 +1,34 @@
 # MODLOG
 
+## 2026-11-16 Verify Dragon collision bounds in the GOG-data route
+
+Changed: extended the unattended IceWorld Dragon load check to require
+the body and both heads to be solid at their authored bounds, with
+type 1/`0x4042` and zero masks. Why: the Q210 study resolved the
+installed type-to-bounds mapping; previously the test proved models
+loaded but did not protect their collision shapes. Tested how: from
+the worktree, set `$env:KQ8_GAME_DIR = (Resolve-Path "..\..\..\King's Quest 8 GOG").Path`
+and run `cargo test --locked -p kq8-viewer --test dragon_load -- --ignored --nocapture`.
+Result: 1/1 passed in 27.07 seconds with the original GOG data;
+`git diff --check` passed. The GOG `Options.cs` file stayed unchanged.
+This check does not establish an earned sword encounter or the winner
+when a projectile intersects overlapping Dragon shapes. No manual
+gameplay test was run.
+
+## 2026-11-16 Study Dragon contact and attack delivery
+
+Matched the three IceWorld Dragon actors' monster types to their
+installed collision bounds and traced the head's bite/fire `Do`
+delivery. `dragon.md` now states that Connor can collide with all
+three, target a head but not the body with a hand weapon, and that
+projectiles can touch either despite the Dragon's zero masks. The
+head's projectile-immunity bit causes zero-damage contact; body
+protection blocks ordinary health loss. The head's own bite/fire hit
+uses inclusive 3D distance at its cue without an obstruction resweep.
+Q210 retains trajectory overlap, queued-hit service order, and native
+save continuation as open. This was read-only original-engine and
+installed-data study; no Rust, game assets or manual gameplay changed.
+
 ## 2026-11-16 Restore the earned Henchman encounter check
 
 The first supplied Windmill slot lacked the shield and mushrooms required

@@ -3,6 +3,19 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Dragon contact evidence (2026-11-16)
+
+The installed Dragon types resolve to three active collision boxes. The
+body's type 1 blocks Connor and ordinary projectiles but cannot be
+selected by a hand-weapon click; either head's type `0x4042` can be
+selected for a hand strike and consumes incoming projectiles with zero
+damage. The existing generic Rust collision and projectile paths have
+these rules. Keep the original-data IceWorld load check pinned to the
+three authored bounds and masks. Next, verify an earned sword encounter
+with normal AI and damage, including hand selection and the two-head
+finish. Do not infer the overlap winner for a particular projectile
+trajectory or original binary save ordering from these checks.
+
 ## M5 Mandragor alarm distance sample (2026-11-16)
 
 The tree's special alarm currently measures Connor's position at the

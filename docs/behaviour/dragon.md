@@ -55,7 +55,7 @@ reach 6000; the left/right attack delays are 1.5/1.7 seconds. The
 body's file sets `isActive3D=1`, `noTurn=1`, `monUseGravity=0`,
 `colliderType=1`, and `colliderMask=0`. Each head's file sets
 `isActive3D=1`, `noTurn=1`, and `colliderMask=0`. The head constructor
-also sets a special collision type containing the projectile-immunity
+also sets collision type `0x4042`, containing the projectile-immunity
 bit described in `ranged-weapons.md`. These are the authored/initial
 values. For the ordinary collision pair rule, mask zero means the
 dragon actor is not told about a touch and its own mover cannot use
@@ -67,13 +67,17 @@ rules 2–4; `ranged-weapons.md` rule 29). The heads' type contains the
 projectile-immunity bit, so a projectile contact sends zero damage
 (`ranged-weapons.md` rule 30); the body's type 1 does not contain that
 bit, although its 100 protection blocks ordinary health loss. The
-body has no gravity, so
-the lack of a terrain bit does not make it fall. The installed bounds
-list has `dragonbody` and `dragonheadleft`/`dragonheadright` entries,
-but no literal `dragbody`, `draglhed` or `dragrhed` entry; how these
-names are resolved to active collision shapes remains untraced. Thus
-the exact physical obstruction and projectile interception in this
-encounter are not claimed from the mask values alone.
+body has no gravity, so the lack of a terrain bit does not make it
+fall. The monster list gives these actors the **types** `dragonbody`,
+`dragonheadleft` and `dragonheadright`, which exactly match the
+installed `BOUNDS.KQ` entries. The character collision lookup uses the
+type before falling back to the actor name (`characters.md` rule 9),
+so all three have active collision shapes. The body's authored bounds
+are (−40, −520, 0) to (1340, 2210, 1130), the left head's are
+(−140, −470, 0) to (250, 450, 2170), and the right head's are
+(−240, −610, 0) to (220, 360, 2150), relative to each actor's
+position. The ordinary box-to-ball-stack rule supplies their swept
+contact shapes.
 
 The head's property reader accepts `firstLoad`, `deadPause`,
 `fullHealth`, `reallyDead`, `attackLoc`, `biteRad`, `fireRad`, and
@@ -111,13 +115,16 @@ damage in this dragon path.
 
 At a head's `Do` cue, the specialized handler asks its current target
 for a position. It compares straight three-dimensional distance from
-the head to that position. With `attack`, a target within `biteRad`
+the head to that position. The limit is inclusive: equality still
+passes. With `attack`, a target within `biteRad`
 (3000 in the shipped files) receives a `Normal` hit carrying the
 head's current hand damage. With `attack2`, the comparison uses the
 head's ordinary reach (6000 in `Monstats.mtl`) and sends a `Fire` hit
 of the same current hand damage. A target beyond the relevant radius
-gets no hit. The dedicated cue handler does not repeat the common
-front-facing test described for ordinary monsters in `fighting.md`;
+gets no hit. The cue creates a targeted attack event after this range
+check; it does not sweep a collision shape or recheck obstructions.
+The dedicated cue handler does not repeat the common front-facing test
+described for ordinary monsters in `fighting.md`;
 the earlier attack-state selection and target acquisition have their
 own gates. When the cue is not the head's attack `Do`, it delegates to
 the common animation event handler. The head accepts an `attackLoc`
@@ -134,6 +141,34 @@ handler or specialized incoming-hit/damage rule appears in the body
 class methods: a physical touch alone sends no damage to Connor. A
 script could still request a hit by another route; none was established
 for this encounter.
+
+**Physical contact and incoming weapons (Q210 follow-up).** Connor's
+ordinary collision mask selects the body's type 1 and the heads'
+type `0x4042` through its character bit, so their installed bounds
+can stop his movement. Their own zero masks do not receive the touch
+or push Connor. A hand-weapon click tests type bits `0x20`/`0x40`:
+it can select a head through `0x40`, but not the type-1 body. Once a
+head is selected, Connor's `Do` cue uses the normal stored-target,
+front-half and 2,350-unit reach test (`ranged-weapons.md` rule 32;
+`fighting.md` rule 41), without another body obstruction test. An
+equipped Flame Sword makes that hit `Fire`; other hand weapons make it
+`Normal`. The head's 25 protection still applies. The Flame Sword
+must also be equipped in melee mode when a head enters its death
+state for that defeat to be permanent, as described below.
+
+An ordinary projectile's default mask `0x1F` selects both type 1 and
+`0x4042` despite their zero masks. Its swept contact stops at the
+first eligible Dragon shape on its path. Contact with a head's
+`0x4000` immunity bit prepares a **zero-damage** hit and removes the
+projectile, whether its kind is ordinary, Fire or Ice. A projectile
+can also contact the body; the body lacks immunity but its shipped
+100 protection makes an ordinary hit cost zero health. Neither actor
+needs to be told of a physical touch for the projectile's own contact
+handler to send this hit. The exact queue-service order of projectile
+removal versus delivery of that prepared hit remains open (Q212);
+the contact selection, zero-damage immunity and removal rules are
+established by `ranged-weapons.md` rules 29–30 and the Dragon's
+installed type and bounds data.
 
 The body's collision type is 1, so the ordinary Connor click filter
 for types with bit 0x20 or 0x40 (`ranged-weapons.md` rule 32) does not
@@ -244,8 +279,11 @@ Remaining questions for Q210:
   established above.
 - Binary disk-load reattachment of head state/timers, temporary fire
   emitters, and the named body/wall references.
-- Whether the authored dragon bounds names resolve to active shapes;
-  the generic meaning of `colliderMask=0` is established above.
+- Which of the body's and heads' overlapping swept shapes wins for a
+  particular projectile trajectory, and the exact service order of
+  projectile removal and its queued hit. The active bounds, masks and
+  zero-damage immunity are established above; no original run of a
+  particular earned trajectory was made.
 
 An unattended original-data encounter check can assert separate
 body/head ownership and assets, head `Do` timing, bite versus fire

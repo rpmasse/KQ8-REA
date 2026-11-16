@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 Dragon collision bounds
+
+The IceWorld Dragon study resolved the original bounds lookup: the
+body and both heads use their monster types to find three distinct
+collision boxes. Connor can physically contact all three, select only
+a head for a hand strike, and an incoming projectile can contact either
+actor. A head's projectile-immunity bit makes that contact deal zero
+damage. The unattended GOG-data Dragon load check now asserts all
+three active collision shapes and masks; it passed 1/1 in 27.07
+seconds. The exact winner for overlapping projectile shapes, earned
+Flame Sword fight and original binary save continuation remain open.
+No manual gameplay test was run; M5 remains approximately 65%.
+
 ## 2026-11-16 M5 earned Henchman route
 
 An unattended route from a previously earned Windmill save now passes
