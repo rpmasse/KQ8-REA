@@ -242,6 +242,31 @@ model, corpse and one 30,000-experience reward. No AI or damage switch
 was disabled. This is a controlled fight in Rust, not an earned Barren
 campaign route or original-executable parity.
 
+## M5 Barren second ant and vulture families (2026-11-17)
+
+Use one original-data Barren process for the installed `ant11` (`ant2.kq`)
+and nearby `vulture2` (`vulture.kq`). Start Connor near `ant11` and allow
+its normal AI to attempt an ordinary melee hit; keep damage enabled and
+raise Connor's health ceiling only if the terrain or other enemies would
+end the route early. After observing that attack, issue controlled Normal
+death events to each named actor, allowing their death movements to finish.
+Assert their individual installed stats, drops or lack of drops, corpse
+behavior and single experience awards. If the vulture's authored zero
+alarm and attack distances prevent a natural attack, do not claim a live
+vulture hit. This one-process check should link two previously unverified
+families without comparing them to the original executable or adding
+manual play.
+
+The original-data release test passed 1/1. `ant11` began ordinary AI
+attacks after moving within its 1,000-unit reach; its Normal hits lowered
+Connor's health while he was alive. A neighboring `ant10`, also `ant2`,
+landed additional hits, recorded as a separate source. The controlled
+`ant11` death dropped one Crystal, ended without a corpse and awarded
+5,000 experience once. `vulture2` had no observed live attack; its
+controlled Normal death dropped nothing, left no corpse and awarded
+500 experience once. Connor's health ceiling was raised without god
+mode so both death movements could complete in the same process.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

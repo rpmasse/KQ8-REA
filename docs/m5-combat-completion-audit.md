@@ -32,6 +32,11 @@ weapon, Fire contact and health loss while Connor is alive, followed by
 its no-drop/no-corpse Normal death and 8,000 experience. Earlier same-lane
 lava deaths and the passing run's lack of world hits remain separate
 terrain evidence, not a resolved terrain-fidelity claim.
+The one-process `barren_ant2_vulture_live` route adds a placed `ant2`
+actor's normal AI melee health loss, Crystal drop, no corpse and 5,000
+experience, plus a nearby vulture's controlled no-drop/no-corpse death
+and 500 experience. The vulture did not make a live attack; its zero
+alarm and attack distances need a separate rule audit.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

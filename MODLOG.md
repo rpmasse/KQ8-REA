@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Link Barren ant2 and vulture combat families (M5)
+
+One original-data Barren release test passed 1/1 in about 20 seconds.
+The placed `ant11` actor used normal AI to hit and lower Connor's
+health; a neighboring `ant10` also hit him. Controlled Normal death
+confirmed `ant11`'s Crystal drop, no corpse and one 5,000-experience
+award, then `vulture2`'s no-drop/no-corpse and one 500-experience
+award. No vulture attack was observed, so the test makes no such claim.
+The GOG data stayed read only and no production combat code changed.
+With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test barren_ant2_vulture_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Close the placed Pyrod Fire-damage gap (M5)
 
 A new original-data Barren release test passed 1/1. It reuses the

@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 Barren ant2 and vulture family deaths
+
+The combined original-data `barren_ant2_vulture_live` release test
+passed 1/1. Placed `ant11` (`ant2`) attacked through normal AI and
+lowered living Connor's health. Controlled Normal deaths checked the
+ant's Crystal drop, no corpse and 5,000 experience, and `vulture2`'s
+no-drop, no-corpse and 500-experience outcome. Neighboring `ant10`
+also landed Normal hits. The vulture made no live attack in this route;
+its zero alarm/attack distances need review. M5 remains incomplete.
+
 ## 2026-11-17 M5 Barren Pyrod Fire hit
 
 The original-data `pyrod_live_fire` release test passed 1/1. A placed
