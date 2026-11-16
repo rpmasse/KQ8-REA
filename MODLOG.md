@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Verify game over after ordinary root attacks
+
+Changed: added an unattended original-data Swamp route with normal AI
+and damage that waits for the linked Mandragor roots to kill Connor,
+then checks his Normal death movement, scripted hold, and single title
+menu transition. Why: existing death checks supplied scripted damage,
+so they did not prove an ordinary enemy-to-menu path. Tested how: from
+the worktree, set `$env:KQ8_GAME_DIR = (Resolve-Path "..\..\..\King's
+Quest 8 GOG").Path`, then run `cargo test --locked -p kq8-viewer
+--test live_enemy_game_over -- --ignored --nocapture`. Result: 1/1
+passed in 62.30 seconds, with the original Options.cs bytes unchanged.
+The first direct probe used `--updates 700`; after the death menu
+stopped the world clock near update 470, it could not reach that limit.
+The diagnostic process was stopped and the successful route uses
+`--frames 210`. No manual gameplay test was run.
+
 ## 2026-11-16 Accept Skeleton King's authored clear-notify command
 
 Changed: accepted `KQMonster::clearstateChangeNotify` as the existing

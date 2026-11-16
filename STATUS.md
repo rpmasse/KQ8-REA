@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 game over from live enemy attacks
+
+An unattended original-data Swamp run now lets both Mandragor roots
+attack Connor with normal AI and damage until a root's hit lowers his
+health below zero. His Normal death movement finishes, the scripted
+hold ends, and the title menu opens once. The frame-limited GOG-data
+test passed 1/1 in 62.30 seconds and left Options.cs unchanged. An
+earlier update-limited diagnostic could not exit after the menu stopped
+the world clock; it was terminated and replaced. This verifies a live
+enemy-to-game-over path, not all damage kinds or a campaign fight.
+No manual gameplay test was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 Skeleton King death callback
 
 The installed Dead City `skelking.cs` uses a lowercase spelling of

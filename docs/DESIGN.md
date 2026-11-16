@@ -3,6 +3,24 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 game over from an ordinary enemy attack (2026-11-16)
+
+Run an unattended original-data Swamp encounter with the two linked
+Mandragor roots, normal AI and incoming damage, and no supplied hits or
+potions. Connor begins with the regional health and must die from an
+actual root `Do` attack. Require his Normal death movement, the scripted
+death hold, and one return to the title menu in that order. Stop by
+rendered frame count: once the title menu opens, the world clock stops
+and an update-count limit would never be reached. This checks a live
+game-over transition, not every death kind or campaign encounter.
+
+Checked: the unattended GOG-data test passed 1/1 in 62.30 seconds.
+Normal hits from both roots reduced Connor's regional health until a
+root's next hit killed him. His `die` movement ended, the scripted hold
+completed, and one title menu opened. The first diagnostic used an
+update limit beyond the death point and stayed open at the stopped
+world clock; it was stopped and replaced with the frame-limited run.
+
 ## M5 Skeleton King death notification cleanup (2026-11-16)
 
 The installed Dead City `skelking.cs` Die callback spells the clear
