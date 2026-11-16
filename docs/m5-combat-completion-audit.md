@@ -87,8 +87,12 @@ Zombie's home moved with it to retain its ordinary chase.
 The installed Temple 4 altar route now links both `lucend` forms to
 actual damage in one process: a `PrLuc.kq` bolt from `LucEndFar`
 contacts Connor and removes 115 health, then `LucEnd`'s Normal swing
-removes 64. It still switches far, near and far. The separate
-`lucfight` type remains unlinked.
+removes 64. It still switches far, near and far.
+The separate `temple4_lucfight_live` route now starts the first
+`lucfight` actor through its altar cue. It checks three ordinary Normal
+health losses, a no-drop/no-corpse death with 75,000 experience, and
+`lucfight.cs`'s wall removal and delayed altar callback. The preceding
+puzzle and later two placements are outside this M5 combat route.
 The existing Daventry `monster_friendly_fire` process now continues
 after three stationary bolt intercepts. Connor walks as the bow
 Spriggan releases its fourth bolt; the test compares his logged position

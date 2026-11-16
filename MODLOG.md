@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Check the first authored Lucfight stage (M5)
+
+Read the installed Temple 4 `monsters.kq`, `altar.cs` and `lucfight.cs`
+without modifying game files. A new unattended original-data fixture
+sent altar Cue `(2,6)`, which moved Connor and `Lucfight1` to their
+scripted fight positions and loaded the wall. The actor rose from
+Birth, landed three Normal hits, then completed a controlled no-drop,
+no-corpse death with one 75,000-experience award. Its Die script
+removed the wall, and the queued altar Cue `(399,1)` ran after the
+15-second delay. The first test run failed because its staging
+assertion expected the actor move in `traps.log`; the home update is
+in `characters.log`, while `traps.log` records Connor and the wall.
+The corrected release test passed 1/1 in about 31 seconds. No
+production code or GOG file changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test
+temple4_lucfight_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Link Lucreto's ranged contact and close damage (M5)
 
 The existing Temple 4 form-switch fixture previously logged three

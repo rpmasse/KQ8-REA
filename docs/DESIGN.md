@@ -550,6 +550,19 @@ contact and a Projectile health loss while Connor lives. Keep the close
 form's Normal hit and the return to far form in the same process. This
 checks Rust behavior with GOG data, not original-executable parity.
 
+## M5 Temple 4 Lucfight first authored encounter (2026-11-17)
+
+The installed `monsters.kq` has three `lucfight` placements with the
+same combat stats. Use altar Cue `(2,6)` from `altar.cs` to move
+`Lucfight1` and Connor into the authored fight positions and load the
+wall. Without god mode, raise Connor's health ceiling so one normal AI
+Attack can lower living health. After that contact, send one controlled
+Normal death to `Lucfight1` and require its 3,500 health, 800 hand
+damage, no drop, no corpse and one 75,000-experience award. Observe the
+`lucfight.cs` Die callback's altar cue after its authored delay. This
+links the distinct type and script handoff in one process; it does not
+claim the full preceding campaign puzzle or original-executable parity.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Temple 4 first Lucfight encounter
+
+The original-data `temple4_lucfight_live` release test passed 1/1.
+Altar Cue `(2,6)` staged Connor, the first placed `lucfight` actor and
+the wall at their scripted positions. `Lucfight1` rose from Birth and
+landed three 800-damage Normal attacks, lowering Connor's health from
+10,000 to 9,679. Its controlled Normal death dropped nothing, left no
+corpse and awarded 75,000 experience once. `lucfight.cs` removed the
+wall, and its delayed altar cue ran 15 seconds later. This links the
+distinct type but does not test the preceding puzzle, later two
+placements or original-executable parity. M5 remains incomplete.
+
 ## 2026-11-17 M5 Lucreto ranged and close damage in one form route
 
 The updated original-data `live_lucreto_forms` release test passed 1/1.
@@ -8,8 +20,8 @@ same process, `LucEndFar`'s `PrLuc.kq` bolt touched Connor and reduced
 health 10,000→9,885; `LucEnd`'s Normal swing then reduced it to 9,821.
 The earlier far bolt was blocked by the altar and god mode suppressed
 the close hit's damage; this fixture uses a clear line and ordinary
-damage. `lucfight` and earned campaign behavior remain unlinked. M5
-remains incomplete.
+damage. Earned campaign behavior remains untested. M5 remains
+incomplete.
 
 ## 2026-11-17 M5 enemy reach while Connor holds Back
 
