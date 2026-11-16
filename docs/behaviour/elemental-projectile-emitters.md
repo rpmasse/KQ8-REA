@@ -70,7 +70,14 @@ bolt is removed.
    filename is a normal loaded projectile field, and its world-entry
    path creates the effect from that field. The emitter's own `follow`
    and dying state are part of the general emitter behavior in
-   `emitters.md`. This does **not** establish how a native saved game
+   `emitters.md`. A bounded follow-up on 2026-11-17 checked the ordinary
+   text-property save paths: the projectile records the `emitter=`
+   filename but no identity for its attached emitter; the emitter
+   records its `follow` name, `dying` and `deadCount`, but no individual
+   particle's age, position, velocity choice or random state. Those
+   property sets alone cannot preserve the exact in-flight particle
+   phase or prove whether the emitter is saved as a separate object.
+   This does **not** establish how a native saved game
    restores an already flying bolt together with its existing emitter:
    creation order, identity matching, current particle ages and avoiding
    a duplicate effect remain open. The established world-snapshot rules
@@ -78,10 +85,11 @@ bolt is removed.
    again on restoration, but this study did not establish whether the
    attached emitter is written as its own saved object or rebuilt only
    from its bolt. The installed GOG copy has no native in-flight
-   elemental-bolt save to inspect. Two bounded static inspections of
-   the projectile entry and general emitter fields did not settle that
-   identity or the live particle phases. Do not claim saved-game parity
-   from the launch rule alone.
+   elemental-bolt save to inspect. The earlier projectile-entry and
+   emitter-field scans, plus this follow-up of the save properties and
+   world removal callers, did not settle that identity or any possible
+   other particle-state save path. Do not claim saved-game parity from
+   the launch rule alone.
 
 ## Numbers and data used
 
@@ -121,8 +129,11 @@ gameplay test is required for this study.
 ## Open questions
 
 1. How does the original saved-game loader match or rebuild the attached
-   emitter when a Fire or Ice bolt is already in flight? Are current
-   particle ages, velocity choices and the dying tail preserved?
+   emitter when a Fire or Ice bolt is already in flight? Is it saved as
+   a separate object, generated again from the bolt, or both? The
+   checked text properties have no per-particle ages, positions or
+   velocity choices; whether any other native save path preserves them
+   or the dying tail remains unverified.
 2. After the contact path queues a hit at current simulation time,
    when does the event service deliver it relative to deferred bolt
    removal and the emitter's first dying update? When floor and range

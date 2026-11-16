@@ -1,5 +1,12 @@
 # Provenance
 
+**Elemental emitter save boundary (2026-11-17).**
+[Emitter behavior](../behaviour/elemental-projectile-emitters.md) and
+Q212 record the bounded original-engine property study. The checked
+fields do not include per-particle phase; separate emitter identity on
+reload and event/removal ordering are still unproven. This note does not
+claim original runtime or Rust save parity. No manual gameplay occurred.
+
 **Ranged Wizard click after combat (2026-11-17).**
 [Ranged-weapons rule 15](../behaviour/ranged-weapons.md) describes the
 ordinary click when a ranged weapon is ready and the first talk pick

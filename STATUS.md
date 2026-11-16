@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Q212 emitter save boundary
+
+The separate original-engine study checked the projectile and emitter
+save-property sets. They include the projectile's emitter filename and
+the emitter's follow, dying and dead-count fields, but no individual
+particle ages, positions, velocity choices or random state. This does
+not establish whether a native save restores the same emitter, rebuilds
+it, or preserves particle phases through another path. Event delivery
+versus deferred removal also remains open. Q212 and the behavior note
+now state those limits precisely. This was static study only: no Rust
+code, manual gameplay, original-runtime test or GOG write.
+
 ## 2026-11-17 M5 ranged Wizard click after a live fight
 
 The existing one-process Daventry `goblin_live_combat` Windows test now

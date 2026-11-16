@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-17 Bound the elemental emitter save gap (M5, Q212)
+
+The separate study session checked the original projectile and emitter
+property paths and their world-entry/removal boundaries. It updated
+`elemental-projectile-emitters.md` and Q212: the checked properties have
+an emitter filename and follow/dying state but no per-particle phase.
+Emitter identity on reload, any other particle-state save path, event
+delivery versus deferred removal, and floor/range tie order remain open.
+No Rust code or automated gameplay check was changed. Review used the
+behavior note and `git diff --check`; no manual gameplay or GOG write.
+
 ## 2026-11-17 Check the ranged Wizard click in the existing fight (M5)
 
 Extended the original-data `goblin_live_combat` test rather than adding
