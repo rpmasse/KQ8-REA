@@ -24,6 +24,30 @@ Connor took right-head damage, landed two more sword hits and completed
 the Dragon body's special death sequence. No god mode, AI suppression,
 console kill or manual gameplay test was used.
 
+## M5 live Mandragor tree death and linked roots (2026-11-16)
+
+Use the installed Swamp `mand3` tree group. Stand Connor north of the
+tree, supply the original Flame Sword and Invulnerable item, and aim
+ordinary hand attacks at the tree. Keep enemy AI and incoming damage
+enabled; do not use god mode or console kills. Require real sword hits
+to defeat the tree, its class-specific corpse and
+experience award, and both linked roots' permanent death rather than
+rebirth. Save after the fight and reload in a fresh process to check
+the tree and roots stay gone and the reward persists. Check the corpse
+in the live world before saving; its original disk-save lifetime has
+not been established. This controlled location does not prove the
+earned Swamp campaign approach or original binary-save compatibility.
+
+Stop/handoff: an unattended probe without a Save key did land three
+ordinary SkelKingSword hits and removed the tree and both roots, but
+the two save-route attempts did not reach that result. The first
+route's `mand3t` aims selected the nearer `mand3l` after root movement.
+The second supplied Flame Sword and shield, but every aim at updates
+60–210 was refused while the root's repeated `reactback` Special ran.
+Do not make more timing or weapon variations before resolving Q209's
+tree-to-root notification and proximity cadence from the original.
+No passing save-route test was retained.
+
 ## M5 Lucreto form save continuation (2026-11-16)
 
 Start the installed Temple 4 final altar and move Connor into the

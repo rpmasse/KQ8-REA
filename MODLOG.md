@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-16 Stop the live Mandragor tree save route
+
+Changed: recorded a source-timing handoff after removing the failed
+test fixture; no combat rule was changed. Why: the original study does
+not establish when tree movement notifies roots, while current Rust
+root proximity can repeatedly put Connor in `reactback`. Tested how:
+the read-only probe `kq8-artifacts/mandragor-tree-live-probe` ran the
+debug viewer with Swamp, `--at 157904,141500,0`, the regional sword,
+seven scheduled `mand3t` aims and 260 updates; its logs show three
+ordinary tree hits, the tree's corpse and 20,000 experience, and both
+roots' permanent deaths. A new two-process save fixture then failed
+in 44.48 seconds: after a Save key was scheduled, three tree aims hit
+the nearer left root. A second attempt supplied Flame Sword and an
+Invulnerable item and failed in 47.78 seconds: all six aims at updates
+60–210 were refused during repeated `reactback` Special movements.
+Their logs remain under `kq8-artifacts/mandragor-tree-live-victory`.
+The fixture was removed because it had no passing save route. Q209
+needs original notification cadence before changing this behavior.
+The GOG files were read only; no manual gameplay test was run.
+
 ## 2026-11-16 Continue the live Dragon fight after a disk save
 
 Changed: added an unattended two-process IceWorld combat check that

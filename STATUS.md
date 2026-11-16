@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-16 M5 Mandragor tree route stopped for Q209 timing
+
+An unattended Swamp probe landed three SkelKingSword hits on the
+`mand3t` tree and reached its 20,000 experience award, authored corpse
+and both linked roots' permanent deaths. Two later save-route attempts
+did not repeat that outcome. In the first, the moving roots redirected
+three `mand3t` aims to `mand3l`. In the second, with supplied Flame
+Sword and Invulnerable item, all six aims at updates 60–210 were
+refused because repeated root proximity responses kept Connor in
+`reactback` Special. The original tree-to-root notification timing
+remains open in Q209; no combat rule was changed to force a pass. No
+passing save-route test was retained. The GOG install was read only and
+no manual gameplay test was run. M5 remains about 65%.
+
 ## 2026-11-16 M5 live Dragon fight survives a disk checkpoint
 
 An unattended IceWorld fight defeated the left Dragon head with two
