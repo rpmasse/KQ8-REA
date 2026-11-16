@@ -1,5 +1,14 @@
 # Provenance
 
+**Live Daventry goblin fight (2026-11-16).** The installed Daventry
+monster list places `goblin22` north of Sara's cottage, and
+[fighting rules 7, 13–18 and 30–32](../behaviour/fighting.md) describe
+its attack, damage, death, drops and experience. The new unattended
+GOG-data check keeps that actor at its authored location, grants the
+installed Small Crossbow through the ordinary inventory command, and
+uses ranged aim inputs against its live AI. It proves one Rust encounter
+path, not an earned campaign route or original-executable parity.
+
 **Dragon projectile contacts (2026-11-16).** The separate
 [Dragon study](../behaviour/dragon.md) Q210 establishes that zero
 collision masks do not erase the heads' type 0x4042 or the body's type

@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-16 Verify a live Daventry goblin fight
+
+Changed: added one unattended GOG-data encounter test using the original
+`goblin22`, with its AI, incoming damage, death, drops and experience
+enabled. No gameplay code changed. Why: the weapon and difficulty
+checks covered controlled targets; this checks the ordinary enemy
+attack and player shot paths together through one complete fight.
+Tested how: set `KQ8_GAME_DIR` to the GOG folder and run `cargo test
+--locked -p kq8-viewer --test goblin_live_combat -- --ignored
+--nocapture`. It passed 1/1 in 42.29 seconds. Connor took Normal melee
+hits and stayed alive; four original Small Crossbow bolts killed
+`goblin22`, whose death awarded 3 experience and threw two mushrooms.
+The first read-only probe gave the weapon to Connor's hand instead of
+his ranged slot and aimed through the cottage. The second corrected
+probe landed three shots and left one health, informing the final
+four-shot test. GOG `Options.cs` was unchanged. No manual gameplay or
+original-executable comparison was run; the earned encounter route and
+the rest of M5 remain open.
+
 ## 2026-11-16 Verify Dragon projectile contact through zero masks
 
 Changed: added a focused core first-contact test and a two-launch

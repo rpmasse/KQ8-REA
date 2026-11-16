@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-16 M5 live Daventry goblin encounter
+
+An unattended original-data Daventry fight now passes from the
+authored `goblin22` location with normal AI and incoming damage. The
+goblin's melee attacks reduced Connor's health 10 to 6; four ordinary
+Small Crossbow shots reduced the goblin's health 15 to -5. Its death
+ended once, dropped two mushrooms and awarded 3 experience. The test
+passed 1/1 in 42.29 seconds and left GOG `Options.cs` unchanged. The
+first probe used the wrong inventory slot and was blocked by the cottage;
+the corrected north-side probe established the exchange before the
+fourth shot completed it. Connor's position and weapon are supplied by
+the test, so this is a local encounter, not the earned Daventry route
+or an original-executable comparison. No manual gameplay was run; M5
+remains about 65%.
+
 ## 2026-11-16 M5 Dragon projectile contact and protection
 
 A focused core test passed both first-contact orders with the Dragon

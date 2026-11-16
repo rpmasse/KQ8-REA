@@ -3618,6 +3618,21 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Daventry live goblin encounter check (2026-11-16, checked).** Use the installed
+`goblin22` at its authored location with normal AI and incoming damage.
+Place Connor on clear ground north of it, grant the original Small
+Crossbow through the inventory command, and use ordinary ranged aim
+inputs until the goblin dies. Require its own attack cue to reduce
+Connor's health, Connor's bolts to reduce the goblin's health, and one
+death, drop and experience award. Keep the GOG installation read-only.
+This checks one complete local fight; it does not establish the earned
+Daventry campaign route or original-executable visual parity.
+The unattended GOG-data check passed 1/1: the goblin's Normal melee
+hits reduced Connor's health, four ordinary crossbow shots reduced the
+goblin's health 15 to below zero, and its death awarded 3 experience
+and dropped two mushrooms. AI and damage remained enabled; no actor
+was moved from its authored location.
+
 **Snowmane Clarity combat check (2026-11-16, checked).** The installed
 Ice World `snowmane.cs` changes Snowmane's hand damage and protection
 when Connor uses Clarity. The existing original-data test checks those
