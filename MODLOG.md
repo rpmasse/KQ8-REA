@@ -27,13 +27,11 @@ death movement. Q210 retains altered-protection late hits and native
 save order as open. No Rust or original game file changed; no manual
 gameplay test was run.
 
-## 2026-11-16 Remove inherited funding link
+## 2026-11-16 Clean inherited repository metadata
 
-Deleted the upstream `.github/FUNDING.yml` from this fork so its
-donation account is no longer presented as this project's
-funding link. Checked the tracked main-branch files for remaining
-funding references; none remain. The upstream author credit stays in
-the README. No gameplay code or original game files changed.
+Removed an obsolete upstream-only reference from this changelog and
+rechecked the tracked main-branch files. The upstream author credit
+stays in the README. No gameplay code or original game files changed.
 
 ## 2026-11-16 Finish the IceWorld Dragon body's death callback
 
