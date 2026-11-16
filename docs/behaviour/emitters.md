@@ -139,6 +139,41 @@ so: "How many cycles (1/15th of sec) does a particle live".
     particle whose life ends is not restarted but removed; when all are
     gone, the emitter removes itself. If it is already dying when it
     enters the world (a saved game), it is removed at once.
+10a. **Explicit deletion, Temple 4 (Q215, read-only trace).**
+    `deleteObject lucfire` follows the ordinary object deletion rule in
+    `clicking.md` rule 22. It marks the emitter deleted at once, so none
+    of its particles is drawn from that point. When the current script
+    event finishes, the emitter is removed, its entire particle set is
+    destroyed and its name is freed. This path does not tell the emitter
+    to die and has no particle-life tail. It differs from losing a
+    followed model part in rule 11(a), which enters the dying path and
+    lets existing particles finish their lives.
+
+    Temple 4's `altar.cs` loads `lucfire.kq` at Cue 5, deletes it at
+    Cue 7, loads it again at Cue 8, and deletes it at Cue 11. Another
+    branch loads and deletes it too. These are separate script events;
+    the later load creates a new emitter with new particles and their
+    normal randomized start. The installed `lucfire.kq` follows
+    `Lucreto`'s `Box01` mesh part, uses `flame.kqs`, `delayStart=1`,
+    `maxLife=50` ticks and `maxParticles=125`. A same-name load during
+    the *same* deletion event would still fail, as `objects.md` rule 6
+    establishes.
+
+    **Save boundary.** Once the deletion event has finished, `lucfire`
+    is absent from the saved world object list, as for other deleted
+    objects (`world-change.md` rule 11). If it is still live when a
+    world snapshot is made, the emitter property path includes its
+    `follow`, `followMesh`, `dying` and `deadCount` fields. The traced
+    class properties do not contain each particle's age, position or
+    random choices. Cue 7 posts a delayed Cue 8; a still-pending
+    `KQCueEvent` is eligible for the shared saved-world queue
+    (`saved-world-events.md` rules 1–2). It is therefore reasonable to
+    expect the later Cue to load a fresh `lucfire` if a save occurs
+    between them and its target is restored, but that scene-specific
+    continuation was not checked. The availability of saving during
+    this altar sequence and the first particle frame after restoring
+    a live `lucfire` also remain open. No manual gameplay test was
+    performed.
 11. **Following (not used in Daventry).** `follow=<object name>` (or the
     word `KQCamera` for the camera) puts the emitter at that object's
     position plus `followOffset` and moves it along when the object moves.

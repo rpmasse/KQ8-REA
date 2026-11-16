@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-16 Study explicit deletion of Temple 4 fire
+
+Traced `deleteObject lucfire` through the common deletion rule and the
+emitter's particle-array destruction. It stops drawing all particles
+immediately and removes them at the end of the script event; the later
+Cue reload creates a fresh emitter. This differs from the dying tail
+when a followed mesh part is lost. `emitters.md`, Q215, STATUS and
+provenance record the confirmed rule and the remaining altar save/reload
+uncertainty. No Rust or original game files changed; no manual gameplay
+test ran.
+
 ## 2026-11-16 Study team alarms before Mandragor root birth
 
 Traced the original shared team alarm, ordinary alarm, timed Wait event

@@ -108,8 +108,9 @@ specify startup and following the animated part, and rule 10 specifies
 dying when the part is lost. The Rust loader now prepares this invisible
 runtime copy, including a restored copy, and the viewer follows its
 current part. An unattended Temple 4 route logs moving part frames,
-delete/reload, and target-loss expiration. Q215 leaves the original's
-emitter-specific explicit-deletion and disk-save semantics open; these
+delete/reload, and target-loss expiration. [Emitter rule 10a](../behaviour/emitters.md)
+now confirms immediate explicit deletion and a fresh later Cue load.
+Q215 leaves altar disk-save timing and restored particle phases open; these
 checks are Rust runs with original data, not original-runtime parity.
 Implementation B read the prose note and GOG data, not the executable.
 

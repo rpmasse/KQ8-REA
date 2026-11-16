@@ -188,11 +188,13 @@ world and a saved runtime copy. Three unattended Windows routes passed;
 the moving route logged different part positions from animation frames
 6 through 51, and the target-loss route removed the effect at update 75.
 
-These are controlled Rust checks, not the entire altar script, a disk
-save/reload run, or comparison against the original executable. Q215
-asks the study session to settle the original's explicit-deletion and
-saved-emitter rules. No manual gameplay test was run. The GOG install
-was read only. M5 remains approximately 65%.
+The read-only engine study now confirms that explicit deletion hides
+all particles immediately and destroys them after the script event;
+the next Cue creates a fresh emitter. These are controlled Rust checks,
+not the entire altar script, a disk save/reload run, or comparison
+against the original executable. Q215 retains the altar save and live
+particle restoration questions. No manual gameplay test was run. The
+GOG install was read only. M5 remains approximately 65%.
 
 ## 2026-11-16 M5 Dragon save continuation and surprise-line audit
 
