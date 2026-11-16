@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 Snow exit archon classified
+
+Read-only original-data study shows the Snow exit Archon's script runs
+dialogue and the portal scene. Its movement named `attack` is a standing
+shape with an EndLoop cue and no `Do` damage cue. The separate placed
+`archon1` row has no matching bounds box. The M5 enemy matrix now treats
+this as a scripted guide rather than requiring a fabricated combat hit.
+No runtime comparison or new code test was performed; its campaign
+route remains M6 work. M5 remains incomplete.
+
 ## 2026-11-17 M5 Swamp fiend live hit and bubble death
 
 The combined original-data `swamp_fiend_bubble_live` release test

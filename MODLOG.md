@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-17 Classify Snow exit Archon as a scripted guide (M5)
+
+Read the installed Snow exit `archon.cs`, `archon.anm` and placement
+inventory without writing game files. Its dialogue and portal actions
+and attack movement without a damage cue justify removing a proposed
+combat test from the M5 matrix. No production code or scenario test
+changed. To repeat the read-only check, run `target\release\kq8.exe
+text vol:Snowexit/kq/archon.anm --game <GOG path>` and inspect movement 0:
+it has one `endLoop` cue and no `Do` cue.
+
 ## 2026-11-17 Link Swamp fiend fight and bubble death (M5)
 
 One original-data release test passed 1/1 in about 29 seconds. The
