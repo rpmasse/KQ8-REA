@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Check the Tower Skeleton fall with original data
+
+Changed: added an unattended Dead City regression for the original
+Tower Skeleton's ordinary hits, `reactback`, scripted fall, chain mail,
+camera and control handoff, experience and removal. Gameplay code was
+unchanged. Why: the previous rise-only check did not exercise this
+specialized combat finish. The fixture moves the same GOG actor near
+the tower edge before the second hit; it does not prove an earned route.
+Tested how: set `KQ8_GAME_DIR` to the GOG folder and run `cargo test
+--locked -p kq8-viewer --test tower_live_fall -- --ignored --nocapture`.
+It passed 1/1 in 59.32 seconds with normal AI and damage; Connor took
+two hits and survived, while the actor dropped chain mail and awarded
+4,000 experience once. A rope-side probe without actor relocation
+landed `reactback` but did not fall because the ground probe found
+support. GOG `Options.cs` was unchanged; no manual gameplay ran.
+
 ## 2026-11-16 Let visible PreBirth enemies rise
 
 Changed: a Birth-state character with an authored `PreBirth` movement

@@ -3618,6 +3618,28 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Tower fall with original data and normal damage (2026-11-16).**
+Keep the installed Dead City `Skeltowr` actor and its GOG movements,
+fight settings, scripts, item and message data. Use ordinary Small Axe
+aim inputs with enemy AI and incoming damage enabled. Its first hit
+can be blocked by the active attack; the second hit selects
+`reactback`. For an isolated edge check only, move that same actor and
+Connor near the tower edge just before the second hit. Require the
+ground-behind probe to start `teeter`, both authored speech lines,
+the `die`/`die2`/`fallend` sequence, one chain-mail drop, camera and
+control restoration, one experience award and removal. Keep the
+GOG installation read-only. This proves the controlled Rust fall path;
+an earned approach without actor relocation remains a separate M5 gate.
+The unattended GOG-data test passed 1/1 in 59.32 seconds with normal
+incoming damage. Connor took two hits and landed two ordinary Small
+Axe swings. After the controlled edge relocation, `reactback` found
+no support, the four fall movements completed, both speech lines ran,
+chain mail was thrown, the camera and controls returned, and one
+4,000-experience award preceded actor removal. The initial rope-side
+probe without relocation landed `reactback` but found support, so it
+did not fall. The natural player route and the dropped item's later
+pickup remain open.
+
 **Visible PreBirth rise (2026-11-16).** The installed Dead City
 `Skeltowr` has both `birth` and `prebirth` in its animation list.
 The existing loader correctly leaves it visible and solid in Birth,
@@ -3634,7 +3656,8 @@ The unattended GOG-data test passed 1/1 in 37.35 seconds. The actor
 played visible `PreBirth`, took Cue 201, entered Wait and began `birth`
 at update 131 with Connor outside its clearance; after `birth` ended,
 it began `walk`. The previous same-position probe stayed in Birth
-through update 191. The tower fight and scripted fall remain open.
+through update 191. The later controlled fall check verifies the
+finish, while an earned approach remains open.
 
 **Tower controller disk checkpoint (2026-11-16).** The installed Dead
 City `KQTowerSkeleton` has dedicated move, greeting, stagger and fall
@@ -3664,8 +3687,9 @@ Connor was placed near the tower. The first `--at` position was later
 replaced by a Dead City scripted movement. The second placed Connor
 inside the skeleton's logged collision cylinder; the actor stayed in
 Birth through update 176. No fall, chain-mail drop or reward was
-observed. Stop placement variations here and establish a route that
-keeps Connor on the platform while clear of the birth collider.
+observed in those early probes. The later visible-PreBirth fix and
+controlled edge check establish the Rust fall sequence, but an
+unrelocated player route still remains open.
 
 **Swamp slime live fight (2026-11-16, attempted; check withheld).**
 The installed `slime1` at its authored Swamp position fired an ordinary

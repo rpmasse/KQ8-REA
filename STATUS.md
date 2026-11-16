@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-16 M5 controlled Tower Skeleton fall
+
+An unattended original-data test now completes the Tower Skeleton's
+scripted fall with normal enemy AI and incoming damage. Connor takes
+two hits and lands two ordinary Small Axe swings; the second selects
+`reactback` after the actor is moved near the tower edge for this
+isolated geometry check. The unsupported ground probe starts `teeter`,
+both speech lines and all four fall movements finish, chain mail is
+thrown, camera and controls return, 4,000 experience is awarded once,
+and the actor is removed. The test passed 1/1 in 59.32 seconds; GOG
+`Options.cs` was unchanged. The earlier rope-side attempt without
+relocation landed `reactback` but had support and did not fall.
+The earned player route and item pickup remain unverified. No manual
+gameplay or original-executable comparison ran. M5 remains about 65%.
+
 ## 2026-11-16 M5 visible PreBirth rise
 
 The installed Dead City Tower Skeleton has both `Birth` and `PreBirth`.

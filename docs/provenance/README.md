@@ -1,5 +1,14 @@
 # Provenance
 
+**Tower Skeleton controlled fall (2026-11-16).** The installed Dead
+City `Skeltowr` actor, animation list, fight values, speech and chain
+mail supply the [tower rules](../behaviour/fighting.md#7a-the-tower-skeleton-kqtowerskeleton-traced-2026-10-28-batch-2).
+The unattended `tower_live_fall` test uses normal AI, damage and Small
+Axe inputs. It moves the original actor near a verified unsupported
+edge immediately before the second hit, then checks the Rust fall,
+drop and reward. This proves a controlled sequence, not the earned
+approach or comparison with a running original executable.
+
 **Visible PreBirth rise (2026-11-16).** The installed Dead City
 `Skeltowr` animation list includes `birth` and `prebirth`.
 [Character rule 16](../behaviour/characters.md) describes the visible
