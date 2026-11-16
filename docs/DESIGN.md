@@ -3,6 +3,33 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 late-loaded weapon actions after Temple Armour (2026-11-16)
+
+The original Temple Armour refresh maps Connor's currently carried hand
+and ranged weapons to `contpsd2.anm` and `conicbw2.anm`. The live viewer
+loads these new files after the pickup, but its late third-person loader
+currently selects only its general movement list and omits authored
+weapon actions. Add attack, put-away and throw/catch actions to that
+loader's selected names; absent actions remain skipped as they are for
+other weapon lists. Preserve the original base `Conner.anm` requirement
+and first-person full-list path. Verify the installed Temple Armour lists
+contain usable attacks, then replay an isolated live Dead City fight using
+the armour-mapped Flame Sword with normal enemy AI and damage. Keep the
+GOG files unchanged and run no manual gameplay test.
+
+Checked: the unattended live boss test passed 1/1 in 56.08 seconds, and
+the three existing original-data Temple Armour loader/refresh checks
+passed. Both remapped weapon lists loaded their authored attacks and
+put-away movements. Connor defeated the King's active AI with Flame
+Sword hits while taking normal damage under Temple Armour and the
+Invulnerable shield; the Fire death awarded experience once. The first
+regression run scheduled a swing during Connor's hit reaction and failed
+its four-hit assertion; the final run allows that interruption and adds
+a later aim. The GOG Options.cs bytes stayed unchanged. The isolated
+route supplies the boss state and equipment; the authored intro sequence
+is separate campaign work. Its Die callback still rejects an eight-word
+`KQMonster::speak` line, which remains open.
+
 ## M5 live combat difficulty (2026-11-16)
 
 Use the same original Dead City bow-skeleton encounter as the live Small

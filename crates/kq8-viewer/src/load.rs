@@ -458,6 +458,13 @@ pub const CONNOR_MOVEMENTS: [&str; 61] = [
     "tilebackjump2",
 ];
 
+/// Weapon lists loaded after a pickup need their own attack and swap
+/// movements as well as Connor's common movement set. Missing names are
+/// skipped by `connor_set` for a weapon file; the base list stays strict.
+const LATE_WEAPON_MOVEMENTS: [&str; 8] = [
+    "attack", "attack2", "attackb", "attack3", "away", "away2", "wait", "catch",
+];
+
 /// One of Connor's movements: its animation and playback speed.
 pub struct ConnorMovement {
     pub name: &'static str,
@@ -660,6 +667,8 @@ pub fn connor_set(
             table.get(&key).map(|name| kq8_core::connor::intern(name.trim()))
                 .ok_or_else(|| format!("{set_list} has no {key}"))
         }).collect::<Result<Vec<_>, _>>()?
+    } else if file.is_some() {
+        CONNOR_MOVEMENTS.iter().copied().chain(LATE_WEAPON_MOVEMENTS).collect()
     } else {
         CONNOR_MOVEMENTS.to_vec()
     };

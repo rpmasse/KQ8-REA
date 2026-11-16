@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-16 M5 Temple Armour weapon actions and live boss fight
+
+Temple Armour remaps Connor's weapons to new animation lists after
+pickup. The viewer loaded those lists but omitted their attack and
+put-away movements, leaving the armoured Flame Sword unable to swing.
+The late loader now includes authored weapon actions. An unattended
+original-data Dead City fight passed 1/1 in 56.08 seconds: Connor took
+normal Skeleton King damage, survived with Temple Armour and the
+Invulnerable shield, and defeated the King with live Flame Sword hits.
+The King's Fire death awarded experience once. Three original-data
+Temple Armour loader/refresh checks also passed. The first regression
+run failed because a scheduled swing fell during Connor's hit reaction;
+the final fixture admits that normal interruption. The GOG Options.cs
+bytes stayed unchanged. This is an isolated fight with supplied boss
+state and equipment, not the authored intro or campaign route. The
+King's Die script still rejects an eight-word `KQMonster::speak` line.
+No manual gameplay test was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 live combat difficulty
 
 An unattended original-data Dead City check now runs the same live

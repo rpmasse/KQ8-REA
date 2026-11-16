@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-16 Load late Temple Armour weapon actions
+
+Changed: the viewer's late third-person weapon loader now includes
+authored attack, put-away, wait and catch movements alongside Connor's
+general movements, and an unattended Dead City boss fight checks the
+Temple Armour Flame Sword through normal AI and damage. Why: a probe
+showed that `contpsd2.anm` loaded after pickup without `attack`, so
+every armoured sword swing was refused. Tested how: from the worktree,
+set `$env:KQ8_GAME_DIR = (Resolve-Path "..\..\..\King's Quest 8
+GOG").Path`, then run `cargo test --locked -p kq8-viewer --test
+live_temple_armor_boss -- --ignored --nocapture` and `cargo test
+--locked -p kq8-viewer --bin kq8-viewer temple_armor -- --ignored
+--nocapture`. Result: boss route 1/1 passed in 56.08 seconds, Temple
+Armour group 3/3 passed in 5.49 seconds, and GOG Options.cs remained
+unchanged. A first exact-hit fixture failed when Connor's normal hit
+reaction blocked one scheduled swing; the revised fixture lets the
+reaction happen and requires a completed win. Earlier direct probes
+showed Connor die without enough defence, and an Elixir input selected
+an empty quick slot. The King's Die callback still rejects an eight-word
+`KQMonster::speak` command. No manual gameplay test was run.
+
 ## 2026-11-16 Verify Easy and Hard in live ranged combat
 
 Changed: added an unattended original-data Dead City fight at Easy and
