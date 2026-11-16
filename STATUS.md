@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 live Small Crossbow fight
+
+An unattended original-data Dead City encounter now readies Connor's
+regional Small Crossbow and defeats a bow skeleton through three normal
+projectile hits, with enemy AI and incoming damage enabled. The skeleton's
+arrows lowered Connor's health while he survived; its death produced two
+mushrooms, 150 experience and the authored corpse. The test passed 1/1 in
+41.02 seconds and left GOG Options.cs unchanged. The original crossbow
+has unlimited ammunition. The fixture places the target near Connor and
+schedules named aims, so it does not cover an earned campaign route or
+physical mouse targeting. No manual gameplay test was run; M5 remains
+about 65%.
+
 ## 2026-11-16 M5 game over from live enemy attacks
 
 An unattended original-data Swamp run now lets both Mandragor roots

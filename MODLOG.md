@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Verify live Small Crossbow combat
+
+Changed: added an unattended Dead City encounter using Connor's
+regional Small Crossbow against an original bow skeleton with normal AI
+and incoming damage. Why: ordinary ranged-item checks had enemy AI and
+damage disabled, so they did not prove a full live ranged fight. Tested
+how: from the worktree, set `$env:KQ8_GAME_DIR = (Resolve-Path
+"..\..\..\King's Quest 8 GOG").Path`, then run `cargo test --locked -p
+kq8-viewer --test live_crossbow_combat -- --ignored --nocapture`. Result:
+1/1 passed in 41.02 seconds: three player projectiles hit, enemy arrows
+damaged a surviving Connor, and one skeleton death produced two
+mushrooms, 150 experience and its corpse. The GOG Options.cs bytes stayed
+unchanged. An earlier Skeleton King probe sent player attacks during an
+opening scene that blocked input; a skeleton1 probe found its authored
+hand damage was zero, so neither could establish this live damage and
+reward path. No manual gameplay test was run.
+
 ## 2026-11-16 Verify game over after ordinary root attacks
 
 Changed: added an unattended original-data Swamp route with normal AI

@@ -3,6 +3,25 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 live Small Crossbow fight (2026-11-16)
+
+Run an unattended Dead City fight using Connor's original regional Small
+Crossbow and an original bow skeleton, with enemy AI and incoming damage
+enabled. Place the skeleton near Connor, ready the crossbow after regional
+startup, and schedule three named camera aims. Require each player bolt to
+hit, the skeleton's own arrows to lower Connor's health without killing him,
+and one death, two mushroom drops, 150 experience, and the authored corpse.
+The original crossbow has unlimited ammunition, so three shots require no
+inventory consumption. This isolated route does not establish an earned
+campaign approach or physical mouse targeting. Check it with an unattended
+GOG-data test and leave the GOG installation unchanged.
+
+Checked: the unattended original-data test passed 1/1 in 41.02 seconds.
+Three `Prscbolt.kq` shots lowered skeleton2's health from 50 to below zero;
+its normal bow arrows lowered Connor's health while he survived. The
+skeleton died once, dropped two mushrooms, awarded 150 experience and left
+its authored corpse. The GOG Options.cs bytes stayed unchanged.
+
 ## M5 game over from an ordinary enemy attack (2026-11-16)
 
 Run an unattended original-data Swamp encounter with the two linked
