@@ -95,9 +95,13 @@ destination move without a second On; and the larger non-Rock stack's
 retained carried identity. All 10 item-removal cases pass. The existing
 `rock_flight_checkpoint` Windows check already compares both final Rock
 records across a fresh-process reload; it was not repeated for this
-test-only change. Full saved-name contact reattachment, other registration
-paths, and collision-type/mask overrides remain. The loaded trap-list
-ordering is not proof of the original spatial traversal (Q205). Original
+test-only change. One additional synthetic core case verifies that the
+active item registration queue silently reattaches a saved trap name.
+The production disk loader still copies membership after world construction;
+contact-before-Init and fresh-process saved-name reattachment remain untested.
+Other registration paths and collision-type/mask overrides remain. The
+loaded trap-list ordering is not proof of the original spatial traversal
+(Q205). Original
 aim/arc remains Q202. This release work does not prove portal traversal,
 the remaining Dead City quests, or the later campaign. Manual testing
 and original-engine runtime comparison are **not tested**.

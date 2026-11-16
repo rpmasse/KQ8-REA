@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Check saved item contact through active registration
+
+Changed: added one synthetic core regression for a saved item on a trap.
+Why: the generic trap code had a saved-name contact path, but no test
+had run it through the active item's registration queue. Tested how:
+`cargo test --locked -p kq8-core saved_item_name_reattaches_through_active_registration_without_an_on_callback -- --nocapture`
+passed 1/1. An earlier command with `--exact` selected zero tests because
+it omitted the module prefix; it was rerun with the test selected. The
+saved name starts pending, contact moves it to live membership, and the
+plate's On callback does not repeat. No production code or GOG file
+changed. The production disk-save loader still bulk-restores membership;
+its contact timing, other object classes, and manual gameplay are not tested.
+
 ## 2026-11-16 Check the last carried Rock and non-Rock drop paths
 
 Changed: added three source-backed core regressions for Q203's

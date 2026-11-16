@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-16 Q203 saved-item contact mechanism
+
+A new core check passes for a saved stationary item reattaching to a
+trap through the ordinary active registration queue without a second On
+callback. It uses synthetic items and a trap, not the production disk
+loader. The current disk loader still copies saved trap membership after
+world construction, so original contact-before-Init ordering and a
+fresh-process pressure-plate replay are not established. No production
+code changed; no manual gameplay ran. M5 remains about 65%.
+
 ## 2026-11-16 M5/M6 last-item Rock handoff and ordinary drop edges
 
 Three focused core checks now cover Q203's last-carried-item edge. The

@@ -853,8 +853,10 @@ callbacks and NewInvItem timing. `script.rs` adds command-owned resumable
 effects; `active.rs` supplies item registration and live position queries;
 `trap.rs` supplies oriented ball-stack contact. Synthetic checks and the
 existing earned Dead City route validate this partial implementation.
-Singleton/non-Rock removal and broader saved-contact reattachment remain
-separate; pickup/deletion is implemented above. B did not read the original
+Core checks now cover last Rock and non-Rock removal plus one saved item
+contact through active registration. The production disk loader still bulk
+restores trap membership, so saved-contact ordering remains open;
+pickup/deletion is implemented above. B did not read the original
 executable, decompilation or disassembly. [Evidence](../item-registration-traps.md)
 
 **Scripted prop placement and trigger departure.** `traps.md` rule 5(b),

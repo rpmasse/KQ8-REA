@@ -159,6 +159,35 @@ fn restored_world_item_and_saved_membership_do_not_repeat_registration_callbacks
 }
 
 #[test]
+fn saved_item_name_reattaches_through_active_registration_without_an_on_callback() {
+    let scripts = [("plate.cs", "if test $2 == On\n set Test::entered $3\nendif\n")];
+    let mut original = world(&scripts);
+    plate(&mut original, "plate", [0.; 3], 20., 512, "plate.cs");
+    original.console_command("KQMonster::inventory world Crystal 1 0 0 0", "test");
+    let name = original.scripts.vars.get("NewInvItem").unwrap().to_string();
+    assert_eq!(original.world.traps[0].inside, [name.as_str()]);
+    let bytes = serde_json::to_vec(&(original.world.items.objects.clone(), SavedTraps::capture(&original.world.traps))).unwrap();
+    let (objects, traps): (Vec<ItemObject>, SavedTraps) = serde_json::from_slice(&bytes).unwrap();
+
+    let mut restored = world(&scripts);
+    let mut saved_plate = Trap::new(TrapSettings { name: "plate".into(), position: [0.; 3],
+        min: [-20.; 3], max: [20.; 3], script: Some("plate.cs".into()),
+        lookup_call: false, mask: 512, trap_type: 0, inner_percent: None, spirit: None });
+    assert!(traps.restore_before_registration(&mut saved_plate).unwrap());
+    assert!(saved_plate.inside.is_empty(), "a saved name alone is not live contact");
+    assert_eq!(saved_plate.pending_occupants, [name.as_str()]);
+    restored.add_traps([saved_plate]);
+    restored.world.items.restore_objects(objects, 1, 0);
+    restored.world.known.insert(name.to_ascii_lowercase());
+    restored.sync_item_activity([0.; 3], 1000., std::iter::empty());
+
+    assert_eq!(restored.world.traps[0].inside, [name.as_str()]);
+    assert!(restored.world.traps[0].pending_occupants.is_empty());
+    assert_eq!(restored.scripts.vars.get("Test::entered"), None,
+        "restored contact must consume the saved identity silently");
+}
+
+#[test]
 fn nested_fresh_rock_drops_keep_each_commands_post_callback_new_inv_item() {
     let mut a = world(&[
         ("outer_plate.cs", "if test $2 == On\n set Test::outerVisitor $3\n set Test::outerBefore $NewInvItem\n KQMonster::dropItem Connor Rock 1000 0 0 0 0 0\n set Test::childAfter $NewInvItem\nendif\n"),
