@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Q209 Mandragor disk-load boundary
+
+The separate original-engine study narrowed Mandragor root restoration.
+Root setup makes one immediate matching-tree lookup and subscribes to
+movement only when it succeeds; the saved root fields contain neither
+the live link nor subscription. Saved fields precede inline Init and
+objects load in recorded order, but this pass did not establish every
+disk-load setup route, tree-before-root order, or death-state collision
+and visibility restoration. Q209 and the behavior note now state these
+limits. No Rust code, manual gameplay or GOG file changed; M5 remains
+incomplete.
+
 ## 2026-11-17 M5 drawn-ground ranged aim
 
 The existing Fire-arrow range/emitter Windows test now asserts the

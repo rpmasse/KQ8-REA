@@ -1,5 +1,14 @@
 # Provenance
 
+**Mandragor disk-load linkage (2026-11-17).**
+[Mandragor behavior](../behaviour/mandragor.md) and Q209 record a
+bounded original-engine study. A root links to its matching tree only
+if the immediate setup lookup succeeds; the class-specific saved
+fields omit the live link and listener. Shared load order alone does
+not prove tree-first placement, setup on every disk-load path, or
+death-state visual and collision restoration. Rust save parity and
+original-runtime behavior remain unverified.
+
 **Drawn-ground aim in the Fire-arrow route (2026-11-17).**
 [Ranged-weapons rule 16](../behaviour/ranged-weapons.md) sends an open
 shot line to the drawn-ground intersection when no aimable object is

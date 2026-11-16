@@ -287,12 +287,26 @@ deadline and two phase flags, so its timer is an absolute simulation
 deadline rather than a new delay from load time. The shared saved-world
 sequence restores an object's saved fields before its normal Init, and
 restores objects in recorded order (`saved-world-events.md` rule 10).
-Root setup resolves the tree by name and registers its listener, which
-provides a possible reconstruction path if the tree is already present.
-Whether root setup runs on every disk-load path, whether the tree is
-present before each root, and how the dedicated death state and collision
-are reactivated after loading have not yet been traced.
-Save/load continuation remains open.
+Root setup makes an immediate lookup of the corresponding `t` name,
+stores a tree reference only when that lookup resolves to a tree, then
+positions the root and subscribes it to tree movement. This setup has no
+deferred lookup or retry if the tree is absent at that moment. The live
+tree reference and movement subscription are not among the root's
+class-specific saved properties, so reconstruction depends on setup
+running after a matching tree is available; the authored root name is
+part of that lookup contract. The tree's saved down-root count and the
+root-death state's saved deadline and phase flags do not themselves
+restore the link.
+
+**Disk-load continuation remains open after a bounded static pass.**
+The shared loader proves saved fields precede each object's registration
+and inline Init, with objects loaded in recorded order. This pass did
+not prove that root setup is invoked on every disk-load route, that the
+recorded order always puts each tree before its roots, or that restoring
+the root's dedicated death state reapplies the expected collision and
+visibility before gameplay resumes. In particular, the immediate name
+lookup alone does not justify a claim that an orphaned loaded root will
+link itself later.
 
 ## Confirmed data
 

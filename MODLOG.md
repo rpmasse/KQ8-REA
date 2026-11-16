@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Bound Mandragor disk-load linkage (M5, Q209)
+
+The separate original-engine study updated `mandragor.md` and Q209.
+Root setup makes one immediate matching-tree lookup; the live link and
+movement subscription are absent from the class-specific saved fields.
+The common loader restores fields before inline Init in recorded order,
+but this does not establish setup on every disk-load path, guaranteed
+tree-first order, or restoration of death-state collision and
+visibility. No Rust behavior was inferred from the unresolved order.
+Verified the documentation diff with `git diff --check`; no manual
+gameplay, original-runtime test or GOG-file write.
+
 ## 2026-11-17 Assert drawn-ground aim in the Fire-arrow run (M5)
 
 Added a `doors.log` assertion to the existing original-data elemental
