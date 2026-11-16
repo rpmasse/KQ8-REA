@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 moving-shot start with lean
+
+The existing original-data moving-crossbow save test passed 1/1 in
+29.33 seconds. Connor's 0.150-radian lean at the `stoprun` shot changes
+the installed `arrow` part's bolt origin by over 50 game units from a
+heading-only calculation; the actual logged origin matches the full
+turn within 3 units. The save, cooldown refusal, next release and run
+return also passed in the same two-process scenario. Artifact:
+`kq8-artifacts/moving-shot-checkpoint/1794870466826166200`.
+No production code or GOG file changed. Original-executable parity is
+untested; M5 remains incomplete.
+
 ## 2026-11-17 M5 Swamp Slime retreat save
 
 The existing `swamp_slime_retreat` original-data test now saves during

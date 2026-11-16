@@ -9483,3 +9483,15 @@ isolated Glide640 preferences and unchanged original Options bytes. Desktop
 stay paused. Preserve prior failed paths and all successful unrelated checks;
 no manual gameplay was used. Exact commands/evidence are in
 graphics-runtime-completion.md.
+
+### M5 ranged rule 23: moving shot with lean (2026-11-17)
+
+Extend the existing original-data moving-crossbow save scenario. Turn Connor
+while he runs so the `stoprun` shot has a measurable lean. At the shot's fixed
+update, read his position, heading and bank from `connor.log`, and the
+`arrow` part offset and bolt start from `fight.log`. Assert numerically that
+the start uses the offset after both lean and heading, and that omitting lean
+would visibly move it. Keep the existing cooldown and save/restore assertions
+in the same scenario. Run only this focused check, then record the result in
+the M5 ranged coverage and change log. This tests the original-data Rust path;
+it does not establish original executable parity.

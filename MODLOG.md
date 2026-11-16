@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-17 Check the moving crossbow's lean-dependent start (M5)
+
+Extended `moving_shot_checkpoint` to turn Connor while running and check
+the installed Small Crossbow's first bolt against the full lean-then-heading
+turn of its `stoprun` arrow part. At update 50 the lean was 0.150 radians;
+the logged bolt began at (182162, 45322, 1621), within 3 game units of
+the independently calculated start, and over 50 from heading alone.
+The same test retained the shot cooldown and fresh-process run-return
+save assertions. The focused release test passed 1/1 in 29.33 seconds.
+The first attempt failed on the current host's fullscreen assertion;
+the next stopped at its 110-frame budget before the shot. The restored
+run then needed a fixed-update budget rather than 700 frames. Artifact:
+`kq8-artifacts/moving-shot-checkpoint/1794870466826166200`. No
+production code or GOG file changed. With `KQ8_GAME_DIR` set to the
+GOG install, run `cargo test --locked --release -p kq8-viewer --test
+moving_shot_checkpoint -- --ignored --nocapture`; expect one passing
+test. Original-executable parity remains untested.
+
 ## 2026-11-17 Continue Swamp Slime retreat through a save (M5)
 
 Extended the existing placed Slime shot, retreat and chase-leash test
