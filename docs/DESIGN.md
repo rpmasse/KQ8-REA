@@ -82,8 +82,9 @@ the Henchman quest flag at 257, and his Die entry delivered Chest1 Cue
 `30` exactly once at 360. That cue requested Connor's `attack3` Special
 aftermath. The original three drops and 50,005-experience death still
 completed at update 443. This is Rust behavior using the installed
-scripts; the opening chest interaction and original-executable parity
-are not tested.
+scripts. This earlier step did not test the opening chest interaction;
+the later authored-click check below covers it. Original-executable
+parity remains untested.
 
 ## M5 crossing level-1 projectile pair (2026-11-17)
 
@@ -9507,3 +9508,26 @@ saved cooldown and run-return checks. Require the plain interaction path
 and no third bolt, while the earlier ordinary clicks still release their
 bolts. Run only that combined scenario. This tests original-data Rust
 behavior without implying original-executable parity.
+
+### M5 Barren Henchman from the authored chest click (2026-11-17)
+
+Replace the existing Barren fight fixture's injected Chest1 Cue 50 and
+Cue 124 with one ordinary click on the installed chest. The diagnostic
+from the fixture's current Connor position confirmed the authored
+ConnorAction, Cue 10, Cue 20 frames 20/50/80/124, chest dialogue and
+Henchman Special-list completion. Keep the same normal AI fight,
+controlled fatal hit, three drops, corpse, experience and death-listener
+aftermath in one process. Assert the clicked route and cue order so the
+fight cannot silently pass by bypassing the chest. Run this one focused
+original-data Windows check; do not modify the GOG installation or use
+manual gameplay.
+
+Checked: the one-process release test passed 1/1 in 37.65 seconds.
+Connor's direct test click was in reach at update 20; the original
+Chest1 script produced Cue 50 at 70 and Cue 124 at 145, released the
+Henchman from his Special list, and completed its two dialogue lines.
+He dealt ordinary Normal damage before the controlled fatal hit. Chest1
+received his Cue 30 once; the three drops, corpse, 50,005 experience
+and Connor aftermath still completed. No cue was injected. Connor's
+nearby start position was test-controlled, so travel to the chest and
+original-executable parity remain untested.

@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Start the Barren Henchman fight by clicking Chest1 (M5)
+
+Replaced two injected chest cues in the existing original-data Barren
+fight with one in-reach Chest1 click. The installed script now supplies
+Cue 50 and 124, dialogue and Henchman Special-list completion before
+his ordinary Normal attacks. Its controlled death still delivers one
+Chest1 Cue 30, three drops, `hm_bded.kqs` corpse, 50,005 experience and
+Connor's `attack3` aftermath. The focused release test passed 1/1 in
+37.65 seconds. The first run's ordering assertion confused Cue 300
+with Cue 30; the corrected check matches Cue `30 0` exactly.
+Artifact: `kq8-artifacts/barren-henchman-live/1794871543482674600`.
+No production code or GOG file changed. With `KQ8_GAME_DIR` set to the
+GOG install, run `cargo test --locked --release -p kq8-viewer --test
+barren_henchman_live -- --ignored --nocapture`; expect one passing test.
+Connor's nearby start is test-controlled; earned travel and original
+executable parity remain untested.
+
 ## 2026-11-17 Check held Ctrl with a ready crossbow (M5)
 
 Added a test-input interval that holds a physical key across fixed game

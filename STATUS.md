@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 Barren chest interaction to Henchman defeat
+
+The existing original-data `barren_henchman_live` route now starts with
+an in-reach Chest1 click instead of injected Cue 50/124. The original
+script generated those cues at updates 70/145, completed dialogue and
+released Henchman into ordinary combat. After live Normal health loss,
+his controlled death delivered Chest1 Cue 30 once, the three authored
+drops, corpse and 50,005 experience. The focused release test passed
+1/1 in 37.65 seconds. Artifact:
+`kq8-artifacts/barren-henchman-live/1794871543482674600`.
+No production code or GOG file changed. Connor starts near the chest
+under test control; earned travel and original-executable parity remain
+untested. M5 remains incomplete.
+
 ## 2026-11-17 M5 ranged Control click
 
 The installed Small Crossbow's held-Control click now has original-data

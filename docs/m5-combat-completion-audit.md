@@ -67,14 +67,15 @@ lowers Connor's health. The same process checks its no-drop Normal
 death, `spd_deth.kqs` corpse and one 23-experience award. This is a
 scripted encounter from the original data, not a forced ordinary
 spawn; the running original executable remains untested.
-The `barren_henchman_live` route starts at the installed chest reveal
-cue, observes the hidden Henchman's Special list finish and an ordinary
+The `barren_henchman_live` route now clicks the installed Chest1 from a
+test-controlled nearby Connor position. Its authored cue sequence
+reveals the hidden Henchman; the run observes his Special list finish and an ordinary
 125-point Normal hit, then checks his three-item drop, corpse and
 50,005 experience. The same run now sends the later authored Cue 124;
 the final speech completes, sets the quest flag, and registers the
 death listener. The fatal hit delivers Chest1 Cue 30 once, starting
-Connor's `attack3` aftermath. The opening chest interaction remains
-untested.
+Connor's `attack3` aftermath. Travel to the chest from Barren's normal
+entry point remains untested.
 One Dead City process now links the installed `skelrdbw` red bow and
 `weeperup` raised Weeper families. The bow's `Prmonarw.kq` Projectile
 contacts lowered Connor's health; the Weeper's `Prweeper.kq` linked and

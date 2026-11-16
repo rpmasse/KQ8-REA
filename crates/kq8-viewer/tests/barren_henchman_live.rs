@@ -32,11 +32,9 @@ fn barren_chest_reveals_henchman_for_live_attack_and_death() {
             "KQConner::setLevel 1000,1",
             "--command",
             "sendEvent 0 Connor KQStatsChangeRequestEvent 10000 0 0 0 0,2",
-            // The installed chest script reveals the hidden actor and begins drip,taunt.
-            "--command",
-            "sendEvent 0 Chest1 KQCueEvent 20 50,20",
-            "--command",
-            "sendEvent 0 Chest1 KQCueEvent 20 124,140",
+            // The installed chest click starts the full authored cue sequence.
+            "--click",
+            "Chest1,20",
             "--command",
             "sendEvent 0 Henchman KQAttackEvent Connor 0 100000 0,360",
             "--updates",
@@ -60,7 +58,8 @@ fn barren_chest_reveals_henchman_for_live_attack_and_death() {
         dir.display()
     );
     assert!(
-        viewer.contains("test --command sendEvent 0 Chest1 KQCueEvent 20 50")
+        doors.contains("click Chest1: Connor at (28400, 36000")
+            && doors.contains("reach 4700 (2 x attackDist): IN REACH; state closed")
             && fight.contains("Henchman: fights (rule 2): stats [2050, 125, 125, 6, 50005]")
             && characters.contains("Henchman: Special list used up")
             && characters.contains("Henchman: status: Wait, active"),
@@ -130,10 +129,16 @@ fn barren_chest_reveals_henchman_for_live_attack_and_death() {
     );
     let mut previous = 0;
     for marker in [
+        "script chest1.cs Chest1 ConnorAction do do",
+        "script chest1.cs Chest1 Cue 10 0",
+        "script chest1.cs Chest1 Cue 20 20",
+        "script chest1.cs Chest1 Cue 20 50",
+        "script chest1.cs Chest1 Cue 20 80",
+        "script chest1.cs Chest1 TalkComplete 5000 12 14 43 1",
         "script chest1.cs Chest1 Cue 20 124",
         "script chest1.cs Chest1 TalkComplete 5000 11 0 42 2",
         "chest1.cs line 100: set Barren::Henchman::dead = '1'",
-        "script chest1.cs Chest1 Cue 30",
+        "script chest1.cs Chest1 Cue 30 0",
         "chest1.cs line 71: KQMonster::setState Connor special attack3",
     ] {
         let at = doors.find(marker).unwrap_or_else(|| {
@@ -142,7 +147,7 @@ fn barren_chest_reveals_henchman_for_live_attack_and_death() {
         assert!(at > previous, "Barren chest events are out of order; inspect {}", dir.display());
         previous = at;
     }
-    assert_eq!(doors.matches("script chest1.cs Chest1 Cue 30").count(), 1,
+    assert_eq!(doors.matches("script chest1.cs Chest1 Cue 30 0").count(), 1,
         "Henchman's death delivered the chest callback more than once; inspect {}", dir.display());
     assert!(
         !fight.contains("Connor: hit by world") && !fight.contains("god mode is on"),
