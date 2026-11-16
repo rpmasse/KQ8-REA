@@ -1,5 +1,16 @@
 # Provenance
 
+**Temple 2 controlled deaths (2026-11-17, M5).**
+The installed placement data gives `spearchucker1`, `Hallhench2` and
+`henchbow1` distinct `invDrop` lists and experience values. After
+asserted live attacks, the same Rust original-data process gives each
+a fatal Normal hit and verifies the exact 3/2/2 crystal counts, the
+bow guard's invisibility item, no unlisted held weapon, no Normal
+corpse and 25,000/25,000/35,000 experience once. The rule that
+`invHold` alone is not a drop comes from
+[fighting.md rule 31](../behaviour/fighting.md); this is no
+running-original comparison.
+
 **Temple 2 bow guard (2026-11-17, M5).**
 The installed monster list identifies `henchbow1` as type `henchbow`
 with `INVITEM_Orcbow` and `PRorcycle.kq`. The same windowed Rust

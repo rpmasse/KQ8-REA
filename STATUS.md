@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 three Temple 2 death and drop outcomes
+
+The one-process Temple 2 release check now gives controlled fatal
+Normal hits to the spear carrier and melee guard after their observed
+attacks, then to the bow guard after its Ice arrow. It passed 1/1.
+The three original actors leave the active list, drop 3/2/2 crystals
+respectively, the bow guard also drops invisibility, and each awards
+its authored 25,000/25,000/35,000 experience exactly once. Their held
+Spear/Orc bow items are not in the drop lists and do not appear as
+extra world items. No Normal corpse is produced for these three actors.
+Other placements can have different drop lists; controlled fatalities
+do not prove earned campaign progression or running-original parity.
+No GOG file or production code changed. M5 remains incomplete.
+
 ## 2026-11-17 M5 Temple 2 bow guard in the same process
 
 The previously passing Temple 2 spear/guard route now removes those

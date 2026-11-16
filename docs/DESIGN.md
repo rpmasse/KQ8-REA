@@ -4037,6 +4037,36 @@ expanded one-process release test passed. The first expanded test run
 failed only because its guard status assertion expected Wait while the
 live melee guard was in Move; the corrected assertion passed.
 
+**Temple 2 bow death in the same process (2026-11-17).** After the
+original `henchbow1` actor's Ice arrow has contacted Connor, send one
+fatal Normal attack to that actor. Continue the existing encounter
+long enough to observe its installed death movement, the two crystals
+and invisibility item in its authored drop list, no dropped Orc bow,
+and one experience award. The held `INVITEM_Orcbow` only modifies its
+combat stats: `fighting.md` rule 31 says an `invHold` item is dropped
+only when also named in `invDrop`, which this actor's bow is not.
+Assert the effects from logs; do not infer
+them from the source list alone. Keep the spear and melee guard checks
+in the same process and leave the GOG files untouched.
+The release route passed with two crystals and one invisibility item,
+no Orc bow, no Normal corpse, and one 35,000-point experience award.
+
+**Temple 2 spear and melee deaths in the same process (2026-11-17).**
+After their asserted attacks, replace the test-only deletion of
+`spearchucker1` and `Hallhench2` with fatal Normal hits. Their installed
+drop lists differ: three crystals for the spear carrier, two for this
+melee guard; neither lists the held spear as a drop. Keep the bow guard
+in the existing lane after their death entries, then require all three
+experience awards exactly once and no extra held weapon item. This
+turns the same one-process route into a source-linked attack and death
+matrix for Temple 2's three placed combat types.
+The release route passed: the spear carrier threw three crystals, the
+melee guard two, and the bow guard two plus invisibility. Neither held
+weapon appeared as an unlisted item. Their Normal deaths awarded
+25,000, 25,000 and 35,000 experience once each, with no Normal corpse.
+These are controlled fatal hits after live attacks, not earned campaign
+progression or running-original parity.
+
 **Combined hand-weapon fight matrix (2026-11-16).** The existing
 original-data check launches Dead City once per hand weapon, so it
 never exercises changing weapons during an encounter. Keep one

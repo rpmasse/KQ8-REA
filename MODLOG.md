@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Assert three Temple 2 death/drop rules together (M5)
+
+After their live attacks, the combined Temple 2 test now sends fatal
+Normal hits to `spearchucker1`, `Hallhench2` and `henchbow1`. It checks
+their authored crystal counts (3/2/2), the bow guard's invisibility
+item, held weapon exclusion, no Normal corpse and one experience award
+of 25,000/25,000/35,000 respectively. A diagnostic probe and the
+targeted release test both passed. The source notes clarified that
+`invHold` alone never makes a world drop; the first draft plan had
+incorrectly expected the bow to be released and was corrected before
+the test. No production code, GOG file or manual gameplay changed.
+With `KQ8_GAME_DIR` set to the GOG folder, reproduce using
+`cargo test --locked --release -p kq8-viewer --test temple_spear_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Cover Temple 2 bow guard in the combined fight (M5)
 
 Extended `temple_spear_live` after its two spear contacts: remove the

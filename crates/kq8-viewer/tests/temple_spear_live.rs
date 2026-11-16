@@ -17,10 +17,11 @@ fn original_temple_spear_bow_and_melee_guard_damage_connor() {
         .args([
             "--world", "temple2", "--windowed", "--renderer", "dx12",
             "--sound", "off", "--at", "109101,109105,0", "--lift", "6050",
-            "--command", "deleteObject spearchucker1,91",
-            "--command", "deleteObject Hallhench2,91",
+            "--command", "sendEvent 0 spearchucker1 KQAttackEvent Connor 0 100000 0,91",
+            "--command", "sendEvent 0 Hallhench2 KQAttackEvent Connor 0 100000 0,91",
             "--command", "move henchbow1 0 109101 112105 6040 0 0 0,92",
-            "--updates", "120", "--frames", "3600",
+            "--command", "sendEvent 0 henchbow1 KQAttackEvent Connor 0 100000 0,110",
+            "--updates", "135", "--frames", "5000",
         ])
         .output().unwrap();
     fs::write(dir.join("stdout.log"), &output.stdout).unwrap();
@@ -29,6 +30,7 @@ fn original_temple_spear_bow_and_melee_guard_damage_connor() {
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    let items = fs::read_to_string(logs.join("items.log")).unwrap();
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
     assert!(characters.contains("spearchucker1: status: Wait, active")
         && characters.contains("Hallhench2: status: Move, active")
@@ -67,9 +69,6 @@ fn original_temple_spear_bow_and_melee_guard_damage_connor() {
     check_loss("spearchucker1", "Projectile", 2);
     assert!(fight.contains("Hallhench2: Do (Attack"), "melee guard did not swing; inspect {}", dir.display());
     check_loss("Hallhench2", "Normal", 1);
-    assert!(viewer.contains("deleteObject spearchucker1: Some(\"0\")")
-        && viewer.contains("deleteObject Hallhench2: Some(\"0\")"),
-        "the earlier fighters were not removed after their asserted hits; inspect {}", dir.display());
     assert!(fight.lines().any(|line|
         line.contains("henchbow1: Do (Attack") && line.contains("its part 'arrow' in frame")
             && line.contains("shoots bolt3 (PRorcycle.kq") && line.contains("Ice")),
@@ -79,6 +78,38 @@ fn original_temple_spear_bow_and_melee_guard_damage_connor() {
             && line.contains("a hit of 210, Ice")
     ).count(), 1, "the bow guard's Ice arrow did not contact Connor; inspect {}", dir.display());
     check_loss("henchbow1", "Ice", 1);
+    for (name, crystals, extra, held, experience) in [
+        ("spearchucker1", 3, None, Some("INVITEM_Spear"), 25000),
+        ("Hallhench2", 2, None, None, 25000),
+        ("henchbow1", 2, Some("INVITEM_invisible x1"), Some("INVITEM_Orcbow"), 35000),
+    ] {
+        let death = format!("{name}: dies (rule 30): kind Normal, 'Die' starts at once");
+        let death_lines: Vec<_> = fight.lines().filter(|line| line.contains(&death)).collect();
+        assert_eq!(death_lines.len(), 1,
+            "{name}: Normal death did not start once; inspect {}", dir.display());
+        assert!(death_lines[0].contains("off the active list")
+            && death_lines[0].contains("gravity off")
+            && death_lines[0].contains("collision type and mask 0"),
+            "{name}: death entry did not disable movement and collision; inspect {}", dir.display());
+        let drop_lines: Vec<_> = items.lines().filter(|line|
+            line.contains(&format!("{name}: drops (rule 31;"))
+        ).collect();
+        assert_eq!(drop_lines.len(), 1, "{name}: drops were not made once; inspect {}", dir.display());
+        assert_eq!(drop_lines[0].matches("INVITEM_crystal x1").count(), crystals,
+            "{name}: wrong authored crystal count; inspect {}", dir.display());
+        if let Some(item) = extra {
+            assert!(drop_lines[0].contains(item), "{name}: missing {item}; inspect {}", dir.display());
+        }
+        if let Some(item) = held {
+            assert!(!drop_lines[0].contains(item) && !items.contains(&format!("{name}: kept weapon")),
+                "{name}: held {item} must not become an unlisted drop; inspect {}", dir.display());
+        }
+        let finish = format!("{name}: its death ended (rule 32): Connor gets its experience {experience}");
+        assert_eq!(fight.matches(&finish).count(), 1,
+            "{name}: experience was not awarded exactly once; inspect {}", dir.display());
+        assert!(fight.lines().any(|line| line.contains(&finish) && line.contains("no corpse (no shape for this kind)")),
+            "{name}: Normal death did not finish as authored; inspect {}", dir.display());
+    }
     assert!(!fight.contains("Connor: hit by world") && !fight.contains("god mode is on"),
         "world hazards or god mode obscured combat; inspect {}", dir.display());
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
