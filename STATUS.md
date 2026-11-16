@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 visible PreBirth rise
+
+The installed Dead City Tower Skeleton has both `Birth` and `PreBirth`.
+Its visible `PreBirth` state previously could not pass Rust's hidden-only
+rise gate. The actor now plays `PreBirth`, takes its Cue 201 alarm and
+enters Wait with `birth` at update 131 when Connor is clear; `walk`
+begins after that animation. The same-position probe before the change
+remained in Birth through update 191. The unattended original-data
+regression passed 1/1 in 37.35 seconds; all 780 active core tests passed.
+No full tower fight, fall, chain mail drop or reward was verified.
+The GOG installation was read-only and no manual gameplay ran. M5
+remains about 65%.
+
 ## 2026-11-16 M5 tower skeleton disk checkpoint
 
 The specialized Dead City tower controller now saves its move deadline,

@@ -9333,8 +9333,13 @@ endif
             &mut actor.player, "Unborn", &[], a.world.updates as f64 / 15.0,
         );
         assert!(line.contains("PreBirth stays visible"), "{line}");
+        assert!(actor.player.movement_name().eq_ignore_ascii_case("PreBirth"));
         a.world.update_character_colliders();
         assert_eq!(a.world.character_colliders.len(), 1);
+        a.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap().rise_at = Some(0.0);
+        watch(&mut a, &[], 201);
+        assert_ne!(a.world.anims[0].character.as_deref().unwrap().state, crate::character::State::Birth);
+        assert!(a.world.character_log.join("\n").contains("rises (rule 30): Connor 3000 away"));
     }
 
     #[test]

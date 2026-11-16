@@ -3618,6 +3618,24 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Visible PreBirth rise (2026-11-16).** The installed Dead City
+`Skeltowr` has both `birth` and `prebirth` in its animation list.
+The existing loader correctly leaves it visible and solid in Birth,
+but the generic rise gate incorrectly requires the hidden `unborn`
+flag, so the actor never enters Wait after its queued alarm. Let
+both hidden Birth and visible PreBirth actors use the same alarm and
+clearance timing. Start the authored `prebirth` loop while a visible
+actor waits, including a scripted return to Unborn. Keep the hidden
+zombie path unchanged. Check the state transition in core and prove
+the installed tower actor leaves Birth in an unattended Dead City run
+with Connor outside its collision clearance. This checks the start
+of the encounter, not the tower's full fall, drop or reward.
+The unattended GOG-data test passed 1/1 in 37.35 seconds. The actor
+played visible `PreBirth`, took Cue 201, entered Wait and began `birth`
+at update 131 with Connor outside its clearance; after `birth` ended,
+it began `walk`. The previous same-position probe stayed in Birth
+through update 191. The tower fight and scripted fall remain open.
+
 **Tower controller disk checkpoint (2026-11-16).** The installed Dead
 City `KQTowerSkeleton` has dedicated move, greeting, stagger and fall
 state described in `fighting.md` section 7a. Ordinary placed-character

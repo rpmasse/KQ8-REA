@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-16 Let visible PreBirth enemies rise
+
+Changed: a Birth-state character with an authored `PreBirth` movement
+now plays that visible loop and can enter Wait when its queued rise is
+due and Connor is clear. A scripted return to Unborn also starts the
+loop. Hidden zombies retain their existing path. Why: Dead City's
+Tower Skeleton had both movements but stayed in Birth indefinitely.
+Tested how: focused core startup and zombie checks passed, then all
+780 active core tests passed. With the original GOG data, run
+`$env:KQ8_GAME_DIR = '<GOG folder>'; cargo test --locked -p kq8-viewer
+--test tower_prebirth_rise -- --ignored --nocapture`. It passed 1/1
+in 37.35 seconds: Cue 201 led from `PreBirth` through `birth` to
+`walk`. The earlier same-position probe did not rise. The actor's
+combat and fall remain untested. No manual gameplay was run.
+
 ## 2026-11-16 Preserve tower skeleton fall across a Rust save
 
 Changed: added the specialized tower controller to placed-character disk

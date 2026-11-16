@@ -1205,7 +1205,7 @@ impl WorldState {
 pub const CONNOR_BALL: f32 = 200.0;
 
 impl WorldState {
-    /// Rule 30: a zombie in Birth that has just become active is alarmed;
+    /// Rule 30: a character in Birth that has just become active is alarmed;
     /// it rises `birthDelay` seconds later.
     fn wake(&mut self, i: usize, now: f64) {
         let Some(c) = self.anims[i].character.as_deref() else { return };
@@ -1213,7 +1213,9 @@ impl WorldState {
             return;
         }
         let delay = f64::from(c.birth_delay.max(0.0));
-        self.alarm(i, "seen from underground within its alarm radius (rule 30)", false, now);
+        let reason = if c.unborn { "seen from underground within its alarm radius (rule 30)" }
+            else { "seen in visible PreBirth within its alarm radius (rule 30)" };
+        self.alarm(i, reason, false, now);
         let a = &mut self.anims[i];
         let name = a.player.name.clone();
         let ai = a.character.as_deref_mut().and_then(|c| c.ai.as_mut()).unwrap();
@@ -1232,7 +1234,8 @@ impl WorldState {
         let Some(ai) = c.ai.as_ref() else { return };
         let Some(t) = ai.rise_at else { return };
         // **Stand-in** (Q134): not before a `hide` under way has ended.
-        if now + 1e-6 < t || c.state != crate::character::State::Birth || !c.unborn {
+        let visible_prebirth = a.player.movements.iter().any(|m| m.name.eq_ignore_ascii_case("PreBirth"));
+        if now + 1e-6 < t || c.state != crate::character::State::Birth || (!c.unborn && !visible_prebirth) {
             return;
         }
         let pos = a.player.base.position;
@@ -1250,7 +1253,8 @@ impl WorldState {
             c.ask_turn([at[0], at[1]]);
         }
         let birth = if st.unknown { "no 'birth' in its list (movement 0)" } else { "'birth' starts at once" };
-        self.character_note(&name, format!("rises (rule 30): Connor {d:.0} away (more than {:.0}); {w}; {birth}; drawn and solid, gravity on, turns toward him", ball + CONNOR_BALL));
+        let visible = if visible_prebirth { "stays drawn and solid" } else { "drawn and solid" };
+        self.character_note(&name, format!("rises (rule 30): Connor {d:.0} away (more than {:.0}); {w}; {birth}; {visible}, gravity on, turns toward him", ball + CONNOR_BALL));
     }
 }
 

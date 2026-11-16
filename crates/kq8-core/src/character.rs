@@ -954,7 +954,12 @@ impl Character {
             line.push_str(&format!("; already in {:?} (set by a script before): kept, nothing queued", self.state));
         } else if self.has_birth {
             self.state = State::Birth;
-            line.push_str("; its list has Birth: Birth state, not drawn until it rises (rule 16; rising is M5)");
+            if player.movements.iter().any(|m| m.name.eq_ignore_ascii_case("PreBirth")) {
+                player.start("PreBirth");
+                line.push_str("; its list has Birth and PreBirth: visible PreBirth loop until it rises (rule 16)");
+            } else {
+                line.push_str("; its list has Birth: Birth state, not drawn until it rises (rule 16; rising is M5)");
+            }
         } else {
             let delay = f64::from(self.birth_delay.max(0.0));
             self.wait_at = Some(now + delay);
@@ -1091,6 +1096,9 @@ impl Character {
             self.wait_at = None;
             // As at load, PreBirth is the visible Birth exception.
             self.unborn = !player.movements.iter().any(|m| m.name.eq_ignore_ascii_case("PreBirth"));
+            if !self.unborn {
+                player.start("PreBirth");
+            }
             notes.push(if self.unborn {
                 "state Birth (Unborn): underground, not drawn or solid (characters.md rule 16)"
             } else {
@@ -1648,6 +1656,14 @@ pub(crate) mod tests {
         let mut log = Vec::new();
         run(&mut c, &mut p, 0, 5, &mut log);
         assert_eq!(c.state, State::Birth);
+
+        let mut visible = Character::new(false, 0x10, 1.0, true, false, true, 1);
+        let mut p = player(1, Some("stop"), None);
+        p.movements.push(movement("birth", 0.0, 1.0, false, false, vec![]));
+        p.movements.push(movement("PreBirth", 0.0, 1.0, true, true, vec![]));
+        let line = visible.start_up(&mut p, 0.0, "test").unwrap();
+        assert_eq!((visible.state, p.movement_name()), (State::Birth, "PreBirth"), "{line}");
+        assert!(line.contains("visible PreBirth loop"), "{line}");
     }
 
     #[test]

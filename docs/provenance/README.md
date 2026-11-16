@@ -1,5 +1,14 @@
 # Provenance
 
+**Visible PreBirth rise (2026-11-16).** The installed Dead City
+`Skeltowr` animation list includes `birth` and `prebirth`.
+[Character rule 16](../behaviour/characters.md) describes the visible
+`PreBirth` exception; [movement rule 30](../behaviour/character-movement.md)
+describes the delayed rise with Connor clear. An unattended GOG-data
+test now observes the Rust actor take Cue 201, leave `PreBirth` for
+`birth`, then begin walking. This does not establish a complete tower
+fight or original-executable timing parity.
+
 **Tower skeleton disk continuation (2026-11-16).** The separate
 [tower behavior study](../behaviour/fighting.md#7a-the-tower-skeleton-kqtowerskeleton-traced-2026-10-28-batch-2)
 describes the mutable move timer, saved-only run time, greeting and
