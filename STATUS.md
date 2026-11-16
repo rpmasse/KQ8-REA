@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 Q209 root death save boundary
+
+The separate original-engine follow-up confirmed that ordinary save
+fields retain a Mandragor root's configured collider and drawing
+groups, while root death changes separate live collision and drawing
+state. Deserializing the named death state does not itself prove that
+its entry effects rerun. Root setup on every disk-load route,
+tree-before-root registration and death-phase collision/visibility
+reapplication remain unproven after the bounded static pass. The
+behavior note and Q209 now state those limits. No Rust change or
+manual gameplay occurred; M5 remains incomplete.
+
 ## 2026-11-17 M5 projectile removal evidence audit
 
 The ranged rule-30 coverage table now cites existing original-data

@@ -1,5 +1,14 @@
 # Provenance
 
+**Mandragor death-phase disk restoration (2026-11-17).**
+[Mandragor behavior](../behaviour/mandragor.md) and Q209 record the
+bounded original-engine follow-up. The codec keeps configured collider
+and drawing fields, while death changes separate live state; named
+state reconstruction alone does not prove that those death effects
+return on load. Tree-first registration and setup on every disk-load
+route also remain unproven. Existing Rust fresh-process rebirth checks
+are self-consistency evidence, not original-game save parity.
+
 **Scripted projectile removal evidence (2026-11-17).**
 [Rock projectile rule 19](../behaviour/rock-projectiles.md) identifies
 `rockHit.cs` as the installed projectile's `Die` handler. Existing

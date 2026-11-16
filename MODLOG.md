@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Bound Mandragor death-phase disk restoration (M5, Q209)
+
+The separate original-engine study updated `mandragor.md` and Q209.
+The common save codec keeps the root's configured collider and drawing
+fields and reconstructs its named state, but death clears separate
+live collision/drawing state. The trace did not prove that death-entry
+effects rerun on load, that the tree registers first, or that every
+disk-load route invokes root setup. These are explicit parity gaps; no
+Rust behavior was guessed from the save format. Verified the
+documentation diff with `git diff --check`; no runtime test, manual
+gameplay or GOG-file write. To check the documentation change, run:
+
+`git diff --check HEAD^ HEAD`
+
 ## 2026-11-17 Link existing Rock callback evidence to ranged rule 30 (M5)
 
 The shared projectile `Die` hook already has original-data evidence:

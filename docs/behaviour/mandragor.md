@@ -296,17 +296,24 @@ class-specific saved properties, so reconstruction depends on setup
 running after a matching tree is available; the authored root name is
 part of that lookup contract. The tree's saved down-root count and the
 root-death state's saved deadline and phase flags do not themselves
-restore the link.
+restore the link. The ordinary object save fields include the root's
+configured collider type and mask and its configured near/far drawing
+groups. Root death clears the *live* collision and drawing state
+separately. Saving those configured fields is therefore not, by itself,
+evidence that loading a root during its death cycle will preserve its
+death-phase collision and drawing behavior.
 
 **Disk-load continuation remains open after a bounded static pass.**
 The shared loader proves saved fields precede each object's registration
-and inline Init, with objects loaded in recorded order. This pass did
-not prove that root setup is invoked on every disk-load route, that the
-recorded order always puts each tree before its roots, or that restoring
-the root's dedicated death state reapplies the expected collision and
-visibility before gameplay resumes. In particular, the immediate name
-lookup alone does not justify a claim that an orphaned loaded root will
-link itself later.
+and inline Init, with objects loaded in recorded order. The saved state
+name is read and its state object reconstructed, but that operation
+does not itself show the death-entry side effects running again. This
+pass did not prove that native root setup is invoked on every disk-load
+route, that the recorded order always puts each tree before its roots,
+or that restoring the root's dedicated death state reapplies the
+expected live collision and visibility before gameplay resumes. In
+particular, the immediate name lookup alone does not justify a claim
+that an orphaned loaded root will link itself later.
 
 ## Confirmed data
 
