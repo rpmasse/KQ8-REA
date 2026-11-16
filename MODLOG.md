@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Link three Temple 1 enemy families (M5)
+
+Added one original-data Temple 1 scenario for the Water Demon, the
+victim beast and a Shadow Monster. Numerical diagnostics established a
+stable floor lane. The Water Demon hit Connor there; the beast rose and
+hit him after being moved beyond its birth clearance radius; the
+Shadow Monster's `Prfire.kq` Fire bolt contacted Connor. The release
+test passed 1/1. It also
+checks one Normal death and experience award for each, the Water Demon
+and Shadow Monster corpses, no beast corpse, and the Shadow Monster's
+three crystals. The beast and Shadow Monster relocations are explicit
+test setup, not earned game progression. First floor point fell through
+a building gap; the first beast point was too close for it to rise.
+No production code, GOG file or manual gameplay changed. With
+`KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test temple_one_families_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Assert three Temple 2 death/drop rules together (M5)
 
 After their live attacks, the combined Temple 2 test now sends fatal

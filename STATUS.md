@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-17 M5 Temple 1 distinct combat families
+
+The combined original-data Temple 1 release test passed 1/1 and
+connects three placed
+enemy types to live health loss: Water Demon melee, victim beast melee
+after rising, and Shadow Monster's Fire projectile. It checks their
+Normal deaths, one experience award each, their distinct corpse rules,
+and the Shadow Monster's three crystals. The beast and Shadow Monster
+were moved to a measured safe lane; `hench01` normally starts at the
+world script's off-map holding point. This verifies Rust behavior with
+installed game data, not original-executable parity or earned campaign
+triggers. M5 remains incomplete.
+
 ## 2026-11-17 M5 three Temple 2 death and drop outcomes
 
 The one-process Temple 2 release check now gives controlled fatal

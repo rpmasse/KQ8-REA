@@ -4002,6 +4002,27 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Temple 1 distinct enemy families (2026-11-17).** The installed
+monster list places `watdemon` and `vicbeast` as high-damage melee
+types, while `shadmon` uses `INVITEM_WitchBolt` / `Prfire.kq` and starts
+parked at the script's off-map (1000,1000) point. First establish a
+safe, visible Temple 1 lane from its original placements using numeric
+logs. Give Connor enough health to observe damage without god mode.
+Then reuse one world process to bring one placed actor of each distinct
+type into that lane sequentially, asserting actual Do/contact/health
+changes and their authored death/drop behavior. Keep the off-map Shadow
+Monster explicitly marked as relocated, and do not claim earned
+campaign behavior. Stop after two failed setup attempts on one issue.
+At Water Demon's original floor z=5282, (97383,52204) fell through a
+building gap, while (98000,55204) was stable: `watdemon1` saw Connor
+and dealt Normal damage. The initial health grant was capped at Connor's
+current level; the combined route raises that cap after world start and
+then heals him. A first beast relocation placed Connor inside its rise
+clearance radius, so it stayed in visible `PreBirth`. At 1350 units the
+beast rose and hit him twice. Relocating the off-map `hench01` into the
+same lane then produced Fire projectile contact and health loss. The
+combined scenario checks all three deaths and their distinct drops.
+
 **Pyrod ranged-family check (2026-11-17).** The installed Barren
 monster list places Pyrod fighters whose `INVITEM_Lava` selects
 `Prpyrolv.kq`; the current original-data combat routes do not assert
