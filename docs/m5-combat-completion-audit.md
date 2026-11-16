@@ -66,6 +66,12 @@ Its `rat2` actor has zero alarm/attack distances and made no attack
 in the observed interval. Four controlled deaths check their separate
 drop lists, corpses and one experience award each. All four actors were
 relocated to the measured lane; earned regional triggers remain open.
+One Gnome process now links the placed `sprigsurprise` and `zombiepit1`
+families. Both land authored Normal hits on living Connor before their
+controlled deaths. The test checks the Spriggan's 65 Silver Coins,
+`spdeath.kqs` corpse and 5,007 experience, and the Zombie's no-drop,
+`zdead.kqs` corpse and 2,502 experience. Both were relocated, and the
+Zombie's home moved with it to retain its ordinary chase.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

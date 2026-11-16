@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Group Gnome Spriggan and Zombie combat (M5)
+
+One original-data release test passed 1/1 in about 38 seconds. The
+placed Spriggan and Zombie each made live Normal health losses, then
+completed controlled deaths with their different drops, corpses and
+experience. The first run exposed a scenario error: the relocated
+Zombie returned to its distant original home before attacking. Setting
+its home at the relocation point kept its ordinary chase and Birth
+sequence local; the second run passed. No production code or GOG file
+changed. With `KQ8_GAME_DIR` set, run `cargo test --locked --release -p
+kq8-viewer --test gnome_spriggan_zombie_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Group ranged building and sky checks (M5)
 
 One original-data Daventry release test passed 1/1 in about 15

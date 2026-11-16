@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 grouped Gnome Spriggan and Zombie combat
+
+The original-data `gnome_spriggan_zombie_live` release test passed 1/1.
+The placed Spriggan and Zombie each landed ordinary Normal attacks that
+lowered Connor's health. Controlled deaths checked the Spriggan's 65
+Silver Coins, `spdeath.kqs` corpse and 5,007 experience, and the
+Zombie's no-drop, `zdead.kqs` corpse and 2,502 experience. Both actors
+were relocated into the known open-door lane; the Zombie's home was
+moved with it because its original pit was beyond its chase leash. The
+earned approaches and other Gnome fight branches remain open. M5 is
+incomplete.
+
 ## 2026-11-17 M5 grouped building and sky crossbow picks
 
 The original-data `ranged_building_sky_picks` release test passed 1/1.

@@ -404,6 +404,21 @@ second line picks the sky's far endpoint and bolt 2 fires at the
 Cottage; this does not change the click's sky pick. One release test
 asserts both choices and the relevant bolt outcomes.
 
+## M5 Gnome Spriggan and Zombie families (2026-11-17)
+
+Use one original-data Gnome process in the measured open-door combat
+lane. Move the installed `sprigsurprise` and `zombiepit1` placements
+there one after the other, keeping their own types, movements and
+drop lists. Set the Zombie's home to the relocated point so its chase
+leash does not return it to the distant original pit. Raise Connor's
+health ceiling while retaining damage and ordinary AI. Check each
+named Normal attack cue lowers his health,
+then one controlled Normal death per actor. Require the Spriggan's
+65 Silver Coins, corpse and 5,007 experience, and the Zombie's no-drop,
+`zdead.kqs` corpse and 2,502 experience, each once. Keep the test to
+one world load; document the relocation and do not infer an earned
+approach from it.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation
