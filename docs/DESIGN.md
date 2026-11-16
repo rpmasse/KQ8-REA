@@ -4002,6 +4002,27 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Temple 3 placed-family check (2026-11-17).** The installed list has
+two `zombie2` placements, one `skelhamr` and two `skelblue` bow skeletons
+on the same raised floor (z=3562). First run them together with Connor
+on that floor and enough capped health to keep ordinary damage visible.
+Use the numeric logs to determine whether each type activates and lands
+an authored melee or `Prmonarw.kq` ranged hit. Then make one combined
+original-data scenario assert the live effects and distinct fatal drops,
+corpses and experience for one placed actor of each type. The second
+placements can remain as encounter context; do not infer a type rule
+merely from its inventory entry. If the chosen lane fails twice, record
+the evidence and move to another bounded M5 gap.
+
+The installed lane at (127000,100000,3562) yielded hammer-skeleton
+Normal hits and both blue bow skeletons' `Prmonarw.kq` Projectile hits.
+The Temple 3 `zombie2` entries have no exact-case `BOUNDS.KQ` box, so
+they can become active but have no mover at their authored positions.
+Moving each zombie in turn to (126000,100000,3562) let both land Normal
+hits with their respective 1 and 1.2-second attack delays. One combined
+release scenario checks these effects and five actors' own Normal
+deaths, rewards, drops and corpses; their earned approach remains open.
+
 **Temple 1 distinct enemy families (2026-11-17).** The installed
 monster list places `watdemon` and `vicbeast` as high-damage melee
 types, while `shadmon` uses `INVITEM_WitchBolt` / `Prfire.kq` and starts

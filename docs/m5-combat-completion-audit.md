@@ -17,7 +17,10 @@ assert later health loss during death and the ordinary ouch interval;
 the combined core run passed 786 tests (26 ignored).
 The [placed-enemy matrix](m5-enemy-rule-matrix.md) inventories the 72
 distinct type names in 595 installed monster placements and separates
-direct combat assertions from unlinked families.
+direct combat assertions from unlinked families. Combined Temple 1 and
+Temple 3 scenarios now link Water Demon, victim beast, Shadow Monster,
+Temple 3 hammer skeleton, blue bow skeleton and both stationary zombie
+placement to observed health loss and distinct Normal death outcomes.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

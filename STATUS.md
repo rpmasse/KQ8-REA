@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 Temple 3 enemy families
+
+One original-data release test passed 1/1 for Temple 3's hammer
+skeleton, both blue bow skeletons and both zombie placements. It asserts
+their live hits, health losses, five death/drop/corpse outcomes
+and experience once each. The zombies' type has no exact-case collision
+box, so they do not move from their original locations in this Rust
+route; both were explicitly moved within melee range for their combat
+check. This verifies Rust behavior with installed data, not an earned
+campaign approach or original-executable parity. M5 remains incomplete.
+
 ## 2026-11-17 M5 Temple 1 distinct combat families
 
 The combined original-data Temple 1 release test passed 1/1 and

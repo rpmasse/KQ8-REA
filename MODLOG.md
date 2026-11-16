@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Link Temple 3 bow, hammer and zombie combat (M5)
+
+Added a single original-data Temple 3 release test that passed 1/1,
+then extended the same process to both zombie placements and passed
+1/1 again.
+From the installed raised floor, both blue bow skeletons fired
+`Prmonarw.kq` arrows into Connor and the hammer skeleton landed a
+Normal melee hit. Both zombies activated but stayed where placed:
+their lower-case `zombie2` type has no exact-case `BOUNDS.KQ` box, and
+the Rust mover reports no box. Relocating each within melee range
+produced Normal hits with their distinct 1 and 1.2-second attack delays.
+The test then checks the hammer's elixir, the two bows' and zombies'
+sacred water, all five Normal corpses, and one experience award per
+controlled death. Earned approaches remain untested. No production code, GOG file
+or manual gameplay changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test temple_three_families_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Link three Temple 1 enemy families (M5)
 
 Added one original-data Temple 1 scenario for the Water Demon, the
