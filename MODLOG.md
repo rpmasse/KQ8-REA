@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-16 Verify the Gnome Dragon's full defeat path
+
+Added a focused unattended Windows regression at the original Dragon's
+Gnome position. It checks the fuse-box script's dark and lit collision
+types, the Dragon's ordinary AI attack and dark-room line, Connor's
+ordinary sword hits, one death and 25,000 experience award, the laid
+Black Diamond, map icon, diamond script and removal of `dragblck`.
+`cargo test --locked --release -p kq8-viewer --test gnome_dragon_boss
+-- --ignored --nocapture` passed 1/1 in 29.48 seconds. The first death
+diagnostic ended before the 68-frame Die movement finished; a longer
+bounded run established the delayed drop and script effects. The test
+gives Connor a strong later-game sword and god mode to isolate the boss
+path. An authored approach and ordinary-equipment encounter remain
+untested. No manual gameplay testing or GOG-file writes.
+
 ## 2026-11-16 Check Gnome Demon Rocks ranged combat
 
 Expanded the unattended Gnome combat regression into one sequential

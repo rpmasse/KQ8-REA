@@ -3744,6 +3744,25 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Gnome Dragon encounter (2026-11-16).** The installed `dragworm.kq`
+starts `Dragon` with collision type `0x4002`; the original fuse-box Cue
+adds bit `0x40` when lights are on. Begin from Gnome's authored Dragon
+location, switch the lights through that original Cue, and check that
+the normal AI sees and attacks Connor. Then check ordinary weapon hits,
+Die, its `BlackDiamond` drop, `dragworm.cs` callbacks and the map icon
+in one bounded Windows route. Preserve the pre-fuse behavior as a
+separate assertion. Keep original game files read only. If a behavior
+needs rules beyond `fighting.md`, the installed data and existing
+behavior notes, record an open question before implementing it.
+
+The focused boss route passed at the authored Dragon location. It sees
+and hits Connor, speaks its dark-room line, receives the fuse-box light
+Cue, takes ordinary sword hits, then completes its Die movement. Its
+Black Diamond, experience, map icon, item script and blocking-object
+deletion all occur once. The test gives Connor a later strong sword and
+god mode to keep the run bounded; reaching the chamber with normal Gnome
+equipment and saving through this encounter remain open.
+
 **Gnome Demon Rocks encounter check (2026-11-16).** The installed Gnome
 monster list makes `Rock2` a ranged `rockguy` holding
 `INVITEM_DemonRocks`; its projectile is `PRdmnrck.kq`. Use an unattended

@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 Gnome Dragon defeat
+
+An unattended original-data route now covers Gnome's Dragon at its
+authored location. The fuse-box light Cue changes its collision type;
+the Dragon attacks and speaks, then ordinary weapon hits finish its long
+Die animation. The Black Diamond, experience, map icon and defeat script
+appear once. The focused Windows test passed 1/1 in 29.48 seconds. It
+uses a strong later-game sword and god mode; a normal Gnome approach,
+equipment path and saved encounter remain open. M5 remains about 65%.
+No manual gameplay testing was performed.
+
 ## 2026-11-16 M5 Gnome ranged enemy coverage
 
 One unattended Windows test now checks both a Gnome batmanta melee hit
