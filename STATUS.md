@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 grouped Swamp Witch and Henchman combat
+
+The expanded original-data `swamp_witch_alarm` release test passed
+1/1. At her installed placement, `Swmpwich` spoke both alarm lines,
+fired `Prfire.kq` and made three Fire hits on living Connor before a
+controlled no-drop, no-corpse death awarded 50,000 experience. The
+off-map placed Swamp `Henchman` was relocated into the same process,
+landed 75-point Normal hits, then completed a no-drop, no-corpse death
+with 50,005 experience; `swhnchmn.cs` moved Connor for the aftermath.
+The Witch lane deals continuous world poison damage, so the fixture
+used a 500,000 health ceiling and asserted named enemy hits separately.
+The earned Henchman reveal and original-executable parity are not
+tested. M5 remains incomplete.
+
 ## 2026-11-17 M5 Temple 4 first Lucfight encounter
 
 The original-data `temple4_lucfight_live` release test passed 1/1.

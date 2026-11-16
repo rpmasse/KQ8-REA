@@ -563,6 +563,21 @@ damage, no drop, no corpse and one 75,000-experience award. Observe the
 links the distinct type and script handoff in one process; it does not
 claim the full preceding campaign puzzle or original-executable parity.
 
+## M5 Swamp Witch and Henchman damage in one process (2026-11-17)
+
+Extend the existing original-data Witch alarm route. Keep its two
+authored lines and original placement. Replace god mode with a raised
+health ceiling that lets Connor survive the measured poison at this
+Witch point, then require `Prfire.kq` Fire contact and health loss
+from `Swmpwich` before one controlled Normal death. Later in the same
+Swamp process, move the off-map placed `Henchman` into the measured
+Witch lane and move its home with it. Require its original 75-point
+Normal hit and health loss before one controlled Normal death. Check
+each type's stats, no-drop/no-corpse outcome and single experience
+award. Put Henchman last because `swhnchmn.cs` moves Connor and starts
+the chest aftermath on Die. The relocation does not prove the earned
+chest reveal or original-executable parity.
+
 ## M5 bow-spriggan crossbow drop by death kind (2026-11-16)
 
 Use the installed Daventry `sprgnbow` actor and its original animation

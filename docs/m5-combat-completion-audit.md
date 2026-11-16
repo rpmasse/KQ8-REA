@@ -130,6 +130,14 @@ no-drop, no-corpse deaths with 500 experience each. The weed entered Die
 and dropped nothing but did not finalize by update 400; original
 `weeds.anm` marks `die` repeating. Original-runtime parity and earned
 Swamp approaches remain untested.
+The expanded `swamp_witch_alarm` process checks the Witch's authored
+two-line alarm and `Prfire.kq` Fire damage before her no-drop,
+no-corpse, 50,000-experience death. The same process relocates the
+placed Swamp Henchman, checks his 75-point Normal damage, no-drop,
+no-corpse, 50,005-experience death and the `swhnchmn.cs` aftermath
+move. Continuous poison at the Witch point requires a raised health
+ceiling; the assertions name each enemy source. The earned Henchman
+reveal is still outside this fixture.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-17 Group Swamp Witch and Henchman combat (M5)
+
+Extended the existing Witch alarm fixture instead of loading Swamp
+again. The installed Witch retained her two authored speech lines and
+made `Prfire.kq` Fire contacts that lowered Connor's health; a
+controlled Normal death gave no drop/corpse and 50,000 experience.
+The off-map Swamp Henchman was moved into the same lane, landed
+75-point Normal hits, then gave no drop/corpse and 50,005 experience.
+His Die script moved Connor into the chest aftermath. The first run
+failed because this Witch point delivers 1,000 base world poison
+damage every update and Connor died before the first bolt. Raising the
+diagnostic health ceiling to 500,000 preserved ordinary damage without
+god mode; the corrected release test passed 1/1 in about 25 seconds.
+The test distinguishes named enemy hits from the separate world poison
+hits. No production code or GOG file changed. With `KQ8_GAME_DIR` set,
+run `cargo test --locked --release -p kq8-viewer --test
+swamp_witch_alarm -- --ignored --nocapture`.
+
 ## 2026-11-17 Check the first authored Lucfight stage (M5)
 
 Read the installed Temple 4 `monsters.kq`, `altar.cs` and `lucfight.cs`
