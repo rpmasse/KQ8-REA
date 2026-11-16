@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-16 Verify Dragon projectile contact through zero masks
+
+Changed: added a focused core first-contact test and a two-launch
+unattended IceWorld test for Fire arrows against the original Dragon
+head and body. Gameplay code was unchanged. Why: Q210 establishes
+different immunity and protection for these zero-mask actors, but the
+existing Dragon fight checks covered melee, not projectile contact.
+Tested how: set `KQ8_GAME_DIR` to the GOG folder; run `cargo test
+--locked -p kq8-core dragon_bolt_stops_at_the_first_zero_mask_actor`
+and `cargo test --locked -p kq8-viewer --test
+dragon_projectile_contact -- --ignored`. Both passed; the viewer test
+passed 1/1 in 63.86 seconds. A first probe from farther south hit the
+icecave; a second probe from north also hit cave geometry. The
+head's authored position was reachable from the known Dragon fight
+position. The body fixture moved the actor inside the bow's start
+point to exercise its original type, bounds and protection without
+claiming an unobstructed shot at its authored position. A later
+aim-point probe selected ground and the shot expired there; it was
+not treated as a body-contact success. No GOG file or manual gameplay
+was changed or run. M5 and native event-order parity remain open.
+
 ## 2026-11-16 Apply Snowmane's scripted group masks (B)
 
 Changed: handled both `KQObject::setGroupsActive3D*` commands in the

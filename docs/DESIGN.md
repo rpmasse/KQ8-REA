@@ -3,7 +3,37 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Dragon projectile-contact audit (2026-11-16)
+
+The [Dragon behavior note](behaviour/dragon.md) Q210 says the two
+heads retain projectile immunity through collision type 0x4042 even
+though their collision mask is zero. The body has type 1, can stop a
+bolt, and its authored protection 100 prevents ordinary health loss.
+Use a focused core case with the studied head/body types and bounds to
+verify that a travelling bolt stops at the first actor, including when
+the body or head is first. Then run unattended IceWorld Fire Bow shots
+against original GOG actors with AI disabled. Require a bolt to touch
+an authored head once, queue zero damage, leave its health intact and
+remove the bolt. Move the original body inside the bow's launch point
+in a separate fixture to verify that its zero mask still permits the
+projectile's start-inside contact; its authored 100 protection must
+keep its health at 300. Preserve the original game files. This covers
+physical projectile contact, not the full Dragon fight, native event
+ordering or visual parity.
+
+Checked: the focused core test passed for both contact orders with a
+travelling bolt. A separate two-launch GOG-data IceWorld test passed
+1/1 in 63.86 seconds. The original head stopped one Fire arrow with a
+queued zero-damage hit and stayed at 600 health. The original body,
+moved inside the arrow's start position for an isolated contact, took
+a queued 151-damage Fire hit but stayed at 300 health under protection
+100. The bolts were removed after their first contact, and GOG
+`Options.cs` was unchanged. The authored body position is obscured by
+cave geometry from the tested firing positions; an unobstructed
+travelling body hit in that placement remains unverified.
+
 ## M5 live Dragon combat through a disk save (2026-11-16)
+
 
 Use the installed IceWorld startup and Flame Sword, with ordinary
 Dragon AI and incoming damage enabled. Defeat the left head with real

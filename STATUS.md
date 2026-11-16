@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-16 M5 Dragon projectile contact and protection
+
+A focused core test passed both first-contact orders with the Dragon
+body and head using their studied collision types and bounds. An
+unattended two-launch GOG-data IceWorld test passed 1/1 in 63.86
+seconds: a Fire arrow stopped on the original head with zero damage;
+a separate moved-body fixture recorded a start-inside Fire contact,
+with the body's 100 protection preserving its 300 health. Both bolts
+were removed, and GOG `Options.cs` was unchanged. A travelling shot
+against the body's authored position is still unverified because the
+tested camera routes encounter cave geometry. No manual gameplay was
+run; M5 remains about 65%.
+
 ## 2026-11-16 M5 Snowmane Clarity controls combat and visibility
 
 The original IceWorld Clarity script now changes Snowmane's near and far

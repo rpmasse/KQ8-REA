@@ -1,5 +1,17 @@
 # Provenance
 
+**Dragon projectile contacts (2026-11-16).** The separate
+[Dragon study](../behaviour/dragon.md) Q210 establishes that zero
+collision masks do not erase the heads' type 0x4042 or the body's type
+1. The heads have projectile immunity and the body has 100 protection.
+A focused core test checks both first-contact orders with a travelling
+bolt. An unattended IceWorld test uses the installed Flame Bow and
+original Dragon actors: the head stops its arrow with zero damage; a
+moved-body start-inside fixture stops an arrow with no health loss.
+This verifies Rust behavior against the study and GOG data, not an
+original-executable encounter or unobstructed shot at the body's
+authored place.
+
 **Snowmane scripted group masks (2026-11-16).** The separate
 [object-behavior study](../behaviour/objects.md) Q217 describes the
 original `setGroupsActive3D` and `setGroupsActive3DFar` commands:

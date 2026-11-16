@@ -12041,6 +12041,51 @@ deleteObject waterfall2
     }
 
     #[test]
+    fn dragon_bolt_stops_at_the_first_zero_mask_actor() {
+        // dragon.md Q210: a Dragon's mask zero does not erase its type.
+        // A head blocks the first bolt with 0 damage; a body blocks the
+        // other with 100 protection. The actor behind must get no hit.
+        for (body_y, head_y, first) in [(0.0, 3000.0, "dragbody"), (3000.0, 0.0, "draglhed")] {
+            let mut a = fighter();
+            let mut head = a.world.anims[0].clone();
+            head.player.name = "draglhed".into();
+            head.player.base.position = [0.0, head_y, 100.0];
+            let c = head.character.as_deref_mut().unwrap();
+            c.bounds = Some(([-140.0, -470.0, 0.0], [250.0, 450.0, 2170.0]));
+            c.set_collision(0x4042, 0);
+            c.fight.as_mut().unwrap().stats.0[0] = 600;
+            a.world.anims.push(head);
+
+            let body = &mut a.world.anims[0];
+            body.player.name = "dragbody".into();
+            body.player.base.position = [0.0, body_y, 100.0];
+            let c = body.character.as_deref_mut().unwrap();
+            c.bounds = Some(([-40.0, -520.0, 0.0], [1340.0, 2210.0, 1130.0]));
+            c.set_collision(1, 0);
+            c.fight.as_mut().unwrap().stats.0 = [300, 25, 25, 100, 50_000];
+            a.world.characters_solid.extend(["dragbody".into(), "draglhed".into()]);
+            a.world.connor_at = None;
+
+            a.world.launch_bolt("shooter", "prscbolt.kq", &scbolt(),
+                [0.0, -4000.0, 1000.0], [0.0, 4000.0, 1000.0], 50, "Dragon contact");
+            for _ in 0..12 { fly(&mut a); }
+            assert!(a.world.bolts.is_empty(), "the first Dragon shape must stop the bolt");
+            assert_eq!(a.world.queue.len(), 1, "one hit event, not a pass-through");
+            a.handle_due(a.world.now());
+            let log = a.world.fight_log.join("\n");
+            assert!(log.contains(&format!("touches {first}")), "{log}");
+            assert_eq!(log.matches("touches dragbody").count() + log.matches("touches draglhed").count(), 1, "{log}");
+            assert_eq!(a.world.anims[0].character.as_deref().unwrap().fight.as_ref().unwrap().stats.0[0], 300, "body protection");
+            assert_eq!(a.world.anims[1].character.as_deref().unwrap().fight.as_ref().unwrap().stats.0[0], 600, "head immunity or untouched head");
+            if first == "draglhed" {
+                assert!(log.contains("a hit of 0") && log.contains("draglhed: hit by shooter, Projectile: D 0"), "{log}");
+            } else {
+                assert!(log.contains("dragbody: hit by shooter, Projectile: D 50") && log.contains("P 100: no loss"), "{log}");
+            }
+        }
+    }
+
+    #[test]
     fn ordinary_bolt_queues_contact_damage_until_event_service() {
         let mut a = fighter();
         a.world.anims[0].character.as_mut().unwrap().collision_type = 0x42;
