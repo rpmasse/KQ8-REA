@@ -12062,6 +12062,19 @@ deleteObject waterfall2
         fly(&mut a);
         assert!(a.world.bolts.is_empty());
         assert!(a.world.fight_log.join("\n").contains("at or below the floor grid (100): removed, no damage"));
+        // A different shooter's bolt begins inside gob's cylinder. Its
+        // first step contacts at the starting point, then delivers one
+        // queued hit; the earlier gob-owned bolt was excluded above.
+        let health = a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0];
+        a.world.launch_bolt("shooter", "prscbolt.kq", &scbolt(), [0.0, 0.0, 1000.0], [0.0, -5000.0, 1000.0], 5, "start inside");
+        fly(&mut a);
+        assert!(a.world.bolts.is_empty());
+        assert_eq!(a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0], health,
+            "contact damage waits for event service");
+        assert!(a.world.fight_log.join("\n").contains("touches gob at (0, 0, 1000), 0 travelled"));
+        a.handle_due(a.world.now());
+        assert!(a.world.anims[0].character.as_ref().unwrap().fight.as_ref().unwrap().stats.0[0] < health);
+        assert!(a.world.fight_log.join("\n").contains("gob: hit by shooter, Projectile"));
     }
 
     #[test]

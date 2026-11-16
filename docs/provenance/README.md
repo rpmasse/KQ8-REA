@@ -1,5 +1,13 @@
 # Provenance
 
+**Projectile start-inside contact (2026-11-17).**
+[Ranged-weapons rule 29](../behaviour/ranged-weapons.md) and
+[Connor-collision rule 19](../behaviour/connor-collision.md) establish
+that a bolt starting inside a non-shooter character counts as a hit.
+The focused Rust core check now covers that boundary and shooter
+exclusion together; it passed 1/1. Projectile-to-projectile contact
+detail and original-runtime parity remain unverified.
+
 **Elemental emitter save boundary (2026-11-17).**
 [Emitter behavior](../behaviour/elemental-projectile-emitters.md) and
 Q212 record the bounded original-engine property study. The checked

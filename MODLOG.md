@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Verify a bolt beginning inside its victim (M5)
+
+Extended the existing core bolt scenario under `ranged-weapons.md`
+rule 29. Its goblin-owned bolt still flies past its shooter; a later
+bolt from another shooter starts inside that goblin, contacts at zero
+distance, is removed and queues one Projectile hit. Health stays put
+until event service, then falls. The focused core test passed 1/1 with
+no extra world load. Updated the ranged rule coverage table. No
+production code, manual gameplay or GOG-file write.
+
+Reproduce with:
+
+`cargo test --locked -p kq8-core a_bolt_ends_at_the_floor_grid_or_its_range_and_spares_its_shooter -- --nocapture`
+
 ## 2026-11-17 Inventory ranged rule-to-scenario coverage (M5)
 
 Added `docs/m5-ranged-rule-coverage.md` with a rule-by-rule link for

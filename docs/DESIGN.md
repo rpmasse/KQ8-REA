@@ -3,6 +3,23 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 bolt starting inside a character (2026-11-17)
+
+`ranged-weapons.md` rule 29 says an ordinary projectile that starts
+inside a character's collision cylinder counts as an immediate hit,
+unless that character is its shooter. Extend the existing grouped core
+bolt test after its shooter-exclusion, floor and range checks: launch
+one bolt from inside a different solid character, step once and require
+contact at the starting point, one queued Projectile hit and removal.
+Run that one core test, without loading another world or changing GOG
+files. Projectile-to-projectile contact detail remains a separate rule.
+
+Checked: the extended core test passed 1/1. The goblin-owned bolt
+remained excluded, while a different shooter's bolt touched the goblin
+at its own start (zero distance), was removed, queued one Projectile
+hit and lowered health when that event was serviced. No viewer process,
+manual gameplay or GOG write was needed.
+
 ## M5 ranged click on a conversation character (2026-11-17)
 
 `ranged-weapons.md` rule 15 sends a ranged click on the Wizard through

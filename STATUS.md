@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M5 bolt start-inside contact
+
+The existing core bolt test now pairs shooter exclusion with the
+opposite boundary from `ranged-weapons.md` rule 29. A different
+shooter's bolt launched inside the goblin contacted at zero travel,
+was removed, queued one Projectile hit and lowered the goblin's health
+when the event ran. The targeted core test passed 1/1. The remaining
+projectile-to-projectile contact-detail case is tracked in the ranged
+coverage table. No viewer load, manual gameplay or GOG file changed.
+
 ## 2026-11-17 M5 ranged rule coverage inventory
 
 `docs/m5-ranged-rule-coverage.md` now maps each ranged rule 13–31 to
