@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 Temple 2 placement drop lists
+
+The existing Temple 2 original-data fight test now links four more
+placed enemy drop lists in the same process. The second spear carrier
+and second bow guard each dropped two crystals; the latter dropped no
+invisibility item. Script-parked `Mhench1` dropped strength, sacred
+water and invulnerability; `Mhench2` dropped sacred water and
+invulnerability. All four completed one Normal death and awarded
+authored experience once, while the earlier three live combat families
+still passed. The focused release test passed 1/1 in 19.42 seconds.
+Artifact: `kq8-artifacts/temple-spear-live/1794871839263372800`.
+No production code or GOG file changed. These are test-controlled
+relocations, not earned summons; M5 remains incomplete.
+
 ## 2026-11-17 M5 Barren chest interaction to Henchman defeat
 
 The existing original-data `barren_henchman_live` route now starts with

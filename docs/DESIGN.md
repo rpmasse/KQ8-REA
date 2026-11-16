@@ -9531,3 +9531,25 @@ received his Cue 30 once; the three drops, corpse, 50,005 experience
 and Connor aftermath still completed. No cue was injected. Connor's
 nearby start position was test-controlled, so travel to the chest and
 original-executable parity remain untested.
+
+### M5 Temple 2 placement-specific drop variants (2026-11-17)
+
+Extend the existing one-process Temple 2 fight after its three live
+fighters have died. The original monster list gives `spearchucker2`
+two crystals rather than the first spear carrier's three; `henchbow2`
+has no invisibility drop; and the script-parked `Mhench1` and `Mhench2`
+carry distinct potion sets. Bring each placed actor into the known
+upper-floor lane one at a time and deliver one controlled Normal fatal
+hit after the already checked live combat. Assert each installed drop
+list, death finalization and one experience award, with no extra world
+load. Keep the off-map actors' relocation explicit; this checks their
+data-backed Rust death path, not the authored summon or earned route.
+
+Checked: the expanded Temple 2 release test passed 1/1 in 19.42
+seconds. In the same process after the three live fights, the second
+spear carrier dropped two crystals, the second bow guard dropped two
+crystals without invisibility, `Mhench1` dropped strength, sacred water
+and invulnerability, and `Mhench2` dropped sacred water and
+invulnerability. All four completed Normal death and awarded their
+authored experience once. The parked actors were test-relocated; their
+summon and original-executable behavior remain untested.

@@ -21,7 +21,15 @@ fn original_temple_spear_bow_and_melee_guard_damage_connor() {
             "--command", "sendEvent 0 Hallhench2 KQAttackEvent Connor 0 100000 0,91",
             "--command", "move henchbow1 0 109101 112105 6040 0 0 0,92",
             "--command", "sendEvent 0 henchbow1 KQAttackEvent Connor 0 100000 0,110",
-            "--updates", "135", "--frames", "5000",
+            "--command", "move spearchucker2 0 109101 112105 6040 0 0 0,130",
+            "--command", "sendEvent 0 spearchucker2 KQAttackEvent Connor 0 100000 0,131",
+            "--command", "move henchbow2 0 109101 112105 6040 0 0 0,155",
+            "--command", "sendEvent 0 henchbow2 KQAttackEvent Connor 0 100000 0,156",
+            "--command", "move Mhench1 0 109101 112105 6040 0 0 0,180",
+            "--command", "sendEvent 0 Mhench1 KQAttackEvent Connor 0 100000 0,181",
+            "--command", "move Mhench2 0 109101 112105 6040 0 0 0,205",
+            "--command", "sendEvent 0 Mhench2 KQAttackEvent Connor 0 100000 0,206",
+            "--updates", "240", "--frames", "9000",
         ])
         .output().unwrap();
     fs::write(dir.join("stdout.log"), &output.stdout).unwrap();
@@ -109,6 +117,30 @@ fn original_temple_spear_bow_and_melee_guard_damage_connor() {
             "{name}: experience was not awarded exactly once; inspect {}", dir.display());
         assert!(fight.lines().any(|line| line.contains(&finish) && line.contains("no corpse (no shape for this kind)")),
             "{name}: Normal death did not finish as authored; inspect {}", dir.display());
+    }
+    // Distinct installed placement inventories share these combat types but
+    // do not share the first three actors' drop lists.
+    for (name, crystals, potions, experience) in [
+        ("spearchucker2", 2, &[][..], 25000),
+        ("henchbow2", 2, &[][..], 35000),
+        ("Mhench1", 0, &["INVITEM_strength", "INVITEM_sacredwater", "INVITEM_invulnerable"][..], 25000),
+        ("Mhench2", 0, &["INVITEM_sacredwater", "INVITEM_invulnerable"][..], 25000),
+    ] {
+        assert_eq!(fight.matches(&format!("{name}: dies (rule 30): kind Normal")).count(), 1,
+            "{name}: controlled Normal death did not start once; inspect {}", dir.display());
+        let drop = items.lines().find(|line| line.contains(&format!("{name}: drops (rule 31;")))
+            .unwrap_or_else(|| panic!("{name}: no authored drops; inspect {}", dir.display()));
+        assert_eq!(drop.matches("INVITEM_crystal x1").count(), crystals,
+            "{name}: wrong crystal count; inspect {}", dir.display());
+        for potion in potions {
+            assert_eq!(drop.matches(&format!("{potion} x1")).count(), 1,
+                "{name}: missing or repeated {potion}; inspect {}", dir.display());
+        }
+        assert_eq!(drop.matches("INVITEM_").count(), crystals + potions.len(),
+            "{name}: unlisted item fell; inspect {}", dir.display());
+        let finish = format!("{name}: its death ended (rule 32): Connor gets its experience {experience}");
+        assert_eq!(fight.matches(&finish).count(), 1,
+            "{name}: experience was not awarded once; inspect {}", dir.display());
     }
     assert!(!fight.contains("Connor: hit by world") && !fight.contains("god mode is on"),
         "world hazards or god mode obscured combat; inspect {}", dir.display());

@@ -165,6 +165,12 @@ move. Continuous poison at the Witch point requires a raised health
 ceiling; the assertions name each enemy source. The earned Henchman
 reveal is still outside this fixture.
 
+The same `temple_spear_live` process now checks four more installed
+placement drop lists after the three live fighters: the second spear
+carrier, second bow guard and two script-parked spear carriers. Their
+controlled Normal deaths each finalize and award experience once; the
+parked actors' authored summons remain outside this fixture.
+
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |
 | Connor's 13 hand banks | `Connor.kq` lists 13; `hand_weapon_matrix` checks 12 weapon hits and both plain `Attack`/`AttackB` variants in one encounter, and `first_person_weapon_matrix` covers Fists and all hand banks. Core `connor_s_do_hits_his_target_misses_or_hits_dead_air` checks a hit, a missed swing and dead air; `daventry_hero_ring` records an ordinary Henchman miss. Q139(e) now confirms the ordinary object roll; a grouped core check covers its callbacks. | Finish source-to-scenario links for weapon-specific edge cases and attack reachability. Q219 bounds the checked non-character receiver classes. |

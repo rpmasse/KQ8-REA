@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-17 Check Temple 2 placement-specific drops (M5)
+
+Extended the existing one-process Temple 2 live fight with four more
+original placements. `spearchucker2` drops two crystals rather than
+the first carrier's three; `henchbow2` drops two crystals without
+invisibility; the script-parked `Mhench1` drops strength, sacred water
+and invulnerability, while `Mhench2` drops the last two. Each completed
+Normal death and awarded its 25,000 or 35,000 experience once. The
+original three fighters' live spear, Ice bow and hand hits still pass.
+The focused release test passed 1/1 in 19.42 seconds. Artifact:
+`kq8-artifacts/temple-spear-live/1794871839263372800`.
+No production code or GOG file changed. With `KQ8_GAME_DIR` set to the
+GOG install, run `cargo test --locked --release -p kq8-viewer --test
+temple_spear_live -- --ignored --nocapture`; expect one passing test.
+The later actors were test-relocated; authored summons and original
+executable parity remain untested.
+
 ## 2026-11-17 Start the Barren Henchman fight by clicking Chest1 (M5)
 
 Replaced two injected chest cues in the existing original-data Barren
