@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Assert drawn-ground aim in the Fire-arrow run (M5)
+
+Added a `doors.log` assertion to the existing original-data elemental
+range test: its open-space click must select the drawn ground for the
+aim point. The same test still covers Fire-arrow range removal and the
+particle tail, so no extra world fixture was added. The targeted
+release test passed 1/1 in 16.72 seconds after compilation. Updated
+the ranged rule coverage table. No production code, manual gameplay
+or GOG-file write.
+
+With `KQ8_GAME_DIR` pointing to the GOG installation, reproduce with:
+
+`cargo test --locked --release -p kq8-viewer --test elemental_ranged_death fire_arrow_effect_follows_flight_and_finishes_after_range_removal -- --ignored --nocapture`
+
 ## 2026-11-17 Verify a bolt beginning inside its victim (M5)
 
 Extended the existing core bolt scenario under `ranged-weapons.md`

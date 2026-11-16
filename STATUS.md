@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-17 M5 drawn-ground ranged aim
+
+The existing Fire-arrow range/emitter Windows test now asserts the
+drawn-ground fallback in `ranged-weapons.md` rule 16. The same run still
+checks projectile range removal and the emitter's dying tail, and
+passed 1/1 in 16.72 seconds after compilation. Building and sky aim
+branches remain direct-test gaps. No production code, manual gameplay
+or GOG file changed.
+
 ## 2026-11-17 M5 bolt start-inside contact
 
 The existing core bolt test now pairs shooter exclusion with the

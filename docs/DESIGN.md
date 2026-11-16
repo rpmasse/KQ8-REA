@@ -3,6 +3,22 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 ranged drawn-ground aim in the elemental flight run (2026-11-17)
+
+`ranged-weapons.md` rule 16 uses drawn ground when the shot line meets
+no aimable object. The existing Fire-arrow range/emitter route already
+aims into Dead City's open space; its log shows the ground fallback.
+Assert that selection in the same route alongside the existing bolt
+range and emitter-tail checks, then run only that targeted Windows
+test. Building and sky aim branches remain separate checks. No manual
+gameplay or GOG-file write is part of this step.
+
+Checked: the targeted Fire-arrow release test passed 1/1 in 16.72
+seconds after compilation. Its `doors.log` assertion confirms the
+drawn-ground aim fallback in the same run that checks the 12,000-unit
+range removal and emitter tail. No new viewer scenario, manual gameplay
+or GOG write was needed.
+
 ## M5 bolt starting inside a character (2026-11-17)
 
 `ranged-weapons.md` rule 29 says an ordinary projectile that starts

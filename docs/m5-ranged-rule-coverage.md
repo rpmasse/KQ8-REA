@@ -13,7 +13,7 @@ row is still open for the M5 rule-to-scenario gate.
 | 13 click priority | Core `an_item_or_control_lock_takes_precedence_over_an_attack_click` checks a held item, blocked input and weapon mode. | None identified for the common branch. |
 | 14 Ctrl | The same core check routes a ranged Ctrl click to plain interaction. | No separate original-data Ctrl route. |
 | 15 talk instead of shooting | `goblin_live_combat` checks four normal crossbow releases, then Wizard type `0xC021` taking conversation with no fifth release in the same Daventry process. | `icewater` branch has no direct original-data assertion. |
-| 16 aim pick | `live_crossbow_combat` checks three character camera picks and hits. | Building, drawn-ground and sky aim priority are not directly asserted in a ranged original-data route. |
+| 16 aim pick | `live_crossbow_combat` checks three character camera picks and hits. The existing Fire-arrow range/emitter test now asserts that its open-space line aims at the drawn ground. | Building and sky aim priority are not directly asserted in a ranged original-data route. |
 | 17 shoot offset | Core `connor_s_bolt_starts_at_the_crossbow_part_and_flies_to_the_aim_point` checks fallback and retained part offset. | No distinct missing branch identified. |
 | 18 steepness | Core `the_aim_is_never_steeper_than_one_radian_from_the_vertical` checks the 33-degree limit and unchanged shallow aim. | The viewer click-to-bolt path is not directly asserted at this limit. |
 | 19 Hammer branch | `hammer_hit_return` and `hammer_first_person` exercise its distinct throw and return. | No distinct missing branch identified here; Hammer-specific rules have their own notes. |

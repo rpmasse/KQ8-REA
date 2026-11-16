@@ -173,7 +173,11 @@ fn fire_arrow_effect_follows_flight_and_finishes_after_range_removal() {
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", run.display());
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
     let effects = fs::read_to_string(logs.join("effects.log")).unwrap();
+    assert!(doors.contains("the aim pick meets the drawn ground at")
+        && doors.contains("shot click at the drawn ground"),
+        "the Fire-arrow click did not use the drawn-ground aim fallback; inspect {}", run.display());
     assert!(fight.contains("shoots bolt1 (Prfarrow.kq")
         && fight.contains("bolt1 update 30:") && fight.contains("more than its range 12000"),
         "Fire bolt did not reach range removal; inspect {}", run.display());

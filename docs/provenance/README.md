@@ -1,5 +1,12 @@
 # Provenance
 
+**Drawn-ground aim in the Fire-arrow route (2026-11-17).**
+[Ranged-weapons rule 16](../behaviour/ranged-weapons.md) sends an open
+shot line to the drawn-ground intersection when no aimable object is
+hit. The existing original-data Fire-arrow range/emitter check now
+asserts that fallback and passed 1/1. Building and sky priority,
+original-executable parity and manual gameplay remain unverified.
+
 **Projectile start-inside contact (2026-11-17).**
 [Ranged-weapons rule 29](../behaviour/ranged-weapons.md) and
 [Connor-collision rule 19](../behaviour/connor-collision.md) establish
