@@ -17,7 +17,7 @@ pub fn earn_axe(game: &Path, root: &Path) -> PathBuf {
         .arg("--walk-route").arg(route)
         .args(["--key", "menu:down:down:down:enter:release:enter:release:escape:type=Hillside:enter:release:escape,838",
             "--key", "menu:down:down:down:enter:release:enter:release:escape:type=Windmill:enter:release:escape,1380",
-            "--key", "menu:up:enter:release:left:enter:release,1390", "--frames", "3800"])
+            "--key", "menu:up:enter:release:left:enter:release,1390", "--updates", "1800"])
         .output().unwrap();
     fs::write(replay.join("stderr.log"), output.stderr).unwrap();
     let log = fs::read_to_string(replay.join("kq8-artifacts/logs/viewer.log")).unwrap();

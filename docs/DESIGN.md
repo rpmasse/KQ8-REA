@@ -689,6 +689,14 @@ The shared AI now covers those paths. Q211 asks for original priority when retre
 
 **M5 Fists earned-route audit (2026-11-15).** Recheck the existing unattended wizard-to-windmill route, which asserts that Connor's `confists.anm` `Do` hit kills the authored spriggan while earning the Small Axe. The initial fullscreen attempt was refused by the current host. A windowed wizard pass saved successfully, but its test helper still expected an update-number pickup-help deadline instead of the current game-time deadline. Subsequent windmill replays waited at unacknowledged help cases 140 and 137; the exploratory test-harness edits were restored after these bounded attempts. The last run nevertheless records four Fists `Do` hits and the archer's Normal death at update 1030 with AI and damage enabled. Count Fists contact and death as observed, while axe pickup, saved return and the full route remain open. A later route repair should handle help dialogs through one general acknowledgment path and validate the whole earned sequence without changing gameplay. No manual gameplay test.
 
+The route was subsequently completed with its help handling and saved
+return. A 2026-11-16 regression stopped at update 438 because its
+3,800-rendered-frame cap expired before the update-838/1380 saves.
+The test helper now uses an update-1800 cap. From an earned Wizard slot,
+the release route passes through the archer, Fists kill, bale, Small Axe,
+Windmill save and fresh-process reload in 112.13 seconds. Later earned
+encounters remain separate M5 gates.
+
 **M5 Fists route harness repair (2026-11-15).** Keep this an unattended original-data check. Start both wizard and windmill runs windowed because the current display does not advertise exclusive 640×480. Accept the current pickup-help log's game-time deadline and verify eventual opening/acknowledgment; core tests own the exact 3-second delay. Add the known windmill combat and loot tutorial acknowledgments (cases 140 and 137) alongside cases 131 and 142. Re-run the earned sequence once, inspect the first failing gate from logs and only adjust the route if the evidence supports it. Do not change gameplay merely to satisfy this test.
 
 The first replay cleared cases 140 and 137, then reached a new PLAY CURSOR help screen (case 149) at update 1324 and paused. Use a persistent unattended `popup:autohelp` test input that acknowledges only help popups, not question dialogs; assert the resulting help cases explicitly in the route. This removes a dependency on discovering each later tutorial number one failed run at a time. The interrupted run made no gameplay-code change.

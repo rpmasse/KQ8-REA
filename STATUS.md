@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 earned windmill route regression
+
+The automated wizard-checkpoint-to-windmill route again passes with
+ordinary AI and damage. A frame-count limit ended a first run at game
+update 438, before its scheduled saves. The helper now stops by game
+update; the rerun passed 1/1 in 112.13 seconds. It reached the archer
+at update 1077, logged Fists hits and death, collected the Small Axe,
+saved Windmill at update 1380 and checked a fresh-process reload.
+This run reused an already earned Wizard slot. No manual gameplay test
+was run. M5 remains approximately 65%.
+
 ## 2026-11-16 M5 Mandragor alarm distance sample
 
 The tree's alarm now reads a stored 3D Connor distance. Each in-range

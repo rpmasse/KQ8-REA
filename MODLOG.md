@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Restore the earned windmill combat regression
+
+The unattended wizard-to-windmill route stopped after 3,800 rendered
+frames at game update 438, before its scheduled update-838 and
+update-1380 saves. Changed only the test helper to stop at game update
+1800. With a previously earned Wizard slot, the release test passed
+1/1 in 112.13 seconds. It reached the archer at update 1077, recorded
+Fists hits and the archer's death, accepted the axe after the bale move,
+saved Windmill at update 1380, and checked the fresh-process reload.
+The first run's viewer exited successfully but the test failed because
+the scheduled save had never occurred. No gameplay code or game assets
+changed; no manual test ran.
+
 ## 2026-11-16 Use the Mandragor tree's stored alarm distance
 
 Added the studied 1,000,000-unit initial distance to shared monster AI,
