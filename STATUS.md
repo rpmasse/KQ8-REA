@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-16 M5 Gnome enemy coverage
+
+An unattended original-data check now covers one Gnome batmanta waking
+from PreBirth, finding Connor, attacking through its AI, and lowering
+Connor's health. The installed-data character audit found no unrecognized
+placed monster class; its 24 reports are mostly skipped source entry
+numbers, plus an unplaced Swamp zombie animation reference. The Gnome
+route, other enemy families and the continuous campaign remain untested.
+M5 remains about 65%; no manual gameplay testing was performed.
+
 ## 2026-11-16 M5 Skeleton King speech command result
 
 The separate original-engine study resolved Q216: the eight-word

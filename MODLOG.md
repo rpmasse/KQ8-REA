@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Verify a live Gnome batmanta attack
+
+Added one ignored Windows original-data regression for `batmanta1`: it
+registers the original monster, sees Connor after the encounter door is
+removed by the test setup, leaves PreBirth, attacks through AI, and lowers
+Connor's health without god mode or a scripted swing. The focused release
+test passed 1/1 in 8.15 seconds. The initial test failed because its hit
+assertion expected the god-mode log wording; the non-god log recorded a
+normal damage roll and health 220 to 204. Correcting that assertion made
+the same route pass. The earlier diagnostic runs established that the
+original closed door blocked sight from the selected test spot. The
+original-data character audit recognized all placed monster classes;
+its 24 reports comprise 23 sparse monster-list numbers and one Swamp
+animation reference with no placed Swamp zombie. Manual playtesting and
+the complete Gnome campaign route remain untested. No GOG file changed.
+
 ## 2026-11-16 Match the original short speech command result
 
 Changed: `KQMonster::speak` with fewer than nine words now returns zero
