@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-17 M5 Swamp Slime retreat save
+
+The existing `swamp_slime_retreat` original-data test now saves during
+the placed Slime's active retreat and restores in a fresh process. The
+combined release test passed 1/1 in 24.87 seconds. Its saved actor was
+in Move with active-list membership, running movement, a steering
+target, `keeping_distance=true`, `must_flee=false` and monster tick
+count 49. After reload it continued in Move; it stopped retreating at
+update 34 when Connor was 15,235 units away, beyond the 15,000 limit,
+then gave up at update 58 beyond its 6,000-unit chase radius. The
+original shot/contact and first-process retreat checks still passed.
+Artifact: `kq8-artifacts/swamp-slime-retreat/1794870023531898700`.
+No production code or GOG file changed. This proves Rust save
+continuation, not the original binary-save phase of `monTickCount`.
+M5 remains incomplete.
+
 ## 2026-11-17 M5 Mandragor root waiting save boundary
 
 The existing Swamp root fight and fresh-process save test passed 1/1

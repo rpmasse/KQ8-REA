@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-17 Continue Swamp Slime retreat through a save (M5)
+
+Extended the existing placed Slime shot, retreat and chase-leash test
+with a save during its Move state and one fresh-process restore. The
+restored actor kept its active-list slot, running steer and retreat
+flag, then reached the far-enough stop and chase-leash decision without
+starting retreat again. The one combined release test passed 1/1 in
+24.87 seconds. Logs and slot are in
+`kq8-artifacts/swamp-slime-retreat/1794870023531898700`.
+Updated the M5 rule and enemy matrices. No production code or GOG
+file changed. With `KQ8_GAME_DIR` set to the GOG install, run
+`cargo test --locked --release -p kq8-viewer --test
+swamp_slime_retreat -- --ignored --nocapture`; expect one passing
+test. Original binary-save timing remains untested.
+
 ## 2026-11-17 Check Mandragor death-phase save continuity (M5)
 
 Extended the existing Swamp Mandragor fight and fresh-process restore

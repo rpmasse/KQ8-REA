@@ -3,6 +3,20 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Swamp Slime retreat save continuation (2026-11-17)
+
+Extend the existing unattended original-data Slime shot, retreat and
+chase-leash scenario. Save once while the placed `slime1` actor is
+already retreating, then let the first process finish its existing
+shot, retreat-stop and give-up assertions. Load that slot in one fresh
+process and verify the saved Move state, running movement, retreat flag
+and active-list place resume without a second retreat start. Follow
+that same actor through the far-enough stop and chase-leash decision.
+This uses the existing encounter instead of creating another test
+lane. The source note leaves the original binary-save phase of
+`monTickCount` open, so this check establishes Rust save continuity;
+it does not claim original-executable parity for that counter.
+
 ## M5 Mandragor waiting-root save boundary (2026-11-17)
 
 Extend the existing Swamp root fight and fresh-process save test. Check
