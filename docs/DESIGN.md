@@ -3744,6 +3744,28 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Q203 last-item drop continuation (2026-11-16).** Verify the studied
+Rock projectile landing handoff at the inventory boundary. With a
+single carried Rock, ordinary removal must return its old identity to
+world ownership at the stored origin before making a distinct landing
+Rock; both identities can register with different traps, and a nested
+landing callback must see the old `NewInvItem` until it returns. A
+single non-Rock drop instead moves that same identity, without a new
+destination contact probe after an active origin registration. A larger
+non-Rock stack only decrements and keeps that identity carried. Check
+these paths and callback order in core using made-up trap scripts; keep
+the original files out of the repository. This is a focused M5/M6
+projectile and trap invariant, not the full Dead City rock puzzle.
+The three new core cases passed within the 10-case item-removal group.
+They check both Rock identities and two trap callbacks, including the
+old `NewInvItem` visible to the landing callback; a last non-Rock's
+origin entry and departure without destination On; and a larger
+non-Rock stack remaining carried. The already existing Windows
+`rock_flight_checkpoint` test compares two final Rock records after
+an uninterrupted throw and fresh-process continuation; it was not
+rerun for this test-only addition. Saved trap-name reattachment and
+other registration paths remain separate Q203 work.
+
 **Monster projectile friendly fire (2026-11-16).** The original ranged
 rule allows an enemy bolt to strike another character on its path to
 Connor. Keep the installed Daventry bow spriggan, goblin and their

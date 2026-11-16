@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-16 M5/M6 last-item Rock handoff and ordinary drop edges
+
+Three focused core checks now cover Q203's last-carried-item edge. The
+last Rock returns its old identity to world ownership at the stored
+origin, enters an origin trap, then creates a distinct landing Rock that
+enters a second trap; the landing callback still sees the old
+`NewInvItem` until it returns. A last non-Rock enters and leaves the
+origin trap as the same identity, with no new destination On. A larger
+non-Rock stack loses one unit and remains carried. All 10 item-removal
+checks passed in 0.01 seconds after an 11.09-second build. The existing
+Windows Rock-flight checkpoint already checks two final Rock records
+through a fresh-process reload; it was inspected, not rerun. No
+production rule or GOG file changed. Saved trap-name reattachment and
+other Q203 paths remain open; no manual gameplay ran. M5 remains about
+65%.
+
 ## 2026-11-16 M5 monster projectile friendly fire
 
 An unattended Daventry check used the installed bow spriggan, goblin,

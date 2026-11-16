@@ -88,8 +88,14 @@ The prior held-Rock checkpoint remains available for portal traversal.
 
 ## Remaining fidelity work
 
-Q203 is still partial. Last-unit Rock identity, non-Rock stack removal and
-activation, full saved-name contact reattachment, other registration
+Q203 is still partial. Three new core cases check the last Rock's old
+world identity and fresh landing identity with separate trap entries
+and callback-variable order; the last non-Rock's origin activation and
+destination move without a second On; and the larger non-Rock stack's
+retained carried identity. All 10 item-removal cases pass. The existing
+`rock_flight_checkpoint` Windows check already compares both final Rock
+records across a fresh-process reload; it was not repeated for this
+test-only change. Full saved-name contact reattachment, other registration
 paths, and collision-type/mask overrides remain. The loaded trap-list
 ordering is not proof of the original spatial traversal (Q205). Original
 aim/arc remains Q202. This release work does not prove portal traversal,

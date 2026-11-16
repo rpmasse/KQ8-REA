@@ -1,5 +1,15 @@
 # Provenance
 
+**Last-item drop edge (2026-11-16).** [Items rule 11](../behaviour/items.md)
+and [traps Q203](../behaviour/traps.md) distinguish Rock's fresh
+landing identity from the old last-carried identity returned to world
+ownership. Three made-up-data core regressions now verify that order,
+the nested trap callbacks and the separate non-Rock placement paths.
+The already existing original-data Windows Rock-flight checkpoint
+retains both Rock records across a fresh-process reload; it was not
+rerun for the test-only addition. Original runtime comparison remains
+open.
+
 **Monster projectile friendly fire (2026-11-16).**
 [Ranged-weapons rule 31](../behaviour/ranged-weapons.md) says a monster
 bolt can hit another character before reaching Connor. The shipped

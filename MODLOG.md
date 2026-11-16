@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-16 Check the last carried Rock and non-Rock drop paths
+
+Changed: added three source-backed core regressions for Q203's
+last-item Rock, last-item non-Rock and larger non-Rock stack behavior;
+updated the incomplete status in `docs/item-removal-traps.md`. Why: the
+implemented Rock identity and callback order were still recorded as
+unverified, while the original behavior note distinguishes them from
+ordinary items. Tested how: `cargo test --locked -p kq8-core
+item_removal_tests:: -- --nocapture` passed all 10 focused cases. The
+new Rock case checks the old origin identity, separate fresh landing
+identity, two trap entries and `NewInvItem` ordering; the non-Rock
+cases check the destination move without a new On and retained carried
+stack. The existing Windows `rock_flight_checkpoint` test already
+checks two final Rock identities after a fresh-process reload and was
+not rerun. No production code or GOG file changed. Full saved contact
+reattachment and manual gameplay remain untested.
+
 ## 2026-11-16 Check monster bolts hitting another monster
 
 Changed: added an unattended original-data test for a Daventry bow

@@ -168,3 +168,69 @@ fn item_destruction_uses_the_spirit_traps_own_departure_handler() {
     assert_eq!(a.scripts.vars.get("Test::wrongHandler"), None);
     assert!(a.world.is_deleted(&name));
 }
+
+#[test]
+fn last_rock_returns_its_old_identity_before_registering_a_fresh_landing() {
+    let mut a = world(&[
+        ("origin.cs", "if test $2 == On\n set Test::originVisitor $3\n set Test::originNew $NewInvItem\nendif\n"),
+        ("landing.cs", "if test $2 == On\n set Test::landingVisitor $3\n set Test::landingNew $NewInvItem\nendif\n"),
+    ]);
+    a.world.items.types.types[0].category = "Rock".into();
+    plate(&mut a, "origin", [0.; 3], "origin.cs");
+    plate(&mut a, "landing", [100., 0., 0.], "landing.cs");
+    assert_eq!(a.console_command("KQMonster::inventory Connor Crystal 1", "fixture").as_deref(), Some("0"));
+    let old = a.world.items.find("Connor", "Crystal").unwrap().name.clone();
+    a.scripts.vars.set("NewInvItem", "before".into());
+    assert_eq!(a.console_command("KQMonster::dropItem Connor Crystal 100 0 0 0 0 0", "test").as_deref(), Some("0"));
+    let fresh = a.scripts.vars.get("NewInvItem").unwrap().to_string();
+    assert_ne!(fresh, old);
+    assert_eq!(a.world.items.count("Connor", "Crystal"), 0);
+    assert_eq!(a.world.items.objects.iter().filter(|o| o.in_world()).count(), 2);
+    assert_eq!(a.world.items.get(&old).unwrap().place,
+        Place::World { position: [0.; 3], angles: [0.; 3] });
+    assert_eq!(a.world.items.get(&fresh).unwrap().place,
+        Place::World { position: [100., 0., 0.], angles: [0.; 3] });
+    assert_eq!(a.world.traps[0].inside, [old.clone()]);
+    assert_eq!(a.world.traps[1].inside, [fresh.clone()]);
+    assert_eq!(a.scripts.vars.get("Test::originVisitor"), Some(old.as_str()));
+    assert_eq!(a.scripts.vars.get("Test::originNew"), Some("before"));
+    assert_eq!(a.scripts.vars.get("Test::landingVisitor"), Some(fresh.as_str()));
+    assert_eq!(a.scripts.vars.get("Test::landingNew"), Some(old.as_str()));
+}
+
+#[test]
+fn last_non_rock_moves_its_selected_identity_without_a_destination_entry() {
+    let mut a = world(&[
+        ("origin.cs", "if test $2 == On\n set Test::originVisitor $3\n set Test::originNew $NewInvItem\nendif\nif test $2 == Off\n set Test::originOff $3\nendif\n"),
+        ("landing.cs", "if test $2 == On\n set Test::landingVisitor $3\nendif\n"),
+    ]);
+    plate(&mut a, "origin", [0.; 3], "origin.cs");
+    plate(&mut a, "landing", [100., 0., 0.], "landing.cs");
+    assert_eq!(a.console_command("KQMonster::inventory Connor Crystal 1", "fixture").as_deref(), Some("0"));
+    let old = a.world.items.find("Connor", "Crystal").unwrap().name.clone();
+    a.scripts.vars.set("NewInvItem", "before".into());
+    assert_eq!(a.console_command("KQMonster::dropItem Connor Crystal 100 0 0 0 0 0", "test").as_deref(), Some("0"));
+    assert_eq!(a.scripts.vars.get("NewInvItem"), Some(old.as_str()));
+    assert_eq!(a.world.items.objects.iter().filter(|o| o.in_world()).count(), 1);
+    assert_eq!(a.world.items.get(&old).unwrap().place,
+        Place::World { position: [100., 0., 0.], angles: [0.; 3] });
+    assert_eq!(a.scripts.vars.get("Test::originVisitor"), Some(old.as_str()));
+    assert_eq!(a.scripts.vars.get("Test::originNew"), Some("before"));
+    assert_eq!(a.scripts.vars.get("Test::originOff"), Some(old.as_str()));
+    assert_eq!(a.scripts.vars.get("Test::landingVisitor"), None);
+    assert!(a.world.traps.iter().all(|t| t.inside.is_empty()));
+}
+
+#[test]
+fn non_rock_stack_drop_keeps_the_remainder_carried() {
+    let mut a = world(&[]);
+    assert_eq!(a.console_command("KQMonster::inventory Connor Crystal 2", "fixture").as_deref(), Some("0"));
+    let selected = a.world.items.find("Connor", "Crystal").unwrap().name.clone();
+    assert_eq!(a.console_command("KQMonster::dropItem Connor Crystal 100 0 0 0 0 0", "test").as_deref(), Some("0"));
+    let item = a.world.items.get(&selected).unwrap();
+    assert_eq!(item.quantity, 1);
+    assert!(item.carried_by("Connor"));
+    assert_eq!(item.carried_pose.position, [100., 0., 0.]);
+    assert!(a.world.items.find("world", "Crystal").is_none());
+    assert_eq!(a.scripts.vars.get("NewInvItem"), Some(selected.as_str()));
+}
