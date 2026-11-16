@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 Ice World Frosty, hammer Orc and axe Griffin
+
+One original-data release test passed 1/1 for three placed Ice World
+melee types in a measured lane. It asserts each named Normal attack
+lowering Connor's health, then one controlled death, authored drop,
+corpse and experience outcome per actor. Nearby Orc bow guards also
+fired; their Ice hits are separate log sources. The three tested actors
+were relocated, so this does not establish earned encounter behavior
+or original-executable parity. Sword/flying Griffin, ice Henchman/Lord
+and other regional variants remain open; M5 is incomplete.
+
 ## 2026-11-17 M5 Temple 3 enemy families
 
 One original-data release test passed 1/1 for Temple 3's hammer

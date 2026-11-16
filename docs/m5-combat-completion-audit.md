@@ -21,6 +21,10 @@ direct combat assertions from unlinked families. Combined Temple 1 and
 Temple 3 scenarios now link Water Demon, victim beast, Shadow Monster,
 Temple 3 hammer skeleton, blue bow skeleton and both stationary zombie
 placement to observed health loss and distinct Normal death outcomes.
+The combined Ice World lane links Frosty, hammer Orc and axe Griffin
+Normal attacks to source-specific health loss and their distinct
+death/drop/corpse outcomes, while retaining ambient bow-guard hits as
+separate sources.
 
 | Area | Evidence already recorded | Remaining M5 work |
 | --- | --- | --- |

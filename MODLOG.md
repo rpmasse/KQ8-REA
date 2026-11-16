@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-17 Link three Ice World melee families (M5)
+
+One original-data Ice World release test passed 1/1. It stages a placed
+Frosty, hammer Orc and axe Griffin on the already measured 31,365-unit
+floor. Each completed its authored Normal melee attack and lowered
+Connor's health. Controlled Normal deaths then yielded Frosty's no
+drop/corpse and 10,000 experience, the Orc's sacred water, crystal,
+`oh_death.kqs` corpse and 15,000 experience, and the Griffin's no drop,
+`grb_dead.kqs` corpse and zero experience. The nearby Orc bow guards
+remained active; attempted `KQObject::delete` test commands returned no
+action and were omitted from the persistent route. Assertions name the
+melee source so ambient Ice hits cannot satisfy them. The relocated
+actors do not prove earned encounters. No production code, GOG file or
+manual gameplay changed. With `KQ8_GAME_DIR` set, run
+`cargo test --locked --release -p kq8-viewer --test ice_melee_families_live -- --ignored --nocapture`.
+
 ## 2026-11-17 Link Temple 3 bow, hammer and zombie combat (M5)
 
 Added a single original-data Temple 3 release test that passed 1/1,

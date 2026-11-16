@@ -4002,6 +4002,29 @@ Implement the main menu, New Game and difficulty selection, options, pause/resum
 
 ### M5 · Complete combat
 
+**Ice World melee-family lane (2026-11-17).** The existing Orc-bow
+scenario measured a stable terrain floor at (268329,480983,31365).
+Reuse that known point in one original-data process. Bring one placed
+`frosty`, `orcham` and `griffbax` actor into their respective melee
+reach in sequence, after each predecessor is defeated. Require live
+authored attack cues and Connor health loss before checking each
+actor's original Normal death, drop, corpse and experience behavior.
+The original bow guards remain active in this lane; distinguish their
+Ice hits from the named melee sources in numeric logs. The diagnostic
+`KQObject::delete` test commands returned no action, so omit them from
+the persistent route rather than pretending to remove the guards.
+Keep these relocations distinct from earned campaign encounters and
+record any actors blocked by world geometry rather than inventing a
+rule. The ranged flying Griffin, sword Griffin and Ice Lord have
+separate targeting or activation conditions and remain later checks.
+
+The measured lane yielded Frosty Normal hits at 1429/1500 reach, hammer
+Orc hits at 1829/2000, and axe Griffin hits at 829/1000. Their Normal
+deaths respectively have no drop/corpse with 10,000 experience, sacred
+water and one crystal with `oh_death.kqs` and 15,000 experience, and no
+drop with `grb_dead.kqs` and zero experience. The combined automated
+route uses those observed effects as source-specific assertions.
+
 **Temple 3 placed-family check (2026-11-17).** The installed list has
 two `zombie2` placements, one `skelhamr` and two `skelblue` bow skeletons
 on the same raised floor (z=3562). First run them together with Connor
