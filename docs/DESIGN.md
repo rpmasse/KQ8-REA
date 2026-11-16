@@ -3,6 +3,20 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Mandragor waiting-root save boundary (2026-11-17)
+
+Extend the existing Swamp root fight and fresh-process save test. Check
+that the saved linked root remains in Die with zero health and zero
+collision while its rebirth timer is pending. During the existing
+restore process, save once before the timer expires and verify that the
+same non-solid phase and tree down-root count survive the disk load;
+then let the original `birth` movement finish and check the restored
+collision mask. Strengthen the matching core fixture across the waiting
+and birth phases. This uses the two processes already required for the
+checkpoint and one extra save within the second process. The original
+executable's death-phase drawing and disk-load side effects remain
+unresolved in Q209; this check establishes Rust continuation only.
+
 ## M5 elemental death from the active list (2026-11-17)
 
 Strengthen the existing combined Fire and Ice original-data fixture

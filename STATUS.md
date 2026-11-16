@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-17 M5 Mandragor root waiting save boundary
+
+The existing Swamp root fight and fresh-process save test passed 1/1
+in 34.59 seconds. Its first save held the linked `mand3l` root in Die
+with health 0, collision 0/0, one root down and tree turning blocked;
+3.80 seconds remained before rebirth. A second save within the restored
+process held the same state and 2.13 seconds remaining. The run then
+completed Birth and restored collision 0x4042/0x201f. The matching core
+checkpoint passed 1/1 and checks zero collision throughout Waiting
+and Birth, then the final collision and tree count. Artifact:
+`kq8-artifacts/mandragor-live-combat/1794869725510869800`.
+No production code or GOG file changed. This proves Rust save
+continuity for this phase; Q209's original-executable disk-load and
+drawing/collision behavior remain unresolved. M5 remains incomplete.
+
 ## 2026-11-17 M5 active-list death coverage
 
 The existing `elemental_ranged_death` Fire/Ice fixture now runs with

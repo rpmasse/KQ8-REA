@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-17 Check Mandragor death-phase save continuity (M5)
+
+Extended the existing Swamp Mandragor fight and fresh-process restore
+test with a second save before root rebirth, without another world
+load. Both slots assert Die, zero health and collision, the linked tree's
+down-root count and turn lock, and a decreasing timer. Extended its
+core checkpoint through Birth and collision restoration. Focused
+release runs passed 1/1 each: core after 1m07s compilation, original
+data viewer in 34.59 seconds after its build. Logs and slots are in
+`kq8-artifacts/mandragor-live-combat/1794869725510869800`. Updated
+the M5 audit; no production code or GOG file changed. With
+`KQ8_GAME_DIR` set to the GOG install, run `cargo test --locked
+--release -p kq8-core mandragor_root_checkpoint_keeps_the_remaining_rebirth_time
+-- --nocapture` and `cargo test --locked --release -p kq8-viewer
+--test mandragor_live_combat -- --ignored --nocapture`; expect one
+passing test from each. Q209's original disk-load effects remain
+untested.
+
 ## 2026-11-17 Verify active Fire, Ice and Normal enemy deaths (M5)
 
 Enabled AI in the existing two-element original-data death fixture.

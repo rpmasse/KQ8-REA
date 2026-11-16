@@ -9780,11 +9780,25 @@ endif
         let mut loaded = mandragor_root_fixture(4.0);
         loaded.world.restore_placed_characters(&saved);
         assert_eq!(loaded.world.anims[1].character.as_deref().unwrap().mandragor_down_roots, 1);
+        assert!(loaded.world.anims[1].character.as_deref().unwrap().no_turn);
+        let root = loaded.world.anims[0].character.as_deref().unwrap();
+        assert_eq!((root.state, root.collision_type, root.collision_mask), (crate::character::State::Die, 0, 0));
+        assert_eq!(root.fight.as_ref().unwrap().stats.0[0], 0);
+        assert!(!root.ai.as_ref().unwrap().active);
         assert_eq!(loaded.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::Waiting(3.0));
         loaded.world.mandragor_roots_due(2.99);
         assert!(matches!(loaded.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::Waiting(_)));
         loaded.world.mandragor_roots_due(3.0);
-        assert_eq!(loaded.world.anims[0].character.as_deref().unwrap().mandragor_root.as_ref().unwrap().phase, Phase::BirthMovement);
+        let root = loaded.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(root.mandragor_root.as_ref().unwrap().phase, Phase::BirthMovement);
+        assert_eq!((root.collision_type, root.collision_mask), (0, 0));
+        assert_eq!(root.fight.as_ref().unwrap().stats.0[0], 15);
+        loaded.world.death_ended(0, 4.0);
+        let root = loaded.world.anims[0].character.as_deref().unwrap();
+        assert_eq!(root.mandragor_root.as_ref().unwrap().phase, Phase::Alive);
+        assert_eq!((root.collision_type, root.collision_mask), (0x4042, 0x201f));
+        assert_eq!(loaded.world.anims[1].character.as_deref().unwrap().mandragor_down_roots, 0);
+        assert!(!loaded.world.anims[1].character.as_deref().unwrap().no_turn);
     }
 
     #[test]

@@ -147,21 +147,29 @@ fn sword_defeats_a_live_root_and_it_rebirths_under_normal_damage() {
         actor("mand3l")["character"]["mandragor_root"]["linked"],
         true
     );
+    assert_eq!(actor("mand3l")["character"]["state"], "Die");
+    assert_eq!(actor("mand3l")["character"]["fight"]["stats"][0], 0);
+    assert_eq!(actor("mand3l")["character"]["collision_type"], 0);
+    assert_eq!(actor("mand3l")["character"]["collision_mask"], 0);
     assert_eq!(actor("mand3t")["character"]["mandragor_down_roots"], 1);
+    assert_eq!(actor("mand3t")["character"]["no_turn"], true);
 
     let (restored, resumed_fight, _) = run(
         "restore",
         &[
             "--menu-input",
             "down,enter,release,enter,release",
+            "--key",
+            "menu:down:down:down:enter:release:enter:release:escape:type=RootStillDown:enter:release:escape,25",
             "--updates",
             "110",
             "--frames",
-            "1300",
+            "1800",
         ],
     );
     assert!(
         restored.contains("save restored in Swamp without replaying Begin")
+            && restored.contains("Save screen -> Save(2, \"RootStillDown\")")
             && resumed_fight
                 .contains("mand3l: Mandragor root rebirth due: restores health 250, starts birth")
             && resumed_fight
@@ -170,5 +178,28 @@ fn sword_defeats_a_live_root_and_it_rebirths_under_normal_damage() {
         "fresh-process rebirth or root link failed; inspect {}",
         root.display()
     );
+    let still_down: serde_json::Value =
+        serde_json::from_slice(&fs::read(slots.join("slot-2.json")).unwrap()).unwrap();
+    let actors = still_down["kept"]["swamp"]["characters"]
+        .as_array()
+        .unwrap();
+    let actor = |name: &str| {
+        actors
+            .iter()
+            .find(|a| a["name"] == name)
+            .unwrap_or_else(|| panic!("{name} missing from second slot; inspect {}", root.display()))
+    };
+    let resumed_remaining = actor("mand3l")["character"]["mandragor_root"]["phase"]
+        ["Waiting"]
+        .as_f64()
+        .expect("the root must still be waiting at the second save");
+    assert!((0.0..remaining).contains(&resumed_remaining));
+    assert_eq!(actor("mand3l")["character"]["mandragor_root"]["linked"], true);
+    assert_eq!(actor("mand3l")["character"]["state"], "Die");
+    assert_eq!(actor("mand3l")["character"]["fight"]["stats"][0], 0);
+    assert_eq!(actor("mand3l")["character"]["collision_type"], 0);
+    assert_eq!(actor("mand3l")["character"]["collision_mask"], 0);
+    assert_eq!(actor("mand3t")["character"]["mandragor_down_roots"], 1);
+    assert_eq!(actor("mand3t")["character"]["no_turn"], true);
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }
