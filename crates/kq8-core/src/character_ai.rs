@@ -942,18 +942,47 @@ impl WorldState {
         let a = &mut self.anims[i];
         let name = a.player.name.clone();
         let Some(c) = a.character.as_deref_mut() else { return };
-        let delay = if c.tower.is_some() { 0. } else { f64::from(c.random()) };
+        // mandragor.md (Q209): the tree's alarm has no random reaction
+        // deadline. The ordinary monster and root paths keep theirs.
+        let tree = c.mandragor_tree;
+        let unborn_delay = (c.unborn && c.state == crate::character::State::Birth)
+            .then(|| f64::from(c.birth_delay.max(0.0)));
+        let delay = if tree || c.tower.is_some() { 0. } else { f64::from(c.random()) };
         let Some(ai) = c.ai.as_mut() else { return };
         let authored_line = ai.settings.alarm_line;
         ai.alarmed = true;
         ai.on_way_home = false;
-        ai.last_seen = connor;
-        ai.react_at = now + delay;
+        let tree_target_copy = tree && ai.settings.team.is_some()
+            && connor.is_some_and(|at| distance(at, a.player.base.position) <= ai.settings.alarm_radius);
+        if tree {
+            // The original requires a resolved team object and its stored
+            // Connor distance inside the alarm radius for this position copy.
+            // Shipped Mandragor trees all name a team in monsters.kq. This
+            // path uses the currently reported Connor distance; team-alert
+            // update order remains open in Q209.
+            if tree_target_copy {
+                ai.last_seen = connor;
+            }
+        } else {
+            ai.last_seen = connor;
+            ai.react_at = now + delay;
+        }
         ai.chase_until = now + CHASE_TIME;
+        let queued_rise = unborn_delay.filter(|_| ai.rise_at.is_none());
+        if let Some(delay) = queued_rise {
+            // character-movement.md rule 30, mandragor.md Q209: a team
+            // alarm also queues the Unborn actor's delayed Wait entry.
+            ai.rise_at = Some(now + delay);
+        }
         let speech = authored_line.map_or("no authored alarm line".to_string(), |(first, last)| format!("authored alarm line {first}…{last}"));
-        let line = format!("alarmed: {why}; reacts in {delay:.2} s (rule 23); chase timer {CHASE_TIME} s; {speech}");
+        let reaction = if tree { format!("no random reaction deadline (Q209); target position {}", if tree_target_copy { "copied" } else { "unchanged" }) }
+            else { format!("reacts in {delay:.2} s (rule 23)") };
+        let line = format!("alarmed: {why}; {reaction}; chase timer {CHASE_TIME} s; {speech}");
         let team = ai.settings.team.clone();
         self.character_note(&name, line);
+        if let Some(delay) = queued_rise {
+            self.character_note(&name, format!("Unborn alarm: Wait due in {delay} s (birthDelay, Q209)"));
+        }
         self.alarm_speech(i, now);
         if !told {
             self.spread_alarm(i, &name, team.as_deref(), now);

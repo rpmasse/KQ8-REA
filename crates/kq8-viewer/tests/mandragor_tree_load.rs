@@ -82,6 +82,47 @@ fn swamp_mandragor_trees_and_roots_load_as_animated_characters() {
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
+fn original_swamp_tree_uses_standing_alarm_and_attack_without_a_hit_cue() {
+    let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR"))
+        .unwrap();
+    let options = fs::read(game.join("Options.cs")).unwrap();
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../kq8-artifacts/mandragor-tree-alarm/{nonce}"));
+    fs::create_dir_all(&dir).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
+        .current_dir(&dir)
+        .arg("--game")
+        .arg(&game)
+        .args([
+            "--world", "Swamp", "--at", "157904,140178,0", "--god", "--sound", "off",
+            "--windowed", "--command", "move Connor 0 158404 140178 6120 0 0 0,5",
+            "--updates", "90",
+        ])
+        .output()
+        .unwrap();
+    fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
+    let logs = dir.join("kq8-artifacts/logs");
+    let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
+    let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+    assert!(characters.contains("mand3t: joins the active list"), "tree AI did not activate; inspect {}", dir.display());
+    assert!(characters.lines().any(|line| line.contains("mand3t: alarmed:") && line.contains("no random reaction deadline (Q209); target position copied")), "tree alarm missed its special target rule; inspect {}", dir.display());
+    assert!(fight.contains("mand3t: attack (rule 7, standing)"), "tree did not request its authored attack; inspect {}", dir.display());
+    assert!(characters.contains("mand3t: turning to")
+        && characters.contains("mand3r: Mandragor root follows mand3t")
+        && characters.contains("mand3l: Mandragor root follows mand3t"),
+        "tree turn did not carry both linked roots; inspect {}", dir.display());
+    assert!(!fight.contains("mand3t: Do (Attack") && !fight.contains("mand3t: direct Normal hit on Connor"), "tree produced an un-authored hit; inspect {}", dir.display());
+    assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
+}
+
+#[test]
+#[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
 fn an_original_swamp_root_pushes_nearby_connor_after_tree_move() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap();
     let options = fs::read(game.join("Options.cs")).unwrap();
@@ -115,7 +156,7 @@ fn an_original_swamp_root_pushes_nearby_connor_after_tree_move() {
 
 #[test]
 #[ignore = "requires KQ8_GAME_DIR and a Windows graphics device"]
-fn a_swamp_root_rises_without_repeated_tree_pose_resets() {
+fn a_tree_team_alarm_schedules_root_rise() {
     let game = fs::canonicalize(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR"))
         .unwrap();
     let options = fs::read(game.join("Options.cs")).unwrap();
@@ -145,20 +186,15 @@ fn a_swamp_root_rises_without_repeated_tree_pose_resets() {
         "inspect {}",
         dir.display()
     );
-    assert!(
-        characters.contains("mand3r: rises in 0 s")
-            && characters.contains("mand3r: rises (rule 30):")
-            && characters.contains("mand3r: solid for Connor:")
-            && characters.contains("type 0x4042 mask 0x281f"),
-        "root did not rise with its authored collision; inspect {}",
-        dir.display()
-    );
-    assert_eq!(
-        characters.matches("mand3r: Mandragor root follows mand3t").count(),
-        0,
-        "a stationary tree should not reset the root's turn; inspect {}",
-        dir.display()
-    );
+    assert!(characters.contains("mand3r: made active by its team member mand3t's alarm")
+        && characters.contains("mand3r: alarmed: told by its team member mand3t")
+        && characters.contains("mand3r: Unborn alarm: Wait due in 0 s")
+        && characters.contains("mand3r: rises (rule 30):")
+        && characters.contains("mand3r: solid for Connor:"),
+        "team-alarmed Unborn root did not rise; inspect {}", dir.display());
+    assert!(characters.contains("mand3t: turning to")
+        && characters.contains("mand3r: Mandragor root follows mand3t"),
+        "the active tree's turn should update its root; inspect {}", dir.display());
     assert_eq!(fs::read(game.join("Options.cs")).unwrap(), options);
 }
 
@@ -216,16 +252,22 @@ fn original_swamp_roots_die_and_rebirth_on_their_own_timers() {
         .arg(&game)
         .args([
             "--world", "Swamp", "--at", "159904,140178,0", "--god", "--sound", "off",
-            "--windowed", "--command", "sendEvent 0 mand3r KQAttackEvent Connor 0 10000 0,40",
-            "--command", "sendEvent 0 mand3l KQAttackEvent Connor 0 10000 0,42", "--updates", "200",
+            // The tree's team alarm starts both roots' authored birth. Let
+            // their first Attack reach Do before these scripted lethal hits.
+            "--windowed", "--command", "sendEvent 0 mand3r KQAttackEvent Connor 0 10000 0,55",
+            "--command", "sendEvent 0 mand3l KQAttackEvent Connor 0 10000 0,57", "--updates", "215",
         ])
         .output()
         .unwrap();
     fs::write(dir.join("stderr.log"), &output.stderr).unwrap();
     let logs = dir.join("kq8-artifacts/logs");
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
+    let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+    assert!(characters.contains("mand3r: rises (rule 30):")
+        && characters.contains("mand3r: solid for Connor:"),
+        "controlled root did not emerge before combat; inspect {}", dir.display());
     let at_update = |needle: &str| -> u64 {
         fight.lines().find(|line| line.contains(needle))
             .and_then(|line| line.split_whitespace().nth(1))

@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-16 M5 Swamp Mandragor tree standing AI
+
+The 11 trees now keep the shared monster AI that their class inherits.
+The special tree alarm has no random reaction delay and copies Connor's
+position only when the tree has a team and Connor is within its alarm
+radius. Shipped trees remain stationary: they can turn and play Attack,
+but the animation has no `Do` cue to deal hand damage. An unattended
+original-data Swamp route passed and logged `mand3t` activating,
+alarming, turning, attacking and rotating its linked roots. A team
+alarm now also queues the original Unborn-to-Wait birth event for each
+root. Focused original-data rise and root `Do` attack/rebirth checks
+pass. Seven of eight serial release Mandragor routes passed; the
+release checkpoint route never opened its automated Save menu, but the
+same route passed alone in the debug build, including fresh-process
+rebirth. The core suite passed 774 active tests. The original's
+stored-distance phase in team alerts, within-update root notifications
+and binary save continuation remain open. No manual
+gameplay or original-executable comparison was run. M5 remains ~65%.
+
 ## 2026-11-16 M5 IceWorld Dragon shared fighter state
 
 The Dragon body now retains its original fighter statistics and shared

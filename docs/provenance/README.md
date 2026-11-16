@@ -1,5 +1,26 @@
 # Provenance
 
+**Mandragor tree standing AI (2026-11-16).** The separate
+[Mandragor study](../behaviour/mandragor.md) establishes that the tree
+retains common monster update, Wait and Attack, but its shipped list
+disables walking and chasing. Its special alarm has no random reaction
+deadline and copies Connor's position only with a resolved team and a
+stored distance within the alarm radius. The installed Swamp list names
+the teams; its tree attack movement has no `Do` hit cue. Rust now gives
+trees the shared AI and the studied alarm branch. An unattended GOG-data
+route logs activation, the alarm and a standing attack without a tree
+hit cue. The same study confirms that an ordinary alarm to an Unborn
+root schedules Wait after `birthDelay`, including when the tree's team
+alarm activates it. Rust now schedules that event; focused Swamp rise
+and root `Do` hit/death/rebirth routes pass. This is a Rust route, not
+an original-executable comparison. Seven serial release Mandragor
+routes pass; the release checkpoint route missed its automated Save
+menu, while the same fresh-process restore passed alone in debug.
+The core suite passes 774 active tests. The Rust alarm computes
+distance from its current reported Connor
+position, while the original describes a stored distance. Team-alert
+ordering and the within-update root notification order remain open.
+
 **Ranged retreat and sight timing (2026-11-16).**
 [Fighting rule 37](../behaviour/fighting.md) and Q211 establish the
 per-monster 15-update counter, immediate `mustFlee`, no retreat sight

@@ -1,5 +1,45 @@
 # MODLOG
 
+## 2026-11-16 Study team alarms before Mandragor root birth
+
+Traced the original shared team alarm, ordinary alarm, timed Wait event
+and Unborn state read-only. A tree alarm can make an underground root
+active and Connor-targeted, then schedule Wait after its zero birth
+delay; Wait applies the usual space gate before playing birth. The
+Unborn state's own sight/radius check is an alternate alarm route.
+Updated `mandragor.md` and Q209; exact zero-delay scheduler phase
+remains open.
+No Rust or original game files changed; no manual gameplay test ran.
+
+## 2026-11-16 Enable Mandragor tree standing AI
+
+Removed the viewer's tree AI exclusion and added the studied special
+alarm: no random reaction deadline, with Connor's target position copied
+only when a tree has a team and Connor is within its alarm radius. The
+ordinary alarm now schedules an Unborn actor's Wait after its birth
+delay, including when a tree tells a linked root. The first serial
+Mandragor run passed 6/8: root rise and the root `Do` hit failed because
+the team-alarmed root stayed underground. The original study found the
+missing alarm event; focused original-data rise and root-hit/rebirth
+routes now pass. The root-hit fixture gives its first attack time to
+reach `Do` before the scripted lethal hit. The serial release group
+passed 7/8; the checkpoint route's automated Save menu did not open in
+that run. The same checkpoint passed alone in the debug build, including
+fresh-process rebirth. The core suite passed 774 active tests. No
+textures, original game files or manual gameplay were changed or used.
+
+## 2026-11-16 Study Mandragor tree's standing AI
+
+Traced the original tree's retained monster update, Wait and Attack
+methods and its specialized alarm method read-only. `mandragor.md` and
+Q209 now distinguish stationary, turning and attack animation from
+chasing or delivering a melee hit. The alarm copies Connor's position
+only with a resolved team and stored distance within the 4,000 alarm
+radius; unlike the ordinary alarm it sets no random reaction deadline.
+The root attachment note now covers tree-turn notifications and the
+root-death turn gate. Native within-tick root notification order remains
+open. No Rust or original game file changed; no manual gameplay test ran.
+
 ## 2026-11-16 Restore the Dragon body's shared fighter state
 
 Removed the temporary Dragon-body recipe exclusions so the installed

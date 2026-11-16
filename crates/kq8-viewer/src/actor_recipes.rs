@@ -194,13 +194,8 @@ pub fn character(
             });
         }
     }
-    if k.class == Class::MandragorRoot {
-        ai.has_birth = has_birth;
-        ch.ai = Some(ai);
-    } else if k.class != Class::MandragorTree {
-        ai.has_birth = has_birth;
-        ch.ai = Some(ai);
-    }
+    ai.has_birth = has_birth;
+    ch.ai = Some(ai);
     ch.fight = c.fight.clone().map(|s| {
         let mut f = kq8_core::fight::Fight::new(s);
         f.combat_scaled = c.combat_scaled;

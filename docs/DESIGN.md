@@ -3,6 +3,51 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 Swamp Mandragor tree decision state (2026-11-16)
+
+The 11 trees load their original stats and animation lists, but the
+viewer currently excludes them from shared monster AI. The Q209 note
+says their ordinary Attack has no `Do` hit cue, and their Wait-entry
+target-position update has a class-specific alarm-radius guard.
+Study that guard and any linked-root notification first. Then give
+trees the shared sight, alarm and attack timing with only the studied
+tree-specific gate; keep the authored zero-hit Attack and the root
+attachment/death rules. Check tree and root positions, decisions and
+health in a focused case and an unattended original-data Swamp route.
+No manual gameplay test or original game-file writes.
+
+Implemented: trees now retain shared AI and use their studied alarm
+branch. In the unattended Swamp route, `mand3t` saw Connor, joined the
+active list, alarmed without a random reaction deadline, turned toward
+Connor, played its standing Attack and moved both linked roots with
+its turn. No tree `Do` hit cue occurred. The focused original-data
+check passed; the grouped Mandragor regression is being run separately.
+The unresolved native within-update root notification order and full
+original disk-save continuation remain Q209.
+
+The first serial regression exposed a root startup interaction: the
+tree's team alarm made `mand3r` active while it was still in Unborn,
+before the ordinary sight-and-distance rise gate could run. The root
+then stayed underground, so two old tests that expected it to rise and
+hit Connor failed, although its timed death/rebirth route completed.
+The corrected original-engine follow-up found the missing common alarm
+action: alarming any Unborn actor queues a Wait transition after its
+`birthDelay`. Put that scheduling in the common alarm path, including
+team alarms; keep the existing combined-ball birth gate. Rerun the
+natural root-rise, shared `Do` hit and grouped Mandragor routes with
+one viewer window at a time.
+
+Implemented: the common alarm now schedules the Unborn actor's Wait
+after `birthDelay`, so tree-to-root team alarms start the original
+rise path. The focused Swamp rise and root `Do` hit/death/rebirth
+routes pass. The latter moves scripted lethal hits later to let its
+first authored Attack reach `Do`. The grouped serial regression is
+complete: seven of eight release routes passed. The checkpoint route
+did not open its automated Save menu in the release pass, then passed
+alone in debug, including fresh-process rebirth. The core suite passed
+774 active tests. The first 6/8 serial pass and two root failures led
+to the alarm correction.
+
 ## M5 IceWorld Dragon body combat completion (2026-11-16)
 
 The two Dragon heads already attack, rebirth or die, and a second

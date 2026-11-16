@@ -81,6 +81,24 @@ and turns gravity back on because the root retains the default
 `monUseGravity=1`. The exact first-frame ordering remains to be
 established.
 
+**Team alarm while a root is still underground.** The tree's alarm
+spreads to eligible members of its named team. For an inactive root,
+the shared team path first obtains an active-monster slot, then sends
+the ordinary alarm if the root has no target and has a nonzero alarm
+radius. The ordinary alarm recognizes the Unborn state and queues a
+change to Wait after that root's `birthDelay`; the installed roots have
+zero delay. The event changes state only if the root is still Unborn
+or has no state when it fires. Wait entry then applies the combined
+actor-ball clearance gate before requesting `birth` and restoring its
+ordinary drawn and solid groups. The root can therefore be told and
+scheduled to rise without passing its own 3,000-unit sight/radius
+test. Its own Unborn update is a second alarm route: only while
+**inactive**, with stored sight true and Connor **strictly inside**
+that radius, it obtains an active slot and alarms. Both routes use
+the ordinary alarm's delayed Wait event. The exact scheduler phase for
+the zero-delay event was not traced here. This is shared Unborn/team
+behavior, not a Mandragor-only state override.
+
 The root's class-specific property reader accepts the authored
 `offset`, `rebirthDelay`, `repelDist` and `tooClose`, plus stored baseline
 health and birth delay, in addition to common monster properties. The
@@ -145,10 +163,43 @@ action. Under these shipped data and shared attack rules, the tree's
 ordinary Attack movement does not deliver its authored 25 hand damage.
 Generic collision effects and indirect external events remain open;
 the class-specific methods examined show no separate outgoing hit.
-The tree's Wait-entry method also limits one target-position update to
-when Connor's distance is within its alarm radius; the roots retain the
-ordinary Wait-entry method. This does not by itself establish the full
-targeting or attack schedule.
+The tree retains the ordinary monster update, Wait state and Attack
+state. Its `monsters.kq` row takes the type defaults, and its
+`Monstats.mtl` type selects `none` for movement and chase, attack
+distance 2,000 and delay 1 s.
+Thus its standing Wait can acquire Connor, turn toward him or its
+last-seen point, and request the ordinary `attack` movement when its
+stored sight says he is visible, he is closer than 2,000 and its attack
+time is due. The movement must also be replaceable. The tree does not
+walk, run or chase Connor under these shipped settings. Its initial
+attack time is due at creation, as in `fighting.md` rules 6–7. The
+tree's `attack` has no `Do` cue, so this ordinary request animates
+without the shared melee damage event described above.
+
+The tree replaces only the common **alarm** method in this part of the
+AI. On first alarm it selects Connor as target; the special method does
+not assign the ordinary random 0–1 s reaction deadline. It copies
+Connor's current world position into the stored target point only
+when the tree has a resolved team object and its stored Connor distance
+is **at most** its alarm radius (4,000 from `Monstats.mtl` for the
+installed tree). That copy has no additional current-sight test; the
+ordinary Wait attack still requires its stored sight result. The
+monster-list parser takes the third token, `mand3` for `mand3t`, as the
+team name, and common setup resolves or creates the shared team object.
+This gate is distinct from the active-monster-list flag. The roots use
+the common alarm method, including its random reaction deadline.
+
+Ordinary Wait may turn the tree while roots are alive. The tree's
+`noTurn` is set when a root enters its timed death and cleared only
+when the down-root count returns to zero. A root listens to its tree's
+movement notices; each notice recalculates the root's position from
+the tree's position and rotated authored offset, while putting the
+root's orientation back on world axes. Whether its own Wait turns it
+between notifications, and the precise within-tick order of a tree
+notification and root AI update, were not traced. Enabling the tree's
+shared AI with its stationary authored movement and its special alarm
+guard follows these native paths; excluding it from all shared AI does
+not.
 
 The tree's class property reader does not consume its file's
 `tooClose=1600` or `repelDist=1800`; neither does the common monster
