@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-16 Check live combat by script-created monsters
+
+Added one unattended Dead City encounter for two `KQMonster::add`
+actors. With normal AI and damage enabled, the rat dies from an axe
+hit, leaves its corpse and awards one experience; the later skeleton
+uses its authored attack and lowers Connor's health. The first test
+run fired the axe before its ready animation ended, so it recorded
+only the skeleton attack. Scheduling the ready request first made the
+combined release check pass 1/1 in 18.58 seconds:
+`cargo test --locked --release -p kq8-viewer --test spawned_monster_combat -- --ignored --nocapture`.
+No game logic, manual gameplay or GOG files changed. The Dead City
+karma script sequence remains unverified.
+
 ## 2026-11-16 Combine ordinary ranged weapons into one encounter
 
 Replaced five separate Dead City launches with one continuous test.

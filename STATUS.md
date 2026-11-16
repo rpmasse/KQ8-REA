@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-16 M5 script-created monster combat
+
+One unattended Dead City encounter now checks two script-created
+original types under normal AI, without god mode. A rat takes a normal
+axe hit, dies, leaves its corpse and awards one experience; a skeleton
+then attacks and lowers Connor's health while he survives. The new
+`spawned_monster_combat` release check passed 1/1 in 18.58 seconds.
+The first test run attempted the axe hit before Connor had finished
+readying it; the corrected encounter includes that ready request.
+This is an isolated encounter, not the karma script or full campaign.
+M5 remains about 65%; no manual gameplay or GOG-file write occurred.
+
 ## 2026-11-16 M5 combined ranged-weapon combat check
 
 The original-data ranged matrix now runs five bows and crossbows in
