@@ -1,5 +1,14 @@
 # Provenance
 
+**Mandragor root disk continuation (2026-11-17).**
+[Mandragor rules](../behaviour/mandragor.md) describe the linked root's
+temporary Die state, rebirth delay and restored class fields. Installed
+Swamp data supplies the `mand3` tree and both roots. One unattended
+Rust encounter now saves `mand3l` while its timer is pending and
+restores it in another process; the 250-health root and collision
+return. The original executable's disk-load order is still an open
+Q209 question, and no manual gameplay was performed.
+
 **Placed monster type additions (2026-11-17).**
 [Characters rule 4](../behaviour/characters.md) identifies each
 `monsters.kq` line as the same operation as `KQMonster::add` and resolves

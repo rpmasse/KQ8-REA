@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-17 M5 Mandragor root disk continuation
+
+The existing live Swamp fight now saves while `mand3l` is in its
+temporary down-root waiting state. The first process records three
+ordinary sword hits, its Die movement ending at update 172, and a
+slot with positive rebirth time, a linked root and one down root in
+the tree. A fresh process restores that slot without replaying Begin;
+the root's saved timer fires at update 57, its 250 health returns and
+its collision is restored at update 76, without another death request.
+The focused release check passed 1/1 in 31.77 seconds. This establishes
+Rust save continuation for one linked root; Q209's original-engine
+disk-load ordering and other Mandragor interactions remain open.
+M5 remains about 65% complete. No manual gameplay or GOG-file write
+occurred.
+
 ## 2026-11-17 Unrelocated Tower Skeleton route handoff
 
 An unattended Dead City probe kept the installed `Skeltowr` actor at

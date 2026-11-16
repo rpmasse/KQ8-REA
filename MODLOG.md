@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 Keep a Mandragor root's rebirth across disk load
+
+Extended the existing original-data Swamp root fight instead of adding
+another encounter. Connor's ordinary sword hits still kill `mand3l`
+while both roots can damage him. The test now saves after the left
+root's death movement and before its four-second rebirth, checks the
+saved remaining time and tree link, then restores in a fresh process.
+The root rebirths with 250 health and its `0x4042/0x201f` collision.
+The focused release test passed 1/1 in 31.77 seconds:
+`cargo test --locked --release -p kq8-viewer --test mandragor_live_combat -- --ignored --nocapture`.
+No production rule, manual gameplay or GOG file changed.
+
 ## 2026-11-17 Measure the Tower Skeleton's unrelocated approach
 
 Two unattended diagnostics moved only Connor. The first process hit
