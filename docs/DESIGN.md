@@ -3,6 +3,24 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 shield protection during live combat (2026-11-16)
+
+Use the installed Swamp start script and an original Invulnerable potion
+in an unattended encounter with the two Mandragor roots. Keep monster AI,
+incoming damage and ordinary potion timing active. Require the inventory
+key to apply the shield, root damage to use the raised protection while
+it runs, the 20-second timer to remove that protection, and later root
+damage to use the original baseline again. Connor must survive both
+periods. This isolated encounter gives him a potion after regional
+startup; it does not establish where the campaign awards that item.
+Preserve the GOG installation and run no manual gameplay test.
+
+Checked: the unattended original-data route passed 1/1 in 50.84
+seconds. The shield applied at update 25, root hits used protection 50,
+the 20-second timer ended at update 325, and subsequent hits used the
+baseline protection 21. Connor survived. This covers the live damage
+boundary, not potion acquisition during a campaign route.
+
 ## M5 Mandragor live root fight (2026-11-16)
 
 Exercise a Swamp root with the original regional SkelKingSword, normal AI,

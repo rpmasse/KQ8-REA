@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-16 Check shield expiry against live root damage
+
+Changed: added an unattended original-data Swamp encounter that gives
+Connor an Invulnerable potion, uses inventory key 5, and keeps both
+Mandragor roots' normal AI and damage active. It requires root hits to
+use protection 50 while the shield runs and baseline protection 21
+after its 20-second expiry. Why: the existing shield timer test did not
+check damage across the active-to-expired boundary. Tested how: from
+the worktree, set `$env:KQ8_GAME_DIR = (Resolve-Path "..\..\..\King's
+Quest 8 GOG").Path`, then run `cargo test --locked -p kq8-viewer
+--test shield_live_combat -- --ignored --nocapture`. Result: 1/1 passed
+in 50.84 seconds with Connor surviving and the GOG Options.cs bytes
+unchanged. A direct debug probe passed before the test was written.
+The item is supplied after startup; its campaign acquisition is not
+covered. No manual gameplay test was run.
+
 ## 2026-11-16 Exercise a live Mandragor root fight
 
 Changed: added an unattended original-data Swamp route using the

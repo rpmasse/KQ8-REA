@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-16 M5 shield protection during live combat
+
+An unattended original-data Swamp run applied the Invulnerable shield
+through the inventory key with monster AI and damage enabled. Both
+Mandragor roots hit Connor while the shield raised protection from 21
+to 50. Its 20-second timer expired at update 325, and later hits used
+the restored protection of 21. Connor survived; the check passed 1/1
+in 50.84 seconds and left GOG Options.cs unchanged. The potion was
+given after regional startup, so this does not cover earning it in the
+campaign. No manual gameplay test was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 live Mandragor root fight
 
 An unattended GOG-data Swamp run now fights a root with the regional
