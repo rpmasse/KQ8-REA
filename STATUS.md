@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-16 M5 laid-weapon obstacle rule corrected
+
+The placed-weapon line after an enemy death now follows the studied
+0x1/0x8 obstacle filter. Core checks distinguish ordinary monsters
+and loose items from solid scenery, and the original-data Skeleton
+King death route still completes with its weapon and rewards. The
+focused checks passed 3/3; the GOG-data route passed 1/1. This does
+not establish every enemy death placement or the original executable's
+rendered pose. No manual gameplay test was run; M5 remains about 65%.
+
 ## 2026-11-16 M5 Mandragor tree route stopped for Q209 timing
 
 An unattended Swamp probe landed three SkelKingSword hits on the

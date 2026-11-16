@@ -374,6 +374,23 @@ alone in debug, including fresh-process rebirth. The core suite passed
 774 active tests. The first 6/8 serial pass and two root failures led
 to the alarm correction.
 
+## M5 defeated enemy's laid weapon obstacle rule (2026-11-16)
+
+`fighting.md` rule 31a.2 and Q170 specify that the line from a dying
+enemy's feet to its laid weapon is blocked by drawn ground and collision
+types with bit 0x1 or 0x8. The current all-bits mask also counts ordinary
+characters and loose items, throwing a weapon that should remain in its
+authored death pose. Use the documented mask with the existing nearest-hit
+scene test. Check ordinary versus exceptional character types and loose
+items versus solid scenery in core, then retain an installed-data death
+route as a regression. This concerns the kept-weapon result only.
+
+Checked: the core line cases pass for ordinary and exceptional character
+types, a loose item, and solid scenery. The earlier laid-weapon wall and
+death-pose cases pass, as does the installed Dead City Skeleton King death
+route. This establishes the filter and one original-data regression; it
+does not compare the original executable's rendered weapon placement.
+
 ## M5 Dead City startup gravity switch (2026-11-16)
 
 Dead City's `newWorld.cs` loads its monster list, then turns gravity off for

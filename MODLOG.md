@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-16 Correct the laid-weapon obstacle test
+
+Changed: a dying enemy's retained weapon now uses the obstacle bits
+0x1 and 0x8 for its placement line, as `fighting.md` rule 31a.2 and
+Q170 specify. Ordinary characters and loose items no longer force the
+weapon to be thrown; solid scenery still does. The former all-bits
+filter was a stand-in left after Q170 was answered. Tested how:
+`cargo test --locked -p kq8-core laid_weapon` passed 2/2, and
+`cargo test --locked -p kq8-core
+a_dying_characters_weapon_is_laid_where_the_death_leaves_it` passed
+1/1. With `KQ8_GAME_DIR` pointing to the GOG install,
+`cargo test --locked -p kq8-viewer --test skeleton_king_death --
+--ignored` passed 1/1 in 43.09 seconds, including the King's original
+weapon drop and death rewards. The installed GOG files were read only.
+No manual play or original-executable rendering comparison was run;
+M5 remains about 65% because other combat rules and encounter routes
+are still open.
+
 ## 2026-11-16 Apply Dead City interior skeleton gravity at startup
 
 Changed: the startup script loader now runs `KQMonster::setMonUseGravity`

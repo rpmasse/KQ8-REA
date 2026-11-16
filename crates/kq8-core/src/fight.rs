@@ -344,11 +344,9 @@ pub const LAID_FALLBACK_UP: f32 = 750.0;
 /// Rule 31a.2: the line test runs from this far above the item to this
 /// far above the character's feet.
 pub const LAID_LINE_UP: f32 = 1000.0;
-/// Rule 31a.2: what blocks the line: the terrain and "any solid object
-/// other than the dying character". Which collision types count as
-/// solid was not given: **stand-in**, every type (asked: QUESTIONS
-/// Q170).
-pub const LAID_LINE_MASK: u32 = u32::MAX;
+/// Rule 31a.2, Q170: drawn ground and collision types with bit 0x1 or
+/// 0x8 block a weapon from staying in its death pose.
+pub const LAID_LINE_MASK: u32 = 0x1 | 0x8;
 
 /// A drop entry as compared with the model's part names (rule 31): the
 /// quotes and an `INVITEM_` prefix taken off.
@@ -2541,6 +2539,36 @@ impl crate::active::WorldState {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[test]
+    fn laid_weapon_line_ignores_ordinary_characters_and_items_but_sees_solid_scenery() {
+        use crate::{collide::{BoxCollider, ColliderKind, CylinderCollider, Placement}, connor_mover::{GroundLookup, MoverWorld, Scene}};
+        struct Ground;
+        impl GroundLookup for Ground {
+            fn ground(&self, _: f32, _: f32) -> Option<(f32, [f32; 3])> {
+                Some((0.0, [0.0, 0.0, 1.0]))
+            }
+        }
+        let check = |character_type: Option<u32>, object_type: Option<u32>| {
+            let ground = Ground;
+            let objects: Vec<_> = object_type.into_iter().map(|collision_type| BoxCollider {
+                name: "scenery".into(), min: [-100.0, -100.0, 0.0], max: [100.0, 100.0, 2000.0],
+                placement: Placement::at([500.0, 0.0, 0.0]),
+                kind: ColliderKind { collision_type, ..Default::default() },
+            }).collect();
+            let characters: Vec<_> = character_type.into_iter().map(|collision_type|
+                CylinderCollider::from_box("bystander", [500.0, 0.0, 0.0],
+                    [-100.0, -100.0, 0.0], [100.0, 100.0, 2000.0], collision_type, 0)).collect();
+            let mut scene = Scene::new(&ground, &[], &objects);
+            scene.characters = &characters;
+            scene.line_blocked([0.0, 0.0, 1000.0], [1000.0, 0.0, 1000.0], LAID_LINE_MASK, "victim")
+        };
+        assert_eq!(check(Some(0x42), None), None, "ordinary monster must not throw the weapon");
+        assert_eq!(check(Some(0x4021), None).as_deref(), Some("character bystander"));
+        assert_eq!(check(None, Some(0x220)), None, "a loose item is not an obstacle");
+        assert_eq!(check(None, Some(0x41)).as_deref(), Some("object scenery"));
+        assert_eq!(check(None, Some(0x8)).as_deref(), Some("object scenery"));
+    }
 
     #[test]
     fn surprise_sequence_rounds_across_the_authored_span() {
