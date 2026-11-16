@@ -206,10 +206,59 @@ Connor enters a river.
   branch queues the hazard attack. Its kind has the same fire-before-ice
   priority as rule 9. Rejection does not fall through to ordinary
   deep-liquid behavior in the same post-move check.
+- **Exact `ontop` post-move order and bounds, traced.** The requested
+  movement finishes first. The material flags at the resulting position
+  select the amount by rules 1–4; `ontop` alone supplies **zero** damage.
+  The surface is sampled next. The `ontop` branch requires a nonzero
+  amount, `ontop`, at least one material bit outside the object's terrain
+  immunity mask, and **surface − feet ≥ −100**. It does **not** separately
+  require the liquid flag or the ordinary 250-unit depth test. The
+  equality at −100 passes; a surface farther below fails. Only after
+  these tests does it require Connor's exact live collision type 4.
+  Once accepted it disables keep-on-ground and gravity, then attempts
+  the extra 15-unit downward movement only when **surface − feet < 250**
+  (equality skips that move). That descent calls the **same regular mover**
+  used for the requested movement, with a copied target pose lowered by
+  15 units, but supplies its zero collision-check setting. The mover
+  updates the pose and its ordinary bookkeeping without a terrain or
+  object collision sweep on this extra call. Gravity and keep-on-ground
+  are already off, so they add no drop or ground raise. Thus Connor can
+  pass below an `ontop` terrain surface even when that surface is also
+  the world's floor; the material flag itself does not disable terrain
+  collision, and this branch does not change his live collider type or
+  mask. It queues **one** world-source attack for every accepted post-move
+  invocation, after the optional extra move, including when the strict
+  +250 boundary skips that move. That extra mover call does
+  not repeat the post-move hazard check. A fire bit chooses Fire, else
+  ice chooses Ice, else Normal. If the ontop branch's Connor/collision
+  gate fails, this invocation queues no fallback ordinary-liquid hit.
+  The on-fire override in the preceding bullet replaces the material
+  flags before amount and branch selection, so it removes `ontop` from
+  this decision when both statuses would otherwise be present.
+- **The next ordinary move, traced rules and data; outcome inferred.**
+  The zero collision-check setting belongs only to the extra 15-unit
+  move. It is not stored for later moves. `ontop` leaves Connor's
+  collision type, terrain collision mask, and 325-unit step up/down
+  distances intact; only gravity and keep-on-ground remain off. A later
+  ordinary move still checks terrain at the ends of its up and down
+  passes. At Barren's `ontop` site near (10240,10240), the surface and
+  collision floor are both at about z 1932 because Barren has no
+  separate lower floor grid. Starting at z 1917 after the extra move,
+  an unobstructed ordinary up pass ends above that floor and the down
+  pass reaches below it, so the floor contact puts Connor back near
+  z 1932 before another optional 15-unit descent. The static rules
+  therefore predict **repeated shallow sinking at this site, not an
+  accumulating descent through the floor**. This prediction has not
+  been checked in a running original game. Where a separate lower
+  floor exists, the surface and collision floor differ, so the result
+  can differ. Whether an idle original frame invokes another ordinary
+  move remains open (rule 6).
 - **Recovery boundary.** The post-move hazard routine has no exit action
   that turns gravity or keep-on-ground back on after leaving `ontop`.
-  Other state transitions and script commands can change physics, but
-  this pass did not establish an automatic recovery path or the exact
+  Connor's ordinary jump completion is a concrete path that turns
+  gravity on, and `KQObject::setUseGravity Connor 1` can also do so.
+  Neither establishes a restoration of keep-on-ground. This pass did
+  not find an automatic recovery path for that setting or the exact
   native disk-load result for a Connor saved while those two controls
   are off. Exact native immunity and world-clock save restoration also
   remain open.

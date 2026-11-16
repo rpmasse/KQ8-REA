@@ -54,6 +54,7 @@ fn original_goblin_attacks_and_dies_in_a_live_crossbow_fight() {
     let logs = dir.join("kq8-artifacts/logs");
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
+    let sound = fs::read_to_string(logs.join("sound.log")).unwrap();
     let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
     let doors = fs::read_to_string(logs.join("doors.log")).unwrap();
     assert!(
@@ -101,6 +102,11 @@ fn original_goblin_attacks_and_dies_in_a_live_crossbow_fight() {
         "the goblin did not lose its original health; inspect {}",
         dir.display()
     );
+    assert!(sound.lines().any(|line| line.contains("start #")
+        && line.contains("gblnouch.aud (data/Daventry/Sound/GBLNOUCH.AUD")
+        && line.contains("group 0 placed at (")
+        && line.contains("[goblin22's ouch sound (fighting.md rule 24)]")),
+        "the installed goblin ouch sound was not dispatched at its position; inspect {}", dir.display());
     assert_eq!(
         fight
             .matches("goblin22: dies (rule 30): kind Projectile")

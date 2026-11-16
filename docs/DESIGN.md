@@ -4671,6 +4671,31 @@ reached without a new world-load matrix. Correct the earlier
 collision-type gate is source-backed, but its physics restoration is
 still unproven; keep that movement branch separate from this slice.
 
+**Q206 ontop hazard slice (2026-11-17).** The separate follow-up in
+`terrain-hazards.md` establishes an exact branch order and boundaries.
+Extend the same pure post-move selector with an ontop outcome carrying
+the hit and a sink request. It does not need the liquid bit or 250-unit
+depth, but it requires a nonzero amount, surviving immunity bit,
+surface−feet ≥ −100 and Connor's live collision type exactly 4. On the
+accepted path, turn off gravity and keep-on-ground, attempt a separate
+−15 movement only while surface−feet < 250, then dispatch exactly one
+world attack after that attempt without recursively checking hazards.
+Use the regular mover with collision checks disabled for that extra call; do not add a synthetic
+recovery after exit. Group the threshold, collision-type, immunity,
+fire/ice and attack-order checks into one core fixture, then extend the
+existing terrain native scenario for original Barren lava if a single
+controlled world load can check the resulting movement and hit. The
+original engine's automatic keep-on-ground recovery is still unknown;
+record that limit rather than inventing a state transition.
+
+**Q206 ontop result.** The grouped core rules pass 6/6 active checks.
+The native Barren fixture passes on installed lava/fire/ontop material:
+the collision-free extra call lowers Connor by 15 and the Fire hit reaches
+the shared combat handler. The next ordinary move returns him to that
+terrain floor before the next extra call, as the separate static study
+predicts at this site. Running-original parity and automatic physics
+recovery remain open.
+
 ### M6 · Complete saves and the campaign
 
 **Windmill exit handoff.** Both earlier runs fired Henchtp at tick 49, but

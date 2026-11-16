@@ -1,5 +1,5 @@
 //! Deep-liquid and on-fire attacks, from `behaviour/terrain-hazards.md`.
-//! `ontop` sinking remains outside this path. The sound checkpoint is Rust continuation, not evidence of
+//! `ontop` has its own post-move branch. The sound checkpoint is Rust continuation, not evidence of
 //! the original executable's save format or clock restoration.
 
 use kq8_data::{envinfo::{FAST_POISON, LIQUID, POISON, SWAMP}, world_script::Vars};
@@ -56,6 +56,17 @@ pub struct Hit {
     pub source: &'static str,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct OntopHit {
+    pub hit: Hit,
+    /// The additional 15-unit move is skipped at exactly +250 depth.
+    pub sink: bool,
+}
+
+fn kind(flags: u32) -> HitKind {
+    if flags & FIRE != 0 { HitKind::Fire } else if flags & ICE != 0 { HitKind::Ice } else { HitKind::Normal }
+}
+
 /// Rules 6–9, 12: check only the resulting position, including the exact
 /// 250-unit boundary; the animation's 600-unit threshold is independent.
 pub fn ordinary(surface: Option<(f32, u32)>, feet: f32, immunity: u16,
@@ -66,8 +77,20 @@ pub fn ordinary(surface: Option<(f32, u32)>, feet: f32, immunity: u16,
     let (source, time) = settings.source(flags)?;
     let base = amount(time, connor_level, now);
     if base == 0 { return None; }
-    let kind = if flags & FIRE != 0 { HitKind::Fire } else if flags & ICE != 0 { HitKind::Ice } else { HitKind::Normal };
+    let kind = kind(flags);
     Some(Hit { base, kind, source })
+}
+
+/// Q206's separate ontop branch. A rejected branch never becomes an
+/// ordinary deep-liquid hit in the same post-move check.
+pub fn ontop(surface: Option<(f32, u32)>, feet: f32, immunity: u16,
+    settings: Settings, connor_level: Option<i64>, now: f64, collision_type: u32) -> Option<OntopHit> {
+    let (height, flags) = surface?;
+    if flags & ONTOP == 0 || !height.is_finite() || !feet.is_finite() { return None; }
+    let (source, time) = settings.source(flags)?;
+    let base = amount(time, connor_level, now);
+    if base == 0 || (flags as u16 & !immunity) == 0 || height - feet < -100.0 || collision_type != 4 { return None; }
+    Some(OntopHit { hit: Hit { base, kind: kind(flags), source }, sink: height - feet < DAMAGE_DEPTH })
 }
 
 /// Q206: on fire substitutes poison + fire material and bypasses the
@@ -241,14 +264,14 @@ mod tests {
         // The emitter must reach the shared event/armor path, not directly
         // subtract 1000. Zero-loss world hits still sound and request hurt.
         let mut a = active(120, 100);
-        a.connor_terrain_damage(surface, 0.0);
+        a.connor_terrain_damage(surface, 0.0, |_, _| {});
         assert_eq!(a.world.connor_stats.unwrap().stats.0[0], 120);
         assert_eq!(a.world.sounds.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(), ["poison1.aud"]);
         assert!(a.world.requests.iter().any(|r| matches!(r, Request::ConnorHurt { forced: false, world_hit: true, .. })));
         for (update, sounds) in [(15, 1), (37, 1), (38, 2), (75, 2), (76, 3), (114, 4)] {
             a.world.updates = update;
             a.world.advance_clock_for_test(update as f32 / 15.);
-            a.connor_terrain_damage(surface, 0.0);
+            a.connor_terrain_damage(surface, 0.0, |_, _| {});
             assert_eq!(a.world.sounds.len(), sounds, "update {update}");
         }
         assert_eq!(a.world.sounds.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(), ["poison1.aud", "poison2.aud", "poison3.aud", "poison1.aud"]);
@@ -257,24 +280,24 @@ mod tests {
         assert!(matches!(a.world.requests.last(), Some(Request::ConnorHurt { world_hit: false, .. })));
         for protection in [11, 50] {
             let mut fatal = active(39, protection);
-            fatal.connor_terrain_damage(surface, 0.0);
+            fatal.connor_terrain_damage(surface, 0.0, |_, _| {});
             assert!(fatal.world.connor_dying);
             assert_eq!(fatal.world.connor_stats.unwrap().stats.0[0], 0);
             assert!(fatal.world.requests.iter().any(|r| matches!(r, Request::ConnorDies { kind: HitKind::Normal, .. })));
             assert_eq!(fatal.world.sounds[0].name, "poison1.aud", "lethal hit still sounds");
             fatal.world.updates = 60;
             fatal.world.advance_clock_for_test(4.);
-            fatal.connor_terrain_damage(surface, 0.0);
+            fatal.connor_terrain_damage(surface, 0.0, |_, _| {});
             assert_eq!(fatal.world.sounds.len(), 1, "already dying ignores subsequent world sound");
         }
         let mut rope = active(39, 11);
         rope.world.connor_roping = true;
-        rope.connor_terrain_damage(surface, 0.0);
+        rope.connor_terrain_damage(surface, 0.0, |_, _| {});
         assert_eq!(rope.world.connor_stats.unwrap().stats.0[0], 39);
         assert!(rope.world.sounds.is_empty() && rope.world.requests.is_empty());
         let mut immune = active(39, 11);
         immune.world.terrain_hazards.add_immune(FAST_POISON as i64);
-        immune.connor_terrain_damage(surface, 0.0);
+        immune.connor_terrain_damage(surface, 0.0, |_, _| {});
         assert_eq!(immune.world.connor_stats.unwrap().stats.0[0], 39);
         assert!(immune.world.sounds.is_empty() && immune.world.requests.is_empty());
     }
@@ -285,7 +308,7 @@ mod tests {
         a.world.terrain_hazards.add_immune(POISON as i64);
         a.world.updates = 150;
         a.world.advance_clock_for_test(10.);
-        a.connor_terrain_damage(Some((1000.0, FAST_POISON)), 0.0);
+        a.connor_terrain_damage(Some((1000.0, FAST_POISON)), 0.0, |_, _| {});
         a.world.updates = 165;
         a.world.advance_clock_for_test(11.);
         let journey = crate::journey::Journey::take(&a.world, &a.scripts.vars, "DeadCity");
@@ -326,7 +349,7 @@ mod tests {
         let mut fatal = active(39, 11);
         fatal.scripts.vars.set("KQWorld::PoisonTime", "0".into());
         fatal.test_command("KQObject::lightOnFire Connor 1", "matrix");
-        fatal.connor_terrain_damage(None, 0.0);
+        fatal.connor_terrain_damage(None, 0.0, |_, _| {});
         assert!(fatal.world.connor_dying);
         assert!(fatal.world.requests.iter().any(|r| matches!(r, Request::ConnorDies { kind: HitKind::Fire, .. })));
         assert!(fatal.world.log.iter().any(|line| line.contains("terrain on-fire")));
@@ -353,7 +376,7 @@ mod tests {
         assert!(!restored.world.on_fire.contains("basket1"), "a saved cleared bit overrides an Init-time set bit");
         restored.test_command("KQObject::lightOnFire Connor 0", "matrix");
         assert!(restored.world.on_fire.is_empty());
-        restored.connor_terrain_damage(None, 0.0);
+        restored.connor_terrain_damage(None, 0.0, |_, _| {});
         assert!(restored.world.requests.is_empty(), "clearing the bit ends its dry-ground attack");
         json.as_object_mut().unwrap().remove("connor_on_fire");
         let legacy: crate::journey::Journey = serde_json::from_value(json).unwrap();
@@ -366,5 +389,38 @@ mod tests {
         legacy_kept.restore_on_fire(&mut old.world);
         assert_eq!(old.world.on_fire.iter().map(String::as_str).collect::<Vec<_>>(), ["basket1"],
             "an older Rust slot keeps the original Init result when no bit snapshot exists");
+    }
+
+    #[test]
+    fn terrain_hazards_grouped_ontop_bounds_kind_and_dispatch() {
+        let flags = POISON | ONTOP;
+        for (height, sink) in [(-100.0, true), (0.0, true), (249.0, true), (250.0, false), (1000.0, false)] {
+            let result = ontop(Some((height, flags)), 0.0, CONNOR_IMMUNITY, SETTINGS, Some(12), 0.0, 4).unwrap();
+            assert_eq!((result.hit.base, result.hit.kind, result.sink), (1, HitKind::Normal, sink), "height {height}");
+        }
+        for surface in [None, Some((-101.0, flags)), Some((0.0, ONTOP)), Some((0.0, POISON))] {
+            assert!(ontop(surface, 0.0, CONNOR_IMMUNITY, SETTINGS, Some(12), 0.0, 4).is_none());
+        }
+        assert!(ontop(Some((0.0, flags)), 0.0, ALL_IMMUNE, SETTINGS, Some(12), 0.0, 4).is_none());
+        assert!(ontop(Some((0.0, flags)), 0.0, CONNOR_IMMUNITY, SETTINGS, Some(12), 0.0, 0).is_none());
+        assert!(ontop(Some((0.0, flags)), 0.0, CONNOR_IMMUNITY,
+            Settings { poison: 1000.0, ..SETTINGS }, Some(1), 1.0 / 15.0, 4).is_none());
+        assert_eq!(ontop(Some((0.0, flags | FIRE | ICE)), 0.0, CONNOR_IMMUNITY, SETTINGS, Some(12), 0.0, 4).unwrap().hit.kind, HitKind::Fire);
+        assert_eq!(ontop(Some((0.0, flags | ICE)), 0.0, CONNOR_IMMUNITY, SETTINGS, Some(12), 0.0, 4).unwrap().hit.kind, HitKind::Ice);
+        assert_eq!(moving_object(Some((0.0, flags)), 0.0, true, CONNOR_IMMUNITY, SETTINGS, Some(12), 0.0).unwrap().kind,
+            HitKind::Fire, "on-fire override removes the ontop branch");
+
+        let mut a = active(120, 100);
+        let mut sank = Vec::new();
+        a.connor_terrain_damage(Some((250.0, flags)), 0.0, |_, sink| sank.push(sink));
+        assert_eq!(sank, [false], "the +250 boundary attacks without a descent");
+        assert!(a.world.requests.iter().any(|r| matches!(r, Request::ConnorHurt { world_hit: true, .. })));
+        let n = a.world.requests.len();
+        a.connor_terrain_damage(Some((-101.0, flags)), 0.0, |_, sink| sank.push(sink));
+        assert_eq!(sank, [false]);
+        assert_eq!(a.world.requests.len(), n, "a rejected ontop branch has no ordinary fallback");
+        a.connor_terrain_damage(Some((0.0, flags | FIRE)), 0.0, |_, sink| sank.push(sink));
+        assert_eq!(sank, [false, true]);
+        assert!(a.world.log.iter().any(|line| line.contains("terrain ontop")));
     }
 }

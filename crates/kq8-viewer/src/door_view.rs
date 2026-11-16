@@ -1169,7 +1169,23 @@ pub fn trap_step(
     // not the trap sweep, and does not require changed coordinates.
     let surface = lookup.as_ref().and_then(|ground| ground.0.height_at(position[0], position[1])
         .map(|height| (height.height, ground.0.flags_at(position[0], position[1]))));
-    sim.active.connor_terrain_damage(surface, position[2]);
+    sim.active.connor_terrain_damage(surface, position[2], |active, sink| {
+        // Q206: the second full mover call disables collision checking
+        // for this call, then returns without another hazard check.
+        connor.mover.use_gravity = false;
+        connor.mover.keep_on_ground = false;
+        connor.mover.keep_on_surface = false;
+        if !sink { return; }
+        let before = connor.mover.position;
+        let report = connor.mover.update([0.0, 0.0, -15.0], &NoGround);
+        let after = connor.mover.position;
+        let heading = connor.walker.heading;
+        connor.put(after, heading);
+        active.world.connor_at = Some(after);
+        let update = connor.updates;
+        connor.log.detail(format!("connor update {}: ontop extra mover (Q206): z {:.1} -> {:.1}, {} contacts; collision checks, gravity and keep-on-ground off",
+            update, before[2], after[2], report.hits.len()));
+    });
     // anim-scripts.md rule 16 (Q167; C-3): `Inv <item>` in his Special
     // list: real items laid where his last frame holds them.
     for (item, on, owner, pose) in connor.take_inv_laid() {

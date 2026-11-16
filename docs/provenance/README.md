@@ -1,5 +1,16 @@
 # Provenance
 
+**Ontop terrain hazard (2026-11-17, Q206).** The separate original-engine
+[terrain hazard study](../behaviour/terrain-hazards.md) gives the exact
+post-move gates and a regular extra mover call with collision checks
+disabled. `terrain_hazards.rs`, `active.rs` and `door_view.rs` implement
+that branch without a fallback ordinary hit. The grouped core suite
+passes 6/6 active checks. The windowed native Barren fixture confirms
+one 15-unit descent and a Fire world attack from installed GOG data.
+The following ordinary movement returns Connor to that floor, matching
+the study's static prediction there; running-original comparison and
+automatic physics recovery remain open.
+
 **On-fire terrain hazard (2026-11-17, Q206).**
 The separate original-engine study in
 [terrain-hazards.md](../behaviour/terrain-hazards.md) identifies the

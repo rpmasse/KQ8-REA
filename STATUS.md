@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-17 M5 Q206 ontop hazard and goblin audio
+
+The separate original-engine follow-up traced the `ontop` post-move
+gate, exact −100/+250 bounds and one extra regular mover call with its
+collision check disabled. Rust now turns off gravity and keep-on-ground
+on acceptance, attempts the 15-unit descent below +250, and then queues
+one shared world attack. Six grouped core cases pass, with one original
+data case ignored. The native Barren fixture passes using the installed
+lava/fire/ontop square at (10240,10240): Connor moves from z 1932 to
+1917 with zero contacts and the Fire hit reaches combat. The next
+ordinary update returns him to z 1932 before another descent. The
+separate static original study predicts this shallow repeat at that
+floor; running-original parity and automatic physics recovery are
+untested. The first native attempt failed before gameplay because the
+remote display could not create the saved exclusive fullscreen mode;
+the windowed fixture passed. The existing native goblin combat test now
+also asserts that the installed ouch clip resolves and dispatches at
+the goblin's position; it passed. No manual gameplay or GOG write.
+M5 remains incomplete.
+
 ## 2026-11-17 M5 Q206 on-fire terrain hazard
 
 Separate original-engine study established that `lightOnFire` toggles
@@ -16,7 +36,8 @@ passed 787 tests with 26 ignored, and viewer `cargo check` passed.
 The first core attempt failed because a fixture expected one damage
 point to kill a 39-health Connor; the corrected zero PoisonTime case
 passed. No original runtime or manual gameplay comparison occurred.
-M5 remains incomplete, with `ontop` movement still excluded.
+M5 remains incomplete; the later `ontop` entry above supersedes that
+earlier exclusion.
 
 ## 2026-11-17 M5 fighting-rule coverage and grouped core check
 

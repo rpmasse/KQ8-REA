@@ -3,7 +3,8 @@
 Implementation B, 2026-11-07. Rules come from study A's
 [terrain-hazards.md](behaviour/terrain-hazards.md), rules 1–13. The
 original change implemented the ordinary non-`ontop` path. The
-2026-11-17 follow-up adds the separately traced on-fire branch.
+2026-11-17 follow-ups add the separately traced on-fire and `ontop`
+branches.
 No original executable, decompiled material or game assets were copied.
 
 ## Behavior and integration
@@ -34,7 +35,7 @@ postpone it. Armor's zero-loss result and the fatal hit still reach this
 sound branch; already-dying and rope hits do not.
 
 `terrain_hazards.rs` contains the arithmetic, immunity and sound state.
-`active.rs` queues the ordinary event and exposes the command;
+`active.rs` queues the world attack and exposes the command;
 `fight.rs` carries the source distinction into reaction/audio handling.
 `door_view.rs` connects the post-movement query; `connor_view.rs` only
 changes the ordinary ouch decision. `journey.rs` retains immunity and
@@ -135,10 +136,26 @@ suite; the original-data Wisp check remains ignored in this run. The
 viewer compiles with the change. This is Rust continuation evidence,
 not a native original save/load comparison.
 
-The `ontop` sinking/control branch remains excluded rather than falling
-through into ordinary liquid damage. Its collision-type gate is now
-traced (Connor's live type exactly 4); gravity/keep-on-ground recovery
-remains open, as does the exact GodArmor path. Negative/nonfinite
+The separate `ontop` branch now requires a nonzero material amount,
+surviving immunity bit, surface no more than 100 below Connor's feet,
+and his live collision type exactly 4. It has no separate liquid or
+250-depth requirement. An accepted check turns off gravity and
+keep-on-ground, uses one regular mover call with collision checks off to
+lower him 15 while the surface is less than 250 above him, then sends
+one world attack. The grouped core suite passes 6/6 active tests. A
+windowed native Barren fixture reads an original lava/fire/ontop square
+at (10240,10240) from the GOG data and passes: the first extra move
+lowers z 1932 to 1917 with zero contacts, and a Fire world attack reaches
+the shared handler. The next ordinary move restores z 1932 before the
+next extra move. This shallow repeat is consistent with the later
+original-engine static trace; it has **not** been compared with a
+running original. The first native attempt could not create this remote
+display's 640×480 exclusive fullscreen window, so the fixture uses
+`--windowed`. Evidence is in
+`kq8-artifacts/terrain-hazards/ontop-1794853778914611000/`.
+
+Automatic gravity/keep-on-ground recovery remains open, as does the
+exact GodArmor path. Negative/nonfinite
 settings and nonpositive levels are outside the studied original data.
 They produce no speculative damage in this implementation.
 

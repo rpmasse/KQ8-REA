@@ -5778,20 +5778,30 @@ impl Active {
 
     /// Q206: after a movement request, use the final position and the
     /// moving object's on-fire bit, even if coordinates are unchanged.
-    pub fn connor_terrain_damage(&mut self, surface: Option<(f32, u32)>, feet: f32) {
+    pub fn connor_terrain_damage(&mut self, surface: Option<(f32, u32)>, feet: f32,
+        on_ontop: impl FnOnce(&mut Self, bool)) {
         let now = self.world.now();
         let settings = crate::terrain_hazards::Settings::from_vars(&self.scripts.vars);
         let level = self.world.connor_stats.map(|c| c.level);
         let on_fire = self.world.on_fire.contains("connor");
-        let Some(hit) = crate::terrain_hazards::moving_object(surface, feet, on_fire,
-            self.world.terrain_hazards.immunity, settings, level, now) else { return };
+        let ontop = !on_fire && surface.is_some_and(|(_, flags)| flags & crate::terrain_hazards::ONTOP != 0);
+        let (hit, sinking) = if ontop {
+            let Some(result) = crate::terrain_hazards::ontop(surface, feet, self.world.terrain_hazards.immunity,
+                settings, level, now, self.world.connor_collision().0) else { return };
+            (result.hit, Some(result.sink))
+        } else {
+            let Some(hit) = crate::terrain_hazards::moving_object(surface, feet, on_fire,
+                self.world.terrain_hazards.immunity, settings, level, now) else { return };
+            (hit, None)
+        };
+        if let Some(sink) = sinking { on_ontop(self, sink); }
         let (height, flags) = surface.unwrap_or((feet, 0));
         let kind = match hit.kind { crate::fight::HitKind::Fire => "2", crate::fight::HitKind::Ice => "3", _ => "0" };
         self.world.note(format!("terrain {} flags {flags:#x}, depth {:.3}, {}: world attack {}, base {}, phase {:.6}",
-            if on_fire { "on-fire" } else { "liquid" }, height - feet, hit.source, hit.kind.name(), hit.base, now.fract()));
+            if on_fire { "on-fire" } else if ontop { "ontop" } else { "liquid" }, height - feet, hit.source, hit.kind.name(), hit.base, now.fract()));
         self.world.queue.send(now, 0.0, CONNOR, "KQAttackEvent",
             &["world".into(), kind.into(), hit.base.to_string(), "0".into()],
-            if on_fire { "on-fire terrain hazard" } else { "ordinary terrain liquid" });
+            if on_fire { "on-fire terrain hazard" } else if ontop { "ontop terrain hazard" } else { "ordinary terrain liquid" });
         self.handle_due(now);
     }
 

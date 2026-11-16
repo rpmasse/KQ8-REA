@@ -1,5 +1,34 @@
 # MODLOG
 
+## 2026-11-17 Add the traced ontop world attack and extra mover (M5, Q206)
+
+Study A established the exact post-move eligibility and that the extra
+15-unit descent calls the regular mover with collision checks disabled
+for that call. The core selector now keeps ontop separate from ordinary
+liquid, including no fallback when its Connor type-4 gate fails. The
+viewer disables gravity and keep-on-ground, performs the optional
+collision-free move, then queues one Fire/Ice/Normal world attack. Six
+grouped core checks pass (one original-data check ignored). The native
+Barren fixture reads the original material and passes: at (10240,10240)
+the extra mover changes z 1932→1917 and a Fire hit reaches shared combat.
+The next ordinary move resets z to the floor. Static original rules
+predict that shallow repeat there, but no running-original comparison
+was made. The first native attempt failed before gameplay on an
+unavailable exclusive fullscreen mode; the windowed attempt passed.
+The separate existing goblin combat check now asserts positioned
+`gblnouch.aud` dispatch and passes. One viewer edit initially failed
+`cargo check` on a borrow of `connor.updates`; storing that update before
+logging fixed it. The Barren fixture's first native run also exposed
+our incorrect collision-enabled extra call; the study correction and
+one targeted rerun confirmed the 15-unit movement. No manual gameplay
+or game-install write. Reproduce with:
+
+`cargo test --locked -p kq8-core terrain_hazards_grouped -- --nocapture`
+
+`cargo test --locked --release -p kq8-viewer --test terrain_hazards original_barren_ontop_lava_uses_the_extra_mover_and_world_attack -- --ignored --nocapture`
+
+`cargo test --locked --release -p kq8-viewer --test goblin_live_combat -- --ignored --nocapture`
+
 ## 2026-11-17 Implement the traced on-fire world attack (M5, Q206)
 
 The separately authorized original-engine study revised

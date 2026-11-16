@@ -98,7 +98,7 @@ by tabs, a column is "on" when it holds a letter or digit (the files use
 | `swamp` | 0x100 | **liquid**; damage (`KQWorld::SwampTime`) |
 | `fire` | 0x200 | damage kind "fire" |
 | `ice` | 0x400 | damage kind "ice" |
-| `ontop` | 0x800 | hazards you sink into slowly (see Edge cases) |
+| `ontop` | 0x800 | selects a special hazard descent (see Edge cases and `terrain-hazards.md`) |
 
 How to read a line exactly as the game does: take the text after `=`,
 strip spaces and tabs from both ends, skip its first character (the
@@ -160,7 +160,7 @@ changes which animation plays.
 | 600 | Surface at least this far above the feet → `submerged` (wading animations) |
 | 250 | Surface at least this far above the feet → "deep" (damage only) |
 | 100 | `ontop` hazards: surface no more than this far *below* the feet |
-| 15 | `ontop` hazards: sinking per move |
+| 15 | `ontop` hazards: extra descent on each eligible post-move check; net descent can differ |
 | Connor 1,300 tall | So in Daventry's 1,020-deep water he wades with the water at about his chest |
 
 ## Data used
@@ -183,12 +183,16 @@ changes which animation plays.
   (`KQWorld::PoisonTime` etc.) and the object is "deep" (or has a built-in
   "always" flag), the game sends a damage event of kind poison, fire or
   ice. Not studied further.
-- **`ontop` hazards (not for this step):** on an `ontop` square, on a
-  damage tick, with the surface no more than 100 below Connor's feet: his
-  `keepOnGround` and gravity are switched **off**; while the surface is less
-  than 250 above his feet he is moved down **15** more (one extra move).
-  So he sinks slowly into, e.g., Barren's lava (603 squares: lava + fire +
-  ontop). What switches them back on is **not traced**.
+- **`ontop` hazards (early outline, refined by Q206):** on an eligible
+  post-move check with the surface no more than 100 below Connor's feet,
+  `keepOnGround` and gravity are switched **off**. If the surface is less
+  than 250 above his feet, a separate mover call lowers him by **15**.
+  This does not prove a cumulative sink. The later original-engine trace
+  in `terrain-hazards.md` predicts a repeated shallow descent at the
+  sampled Barren lava floor: the next ordinary move can return him to
+  that same floor before another 15-unit descent. Cumulative sinking
+  there has not been observed in the running original. A separate
+  automatic recovery of `keepOnGround` remains unproven.
 
 ## Do not reproduce
 
