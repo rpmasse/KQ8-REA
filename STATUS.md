@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-17 M8 mouse camera sensitivity
+
+Right-drag camera swing and mouse zoom/tilt now use half the former
+strength. Raw mouse motion is divided by physical window pixels, so
+Windows display scaling no longer makes it stronger. The focused
+automated normalization check passed. A person's feel of the camera
+has not been tested. The original camera simulation and game update
+rate are unchanged.
+
 ## 2026-11-17 M8 fullscreen fallback correction
 
 View Mode now selects the monitor's available fullscreen mode when the

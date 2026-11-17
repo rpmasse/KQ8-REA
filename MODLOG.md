@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 M8 gentler mouse camera
+
+The viewer passed raw Winit mouse-device movement to the game camera
+after dividing by `Window::width/height`, which are logical pixels.
+At elevated Windows display scaling this amplified the camera drag.
+The input conversion now divides by physical window pixels and applies
+a 0.5 gain to mouse camera swing and vertical zoom/tilt. The original
+15 Hz camera rules and keyboard controls were not changed. A focused
+test at 200% display scaling and two physical window sizes passed.
+The subjective feel is not tested; no original game file was changed.
+
+Build: `cargo build -p kq8-viewer --release`. Check the conversion with
+`cargo test -p kq8-viewer --bin kq8-viewer camera_drag_uses_physical_window_pixels_and_half_strength_at_high_dpi`.
+
 ## 2026-11-17 M8 fullscreen transition from unsupported ratio
 
 Reproduced the user's report from the saved 1920×800, 21:9 windowed
