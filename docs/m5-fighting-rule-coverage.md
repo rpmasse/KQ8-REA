@@ -28,7 +28,7 @@ are in `STATUS.md`; this inventory itself adds no test run.
 | 34–38 enemy ranged mode, shot and retreat | `live_crossbow_combat`, `monster_friendly_fire`, `swamp_slime_retreat`, `temple_spear_live` (two live spear contacts and one Ice bow contact), `sprgnbow_death_drops`, and core `ranged_retreat_precedes_a_due_shot_on_its_own_update_phase`. The expanded `swamp_witch_alarm` run checks the installed Witch's Fire bolt contact and health loss. `monster_friendly_fire` verifies the placed bow Spriggan aims ahead of moving Connor according to his logged speed and flight time. The extended `swamp_slime_retreat` process saves a placed Slime in Move/keeping-distance, restores it in a fresh process without a new retreat start, then checks its far-enough stop and chase leash. | The original binary-save phase of the monster-owned `monTickCount` is not established; the Rust retreat continuation is now checked. |
 | 39–41 Connor controls, swing and hit | `hand_weapon_matrix` asserts 12 installed plain-click weapon hits in one process: both `Attack` and `AttackB` occur in third person, then three first-person hits use their authored `attack` lists. Q221 establishes that first person forces `Attack` after consuming the normal draw, while Shift's `Attack2` skips it; all 13 installed first-person hand lists lack `attackb`. `daventry_cottage_shield` and `first_person_weapon_matrix` assert Shift's `attack2` Do on original data. `strength_live_melee` and core `connor_s_do_hits_his_target_misses_or_hits_dead_air` cover damage and misses. | No distinct selector gap remains; other reach and hit branches remain bounded by the listed checks. |
 
-The next work should add assertions to existing grouped checks where a
-listed gap is real. A source-to-scenario link is complete only when the
-assertion observes the effect or lack of effect, not merely when a
-production function contains the branch.
+The grouped M5 gate is closed by the cited assertions and the special
+actor checks in the combat audit. A newly established distinct shipped
+rule can reopen it; additional placements using the same rule do not
+need separate tests.

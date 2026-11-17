@@ -5,8 +5,9 @@ rules 13–31 to
 assertions in the current Rust tree. A named test means its assertions
 exercise the described portion of a rule; it is not a comparison with
 a running original executable. The recent Wizard extension passed on Windows. Earlier run
-results are in `STATUS.md` and the corresponding test files. A partial
-row is still open for the M5 rule-to-scenario gate.
+results are in `STATUS.md` and the corresponding test files. Remaining
+partial rows concern additional data variants or original-runtime
+comparison, rather than a known missing M5 branch.
 
 | Rule | Current automated evidence | Direct gap |
 | --- | --- | --- |
@@ -30,6 +31,6 @@ row is still open for the M5 rule-to-scenario gate.
 | 30 hit effects | Core immune-character and queued-contact checks cover zero damage and event service; `live_crossbow_combat` and `elemental_ranged_death` cover real health, death and hit kind. `ranged_building_sky_picks` asserts an installed Small Crossbow bolt touching the Cottage with no damage to its occluded goblin. The original-data `rock_throw` checks the shared projectile `Die` callback running `rockHit.cs` at contact, and `rock_flight_checkpoint` checks that callback once after reload. | The installed Rock proves the shared scripted removal hook, not every possible bolt script. |
 | 31 enemy bolts | `monster_friendly_fire` checks a spriggan bolt hitting a goblin before Connor; `live_crossbow_combat` checks enemy shots injuring Connor. `deadcity_redbow_weeperup_live` adds installed red bow Projectile damage and a raised Weeper's completed drain link. | Exact original-data moving-target lead remains under rule 25. |
 
-The next compact checks should fill one or more partial rows in an
-existing scenario. Do not count a rule complete from a code path alone;
-the assertion must observe the corresponding effect or lack of effect.
+The grouped M5 gate is closed by the cited assertions. A newly found
+distinct shipped rule can reopen it; another placement of an already
+checked rule does not need its own run.

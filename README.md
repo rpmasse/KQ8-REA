@@ -13,14 +13,14 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M2 · Recreate movement and camera | Complete · 100% |
 | M3 · Recreate Daventry gameplay | Complete · 100% |
 | M4 · Recreate menus, inventory and dialogue | Complete · 100% |
-| M5 · Recreate combat | In progress · ~90% |
+| M5 · Recreate combat | Complete · 100% |
 | M6 · Recreate the full campaign and saves | In progress · ~28% |
 | M7 · Verify and release the Windows recreation | Planned · 0% |
 
-These percentages describe individual phases, not overall game completion. All 12 regions load, but combat, campaign progression and visual fidelity still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
+These percentages describe individual phases, not overall game completion. All 12 regions load; campaign progression and final fidelity checks still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
 
 Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.
-The [M5 combat audit](docs/m5-combat-completion-audit.md) tracks the remaining distinct combat rules and special enemy behavior.
+The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.
 
 ## Bring your own game
 

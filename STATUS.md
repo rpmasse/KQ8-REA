@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-17 M5 combat gate complete
+
+M5 is complete against the grouped combat gate in `docs/DESIGN.md`.
+The fighting/ranged rule maps, placed-enemy matrix and combat audit
+link known distinct weapon, enemy, damage, terrain, death, reward,
+save and game-over rules to automated core or GOG-data scenarios.
+The separate Q209 study found that the shipped Mandragor tree has
+ordinary hit reactions, no authored drop or script callback, 20,000
+experience and a fixed corpse; root-down count does not gate its
+death. The existing fresh-process tree encounter now asserts these
+effects. Its first extended run revealed that three ordinary sword
+hits can leave 36 health; a fourth click at update 165 was refused
+during Connor's reaction. Moving that click past the reaction and saving
+after death made the focused release test pass 1/1. No production code
+or GOG file changed. M6 campaign routes and M7 original-runtime,
+visual and native-save comparison remain open. No manual play occurred.
+
+From the project root, set `KQ8_GAME_DIR` to the GOG installation and
+run `cargo test -p kq8-viewer --release --test mandragor_tree_melee_checkpoint -- --ignored`.
+Expect 1 passed, 0 failed.
+
 ## 2026-11-17 M5 progress audit correction
 
 The prior Q141 check started the scripted walk before requesting a

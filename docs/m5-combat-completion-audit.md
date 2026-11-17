@@ -1,14 +1,13 @@
 # M5 combat completion audit
 
-## Current gate and next work
+## M5 completion gate
 
-As of 2026-11-17, M5 is estimated at **~90%**. The old ~65% README
-figure was left unchanged while major M5 behavior was added: Dragon and
-Mandragor controllers, enemy attacks and reactions, elemental effects,
-terrain hazards, combat save continuation and original-data fights.
-This is a qualitative estimate, not a passing-test ratio. The gate in
-`DESIGN.md` still requires a scenario link for each distinct weapon and
-enemy rule.
+As of 2026-11-17, **M5 is complete (100%) against the grouped combat
+completion check in `DESIGN.md`**. This is a phase status, not a claim
+that the whole game matches the running original. Automated core and
+original-data scenarios link the known distinct weapon, enemy, damage,
+death, terrain and save rules. Campaign integration remains M6; final
+original-runtime and presentation comparisons remain M7.
 
 The scripted-walk controller check now uses the authored request order:
 weapon swap first, then `walkTo`. The refused walk remains in the pending
@@ -17,23 +16,24 @@ with its target and cue intact. This is a controller serialization check,
 not a fresh-process disk load or the complete `ax.cs` cutscene. The
 Lucreto finale already asserts real `reactback` staggers, so that
 special reaction has a source-to-scenario link without another run.
-This closes two distinct gate items and moves the estimate from ~88%
-to ~90%; other special-state and original-rule limits remain open.
+This closed the earlier checkpoint evidence gap. The later special
+actor audit closed the remaining source question below.
 
 ### Finite M5 closure queue
 
 | Step | Completion condition | Current state |
 | --- | --- | --- |
 | Correct the scripted-walk evidence | Exercise swap then walk, serialize the pending request and cue, and resume after the swap. | Done in the existing controller matrix. Fresh-process save/load has not been claimed. |
-| Reconcile rule maps | For each partial fighting/ranged row, identify an actual missing Rust branch or an unlinked distinct shipped rule. Classify data variants and original-runtime comparisons separately. | First pass below: no confirmed missing shared branch; specialized deaths remain separate. |
-| Reconcile special enemies | For each remaining Dragon, Mandragor and other special row, name a shipped M5 behavior that is missing, or move its campaign trigger to M6 and original-runtime comparison to M7. | Open; the present audit has no finite blocker list. |
-| Close the gate | Fix only the resulting M5 defects, add a direct assertion to an existing grouped scenario, then run the focused scenarios once. | Open. |
+| Reconcile rule maps | For each partial fighting/ranged row, identify an actual missing Rust branch or an unlinked distinct shipped rule. Classify data variants and original-runtime comparisons separately. | Done; no confirmed missing shared branch remains in the known rules. |
+| Reconcile special enemies | For each remaining Dragon, Mandragor and other special row, name a shipped M5 behavior that is missing, or move its campaign trigger to M6 and original-runtime comparison to M7. | Done; Q209 tree outcome was resolved by a bounded study and linked to the existing encounter. |
+| Close the gate | Fix only resulting M5 defects, add a direct assertion to an existing grouped scenario, then run the affected check. | Done; the Mandragor encounter passed 1/1 after correcting its variable-damage kill schedule. No production change was needed for that studied rule. |
 
-The ~90% figure is a rough implementation estimate. It will not move
-for extra placements or repeated tests; M5 reaches 100% only when the
-completion check has no unresolved M5 rule.
+The gate is closed by the source-to-scenario links below, not by a
+percentage of placements or tests. Untraced original behavior remains
+explicitly open for M7 comparison; finding a mismatch there can reopen
+the responsible implementation milestone.
 
-The first rule-map pass found that the remaining ranged rule 24 entries
+The final rule-map pass found that the remaining ranged rule 24 entries
 are additional installed weapon offsets using the same frame-part
 mechanism already checked with several original-data weapons. Rule 26's
 absent optional-key defaults are parser evidence, not a known missing
@@ -41,26 +41,45 @@ shipped shot. The fighting map's positive held-health bonus has no
 installed instance; ordinary timing, damage, death and drops have
 direct checks, while specialized deaths are tracked in the separate
 row. None of these is a confirmed missing shared Rust branch. The
-placed-enemy matrix still needs a final pass to distinguish distinct
-special behavior from regional scripts and repeated drop lists.
+placed-enemy matrix now distinguishes special behavior from regional
+scripts and repeated drop lists.
 
-The moving-enemy hurt path now follows the original reaction gate:
-an interrupted attack's deadline is repaired only when the surviving
-hit selects a reaction. One grouped core scenario passed in both Wait
-and Move. This closes a shared timing mismatch across chase and retreat;
-the estimate moved from ~85% to ~88%.
+The special-actor pass resolved the Mandragor tree's death outcome:
+ordinary surviving-hit reaction, no authored item drop or script,
+20,000 experience, the fixed corpse and linked-root shutdown without
+an all-roots-down gate. `mandragor_tree_melee_checkpoint` now asserts
+these effects together with fresh-process Rust save continuation. Its
+first added run exposed a variable-damage fixture failure: three hits
+left 36 health, and a fourth click at update 165 was refused while
+Connor reacted. Moving that fourth click past the reaction and the save
+to 235 produced the required death and reload; the focused release test
+passed 1/1 at the final update-185 schedule. Dragon head attack, death,
+rebirth and body completion have direct core and
+original-data checks. The body's conditional chain-material activation
+has no established shipped trigger; its appearance is an M7 comparison,
+not a reason to invent an M5 transition. Q212's unresolved native
+emitter identity concerns original save parity in M7; the Rust flying
+bolt continuation already has an automated M5 check. Ice Henchman's
+repeating terminal `stop` leaves him in Special under the traced rule,
+so the lack of an ordinary attack in the chest diagnostic is not an
+unlinked combat mechanic. Regional chest/rescue approaches belong to
+M6. The Pyrod fixture proves its placed Fire attack and death; an
+earlier lava hit in a different diagnostic run does not establish a
+Pyrod defect.
 
-The estimate moved from ~80% after Q221's common first-person melee
-failure was fixed across the installed hand-weapon lists, and Q210's
-Dragon Head chain material rule was restored. The combined 12-weapon
-process passed with both third-person variants and three first-person
-`Attack` hits. Other open rule and special-enemy gaps keep M5 incomplete.
-
-| Gate area | Current evidence | Work before M5 completion |
+| Gate area | Current evidence | Remaining limit |
 | --- | --- | --- |
-| Shared melee, ranged, equipment, damage, potions and game over | Original-data encounters and the fighting/ranged rule maps exercise the main branches. | Close a documented *distinct* rule only where its present assertion is partial or the Rust behavior is missing; do not enumerate every placement with the same rule. |
-| Specialized enemies and combat receivers | Dragon, Mandragor, Lucreto, Skeleton King, Snowmane, Weeper and ordinary-object checks cover their principal attacks, deaths and several Rust save boundaries. | Resolve a remaining Q209/Q210/Q212 gap only when it changes a shipped encounter or a Rust save continuation. Native binary-save internals and subframe parity belong to later original-game comparison. |
-| Death, drops and combat scripts | The mechanism inventory below links shared death, drop, corpse and reward rules to focused or grouped checks. | Specialized enemy finalizers and their save boundaries remain in the row above; data-only placement variants do not each need a new combat test. |
+| Shared melee, ranged, equipment, damage, potions and game over | Original-data encounters and the fighting/ranged rule maps exercise the known distinct branches. | M6 must carry combat through earned campaign routes; M7 compares the running original. |
+| Specialized enemies and combat receivers | Dragon, Mandragor, Lucreto, Skeleton King, Snowmane, Weeper and ordinary-object checks cover their distinct attacks, deaths and Rust save boundaries. | Q209/Q210/Q212 retain native binary-save, timing and appearance questions for M7, without a known missing shipped M5 branch. |
+| Death, drops and combat scripts | The mechanism inventory below links shared death, drop, corpse and reward rules to focused or grouped checks. | Data-only placement variants do not each need a combat test; earned pickup and regional scripts are M6. |
+
+| M5 completion requirement | Direct automated evidence |
+| --- | --- |
+| Melee hits and misses, weapon choice and damage | `hand_weapon_matrix`, `first_person_weapon_matrix`, `strength_live_melee`, core `connor_s_do_hits_his_target_misses_or_hits_dead_air` and the [fighting rule map](m5-fighting-rule-coverage.md). |
+| Ranged hits and misses, aiming, projectile contact and ammunition | `live_crossbow_combat`, `ordinary_ranged_items`, `elemental_ranged_death`, `hammer_hit_return` and the [ranged rule map](m5-ranged-rule-coverage.md); original-data crossbow fire repeats with no ammo depletion. |
+| Enemy attacks, decisions and distinct special controllers | Grouped original-data regional encounters and the [placed-enemy matrix](m5-enemy-rule-matrix.md), including Dragon, Mandragor, Lucreto, Snowmane, Weeper and Tower Skeleton routes. |
+| Health, protection, potion expiry and terrain damage | `live_combat_difficulty`, `shield_live_combat`, `strength_live_melee`, `invisible_live_ai`, grouped terrain-hazard core checks and the twelve-region/native liquid batch. |
+| Death, drops, rewards, save continuation and game over | `death_checkpoint`, `temple_spear_live`, `mandragor_tree_melee_checkpoint`, Dragon and Lucreto checkpoints, `live_enemy_game_over` and the mechanism inventory below. |
 
 ### Shared death and drop mechanism inventory
 
@@ -85,10 +104,9 @@ drop mechanism requiring a separate placement run. The remaining M5
 death work is in specialized controllers and source-backed save or
 visibility boundaries, as in the gate table above.
 
-The next implementation should target the first uncovered behavior found
-in those two latter rows. Earned routes belong to M6; original-runtime
-comparison and presentation parity belong to M7. The detailed history
-below records narrower assertions without turning each into a new gate.
+Earned routes belong to M6; original-runtime comparison and
+presentation parity belong to M7. The detailed history below records
+narrower assertions without turning each into a new gate.
 
 2026-11-17: Q210's Dragon Head animation-start path sets the original
 `chains.bmp` colour-key and full-bright material flag. The Rust viewer

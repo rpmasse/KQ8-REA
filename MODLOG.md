@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-17 M5 grouped combat gate closed
+
+The authorized study session resolved Q209's shipped Mandragor tree
+hit and death rules in `docs/behaviour/mandragor.md`. The existing
+original-data tree checkpoint now directly asserts ordinary React and
+ouch, no item drop, 20,000 experience, the fixed corpse, no ordinary
+Die callback, linked-root shutdown and fresh-process save continuity.
+The first added assertion run failed because three variable-damage
+sword hits left 36 health. A fourth click at update 165 was refused
+while Connor reacted; the second run also failed. Moving that click
+past the reaction made the third run pass. The final update-185 click
+and save-after-death schedule passed a fourth focused release run
+(1/1). This corrected the test schedule,
+not the game controller.
+
+The M5 audit reconciles known distinct combat rules with their direct
+automated evidence. README and DESIGN now mark M5 complete (100%).
+Campaign integration is M6 and final original-runtime fidelity is M7.
+No manual play, production code change or GOG write occurred.
+
+Test: set `KQ8_GAME_DIR` to the GOG installation and run
+`cargo test -p kq8-viewer --release --test mandragor_tree_melee_checkpoint -- --ignored`.
+Expect 1 passed, 0 failed.
+
 ## 2026-11-17 Authored-order weapon walk and M5 closure audit
 
 The preceding Q141 test put the walk before the swap, unlike `ax.cs`.

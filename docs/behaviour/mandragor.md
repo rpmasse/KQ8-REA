@@ -256,17 +256,36 @@ open.
 
 ## Tree death boundary
 
+The tree receives a hit through the ordinary monster damage and
+reaction rules (`fighting.md` rules 16 and 22–24). It has no
+tree-specific hit reaction or damage immunity. A surviving hit may
+select its authored `react` movement under the ordinary damage roll,
+movement interruption and reaction-pause gates; otherwise its
+`manouch.aud` sound uses the ordinary ouch limit. The number of roots
+currently down controls tree turning, not whether the tree can take a
+hit or enter Die.
+
 The tree uses the common monster Die state, which selects `die` for a
 normal hit, `firedie` for fire and `icedie` for ice. Its animation list
 has no `projdie`, so that movement falls back to `die` if requested.
-After the death movement, the tree uses a class-specific finalizer. It
-retains the common experience award and creates a corpse from its
+The common Die entry applies the ordinary item-drop list. The shipped
+tree has no `invDrop` or held-item entry in its placement or type, so
+it throws no item on death. After the death movement, the tree uses a
+class-specific finalizer. It retains the common experience award of
+20,000 from its type and creates a corpse from its
 authored `deadDts=mt_dead.kqs` whenever that field is present, even for
 Fire or Ice death. The ordinary monster finalizer would choose its
 corpse by damage kind. The tree then marks itself for removal. Its
 finalizer does not call the ordinary monster's script `Die` callback
-helper. Whether another point in the tree's death path sends a script
-callback remains open.
+helper, and the shipped tree has no assigned script to receive one.
+Tree death itself is the group-ending trigger: each linked root is
+told to die, irrespective of how many roots are currently down. No
+separate all-roots-down gate, group kill count, item reward or authored
+group-completion script was found in these class paths and shipped
+data. A root already in its timed death/rebirth cycle can postpone its
+permanent Die until that cycle finishes, so actor removal need not be
+simultaneous. Indirect external scripts and notification order remain
+outside this bounded finding.
 
 Each root listens for its linked tree's state change. When the tree
 enters Die, the root clears its tree link and requests Die too. A root
@@ -362,8 +381,10 @@ that an orphaned loaded root will link itself later.
   team names affect targeting.
 - Exact first-frame and per-frame sinking/birth visibility, team targeting,
   proximity-move collision outcome and notification order during rebirth.
-- Tree hit reactions, experience and drops, script callbacks,
-  the end condition of a group, and save/load continuation.
+- Indirect external script/collision effects, exact root removal order
+  after tree death, and save/load continuation. The tree's ordinary hit
+  reactions, 20,000 experience, lack of authored drops and script,
+  and tree-death group trigger are established above.
 
 ## Do not reproduce
 

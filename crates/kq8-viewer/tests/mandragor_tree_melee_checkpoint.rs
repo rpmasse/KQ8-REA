@@ -41,12 +41,21 @@ fn sword_killed_tree_and_its_corpse_survive_a_fresh_process() {
         "--command", "KQConner::setDoMode 0,15",
         "--aim", "mand3t,45", "--aim", "mand3t,75",
         "--aim", "mand3t,105", "--aim", "mand3t,135",
-        "--key", "menu:down:down:enter:release:enter:release:escape:type=TreeDead:enter:release:escape,190",
-        "--updates", "205", "--frames", "1600",
+        "--aim", "mand3t,185",
+        "--key", "menu:down:down:enter:release:enter:release:escape:type=TreeDead:enter:release:escape,235",
+        "--updates", "250", "--frames", "1900",
     ]);
     assert!(first.contains("Save screen -> Save(1, \"TreeDead\")"), "inspect {}", root.display());
-    assert_eq!(doors.matches("swing pick meets character mand3t (type 0x4042)").count(), 4);
-    assert_eq!(fight.matches("hits mand3t:").count(), 3);
+    assert!(doors.matches("swing pick meets character mand3t (type 0x4042)").count() >= 4);
+    assert!((3..=4).contains(&fight.matches("hits mand3t:").count()),
+        "ordinary damage rolls should kill the tree in three or four sword hits; inspect {}", root.display());
+    assert!(fight.lines().any(|line| line.contains("mand3t: hit by Connor, Normal:")
+            && line.contains("flinches: 'React' starts at once (rule 23)"))
+        && fight.lines().any(|line| line.contains("mand3t: hit by Connor, Normal:")
+            && line.contains("ouch sound manouch.aud (rule 24)")),
+        "the tree did not use ordinary hit reactions; inspect {}", root.display());
+    assert_eq!(fight.matches("mand3t: drops: nothing (rule 31)").count(), 1,
+        "the shipped tree has no authored item drop; inspect {}", root.display());
     assert!(
         fight.contains("Connor: hit by mand3r, Normal:")
             && fight.contains("Connor: hit by mand3l, Normal:")
@@ -56,6 +65,7 @@ fn sword_killed_tree_and_its_corpse_survive_a_fresh_process() {
     );
     assert!(fight.contains("mand3t: its death ended (rule 32): Connor gets its experience 20000")
         && fight.contains("a corpse mt_dead.kqs")
+        && fight.contains("Mandragor tree finalizer has no ordinary Die callback")
         && fight.contains("mand3r: Mandragor tree mand3t enters Die: root link cleared")
         && fight.contains("mand3l: Mandragor tree mand3t enters Die: root link cleared"),
         "ordinary sword kill did not complete the group; inspect {}", root.display());

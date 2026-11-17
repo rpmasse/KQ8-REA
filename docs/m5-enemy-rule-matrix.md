@@ -32,5 +32,26 @@ untested.
 The source inventory includes different placements of the same type in
 different regions. The table groups shared mechanics but keeps regional
 scripts and special classes open until a scenario observes their effects.
-Next work should close a distinct open family in one original-data process
-where practical, then update this table with the asserted result.
+The grouped M5 combat gate is closed. The last column preserves each
+scenario's limits; it does not require a run for every placement.
+
+## M5 closure classification (2026-11-17)
+
+The last column above records every limit of the cited scenarios; it is
+not a list of M5 blockers. Ordinary actors with different placements,
+numbers, or drop lists use the shared attack/death mechanism already
+checked in grouped original-data runs. Their unplayed routes and
+regional summons belong to M6 campaign integration. Knight,
+Icelord and Archon are authored as scripted or dialogue actors rather
+than ordinary fighters. Ice Henchman's repeating terminal `stop` keeps
+him in Special under the studied rule, so an ordinary hit should not
+be forced into that chest scene merely to fill a matrix cell.
+
+The bounded Mandragor study resolved the last special-death source
+question: its shipped tree has ordinary hit reactions, no authored
+drop or script, 20,000 experience, the fixed corpse and linked-root
+shutdown without an all-roots-down gate. The grouped
+`mandragor_tree_melee_checkpoint` now asserts these outcomes and a
+fresh-process Rust save. No missing M5 controller rule was found in
+this matrix. Native save internals, exact appearance and
+running-original parity remain M7 work.
