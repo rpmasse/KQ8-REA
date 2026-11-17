@@ -247,10 +247,19 @@ at zero, no new Die-state request is made, and the death movement is
 not interrupted. Behavior after a script changes the body's
 protection or directly forces another state was not traced.
 
-An additional head handler changes the `chains.bmp` material flag
-when it enters a special state, and the body has a corresponding
-material adjustment after its death transition. These are appearance
-changes in the original executable, not new textures.
+The head's animation-start path marks each active `chains.bmp` material
+for colour-key drawing and full brightness. The body has a separate
+path that makes the same change when its active setting is requested
+after previously being off. Both paths set the flag; neither clears it.
+This is a material-property change, not a texture replacement. The
+earlier description tying the head change specifically to Special and
+the body change specifically to death was too narrow: those triggers
+were not established by this static pass. The installed IceWorld head
+models do use `chains.bmp`, and its texture contains black pixels, so
+the colour key could change their appearance. Whether the shipped
+encounter actually reaches the body's flag-setting branch, which body
+model is current then, and the visible result in original runtime are
+not established.
 
 ## Save continuation and open points
 
@@ -268,6 +277,9 @@ one of these directly or derives some on load is open.
 
 Remaining questions for Q210:
 
+- Whether the body's active-setting transition reaches the
+  `chains.bmp` material path during the shipped death sequence, and
+  the original-runtime appearance of the head and body chains.
 - Whether `attackLoc` has an effect outside the traced head attack
   selector and cue handler; the shipped files do not set it.
 - Whether any script can alter the body's protection or force its death

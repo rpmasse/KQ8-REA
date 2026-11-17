@@ -1,5 +1,34 @@
 # MODLOG
 
+## 2026-11-17 Ice Dragon head chain colour key (M5)
+
+Implemented Q210's source-backed head animation material flag on each
+Dragon Head's own `chains.bmp` material copy. Pure black texture pixels
+are discarded and the chain material is fully bright; the original
+16x128 bitmap is unchanged. The installed IceWorld model has initially
+unflagged `0x403` chain materials and 831 black index-zero pixels.
+Extended the existing `dragon_head_attack` scenario, which passed 1/1
+in release mode on the GOG data. Its log recorded eight affected
+materials on each head; no shader error appeared in stderr. The body's
+separate activation branch remains open because its shipped trigger
+was not established. No manual play or original-runtime comparison.
+
+Test: set `KQ8_GAME_DIR` to the GOG directory, then run
+`cargo test -p kq8-viewer --release --test dragon_head_attack -- --ignored --nocapture`.
+Expect one passed test and `anim.log` lines for both heads with nonzero
+`chains.bmp` material counts.
+
+## 2026-11-17 Dragon chain material static correction (study A, Q210)
+
+Corrected `dragon.md` and Q210 after a bounded original-executable and
+IceWorld-data pass. The head animation-start path and a body activation
+transition both set the colour-key/full-bright material flag for active
+`chains.bmp` materials. The earlier Special-only and body-death-only
+trigger claims were not supported. The body branch's reachability in
+the shipped death sequence and the original-runtime visual result
+remain open. No Rust or game files changed; original-runtime play was
+not tested.
+
 ## 2026-11-17 Mandragor death-phase static follow-up (study A, Q209)
 
 Corrected `mandragor.md` and Q209: a root's timed death clears live

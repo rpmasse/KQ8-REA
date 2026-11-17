@@ -756,12 +756,37 @@ pub fn spawn_animated(
         // Steps 4b, 4d, 4e: every animated object is drawn the new way
         // too (the unused ones, copy templates, only with H; their copies
         // from the recipe).
-        let own: SlotMaterials = a
+        let mut own: SlotMaterials = a
             .movements
             .iter()
             .flat_map(|(_, _, i)| built[*i].materials.iter().map(move |(m, h)| ((*i, *m), h.clone())))
             .map(|(k, h)| (k, crate::object_light::for_object(materials, &h, opacity, p.haze_solid, p.haze_multiplier)))
             .collect();
+        // Q210: the head's first animation starts at load and marks its
+        // chains.bmp materials with colour key bit 0x1000. The bit stays on
+        // for later movements. Copy each material so other actors sharing
+        // the bitmap retain their own lighting and opacity.
+        if a.character.as_ref().is_some_and(|c| c.keys.class == kq8_data::characters::Class::DragonHead) {
+            let mut chains = std::collections::BTreeSet::new();
+            for (_, _, i) in &a.movements {
+                for (m, texture) in &built[*i].textures {
+                    if texture.as_deref().is_some_and(|name| name.eq_ignore_ascii_case("chains.bmp")) {
+                        chains.insert((*i, *m));
+                    }
+                }
+            }
+            let mut changed = 0;
+            for (key, handle) in &mut own {
+                if !chains.contains(key) { continue; }
+                if let Some(mut chain) = materials.get(&*handle).cloned() {
+                    chain.settings.lighting = 0;
+                    chain.settings.cutout = 2;
+                    *handle = materials.add(chain);
+                    changed += 1;
+                }
+            }
+            log.detail(format!("[{}] Dragon head animation start: chains.bmp material bit 0x1000 on {changed} material(s); pure black colour key, full brightness (Q210)", p.name));
+        }
         let slot_movements: Vec<SlotMovement> = a.movements.iter().map(|(_, _, i)| (*i, built[*i].source.clone(), built[*i].ball)).collect();
         let new_draw = crate::anim_gpu::Slots::spawn(commands, body, gpu, crate::anim_gpu::List::Objects, slot_movements.clone(), own.clone(), materials, &mut Default::default());
         characters_new += usize::from(a.character.is_some() && new_draw.is_some());

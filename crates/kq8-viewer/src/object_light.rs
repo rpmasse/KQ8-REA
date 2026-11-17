@@ -102,7 +102,8 @@ pub struct Settings {
     /// drawn part's own position (w = 0).
     pub haze_from: Vec4,
     /// 1 = texture pixels with alpha below one half are holes (Connor
-    /// while Invisible runs, `potions.md` rule 29; M5 5g-6).
+    /// while Invisible runs); 2 = pure black texture pixels are holes
+    /// (Dragon Head chains, `dragon.md` and material flag 0x1000).
     pub cutout: u32,
 }
 

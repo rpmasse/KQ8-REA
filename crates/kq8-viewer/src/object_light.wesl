@@ -64,7 +64,7 @@ struct Settings {
     // Particles (rule 30): w = 1: the haze is measured from xyz (their
     // emitter's location, Bevy world space), not from the part's position.
     haze_from: vec4<f32>,
-    // 1 = texture pixels with alpha below one half are holes (Invisible).
+    // 1 = low-alpha holes (Invisible); 2 = pure-black holes (colour key).
     cutout: u32,
 };
 
@@ -315,6 +315,9 @@ fn fragment(in: LitVertex) -> @location(0) vec4<f32> {
         colour = colour * textureSample(colour_texture, colour_sampler, in.uv);
         if settings.cutout == 1u && colour.a < 0.5 {
             discard; // potions.md rule 29: the mesh's holes
+        }
+        if settings.cutout == 2u && all(colour.rgb == vec3<f32>(0.0)) {
+            discard; // dragon.md: material flag 0x1000, pure black colour key
         }
     }
     // STAND-IN (as the ground, M1 4c): the multiply is meant on the colour

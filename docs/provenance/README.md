@@ -1,5 +1,18 @@
 # Provenance
 
+**Ice Dragon head chain material (2026-11-17, M5).** The
+[Dragon Q210 note](../behaviour/dragon.md) establishes that a head's
+animation-start path sets material bit `0x1000` on active `chains.bmp`
+entries, and [material rules](../behaviour/models-and-textures.md)
+explain its black colour key and full brightness. Installed IceWorld
+head models list initially unflagged `0x403` chain materials; the
+16x128 bitmap has 831 black index-zero pixels. The Rust renderer now
+copies those head materials and applies both drawing properties. The
+existing `dragon_head_attack` release scenario passed 1/1 and logged
+eight affected materials per head. This is Rust evidence only; the
+original-runtime appearance and body activation branch remain open.
+
+
 **Daventry Spriggan projectile death (2026-11-17, M5).**
 [Fighting rules 30 and 32](../behaviour/fighting.md) select `projdie`
 and `projdKqs` when a Projectile hit kills a fighter with those assets.

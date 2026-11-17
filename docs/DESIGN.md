@@ -5284,6 +5284,20 @@ The current evidence and remaining distinct gaps are in
 [M5 combat completion audit](m5-combat-completion-audit.md). Use that
 inventory to select source-backed checks without rerunning whole matrices.
 
+**Ice Dragon head chains material (2026-11-17).** Q210 now establishes
+that starting a head animation sets material bit `0x1000` on its active
+`chains.bmp` entries. This turns pure black texels into holes and makes
+the material fully bright; it does not replace or enlarge the texture.
+The installed head shapes have `chains.bmp` entries initially flagged
+`0x403`, and the IceWorld bitmap has 831 index-zero black pixels. Give
+each Dragon Head's chain material its own drawing copy with the colour
+key and full-bright setting when its animation is prepared. Keep other
+actors' materials unchanged, and leave the body's separate activation
+path open because the study has not shown that it runs in the shipped
+encounter. Extend the existing Dragon head attack scenario to assert
+both heads received the material setting from original data; use that
+one Windows run to compile and exercise the shader. No manual play test.
+
 **Q206 on-fire hazard slice (2026-11-17).** Follow the separate
 `terrain-hazards.md` study: the existing `lightOnFire` state on Connor
 overrides the sampled material with poison + fire and bypasses liquid

@@ -19,9 +19,16 @@ fn dragon_heads_alarm_and_deliver_bite_and_fire_cues() {
     let logs = root.join("kq8-artifacts/logs");
     let viewer = fs::read_to_string(logs.join("viewer.log")).unwrap();
     let characters = fs::read_to_string(logs.join("characters.log")).unwrap();
+    let anim = fs::read_to_string(logs.join("anim.log")).unwrap();
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     let effects = fs::read_to_string(logs.join("effects.log")).unwrap();
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", root.display());
+    for head in ["draglhed", "dragrhed"] {
+        let line = anim.lines().find(|line| line.contains(&format!("[{head}] Dragon head animation start: chains.bmp material bit 0x1000 on ")))
+            .unwrap_or_else(|| panic!("{head} has no chains material setting; inspect {}", root.display()));
+        assert!(!line.contains("on 0 material(s)"), "{head} did not use the installed chains.bmp material; inspect {}", root.display());
+    }
+    assert!(!anim.contains("[dragbody] Dragon head animation start"), "head material setting leaked to the body; inspect {}", root.display());
     assert!(characters.contains("draglhed: joins the active list")
         && characters.contains("dragrhed: alarmed: told by its team member draglhed"),
         "head sight/team alarm missing; inspect {}", root.display());

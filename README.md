@@ -19,7 +19,7 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 
 These percentages describe individual phases, not overall game completion. All 12 regions load, but combat, campaign progression and visual fidelity still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
 
-Automated combat checks cover enemy attacks, team limits, elemental shots, distinct deaths and drops, and terrain hazards; the full campaign remains unfinished.
+Automated combat checks cover enemy attacks, team limits, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.
 The [M5 combat audit](docs/m5-combat-completion-audit.md) tracks the remaining distinct combat rules and special enemy behavior.
 
 ## Bring your own game

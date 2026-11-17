@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-17 M5 Ice Dragon head chain material
+
+The original-engine Q210 follow-up found that each Dragon Head's
+animation start sets the colour-key/full-bright material flag on its
+`chains.bmp` entries. Rust now gives each head's chain entries their
+own material copy with that flag, without changing texture size or
+other actors. The existing IceWorld `dragon_head_attack` release test
+passed 1/1; its log shows eight affected entries on each head and no
+shader error in stderr. The GOG copy was read only; no manual gameplay
+or running-original visual comparison occurred. The body's separate
+activation branch remains open. M5 is still approximately 80% because
+the full combat completion gate has not yet been met.
+
+Run `cargo test -p kq8-viewer --release --test dragon_head_attack -- --ignored --nocapture`
+with `KQ8_GAME_DIR` set to the GOG installation; expect one passed test
+and nonzero chain-material counts for `draglhed` and `dragrhed` in
+`kq8-artifacts/logs/anim.log` for that run.
+
 ## 2026-11-17 M5 distinct Projectile death in Daventry
 
 The existing three-enemy Daventry run now gives placed `sprigan1` a
