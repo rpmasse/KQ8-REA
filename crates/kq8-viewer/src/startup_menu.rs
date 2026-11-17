@@ -8,6 +8,7 @@ use kq8_audio::{Command, Output};
 use kq8_core::credits;
 use kq8_core::graphics_menu;
 use kq8_core::modern_display::{Choice as DisplayChoice, Ratio, ViewMode};
+use kq8_core::mouse_menu;
 use kq8_core::keyboard_menu;
 pub use kq8_core::main_menu::Key;
 use kq8_core::main_menu::{Action, Art, Choice};
@@ -36,6 +37,9 @@ mod software_surface_tests;
 #[cfg(test)]
 #[path = "graphics_lifecycle_tests.rs"]
 mod graphics_lifecycle_tests;
+#[cfg(test)]
+#[path = "mouse_menu_tests.rs"]
+mod mouse_menu_tests;
 #[cfg(all(test, windows))]
 #[path = "graphics_profile_frontend_tests.rs"]
 mod graphics_profile_frontend_tests;
@@ -176,6 +180,7 @@ pub fn open_ending_credits(world: &mut World) -> Result<(), String> {
         menu.state.set_saves(has_saves);
         menu.options = None;
         menu.graphics = None;
+        menu.mouse = None;
         menu.keyboard = None;
         menu.slot_page = None;
         menu.credits = Some(page);
@@ -237,6 +242,7 @@ fn end_credits(world: &mut World) {
     menu.credits = None;
     menu.options = None;
     menu.graphics = None;
+    menu.mouse = None;
     menu.keyboard = None;
     menu.slot_page = None;
     menu.state = choice;
@@ -524,6 +530,7 @@ pub struct Menu {
     slot_page: Option<(save_menu::Screen, save_menu::Art)>,
     options: Option<options_menu::Screen>,
     graphics: Option<graphics_menu::Screen>,
+    mouse: Option<mouse_menu::Screen>,
     keyboard: Option<keyboard_menu::Screen>,
     movie: Option<MoviePage>,
     credits: Option<credits::Screen>,
@@ -551,6 +558,8 @@ impl Menu {
         }
         let (page, clock) = if self.graphics.is_some() {
             ("Graphics", self.child_clock)
+        } else if self.mouse.is_some() {
+            ("Mouse Settings", self.child_clock)
         } else if self.keyboard.is_some() {
             ("Keyboard", self.child_clock)
         } else if self.options.is_some() {
@@ -577,6 +586,7 @@ impl Menu {
             slot_page: None,
             options: None,
             graphics: None,
+            mouse: None,
             keyboard: None,
             movie: None,
             credits: None,
@@ -838,6 +848,8 @@ fn redraw(world: &mut World) {
         canvas_image(page.render())
     } else if let Some(page) = &menu.graphics {
         canvas_image(page.render(&world.resource::<Preferences>().settings.graphics, &menu.art, menu.mask_frame))
+    } else if let Some(page) = &menu.mouse {
+        canvas_image(page.render(world.resource::<Preferences>().mouse,&menu.art,menu.mask_frame))
     } else if let Some(page) = &menu.keyboard {
         canvas_image(page.render(
             &world.resource::<Keyboard>().active,
@@ -877,6 +889,7 @@ pub(crate) fn resize_presentation(world: &mut World, size: [u32; 2]) {
         if !page.has_device_inventory() { page.set_high_resolution_available(high_available); }
         page.resize(&menu.art);
     }
+    if let Some(page) = &mut menu.mouse { page.resize(&menu.art); }
     if let Some(page) = &mut menu.keyboard { page.resize(&menu.art); }
     if let Some((_, art)) = &mut menu.slot_page { art.resize(size); }
     redraw(world);
@@ -955,9 +968,10 @@ pub fn palette_changed(world: &mut World, values: crate::live_palette::Values, w
     if !world.contains_resource::<Menu>() { return; }
     let (handle,cursor) = {
         let mut menu = world.resource_mut::<Menu>();
-        let Menu { art,graphics,options,.. } = &mut *menu;
+        let Menu { art,graphics,mouse,options,.. } = &mut *menu;
         art.set_palette(values.brightness,values.output);
         if let Some(page) = graphics { page.palette_changed(art); }
+        if let Some(page) = mouse { page.palette_changed(art); }
         if let Some(page) = options { page.palette_changed(art); }
         (menu.image.clone(),canvas_image(menu.art.cursor_frame(menu.cursor_frame)))
     };
@@ -1048,6 +1062,18 @@ fn option_key(world: &mut World, key: Key) {
                 restore_palette(world,"Graphics setup");
             }
             Err(e) => log.lock().unwrap().summary(format!("graphics: could not open: {e}")),
+        }
+    } else if back == options_menu::Destination::Mouse {
+        let source = &world.resource::<Source>().game;
+        match mouse_menu::Screen::open(source,&world.resource::<Menu>().art) {
+            Ok(screen) => {
+                let mut menu = world.resource_mut::<Menu>();
+                menu.child_clock = std::time::Instant::now();
+                menu.mask_frame = 0;
+                menu.mouse = Some(screen);
+                log.lock().unwrap().summary("mouse: opened Camera Sensitivity settings");
+            }
+            Err(error) => log.lock().unwrap().summary(format!("mouse: could not open: {error}")),
         }
     } else if back == options_menu::Destination::Keyboard {
         let source = &world.resource::<Source>().game;
@@ -1147,6 +1173,33 @@ fn graphics_key(world: &mut World, key: Key) {
         if let Some(screen) = screen {
             world.insert_resource(RetainedGraphics(screen));
         }
+    }
+    redraw(world);
+}
+
+fn mouse_key(world: &mut World, key: Key) {
+    let log = world.resource::<crate::Shared>().log.clone();
+    let mut settings = world.resource::<Preferences>().mouse;
+    let action = {
+        let mut menu = world.resource_mut::<Menu>();
+        let action = menu.mouse.as_mut().unwrap().input(key,&mut settings);
+        match key {
+            Key::Up | Key::Down | Key::Left | Key::Right | Key::Tab => menu.audio.play("click.aud"),
+            Key::Click(_,_) | Key::Enter => menu.audio.play("intrface.aud"),
+            _ => {}
+        }
+        action
+    };
+    if settings != world.resource::<Preferences>().mouse {
+        world.resource_mut::<Preferences>().mouse = settings;
+        log.lock().unwrap().summary(format!("mouse: camera sensitivity {}%",settings.camera_sensitivity_percent));
+    }
+    if action == mouse_menu::Action::Back {
+        match world.resource_mut::<Preferences>().store() {
+            Ok(()) => log.lock().unwrap().summary("mouse: returned to Options; saved local preference"),
+            Err(error) => log.lock().unwrap().summary(format!("mouse: could not save preference: {error}")),
+        }
+        world.resource_mut::<Menu>().mouse = None;
     }
     redraw(world);
 }
@@ -1461,6 +1514,10 @@ pub fn step(world: &mut World) {
             keyboard_key(world, key);
             continue;
         }
+        if world.resource::<Menu>().mouse.is_some() {
+            mouse_key(world, key);
+            continue;
+        }
         if world.resource::<Menu>().options.is_some() {
             option_key(world, key);
             continue;
@@ -1562,7 +1619,7 @@ pub fn step(world: &mut World) {
                 }
                 redraw(world);
             }
-            Action::Options => match options_menu::Screen::open(
+            Action::Options => match options_menu::Screen::open_modern(
                 &world.resource::<Source>().game,
                 &world.resource::<Menu>().art,
             ) {

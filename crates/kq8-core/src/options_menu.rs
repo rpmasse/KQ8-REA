@@ -118,6 +118,7 @@ impl Settings {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Row {
     Graphics,
+    Mouse,
     Keys,
     Music,
     Effects,
@@ -150,11 +151,15 @@ const ACTIVE: [Row; 9] = [
     Row::Credits,
     Row::Back,
 ];
+const MODERN_ROWS: [Row; 10] = [Row::Graphics,Row::Mouse,Row::Keys,
+    Row::Music,Row::Effects,Row::Speech,Row::Subtitles,Row::Help,
+    Row::Credits,Row::Back];
 
 impl Row {
     fn label(self) -> &'static str {
         match self {
             Self::Graphics => "MODE_LABEL",
+            Self::Mouse => "MODE_LABEL",
             Self::Keys => "REMAP_MOVEKEYS",
             Self::Music => "MUSICVOLUME_LABEL",
             Self::Effects => "SFXVOLUME_LABEL",
@@ -190,25 +195,42 @@ pub struct Screen {
     background: Canvas,
     row: Row,
     pub dragging: bool,
+    modern: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Destination {
     Stay,
     Graphics,
+    Mouse,
     Keyboard,
     Credits,
     Back,
 }
 
 impl Screen {
+    fn row_rect(layout: &Layout, modern: bool, row: Row) -> [i32; 4] {
+        if modern && matches!(row, Row::Mouse | Row::Keys) {
+            let graphics = layout.controls[Row::Graphics.label()].rect;
+            let keys = layout.controls[Row::Keys.label()].rect;
+            let height = keys[3]-keys[1];
+            let top = graphics[3] + if row == Row::Keys { height } else { 0 };
+            return [keys[0],top,keys[2],top+height];
+        }
+        layout.controls[row.label()].rect
+    }
+
+    fn active(&self) -> &'static [Row] {
+        if self.modern { &MODERN_ROWS } else { &ACTIVE }
+    }
+
     pub fn resize(&mut self, art: &MenuArt) {
         self.layout.resize(art.size(), false);
-        self.background = Self::backdrop(&self.layout, art);
+        self.background = Self::backdrop(&self.layout, art, self.modern);
     }
 
     pub fn palette_changed(&mut self, art: &MenuArt) {
-        self.background = Self::backdrop(&self.layout,art);
+        self.background = Self::backdrop(&self.layout,art,self.modern);
     }
 
     pub fn open(game: &Path, menu: &MenuArt) -> Result<Self, String> {
@@ -224,15 +246,23 @@ impl Screen {
             }
         }
         Ok(Self {
-            background: Self::backdrop(&layout, menu),
+            background: Self::backdrop(&layout, menu, false),
             layout,
             row: Row::Graphics,
             dragging: false,
+            modern: false,
         })
     }
 
-    fn hit(&self, key: &str, x: i32, y: i32) -> bool {
-        let [l, t, r, b] = self.layout.controls[key].rect;
+    pub fn open_modern(game: &Path, menu: &MenuArt) -> Result<Self, String> {
+        let mut screen = Self::open(game,menu)?;
+        screen.modern = true;
+        screen.background = Self::backdrop(&screen.layout,menu,true);
+        Ok(screen)
+    }
+
+    fn hit(rect: [i32;4], x: i32, y: i32) -> bool {
+        let [l, t, r, b] = rect;
         (l..r).contains(&x) && (t..b).contains(&y)
     }
     fn set_x(&self, x: i32, settings: &mut Settings) {
@@ -248,17 +278,18 @@ impl Screen {
         match key {
             Key::Escape => return Destination::Back,
             Key::Up | Key::Down | Key::Tab => {
-                let i = ACTIVE.iter().position(|r| *r == self.row).unwrap_or(0);
-                self.row =
-                    ACTIVE[(i + if key == Key::Up { ACTIVE.len() - 1 } else { 1 }) % ACTIVE.len()];
+                let active = self.active();
+                let i = active.iter().position(|r| *r == self.row).unwrap_or(0);
+                self.row = active[(i + if key == Key::Up { active.len() - 1 } else { 1 }) % active.len()];
             }
             Key::Click(x, y) => {
-                for row in ACTIVE {
-                    if self.hit(row.label(), x, y) || row.value().is_some_and(|k| self.hit(k, x, y))
+                for &row in self.active() {
+                    if Self::hit(Self::row_rect(&self.layout,self.modern,row), x, y)
+                        || row.value().is_some_and(|k| Self::hit(self.layout.controls[k].rect,x,y))
                     {
                         self.row = row;
                         if row.slider().is_some() {
-                            self.dragging = self.hit(row.value().unwrap(), x, y);
+                            self.dragging = Self::hit(self.layout.controls[row.value().unwrap()].rect,x,y);
                             if self.dragging {
                                 self.set_x(x, settings);
                             }
@@ -297,6 +328,7 @@ impl Screen {
             Row::Help => { if !s.help_locked { s.help = !s.help; } },
             Row::Keys => return Destination::Keyboard,
             Row::Graphics => return Destination::Graphics,
+            Row::Mouse => return Destination::Mouse,
             Row::Credits => return Destination::Credits,
             Row::Back => return Destination::Back,
             _ => {}
@@ -304,7 +336,7 @@ impl Screen {
         Destination::Stay
     }
 
-    fn backdrop(layout: &Layout, menu: &MenuArt) -> Canvas {
+    fn backdrop(layout: &Layout, menu: &MenuArt, modern: bool) -> Canvas {
         let [width, height] = layout.size;
         let mut out = Canvas::new(width, height);
         let rect = |key: &str| layout.controls[key].rect;
@@ -314,15 +346,19 @@ impl Screen {
         for key in ["BACKGROUND", "OPTIONS"] {
             draw(&mut out, key, rect(key), 0, None);
         }
-        for row in ROWS {
+        let rows: &[Row] = if modern { &MODERN_ROWS } else { &ROWS };
+        for &row in rows {
             let key = row.label();
-            if ACTIVE.contains(&row) {
-                draw(&mut out, key, rect(key), 0, None);
+            let row_rect = Self::row_rect(layout,modern,row);
+            if row == Row::Mouse {
+                draw(&mut out,key,row_rect,0,Some("Mouse Settings"));
+            } else if ACTIVE.contains(&row) {
+                draw(&mut out, key, row_rect, 0, None);
             } else {
                 // Disabled items use the original menu's alternating pixels.
                 let mut label = Canvas::new(width, height);
-                draw(&mut label, key, rect(key), 0, None);
-                let [l, t, r, b] = rect(key);
+                draw(&mut label, key, row_rect, 0, None);
+                let [l, t, r, b] = row_rect;
                 for y in t.clamp(0, height as i32)..b.clamp(0, height as i32) {
                     for x in l.clamp(0, width as i32)..r.clamp(0, width as i32) {
                         let p = ((y * width as i32 + x) * 4) as usize;
@@ -365,7 +401,7 @@ impl Screen {
                 }
             }
         }
-        let selected = rect(self.row.label());
+        let selected = Self::row_rect(&self.layout,self.modern,self.row);
         for k in ["CURSOR1", "CURSOR2"] {
             let [l, t, r, b] = rect(k);
             let y = (selected[1] + selected[3] - (b - t)) / 2;
@@ -378,6 +414,35 @@ impl Screen {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn modern_options_mouse_row_is_visible_and_navigates_at_both_sizes() {
+        let dir = std::env::var_os("KQ8_GAME_DIR").unwrap();
+        let game = Path::new(&dir);
+        let mut menu = MenuArt::open(game).unwrap();
+        for high in [false,true] {
+            menu.resize(high);
+            let mut page = Screen::open_modern(game,&menu).unwrap();
+            let mut settings = Settings::default();
+            let graphics = Screen::row_rect(&page.layout,true,Row::Graphics);
+            let mouse = Screen::row_rect(&page.layout,true,Row::Mouse);
+            let keys = Screen::row_rect(&page.layout,true,Row::Keys);
+            let music = Screen::row_rect(&page.layout,true,Row::Music);
+            assert_eq!(mouse[1],graphics[3]);
+            assert_eq!(keys[1],mouse[3]);
+            assert!(keys[3] < music[1]);
+            assert_eq!(page.render(&settings,&menu,0).width,menu.size()[0]);
+            page.input(Key::Down,&mut settings);
+            assert_eq!(page.input(Key::Enter,&mut settings),Destination::Mouse);
+            assert_eq!(page.input(Key::Click((keys[0]+keys[2])/2,(keys[1]+keys[3])/2),
+                &mut settings),Destination::Keyboard);
+            assert_eq!(page.input(Key::Click((mouse[0]+mouse[2])/2,(mouse[1]+mouse[3])/2),
+                &mut settings),Destination::Mouse);
+            assert_eq!(page.input(Key::Click((graphics[0]+graphics[2])/2,(graphics[1]+graphics[3])/2),
+                &mut settings),Destination::Graphics);
+        }
+    }
 
     #[test]
     fn locked_off_starting_help_survives_preference_saves() {

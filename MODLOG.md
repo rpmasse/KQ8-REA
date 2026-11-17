@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-17 M8 Mouse Settings and camera sensitivity
+
+Added Options → Mouse Settings as a viewer-only menu page using the
+installed Options artwork and fonts. Camera Sensitivity shows a live
+percentage and supports pointer dragging, clicks, arrows, Back and
+Escape from 25% through 200% in 5% steps. The default 100% leaves the
+restored camera input unchanged. The multiplier affects only physical
+right-drag camera movement, including swing and vertical tilt/zoom;
+keyboard and synthetic camera controls and the pointer are unchanged.
+The preference is stored in the recreation's `kq8-artifacts/mouse.json`
+after leaving the page, never in the original GOG `Options.cs`.
+Automated checks passed for 640x480 and 800x600 menus, Options navigation,
+slider inputs, numeric output, persistence validation, viewer reentry,
+and 100%/25%/200% camera gain. An initial pixel test compared text on a
+transparent canvas with text over the menu background and failed;
+correcting the comparison to use the actual background passed. Visual
+feel on a connected monitor is not tested. The Windows release build passed.
+
 ## 2026-11-17 restore original viewer mouse camera input
 
 The user tested with a monitor connected directly to the computer and

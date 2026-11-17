@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-17 M8 Mouse Settings
+
+Options now has a Mouse Settings page with a Camera Sensitivity slider.
+It ranges from 25% to 200% in 5% steps; 100% preserves the prior
+right-drag camera response. Changes apply while the game is running and
+save separately in `kq8-artifacts/mouse.json` on leaving the page.
+Automated menu, preference, camera-gain and viewer-route checks passed.
+The slider's visual feel on the connected monitor is not tested.
+
 ## 2026-11-17 mouse camera restored
 
 The M8 half-strength mouse camera change was reverted after the user tested

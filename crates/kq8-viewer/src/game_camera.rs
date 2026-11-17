@@ -793,6 +793,7 @@ pub fn camera_input(
     keys: Res<crate::keyboard_input::GameKeys>,
     buttons: Res<ButtonInput<MouseButton>>,
     motion: Res<AccumulatedMouseMotion>,
+    mouse_settings: Option<Res<crate::option_settings::Preferences>>,
     game: Option<ResMut<GameCam>>,
     connor: Option<Res<ConnorSim>>,
     doors: Option<ResMut<DoorSim>>,
@@ -832,9 +833,9 @@ pub fn camera_input(
     // stop at the window's edge: our method) as a share of the window.
     // M6 6d-4: not while a drag that started on the magic map runs.
     if let (true, Ok(w)) = (game.mouse_held(&buttons) && map_drag.0.is_none(), windows.single()) {
-        if w.width() > 0.0 && w.height() > 0.0 {
-            game.mouse += motion.delta / Vec2::new(w.width(), w.height());
-        }
+        let settings = mouse_settings.as_ref().map_or(
+            kq8_core::mouse_menu::MouseSettings::default(),|settings|settings.mouse);
+        game.mouse += camera_mouse_fraction(motion.delta,w,settings);
     }
     if game.key_pressed(game.keys.change_mode, &keys) {
         game.pressed_mode = true;
@@ -842,6 +843,12 @@ pub fn camera_input(
     if game.key_pressed(game.keys.reset, &keys) {
         game.pressed_reset = true;
     }
+}
+
+fn camera_mouse_fraction(delta: Vec2, window: &Window,
+    settings: kq8_core::mouse_menu::MouseSettings) -> Vec2 {
+    if window.width() <= 0.0 || window.height() <= 0.0 { return Vec2::ZERO; }
+    delta / Vec2::new(window.width(),window.height()) * settings.camera_gain()
 }
 
 
@@ -1080,6 +1087,19 @@ fn onoff(on: bool) -> &'static str {
 #[cfg(test)]
 mod sync_input_tests {
     use super::*;
+
+    #[test]
+    fn camera_sensitivity_keeps_original_response_at_one_hundred_percent() {
+        use kq8_core::mouse_menu::MouseSettings;
+        let window = Window { resolution: [800,600].into(), ..default() };
+        let delta = Vec2::new(80.0,60.0);
+        let original = delta / Vec2::new(window.width(),window.height());
+        assert_eq!(camera_mouse_fraction(delta,&window,MouseSettings::default()),original);
+        assert_eq!(camera_mouse_fraction(delta,&window,
+            MouseSettings { camera_sensitivity_percent: 25 }),original*0.25);
+        assert_eq!(camera_mouse_fraction(delta,&window,
+            MouseSettings { camera_sensitivity_percent: 200 }),original*2.0);
+    }
 
     #[test]
     fn extra_full_updates_consume_mouse_and_fixed_zoom_once_but_defer_normal_page_tilt() {

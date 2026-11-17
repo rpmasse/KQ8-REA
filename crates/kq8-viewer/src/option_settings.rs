@@ -3,6 +3,7 @@
 //! own Options.cs so the original game can still use its copy.
 use bevy::prelude::*;
 use kq8_core::options_menu::Settings;
+use kq8_core::mouse_menu::MouseSettings;
 use kq8_core::modern_display::Choice as DisplayChoice;
 use kq8_data::GameDir;
 use std::{
@@ -15,10 +16,13 @@ use std::{
 pub struct Preferences {
     pub settings: Settings,
     pub display: Option<DisplayChoice>,
+    pub mouse: MouseSettings,
     saved: Settings,
     saved_display: Option<DisplayChoice>,
+    saved_mouse: MouseSettings,
     path: PathBuf,
     display_path: PathBuf,
+    mouse_path: PathBuf,
     other_lines: Vec<Vec<u8>>,
 }
 
@@ -32,19 +36,24 @@ impl Preferences {
         let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
         preferences.path = PathBuf::from("kq8-artifacts/scratch/preferences").join(nonce.to_string()).join("Options.cs");
         preferences.display_path = preferences.path.with_file_name("display.json");
+        preferences.mouse_path = preferences.path.with_file_name("mouse.json");
         preferences.settings = settings.clone();
         preferences.saved = settings;
         preferences.display = None;
         preferences.saved_display = None;
+        preferences.mouse = MouseSettings::default();
+        preferences.saved_mouse = preferences.mouse;
         preferences
     }
 
     pub fn load(game: &Path) -> Self {
         let path = PathBuf::from("kq8-artifacts/Options.cs");
         let display_path = PathBuf::from("kq8-artifacts/display.json");
+        let mouse_path = PathBuf::from("kq8-artifacts/mouse.json");
         let display = fs::read(&display_path).ok()
             .and_then(|bytes| serde_json::from_slice::<Option<DisplayChoice>>(&bytes).ok())
             .flatten().filter(|choice|choice.valid());
+        let mouse = read_mouse(&mouse_path);
         let original = GameDir::open(game)
             .ok()
             .and_then(|g| g.find("Options.cs"))
@@ -57,10 +66,13 @@ impl Preferences {
         Self {
             settings: settings.clone(),
             display,
+            mouse,
             saved: settings,
             saved_display: display,
+            saved_mouse: mouse,
             path,
             display_path,
+            mouse_path,
             other_lines: retained_lines(local.as_deref(), original.as_deref()),
         }
     }
@@ -81,8 +93,20 @@ impl Preferences {
             write_preferences(&self.display_path, &contents)?;
             self.saved_display = self.display;
         }
+        if self.mouse != self.saved_mouse {
+            let contents = serde_json::to_vec_pretty(&self.mouse)
+                .map_err(|error|format!("mouse preference: {error}"))?;
+            write_preferences(&self.mouse_path,&contents)?;
+            self.saved_mouse = self.mouse;
+        }
         Ok(())
     }
+}
+
+fn read_mouse(path: &Path) -> MouseSettings {
+    fs::read(path).ok()
+        .and_then(|bytes|serde_json::from_slice::<MouseSettings>(&bytes).ok())
+        .filter(|settings|settings.valid()).unwrap_or_default()
 }
 
 fn merge_scripts(original: Option<&[u8]>, local: Option<&[u8]>) -> Vec<u8> {
@@ -149,7 +173,8 @@ fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>>
 
 #[cfg(test)]
 mod tests {
-    use super::{retained_lines,Preferences};
+    use super::{read_mouse,retained_lines,Preferences};
+    use kq8_core::mouse_menu::MouseSettings;
     use kq8_core::options_menu::Settings;
     use kq8_core::modern_display::{Choice,Ratio,ViewMode};
     use std::path::Path;
@@ -166,6 +191,23 @@ mod tests {
         let bytes = std::fs::read(&preferences.display_path).unwrap();
         assert_eq!(serde_json::from_slice::<Option<Choice>>(&bytes).unwrap(),Some(choice));
         std::fs::remove_file(&preferences.display_path).unwrap();
+    }
+
+    #[test]
+    fn mouse_camera_preference_saves_separately_and_loads_with_validation() {
+        let game = Path::new(".");
+        let mut preferences = Preferences::isolated_for_test(game,Settings::default());
+        preferences.mouse = MouseSettings { camera_sensitivity_percent: 135 };
+        preferences.store().unwrap();
+        assert!(!preferences.path.exists(),"mouse sensitivity must not write Options.cs");
+        let bytes = std::fs::read(&preferences.mouse_path).unwrap();
+        assert_eq!(serde_json::from_slice::<MouseSettings>(&bytes).unwrap(),preferences.mouse);
+        assert_eq!(read_mouse(&preferences.mouse_path),preferences.mouse);
+        std::fs::write(&preferences.mouse_path,b"{\"camera_sensitivity_percent\":203}").unwrap();
+        assert_eq!(read_mouse(&preferences.mouse_path),MouseSettings::default());
+        assert!(!MouseSettings { camera_sensitivity_percent: 0 }.valid());
+        assert!(!MouseSettings { camera_sensitivity_percent: 203 }.valid());
+        std::fs::remove_file(&preferences.mouse_path).unwrap();
     }
 
     #[test]

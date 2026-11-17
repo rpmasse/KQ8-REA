@@ -1783,6 +1783,22 @@ contains only our own source code; no game files, no decompiled code.
 
 ### M8 · Modern Improvements (brought forward before M6, 2026-11-17)
 
+Mouse Settings implementation plan (2026-11-17): Add a viewer-only
+Mouse Settings row between Graphics and Keyboard on the Options page,
+using the original menu's font, cursor and background. Open a separate
+page with a Camera Sensitivity slider and a numeric percentage. Its
+range is 25%–200% in 5% steps; 100% preserves the current camera input.
+Store this modern setting in `kq8-artifacts/mouse.json`, separate from
+the original `Options.cs`, and apply its multiplier only to physical
+right-drag camera input before the 15 Hz game camera update. Keyboard
+camera controls, synthetic camera motion and the pointer stay unchanged.
+The page must handle clicks, dragging, arrow keys, Back/Escape, live
+changes, saving, reloading, and both original menu canvas sizes. Verify
+these paths with automated tests and a Windows release build.
+Implemented with both menu canvas sizes, isolated preference storage and
+the camera multiplier checked automatically; Windows release build passed.
+Direct-monitor feel is not tested.
+
 Mouse camera adjustment (2026-11-17): the M8 half-strength input change
 was reverted after direct-monitor testing showed it was too slow. Keep
 the pre-M8 mouse camera input behavior while continuing display work.
