@@ -1,4 +1,4 @@
-//! Viewer Options → Mouse Settings → saved preference route.
+//! Viewer Options → Mouse → saved preference route.
 use super::*;
 use crate::{Shared, Stats};
 use kq8_core::mouse_menu::MouseSettings;

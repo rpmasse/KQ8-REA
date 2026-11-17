@@ -55,7 +55,7 @@ impl Screen {
         for key in ["BACKGROUND","BACKTOMAIN"] {
             layout.draw(&mut out,art,key,key,layout.controls[key].rect,0,None);
         }
-        for (key,caption) in [("OPTIONS","Mouse Settings"),
+        for (key,caption) in [("OPTIONS","Mouse"),
             ("MUSICVOLUME_LABEL","Camera Sensitivity")] {
             layout.draw(&mut out,art,key,key,layout.controls[key].rect,0,Some(caption));
         }

@@ -1,6 +1,27 @@
 //! Modern viewer display choices, independent of the original Options.cs.
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct DrawFps {
+    pub fps: u16,
+}
+
+impl Default for DrawFps {
+    fn default() -> Self { Self { fps: 60 } }
+}
+
+impl DrawFps {
+    pub const CHOICES: [u16; 5] = [15, 30, 60, 90, 120];
+    pub fn valid(self) -> bool { Self::CHOICES.contains(&self.fps) }
+    pub fn label(self) -> String {
+        if self.fps == 15 { "15 (Original)".to_owned() } else { self.fps.to_string() }
+    }
+    pub fn step(self, direction: i32) -> Self {
+        let index = Self::CHOICES.iter().position(|&fps| fps == self.fps).unwrap_or(2) as i32;
+        Self { fps: Self::CHOICES[(index + direction).rem_euclid(Self::CHOICES.len() as i32) as usize] }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ViewMode {
     Windowed,

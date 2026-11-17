@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 M8 Draw FPS and Mouse label
+
+Added a viewer-only Graphics control for 15 (Original), 30, 60, 90 and
+120 drawing frames per second, saved separately from the original game's
+Options.cs. The Windows event loop waits between drawings and ignores
+input events as pacing triggers. The game simulation still uses its
+original 15 Hz fixed step. Finite frame/update diagnostics remain
+uncapped to preserve automated checks. The default cap is 60; VSync and monitor
+refresh may lower the actual rate. Moved lower Graphics rows down to
+keep the new control clear. Renamed the Options entry and page heading
+from Mouse Settings to Mouse. The focused menu and preference checks,
+Windows release build, and three-frame startup check passed. Visual
+feel on a connected monitor not tested.
+
 ## 2026-11-17 M8 Mouse Settings and camera sensitivity
 
 Added Options → Mouse Settings as a viewer-only menu page using the

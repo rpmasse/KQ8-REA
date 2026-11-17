@@ -111,9 +111,9 @@ pub struct Screen {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ModernRow { View, Ratio, Resolution, Lights, Connor, Monster, Character, Object, Brightness, Back }
+enum ModernRow { View, Ratio, Resolution, DrawFps, Lights, Connor, Monster, Character, Object, Brightness, Back }
 
-const MODERN_ROWS: [ModernRow; 10] = [ModernRow::View, ModernRow::Ratio, ModernRow::Resolution,
+const MODERN_ROWS: [ModernRow; 11] = [ModernRow::View, ModernRow::Ratio, ModernRow::Resolution, ModernRow::DrawFps,
     ModernRow::Lights, ModernRow::Connor, ModernRow::Monster, ModernRow::Character,
     ModernRow::Object, ModernRow::Brightness, ModernRow::Back];
 
@@ -123,6 +123,8 @@ struct Modern {
     native: [u32; 2],
     modes: Vec<[u32; 2]>,
     requested: Option<DisplayChoice>,
+    draw_fps: modern_display::DrawFps,
+    requested_draw_fps: Option<modern_display::DrawFps>,
 }
 
 impl ModernRow {
@@ -136,11 +138,12 @@ impl ModernRow {
     }
     fn rect(self, layout: &Layout) -> [i32; 4] {
         match self {
-            Self::View | Self::Ratio | Self::Resolution => {
+            Self::View | Self::Ratio | Self::Resolution | Self::DrawFps => {
                 let (label,value,position) = match self {
                     Self::View => ("MODE","DIRECTDRAW","DIRECTDRAW"),
                     Self::Ratio => ("MODE","DIRECT3D","DIRECT3D"),
-                    _ => ("RESOLUTION","640X480","3DFX"),
+                    Self::Resolution => ("RESOLUTION","640X480","3DFX"),
+                    _ => ("RESOLUTION","640X480","640X480"),
                 };
                 let [l,_,_,_] = layout.controls[label].rect;
                 let [_,_,r,_] = layout.controls[value].rect;
@@ -154,10 +157,10 @@ impl ModernRow {
 }
 
 fn modern_lower_rect(layout: &Layout, key: &str) -> [i32; 4] {
-    // Place Dynamic Lighting after the three consecutive display rows;
+    // Place Dynamic Lighting after the four consecutive display rows;
     // preserve the original spacing among the lower graphics settings.
     let mut rect = layout.controls[key].rect;
-    let shift = layout.controls["640X480"].rect[1]-layout.controls["DYNAMIC_LIGHTS"].rect[1];
+    let shift = layout.controls["800X600"].rect[1]-layout.controls["DYNAMIC_LIGHTS"].rect[1];
     rect[1] += shift;
     rect[3] += shift;
     rect
@@ -240,7 +243,8 @@ impl Screen {
     pub fn open_modern(game: &Path, art: &Art, choice: DisplayChoice,
         native: [u32; 2], modes: Vec<[u32; 2]>) -> Result<Self, String> {
         let mut screen = Self::open(game, art)?;
-        screen.modern = Some(Modern { row: ModernRow::View, choice, native, modes, requested: None });
+        screen.modern = Some(Modern { row: ModernRow::View, choice, native, modes, requested: None,
+            draw_fps: modern_display::DrawFps::default(), requested_draw_fps: None });
         screen.background = Self::modern_backdrop(&screen.layout, art);
         Ok(screen)
     }
@@ -261,6 +265,17 @@ impl Screen {
 
     pub fn take_modern_request(&mut self) -> Option<DisplayChoice> {
         self.modern.as_mut().and_then(|modern|modern.requested.take())
+    }
+
+    pub fn set_draw_fps(&mut self, draw_fps: modern_display::DrawFps) {
+        if let Some(modern) = &mut self.modern {
+            modern.draw_fps = draw_fps;
+            modern.requested_draw_fps = None;
+        }
+    }
+
+    pub fn take_draw_fps_request(&mut self) -> Option<modern_display::DrawFps> {
+        self.modern.as_mut().and_then(|modern|modern.requested_draw_fps.take())
     }
 
     pub fn resize(&mut self, art: &Art) {
@@ -579,6 +594,10 @@ impl Screen {
     fn modern_choose(&mut self, settings: &mut Graphics, direction: i32) -> Action {
         let modern = self.modern.as_mut().unwrap();
         match modern.row {
+            ModernRow::DrawFps => {
+                modern.draw_fps = modern.draw_fps.step(direction);
+                modern.requested_draw_fps = Some(modern.draw_fps);
+            }
             ModernRow::View | ModernRow::Ratio | ModernRow::Resolution => {
                 let old = modern.choice;
                 let mut next = old;
@@ -651,6 +670,7 @@ impl Screen {
             (ModernRow::Ratio,"Aspect Ratio",ratio_value,"MODE","DIRECTDRAW"),
             (ModernRow::Resolution,"Resolution",if options.is_empty() { "Unavailable".into() }
                 else { format!("{}x{}",modern.choice.pixels[0],modern.choice.pixels[1]) },"RESOLUTION","640X480"),
+            (ModernRow::DrawFps,"Draw FPS",modern.draw_fps.label(),"RESOLUTION","640X480"),
         ] {
             let [_,t,_,b] = row.rect(&self.layout);
             let [l,_,r,_] = self.layout.controls[label_key].rect;
@@ -789,12 +809,14 @@ mod tests {
             let view = ModernRow::View.rect(&screen.layout);
             let ratio = ModernRow::Ratio.rect(&screen.layout);
             let resolution = ModernRow::Resolution.rect(&screen.layout);
+            let draw_fps = ModernRow::DrawFps.rect(&screen.layout);
             let lights = ModernRow::Lights.rect(&screen.layout);
             assert_eq!(view[1],screen.layout.controls["TITLE"].rect[3]);
             assert_eq!(ratio[1],view[3]);
             assert_eq!(resolution[1],ratio[3]);
-            assert!((0..=13).contains(&(lights[1]-resolution[3])),
-                "Dynamic Lighting should follow Resolution closely at {:?}",art.size());
+            assert!((0..=13).contains(&(draw_fps[1]-resolution[3])));
+            assert!((0..=13).contains(&(lights[1]-draw_fps[3])),
+                "Dynamic Lighting should follow Draw FPS closely at {:?}",art.size());
             assert_eq!(ModernRow::Connor.rect(&screen.layout)[1],lights[3]);
             let mut graphics = Graphics::default();
             let click = |screen: &Screen, row: ModernRow| {
@@ -805,7 +827,8 @@ mod tests {
             assert_eq!([picture.width,picture.height],art.size());
             for (row,key,text) in [(ModernRow::View,"MODE","View Mode"),
                 (ModernRow::Ratio,"MODE","Aspect Ratio"),
-                (ModernRow::Resolution,"RESOLUTION","Resolution")] {
+                (ModernRow::Resolution,"RESOLUTION","Resolution"),
+                (ModernRow::DrawFps,"RESOLUTION","Draw FPS")] {
                 let [l,t,_,b] = row.rect(&screen.layout);
                 let right = screen.layout.controls[key].rect[2];
                 let rect = [l,t,right,b];
@@ -837,6 +860,11 @@ mod tests {
             screen.input(click(&screen,ModernRow::Lights),&mut graphics);
             assert!(graphics.dynamic_lighting);
             assert_eq!(screen.take_modern_request(),None);
+            for expected in [90,120,15,30,60] {
+                screen.input(click(&screen,ModernRow::DrawFps),&mut graphics);
+                assert_eq!(screen.take_draw_fps_request().unwrap().fps,expected);
+                assert_eq!(screen.take_modern_request(),None);
+            }
             screen.input(click(&screen,ModernRow::Back),&mut graphics);
             assert_eq!(screen.input(Key::Enter,&mut graphics),Action::Back);
         }

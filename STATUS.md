@@ -1,8 +1,20 @@
 # STATUS
 
-## 2026-11-17 M8 Mouse Settings
+## 2026-11-17 M8 Draw FPS and Mouse label
 
-Options now has a Mouse Settings page with a Camera Sensitivity slider.
+Graphics now offers Draw FPS choices of 15 (Original), 30, 60, 90 and
+120. The saved default is 60, matching the prior common 60 Hz drawing
+behavior. This caps drawing through the Windows event loop and leaves
+game logic at 15 Hz; finite frame/update diagnostics remain uncapped.
+VSync, display refresh and rendering cost may lower
+the actual rate. The local choice saves in `kq8-artifacts/draw-fps.json`.
+The Options entry and page heading now read Mouse. The focused menu and
+preference checks, Windows release build, and three-frame startup check
+passed. Visual feel on the connected monitor: not tested.
+
+## 2026-11-17 M8 Mouse
+
+Options now has a Mouse page with a Camera Sensitivity slider.
 It ranges from 25% to 200% in 5% steps; 100% preserves the prior
 right-drag camera response. Changes apply while the game is running and
 save separately in `kq8-artifacts/mouse.json` on leaving the page.

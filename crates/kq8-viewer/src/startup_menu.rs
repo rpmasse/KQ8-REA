@@ -559,7 +559,7 @@ impl Menu {
         let (page, clock) = if self.graphics.is_some() {
             ("Graphics", self.child_clock)
         } else if self.mouse.is_some() {
-            ("Mouse Settings", self.child_clock)
+            ("Mouse", self.child_clock)
         } else if self.keyboard.is_some() {
             ("Keyboard", self.child_clock)
         } else if self.options.is_some() {
@@ -1047,6 +1047,7 @@ fn option_key(world: &mut World, key: Key) {
             Ok(mut screen) => {
                 screen.set_modern_host(native,modes);
                 screen.set_modern_choice(choice);
+                screen.set_draw_fps(world.resource::<Preferences>().draw_fps);
                 if let Some(runtime) = world.get_resource::<crate::graphics_runtime::Runtime>() {
                     if let Some(active) = runtime.active() {
                         screen.set_device_inventory(runtime.inventory(),active.device.clone(),active.high);
@@ -1115,16 +1116,23 @@ fn graphics_key(world: &mut World, key: Key) {
     let (native,modes) = modern_host_modes(world);
     let mut graphics = old.clone();
     let profile = world.contains_resource::<crate::graphics_runtime::Runtime>();
-    let (action, device, display) = {
+    let (action, device, display, draw_fps) = {
         let mut menu = world.resource_mut::<Menu>();
         menu.graphics.as_mut().unwrap().set_modern_host(native,modes);
         let cue = menu.graphics.as_ref().unwrap().sound(key);
         let action = menu.graphics.as_mut().unwrap().input(key, &mut graphics);
         let device = profile.then(||menu.graphics.as_mut().unwrap().take_device_selection()).flatten();
         let display = menu.graphics.as_mut().unwrap().take_modern_request();
+        let draw_fps = menu.graphics.as_mut().unwrap().take_draw_fps_request();
         if let Some(cue) = cue { menu.audio.play(cue); }
-        (action, device, display)
+        (action, device, display, draw_fps)
     };
+    if let Some(draw_fps) = draw_fps {
+        world.resource_mut::<Preferences>().draw_fps = draw_fps;
+        world.resource_mut::<bevy::winit::WinitSettings>().focused_mode =
+            crate::option_settings::draw_fps_settings(draw_fps).focused_mode;
+        log.lock().unwrap().summary(format!("graphics: draw FPS cap set to {}",draw_fps.label()));
+    }
     if graphics.high_resolution != old.high_resolution {
         let requested = crate::display_mode::Size::from_high(graphics.high_resolution);
         if let Err(error) = crate::display_mode::request(world, requested) {

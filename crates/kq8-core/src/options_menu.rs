@@ -351,7 +351,7 @@ impl Screen {
             let key = row.label();
             let row_rect = Self::row_rect(layout,modern,row);
             if row == Row::Mouse {
-                draw(&mut out,key,row_rect,0,Some("Mouse Settings"));
+                draw(&mut out,key,row_rect,0,Some("Mouse"));
             } else if ACTIVE.contains(&row) {
                 draw(&mut out, key, row_rect, 0, None);
             } else {

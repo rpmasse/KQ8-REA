@@ -2,9 +2,10 @@
 //! The installation supplies defaults. Changes go into the recreation's
 //! own Options.cs so the original game can still use its copy.
 use bevy::prelude::*;
+use bevy::winit::{UpdateMode, WinitSettings};
 use kq8_core::options_menu::Settings;
 use kq8_core::mouse_menu::MouseSettings;
-use kq8_core::modern_display::Choice as DisplayChoice;
+use kq8_core::modern_display::{Choice as DisplayChoice, DrawFps};
 use kq8_data::GameDir;
 use std::{
     fs,
@@ -17,12 +18,15 @@ pub struct Preferences {
     pub settings: Settings,
     pub display: Option<DisplayChoice>,
     pub mouse: MouseSettings,
+    pub draw_fps: DrawFps,
     saved: Settings,
     saved_display: Option<DisplayChoice>,
     saved_mouse: MouseSettings,
+    saved_draw_fps: DrawFps,
     path: PathBuf,
     display_path: PathBuf,
     mouse_path: PathBuf,
+    draw_fps_path: PathBuf,
     other_lines: Vec<Vec<u8>>,
 }
 
@@ -37,12 +41,15 @@ impl Preferences {
         preferences.path = PathBuf::from("kq8-artifacts/scratch/preferences").join(nonce.to_string()).join("Options.cs");
         preferences.display_path = preferences.path.with_file_name("display.json");
         preferences.mouse_path = preferences.path.with_file_name("mouse.json");
+        preferences.draw_fps_path = preferences.path.with_file_name("draw-fps.json");
         preferences.settings = settings.clone();
         preferences.saved = settings;
         preferences.display = None;
         preferences.saved_display = None;
         preferences.mouse = MouseSettings::default();
         preferences.saved_mouse = preferences.mouse;
+        preferences.draw_fps = DrawFps::default();
+        preferences.saved_draw_fps = preferences.draw_fps;
         preferences
     }
 
@@ -50,10 +57,12 @@ impl Preferences {
         let path = PathBuf::from("kq8-artifacts/Options.cs");
         let display_path = PathBuf::from("kq8-artifacts/display.json");
         let mouse_path = PathBuf::from("kq8-artifacts/mouse.json");
+        let draw_fps_path = PathBuf::from("kq8-artifacts/draw-fps.json");
         let display = fs::read(&display_path).ok()
             .and_then(|bytes| serde_json::from_slice::<Option<DisplayChoice>>(&bytes).ok())
             .flatten().filter(|choice|choice.valid());
         let mouse = read_mouse(&mouse_path);
+        let draw_fps = read_draw_fps(&draw_fps_path);
         let original = GameDir::open(game)
             .ok()
             .and_then(|g| g.find("Options.cs"))
@@ -67,12 +76,15 @@ impl Preferences {
             settings: settings.clone(),
             display,
             mouse,
+            draw_fps,
             saved: settings,
             saved_display: display,
             saved_mouse: mouse,
+            saved_draw_fps: draw_fps,
             path,
             display_path,
             mouse_path,
+            draw_fps_path,
             other_lines: retained_lines(local.as_deref(), original.as_deref()),
         }
     }
@@ -99,6 +111,12 @@ impl Preferences {
             write_preferences(&self.mouse_path,&contents)?;
             self.saved_mouse = self.mouse;
         }
+        if self.draw_fps != self.saved_draw_fps {
+            let contents = serde_json::to_vec_pretty(&self.draw_fps)
+                .map_err(|error|format!("draw FPS preference: {error}"))?;
+            write_preferences(&self.draw_fps_path,&contents)?;
+            self.saved_draw_fps = self.draw_fps;
+        }
         Ok(())
     }
 }
@@ -107,6 +125,24 @@ fn read_mouse(path: &Path) -> MouseSettings {
     fs::read(path).ok()
         .and_then(|bytes|serde_json::from_slice::<MouseSettings>(&bytes).ok())
         .filter(|settings|settings.valid()).unwrap_or_default()
+}
+
+fn read_draw_fps(path: &Path) -> DrawFps {
+    fs::read(path).ok()
+        .and_then(|bytes|serde_json::from_slice::<DrawFps>(&bytes).ok())
+        .filter(|setting|setting.valid()).unwrap_or_default()
+}
+
+pub fn draw_fps_settings(draw_fps: DrawFps) -> WinitSettings {
+    let mut settings = WinitSettings::game();
+    let fps = if draw_fps.valid() { draw_fps.fps } else { DrawFps::default().fps };
+    settings.focused_mode = UpdateMode::Reactive {
+        wait: std::time::Duration::from_secs_f64(1.0 / f64::from(fps)),
+        react_to_device_events: false,
+        react_to_user_events: false,
+        react_to_window_events: false,
+    };
+    settings
 }
 
 fn merge_scripts(original: Option<&[u8]>, local: Option<&[u8]>) -> Vec<u8> {
@@ -173,10 +209,10 @@ fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>>
 
 #[cfg(test)]
 mod tests {
-    use super::{read_mouse,retained_lines,Preferences};
+    use super::{read_draw_fps,read_mouse,retained_lines,Preferences};
     use kq8_core::mouse_menu::MouseSettings;
     use kq8_core::options_menu::Settings;
-    use kq8_core::modern_display::{Choice,Ratio,ViewMode};
+    use kq8_core::modern_display::{Choice,DrawFps,Ratio,ViewMode};
     use std::path::Path;
 
     #[test]
@@ -208,6 +244,33 @@ mod tests {
         assert!(!MouseSettings { camera_sensitivity_percent: 0 }.valid());
         assert!(!MouseSettings { camera_sensitivity_percent: 203 }.valid());
         std::fs::remove_file(&preferences.mouse_path).unwrap();
+    }
+
+    #[test]
+    fn draw_fps_preference_saves_separately_and_rejects_unknown_rates() {
+        let mut preferences = Preferences::isolated_for_test(Path::new("."),Settings::default());
+        preferences.draw_fps = DrawFps { fps: 120 };
+        preferences.store().unwrap();
+        assert!(!preferences.path.exists());
+        assert_eq!(read_draw_fps(&preferences.draw_fps_path),DrawFps { fps: 120 });
+        std::fs::write(&preferences.draw_fps_path,b"{\"fps\":144}").unwrap();
+        assert_eq!(read_draw_fps(&preferences.draw_fps_path),DrawFps::default());
+        std::fs::remove_file(&preferences.draw_fps_path).unwrap();
+    }
+
+    #[test]
+    fn draw_fps_pacing_ignores_input_events() {
+        use bevy::winit::UpdateMode;
+        for fps in DrawFps::CHOICES {
+            let settings = super::draw_fps_settings(DrawFps { fps });
+            match settings.focused_mode {
+                UpdateMode::Reactive { wait, react_to_device_events: false,
+                    react_to_user_events: false, react_to_window_events: false } => {
+                    assert!((wait.as_secs_f64() - 1.0 / f64::from(fps)).abs() < 0.000_001);
+                }
+                other => panic!("draw rate {fps} has unexpected pacing: {other:?}"),
+            }
+        }
     }
 
     #[test]

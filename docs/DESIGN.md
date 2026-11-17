@@ -1783,8 +1783,8 @@ contains only our own source code; no game files, no decompiled code.
 
 ### M8 · Modern Improvements (brought forward before M6, 2026-11-17)
 
-Mouse Settings implementation plan (2026-11-17): Add a viewer-only
-Mouse Settings row between Graphics and Keyboard on the Options page,
+Mouse implementation plan (2026-11-17): Add a viewer-only
+Mouse row between Graphics and Keyboard on the Options page,
 using the original menu's font, cursor and background. Open a separate
 page with a Camera Sensitivity slider and a numeric percentage. Its
 range is 25%–200% in 5% steps; 100% preserves the current camera input.
@@ -9824,3 +9824,17 @@ held sword's +30 hand bonus before the unchanged death/drop checks.
 The installed monster inventory has no held item with a positive
 health bonus, so that uncommon arithmetic is not claimed from these
 original-data scenarios.
+
+### M8 Draw FPS and Mouse label (2026-11-17)
+
+Add a viewer-only Draw FPS row after Resolution with 15 (Original), 30,
+60, 90 and 120 choices. Save the choice outside the original Options.cs.
+Apply it to the interactive Windows window loop as a maximum drawing
+rate, while retaining the original 15 Hz fixed gameplay update.
+`--frames` and `--updates` diagnostics keep their uncapped test pacing.
+VSync and the
+monitor's refresh rate may impose a lower effective drawing rate. The
+existing Graphics controls move down one row without overlap. Rename
+the Options entry and Mouse page heading to Mouse. Verify selection,
+persistence, menu geometry at both original UI sizes, and the window
+loop pacing configuration with automated tests and a release build.

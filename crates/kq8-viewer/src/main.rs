@@ -609,6 +609,9 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     let mut preferences = option_settings::Preferences::load(&opts.game);
+    let interactive_draw_cap = args.frames.is_none() && args.updates.is_none();
+    log.summary(format!("draw FPS: saved cap {}; {} (game update rate remains 15 Hz)",
+        preferences.draw_fps.label(),if interactive_draw_cap { "active" } else { "diagnostic frame/update limit bypasses pacing" }));
     let runtime = if args.model.is_none() {
         // A fresh install starts in a usable 640x480 hardware-color window.
         // Explicit --fullscreen without a saved M8 choice retains the old
@@ -707,6 +710,8 @@ fn main() -> ExitCode {
             .set(renderer_policy.plugin()),
     )
     .insert_resource(renderer::RendererChoice(args.renderer))
+    .insert_resource(if interactive_draw_cap { option_settings::draw_fps_settings(preferences.draw_fps) }
+        else { bevy::winit::WinitSettings::game() })
     .add_systems(Update, renderer::report_renderer)
     .insert_resource(ClearColor(Color::srgb(0.18, 0.2, 0.24)))
     .insert_resource(shared.clone());
