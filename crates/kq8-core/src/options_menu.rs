@@ -385,6 +385,8 @@ impl Screen {
                     draw(&mut out, k, [l, t, r, b], 0, None);
                     let x = l + i32::from(s.volume[i]) * (r - l - 10) / 100;
                     draw(&mut out, k, [x, t, x + 10, b], 1, None);
+                    self.layout.draw_slider_percent(&mut out,menu,row.label(),
+                        [l,t,r,b],u16::from(s.volume[i]));
                 } else {
                     let yes = if row == Row::Subtitles {
                         s.subtitles
@@ -414,6 +416,34 @@ impl Screen {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn all_volume_percentages_update_beside_their_bars_at_both_sizes() {
+        let dir = std::env::var_os("KQ8_GAME_DIR").unwrap();
+        let game = Path::new(&dir);
+        let mut art = MenuArt::open(game).unwrap();
+        for high in [false,true] {
+            art.resize(high);
+            let page = Screen::open_modern(game,&art).unwrap();
+            let settings = Settings::default();
+            let original = page.render(&settings,&art,0);
+            for (row,index) in [(Row::Music,0),(Row::Effects,1),(Row::Speech,2)] {
+                let [_,t,r,b] = page.layout.controls[row.value().unwrap()].rect;
+                let font_id = page.layout.controls[row.label()].text.unwrap().font;
+                let width = crate::gui_draw::text_width(&page.layout.fonts[&font_id],"100%");
+                let left = r+8;
+                assert!(left+width < art.size()[0] as i32-10,
+                    "{} percentage must fit beside the bar",row.label());
+                let mut changed = settings.clone();
+                changed.volume[index] = 0;
+                let other = page.render(&changed,&art,0);
+                assert!((t..b).any(|y| (left..left+width).any(|x|
+                    original.at(x as u32,y as u32) != other.at(x as u32,y as u32))),
+                    "{} percentage must update outside the selector",row.label());
+            }
+        }
+    }
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR"]

@@ -692,6 +692,8 @@ impl Screen {
                 let [l,t,r,b] = rect;
                 let x = l+i32::from(settings.brightness)*(r-l-10)/100;
                 self.layout.draw(&mut out,art,key,key,[x,t,x+10,b],1,None);
+                self.layout.draw_slider_percent(&mut out,art,row.key(),rect,
+                    u16::from(settings.brightness));
             } else {
                 let enabled = if row == Row::Lights { settings.dynamic_lighting }
                     else { settings.shadow_mask & row.shadow_bit().unwrap() != 0 };
@@ -746,6 +748,8 @@ impl Screen {
                 let x = l + i32::from(settings.brightness) * (r - l - 10) / 100;
                 self.layout
                     .draw(&mut out, art, key, key, [x, t, x + 10, b], 1, None);
+                self.layout.draw_slider_percent(&mut out,art,row.key(),rect,
+                    u16::from(settings.brightness));
             } else {
                 let enabled = if row == Row::Lights {
                     settings.dynamic_lighting
@@ -831,6 +835,16 @@ mod tests {
             };
             let picture = screen.render(&graphics,&art,0);
             assert_eq!([picture.width,picture.height],art.size());
+            let [_,top,right,bottom] = modern_lower_rect(&screen.layout,"BRIGHTNESS_SLIDER");
+            let font_id = screen.layout.controls["BRIGHTNESS"].text.unwrap().font;
+            let width = crate::gui_draw::text_width(&screen.layout.fonts[&font_id],"100%");
+            assert!(right+8+width < art.size()[0] as i32-10,
+                "Brightness percentage must fit beside the bar");
+            let changed = Graphics { brightness: 100, ..graphics.clone() };
+            let changed_picture = screen.render(&changed,&art,0);
+            assert!((top..bottom).any(|y| (right+8..right+8+width).any(|x|
+                picture.at(x as u32,y as u32) != changed_picture.at(x as u32,y as u32))),
+                "Brightness percentage must update outside the selector");
             for (row,key,text) in [(ModernRow::View,"MODE","View Mode"),
                 (ModernRow::Ratio,"MODE","Aspect Ratio"),
                 (ModernRow::Resolution,"RESOLUTION","Resolution"),

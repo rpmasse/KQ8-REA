@@ -1,5 +1,13 @@
 # STATUS
 
+## 2026-11-17 M8 slider percentages
+
+The Mouse sensitivity percentage now sits immediately beside its bar.
+Graphics Brightness and Options Music, Effects and Speech show live
+percentages in the same position. Automated pixel and geometry checks
+passed at 640×480 and 800×600. The Windows release build passed.
+Visual appearance on the connected monitor: not tested.
+
 ## 2026-11-17 M8 faster mouse and clickable bars
 
 Camera Sensitivity now applies 1.25 times the prior camera response at

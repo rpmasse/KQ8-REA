@@ -154,6 +154,20 @@ impl Layout {
         self.draw_palette(canvas, &menu.palette, key, picture, rect, frame, caption);
     }
 
+    /// Keep live percentages beside a slider's track, beyond the full
+    /// selector travel, using the menu's own font and palette.
+    pub(crate) fn draw_slider_percent(
+        &self, canvas: &mut Canvas, menu: &MenuArt, label_key: &str,
+        track: [i32; 4], percent: u16,
+    ) -> [i32; 4] {
+        let caption = format!("{percent}%");
+        let font_id = self.controls[label_key].text.expect("slider label has text").font;
+        let width = text_width(&self.fonts[&font_id],&caption);
+        let rect = [track[2]+8,track[1],track[2]+8+width,track[3]];
+        self.draw(canvas,menu,label_key,label_key,rect,0,Some(&caption));
+        rect
+    }
+
     /// Credits has its own original active palette and message catalogue;
     /// retain the same GUI picture/font drawing without borrowing Main's.
     pub(crate) fn draw_palette(

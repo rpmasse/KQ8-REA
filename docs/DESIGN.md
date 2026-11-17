@@ -9849,3 +9849,13 @@ the Brightness track at its displayed location. Forward held pointer
 movement and release to the Mouse page, so its sensitivity track can be
 clicked and dragged like the existing Options sliders. Verify the
 mapping and both menu canvas sizes with focused automated checks.
+
+### M8 slider percentage placement (2026-11-17)
+
+Keep percentages in a dedicated text area immediately beside the
+slider track, outside the full travel of its selector. Show a live
+percentage for Mouse sensitivity, Graphics brightness, and the Music,
+Effects and Speech volume sliders on Options. Derive the text area from
+each GUI track at 640×480 and 800×600; verify numeric bounds and pixel
+placement with automated checks. Do not change slider values or input
+behavior.

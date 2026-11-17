@@ -20,7 +20,7 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 
 These percentages describe individual phases, not overall game completion. All 12 regions load; campaign progression and final fidelity checks still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
 
-M8 is being done early: Graphics offers View Mode, Aspect Ratio, Resolution and a 15–120 Draw FPS cap; Options → Mouse offers camera sensitivity, now 25% faster across its range. Brightness and sensitivity can be set by clicking their bars. Drawing can run faster than the game's unchanged 15 updates per second. Fullscreen uses an available monitor mode; native ultrawide output and the new cap's visual feel are not tested.
+M8 is being done early: Graphics offers View Mode, Aspect Ratio, Resolution and a 15–120 Draw FPS cap; Options → Mouse offers camera sensitivity, now 25% faster across its range. Brightness, sensitivity and volume bars support clicking and show percentages beside them. Drawing can run faster than the game's unchanged 15 updates per second. Fullscreen uses an available monitor mode; native ultrawide output and the new cap's visual feel are not tested.
 
 Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.
 The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.

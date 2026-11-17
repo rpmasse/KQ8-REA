@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-17 M8 slider percentages
+
+Anchored the Mouse sensitivity percentage just beyond the bar's right
+edge, outside the selector's full travel. Added the same live display
+to Graphics Brightness and Options Music, Effects and Speech. The
+installed menu font and palette are reused, and slider values and input
+behavior are unchanged. Focused pixel and geometry checks passed at
+640×480 and 800×600, and the Windows release build passed. Monitor
+appearance is not tested.
+
 ## 2026-11-17 M8 faster camera and clickable bars
 
 Raised the camera response at every saved sensitivity setting by 25%

@@ -129,9 +129,8 @@ impl Screen {
         let position = i32::from(settings.camera_sensitivity_percent.saturating_sub(MIN_PERCENT))
             *travel/i32::from(MAX_PERCENT-MIN_PERCENT);
         self.layout.draw(&mut out,art,key,key,[l+position,t,l+position+10,b],1,None);
-        self.layout.draw(&mut out,art,"MUSICVOLUME_LABEL","MUSICVOLUME_LABEL",
-            [r+8,t,self.layout.size[0] as i32-10,b],0,
-            Some(&format!("{}%",settings.camera_sensitivity_percent)));
+        self.layout.draw_slider_percent(&mut out,art,"MUSICVOLUME_LABEL",
+            [l,t,r,b],settings.camera_sensitivity_percent);
         let selected = self.layout.controls[match self.row {
             Row::Sensitivity => "MUSICVOLUME_LABEL", Row::Back => "BACKTOMAIN",
         }].rect;
@@ -161,8 +160,11 @@ mod tests {
             let canvas = page.render(settings,&art,0);
             assert_eq!([canvas.width,canvas.height],art.size());
             let [l,t,r,b] = page.layout.controls["MUSICVOLUME_VALUE"].rect;
-            assert!(r+8 < art.size()[0] as i32-10,"percentage must fit beside slider");
-            let percent_rect = [r+8,t,art.size()[0] as i32-10,b];
+            let text = format!("{}%",settings.camera_sensitivity_percent);
+            let font = page.layout.controls["MUSICVOLUME_LABEL"].text.unwrap().font;
+            let width = crate::gui_draw::text_width(&page.layout.fonts[&font],&text);
+            let percent_rect = [r+8,t,r+8+width,b];
+            assert!(percent_rect[2] < art.size()[0] as i32-10,"percentage must fit beside slider");
             let mut visible = 0;
             for y in t..b { for x in percent_rect[0]..percent_rect[2] {
                 if canvas.at(x as u32,y as u32) != page.background.at(x as u32,y as u32) {
@@ -170,6 +172,10 @@ mod tests {
                 }
             }}
             assert!(visible > 0,"current percentage must be visible");
+            let changed_text = page.render(MouseSettings { camera_sensitivity_percent: 200 },&art,0);
+            assert!((t..b).any(|y| (percent_rect[0]..percent_rect[2]).any(|x|
+                canvas.at(x as u32,y as u32) != changed_text.at(x as u32,y as u32))),
+                "the percentage must update beside the bar");
             assert_eq!(page.input(Key::Right,&mut settings),Action::Stay);
             assert_eq!(settings.camera_sensitivity_percent,105);
             page.input(Key::Left,&mut settings);
