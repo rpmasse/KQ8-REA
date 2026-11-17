@@ -25,13 +25,24 @@ to ~90%; other special-state and original-rule limits remain open.
 | Step | Completion condition | Current state |
 | --- | --- | --- |
 | Correct the scripted-walk evidence | Exercise swap then walk, serialize the pending request and cue, and resume after the swap. | Done in the existing controller matrix. Fresh-process save/load has not been claimed. |
-| Reconcile rule maps | For each partial fighting/ranged row, identify an actual missing Rust branch or an unlinked distinct shipped rule. Classify data variants and original-runtime comparisons separately. | Open; the maps currently mix these cases. |
+| Reconcile rule maps | For each partial fighting/ranged row, identify an actual missing Rust branch or an unlinked distinct shipped rule. Classify data variants and original-runtime comparisons separately. | First pass below: no confirmed missing shared branch; specialized deaths remain separate. |
 | Reconcile special enemies | For each remaining Dragon, Mandragor and other special row, name a shipped M5 behavior that is missing, or move its campaign trigger to M6 and original-runtime comparison to M7. | Open; the present audit has no finite blocker list. |
 | Close the gate | Fix only the resulting M5 defects, add a direct assertion to an existing grouped scenario, then run the focused scenarios once. | Open. |
 
 The ~90% figure is a rough implementation estimate. It will not move
 for extra placements or repeated tests; M5 reaches 100% only when the
 completion check has no unresolved M5 rule.
+
+The first rule-map pass found that the remaining ranged rule 24 entries
+are additional installed weapon offsets using the same frame-part
+mechanism already checked with several original-data weapons. Rule 26's
+absent optional-key defaults are parser evidence, not a known missing
+shipped shot. The fighting map's positive held-health bonus has no
+installed instance; ordinary timing, damage, death and drops have
+direct checks, while specialized deaths are tracked in the separate
+row. None of these is a confirmed missing shared Rust branch. The
+placed-enemy matrix still needs a final pass to distinguish distinct
+special behavior from regional scripts and repeated drop lists.
 
 The moving-enemy hurt path now follows the original reaction gate:
 an interrupted attack's deadline is repaired only when the surviving

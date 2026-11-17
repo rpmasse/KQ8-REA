@@ -12,7 +12,10 @@ cutscene were not tested. No production code or GOG file changed.
 
 The M5 audit now separates its finite rule and special-actor review
 from campaign routes and original-runtime comparison. The ~90% estimate
-did not increase for this correction.
+did not increase for this correction. A first read-only pass over the
+fighting and ranged rule maps found no confirmed missing shared branch;
+the remaining extra weapon offsets and placement drop lists are data
+variants. The specialized actor matrix still needs its final review.
 
 Test: set `KQ8_GAME_DIR` to the GOG installation, then run
 `cargo test -p kq8-viewer --release --bin kq8-viewer original_weapon_assignment_selection_and_checkpoint_matrix -- --ignored --nocapture`.
