@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-17 Authored-order weapon walk and M5 closure audit
+
+The preceding Q141 test put the walk before the swap, unlike `ax.cs`.
+Corrected that test in the existing controller matrix: request the
+swap, request the walk while it plays, serialize and restore the weapon
+and pending request states, then require the saved target and cue when
+the swap ends. The focused release test passed 1/1. This checks Rust
+controller serialization; a fresh-process disk load and the full
+cutscene were not tested. No production code or GOG file changed.
+
+The M5 audit now separates its finite rule and special-actor review
+from campaign routes and original-runtime comparison. The ~90% estimate
+did not increase for this correction.
+
+Test: set `KQ8_GAME_DIR` to the GOG installation, then run
+`cargo test -p kq8-viewer --release --bin kq8-viewer original_weapon_assignment_selection_and_checkpoint_matrix -- --ignored --nocapture`.
+Expect 1 passed, 0 failed.
+
 ## 2026-11-17 Scripted held walk weapon checkpoint (M5)
 
 Extended the existing GOG item-type controller matrix with the Q141

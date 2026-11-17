@@ -3,6 +3,18 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M5 finish audit correction (2026-11-17)
+
+The previous Q141 controller check put the automatic walk in place before
+the weapon swap. Daventry's `ax.cs` requests the swap first and the walk
+second. Replace that assertion with the authored order in the existing
+controller matrix, serialize both the weapon and pending-request state,
+then resume until the walk starts. Check the target and completion cue.
+Only claim a fresh-process disk checkpoint if a separate process actually
+loads the slot. After this, maintain a finite list of distinct unresolved
+M5 behaviors in the combat audit; do not expand it with duplicate enemy
+placements or test-only assertions.
+
 ## M5 Swamp Slime retreat save continuation (2026-11-17)
 
 Extend the existing unattended original-data Slime shot, retreat and
@@ -5232,21 +5244,14 @@ The Small Axe hand-weapon checkpoint passed at both boundaries in separate Windo
 
 **M5 scripted walk held across a weapon checkpoint (2026-11-17).**
 `ranged-weapons.md` rule 9 and Q141 require a scripted walk requested
-during a weapon swap to wait until the swap completes. The Rust slot
-already stores `held_walk`, but the existing save matrix has not
-exercised that field. Extend the one-process core weapon-selection
-matrix with a scripted walk and an accepted ranged swap, serialize and
-restore before the set switch, and assert that the walk starts only
-after the resumed swap ends with its target and cue intact. Run only
-that grouped core test. If it fails, repair the controller or slot path
-before any new Windows encounter test.
-
-Checked: the existing one-process controller matrix passed 1/1 using
-the installed GOG item types. A scripted walk stayed queued across a
-serialized weapon swap and began only after the restored swap ended,
-with its target and completion cue intact. No viewer window or manual
-play was needed. Other weapon item mappings are data variants of the
-same checkpoint path.
+during a weapon swap to wait until the swap completes. The first
+one-process check placed an automatic walk before the swap, which
+exercised `held_walk` but did not match `ax.cs`. The corrected existing
+controller matrix requests the swap first, then the walk. It serializes
+the weapon and pending-request states, restores both, and checks that
+the saved target and cue remain when the walk starts after the swap.
+The focused release test passed 1/1 using installed GOG item types.
+This is not a fresh-process disk-load or full-cutscene claim.
 
 **Combat cue boundary at a disk save (implemented for standing crossbow and Small Axe).** The fixed-update order runs Connor's animation after the world consumes combat cues, and a menu save can capture a `do` cue before the next world tick applies it. The standing crossbow regression exposed a slot with attack phase 0.25, no released bolt and a pending release cue. Optional version-2 slots now preserve pending melee and ranged `do` cues, their movement and phase, and any moving-shot aim; load restores them before the next world tick. The unattended three-case Windows test saved during a turn, at that exact pending release boundary, and after impact. The boundary slot held one cue and no bolt; reload released one bolt and damaged the Dead City skeleton once. The post-impact slot released no second bolt. A separate Small Axe slot saved at phase 0.5833 held one melee cue with the skeleton still at 60 health; a fresh process applied that hit once. Existing moving-shot and Small Axe pre-cue reload checks passed.
 

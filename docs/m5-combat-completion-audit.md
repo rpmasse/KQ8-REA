@@ -10,14 +10,28 @@ This is a qualitative estimate, not a passing-test ratio. The gate in
 `DESIGN.md` still requires a scenario link for each distinct weapon and
 enemy rule.
 
-The previously unverified scripted-walk weapon checkpoint now passes
-inside the existing grouped controller test: a walk stays held across
-a serialized swap state and begins afterward with its target and cue
-intact. A full disk process was not part of this focused check. The
+The scripted-walk controller check now uses the authored request order:
+weapon swap first, then `walkTo`. The refused walk remains in the pending
+request slot across serialization and starts after the restored swap,
+with its target and cue intact. This is a controller serialization check,
+not a fresh-process disk load or the complete `ax.cs` cutscene. The
 Lucreto finale already asserts real `reactback` staggers, so that
 special reaction has a source-to-scenario link without another run.
 This closes two distinct gate items and moves the estimate from ~88%
 to ~90%; other special-state and original-rule limits remain open.
+
+### Finite M5 closure queue
+
+| Step | Completion condition | Current state |
+| --- | --- | --- |
+| Correct the scripted-walk evidence | Exercise swap then walk, serialize the pending request and cue, and resume after the swap. | Done in the existing controller matrix. Fresh-process save/load has not been claimed. |
+| Reconcile rule maps | For each partial fighting/ranged row, identify an actual missing Rust branch or an unlinked distinct shipped rule. Classify data variants and original-runtime comparisons separately. | Open; the maps currently mix these cases. |
+| Reconcile special enemies | For each remaining Dragon, Mandragor and other special row, name a shipped M5 behavior that is missing, or move its campaign trigger to M6 and original-runtime comparison to M7. | Open; the present audit has no finite blocker list. |
+| Close the gate | Fix only the resulting M5 defects, add a direct assertion to an existing grouped scenario, then run the focused scenarios once. | Open. |
+
+The ~90% figure is a rough implementation estimate. It will not move
+for extra placements or repeated tests; M5 reaches 100% only when the
+completion check has no unresolved M5 rule.
 
 The moving-enemy hurt path now follows the original reaction gate:
 an interrupted attack's deadline is repaired only when the surviving

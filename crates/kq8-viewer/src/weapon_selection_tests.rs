@@ -290,8 +290,7 @@ fn original_weapon_assignment_selection_and_checkpoint_matrix() {
     sim.assign_swap_set(None, WeaponMode::None, true);
     assert!(sim.apply_weapon_assignment(&mut a.world));
     assert!(a.world.hand.is_none());
-    // Q141: a script's walk waits behind the weapon swap and remains
-    // queued through a disk checkpoint, including its completion cue.
+    // Q141: the authored axe cue requests the swap before the walk.
     let (mut a, _) = active(&types);
     let mut sim = controller();
     let walk = kq8_core::connor_auto::AutoMove::new(
@@ -301,17 +300,23 @@ fn original_weapon_assignment_selection_and_checkpoint_matrix() {
             who: "Chest1".into(), c: "20".into(), d: "124".into(),
         }),
     );
-    sim.walker.auto = Some(walk.clone());
     assert!(request(&mut sim, &mut a, Ask::Script(WeaponMode::Ranged)));
     assert!(sim.readying && sim.pending_set.is_some());
     assert!(sim.walker.auto.is_none());
-    assert_eq!(sim.held_walk.as_ref(), Some(&walk));
+    assert_eq!(sim.dispatch_state(&mut a, kq8_core::active::Request::ConnorAuto {
+        auto: walk.clone(), at: "ax.cs cue 5".into(),
+    }).as_deref(), Some("state request retained in the one pending slot"));
+    assert!(sim.readying && sim.walker.auto.is_none());
+    assert!(matches!(sim.pending_state, Some(kq8_core::active::Request::ConnorAuto { .. })));
     let (weapon, special) = pending_save(&sim);
-    assert_eq!(weapon.held_walk.as_ref(), Some(&walk));
+    let pending = sim.saved_pending_state().unwrap();
+    let pending: SavedPendingState =
+        serde_json::from_str(&serde_json::to_string(&pending).unwrap()).unwrap();
     let mut resumed = controller();
     restore(&mut resumed, &weapon, &special);
+    resumed.restore_pending_state(&pending).unwrap();
     assert!(resumed.walker.auto.is_none());
-    assert_eq!(resumed.held_walk.as_ref(), Some(&walk));
+    assert!(matches!(resumed.pending_state, Some(kq8_core::active::Request::ConnorAuto { .. })));
     for _ in 0..40 {
         tick(&mut resumed, &mut a);
         if !resumed.readying { break; }
@@ -321,5 +326,5 @@ fn original_weapon_assignment_selection_and_checkpoint_matrix() {
     assert_eq!(resumed.set_mode, WeaponMode::Ranged);
     assert_eq!(resumed.walker.auto.as_ref(), Some(&walk), "target or cue changed on resume");
 
-    println!("weapon selection: immediate/delayed assignment; refusals/no-ops; F2; pending/completed/legacy checkpoints; internal/ThrowRock preservation; interruption boundary; scripted held walk checkpoint");
+    println!("weapon selection: immediate/delayed assignment; refusals/no-ops; F2; pending/completed/legacy checkpoints; internal/ThrowRock preservation; interruption boundary; authored-order pending walk checkpoint");
 }

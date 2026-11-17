@@ -1,8 +1,26 @@
 # STATUS
 
+## 2026-11-17 M5 progress audit correction
+
+The prior Q141 check started the scripted walk before requesting a
+weapon swap, the reverse of the installed `ax.cs` cue. The existing
+controller matrix now requests the swap first, then the walk. It
+serializes the pending state and weapon state, restores both, and
+checks that the walk starts afterward with the same target and cue.
+The focused release test passed 1/1. This is not a fresh-process disk
+load or a full cutscene test. The M5 combat audit now has a bounded
+closure queue; its ~90% number remains a qualitative estimate until
+the remaining rule maps and special actors are reconciled. No manual
+gameplay or original-runtime comparison was run.
+
+Run `$env:KQ8_GAME_DIR="C:\Users\Robert\Documents\Codex\KQ8\King's Quest 8 GOG"; cargo test -p kq8-viewer --release --bin kq8-viewer original_weapon_assignment_selection_and_checkpoint_matrix -- --ignored --nocapture`
+from the project root. Expect 1 passed, 0 failed.
+
 ## 2026-11-17 M5 scripted walk across weapon save
 
-The existing one-process controller matrix now checks a scripted walk
+This entry describes the previous check, whose request order was
+opposite to the installed `ax.cs` cue. The corrected check is above.
+The existing one-process controller matrix checked a scripted walk
 held behind a weapon swap, saved before the set switch and restored.
 The walk stays queued throughout the resumed swap and then starts with
 its original target and completion cue. The focused release test passed
