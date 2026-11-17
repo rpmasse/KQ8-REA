@@ -1,5 +1,32 @@
 # MODLOG
 
+## 2026-11-17 First-person plain swing fix (M5, Q221)
+
+Used the newly traced first/third-person selector in the shared Rust
+melee click: first person now forces `Attack` after the same random
+draw, third person retains `Attack`/`AttackB`, and Shift's `Attack2`
+takes no selector draw. The installed first-person hand lists have no
+`attackb`; before this change a normal click could select that absent
+movement. The existing `hand_weapon_matrix` process now switches view
+before its last three weapons, preserving its 12-hit/third-person checks
+and asserting three first-person `attack` hits. Release test passed 1/1;
+no manual or running-original gameplay comparison.
+
+Test: set `KQ8_GAME_DIR` to the GOG installation, then run
+`cargo test -p kq8-viewer --release --test hand_weapon_matrix -- --ignored --nocapture`.
+Expect one passed test with `conlngfp.anm/attack`, `confsfp.anm/attack`
+and `contmsfp.anm/attack` hit cues.
+
+## 2026-11-17 Connor first-person swing selection (study A, Q221)
+
+Resolved the mode flag in `fighting.md` rule 40 and Q221 by tracing the
+original selector and its first/third-person transition paths. A plain
+first-person melee selection always chooses `Attack`, while third person
+chooses `Attack` or `AttackB` equally. Both consume one random draw;
+Shift's `Attack2` path skips it. This selector is shared across hand
+weapons. No Rust or game files changed, and original-runtime play was
+not tested.
+
 ## 2026-11-17 Connor normal swing selector bounded study (Q221)
 
 A separate original-engine study found a mode flag that suppresses

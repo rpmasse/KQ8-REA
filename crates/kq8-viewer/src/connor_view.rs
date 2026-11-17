@@ -2164,8 +2164,10 @@ impl ConnorSim {
     /// replaces it. He turns toward the point (the automatic turn); for a
     /// picked thing more than 45° off his facing the swing waits until
     /// the turn has 8 updates or fewer to go; otherwise it starts at once
-    /// and he turns during it. `Attack` / `AttackB` 50/50, Shift
-    /// `Attack2`, from the weapon's list (`list`). Returns the line for
+    /// and he turns during it. Third person uses `Attack` / `AttackB`
+    /// 50/50; first person forces `Attack` after consuming that draw.
+    /// Shift selects `Attack2` without a draw (`fighting.md` rule 40),
+    /// from the weapon's list (`list`). Returns the line for
     /// `fight.log`.
     #[allow(clippy::too_many_arguments)]
     pub fn swing_click(&mut self, list: &str, picked: Option<(String, [f32; 3])>, point: [f32; 2], big: bool, coin: f32, reach: f32) -> String {
@@ -2176,7 +2178,7 @@ impl ConnorSim {
         if !self.can_be_cut_short() {
             return format!("'{}' can't be cut short (mode {}): no swing (rule 40)", self.walker.movement, self.walker.mode.name());
         }
-        let word = if big { "attack2" } else if coin < 0.5 { "attack" } else { "attackb" };
+        let word = if big { "attack2" } else if self.first_person || coin < 0.5 { "attack" } else { "attackb" };
         let wanted = kq8_core::connor::special_movement_name(list, word);
         let Some(movement) = self.movements.iter().find(|m| m.name.eq_ignore_ascii_case(&wanted)).map(|m| m.name) else {
             return format!("no {wanted} loaded: no swing");
@@ -2206,7 +2208,7 @@ impl ConnorSim {
         };
         let line = format!(
             "swing ({}): {pick} (rule 32); {start}; turn toward ({:.0}, {:.0}), {:.0} deg off his heading; {turn}",
-            if big { "Shift: Attack2" } else { "Attack or AttackB, 50/50" },
+            if big { "Shift: Attack2" } else if self.first_person { "first person: Attack" } else { "third person: Attack or AttackB, 50/50" },
             point[0],
             point[1],
             off.to_degrees()

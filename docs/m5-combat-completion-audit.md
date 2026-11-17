@@ -2,13 +2,19 @@
 
 ## Current gate and next work
 
-As of 2026-11-17, M5 is estimated at **~80%**. The old ~65% README
+As of 2026-11-17, M5 is estimated at **~85%**. The old ~65% README
 figure was left unchanged while major M5 behavior was added: Dragon and
 Mandragor controllers, enemy attacks and reactions, elemental effects,
 terrain hazards, combat save continuation and original-data fights.
 This is a qualitative estimate, not a passing-test ratio. The gate in
 `DESIGN.md` still requires a scenario link for each distinct weapon and
 enemy rule.
+
+The estimate moved from ~80% after Q221's common first-person melee
+failure was fixed across the installed hand-weapon lists, and Q210's
+Dragon Head chain material rule was restored. The combined 12-weapon
+process passed with both third-person variants and three first-person
+`Attack` hits. Other open rule and special-enemy gaps keep M5 incomplete.
 
 | Gate area | Current evidence | Work before M5 completion |
 | --- | --- | --- |

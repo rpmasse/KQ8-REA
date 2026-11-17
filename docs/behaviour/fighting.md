@@ -840,9 +840,15 @@ scripted fall, not the ordinary `die`:
     pointers and Ctrl in `ranged-weapons.md` rules 1–12; the ranged
     click and shot in rules 13–25; how a swing click picks its target in
     rule 32.
-40. **Which swing** (traced): a plain click plays **`Attack` or
-    `AttackB`**, 50/50 (a nonzero Connor mode flag forces `Attack`;
-    which player-facing mode sets it is still Q221); a
+40. **Which swing** (traced): a plain click in third person plays
+    **`Attack` or `AttackB`**, 50/50. In first person it always selects
+    **`Attack`**. The selector still takes one random draw before
+    checking first-person mode, so entering that mode does not save a
+    draw for the next third-person swing. F2 changes the mode through
+    Connor's ordinary first-person toggle; scripted first/third-person
+    transitions also change it (`camera.md` rules 7–9). This selection
+    is shared by hand weapons; the active weapon's animation list then
+    supplies the chosen movement. A
     click while a swing is already playing does nothing; Shift plays
     **`Attack2`**. Like the characters', it starts only when his running
     movement can be cut short. Each has its `Do` cue (e.g. bare fists,

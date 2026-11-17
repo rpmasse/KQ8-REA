@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-17 M5 first-person normal melee swings
+
+The Q221 original-engine study established that first person forces
+`Attack` after consuming the normal swing random draw; third person
+uses that draw for `Attack` or `AttackB`, and Shift's `Attack2` does not
+draw. All 13 installed first-person hand lists have `attack` but no
+`attackb`. Rust now follows the selector, so a first-person plain click
+cannot choose an absent movement. The existing one-process Dead City
+`hand_weapon_matrix` check passed 1/1 after switching to first person
+for the final three weapons: all 12 hits landed, the earlier third-person
+swings included both variants, and the last three used their authored
+first-person `attack` lists. No manual or original-runtime play was run.
+M5 is now estimated at ~85%; the full combat gate remains open.
+
+With `KQ8_GAME_DIR` set to the GOG installation, run
+`cargo test -p kq8-viewer --release --test hand_weapon_matrix -- --ignored --nocapture`.
+Expect one passed test and the Long Sword, Flame Sword and Temple Sword
+`fp.anm/attack` hit lines in that run's `fight.log`.
+
 ## 2026-11-17 M5 Ice Dragon head chain material
 
 The original-engine Q210 follow-up found that each Dragon Head's

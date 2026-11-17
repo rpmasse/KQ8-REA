@@ -5298,6 +5298,20 @@ encounter. Extend the existing Dragon head attack scenario to assert
 both heads received the material setting from original data; use that
 one Windows run to compile and exercise the shader. No manual play test.
 
+**Connor first-person plain swings (2026-11-17).** Q221 now resolves
+`fighting.md` rule 40: an unshifted hand-weapon selection consumes one
+random draw, then first person forces `Attack` while third person uses
+that draw for the 50/50 `Attack`/`AttackB` choice. Shift's `Attack2`
+selection takes no draw. The installed first-person hand lists all have
+`attack` and no `attackb`; current Rust can choose that absent movement.
+Use Connor's existing first-person state in the shared swing selector,
+and skip the random draw for Shift. Extend `hand_weapon_matrix` in its
+existing Dead City process: switch to first person before the last
+weapons and assert their plain clicks play the authored first-person
+`attack` movement and still hit, while earlier third-person clicks
+continue to include both variants. Run that one release scenario. Do
+not create one process per weapon or request manual gameplay.
+
 **Q206 on-fire hazard slice (2026-11-17).** Follow the separate
 `terrain-hazards.md` study: the existing `lightOnFire` state on Connor
 overrides the sampled material with poison + fire and bypasses liquid

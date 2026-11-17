@@ -36,6 +36,7 @@ fn original_hand_weapons_hit_with_their_authored_damage_kind() {
         "--command", "move skeleton1 0 183300 45000 864 0 0 0,5",
         "--command", "sendEvent 0 skeleton1 KQStatsChangeRequestEvent 10000 0 0 0 0,6",
         "--command", "KQConner::setDoMode 0,35",
+        "--key", "physical:f2,575",
     ]
     .into_iter()
     .map(str::to_owned)
@@ -64,6 +65,7 @@ fn original_hand_weapons_hit_with_their_authored_damage_kind() {
     let fight = fs::read_to_string(logs.join("fight.log")).unwrap();
     let items = fs::read_to_string(logs.join("items.log")).unwrap();
     assert!(output.status.success() && viewer.contains("RESULT: PASS"), "inspect {}", dir.display());
+    assert!(viewer.contains("CameraFirstPerson: first person true"), "F2 did not switch the final weapon swings into first person; inspect {}", dir.display());
     assert!(!fight.contains("god mode is on"), "god mode was used; inspect {}", dir.display());
 
     let hit_lines: Vec<_> = fight.lines().filter(|line| line.contains("skeleton1: hit by Connor, ")).collect();
@@ -95,6 +97,10 @@ fn original_hand_weapons_hit_with_their_authored_damage_kind() {
                     .and_then(|(n, _)| n.parse::<u64>().ok())
                     .is_some_and(|n| n >= swing_at && n < swing_at + 60)
         }).unwrap_or_else(|| panic!("{item}: no Do cue after update {swing_at}; inspect {}", dir.display()));
+        if i >= 9 {
+            assert!(do_line.contains("fp.anm/attack)"),
+                "{item}: first-person plain click did not use the authored Attack movement: {do_line}");
+        }
         if do_line.contains("/attackb)") { alternate_attack += 1; }
         else if do_line.contains("/attack)") { plain_attack += 1; }
         else { panic!("{item}: ordinary click used an unexpected movement: {do_line}"); }

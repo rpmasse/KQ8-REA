@@ -2302,7 +2302,9 @@ pub fn door_step(
             let list = weapon_list(w).filter(|_| w.weapon_mode != kq8_core::weapons::WeaponMode::None);
             let line = match list {
                 Some(list) => {
-                    let coin = w.fight_rng.fraction();
+                    // Fighting rule 40: a plain click draws even in first
+                    // person; Shift's Attack2 selection takes no draw.
+                    let coin = if s.big { 0.0 } else { w.fight_rng.fraction() };
                     c.swing_click(&list, s.picked, s.point, s.big, coin, sim.attack_dist)
                 }
                 None => format!("no movement list for {:?} in Connor.kq's ShortAnimList: no swing", w.weapon_ready),

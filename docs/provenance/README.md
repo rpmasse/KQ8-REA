@@ -1,5 +1,17 @@
 # Provenance
 
+**Connor first-person normal melee swing (2026-11-17, M5).**
+[Fighting rule 40](../behaviour/fighting.md), resolved in Q221 by a
+separate original-engine study, says first-person plain clicks consume
+the selector draw but force `Attack`; third person uses it for the
+50/50 `Attack`/`AttackB` choice, while Shift skips it. Read-only GOG
+inspection found `attack` and no `attackb` in all 13 first-person
+hand-weapon lists. The Rust selector now uses Connor's first-person
+state. The existing `hand_weapon_matrix` release scenario passed 1/1
+with 12 hits: third-person variants appeared earlier and the final
+three hits used first-person `attack` lists. No running-original play.
+
+
 **Ice Dragon head chain material (2026-11-17, M5).** The
 [Dragon Q210 note](../behaviour/dragon.md) establishes that a head's
 animation-start path sets material bit `0x1000` on active `chains.bmp`
