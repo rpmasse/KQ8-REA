@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-17 M5 distinct Projectile death in Daventry
+
+The existing three-enemy Daventry run now gives placed `sprigan1` a
+Projectile lethal hit after its live Normal attack. It passed 1/1 and
+asserts the installed `projdie` movement, `sp_dead8.KQS` corpse, six
+Silver Coins and one seven-point reward, while preserving the other
+two enemies' attacks and deaths. The combat audit now maps shared
+death/drop mechanisms to existing scenarios, separating specialized
+finalizers from repeated placement lists. The GOG copy was read only;
+no manual gameplay or running-original comparison was performed.
+M5 remains ~80% while specialized combat and save gaps remain.
+
 ## 2026-11-17 M5 team alarms respect the active enemy limit
 
 The shared team alarm previously appended inactive teammates even

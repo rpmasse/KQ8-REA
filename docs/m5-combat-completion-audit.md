@@ -14,7 +14,30 @@ enemy rule.
 | --- | --- | --- |
 | Shared melee, ranged, equipment, damage, potions and game over | Original-data encounters and the fighting/ranged rule maps exercise the main branches. | Close a documented *distinct* rule only where its present assertion is partial or the Rust behavior is missing; do not enumerate every placement with the same rule. |
 | Specialized enemies and combat receivers | Dragon, Mandragor, Lucreto, Skeleton King, Snowmane, Weeper and ordinary-object checks cover their principal attacks, deaths and several Rust save boundaries. | Resolve the remaining Q209/Q210/Q212 behavior that can change a shipped encounter, including death-phase collision/visibility and save continuation; check specialized receiver boundaries where the original study identifies a different rule. |
-| Death, drops and combat scripts | Grouped original-data scenarios cover no drop, tossed items, laid weapons, corpses, one-time experience and game over. | Inventory remaining *distinct* death or drop mechanisms and link each to one grouped scenario; data-only placement variants using an already checked mechanism do not each need a new combat test. |
+| Death, drops and combat scripts | The mechanism inventory below links shared death, drop, corpse and reward rules to focused or grouped checks. | Specialized enemy finalizers and their save boundaries remain in the row above; data-only placement variants do not each need a new combat test. |
+
+### Shared death and drop mechanism inventory
+
+This inventory follows [fighting rules 30–33](behaviour/fighting.md),
+not the count of monster-list rows. A test name identifies the branch
+it asserts; these Rust checks do not establish running-original parity.
+
+| Distinct mechanism | Direct evidence | Limit |
+| --- | --- | --- |
+| Death entry clears health, collision, gravity and active status; saved dying state finishes once | Core `a_character_dies_then_gives_experience_a_corpse_and_goes`, `disk_checkpoint_resumes_an_original_monsters_death_once`; installed `death_checkpoint`, `elemental_ranged_death` | Specialized death states are separate. |
+| No drop, tossed inventory and held-only equipment exclusion | Installed `daventry_ambient_families_live`, `temple_spear_live`; the latter checks exact crystal and potion counts in one process | Other lists with the same toss rule are data variants. |
+| Weapon part kept through death, or thrown when the death pose lacks that part | Installed `sprgnbow_death_drops` checks both Normal and Fire routes; core `a_dying_characters_weapon_is_laid_where_the_death_leaves_it` | The shipped data has no case with two matching weapon parts. |
+| Laid weapon behind an obstacle is thrown | Core `a_laid_weapon_behind_a_wall_is_thrown_instead` | No installed route with this exact obstruction is linked. |
+| Normal corpse, projectile corpse fallback and distinct projectile corpse, Ice corpse, Fire with no corpse | Installed `death_checkpoint`, `live_crossbow_combat`, `daventry_enemy_variants_live` (`sprigan1` uses `projdie` and `sp_dead8.KQS`), `elemental_ranged_death`, `flame_sword_death` | Mandragor Tree and Dragon Body override ordinary finalization. |
+| One experience award, first-kill help and ordinary Die callback | Core `a_character_dies_then_gives_experience_a_corpse_and_goes`; installed `combat_tutorial_delivery`, `temple_spear_live`, `barren_henchman_live` | Earned campaign pickup belongs to M6. |
+| Scripted `Die now` without a movement | Core `die_now_skips_the_movement_and_fire_leaves_no_corpse` | No distinct installed encounter has been linked to this command. |
+
+The original type table gives type-level drops only to Tower Skeleton
+and Shadow Monster; their installed drops are checked by `tower_live_fall`
+and `temple_one_families_live`. This read-only table check found no new
+drop mechanism requiring a separate placement run. The remaining M5
+death work is in specialized controllers and source-backed save or
+visibility boundaries, as in the gate table above.
 
 The next implementation should target the first uncovered behavior found
 in those two latter rows. Earned routes belong to M6; original-runtime
@@ -35,6 +58,12 @@ Mandragor core checks and the existing installed Swamp root timer
 scenario also passed. This closes the shared team-slot mismatch but
 does not resolve Q209's native disk-load and drawing questions. M5
 remains ~80%.
+
+2026-11-17: The existing three-enemy Daventry run now kills its placed
+`sprigan1` with a Projectile event and asserts the authored `projdie`
+movement and `sp_dead8.KQS` corpse alongside its six-coin drop and
+single seven-point reward. It passed 1/1. This closes a distinct
+ordinary death branch without another world process. M5 remains ~80%.
 
 2026-11-17. This is an inventory of **automated Rust evidence**, not a
 claim of original-game parity. M5's gate in `DESIGN.md` requires melee and

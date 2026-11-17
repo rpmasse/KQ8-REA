@@ -1,5 +1,15 @@
 # Provenance
 
+**Daventry Spriggan projectile death (2026-11-17, M5).**
+[Fighting rules 30 and 32](../behaviour/fighting.md) select `projdie`
+and `projdKqs` when a Projectile hit kills a fighter with those assets.
+The read-only installed Daventry `sprigan1` data names `projdie` and
+`sp_dead8.KQS`. The existing grouped original-data check now sends a
+Projectile hit after that actor's live Normal attack and verifies its
+distinct movement and corpse, six coins and one experience award.
+The check passed 1/1; no running-original comparison was made.
+
+
 **Team alarm active-list slot (2026-11-17, M5).**
 [Character movement rule 20](../behaviour/character-movement.md) limits
 ordinary active enemies and lets a team member replace a solo enemy.

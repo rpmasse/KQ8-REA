@@ -5270,6 +5270,16 @@ list with a replaceable non-team member and a full team-only list in
 one core scenario. The installed Swamp root run remains a separate
 timer/attack check, not proof of the active-list limit.
 
+**Placed Spriggan projectile death (2026-11-17).** Fighting rules 30
+and 32 select `projdie` and the authored `projdKqs` corpse when a
+projectile kills a fighter that has both. The installed Daventry
+`sprigan1` has those keys; the grouped Daventry variant check currently
+kills it with a Normal test event, duplicating an already checked
+ordinary death. Change only that event to Projectile in the same
+three-enemy process, then assert its `projdie` entry, `sp_dead8.KQS`
+corpse, six-coin drop and single experience award. Keep the other two
+actors' existing deaths and live hits in that process.
+
 The current evidence and remaining distinct gaps are in
 [M5 combat completion audit](m5-combat-completion-audit.md). Use that
 inventory to select source-backed checks without rerunning whole matrices.

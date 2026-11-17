@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-17 Projectile corpse in the grouped Daventry fight (M5)
+
+Changed the existing placed Spriggan's controlled lethal event from
+Normal to Projectile and asserted its authored `projdie` movement and
+`sp_dead8.KQS` corpse. The same process still checks its six-coin drop
+and single experience award alongside the other two fighters. The
+unattended release test passed 1/1. Audited the shared death/drop
+mechanisms in `docs/m5-combat-completion-audit.md`. The GOG installation
+was read only. To repeat, set `KQ8_GAME_DIR` to the GOG installation
+and run `cargo test -p kq8-viewer --locked --release --test daventry_enemy_variants_live -- --ignored`;
+expect one passing test.
+
+
 ## 2026-11-17 Team alarm respects the active enemy limit (M5)
 
 Reused the ordinary active-list join rule when a team alarm reaches an

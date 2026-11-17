@@ -50,7 +50,7 @@ fn daventry_zombie_melee_and_second_bow_spriggan_fight() {
             "--command",
             "KQMonster::setHome sprigan1 287855 190454 13770,175",
             "--command",
-            "sendEvent 0 sprigan1 KQAttackEvent Connor 0 100000 0,260",
+            "sendEvent 0 sprigan1 KQAttackEvent Connor 1 100000 0,260",
             "--command",
             "move sprigan 0 289284 193500 13770 0 0 0,320",
             "--command",
@@ -125,17 +125,19 @@ fn daventry_zombie_melee_and_second_bow_spriggan_fight() {
             "installed {name} placement did not load; inspect {}",
             dir.display()
         );
-        let death = format!("{name}: dies (rule 30): kind Normal");
+        let death = format!("{name}: dies (rule 30): kind {}", if name == "sprigan1" { "Projectile" } else { "Normal" });
         assert_eq!(
             fight.matches(&death).count(),
             1,
-            "Normal death count for {name}; inspect {}",
+            "death count for {name}; inspect {}",
             dir.display()
         );
     }
+    assert!(fight.contains("sprigan1: dies (rule 30): kind Projectile, 'projdie' starts"),
+        "the placed Spriggan did not use its authored projectile death movement; inspect {}", dir.display());
     for (name, xp, corpse) in [
         ("zograv2", 2, "zdead.kqs"),
-        ("sprigan1", 7, "spdeath.kqs"),
+        ("sprigan1", 7, "sp_dead8.KQS"),
         ("sprigan", 12, "spbdeath.kqs"),
     ] {
         let finish = format!("{name}: its death ended (rule 32): Connor gets its experience {xp}");
