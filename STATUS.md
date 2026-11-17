@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-17 M8 faster mouse and clickable bars
+
+Camera Sensitivity now applies 1.25 times the prior camera response at
+every displayed percentage: 100% gives the old 125% speed. Clicking
+the modern Graphics Brightness bar sets its value at the displayed
+position, and the Mouse sensitivity bar now receives held movement and
+release events for dragging. Focused checks and the Windows release
+build passed.
+Visual feel on the connected monitor: not tested.
+
 ## 2026-11-17 M8 Draw FPS and Mouse label
 
 Graphics now offers Draw FPS choices of 15 (Original), 30, 60, 90 and
@@ -15,7 +25,7 @@ passed. Visual feel on the connected monitor: not tested.
 ## 2026-11-17 M8 Mouse
 
 Options now has a Mouse page with a Camera Sensitivity slider.
-It ranges from 25% to 200% in 5% steps; 100% preserves the prior
+It ranges from 25% to 200% in 5% steps; 100% originally preserved the prior
 right-drag camera response. Changes apply while the game is running and
 save separately in `kq8-artifacts/mouse.json` on leaving the page.
 Automated menu, preference, camera-gain and viewer-route checks passed.

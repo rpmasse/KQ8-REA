@@ -1787,7 +1787,7 @@ Mouse implementation plan (2026-11-17): Add a viewer-only
 Mouse row between Graphics and Keyboard on the Options page,
 using the original menu's font, cursor and background. Open a separate
 page with a Camera Sensitivity slider and a numeric percentage. Its
-range is 25%–200% in 5% steps; 100% preserves the current camera input.
+range is 25%–200% in 5% steps; 100% initially preserved the prior camera input.
 Store this modern setting in `kq8-artifacts/mouse.json`, separate from
 the original `Options.cs`, and apply its multiplier only to physical
 right-drag camera input before the 15 Hz game camera update. Keyboard
@@ -9838,3 +9838,14 @@ existing Graphics controls move down one row without overlap. Rename
 the Options entry and Mouse page heading to Mouse. Verify selection,
 persistence, menu geometry at both original UI sizes, and the window
 loop pacing configuration with automated tests and a release build.
+
+### M8 sensitivity and pointer bars (2026-11-17)
+
+Make every Mouse sensitivity setting 25% faster: displayed 100% becomes
+1.25 times the old camera response, while displayed 25% and 200% keep
+their labels and become 0.3125 and 2.5 times the old response. Keep the
+saved percentage format. On the modern Graphics page, accept clicks on
+the Brightness track at its displayed location. Forward held pointer
+movement and release to the Mouse page, so its sensitivity track can be
+clicked and dragged like the existing Options sliders. Verify the
+mapping and both menu canvas sizes with focused automated checks.

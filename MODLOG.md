@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-17 M8 faster camera and clickable bars
+
+Raised the camera response at every saved sensitivity setting by 25%
+without changing the displayed percentages or saved file. Corrected
+the modern Graphics Brightness track hit area to match its shifted
+position. Forwarded held pointer movement and release to the Mouse
+page so the sensitivity track accepts clicks and drags. The focused
+core menu checks at both sizes, camera gain and viewer preference
+checks passed, as did the Windows release build. Visual feel on a connected
+monitor is not tested.
+
 ## 2026-11-17 M8 Draw FPS and Mouse label
 
 Added a viewer-only Graphics control for 15 (Original), 30, 60, 90 and

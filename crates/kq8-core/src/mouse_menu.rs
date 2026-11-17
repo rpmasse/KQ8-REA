@@ -22,7 +22,7 @@ impl MouseSettings {
             && self.camera_sensitivity_percent % STEP_PERCENT == 0
     }
 
-    pub fn camera_gain(self) -> f32 { f32::from(self.camera_sensitivity_percent) / 100.0 }
+    pub fn camera_gain(self) -> f32 { f32::from(self.camera_sensitivity_percent) / 80.0 }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -70,6 +70,8 @@ impl Screen {
     pub fn palette_changed(&mut self, art: &Art) {
         self.background = Self::backdrop(&self.layout,art);
     }
+
+    pub fn dragging(&self) -> bool { self.dragging }
 
     fn hit(rect: [i32;4], x: i32, y: i32) -> bool {
         (rect[0]..rect[2]).contains(&x) && (rect[1]..rect[3]).contains(&y)
@@ -174,21 +176,27 @@ mod tests {
             assert_eq!(settings,MouseSettings::default());
             page.input(Key::Click(l+1,(t+b)/2),&mut settings);
             assert_eq!(settings.camera_sensitivity_percent,MIN_PERCENT);
+            assert!(page.dragging());
             page.input(Key::Drag(r-1,(t+b)/2),&mut settings);
             assert_eq!(settings.camera_sensitivity_percent,MAX_PERCENT);
             page.input(Key::MouseUp,&mut settings);
+            assert!(!page.dragging());
+            page.input(Key::Click(l+5+(r-l-10)/2,(t+b)/2),&mut settings);
+            assert_eq!(settings.camera_sensitivity_percent,115,
+                "clicking the middle of the track should set sensitivity directly");
+            page.input(Key::MouseUp,&mut settings);
             page.input(Key::Drag(l+1,(t+b)/2),&mut settings);
-            assert_eq!(settings.camera_sensitivity_percent,MAX_PERCENT);
+            assert_eq!(settings.camera_sensitivity_percent,115);
             assert_ne!(page.render(settings,&art,0).rgba,canvas.rgba);
             assert_eq!(page.input(Key::Escape,&mut settings),Action::Back);
         }
     }
 
     #[test]
-    fn default_gain_preserves_camera_input_and_limits_are_valid() {
-        assert_eq!(MouseSettings::default().camera_gain(),1.0);
-        assert_eq!(MouseSettings { camera_sensitivity_percent: MIN_PERCENT }.camera_gain(),0.25);
-        assert_eq!(MouseSettings { camera_sensitivity_percent: MAX_PERCENT }.camera_gain(),2.0);
+    fn default_gain_is_twenty_five_percent_faster_and_limits_are_valid() {
+        assert_eq!(MouseSettings::default().camera_gain(),1.25);
+        assert_eq!(MouseSettings { camera_sensitivity_percent: MIN_PERCENT }.camera_gain(),0.3125);
+        assert_eq!(MouseSettings { camera_sensitivity_percent: MAX_PERCENT }.camera_gain(),2.5);
         assert!(!MouseSettings { camera_sensitivity_percent: 0 }.valid());
     }
 }

@@ -1470,7 +1470,12 @@ pub fn step(world: &mut World) {
                     .resource::<Menu>()
                     .graphics
                     .as_ref()
-                    .is_some_and(|s| s.dragging))
+                    .is_some_and(|s| s.dragging)
+                || world
+                    .resource::<Menu>()
+                    .mouse
+                    .as_ref()
+                    .is_some_and(|s| s.dragging()))
         {
             input.push((Key::Drag(p.x.floor() as i32, p.y.floor() as i32), true));
         }
@@ -1478,7 +1483,8 @@ pub fn step(world: &mut World) {
     if mouse.just_released(MouseButton::Left)
         && (world.resource::<Menu>().slot_page.is_some()
             || world.resource::<Menu>().options.is_some()
-            || world.resource::<Menu>().graphics.is_some())
+            || world.resource::<Menu>().graphics.is_some()
+            || world.resource::<Menu>().mouse.is_some())
     {
         input.push((Key::MouseUp, true));
     }

@@ -1089,16 +1089,16 @@ mod sync_input_tests {
     use super::*;
 
     #[test]
-    fn camera_sensitivity_keeps_original_response_at_one_hundred_percent() {
+    fn camera_sensitivity_is_twenty_five_percent_faster_at_every_setting() {
         use kq8_core::mouse_menu::MouseSettings;
         let window = Window { resolution: [800,600].into(), ..default() };
         let delta = Vec2::new(80.0,60.0);
         let original = delta / Vec2::new(window.width(),window.height());
-        assert_eq!(camera_mouse_fraction(delta,&window,MouseSettings::default()),original);
+        assert_eq!(camera_mouse_fraction(delta,&window,MouseSettings::default()),original*1.25);
         assert_eq!(camera_mouse_fraction(delta,&window,
-            MouseSettings { camera_sensitivity_percent: 25 }),original*0.25);
+            MouseSettings { camera_sensitivity_percent: 25 }),original*0.3125);
         assert_eq!(camera_mouse_fraction(delta,&window,
-            MouseSettings { camera_sensitivity_percent: 200 }),original*2.0);
+            MouseSettings { camera_sensitivity_percent: 200 }),original*2.5);
     }
 
     #[test]

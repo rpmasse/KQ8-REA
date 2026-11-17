@@ -567,11 +567,17 @@ impl Screen {
             Key::Click(x,y) => {
                 let Some(clicked) = MODERN_ROWS.into_iter().find(|candidate| {
                     let [l,t,r,b] = candidate.rect(&self.layout);
-                    (l..r).contains(&x) && (t..=b).contains(&y)
+                    let label_hit = (l..r).contains(&x) && (t..=b).contains(&y);
+                    let value_hit = candidate.legacy().and_then(Row::value).is_some_and(|key| {
+                        let [l,t,r,b] = modern_lower_rect(&self.layout,key);
+                        (l..r).contains(&x) && (t..=b).contains(&y)
+                    });
+                    label_hit || value_hit
                 }) else { return Action::Stay };
                 self.modern.as_mut().unwrap().row = clicked;
                 if clicked == ModernRow::Brightness {
-                    self.dragging = self.hit("BRIGHTNESS_SLIDER",x,y);
+                    let [l,t,r,b] = modern_lower_rect(&self.layout,"BRIGHTNESS_SLIDER");
+                    self.dragging = (l..r).contains(&x) && (t..=b).contains(&y);
                     if self.dragging { self.brightness_at(x,settings); }
                     return Action::Stay;
                 }
@@ -860,6 +866,17 @@ mod tests {
             screen.input(click(&screen,ModernRow::Lights),&mut graphics);
             assert!(graphics.dynamic_lighting);
             assert_eq!(screen.take_modern_request(),None);
+            let [l,t,r,b] = modern_lower_rect(&screen.layout,"BRIGHTNESS_SLIDER");
+            screen.input(Key::Click(l+1,(t+b)/2),&mut graphics);
+            assert_eq!(graphics.brightness,0,"left end of the displayed bar must be clickable");
+            assert!(screen.dragging);
+            screen.input(Key::MouseUp,&mut graphics);
+            screen.input(Key::Click(r-1,(t+b)/2),&mut graphics);
+            assert_eq!(graphics.brightness,100,"right end of the displayed bar must be clickable");
+            screen.input(Key::Drag(l+1,(t+b)/2),&mut graphics);
+            assert_eq!(graphics.brightness,0,"the displayed bar must remain draggable");
+            screen.input(Key::MouseUp,&mut graphics);
+            assert!(!screen.dragging);
             for expected in [90,120,15,30,60] {
                 screen.input(click(&screen,ModernRow::DrawFps),&mut graphics);
                 assert_eq!(screen.take_draw_fps_request().unwrap().fps,expected);

@@ -26,7 +26,7 @@ fn mouse_settings_menu_applies_live_and_survives_back_and_reentry() {
     mouse_key(world,Key::Right);
     let changed = world.resource::<Preferences>().mouse;
     assert_eq!(changed,MouseSettings { camera_sensitivity_percent: 105 });
-    assert_eq!(changed.camera_gain(),1.05,"the changed preference reaches camera input immediately");
+    assert_eq!(changed.camera_gain(),1.3125,"the changed preference reaches camera input immediately");
     mouse_key(world,Key::Escape);
     assert!(world.resource::<Menu>().mouse.is_none());
     let saved = world.resource::<Preferences>().isolated_path().with_file_name("mouse.json");
