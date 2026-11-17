@@ -137,14 +137,22 @@ impl ModernRow {
     fn rect(self, layout: &Layout) -> [i32; 4] {
         match self {
             Self::View | Self::Ratio | Self::Resolution => {
-                let (label,value) = match self {
-                    Self::View => ("MODE","DIRECTDRAW"),
-                    Self::Ratio => ("MODE","DIRECT3D"),
-                    _ => ("RESOLUTION","640X480"),
+                let (label,value,index) = match self {
+                    Self::View => ("MODE","DIRECTDRAW",0),
+                    Self::Ratio => ("MODE","DIRECT3D",1),
+                    _ => ("RESOLUTION","640X480",2),
                 };
+                // The original page had five device/resolution choices here.
+                // Space the three modern controls evenly through that area.
+                let first = layout.controls["DIRECTDRAW"].rect;
+                let height = first[3]-first[1];
+                let top = layout.controls["TITLE"].rect[3];
+                let bottom = layout.controls["DYNAMIC_LIGHTS"].rect[1];
+                let gap = (bottom-top-3*height)/4;
+                let t = top+gap+index*(height+gap);
                 let [l,_,_,_] = layout.controls[label].rect;
-                let [_,t,r,b] = layout.controls[value].rect;
-                [l,t,r,b]
+                let [_,_,r,_] = layout.controls[value].rect;
+                [l,t,r,t+height]
             }
             _ => layout.controls[self.legacy().unwrap().key()].rect,
         }
@@ -630,13 +638,13 @@ impl Screen {
             format!("{} {:.2}:1",if modern.choice.pixels == modern.native { "Native" } else { "Custom" },
                 modern.choice.pixels[0] as f64/modern.choice.pixels[1].max(1) as f64)
         };
-        for (label,value,label_key,value_key,position_key) in [
-            ("View Mode",modern.choice.mode.label().to_owned(),"MODE","DIRECTDRAW","DIRECTDRAW"),
-            ("Aspect Ratio",ratio_value,"MODE","DIRECTDRAW","DIRECT3D"),
-            ("Resolution",if options.is_empty() { "Unavailable".into() }
-                else { format!("{}x{}",modern.choice.pixels[0],modern.choice.pixels[1]) },"RESOLUTION","640X480","640X480"),
+        for (row,label,value,label_key,value_key) in [
+            (ModernRow::View,"View Mode",modern.choice.mode.label().to_owned(),"MODE","DIRECTDRAW"),
+            (ModernRow::Ratio,"Aspect Ratio",ratio_value,"MODE","DIRECTDRAW"),
+            (ModernRow::Resolution,"Resolution",if options.is_empty() { "Unavailable".into() }
+                else { format!("{}x{}",modern.choice.pixels[0],modern.choice.pixels[1]) },"RESOLUTION","640X480"),
         ] {
-            let [_,t,_,b] = self.layout.controls[position_key].rect;
+            let [_,t,_,b] = row.rect(&self.layout);
             let [l,_,r,_] = self.layout.controls[label_key].rect;
             let [vl,_,vr,_] = self.layout.controls[value_key].rect;
             self.layout.draw(&mut out,art,label_key,label_key,[l,t,r,b],0,Some(label));
@@ -770,6 +778,15 @@ mod tests {
         for high_art in [false,true] {
             art.resize(high_art);
             let mut screen = Screen::open_modern(Path::new(&path),&art,initial,native,modes.clone()).unwrap();
+            let view = ModernRow::View.rect(&screen.layout);
+            let ratio = ModernRow::Ratio.rect(&screen.layout);
+            let resolution = ModernRow::Resolution.rect(&screen.layout);
+            let gaps = [view[1]-screen.layout.controls["TITLE"].rect[3],
+                ratio[1]-view[3],resolution[1]-ratio[3],
+                screen.layout.controls["DYNAMIC_LIGHTS"].rect[1]-resolution[3]];
+            assert!(gaps.iter().all(|gap|*gap > 0));
+            assert!(*gaps.iter().max().unwrap()-*gaps.iter().min().unwrap() <= 3,
+                "modern display rows should have even vertical gaps at {:?}: {gaps:?}",art.size());
             let mut graphics = Graphics::default();
             let click = |screen: &Screen, row: ModernRow| {
                 let [l,t,r,b] = row.rect(&screen.layout);

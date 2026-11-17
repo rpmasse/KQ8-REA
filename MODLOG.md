@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-17 M8 Graphics menu spacing
+
+The three modern display rows previously occupied the original DirectDraw,
+Direct3D, and 640x480 positions. The unused 3Dfx and 800x600 slots left
+large gaps before Resolution and Dynamic Lighting. The rows now share the
+available height evenly between the Graphics title and Dynamic Lighting;
+their text, selection cursors, and click areas use the same coordinates.
+The original Graphics page and game data were not changed. The automated
+menu test passed at 640x480 and 800x600 artwork sizes. Visual feel is not
+tested.
+
 ## 2026-11-17 M8 gentler mouse camera
 
 The viewer passed raw Winit mouse-device movement to the game camera
