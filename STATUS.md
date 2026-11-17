@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 moving enemy attack deadline
+
+An original-engine study closed the broad Move hurt-rule gap. A
+surviving hit during chase, retreat or attack now repairs an interrupted
+enemy attack deadline only when it selects a reaction, as in Wait. A
+nonreacting hit keeps that deadline untouched; Move entry and natural
+Attack completion still have their separate repair paths. The existing
+grouped release core test passed 1/1 with reacting and nonreacting cases
+in both states. No viewer or manual gameplay was run. M5 is estimated
+at ~88%; the complete combat gate is still open.
+
+Run `cargo test -p kq8-core --release a_standing_hit_repairs_the_attack_deadline_only_if_it_reacts -- --nocapture`
+from the project root. Expect 1 passed, 0 failed.
+
 ## 2026-11-17 M5 first-person normal melee swings
 
 The Q221 original-engine study established that first person forces

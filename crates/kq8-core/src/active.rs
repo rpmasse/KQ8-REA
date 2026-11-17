@@ -10380,14 +10380,15 @@ endif
     #[test]
     fn a_standing_hit_repairs_the_attack_deadline_only_if_it_reacts() {
         use crate::{character::State, fight::{HitKind, NEVER}};
-        // Q190: Wait's repair belongs to the actual reaction path. Move's
-        // older hit rule is separate and unchanged by the follow-up study.
+        // Fighting rule 22.7: both Wait and Move repair an interrupted
+        // attack only when the surviving hit selects a reaction.
         for (state, cut_short, locked, threshold, reacts, repairs) in [
             (State::Wait, false, false, 0.9, false, false),
             (State::Wait, true, true, 0.9, false, false),
             (State::Wait, true, false, 2.0, false, false),
             (State::Wait, true, false, 0.9, true, true),
-            (State::Move, false, false, 0.9, false, true),
+            (State::Move, false, false, 0.9, false, false),
+            (State::Move, true, false, 0.9, true, true),
         ] {
             let mut a = hit_goblin();
             a.world.updates = 150;

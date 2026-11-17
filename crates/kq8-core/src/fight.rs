@@ -1120,6 +1120,7 @@ impl crate::active::WorldState {
         let c = a.character.as_deref_mut().unwrap();
         let had_target = c.ai.as_ref().is_some_and(|ai| ai.alarmed);
         let standing = c.state == crate::character::State::Wait;
+        let ordinary_fight_state = matches!(c.state, crate::character::State::Wait | crate::character::State::Move);
         if let Some(ai) = c.ai.as_mut() {
             // 22.3, 22.4.
             ai.chase_until = now + ATTACK_CHASE;
@@ -1169,9 +1170,10 @@ impl crate::active::WorldState {
         } else {
             None
         };
-        // Q190, Wait's corrected rule 22.7: only an actual reaction
-        // repairs a running attack. Other states retain the older path.
-        if f.attack_time == NEVER && (!standing || why_not.is_none()) {
+        // Fighting rule 22.7: in Wait or Move, only a selected reaction
+        // repairs an interrupted attack. Keep other state paths as they
+        // were; this study did not establish their deadline behavior.
+        if f.attack_time == NEVER && (!ordinary_fight_state || why_not.is_none()) {
             f.attack_time = now + f64::from(f.settings.attack_delay);
             notes.push(format!("its attack was under way: next attack due at {:.2} (rule 22.7)", f.attack_time));
         }

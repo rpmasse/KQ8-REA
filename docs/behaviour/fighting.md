@@ -185,16 +185,26 @@ Words used here:
     (`characters.md` rule 18); a moving one asks for its `walk` / `run`
     again and goes on chasing (`character-movement.md` rule 4). So
     between two swings there is **the swing's length + `attackDelay`**.
-11. **When it is cut short** (traced): if the attack never ends because
-    something replaced it, the "never" is put right the next time one of
-    these happens: the character **enters** its standing or moving state
-    (a state change), or a hit takes the standing hurt path that **selects
-    a reaction** (rule 22): then too the attack time becomes now +
-    `attackDelay` (chase timer 5 s). **Correction 2026-11-06 (Q190):** in
-    Wait, a hit that does not select a reaction leaves a running attack's
-    "never" deadline alone; the former wording "is hit" was too broad.
-    The moving hurt path was not re-traced in this follow-up; this
-    correction applies to Wait (`henchman.md` rule 12).
+11. **When it is cut short** (traced; moving path refined
+    2026-11-17): if the attack never ends because something replaced it,
+    the "never" is put right when the character **enters** standing or
+    moving state, or when a surviving hit **selects a reaction** in
+    either state. These paths set the next attack time to now +
+    `attackDelay` and the chase timer to 5 s. A hit that does not
+    select a reaction leaves a running attack's "never" deadline alone
+    in both Wait and Move, including while the attack cannot be cut
+    short. A naturally completed `Attack` sets the same next-attack
+    deadline at its end (rule 10). A hit during chase or retreat in Move
+    uses this same rule: it does not by itself change Move to Wait.
+    If it selects `React`, the movement replaces a cuttable attack or
+    locomotion while the actor remains in Move; when `React` ends, the
+    moving state requests its selected `walk` / `run` again. Reaction
+    completion extends the chase timer and starts the reaction pause,
+    but does not reset the attack deadline a second time. A lethal hit
+    instead enters Die. For the shipped Daventry `goblin22`, an early
+    cuttable part of `attack` can be replaced by `react`; after its
+    authored interruptibility cue, a hit can still lower health but
+    cannot select that reaction (rules 12 and 23).
 11b. **The swallowed swing** (traced, added 2026-10-20 after the user's
     check in the original: "sometimes he makes the attack sound but no
     animation, then he attacks normally; when walking or running away
@@ -314,12 +324,10 @@ Words used here:
        it moves at `run` whenever it starts moving (rule 27);
     5. if its `likelyToFlee` is **above 0.5**, it **must flee** (rule 37);
     6. the damage (rule 16); if it dies, the rest is skipped;
-    7. **Wait, corrected 2026-11-06 (Q190):** only on the path that
-       actually selects a flinch or forced reaction, if its attack time
-       was "never" (an attack under way), it becomes now + `attackDelay`
-       (rule 11). A nonreacting hit does not repair it. This standing
-       path differs from the older broad description; the moving path
-       was not re-traced in this follow-up;
+    7. **Wait and Move:** only on the path that selects a flinch or
+       forced reaction, if its attack time was "never" (an attack under
+       way), it becomes now + `attackDelay` (rule 11). A nonreacting hit
+       does not repair it. Move keeps its state on a surviving hit;
     8. the flinch or the ouch sound (rules 23, 24);
     9. it learns **where Connor is now** (as if it had just seen him);
     10. the **alarm with "run"** spreads (rule 26).

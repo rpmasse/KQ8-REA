@@ -5312,6 +5312,21 @@ weapons and assert their plain clicks play the authored first-person
 continue to include both variants. Run that one release scenario. Do
 not create one process per weapon or request manual gameplay.
 
+**Moving enemy hurt attack deadline (2026-11-17).** A bounded original-
+engine study of `fighting.md` rule 11 found that the moving state's
+surviving-hit path uses the same reaction decision as Wait: an interrupted
+attack with an infinite deadline is repaired only when the hit actually
+selects a flinch or forced reaction. A nonreacting hit leaves it infinite;
+Move entry and a naturally finished attack retain their separate repairs.
+Change the shared hit branch, then extend the existing grouped core test
+with a moving nonreaction and moving reaction. Run that one focused core
+test, with no viewer load or manual play.
+
+Checked: the focused release core scenario passed 1/1 with reacting and
+nonreacting hit cases in both Wait and Move. An initial compile caught
+that the standing flag also serves a later hit branch; it was retained.
+No viewer or original-game process was launched.
+
 **Q206 on-fire hazard slice (2026-11-17).** Follow the separate
 `terrain-hazards.md` study: the existing `lightOnFire` state on Connor
 overrides the sampled material with poison + fire and bypasses liquid

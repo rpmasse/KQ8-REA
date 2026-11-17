@@ -2,13 +2,19 @@
 
 ## Current gate and next work
 
-As of 2026-11-17, M5 is estimated at **~85%**. The old ~65% README
+As of 2026-11-17, M5 is estimated at **~88%**. The old ~65% README
 figure was left unchanged while major M5 behavior was added: Dragon and
 Mandragor controllers, enemy attacks and reactions, elemental effects,
 terrain hazards, combat save continuation and original-data fights.
 This is a qualitative estimate, not a passing-test ratio. The gate in
 `DESIGN.md` still requires a scenario link for each distinct weapon and
 enemy rule.
+
+The moving-enemy hurt path now follows the original reaction gate:
+an interrupted attack's deadline is repaired only when the surviving
+hit selects a reaction. One grouped core scenario passed in both Wait
+and Move. This closes a shared timing mismatch across chase and retreat;
+the estimate moved from ~85% to ~88%.
 
 The estimate moved from ~80% after Q221's common first-person melee
 failure was fixed across the installed hand-weapon lists, and Q210's

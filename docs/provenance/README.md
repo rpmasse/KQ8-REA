@@ -1,5 +1,14 @@
 # Provenance
 
+**Moving enemy interrupted attack (2026-11-17, M5).**
+[Fighting rules 11 and 22.7](../behaviour/fighting.md) now state from a
+separate original-engine study that a surviving Move hit repairs an
+infinite attack deadline only after selecting a reaction. The same
+condition already applied in Wait; Move entry and natural Attack end
+repair separately. The Rust shared hit path now uses that condition in
+both states. The grouped release core test passed 1/1 without a viewer
+or original-runtime play.
+
 **Connor first-person normal melee swing (2026-11-17, M5).**
 [Fighting rule 40](../behaviour/fighting.md), resolved in Q221 by a
 separate original-engine study, says first-person plain clicks consume

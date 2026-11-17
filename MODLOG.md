@@ -1,5 +1,30 @@
 # MODLOG
 
+## 2026-11-17 Moving enemy interrupted-attack repair (M5)
+
+The shared hit path now repairs an infinite attack deadline only when
+the surviving hit selects a reaction, for both Wait and Move. Extended
+the existing grouped core scenario to cover a moving nonreaction and a
+moving reaction alongside the standing cases. Focused release test
+passed 1/1; no viewer or original runtime was launched. The first
+compile failed because a standing-state flag was also needed by a
+later hit branch; retaining that flag resolved the compile error.
+
+Test: `cargo test -p kq8-core --release a_standing_hit_repairs_the_attack_deadline_only_if_it_reacts -- --nocapture`.
+Expect 1 passed, 0 failed.
+
+## 2026-11-17 Moving monster hurt and attack deadline (study A, M5)
+
+Refined `fighting.md` rules 11 and 22.7 from the ordinary original
+monster Move state and shared reaction path. A surviving moving hit
+repairs a running attack's "never" deadline only when it selects a
+reaction; otherwise the deadline remains until attack completion or
+entry into Wait/Move. Chase and retreat share this rule. Reaction stays
+in Move and resumes the selected walk/run after completion. The shipped
+Daventry bone goblin provides an early cuttable attack and a later
+uninterruptible part. No Rust or game files changed; original-runtime
+play was not tested.
+
 ## 2026-11-17 First-person plain swing fix (M5, Q221)
 
 Used the newly traced first/third-person selector in the shared Rust
