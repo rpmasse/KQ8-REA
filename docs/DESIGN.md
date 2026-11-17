@@ -1781,6 +1781,63 @@ contains only our own source code; no game files, no decompiled code.
 
 ## KQ8-REA completion plan (2026-11-05)
 
+### M8 · Modern Improvements (brought forward before M6, 2026-11-17)
+
+The user requested display controls before further campaign work. M8 is a
+separate enhancement milestone; its numbering does not change the M0–M7
+recreation gates. Implement the display portion now, then resume M6. The
+original game's Graphics GUI and device behavior remain a reference for
+M7, but the playable viewer's Graphics page may use new text and controls.
+
+1. Inventory the current menu, window, camera, GUI and saved preference
+   paths. Record which dimensions are actual rendered pixels. A larger
+   window currently makes Bevy render a larger surface while the GUI keeps
+   its 640×480 or 800×600 authored canvas.
+2. Add a separate local display preference for View Mode, Ratio and
+   Resolution. Keep the GOG installation read-only and do not insert
+   recreation-only commands into its original Options.cs script.
+3. Replace the viewer's fixed device and two-resolution controls with
+   View Mode (Windowed/Fullscreen), Ratio (4:3, 5:4, 16:9, 16:10, 21:9,
+   32:9), then Resolution. Offer standard pixel sizes from 640×480 up to
+   the monitor's native size, filtered by ratio and actual host mode
+   support. Include the native size under its closest marketed ratio
+   (for example 3440×1440 under 21:9). Show unavailable combinations
+   clearly. Retain the original lighting, shadow and brightness controls.
+4. Make each accepted choice change the actual rendered pixel dimensions,
+   window mode and 3D projection. Refit the existing 4:3 GUI canvas into
+   the output. Retain or roll back the prior display state if the host
+   rejects a request, and persist only an acknowledged choice. Do not
+   imply that simply enlarging a window retains a 640×480 render target.
+5. Verify the catalog, preference migration, keyboard/mouse navigation,
+   viewport and display transitions with automated tests. Include a
+   native Windows smoke check for an available windowed and fullscreen
+   mode; record any modes the test monitor does not advertise. No manual
+   gameplay test is required at this stage.
+
+M8 display controls are complete when a player can change these three
+settings in-game, see the actual output size/mode change, restart and
+recover the same accepted choice, and keep menu/gameplay input aligned.
+Higher animation frame rates, texture changes and macOS portability are
+outside this display-control step.
+
+Implementation checkpoint (2026-11-17): the viewer has a separate local
+`kq8-artifacts/display.json`, with the six ratios, a monitor-bounded
+standard-size catalog and exact advertised fullscreen modes. The old
+device rows are hidden on the playable Graphics page; the lower original
+lighting, shadow and brightness controls remain. A fresh install starts
+in a 640×480 hardware-color window so a remote display without the
+original 640×480 exclusive mode can open the game. Render dimensions
+track the accepted choice; the original 4:3 menu/HUD canvas is centred
+inside it. An unavailable ratio is shown without staging a bad host
+request. Automated original-data menu checks pass at 640 and 800 GUI
+sizes. A native Windows run switched 1280×720 windowed to 1280×800,
+then another switched to exclusive 2580×1328 fullscreen and back to
+1920×1080 windowed. The accepted choice was written and restored on a
+fresh launch. The current remote monitor reports 2580×1328 at 32 Hz;
+native 3440×1440, 32:9 output and physical gameplay input alignment
+remain untested on this hardware. M8 is estimated at 90% pending that
+display validation, without asking for manual gameplay testing now.
+
 ### Grouped completion and verification (user update, 2026-11-07)
 
 Complete M4–M6 by shared engine behavior, with representative checks

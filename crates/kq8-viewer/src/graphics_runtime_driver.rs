@@ -58,7 +58,7 @@ pub(crate) fn pending(world: &World) -> bool {
 }
 
 pub(crate) fn surface_output(surface: &Surface) -> Result<Output, String> {
-    let system = if surface.presentation == Presentation::Windowed {
+    let system = if surface.presentation == Presentation::Windowed && surface.modern_choice.is_none() {
         Some(crate::system_palette::read()?.0)
     } else {
         None
@@ -171,9 +171,16 @@ pub(crate) fn accept_host(world: &mut World, serial: u64, host: HostState) -> Re
         let mut preferences = world.resource_mut::<Preferences>();
         preferences.settings.graphics.mode = mode;
         preferences.settings.graphics.high_resolution = surface.high;
+        if let Some(choice) = surface.modern_choice { preferences.display = Some(choice); }
     }
     crate::display_mode::accept_profile(world, surface.high, surface.device.supports_800());
     crate::startup_menu::refresh_graphics_device(world);
+    if let Some(choice) = surface.modern_choice {
+        crate::startup_menu::refresh_modern_display(world, choice);
+        if let Err(error) = world.resource_mut::<Preferences>().store() {
+            note(world,format!("accepted display {:?} could not be saved: {error}",choice));
+        }
+    }
     note(world,format!("confirmed {} profile, active {:?} {:?}, {:?} pixels, actual host {host:?}; saved fullscreen {:?}; world retained",
         world.resource::<Runtime>().profile().name(),surface.device.name,surface.presentation,pixels,
         world.resource::<Runtime>().fullscreen_device().name));

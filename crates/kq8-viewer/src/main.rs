@@ -478,8 +478,8 @@ Showing things:
   --at X,Y,H                 start Connor at X, Y facing heading H (radians)
   --renderer auto|vulkan|dx12  graphics API (default auto)
   --display-profile direct3d|glide  original-device compatibility inventory (default direct3d)
-  --fullscreen              exact original-size fullscreen (default for the game)
-  --windowed                original Software window device at 640x480 (diagnostic)
+  --fullscreen              use the selected exclusive fullscreen resolution
+  --windowed                use the selected windowed resolution (fresh install: 640x480)
   --game <folder>            where the game is (default MASK; or KQ8_GAME_DIR)
   --sound on|off             play sound through the sound card (default on)
   --light x1|x2|off          light of the ground and objects at the start (default x1; F7)
@@ -610,11 +610,31 @@ fn main() -> ExitCode {
     }
     let mut preferences = option_settings::Preferences::load(&opts.game);
     let runtime = if args.model.is_none() {
-        match graphics_runtime::Runtime::startup(args.display_profile, args.presentation, &preferences.settings.graphics) {
+        // A fresh install starts in a usable 640x480 hardware-color window.
+        // Explicit --fullscreen without a saved M8 choice retains the old
+        // exact-original-size diagnostic path.
+        let requested_display = preferences.display.or_else(||
+            (!raw.iter().any(|value|value == "--fullscreen")).then_some(
+                kq8_core::modern_display::Choice {
+                    mode: kq8_core::modern_display::ViewMode::Windowed,
+                    ratio: kq8_core::modern_display::Ratio::FourThree,
+                    pixels: [640,480],
+                })).map(|mut choice| {
+            if raw.iter().any(|value|value == "--windowed") { choice.mode = kq8_core::modern_display::ViewMode::Windowed; }
+            if raw.iter().any(|value|value == "--fullscreen") { choice.mode = kq8_core::modern_display::ViewMode::Fullscreen; }
+            choice
+        });
+        let startup_result = if let Some(choice) = requested_display {
+            Ok(graphics_runtime::Runtime::startup_modern(args.display_profile,choice,&preferences.settings.graphics))
+        } else {
+            graphics_runtime::Runtime::startup(args.display_profile,args.presentation,&preferences.settings.graphics)
+        };
+        match startup_result {
             Ok((runtime, graphics)) => {
                 preferences.settings.graphics = graphics;
-                log.summary(format!("graphics runtime: {} compatibility profile, requested {:?}, saved fullscreen {:?}; shared rasterizer fidelity remains separate",
-                    args.display_profile.name(),args.presentation,preferences.settings.graphics.mode));
+                log.summary(format!("graphics runtime: {} compatibility profile, requested {:?} {:?}, saved fullscreen {:?}; shared rasterizer fidelity remains separate",
+                    args.display_profile.name(),runtime.pending().map(|request|request.surface.presentation),
+                    runtime.pending().map(|request|request.surface.pixels()),preferences.settings.graphics.mode));
                 Some(runtime)
             }
             Err(error) => {
@@ -671,9 +691,10 @@ fn main() -> ExitCode {
     };
     let mut primary_window = Window { title, ..default() };
     if matches!(&scene, Scene::Ground(_)) {
-        let high = preferences.settings.graphics.high_resolution;
-        primary_window.resolution = kq8_core::caption::screen(high).into();
-        // Fixed original-size surfaces; the menu remains the size owner.
+        let pixels = preferences.display.map(|choice|choice.pixels).unwrap_or_else(||
+            kq8_core::caption::screen(preferences.settings.graphics.high_resolution));
+        primary_window.resolution = pixels.into();
+        // The menu owns the selected physical render size.
         primary_window.resizable = false;
     }
     let mut app = App::new();

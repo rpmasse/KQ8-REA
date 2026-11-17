@@ -9,6 +9,7 @@ pub mod main_menu;
 pub mod credits;
 pub mod graphics_devices;
 pub mod graphics_menu;
+pub mod modern_display;
 pub mod keyboard_menu;
 mod menu_layout;
 pub mod options_menu;

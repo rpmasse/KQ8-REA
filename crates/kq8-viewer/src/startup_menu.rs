@@ -3,10 +3,11 @@ use crate::keyboard_input::Keyboard;
 use crate::option_settings::Preferences;
 use bevy::prelude::*;
 use bevy::render::view::screenshot::{Screenshot, ScreenshotCaptured};
-use bevy::window::{CursorIcon, CustomCursor, CustomCursorImage, PrimaryWindow};
+use bevy::window::{CursorIcon, CustomCursor, CustomCursorImage, Monitor, OnMonitor, PrimaryMonitor, PrimaryWindow};
 use kq8_audio::{Command, Output};
 use kq8_core::credits;
 use kq8_core::graphics_menu;
+use kq8_core::modern_display::{Choice as DisplayChoice, Ratio, ViewMode};
 use kq8_core::keyboard_menu;
 pub use kq8_core::main_menu::Key;
 use kq8_core::main_menu::{Action, Art, Choice};
@@ -897,6 +898,34 @@ pub(crate) fn refresh_graphics_device(world: &mut World) {
     }
 }
 
+pub(crate) fn refresh_modern_display(world: &mut World, choice: DisplayChoice) {
+    if let Some(mut menu) = world.get_resource_mut::<Menu>() {
+        if let Some(screen) = &mut menu.graphics { screen.set_modern_choice(choice); }
+        redraw(world);
+    }
+}
+
+fn modern_host_modes(world: &mut World) -> ([u32; 2],Vec<[u32; 2]>) {
+    let window_monitor = world.query_filtered::<&OnMonitor,With<PrimaryWindow>>()
+        .iter(world).next().map(|on|on.0);
+    let primary = world.query_filtered::<Entity,With<PrimaryMonitor>>().iter(world).next();
+    let monitor = window_monitor.or(primary).and_then(|entity|world.get::<Monitor>(entity));
+    monitor.map_or(([640,480],Vec::new()), |monitor| {
+        ([monitor.physical_width,monitor.physical_height],
+            monitor.video_modes.iter().map(|mode|mode.physical_size.to_array()).collect())
+    })
+}
+
+fn active_modern_choice(world: &World) -> Option<DisplayChoice> {
+    let surface = world.get_resource::<crate::graphics_runtime::Runtime>()?.active()?;
+    Some(surface.modern_choice.unwrap_or_else(|| {
+        let pixels = surface.pixels();
+        DisplayChoice { mode: if surface.presentation == crate::graphics_runtime::Presentation::Windowed {
+            ViewMode::Windowed } else { ViewMode::Fullscreen },
+            ratio: Ratio::nearest(pixels), pixels }
+    }))
+}
+
 fn restore_palette(world: &mut World, why: &str) {
     if let Err(error) = crate::graphics_runtime::apply_palette(world,why) {
         world.resource::<crate::Shared>().log.lock().unwrap().summary(format!(
@@ -992,12 +1021,18 @@ fn option_key(world: &mut World, key: Key) {
             Err(e) => log.lock().unwrap().summary(format!("credits: {e}")),
         }
     } else if back == options_menu::Destination::Graphics {
+        let (native,modes) = modern_host_modes(world);
+        let choice = active_modern_choice(world).unwrap_or_else(||DisplayChoice {
+            mode: ViewMode::Windowed, ratio: Ratio::FourThree, pixels: [640,480] });
         let screen = match world.remove_resource::<RetainedGraphics>() {
             Some(RetainedGraphics(screen)) => Ok(screen),
-            None => graphics_menu::Screen::open(&world.resource::<Source>().game, &world.resource::<Menu>().art),
+            None => graphics_menu::Screen::open_modern(&world.resource::<Source>().game,
+                &world.resource::<Menu>().art,choice,native,modes.clone()),
         };
         match screen {
             Ok(mut screen) => {
+                screen.set_modern_host(native,modes);
+                screen.set_modern_choice(choice);
                 if let Some(runtime) = world.get_resource::<crate::graphics_runtime::Runtime>() {
                     if let Some(active) = runtime.active() {
                         screen.set_device_inventory(runtime.inventory(),active.device.clone(),active.high);
@@ -1009,7 +1044,7 @@ fn option_key(world: &mut World, key: Key) {
                 menu.child_clock = std::time::Instant::now();
                 menu.mask_frame = 0;
                 menu.graphics = Some(screen);
-                log.lock().unwrap().summary("graphics: opened original Graphics.gui");
+                log.lock().unwrap().summary(format!("graphics: opened modern display controls; {:?}, native {native:?}",choice));
                 restore_palette(world,"Graphics setup");
             }
             Err(e) => log.lock().unwrap().summary(format!("graphics: could not open: {e}")),
@@ -1052,13 +1087,14 @@ fn graphics_key(world: &mut World, key: Key) {
     let old = world.resource::<Preferences>().settings.graphics.clone();
     let mut graphics = old.clone();
     let profile = world.contains_resource::<crate::graphics_runtime::Runtime>();
-    let (action, device) = {
+    let (action, device, display) = {
         let mut menu = world.resource_mut::<Menu>();
         let cue = menu.graphics.as_ref().unwrap().sound(key);
         let action = menu.graphics.as_mut().unwrap().input(key, &mut graphics);
         let device = profile.then(||menu.graphics.as_mut().unwrap().take_device_selection()).flatten();
+        let display = menu.graphics.as_mut().unwrap().take_modern_request();
         if let Some(cue) = cue { menu.audio.play(cue); }
-        (action, device)
+        (action, device, display)
     };
     if graphics.high_resolution != old.high_resolution {
         let requested = crate::display_mode::Size::from_high(graphics.high_resolution);
@@ -1084,6 +1120,13 @@ fn graphics_key(world: &mut World, key: Key) {
     if let Some(device) = device {
         if let Err(error) = crate::graphics_runtime::device_action(world,device) {
             log.lock().unwrap().summary(format!("graphics runtime: {error}"));
+        }
+    }
+    if let Some(choice) = display {
+        match world.resource_mut::<crate::graphics_runtime::Runtime>().request_display(choice) {
+            Ok(Some(request)) => log.lock().unwrap().summary(format!("display: requested {:?} {:?} {:?}; awaiting host acknowledgement",choice.mode,choice.ratio,request.surface.pixels())),
+            Ok(None) => {},
+            Err(error) => log.lock().unwrap().summary(format!("display: {error}")),
         }
     }
     if action == graphics_menu::Action::Back {

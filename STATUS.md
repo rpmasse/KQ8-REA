@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-17 M8 display controls in progress (~90%)
+
+The playable Graphics page now has View Mode, Ratio and Resolution in
+place of the original device controls. It offers six ratio families and
+standard sizes up to the monitor's native pixels. Fullscreen choices
+require an advertised host video mode; unavailable ratios are visible
+but do not send an invalid mode request. Accepted choices use actual
+render/window pixels and persist in local `kq8-artifacts/display.json`.
+The GOG folder remains read-only. A fresh copy starts in a 640×480
+Direct3D window.
+
+Automated original-data menu, catalog, runtime, persistence and
+wide-menu-frame checks pass. Native Windows logs confirm live
+1280×720→1280×800 windowed and 1280×720→2580×1328 exclusive fullscreen
+changes, return to 1920×1080 windowed, and saved fullscreen restoration
+after relaunch. The remote monitor advertises 2580×1328 at 32 Hz;
+native 3440×1440/32:9 output and gameplay pointer alignment at those
+ratios remain untested. No manual gameplay test occurred. M6 remains
+~28%; M7 remains planned.
+
+Build with `cargo build -p kq8-viewer --release`. Launch with
+`target\release\kq8-viewer.exe --game "C:\Users\Robert\Documents\Codex\KQ8\King's Quest 8 GOG"`.
+
 ## 2026-11-17 M5 combat gate complete
 
 M5 is complete against the grouped combat gate in `docs/DESIGN.md`.

@@ -1,6 +1,7 @@
 //! Original Graphics.gui layout and explicitly supplied device policy.
 use crate::{
     graphics_devices::{Device, Family, Inventory, Selection, Targets},
+    modern_display::{self, Choice as DisplayChoice, Ratio, ViewMode},
     gui_draw::Canvas,
     main_menu::{Art, Key},
     menu_layout::Layout,
@@ -106,6 +107,48 @@ pub struct Screen {
     targets: Targets,
     selection: Option<DeviceAction>,
     restart: Option<Restart>,
+    modern: Option<Modern>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ModernRow { View, Ratio, Resolution, Lights, Connor, Monster, Character, Object, Brightness, Back }
+
+const MODERN_ROWS: [ModernRow; 10] = [ModernRow::View, ModernRow::Ratio, ModernRow::Resolution,
+    ModernRow::Lights, ModernRow::Connor, ModernRow::Monster, ModernRow::Character,
+    ModernRow::Object, ModernRow::Brightness, ModernRow::Back];
+
+struct Modern {
+    row: ModernRow,
+    choice: DisplayChoice,
+    native: [u32; 2],
+    modes: Vec<[u32; 2]>,
+    requested: Option<DisplayChoice>,
+}
+
+impl ModernRow {
+    fn legacy(self) -> Option<Row> {
+        Some(match self {
+            Self::Lights => Row::Lights, Self::Connor => Row::Connor,
+            Self::Monster => Row::Monster, Self::Character => Row::Character,
+            Self::Object => Row::Object, Self::Brightness => Row::Brightness,
+            Self::Back => Row::Back, _ => return None,
+        })
+    }
+    fn rect(self, layout: &Layout) -> [i32; 4] {
+        match self {
+            Self::View | Self::Ratio | Self::Resolution => {
+                let (label,value) = match self {
+                    Self::View => ("MODE","DIRECTDRAW"),
+                    Self::Ratio => ("MODE","DIRECT3D"),
+                    _ => ("RESOLUTION","640X480"),
+                };
+                let [l,_,_,_] = layout.controls[label].rect;
+                let [_,t,r,b] = layout.controls[value].rect;
+                [l,t,r,b]
+            }
+            _ => layout.controls[self.legacy().unwrap().key()].rect,
+        }
+    }
 }
 
 /// Only accepted UI decisions reach the presentation owner. Opening the
@@ -177,12 +220,41 @@ impl Screen {
         }
         let background = Self::backdrop(&layout,art);
         Ok(Self { layout, background, row: Row::DirectDraw, dragging: false, high_available: true,
-            devices: None, targets: Targets::default(), selection: None, restart: None })
+            devices: None, targets: Targets::default(), selection: None, restart: None, modern: None })
+    }
+
+    /// Viewer-only page. Original Graphics.gui supplies its palette, font,
+    /// lower controls and art, while the three display rows are new.
+    pub fn open_modern(game: &Path, art: &Art, choice: DisplayChoice,
+        native: [u32; 2], modes: Vec<[u32; 2]>) -> Result<Self, String> {
+        let mut screen = Self::open(game, art)?;
+        screen.modern = Some(Modern { row: ModernRow::View, choice, native, modes, requested: None });
+        screen.background = Self::modern_backdrop(&screen.layout, art);
+        Ok(screen)
+    }
+
+    pub fn set_modern_host(&mut self, native: [u32; 2], modes: Vec<[u32; 2]>) {
+        if let Some(modern) = &mut self.modern {
+            modern.native = native;
+            modern.modes = modes;
+        }
+    }
+
+    pub fn set_modern_choice(&mut self, choice: DisplayChoice) {
+        if let Some(modern) = &mut self.modern {
+            modern.choice = choice;
+            modern.requested = None;
+        }
+    }
+
+    pub fn take_modern_request(&mut self) -> Option<DisplayChoice> {
+        self.modern.as_mut().and_then(|modern|modern.requested.take())
     }
 
     pub fn resize(&mut self, art: &Art) {
         self.layout.resize(art.size(), false);
-        self.background = Self::backdrop(&self.layout, art);
+        self.background = if self.modern.is_some() { Self::modern_backdrop(&self.layout,art) }
+            else { Self::backdrop(&self.layout, art) };
         if let Some((inventory,_)) = &self.devices { self.targets.refresh(inventory,art.size()[0] == 800); }
     }
 
@@ -322,8 +394,19 @@ impl Screen {
         background
     }
 
+    fn modern_backdrop(layout: &Layout, art: &Art) -> Canvas {
+        let mut background = Canvas::new(layout.size[0], layout.size[1]);
+        for key in ["BACKGROUND","TITLE"].into_iter().chain(
+            [Row::Lights,Row::Connor,Row::Monster,Row::Character,Row::Object,
+                Row::Brightness,Row::Back].map(|row|row.key())) {
+            layout.draw(&mut background,art,key,key,layout.controls[key].rect,0,None);
+        }
+        background
+    }
+
     pub fn palette_changed(&mut self, art: &Art) {
-        self.background = Self::backdrop(&self.layout,art);
+        self.background = if self.modern.is_some() { Self::modern_backdrop(&self.layout,art) }
+            else { Self::backdrop(&self.layout,art) };
     }
 
     /// Actual uploaded pixels outside dynamic values and the two cursor
@@ -334,6 +417,10 @@ impl Screen {
         if (width,height) != (self.background.width,self.background.height) || rgba.len() != width as usize*height as usize*4 { return None; }
         let mut dynamic: Vec<[i32;4]> = ROWS.iter().filter_map(|r|r.value()).map(|key|self.layout.controls[key].rect).collect();
         dynamic.extend([Row::DirectDraw, Row::Direct3D, Row::Glide, Row::Low, Row::High].map(|row| self.layout.controls[row.key()].rect));
+        if self.modern.is_some() {
+            dynamic.extend([ModernRow::View,ModernRow::Ratio,ModernRow::Resolution]
+                .map(|row|row.rect(&self.layout)));
+        }
         for key in ["CURSOR1","CURSOR2"] {
             let [l,_,r,_] = self.layout.controls[key].rect;
             dynamic.push([l,0,r,height as i32]);
@@ -395,6 +482,7 @@ impl Screen {
     }
 
     pub fn input(&mut self, key: Key, settings: &mut Graphics) -> Action {
+        if self.modern.is_some() { return self.modern_input(key, settings); }
         if self.restart.is_some() { return self.restart_input(key); }
         match key {
             Key::Escape => return Action::Back,
@@ -436,7 +524,130 @@ impl Screen {
         Action::Stay
     }
 
+    fn modern_input(&mut self, key: Key, settings: &mut Graphics) -> Action {
+        let row = self.modern.as_ref().unwrap().row;
+        match key {
+            Key::Escape => return Action::Back,
+            Key::Up | Key::Down | Key::Tab => {
+                let index = MODERN_ROWS.iter().position(|&candidate| candidate == row).unwrap();
+                let offset = if key == Key::Up { MODERN_ROWS.len()-1 } else { 1 };
+                self.modern.as_mut().unwrap().row = MODERN_ROWS[(index+offset)%MODERN_ROWS.len()];
+            }
+            Key::Click(x,y) => {
+                let Some(clicked) = MODERN_ROWS.into_iter().find(|candidate| {
+                    let [l,t,r,b] = candidate.rect(&self.layout);
+                    (l..r).contains(&x) && (t..=b).contains(&y)
+                }) else { return Action::Stay };
+                self.modern.as_mut().unwrap().row = clicked;
+                if clicked == ModernRow::Brightness {
+                    self.dragging = self.hit("BRIGHTNESS_SLIDER",x,y);
+                    if self.dragging { self.brightness_at(x,settings); }
+                    return Action::Stay;
+                }
+                return self.modern_choose(settings,1);
+            }
+            Key::Drag(x,_) if self.dragging => self.brightness_at(x,settings),
+            Key::MouseUp => self.dragging = false,
+            Key::Left | Key::Right if row == ModernRow::Brightness => {
+                settings.brightness = if key == Key::Left { settings.brightness.saturating_sub(1) }
+                    else { settings.brightness.saturating_add(1).min(100) };
+            }
+            Key::Left | Key::Right | Key::Enter => {
+                return self.modern_choose(settings,if key == Key::Left {-1} else {1});
+            }
+            _ => {}
+        }
+        Action::Stay
+    }
+
+    fn modern_choose(&mut self, settings: &mut Graphics, direction: i32) -> Action {
+        let modern = self.modern.as_mut().unwrap();
+        match modern.row {
+            ModernRow::View | ModernRow::Ratio | ModernRow::Resolution => {
+                let old = modern.choice;
+                let mut next = old;
+                match modern.row {
+                    ModernRow::View => {
+                        next.mode = if old.mode == ViewMode::Windowed { ViewMode::Fullscreen }
+                            else { ViewMode::Windowed };
+                    }
+                    ModernRow::Ratio => {
+                        let index = Ratio::ALL.iter().position(|&ratio|ratio == old.ratio).unwrap() as i32;
+                        next.ratio = Ratio::ALL[(index+direction).rem_euclid(Ratio::ALL.len() as i32) as usize];
+                    }
+                    _ => {}
+                }
+                let options = modern_display::choices(modern.native,&modern.modes,next.mode,next.ratio);
+                if options.is_empty() {
+                    // Show every requested ratio, even when this monitor
+                    // advertises no fullscreen mode for it. The preview is
+                    // not written to preferences or sent to the host.
+                    if modern.row == ModernRow::Ratio { modern.choice.ratio = next.ratio; }
+                    return Action::Stay;
+                }
+                next.pixels = if modern.row == ModernRow::Resolution {
+                    let index = options.iter().position(|&pixels|pixels == old.pixels)
+                        .unwrap_or_else(||options.iter().rposition(|&pixels|pixels[0] <= old.pixels[0] && pixels[1] <= old.pixels[1]).unwrap_or(0));
+                    options[(index as i32+direction).rem_euclid(options.len() as i32) as usize]
+                } else if modern.row == ModernRow::View && next.mode == ViewMode::Windowed
+                    && old.pixels == modern.native {
+                    *options.iter().rfind(|&&pixels|pixels[0] < modern.native[0]
+                        && pixels[1] < modern.native[1]).unwrap_or(options.first().unwrap())
+                } else if options.contains(&old.pixels) { old.pixels }
+                else { *options.iter().rfind(|&&pixels|pixels[0] <= old.pixels[0] && pixels[1] <= old.pixels[1]).unwrap_or(options.first().unwrap()) };
+                if next != old { modern.requested = Some(next); }
+            }
+            ModernRow::Lights => settings.dynamic_lighting = !settings.dynamic_lighting,
+            ModernRow::Connor | ModernRow::Monster | ModernRow::Character | ModernRow::Object => {
+                settings.shadow_mask ^= modern.row.legacy().unwrap().shadow_bit().unwrap();
+            }
+            ModernRow::Brightness => {},
+            ModernRow::Back => return Action::Back,
+        }
+        Action::Stay
+    }
+
+    fn modern_render(&self, settings: &Graphics, art: &Art, frame: usize) -> Canvas {
+        let modern = self.modern.as_ref().unwrap();
+        let mut out = self.background.clone();
+        let options = modern_display::choices(modern.native,&modern.modes,modern.choice.mode,modern.choice.ratio);
+        for (label,value,label_key,value_key,position_key) in [
+            ("View Mode",modern.choice.mode.label().to_owned(),"MODE","DIRECTDRAW","DIRECTDRAW"),
+            ("Ratio",modern.choice.ratio.label().to_owned(),"MODE","DIRECTDRAW","DIRECT3D"),
+            ("Resolution",if options.is_empty() { "Unavailable".into() }
+                else { format!("{}x{}",modern.choice.pixels[0],modern.choice.pixels[1]) },"RESOLUTION","640X480","640X480"),
+        ] {
+            let [_,t,_,b] = self.layout.controls[position_key].rect;
+            let [l,_,r,_] = self.layout.controls[label_key].rect;
+            let [vl,_,vr,_] = self.layout.controls[value_key].rect;
+            self.layout.draw(&mut out,art,label_key,label_key,[l,t,r,b],0,Some(label));
+            self.layout.draw(&mut out,art,value_key,value_key,[vl,t,vr,b],0,Some(&value));
+        }
+        for row in [Row::Lights,Row::Connor,Row::Monster,Row::Character,Row::Object,Row::Brightness] {
+            let key = row.value().unwrap();
+            let rect = self.layout.controls[key].rect;
+            if row == Row::Brightness {
+                self.layout.draw(&mut out,art,key,key,rect,0,None);
+                let [l,t,r,b] = rect;
+                let x = l+i32::from(settings.brightness)*(r-l-10)/100;
+                self.layout.draw(&mut out,art,key,key,[x,t,x+10,b],1,None);
+            } else {
+                let enabled = if row == Row::Lights { settings.dynamic_lighting }
+                    else { settings.shadow_mask & row.shadow_bit().unwrap() != 0 };
+                self.layout.draw(&mut out,art,key,key,rect,0,Some(if enabled {"On"} else {"Off"}));
+            }
+        }
+        let selected = modern.row.rect(&self.layout);
+        for key in ["CURSOR1","CURSOR2"] {
+            let [l,t,r,b] = self.layout.controls[key].rect;
+            let y = (selected[1]+selected[3]-(b-t))/2;
+            self.layout.draw(&mut out,art,key,key,[l,y,r,y+(b-t)],frame,None);
+        }
+        out
+    }
+
     pub fn render(&self, settings: &Graphics, art: &Art, frame: usize) -> Canvas {
+        if self.modern.is_some() { return self.modern_render(settings,art,frame); }
         let mut out = self.background.clone();
         for row in [Row::DirectDraw, Row::Direct3D, Row::Glide, Row::Low, Row::High] {
             let key = row.key();
@@ -528,6 +739,74 @@ impl Screen {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR"]
+    fn modern_graphics_menu_changes_only_acknowledged_display_and_keeps_original_controls() {
+        let path = std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR");
+        let mut art = Art::open(Path::new(&path)).unwrap();
+        let native = [3440,1440];
+        let modes = vec![[3440,1440],[2560,1080]];
+        let initial = DisplayChoice { mode: ViewMode::Windowed, ratio: Ratio::FourThree, pixels: [640,480] };
+        for high_art in [false,true] {
+            art.resize(high_art);
+            let mut screen = Screen::open_modern(Path::new(&path),&art,initial,native,modes.clone()).unwrap();
+            let mut graphics = Graphics::default();
+            let click = |screen: &Screen, row: ModernRow| {
+                let [l,t,r,b] = row.rect(&screen.layout);
+                Key::Click((l+r)/2,(t+b)/2)
+            };
+            let picture = screen.render(&graphics,&art,0);
+            assert_eq!([picture.width,picture.height],art.size());
+            for (row,key,text) in [(ModernRow::View,"MODE","View Mode"),
+                (ModernRow::Ratio,"MODE","Ratio"),
+                (ModernRow::Resolution,"RESOLUTION","Resolution")] {
+                let [l,t,_,b] = row.rect(&screen.layout);
+                let right = screen.layout.controls[key].rect[2];
+                let rect = [l,t,right,b];
+                let mut expected = Canvas::new(picture.width,picture.height);
+                screen.layout.draw(&mut expected,&art,key,key,rect,0,Some(text));
+                let mut glyphs = 0;
+                for y in t..b { for x in l..right {
+                    if expected.at(x as u32,y as u32)[3] == 0 { continue; }
+                    assert_eq!(picture.at(x as u32,y as u32),expected.at(x as u32,y as u32),"{text} at {x},{y}");
+                    glyphs += 1;
+                }}
+                assert!(glyphs > 0,"{text} must render a visible caption");
+            }
+            assert_eq!(screen.input(click(&screen,ModernRow::View),&mut graphics),Action::Stay);
+            assert_eq!(screen.take_modern_request(),None,"unavailable fullscreen 4:3 must not be accepted");
+            screen.input(click(&screen,ModernRow::Ratio),&mut graphics);
+            let ratio_request = screen.take_modern_request().unwrap();
+            assert_eq!(ratio_request.ratio,Ratio::FiveFour);
+            assert_eq!(ratio_request.pixels,[1280,1024]);
+            // A request is not a committed menu choice. Host acknowledgement
+            // must explicitly refresh it before the next selection.
+            screen.set_modern_choice(ratio_request);
+            screen.input(Key::Right,&mut graphics);
+            let next = screen.take_modern_request().unwrap();
+            assert_eq!(next.ratio,Ratio::SixteenNine);
+            screen.set_modern_choice(next);
+            screen.input(click(&screen,ModernRow::Lights),&mut graphics);
+            assert!(graphics.dynamic_lighting);
+            assert_eq!(screen.take_modern_request(),None);
+            screen.input(click(&screen,ModernRow::Back),&mut graphics);
+            assert_eq!(screen.input(Key::Enter,&mut graphics),Action::Back);
+        }
+        let fullscreen = DisplayChoice { mode: ViewMode::Fullscreen,
+            ratio: Ratio::SixteenNine, pixels: [3440,1440] };
+        let mut screen = Screen::open_modern(Path::new(&path),&art,fullscreen,native,vec![native]).unwrap();
+        let mut graphics = Graphics::default();
+        screen.modern.as_mut().unwrap().row = ModernRow::Ratio;
+        screen.input(Key::Right,&mut graphics);
+        assert_eq!(screen.modern.as_ref().unwrap().choice.ratio,Ratio::SixteenTen);
+        assert_eq!(screen.take_modern_request(),None,"unavailable ratio is a local preview");
+        screen.input(Key::Right,&mut graphics);
+        assert_eq!(screen.modern.as_ref().unwrap().choice.ratio,Ratio::SixteenTen,
+            "supported request still waits for acknowledgement");
+        assert_eq!(screen.take_modern_request(),Some(DisplayChoice {
+            mode: ViewMode::Fullscreen, ratio: Ratio::TwentyOneNine, pixels: native }));
+    }
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR; headless original-data device menu matrix"]

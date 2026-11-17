@@ -1,5 +1,36 @@
 # MODLOG
 
+## 2026-11-17 M8 display controls before M6
+
+Added a modern Graphics page with View Mode (Windowed/Fullscreen), Ratio
+(4:3, 5:4, 16:9, 16:10, 21:9, 32:9) and monitor-bounded Resolution.
+The unchangeable original device rows are hidden on this page. New
+display choices are stored in local `kq8-artifacts/display.json`; the
+GOG installation is not modified. The selected resolution now owns the
+physical render/window size. The lower lighting, shadow and brightness
+controls remain. Fresh launches start in a 640×480 Direct3D window
+when no modern display choice has been saved.
+
+The first native 1280×720 smoke run failed after accepting the display:
+a refresh callback tried to redraw a menu in a direct-world launch with
+no menu resource. Guarding that callback fixed the crash. The rebuilt
+Windows executable then passed a 1280×720 to 1280×800 in-menu change,
+a 1280×720 to exclusive 2580×1328 change, the reverse fullscreen to
+1920×1080 windowed change, and a fresh 640×480 launch. An accepted
+fullscreen choice persisted and was restored on the next launch.
+Original-data 640/800 menu tests, catalog/runtime/preference tests and
+wide/tall menu-frame checks passed. A failed first test assertion
+expected a requested ratio to become active before acknowledgement;
+the corrected assertion passed without a production change. The remote
+monitor reports 2580×1328 at 32 Hz; 3440×1440 and 32:9 native output
+were not tested. No manual gameplay test was run.
+
+Test from the project root: set `KQ8_GAME_DIR` to the GOG installation,
+then run `cargo test -p kq8-core modern_graphics_menu_changes_only_acknowledged_display_and_keeps_original_controls -- --ignored` and
+`cargo test -p kq8-viewer --bin kq8-viewer modern_display`.
+Expect 1 and 2 passing tests, respectively. Run the release viewer with
+`--game <GOG folder>` and inspect its log for an accepted window mode.
+
 ## 2026-11-17 M5 grouped combat gate closed
 
 The authorized study session resolved Q209's shipped Mandragor tree

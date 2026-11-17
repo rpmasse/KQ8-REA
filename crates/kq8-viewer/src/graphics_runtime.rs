@@ -6,10 +6,10 @@
 //! default remains Software. The alternate Glide profile declares a Voodoo
 //! board with 4MB framebuffer capability; it never reads host GPU memory.
 //!
-//! Normal launch is fullscreen. The explicit windowed diagnostic uses the
-//! original Software window device, independently of the saved fullscreen
-//! name. A saved 800 Glide request in windowed mode is rejected, not rewritten.
-//! Host exclusive mode is selected from exact advertised 640/800 modes and
+//! The legacy startup profile uses fullscreen and the original Software
+//! window device for its explicit windowed diagnostic. M8's playable path
+//! instead uses the chosen hardware-color profile in both view modes.
+//! Host exclusive mode is selected from exact advertised modes and
 //! checked through Winit's actual window, fullscreen state and monitor size.
 //! Bevy's borderless fallback must never count as exclusive acceptance.
 use bevy::{
@@ -21,6 +21,7 @@ use bevy::{
 };
 use kq8_core::{
     graphics_devices::{Device, Family, GlideBoard, Inventory},
+    modern_display::{Choice as DisplayChoice, ViewMode},
     options_menu::Graphics,
 };
 use kq8_data::palette::{Output, Rgb};
@@ -98,16 +99,24 @@ pub(crate) struct Surface {
     pub(crate) device: Device,
     pub(crate) presentation: Presentation,
     pub(crate) high: bool,
+    pub(crate) modern_choice: Option<DisplayChoice>,
 }
 
 impl Surface {
     pub(crate) fn pixels(&self) -> [u32; 2] {
-        kq8_core::caption::screen(self.high)
+        self.modern_choice.map(|choice|choice.pixels).unwrap_or_else(||kq8_core::caption::screen(self.high))
     }
 
     /// Colors for the actual logical device; a saved fullscreen preference
     /// cannot select hardware colors on the Software window device.
     pub(crate) fn output(&self, system: Option<[Rgb; 20]>) -> Result<Output, String> {
+        if self.modern_choice.is_some() && self.presentation == Presentation::Windowed {
+            return match self.device.family {
+                Family::Direct3D => Ok(Output::Direct3D),
+                Family::Glide => Ok(Output::Glide),
+                Family::Software => Ok(Output::Software),
+            };
+        }
         match (self.presentation, self.device.family) {
             (Presentation::Windowed, Family::Software) => system
                 .map(|system| Output::SoftwareWindow { system })
@@ -174,6 +183,7 @@ impl Runtime {
             },
             presentation,
             high: checked.high_resolution,
+            modern_choice: None,
         };
         Ok((
             Self {
@@ -186,6 +196,31 @@ impl Runtime {
             },
             validated,
         ))
+    }
+
+    pub(crate) fn startup_modern(profile: Profile, choice: DisplayChoice,
+        graphics: &Graphics) -> (Self, Graphics) {
+        let device = profile.hardware();
+        let mut validated = graphics.clone();
+        validated.mode = device.name.clone();
+        validated.high_resolution = choice.pixels[0] >= 800;
+        let surface = Surface { device: device.clone(),
+            presentation: match choice.mode { ViewMode::Windowed => Presentation::Windowed,
+                ViewMode::Fullscreen => Presentation::Fullscreen },
+            high: validated.high_resolution, modern_choice: Some(choice) };
+        (Self { profile, fullscreen: device, active: None,
+            pending: Some(Request { serial: 1, surface }), revision: 1, failure: None },validated)
+    }
+
+    pub(crate) fn request_display(&mut self, choice: DisplayChoice) -> Result<Option<Request>,String> {
+        if self.pending.is_some() { return Err("a display request is already awaiting acknowledgement".into()); }
+        let active = self.active.as_ref().ok_or("no display has been acknowledged")?;
+        let presentation = match choice.mode { ViewMode::Windowed => Presentation::Windowed,
+            ViewMode::Fullscreen => Presentation::Fullscreen };
+        if active.presentation == presentation && active.pixels() == choice.pixels { return Ok(None); }
+        let surface = Surface { device: self.profile.hardware(), presentation,
+            high: choice.pixels[0] >= 800, modern_choice: Some(choice) };
+        Ok(Some(self.stage(surface)))
     }
 
     pub(crate) fn profile(&self) -> Profile {
@@ -254,6 +289,7 @@ impl Runtime {
             device: target,
             presentation: Presentation::Fullscreen,
             high,
+            modern_choice: None,
         };
         Ok(Some(self.stage(surface)))
     }

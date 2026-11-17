@@ -16,8 +16,11 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M5 · Recreate combat | Complete · 100% |
 | M6 · Recreate the full campaign and saves | In progress · ~28% |
 | M7 · Verify and release the Windows recreation | Planned · 0% |
+| M8 · Modern Improvements | In progress · ~90% |
 
 These percentages describe individual phases, not overall game completion. All 12 regions load; campaign progression and final fidelity checks still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
+
+M8 is being done early: Graphics now offers View Mode, Ratio and Resolution. Available fullscreen resolutions depend on modes reported by the monitor; native ultrawide output is not yet tested. The original game still runs at 15 updates per second.
 
 Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.
 The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.
@@ -28,6 +31,6 @@ The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed 
 
 ## Future enhancements
 
-After the faithful recreation, we plan to add modern widescreen and ultrawide resolutions, higher frame rates for animation, movement and camera, and support for more platforms, including macOS.
+After the faithful recreation, we plan to improve animation, movement and camera frame rates and support more platforms, including macOS.
 
 See [credits and sources](CREDITS.md).

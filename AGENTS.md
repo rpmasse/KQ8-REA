@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Project
-This fork recreates **King's Quest: Mask of Eternity** in Rust for Windows. Use the original GOG release as the reference for gameplay, controls, timing and presentation. Follow the M0–M7 milestones in the [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05). Use automated checks during implementation. Manual testing starts after the recreation is feature-complete.
+This fork recreates **King's Quest: Mask of Eternity** in Rust for Windows. Use the original GOG release as the reference for gameplay, controls, timing and presentation. Follow the M0–M8 milestones in the [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05). Use automated checks during implementation. Manual testing starts after the recreation is feature-complete.
 
 ## Hard rules, never break these
 

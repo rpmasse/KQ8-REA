@@ -286,3 +286,21 @@ pub(crate) fn canvas_frame(window: Vec2, canvas: [u32; 2]) -> (Vec2, f32) {
     let scale = (window.x / size.x).min(window.y / size.y);
     ((window - size * scale) * 0.5, scale)
 }
+
+#[cfg(test)]
+mod modern_ratio_tests {
+    use super::*;
+
+    #[test]
+    fn menu_canvas_and_pointer_frame_stay_centered_at_wide_and_tall_resolutions() {
+        for (window,offset,scale) in [
+            ([3440.0,1440.0],[760.0,0.0],2.4),
+            ([3840.0,1080.0],[1200.0,0.0],1.8),
+            ([1280.0,1024.0],[0.0,32.0],1.6),
+        ] {
+            let (actual,actual_scale) = canvas_frame(Vec2::from_array(window),[800,600]);
+            assert!((actual-Vec2::from_array(offset)).length()<0.001);
+            assert!((actual_scale-scale).abs()<0.001);
+        }
+    }
+}

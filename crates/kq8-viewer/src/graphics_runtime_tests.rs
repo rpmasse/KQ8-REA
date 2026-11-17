@@ -1,5 +1,33 @@
 use super::*;
 
+#[test]
+fn modern_display_runtime_keeps_hardware_palette_in_window_and_requires_exact_fullscreen() {
+    use kq8_core::modern_display::{Ratio,ViewMode};
+    let windowed = DisplayChoice { mode: ViewMode::Windowed, ratio: Ratio::FourThree,
+        pixels: [640,480] };
+    let (mut runtime,graphics) = Runtime::startup_modern(Profile::Direct3D,windowed,&graphics("Software",false));
+    assert_eq!(graphics.mode,"D3D-display");
+    assert_eq!(runtime.pending().unwrap().surface.output(None).unwrap(),Output::Direct3D);
+    assert_eq!(runtime.confirm(1).unwrap().modern_choice,Some(windowed));
+    let wide = DisplayChoice { mode: ViewMode::Fullscreen, ratio: Ratio::TwentyOneNine,
+        pixels: [3440,1440] };
+    let request = runtime.request_display(wide).unwrap().unwrap();
+    assert_eq!(request.surface.pixels(),[3440,1440]);
+    assert_eq!(runtime.active().unwrap().modern_choice,Some(windowed),"request does not commit");
+    assert!(!HostState { presentation: HostPresentation::Borderless,
+        window_pixels: [3440,1440], monitor_pixels: Some([3440,1440]), mode: None }
+        .accepts(&request.surface));
+    let native_mode = VideoMode { physical_size: UVec2::new(3440,1440),
+        bit_depth: 32, refresh_rate_millihertz: 60_000 };
+    assert!(HostState { presentation: HostPresentation::Exclusive,
+        window_pixels: [3440,1440], monitor_pixels: Some([3440,1440]), mode: Some(native_mode) }
+        .accepts(&request.surface));
+    assert_eq!(runtime.confirm(request.serial).unwrap().modern_choice,Some(wide));
+    let back = runtime.request_display(windowed).unwrap().unwrap();
+    assert_eq!(back.surface.output(None).unwrap(),Output::Direct3D);
+    assert_eq!(runtime.confirm(back.serial).unwrap().presentation,Presentation::Windowed);
+}
+
 fn graphics(name: &str, high: bool) -> Graphics {
     Graphics {
         mode: name.into(),
@@ -114,6 +142,7 @@ fn graphics_runtime_window_device_and_palette_are_independent_of_saved_fullscree
         device: Device::direct3d("display", false),
         presentation: Presentation::Windowed,
         high: false,
+        modern_choice: None,
     };
     assert!(invalid.output(Some(system)).is_err());
 }
@@ -245,6 +274,7 @@ fn graphics_runtime_exact_host_mode_and_actual_acceptance_matrix() {
         device: Device::software(true),
         presentation: Presentation::Fullscreen,
         high: false,
+        modern_choice: None,
     };
     let accepted = HostState {
         presentation: HostPresentation::Exclusive,
@@ -285,6 +315,7 @@ fn graphics_runtime_exact_host_mode_and_actual_acceptance_matrix() {
         device: Device::software(false),
         presentation: Presentation::Windowed,
         high: false,
+        modern_choice: None,
     };
     assert!(HostState {
         presentation: HostPresentation::Windowed,

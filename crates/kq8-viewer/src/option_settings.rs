@@ -3,6 +3,7 @@
 //! own Options.cs so the original game can still use its copy.
 use bevy::prelude::*;
 use kq8_core::options_menu::Settings;
+use kq8_core::modern_display::Choice as DisplayChoice;
 use kq8_data::GameDir;
 use std::{
     fs,
@@ -13,8 +14,11 @@ use std::{
 #[derive(Resource)]
 pub struct Preferences {
     pub settings: Settings,
+    pub display: Option<DisplayChoice>,
     saved: Settings,
+    saved_display: Option<DisplayChoice>,
     path: PathBuf,
+    display_path: PathBuf,
     other_lines: Vec<Vec<u8>>,
 }
 
@@ -27,13 +31,20 @@ impl Preferences {
         let mut preferences = Self::load(game);
         let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
         preferences.path = PathBuf::from("kq8-artifacts/scratch/preferences").join(nonce.to_string()).join("Options.cs");
+        preferences.display_path = preferences.path.with_file_name("display.json");
         preferences.settings = settings.clone();
         preferences.saved = settings;
+        preferences.display = None;
+        preferences.saved_display = None;
         preferences
     }
 
     pub fn load(game: &Path) -> Self {
         let path = PathBuf::from("kq8-artifacts/Options.cs");
+        let display_path = PathBuf::from("kq8-artifacts/display.json");
+        let display = fs::read(&display_path).ok()
+            .and_then(|bytes| serde_json::from_slice::<Option<DisplayChoice>>(&bytes).ok())
+            .flatten().filter(|choice|choice.valid());
         let original = GameDir::open(game)
             .ok()
             .and_then(|g| g.find("Options.cs"))
@@ -45,23 +56,31 @@ impl Preferences {
         let settings = Settings::from_script(&combined);
         Self {
             settings: settings.clone(),
+            display,
             saved: settings,
+            saved_display: display,
             path,
+            display_path,
             other_lines: retained_lines(local.as_deref(), original.as_deref()),
         }
     }
 
     pub fn store(&mut self) -> Result<(), String> {
-        if self.settings == self.saved {
-            return Ok(());
+        if self.settings != self.saved {
+            let mut contents = self.settings.write_script().into_bytes();
+            for line in &self.other_lines {
+                contents.extend_from_slice(line);
+                contents.push(b'\n');
+            }
+            write_preferences(&self.path, &contents)?;
+            self.saved = self.settings.clone();
         }
-        let mut contents = self.settings.write_script().into_bytes();
-        for line in &self.other_lines {
-            contents.extend_from_slice(line);
-            contents.push(b'\n');
+        if self.display != self.saved_display {
+            let contents = serde_json::to_vec_pretty(&self.display)
+                .map_err(|error| format!("display preference: {error}"))?;
+            write_preferences(&self.display_path, &contents)?;
+            self.saved_display = self.display;
         }
-        write_preferences(&self.path, &contents)?;
-        self.saved = self.settings.clone();
         Ok(())
     }
 }
@@ -130,8 +149,24 @@ fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>>
 
 #[cfg(test)]
 mod tests {
-    use super::retained_lines;
+    use super::{retained_lines,Preferences};
     use kq8_core::options_menu::Settings;
+    use kq8_core::modern_display::{Choice,Ratio,ViewMode};
+    use std::path::Path;
+
+    #[test]
+    fn modern_display_preference_is_separate_from_original_options_script() {
+        let game = Path::new(".");
+        let mut preferences = Preferences::isolated_for_test(game,Settings::default());
+        let choice = Choice { mode: ViewMode::Windowed, ratio: Ratio::TwentyOneNine,
+            pixels: [3440,1440] };
+        preferences.display = Some(choice);
+        preferences.store().unwrap();
+        assert!(!preferences.path.exists(),"display alone must not write Options.cs");
+        let bytes = std::fs::read(&preferences.display_path).unwrap();
+        assert_eq!(serde_json::from_slice::<Option<Choice>>(&bytes).unwrap(),Some(choice));
+        std::fs::remove_file(&preferences.display_path).unwrap();
+    }
 
     #[test]
     fn older_local_options_retain_gog_graphics_defaults() {
