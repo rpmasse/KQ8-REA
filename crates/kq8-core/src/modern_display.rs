@@ -44,6 +44,11 @@ impl Ratio {
             Self::TwentyOneNine => 43.0/18.0, Self::ThirtyTwoNine => 32.0/9.0,
         }
     }
+    pub fn matches_pixels(self, size: [u32; 2]) -> bool {
+        if size[1] == 0 { return false; }
+        let actual = size[0] as f64 / size[1] as f64;
+        ((actual-self.value())/self.value()).abs() <= 0.02
+    }
     pub fn nearest(size: [u32; 2]) -> Self {
         Self::ALL.into_iter().min_by(|a,b| {
             let actual = size[0] as f64 / size[1].max(1) as f64;
@@ -117,6 +122,8 @@ mod tests {
         assert!(Choice::default().valid());
         assert!(!Choice { pixels: [0,0], ..Choice::default() }.valid());
         assert_eq!(Ratio::nearest(native), Ratio::TwentyOneNine);
+        assert!(Ratio::TwentyOneNine.matches_pixels(native));
+        assert!(!Ratio::SixteenNine.matches_pixels([2580,1328]));
         assert_eq!(choices(native,&[],ViewMode::Windowed,Ratio::FourThree),
             vec![[640,480],[800,600],[1024,768],[1280,960],[1600,1200],[1920,1440]]);
         assert_eq!(choices(native,&[],ViewMode::Windowed,Ratio::TwentyOneNine),

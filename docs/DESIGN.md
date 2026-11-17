@@ -1793,11 +1793,11 @@ M7, but the playable viewer's Graphics page may use new text and controls.
    paths. Record which dimensions are actual rendered pixels. A larger
    window currently makes Bevy render a larger surface while the GUI keeps
    its 640×480 or 800×600 authored canvas.
-2. Add a separate local display preference for View Mode, Ratio and
+2. Add a separate local display preference for View Mode, Aspect Ratio and
    Resolution. Keep the GOG installation read-only and do not insert
    recreation-only commands into its original Options.cs script.
 3. Replace the viewer's fixed device and two-resolution controls with
-   View Mode (Windowed/Fullscreen), Ratio (4:3, 5:4, 16:9, 16:10, 21:9,
+   View Mode (Windowed/Fullscreen), Aspect Ratio (4:3, 5:4, 16:9, 16:10, 21:9,
    32:9), then Resolution. Offer standard pixel sizes from 640×480 up to
    the monitor's native size, filtered by ratio and actual host mode
    support. Include the native size under its closest marketed ratio
@@ -1837,6 +1837,21 @@ fresh launch. The current remote monitor reports 2580×1328 at 32 Hz;
 native 3440×1440, 32:9 output and physical gameplay input alignment
 remain untested on this hardware. M8 is estimated at 90% pending that
 display validation, without asking for manual gameplay testing now.
+
+Fullscreen fallback correction (2026-11-17): selecting Fullscreen from a
+windowed 21:9 size on the current 2580×1328 remote display did nothing.
+The menu offered no 21:9 exclusive mode and silently returned without a
+request. View Mode now chooses the monitor's largest advertised
+fullscreen mode in that situation, and updates Aspect Ratio and
+Resolution to the accepted mode. A 21:9 fullscreen request remains
+unavailable on a monitor without a matching exclusive mode; the menu
+shows the actual numeric ratio for nonstandard native dimensions and
+does not imply that a 21:9 image is being displayed at 16:9. The
+in-game label is now "Aspect Ratio".
+The automated Windows replay from the saved 1920×800 windowed choice
+confirmed exclusive 2580×1328 fullscreen and persisted the accepted
+choice. The earlier run with identical scripted menu input issued no
+fullscreen request at all.
 
 ### Grouped completion and verification (user update, 2026-11-07)
 

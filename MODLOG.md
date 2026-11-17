@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-17 M8 fullscreen transition from unsupported ratio
+
+Reproduced the user's report from the saved 1920×800, 21:9 windowed
+choice. The remote monitor reported 2580×1328 but no 21:9 exclusive
+mode, so clicking View Mode produced no display request or feedback.
+The menu now falls back to the monitor's largest advertised fullscreen
+mode and commits that mode's actual aspect ratio and resolution only
+after host acknowledgement. It logs why the fallback occurred. The
+visible label is now "Aspect Ratio." The GOG installation is unchanged.
+Nonstandard native dimensions show their numeric ratio in the menu.
+The menu refreshes monitor modes on each input, since a remote display
+can change its advertised size while the Graphics page is open.
+
+The original-data menu test covers the unsupported-ratio fallback and
+the label. The first native replay logged no fullscreen request. After
+the fix, the same 1920×800 windowed replay requested and confirmed
+exclusive 2580×1328 fullscreen, exited successfully and saved that
+choice in `display.json`. Ultrawide fullscreen still requires a
+monitor that advertises an ultrawide mode.
+
 ## 2026-11-17 M8 display controls before M6
 
 Added a modern Graphics page with View Mode (Windowed/Fullscreen), Ratio

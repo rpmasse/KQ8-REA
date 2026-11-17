@@ -579,6 +579,19 @@ impl Screen {
                 }
                 let options = modern_display::choices(modern.native,&modern.modes,next.mode,next.ratio);
                 if options.is_empty() {
+                    if modern.row == ModernRow::View && next.mode == ViewMode::Fullscreen {
+                        // A windowed ratio may have no exclusive counterpart.
+                        // Use the monitor's largest advertised mode so the
+                        // View Mode control still enters real fullscreen.
+                        if let Some(&pixels) = modern.modes.iter()
+                            .filter(|&&pixels| pixels[0] <= modern.native[0] && pixels[1] <= modern.native[1])
+                            .max_by_key(|&&pixels| (u64::from(pixels[0])*u64::from(pixels[1]),pixels[0])) {
+                            next.pixels = pixels;
+                            next.ratio = Ratio::nearest(pixels);
+                            modern.requested = Some(next);
+                        }
+                        return Action::Stay;
+                    }
                     // Show every requested ratio, even when this monitor
                     // advertises no fullscreen mode for it. The preview is
                     // not written to preferences or sent to the host.
@@ -611,9 +624,15 @@ impl Screen {
         let modern = self.modern.as_ref().unwrap();
         let mut out = self.background.clone();
         let options = modern_display::choices(modern.native,&modern.modes,modern.choice.mode,modern.choice.ratio);
+        let ratio_value = if modern.choice.ratio.matches_pixels(modern.choice.pixels) {
+            modern.choice.ratio.label().to_owned()
+        } else {
+            format!("{} {:.2}:1",if modern.choice.pixels == modern.native { "Native" } else { "Custom" },
+                modern.choice.pixels[0] as f64/modern.choice.pixels[1].max(1) as f64)
+        };
         for (label,value,label_key,value_key,position_key) in [
             ("View Mode",modern.choice.mode.label().to_owned(),"MODE","DIRECTDRAW","DIRECTDRAW"),
-            ("Ratio",modern.choice.ratio.label().to_owned(),"MODE","DIRECTDRAW","DIRECT3D"),
+            ("Aspect Ratio",ratio_value,"MODE","DIRECTDRAW","DIRECT3D"),
             ("Resolution",if options.is_empty() { "Unavailable".into() }
                 else { format!("{}x{}",modern.choice.pixels[0],modern.choice.pixels[1]) },"RESOLUTION","640X480","640X480"),
         ] {
@@ -759,7 +778,7 @@ mod tests {
             let picture = screen.render(&graphics,&art,0);
             assert_eq!([picture.width,picture.height],art.size());
             for (row,key,text) in [(ModernRow::View,"MODE","View Mode"),
-                (ModernRow::Ratio,"MODE","Ratio"),
+                (ModernRow::Ratio,"MODE","Aspect Ratio"),
                 (ModernRow::Resolution,"RESOLUTION","Resolution")] {
                 let [l,t,_,b] = row.rect(&screen.layout);
                 let right = screen.layout.controls[key].rect[2];
@@ -775,7 +794,9 @@ mod tests {
                 assert!(glyphs > 0,"{text} must render a visible caption");
             }
             assert_eq!(screen.input(click(&screen,ModernRow::View),&mut graphics),Action::Stay);
-            assert_eq!(screen.take_modern_request(),None,"unavailable fullscreen 4:3 must not be accepted");
+            assert_eq!(screen.take_modern_request(),Some(DisplayChoice {
+                mode: ViewMode::Fullscreen, ratio: Ratio::TwentyOneNine, pixels: native }),
+                "fullscreen uses the monitor's advertised mode when 4:3 is unavailable");
             screen.input(click(&screen,ModernRow::Ratio),&mut graphics);
             let ratio_request = screen.take_modern_request().unwrap();
             assert_eq!(ratio_request.ratio,Ratio::FiveFour);
@@ -806,6 +827,18 @@ mod tests {
             "supported request still waits for acknowledgement");
         assert_eq!(screen.take_modern_request(),Some(DisplayChoice {
             mode: ViewMode::Fullscreen, ratio: Ratio::TwentyOneNine, pixels: native }));
+
+        let remote_native = [2580,1328];
+        let wide_window = DisplayChoice { mode: ViewMode::Windowed,
+            ratio: Ratio::TwentyOneNine, pixels: [1920,800] };
+        let mut screen = Screen::open_modern(Path::new(&path),&art,wide_window,
+            remote_native,vec![remote_native]).unwrap();
+        screen.input(Key::Enter,&mut graphics);
+        assert_eq!(screen.take_modern_request(),Some(DisplayChoice {
+            mode: ViewMode::Fullscreen, ratio: Ratio::SixteenNine, pixels: remote_native }),
+            "an unsupported windowed ratio falls back to the monitor's advertised fullscreen mode");
+        assert_eq!(screen.modern.as_ref().unwrap().choice,wide_window,
+            "the displayed choice changes only after host acceptance");
     }
 
     #[test]

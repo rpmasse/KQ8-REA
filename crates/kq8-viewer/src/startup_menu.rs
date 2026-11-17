@@ -1085,10 +1085,13 @@ fn option_key(world: &mut World, key: Key) {
 fn graphics_key(world: &mut World, key: Key) {
     let log = world.resource::<crate::Shared>().log.clone();
     let old = world.resource::<Preferences>().settings.graphics.clone();
+    let old_display = active_modern_choice(world);
+    let (native,modes) = modern_host_modes(world);
     let mut graphics = old.clone();
     let profile = world.contains_resource::<crate::graphics_runtime::Runtime>();
     let (action, device, display) = {
         let mut menu = world.resource_mut::<Menu>();
+        menu.graphics.as_mut().unwrap().set_modern_host(native,modes);
         let cue = menu.graphics.as_ref().unwrap().sound(key);
         let action = menu.graphics.as_mut().unwrap().input(key, &mut graphics);
         let device = profile.then(||menu.graphics.as_mut().unwrap().take_device_selection()).flatten();
@@ -1123,6 +1126,12 @@ fn graphics_key(world: &mut World, key: Key) {
         }
     }
     if let Some(choice) = display {
+        if old_display.is_some_and(|previous| previous.mode == ViewMode::Windowed
+            && choice.mode == ViewMode::Fullscreen && previous.ratio != choice.ratio) {
+            log.lock().unwrap().summary(format!(
+                "display: this monitor has no exclusive {} mode; using its advertised {}x{} fullscreen mode (closest ratio family {})",
+                old_display.unwrap().ratio.label(),choice.pixels[0],choice.pixels[1],choice.ratio.label()));
+        }
         match world.resource_mut::<crate::graphics_runtime::Runtime>().request_display(choice) {
             Ok(Some(request)) => log.lock().unwrap().summary(format!("display: requested {:?} {:?} {:?}; awaiting host acknowledgement",choice.mode,choice.ratio,request.surface.pixels())),
             Ok(None) => {},

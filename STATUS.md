@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-17 M8 fullscreen fallback correction
+
+View Mode now selects the monitor's available fullscreen mode when the
+current windowed aspect ratio has no exclusive fullscreen match. The
+menu updates its Aspect Ratio and Resolution after the display change
+is accepted. The label reads "Aspect Ratio." The current remote
+display has no advertised 21:9 exclusive mode, so 21:9 windowed will
+switch to its native fullscreen dimensions and native aspect ratio.
+Nonstandard native dimensions are shown with their numeric ratio.
+The automated Windows replay of 1920×800 windowed → 2580×1328
+exclusive fullscreen passed and saved the new choice. Native
+ultrawide output remains untested on this remote display.
+
 ## 2026-11-17 M8 display controls in progress (~90%)
 
 The playable Graphics page now has View Mode, Ratio and Resolution in
