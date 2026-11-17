@@ -13,7 +13,7 @@ enemy rule.
 | Gate area | Current evidence | Work before M5 completion |
 | --- | --- | --- |
 | Shared melee, ranged, equipment, damage, potions and game over | Original-data encounters and the fighting/ranged rule maps exercise the main branches. | Close a documented *distinct* rule only where its present assertion is partial or the Rust behavior is missing; do not enumerate every placement with the same rule. |
-| Specialized enemies and combat receivers | Dragon, Mandragor, Lucreto, Skeleton King, Snowmane, Weeper and ordinary-object checks cover their principal attacks, deaths and several Rust save boundaries. | Resolve the remaining Q209/Q210/Q212 behavior that can change a shipped encounter, including death-phase collision/visibility and save continuation; check specialized receiver boundaries where the original study identifies a different rule. |
+| Specialized enemies and combat receivers | Dragon, Mandragor, Lucreto, Skeleton King, Snowmane, Weeper and ordinary-object checks cover their principal attacks, deaths and several Rust save boundaries. | Resolve a remaining Q209/Q210/Q212 gap only when it changes a shipped encounter or a Rust save continuation. Native binary-save internals and subframe parity belong to later original-game comparison. |
 | Death, drops and combat scripts | The mechanism inventory below links shared death, drop, corpse and reward rules to focused or grouped checks. | Specialized enemy finalizers and their save boundaries remain in the row above; data-only placement variants do not each need a new combat test. |
 
 ### Shared death and drop mechanism inventory
@@ -43,6 +43,14 @@ The next implementation should target the first uncovered behavior found
 in those two latter rows. Earned routes belong to M6; original-runtime
 comparison and presentation parity belong to M7. The detailed history
 below records narrower assertions without turning each into a new gate.
+
+2026-11-17: A bounded original-engine study corrected the Mandragor
+death-phase premise. A timed root death clears live collision type and
+mask, but does not change drawing groups or hidden status; collision
+returns when `birth` ends. The existing Rust path already keeps the
+root eligible for drawing while non-solid. Exact mesh visibility in the
+running original and native binary-save restoration remain unproved and
+do not justify a speculative renderer change or another placement test.
 
 2026-11-17: A Dragon head defeated mid-attack now gets a due attack
 deadline after rebirth. The existing IceWorld encounter check was

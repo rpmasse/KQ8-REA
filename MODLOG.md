@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-17 Mandragor death-phase static follow-up (study A, Q209)
+
+Corrected `mandragor.md` and Q209: a root's timed death clears live
+collision but does not change its draw groups or hidden flag; collision
+returns when `birth` ends. The original disk-load path still has not
+been shown to reconstruct the root–tree link or the non-solid live
+death-phase collision, so those remain open. No game or Rust files
+changed, and original-runtime play/save was not tested.
+
+
 ## 2026-11-17 Projectile corpse in the grouped Daventry fight (M5)
 
 Changed the existing placed Spriggan's controlled lethal event from

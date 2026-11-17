@@ -233,7 +233,12 @@ tree's down-root count up to the maximum (default two), and stops the
 tree from turning. It requests the root's `die` movement and sets the
 root's collision type and mask to zero, as ordinary Die also
 does. This makes the root non-solid while the death movement plays.
-The exact draw-group transitions remain to be established.
+The death entry does not change the root's drawing groups or hidden
+flag. Its sinking `die` movement remains eligible for ordinary drawing
+while the root is in range; the mesh's exact per-frame visibility was
+**not tested** in original play. The later timer and `birth` request
+also make no explicit drawing-group or hidden change. Collision remains
+off during `birth` and returns only when that movement ends.
 
 When `die` finishes, the root starts a timer for its `rebirthDelay`:
 four seconds for the right root and five for the left in the installed
@@ -298,10 +303,10 @@ part of that lookup contract. The tree's saved down-root count and the
 root-death state's saved deadline and phase flags do not themselves
 restore the link. The ordinary object save fields include the root's
 configured collider type and mask and its configured near/far drawing
-groups. Root death clears the *live* collision and drawing state
-separately. Saving those configured fields is therefore not, by itself,
-evidence that loading a root during its death cycle will preserve its
-death-phase collision and drawing behavior.
+groups. Root death clears the *live* collision type and mask but does
+not change those drawing groups. Saving the configured collision fields
+is therefore not, by itself, evidence that loading a root during its
+death cycle restores its non-solid live collision state.
 
 **Disk-load continuation remains open after a bounded static pass.**
 The shared loader proves saved fields precede each object's registration
@@ -311,7 +316,7 @@ does not itself show the death-entry side effects running again. This
 pass did not prove that native root setup is invoked on every disk-load
 route, that the recorded order always puts each tree before its roots,
 or that restoring the root's dedicated death state reapplies the
-expected live collision and visibility before gameplay resumes. In
+expected live collision values before gameplay resumes. In
 particular, the immediate name lookup alone does not justify a claim
 that an orphaned loaded root will link itself later.
 
@@ -355,7 +360,7 @@ that an orphaned loaded root will link itself later.
 
 - Manager creation and setup order, missing-tree handling, and how
   team names affect targeting.
-- Exact first-frame and root death visibility, team targeting,
+- Exact first-frame and per-frame sinking/birth visibility, team targeting,
   proximity-move collision outcome and notification order during rebirth.
 - Tree hit reactions, experience and drops, script callbacks,
   the end condition of a group, and save/load continuation.
