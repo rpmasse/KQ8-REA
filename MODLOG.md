@@ -1,5 +1,13 @@
 # MODLOG
 
+## 2026-11-17 Connor normal swing selector bounded study (Q221)
+
+A separate original-engine study found a mode flag that suppresses
+`AttackB` for unshifted melee swings, but did not establish the
+player-facing mode or when that flag changes. Recorded Q221 and narrowed
+`fighting.md` rule 40. Rust attack selection remains unchanged; no
+speculative mode branch, new test, or manual gameplay check was added.
+
 ## 2026-11-17 Ice Dragon head chain colour key (M5)
 
 Implemented Q210's source-backed head animation material flag on each

@@ -841,7 +841,8 @@ scripted fall, not the ordinary `die`:
     click and shot in rules 13–25; how a swing click picks its target in
     rule 32.
 40. **Which swing** (traced): a plain click plays **`Attack` or
-    `AttackB`**, 50/50 (in some case always `Attack`: not traced which); a
+    `AttackB`**, 50/50 (a nonzero Connor mode flag forces `Attack`;
+    which player-facing mode sets it is still Q221); a
     click while a swing is already playing does nothing; Shift plays
     **`Attack2`**. Like the characters', it starts only when his running
     movement can be cut short. Each has its `Do` cue (e.g. bare fists,
