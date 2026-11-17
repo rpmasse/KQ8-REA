@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-17 M5 team alarms respect the active enemy limit
+
+The shared team alarm previously appended inactive teammates even
+beyond the world's `MaxMonsters` limit. It now obtains a normal
+active-list slot before alarming the teammate, including the existing
+team-for-solo replacement rule. The focused core test passed 1/1, the
+nine Mandragor core tests passed 9/9, the original-data Swamp root
+timer test passed 1/1, and the existing active-list core check passed
+1/1. No manual gameplay or running-original comparison was performed.
+M5 remains ~80%; specialized save and presentation questions are open.
+
 ## 2026-11-17 M5 Dragon head combat resumes after rebirth
 
 A temporarily defeated Dragon head could rejoin enemy AI but retain the

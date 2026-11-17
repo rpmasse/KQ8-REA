@@ -28,6 +28,14 @@ cue in one run; the save-boundary core check also passed. Both focused
 checks passed 1/1. M5 remains ~80% because the other distinct gaps in
 the table remain open.
 
+2026-11-17: Team alarm now uses the same active-enemy slot rule as
+ordinary sight. One focused core check covers replacement of a solo
+enemy and refusal when a team-only list is full (1/1 passed); all nine
+Mandragor core checks and the existing installed Swamp root timer
+scenario also passed. This closes the shared team-slot mismatch but
+does not resolve Q209's native disk-load and drawing questions. M5
+remains ~80%.
+
 2026-11-17. This is an inventory of **automated Rust evidence**, not a
 claim of original-game parity. M5's gate in `DESIGN.md` requires melee and
 ranged hits and misses, ammunition, health changes, potion expiry, rewards,

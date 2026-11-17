@@ -1,5 +1,17 @@
 # Provenance
 
+**Team alarm active-list slot (2026-11-17, M5).**
+[Character movement rule 20](../behaviour/character-movement.md) limits
+ordinary active enemies and lets a team member replace a solo enemy.
+[Rule 24](../behaviour/character-movement.md) and the
+[Mandragor Q209 study](../behaviour/mandragor.md) describe an inactive
+teammate obtaining a slot before it is alarmed. The Rust team alarm now
+uses the ordinary slot operation and skips an inactive teammate when
+the team-only list is full. A grouped core check covers both cases;
+the existing installed Swamp root timer scenario passed afterward.
+There was no running-original comparison.
+
+
 **Temple 2 controlled deaths (2026-11-17, M5).**
 The installed placement data gives `spearchucker1`, `Hallhench2` and
 `henchbow1` distinct `invDrop` lists and experience values. After

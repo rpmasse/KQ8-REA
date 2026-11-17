@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Team alarm respects the active enemy limit (M5)
+
+Reused the ordinary active-list join rule when a team alarm reaches an
+inactive member. A teammate can replace a solo enemy but cannot exceed
+the world's limit when all slots belong to teams. The grouped core
+check passed 1/1, nine Mandragor core checks passed 9/9, the existing
+active-list core check passed 1/1 and the unattended Swamp root timer
+check passed 1/1. The original GOG files were read only. To repeat,
+run `cargo test -p kq8-core --locked --release team_alarm_obtains_a_slot_before_alerting_an_inactive_member`;
+expect one passing test. With `KQ8_GAME_DIR` set to the GOG installation,
+run `cargo test -p kq8-viewer --locked --release --test mandragor_tree_load original_swamp_roots_die_and_rebirth_on_their_own_timers -- --ignored`;
+expect one passing test.
+
+
 ## 2026-11-17 Dragon head attack after temporary defeat (M5)
 
 Reset the head's next attack deadline when its rebirth movement ends,

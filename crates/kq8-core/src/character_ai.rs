@@ -1068,11 +1068,14 @@ impl WorldState {
                 continue;
             }
             if !active {
-                // "made active if needed" (rule 24): **ours**, even past
-                // MaxMonsters.
+                // Rule 24 obtains an ordinary active-list slot before
+                // telling an inactive teammate (mandragor.md Q209).
                 let n = self.anims[j].player.name.clone();
-                self.active_list.push(n.to_ascii_lowercase());
-                self.anims[j].character.as_deref_mut().and_then(|c| c.ai.as_mut()).unwrap().active = true;
+                self.join_active(j, now);
+                if !self.anims[j].character.as_deref().and_then(|c| c.ai.as_ref()).is_some_and(|ai| ai.active) {
+                    self.character_note(&n, format!("team alarm from {who}: no active-list slot (rule 24)"));
+                    continue;
+                }
                 let line = format!("made active by its team member {who}'s alarm (rule 24): {} on the list", self.active_list.len());
                 self.character_note(&n, line);
             }

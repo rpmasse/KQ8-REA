@@ -9143,6 +9143,31 @@ endif
     }
 
     #[test]
+    fn team_alarm_obtains_a_slot_before_alerting_an_inactive_member() {
+        // Rule 24 and Mandragor Q209: a teammate may replace a solo
+        // monster, but it cannot overflow a full team-only list.
+        let mut replace = watchers(&[("scout", Some("mand"), 4000.0),
+            ("solo", None, 4000.0), ("root", Some("mand"), 4000.0)]);
+        replace.world.max_monsters = 2;
+        replace.world.join_active_pub(0, 0.0);
+        replace.world.join_active_pub(1, 0.0);
+        replace.world.alarm_pub(0, "sees Connor", 0.0);
+        assert_eq!(replace.world.active_list, ["scout", "root"]);
+        assert!(replace.world.anims[2].character.as_deref().unwrap().ai.as_ref().unwrap().alarmed);
+
+        let mut full = watchers(&[("scout", Some("mand"), 4000.0),
+            ("blocker", Some("mand"), 4000.0), ("root", Some("mand"), 4000.0)]);
+        full.world.max_monsters = 2;
+        full.world.join_active_pub(0, 0.0);
+        full.world.join_active_pub(1, 0.0);
+        full.world.alarm_pub(0, "sees Connor", 0.0);
+        assert_eq!(full.world.active_list, ["scout", "blocker"]);
+        let root = full.world.anims[2].character.as_deref().unwrap().ai.as_ref().unwrap();
+        assert!(!root.active && !root.alarmed);
+        assert!(full.world.character_log.iter().any(|line| line.contains("root: team alarm from scout: no active-list slot")));
+    }
+
+    #[test]
     fn a_plain_object_blocks_the_sight_line_a_character_does_not() {
         let mut a = watchers(&[("g1", None, 0.0)]);
         // A wall of a box between them (type 0x41).

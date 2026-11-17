@@ -5259,6 +5259,17 @@ defeated during an attack can rejoin the active list and start another
 attack after its `rebirth` movement. Keep the permanent Flame Sword
 route and ordinary AI's active-list capacity rules unchanged.
 
+**Team alarm active-list limit (2026-11-17).** The Mandragor study's
+Q209 team-alarm rule obtains an active-monster slot before alarming an
+inactive root. The current shared Rust alarm path instead appends every
+inactive teammate even after `MaxMonsters` is full. Reuse the existing
+rule-20 join operation when spreading a team alarm. Alarm the teammate
+only after it becomes active; preserve rule 20's ability to replace a
+non-team member and the rule 24 no-repeat broadcast. Check both a full
+list with a replaceable non-team member and a full team-only list in
+one core scenario. The installed Swamp root run remains a separate
+timer/attack check, not proof of the active-list limit.
+
 The current evidence and remaining distinct gaps are in
 [M5 combat completion audit](m5-combat-completion-audit.md). Use that
 inventory to select source-backed checks without rerunning whole matrices.
