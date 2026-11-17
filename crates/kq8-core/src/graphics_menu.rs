@@ -137,26 +137,30 @@ impl ModernRow {
     fn rect(self, layout: &Layout) -> [i32; 4] {
         match self {
             Self::View | Self::Ratio | Self::Resolution => {
-                let (label,value,index) = match self {
-                    Self::View => ("MODE","DIRECTDRAW",0),
-                    Self::Ratio => ("MODE","DIRECT3D",1),
-                    _ => ("RESOLUTION","640X480",2),
+                let (label,value,position) = match self {
+                    Self::View => ("MODE","DIRECTDRAW","DIRECTDRAW"),
+                    Self::Ratio => ("MODE","DIRECT3D","DIRECT3D"),
+                    _ => ("RESOLUTION","640X480","3DFX"),
                 };
-                // The original page had five device/resolution choices here.
-                // Space the three modern controls evenly through that area.
-                let first = layout.controls["DIRECTDRAW"].rect;
-                let height = first[3]-first[1];
-                let top = layout.controls["TITLE"].rect[3];
-                let bottom = layout.controls["DYNAMIC_LIGHTS"].rect[1];
-                let gap = (bottom-top-3*height)/4;
-                let t = top+gap+index*(height+gap);
                 let [l,_,_,_] = layout.controls[label].rect;
                 let [_,_,r,_] = layout.controls[value].rect;
-                [l,t,r,t+height]
+                let [_,t,_,b] = layout.controls[position].rect;
+                [l,t,r,b]
             }
-            _ => layout.controls[self.legacy().unwrap().key()].rect,
+            Self::Back => layout.controls[Row::Back.key()].rect,
+            _ => modern_lower_rect(layout,self.legacy().unwrap().key()),
         }
     }
+}
+
+fn modern_lower_rect(layout: &Layout, key: &str) -> [i32; 4] {
+    // Place Dynamic Lighting after the three consecutive display rows;
+    // preserve the original spacing among the lower graphics settings.
+    let mut rect = layout.controls[key].rect;
+    let shift = layout.controls["640X480"].rect[1]-layout.controls["DYNAMIC_LIGHTS"].rect[1];
+    rect[1] += shift;
+    rect[3] += shift;
+    rect
 }
 
 /// Only accepted UI decisions reach the presentation owner. Opening the
@@ -404,10 +408,12 @@ impl Screen {
 
     fn modern_backdrop(layout: &Layout, art: &Art) -> Canvas {
         let mut background = Canvas::new(layout.size[0], layout.size[1]);
-        for key in ["BACKGROUND","TITLE"].into_iter().chain(
-            [Row::Lights,Row::Connor,Row::Monster,Row::Character,Row::Object,
-                Row::Brightness,Row::Back].map(|row|row.key())) {
+        for key in ["BACKGROUND","TITLE","BACKTOMAIN"] {
             layout.draw(&mut background,art,key,key,layout.controls[key].rect,0,None);
+        }
+        for row in [Row::Lights,Row::Connor,Row::Monster,Row::Character,Row::Object,Row::Brightness] {
+            let key = row.key();
+            layout.draw(&mut background,art,key,key,modern_lower_rect(layout,key),0,None);
         }
         background
     }
@@ -423,7 +429,9 @@ impl Screen {
     pub fn palette_sample(&self, rgba: &[u8], width: u32, height: u32) -> Option<Vec<u8>> {
         if self.modal_open() { return None; }
         if (width,height) != (self.background.width,self.background.height) || rgba.len() != width as usize*height as usize*4 { return None; }
-        let mut dynamic: Vec<[i32;4]> = ROWS.iter().filter_map(|r|r.value()).map(|key|self.layout.controls[key].rect).collect();
+        let mut dynamic: Vec<[i32;4]> = ROWS.iter().filter_map(|r|r.value()).map(|key|if self.modern.is_some() {
+            modern_lower_rect(&self.layout,key)
+        } else { self.layout.controls[key].rect }).collect();
         dynamic.extend([Row::DirectDraw, Row::Direct3D, Row::Glide, Row::Low, Row::High].map(|row| self.layout.controls[row.key()].rect));
         if self.modern.is_some() {
             dynamic.extend([ModernRow::View,ModernRow::Ratio,ModernRow::Resolution]
@@ -652,7 +660,7 @@ impl Screen {
         }
         for row in [Row::Lights,Row::Connor,Row::Monster,Row::Character,Row::Object,Row::Brightness] {
             let key = row.value().unwrap();
-            let rect = self.layout.controls[key].rect;
+            let rect = modern_lower_rect(&self.layout,key);
             if row == Row::Brightness {
                 self.layout.draw(&mut out,art,key,key,rect,0,None);
                 let [l,t,r,b] = rect;
@@ -781,12 +789,13 @@ mod tests {
             let view = ModernRow::View.rect(&screen.layout);
             let ratio = ModernRow::Ratio.rect(&screen.layout);
             let resolution = ModernRow::Resolution.rect(&screen.layout);
-            let gaps = [view[1]-screen.layout.controls["TITLE"].rect[3],
-                ratio[1]-view[3],resolution[1]-ratio[3],
-                screen.layout.controls["DYNAMIC_LIGHTS"].rect[1]-resolution[3]];
-            assert!(gaps.iter().all(|gap|*gap > 0));
-            assert!(*gaps.iter().max().unwrap()-*gaps.iter().min().unwrap() <= 3,
-                "modern display rows should have even vertical gaps at {:?}: {gaps:?}",art.size());
+            let lights = ModernRow::Lights.rect(&screen.layout);
+            assert_eq!(view[1],screen.layout.controls["TITLE"].rect[3]);
+            assert_eq!(ratio[1],view[3]);
+            assert_eq!(resolution[1],ratio[3]);
+            assert!((0..=13).contains(&(lights[1]-resolution[3])),
+                "Dynamic Lighting should follow Resolution closely at {:?}",art.size());
+            assert_eq!(ModernRow::Connor.rect(&screen.layout)[1],lights[3]);
             let mut graphics = Graphics::default();
             let click = |screen: &Screen, row: ModernRow| {
                 let [l,t,r,b] = row.rect(&screen.layout);

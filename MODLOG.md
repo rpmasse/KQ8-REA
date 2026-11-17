@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-17 M8 Graphics menu compact rows
+
+The previous spacing change made the gaps equal but left the display
+controls spread across the old five-row area. That did not resolve the
+reported wide spacing. View Mode, Aspect Ratio, and Resolution now use
+three consecutive rows. Dynamic Lighting and the six lower settings move
+up together, leaving only the original small gap after Resolution. Back
+stays at the bottom of the page. The same positions drive text, values,
+selection cursors, pointer hits, and palette samples. The automated
+640x480 and 800x600 menu checks passed; visual feel is not tested.
+
 ## 2026-11-17 M8 Graphics menu spacing
 
 The three modern display rows previously occupied the original DirectDraw,
