@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 M8 main-menu popup alignment
+
+The Quit confirmation and other main-menu questions used a fixed 360x120
+background picture while their buttons and text scaled with the 800x600 menu
+layout. This left the buttons outside the panel at larger window sizes. The
+viewer now scales that panel to its resolved layout rectangle before the
+complete menu image is scaled to the window. The original game asset and
+its source control flag are unchanged. The original-data modal matrix passed
+at both 640x480 and 800x600, checking panel edges, button containment,
+pressed states, and click targets. Visual results at a user's window size
+are not tested.
+
 ## 2026-11-17 M8 Graphics menu compact rows
 
 The previous spacing change made the gaps equal but left the display

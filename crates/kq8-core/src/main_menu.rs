@@ -498,7 +498,10 @@ impl Art {
             control(146),
         );
         if let Some(dialog) = state.dialog {
-            draw(&mut canvas, "gm_win2.pbm", self.rects[&1004], 0, control(1004));
+            // The viewer scales the menu canvas as a unit. Scale this panel
+            // with its button/text rectangles before that final presentation.
+            canvas.picture(self.rects[&1004], Pic::of(&self.pictures["gm_win2.pbm"][0]).unwrap(),
+                true, 1.0, &self.palette);
             let text = self.label(match dialog {
                 Dialog::Quit => 159,
                 Dialog::Difficulty => 120,
@@ -595,17 +598,20 @@ mod tests {
                     let state = Choice { dialog: Some(dialog), button: 1, pressed, ..Choice::default() };
                     let actual = art.render(&state);
                     let mut expected = art.render(&Choice::default());
-                    expected.picture(background_rect, Pic::of(&art.pictures["gm_win2.pbm"][0]).unwrap(), false, 1.0, &art.palette);
+                    expected.picture(background_rect, Pic::of(&art.pictures["gm_win2.pbm"][0]).unwrap(), true, 1.0, &art.palette);
                     let equal_row = |expected: &Canvas, y: i32, left: i32, right: i32| {
                         let start = ((y * width as i32 + left) * 4) as usize;
                         let end = ((y * width as i32 + right) * 4) as usize;
                         assert_eq!(&actual.rgba[start..end], &expected.rgba[start..end],
                             "high={high} dialog={dialog:?} pressed={pressed} row={y}");
                     };
-                    // The strip precedes text/buttons and includes the area beyond
-                    // the native picture's right edge at 800. Stretching fails it.
+                    // The panel reaches its layout edges even at 800, while
+                    // the buttons and text remain inside those same edges.
                     for y in background_rect[1]..background_rect[1] + 15 {
                         equal_row(&expected, y, background_rect[0], background_rect[2]);
+                    }
+                    for y in background_rect[1]..background_rect[3] {
+                        equal_row(&expected, y, background_rect[2]-8, background_rect[2]);
                     }
                     for (i, &(left, _)) in dialog.buttons().iter().enumerate() {
                         let selected = i == state.button;
@@ -613,6 +619,8 @@ mod tests {
                         let frame = usize::from(selected && pressed);
                         let rect = art.layout_rect([left, 250, left + 88, 286]);
                         assert_eq!(rect[3] - rect[1], if high { 45 } else { 36 });
+                        assert!(rect[0] >= background_rect[0] && rect[2] <= background_rect[2]
+                            && rect[1] >= background_rect[1] && rect[3] <= background_rect[3]);
                         expected.picture(rect, Pic::of(&frames[frame]).unwrap(), true, 1.0, &art.palette);
                         for y in [rect[1], rect[1] + 1, rect[3] - 2, rect[3] - 1] {
                             equal_row(&expected, y, rect[0], rect[2]);
