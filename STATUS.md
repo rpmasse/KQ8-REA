@@ -1,5 +1,18 @@
 # STATUS
 
+## 2026-11-17 M5 Dragon head combat resumes after rebirth
+
+A temporarily defeated Dragon head could rejoin enemy AI but retain the
+disabled attack deadline from an interrupted `Attack`. Rebirth now makes
+its next attack due. The core save-boundary test passed 1/1, and the
+unattended IceWorld check passed 1/1 after its existing encounter was
+changed to defeat the head mid-attack and observe a later fire cue.
+The first IceWorld attempt failed because its old assertion expected
+the interrupted bite cue to finish; the check was corrected to require
+the right head's completed bite and fire cues and the reborn left head's
+fire cue. M5 remains ~80%; other distinct combat behavior is open.
+No manual gameplay or running-original comparison was performed.
+
 ## 2026-11-17 M5 progress recalibration
 
 The README's M5 estimate is now ~80%, up from a stale ~65%. The earlier

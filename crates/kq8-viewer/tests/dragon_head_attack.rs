@@ -13,7 +13,7 @@ fn dragon_heads_alarm_and_deliver_bite_and_fire_cues() {
     let output = Command::new(env!("CARGO_BIN_EXE_kq8-viewer"))
         .current_dir(&root).arg("--game").arg(&game)
         .args(["--world", "IceWorld", "--at", "182334,490176,30902",
-            "--windowed", "--sound", "off", "--god", "--console", "kill draglhed,90", "--updates", "220"])
+            "--windowed", "--sound", "off", "--god", "--console", "kill draglhed,80", "--updates", "240"])
         .output().unwrap();
     fs::write(root.join("stderr.log"), &output.stderr).unwrap();
     let logs = root.join("kq8-artifacts/logs");
@@ -29,11 +29,19 @@ fn dragon_heads_alarm_and_deliver_bite_and_fire_cues() {
     assert!(characters.lines().filter(|line| line.contains("draglhed: joins the active list")).count() >= 2
         && fight.contains("draglhed: Dragon head rebirth ended; original collision"),
         "temporarily defeated head did not rejoin after rebirth; inspect {}", root.display());
-    for head in ["draglhed", "dragrhed"] {
-        assert!(fight.contains(&format!("{head}: Dragon head Do (Attack at phase"))
-            && fight.contains(&format!("{head}: Dragon head Do (attack2 at phase")),
-            "{head} did not deliver both authored Do cues; inspect {}", root.display());
-    }
+    let interrupted = fight.find("draglhed: Dragon head Die: Normal").unwrap();
+    let reborn = fight.find("draglhed: Dragon head rebirth ended").unwrap();
+    let last_attack = fight[..interrupted].lines().rev()
+        .find(|line| line.contains("draglhed: attack (rule 7, standing)")).unwrap();
+    let last_attack_at = fight.find(last_attack).unwrap();
+    assert!(last_attack.contains("'Attack' starts at once")
+        && !fight[last_attack_at..interrupted].contains("draglhed: Dragon head Do (Attack")
+        && fight[reborn..].contains("draglhed: attack (rule 7, standing)"),
+        "an attack interrupted by temporary defeat did not resume after rebirth; inspect {}", root.display());
+    assert!(fight.contains("dragrhed: Dragon head Do (Attack at phase")
+        && fight.contains("dragrhed: Dragon head Do (attack2 at phase")
+        && fight[reborn..].contains("draglhed: Dragon head Do (attack2 at phase"),
+        "the right head's bite/fire or the reborn left head's fire cue was missing; inspect {}", root.display());
     assert!(fight.contains("within 3000; 200 Normal damage")
         && fight.contains("within 6000; 200 Fire damage"),
         "bite/Fire radius or kind missing; inspect {}", root.display());

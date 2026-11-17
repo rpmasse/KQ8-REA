@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Dragon head attack after temporary defeat (M5)
+
+Reset the head's next attack deadline when its rebirth movement ends,
+so an attack interrupted by defeat does not permanently silence it.
+Extended the existing core checkpoint and IceWorld encounter checks.
+The core and unattended original-data tests passed 1/1 each. The first
+IceWorld run failed because an old assertion required the interrupted
+bite to deliver its cue; the revised check observes that interruption
+and verifies a later fire cue. No GOG files changed. To repeat, run
+`cargo test -p kq8-core --locked --release dragon_head_temporary_defeat_rebirth_and_checkpoint`
+and, with `KQ8_GAME_DIR` set to the GOG installation, run
+`cargo test -p kq8-viewer --locked --release --test dragon_head_attack -- --ignored`;
+expect one passing test from each command.
+
 ## 2026-11-17 Recalibrate M5 and narrow the completion gate
 
 Raised the stale README estimate from ~65% to ~80% after reviewing the

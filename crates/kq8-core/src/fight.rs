@@ -1496,7 +1496,7 @@ impl crate::active::WorldState {
         }
     }
 
-    fn dragon_head_death_ended(&mut self, j: usize) -> bool {
+    fn dragon_head_death_ended(&mut self, j: usize, now: f64) -> bool {
         use crate::character::DragonHeadPhase;
         let phase = self.anims[j].character.as_deref().and_then(|c| c.dragon_head.as_ref()).map(|h| h.phase);
         match phase {
@@ -1507,13 +1507,17 @@ impl crate::active::WorldState {
                     let head = c.dragon_head.as_mut().unwrap();
                     head.phase = DragonHeadPhase::Alive;
                     let collision = head.original_collision;
-                    c.fight.as_mut().unwrap().dying = None;
+                    let fight = c.fight.as_mut().unwrap();
+                    fight.dying = None;
+                    // The interrupted Attack left this at NEVER. Q210's
+                    // rebirth completion returns the head to combat.
+                    fight.attack_time = now;
                     c.state = crate::character::State::Wait;
                     c.set_collision(collision.0, collision.1);
                     a.player.start("stop");
                     (a.player.name.clone(), collision)
                 };
-                self.fight_note(&name, format!("Dragon head rebirth ended; original collision {:#x}/{:#x} restored, ready to attack", collision.0, collision.1));
+                self.fight_note(&name, format!("Dragon head rebirth ended; original collision {:#x}/{:#x} restored, attack due at {now:.2}", collision.0, collision.1));
                 true
             }
             Some(DragonHeadPhase::Permanent) => true,
@@ -1955,7 +1959,7 @@ impl crate::active::WorldState {
     /// `idedKqs` or none; `Fire`: none); its script gets `Die <kind>`
     /// (queued for the caller, which runs scripts); it is removed.
     pub(crate) fn death_ended(&mut self, j: usize, _now: f64) {
-        if self.dragon_head_death_ended(j) { return; }
+        if self.dragon_head_death_ended(j, _now) { return; }
         if self.mandragor_root_death_ended(j, _now) { return; }
         // Rule 31a: the kept weapon first, before the experience and the
         // corpse.

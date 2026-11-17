@@ -21,6 +21,13 @@ in those two latter rows. Earned routes belong to M6; original-runtime
 comparison and presentation parity belong to M7. The detailed history
 below records narrower assertions without turning each into a new gate.
 
+2026-11-17: A Dragon head defeated mid-attack now gets a due attack
+deadline after rebirth. The existing IceWorld encounter check was
+extended to cover interruption, rejoining, and a later delivered fire
+cue in one run; the save-boundary core check also passed. Both focused
+checks passed 1/1. M5 remains ~80% because the other distinct gaps in
+the table remain open.
+
 2026-11-17. This is an inventory of **automated Rust evidence**, not a
 claim of original-game parity. M5's gate in `DESIGN.md` requires melee and
 ranged hits and misses, ammunition, health changes, potion expiry, rewards,

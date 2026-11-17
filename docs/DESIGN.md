@@ -5248,6 +5248,17 @@ current rule maps and special-encounter checks; it is not a fraction of
 the 595 placement rows or of all tests passing. The completion gate
 above remains unchanged.
 
+**Dragon temporary-defeat attack resumption (2026-11-17).** Q210 says
+the head returns to combat when `rebirth` finishes. The current Rust
+death entry clears its active/alarmed flags, and the ordinary AI can
+reacquire Connor after the head returns to Wait. If the head was hit
+while its attack was playing, however, `attack_time` remains the
+ordinary attack sentinel `never`; rebirth does not clear it. Set the
+deadline due at the rebirth completion time, then verify a saved head
+defeated during an attack can rejoin the active list and start another
+attack after its `rebirth` movement. Keep the permanent Flame Sword
+route and ordinary AI's active-list capacity rules unchanged.
+
 The current evidence and remaining distinct gaps are in
 [M5 combat completion audit](m5-combat-completion-audit.md). Use that
 inventory to select source-backed checks without rerunning whole matrices.

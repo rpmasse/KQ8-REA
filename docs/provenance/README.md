@@ -574,6 +574,16 @@ console; it does not prove an earned encounter or original-executable
 timing. Implementation B read the behavior note and installed game data,
 not the executable or study scratch.
 
+**Dragon attack after rebirth (2026-11-17).** The same
+[Dragon study](../behaviour/dragon.md) says a temporarily defeated head
+returns to combat when `rebirth` ends. The Rust head can already rejoin
+ordinary enemy AI, but an interrupted attack had left its next attack
+deadline disabled. The implementation makes that deadline due at rebirth
+completion. A core save-boundary check and one unattended IceWorld
+original-data run cover a defeat during `Attack`, then a later attack.
+This checks Rust behavior against the study rule; it is not a running
+original-game comparison.
+
 **IceWorld Dragon visual actors (2026-11-15).** The separate
 [Dragon study](../behaviour/dragon.md) identifies one body and two
 independent heads, each with its own original animation list. The

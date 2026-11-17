@@ -9566,6 +9566,8 @@ endif
         use crate::character::DragonHeadPhase as Phase;
         let mut a = dragon_head_fixture();
         a.world.simulation_time = 2.0;
+        // An interrupted Attack owns the NEVER deadline when the head dies.
+        a.world.anims[0].character.as_deref_mut().unwrap().fight.as_mut().unwrap().attack_time = crate::fight::NEVER;
         a.world.character_dies(0, crate::fight::HitKind::Normal, false);
         let head = a.world.anims[0].character.as_deref().unwrap();
         assert_eq!(head.dragon_head.as_ref().unwrap().phase, Phase::Waiting(5.0));
@@ -9589,7 +9591,15 @@ endif
         assert_eq!(head.dragon_head.as_ref().unwrap().phase, Phase::Alive);
         assert_eq!((head.state, head.collision_type, head.collision_mask), (crate::character::State::Wait, 0x4042, 0));
         assert!(head.fight.as_ref().unwrap().dying.is_none());
+        assert!(head.fight.as_ref().unwrap().due(3.0), "the interrupted attack must become due after rebirth");
         assert!(loaded.world.corpses.is_empty() && !loaded.world.anims[0].gone);
+        loaded.world.connor_at = Some([0.0, -1000.0, 100.0]);
+        loaded.world.characters_in_range.insert("draglhed".into());
+        loaded.world.anims[0].character.as_deref_mut().unwrap().ai.as_mut().unwrap().settings.can_always_see = true;
+        watch(&mut loaded, &[], 45);
+        assert!(loaded.world.active_list.contains(&"draglhed".to_string())
+            && loaded.world.fight_log.iter().any(|line| line.contains("draglhed: attack (rule 7")),
+            "the reborn head did not resume ordinary attack AI: {}", loaded.world.fight_log.join("\n"));
     }
 
     #[test]
