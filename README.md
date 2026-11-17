@@ -13,7 +13,7 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M2 · Recreate movement and camera | Complete · 100% |
 | M3 · Recreate Daventry gameplay | Complete · 100% |
 | M4 · Recreate menus, inventory and dialogue | Complete · 100% |
-| M5 · Recreate combat | In progress · ~88% |
+| M5 · Recreate combat | In progress · ~90% |
 | M6 · Recreate the full campaign and saves | In progress · ~28% |
 | M7 · Verify and release the Windows recreation | Planned · 0% |
 

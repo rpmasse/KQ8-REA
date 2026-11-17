@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-17 Scripted held walk weapon checkpoint (M5)
+
+Extended the existing GOG item-type controller matrix with the Q141
+scripted walk held during an ordinary weapon swap. Its pending target
+and completion cue survive serialization; after restoration the walk
+starts only when the swap ends. Focused release core test passed 1/1.
+No production controller changed and no graphics window or manual play
+was used. The M5 rule inventory now cites the already passing Lucreto
+finale's special `reactback` assertions instead of repeating that run.
+
+Test: set `KQ8_GAME_DIR` to the GOG installation, then run
+`cargo test -p kq8-viewer --release --bin kq8-viewer original_weapon_assignment_selection_and_checkpoint_matrix -- --ignored --nocapture`.
+Expect 1 passed, 0 failed.
+
 ## 2026-11-17 Moving enemy interrupted-attack repair (M5)
 
 The shared hit path now repairs an infinite attack deadline only when

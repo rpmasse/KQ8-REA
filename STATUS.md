@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-17 M5 scripted walk across weapon save
+
+The existing one-process controller matrix now checks a scripted walk
+held behind a weapon swap, saved before the set switch and restored.
+The walk stays queued throughout the resumed swap and then starts with
+its original target and completion cue. The focused release test passed
+1/1 using installed GOG item types; no graphics window, manual play or
+original-runtime comparison was used. The M5 rule audit also linked an
+already passing Lucreto finale test to its distinct `reactback` rule.
+M5 is estimated at ~90%; its full completion gate remains open.
+
+Run `$env:KQ8_GAME_DIR="C:\Users\Robert\Documents\Codex\KQ8\King's Quest 8 GOG"; cargo test -p kq8-viewer --release --bin kq8-viewer original_weapon_assignment_selection_and_checkpoint_matrix -- --ignored --nocapture`
+from the project root. Expect 1 passed, 0 failed.
+
 ## 2026-11-17 M5 moving enemy attack deadline
 
 An original-engine study closed the broad Move hurt-rule gap. A

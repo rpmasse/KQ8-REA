@@ -1,5 +1,13 @@
 # Provenance
 
+**Scripted walk held through a weapon checkpoint (2026-11-17, M5).**
+[Ranged-weapon rule 9](../behaviour/ranged-weapons.md) and Q141 require
+a scripted walk to wait while Connor changes weapons. The Rust slot
+already held this state; the grouped GOG item-type controller matrix
+now serializes and restores it before the set switch, then asserts the
+walk starts after the swap with its target and cue unchanged (1/1
+passed). This checks Rust continuation, not a running-original save.
+
 **Moving enemy interrupted attack (2026-11-17, M5).**
 [Fighting rules 11 and 22.7](../behaviour/fighting.md) now state from a
 separate original-engine study that a surviving Move hit repairs an

@@ -5230,6 +5230,24 @@ No production code changed; target AI was disabled for this isolated route.
 
 The Small Axe hand-weapon checkpoint passed at both boundaries in separate Windows processes. The save retains the GOG spelling `conAxe.anm` for the target list while the resolved Special movement name is normalized to `conaxe.anm/out`; tests compare each according to its stored format. The pending set switch occurred once only from `away`, and both cases reached Hand mode with the axe ready. Other weapon types and a scripted held walk remain open.
 
+**M5 scripted walk held across a weapon checkpoint (2026-11-17).**
+`ranged-weapons.md` rule 9 and Q141 require a scripted walk requested
+during a weapon swap to wait until the swap completes. The Rust slot
+already stores `held_walk`, but the existing save matrix has not
+exercised that field. Extend the one-process core weapon-selection
+matrix with a scripted walk and an accepted ranged swap, serialize and
+restore before the set switch, and assert that the walk starts only
+after the resumed swap ends with its target and cue intact. Run only
+that grouped core test. If it fails, repair the controller or slot path
+before any new Windows encounter test.
+
+Checked: the existing one-process controller matrix passed 1/1 using
+the installed GOG item types. A scripted walk stayed queued across a
+serialized weapon swap and began only after the restored swap ended,
+with its target and completion cue intact. No viewer window or manual
+play was needed. Other weapon item mappings are data variants of the
+same checkpoint path.
+
 **Combat cue boundary at a disk save (implemented for standing crossbow and Small Axe).** The fixed-update order runs Connor's animation after the world consumes combat cues, and a menu save can capture a `do` cue before the next world tick applies it. The standing crossbow regression exposed a slot with attack phase 0.25, no released bolt and a pending release cue. Optional version-2 slots now preserve pending melee and ranged `do` cues, their movement and phase, and any moving-shot aim; load restores them before the next world tick. The unattended three-case Windows test saved during a turn, at that exact pending release boundary, and after impact. The boundary slot held one cue and no bolt; reload released one bolt and damaged the Dead City skeleton once. The post-impact slot released no second bolt. A separate Small Axe slot saved at phase 0.5833 held one melee cue with the skeleton still at 60 health; a fresh process applied that hit once. Existing moving-shot and Small Axe pre-cue reload checks passed.
 
 Inventory the original weapons, ammunition, enemy attacks, damage rules and difficulty settings. Replace temporary controls and complete equipping, aiming, attack timing, hit detection, projectiles, consumables, experience, drops, death and game over. Verify special enemies in their M6 encounters.

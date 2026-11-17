@@ -2,13 +2,22 @@
 
 ## Current gate and next work
 
-As of 2026-11-17, M5 is estimated at **~88%**. The old ~65% README
+As of 2026-11-17, M5 is estimated at **~90%**. The old ~65% README
 figure was left unchanged while major M5 behavior was added: Dragon and
 Mandragor controllers, enemy attacks and reactions, elemental effects,
 terrain hazards, combat save continuation and original-data fights.
 This is a qualitative estimate, not a passing-test ratio. The gate in
 `DESIGN.md` still requires a scenario link for each distinct weapon and
 enemy rule.
+
+The previously unverified scripted-walk weapon checkpoint now passes
+inside the existing grouped controller test: a walk stays held across
+a serialized swap state and begins afterward with its target and cue
+intact. A full disk process was not part of this focused check. The
+Lucreto finale already asserts real `reactback` staggers, so that
+special reaction has a source-to-scenario link without another run.
+This closes two distinct gate items and moves the estimate from ~88%
+to ~90%; other special-state and original-rule limits remain open.
 
 The moving-enemy hurt path now follows the original reaction gate:
 an interrupted attack's deadline is repaired only when the surviving
