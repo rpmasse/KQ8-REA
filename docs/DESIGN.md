@@ -1783,14 +1783,9 @@ contains only our own source code; no game files, no decompiled code.
 
 ### M8 · Modern Improvements (brought forward before M6, 2026-11-17)
 
-Mouse camera adjustment (2026-11-17): raw Winit mouse-device motion is
-measured in physical pixels. The viewer previously normalized it by
-Bevy's logical window dimensions, which amplified right-drag camera
-movement on scaled Windows desktops. Normalize by physical window
-dimensions and apply a 0.5 gain to the game camera's mouse swing and
-vertical zoom/tilt. Keep the original core camera transform and 15 Hz
-update timing intact. This is an intentional M8 control improvement,
-separate from the M7 original-behavior comparison.
+Mouse camera adjustment (2026-11-17): the M8 half-strength input change
+was reverted after direct-monitor testing showed it was too slow. Keep
+the pre-M8 mouse camera input behavior while continuing display work.
 
 The user requested display controls before further campaign work. M8 is a
 separate enhancement milestone; its numbering does not change the M0–M7

@@ -832,7 +832,9 @@ pub fn camera_input(
     // stop at the window's edge: our method) as a share of the window.
     // M6 6d-4: not while a drag that started on the magic map runs.
     if let (true, Ok(w)) = (game.mouse_held(&buttons) && map_drag.0.is_none(), windows.single()) {
-        game.mouse += camera_mouse_fraction(motion.delta,w);
+        if w.width() > 0.0 && w.height() > 0.0 {
+            game.mouse += motion.delta / Vec2::new(w.width(), w.height());
+        }
     }
     if game.key_pressed(game.keys.change_mode, &keys) {
         game.pressed_mode = true;
@@ -840,15 +842,6 @@ pub fn camera_input(
     if game.key_pressed(game.keys.reset, &keys) {
         game.pressed_reset = true;
     }
-}
-
-/// Winit's device motion is in physical pixels; Window::width/height are
-/// logical pixels and amplify camera drag when Windows display scaling is
-/// above 100%. The 0.5 gain is the M8 user-requested gentler camera control.
-fn camera_mouse_fraction(delta: Vec2, window: &Window) -> Vec2 {
-    let pixels = Vec2::new(window.physical_width() as f32,window.physical_height() as f32);
-    if pixels.x <= 0.0 || pixels.y <= 0.0 { Vec2::ZERO }
-    else { delta / pixels * 0.5 }
 }
 
 
@@ -1087,22 +1080,6 @@ fn onoff(on: bool) -> &'static str {
 #[cfg(test)]
 mod sync_input_tests {
     use super::*;
-
-    #[test]
-    fn camera_drag_uses_physical_window_pixels_and_half_strength_at_high_dpi() {
-        let window = Window {
-            resolution: bevy::window::WindowResolution::new(800,600)
-                .with_scale_factor_override(2.0),
-            ..default()
-        };
-        assert_eq!([window.physical_width(),window.physical_height()],[800,600]);
-        assert_eq!([window.width(),window.height()],[400.0,300.0]);
-        let movement = camera_mouse_fraction(Vec2::new(100.0,60.0),&window);
-        assert!((movement-Vec2::new(0.0625,0.05)).length()<1e-6);
-        let larger = Window { resolution: [1600,1200].into(), ..default() };
-        assert!((camera_mouse_fraction(Vec2::new(200.0,120.0),&larger)-movement).length()<1e-6,
-            "the same fraction of a physical display gives the same camera movement");
-    }
 
     #[test]
     fn extra_full_updates_consume_mouse_and_fixed_zoom_once_but_defer_normal_page_tilt() {

@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-17 restore original viewer mouse camera input
+
+The user tested with a monitor connected directly to the computer and
+found the half-strength M8 mouse camera movement too slow. The earlier
+remote session had given an inaccurate feel. Reverted the 0.5 gain and
+physical-pixel normalization together; right-drag camera swing and
+vertical mouse zoom/tilt now use the exact pre-M8 input conversion.
+Removed the now-inapplicable normalization test and updated the current
+project description. The camera input test and Windows release build passed;
+the restored feel on the direct monitor is not tested yet. The earlier
+entry below remains as history.
+
 ## 2026-11-17 M8 main-menu popup alignment
 
 The Quit confirmation and other main-menu questions used a fixed 360x120

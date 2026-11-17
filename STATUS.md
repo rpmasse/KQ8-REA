@@ -1,13 +1,11 @@
 # STATUS
 
-## 2026-11-17 M8 mouse camera sensitivity
+## 2026-11-17 mouse camera restored
 
-Right-drag camera swing and mouse zoom/tilt now use half the former
-strength. Raw mouse motion is divided by physical window pixels, so
-Windows display scaling no longer makes it stronger. The focused
-automated normalization check passed. A person's feel of the camera
-has not been tested. The original camera simulation and game update
-rate are unchanged.
+The M8 half-strength mouse camera change was reverted after the user tested
+on a monitor connected directly to the computer and found it too slow.
+Right-drag camera input again uses the pre-change window normalization.
+The original game update rate is unchanged.
 
 ## 2026-11-17 M8 fullscreen fallback correction
 
