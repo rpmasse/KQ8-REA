@@ -869,10 +869,15 @@ mod tests {
             screen.input(click(&screen,ModernRow::Ratio),&mut graphics);
             let ratio_request = screen.take_modern_request().unwrap();
             assert_eq!(ratio_request.ratio,Ratio::FiveFour);
-            assert_eq!(ratio_request.pixels,[1280,1024]);
+            assert_eq!(ratio_request.pixels,[960,768]);
             // A request is not a committed menu choice. Host acknowledgement
             // must explicitly refresh it before the next selection.
             screen.set_modern_choice(ratio_request);
+            screen.input(Key::Right,&mut graphics);
+            let next = screen.take_modern_request().unwrap();
+            assert_eq!(next.ratio,Ratio::ThreeTwo);
+            assert_eq!(next.pixels,[720,480]);
+            screen.set_modern_choice(next);
             screen.input(Key::Right,&mut graphics);
             let next = screen.take_modern_request().unwrap();
             assert_eq!(next.ratio,Ratio::SixteenNine);

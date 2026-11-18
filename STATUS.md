@@ -1,5 +1,16 @@
 # STATUS
 
+## 2026-11-18 M8 resolution presets
+
+Graphics now includes the requested standard sizes for 4:3, 5:4,
+16:9, 16:10, 21:9 and 32:9, plus a new 3:2 aspect ratio. The final
+10240×2880 and 15360×4320 sizes are listed under 32:9. Windowed
+choices fit within the native monitor size; exclusive fullscreen
+choices must be advertised by Windows. Native pixel sizes only join a
+ratio family when their shape matches it. Catalog, isolation and menu
+navigation checks and the Windows release build passed. On-monitor
+appearance: not tested.
+
 ## 2026-11-17 M8 slider percentages
 
 The Mouse sensitivity percentage now sits immediately beside its bar.

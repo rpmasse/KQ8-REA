@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-18 M8 resolution families
+
+Added the user's listed resolution presets and 3:2 aspect ratio.
+Categorized 10240×2880 and 15360×4320 as 32:9 by their pixel shape;
+the listed 21:9 variants remain together despite slightly different
+exact fractions. Windowed choices are limited by native dimensions,
+fullscreen by advertised video modes, and native sizes enter a family
+only when their shape fits it. Automated catalog, ratio isolation and
+3:2 menu-navigation checks and the Windows release build passed;
+on-monitor appearance not tested.
+
 ## 2026-11-17 M8 slider percentages
 
 Anchored the Mouse sensitivity percentage just beyond the bar's right

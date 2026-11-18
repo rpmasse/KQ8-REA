@@ -9859,3 +9859,17 @@ Effects and Speech volume sliders on Options. Derive the text area from
 each GUI track at 640×480 and 800×600; verify numeric bounds and pixel
 placement with automated checks. Do not change slider values or input
 behavior.
+
+### M8 resolution families and presets (2026-11-18)
+
+Add the supplied standard resolutions to their 4:3, 5:4, 16:9,
+16:10, 21:9, 32:9 and new 3:2 aspect ratio families. Treat the
+supplied 1680×720, 2560×1080, 3440×1440 and 3840×1600 shapes as
+members of the marketed 21:9 family even though their exact fractions
+vary. The final 10240×2880 and 15360×4320 entries belong to 32:9.
+Keep windowed choices within the monitor's native dimensions and
+exclusive fullscreen choices limited to modes the monitor advertises.
+Append a native pixel size only if its shape actually matches the
+selected family, rather than merely being the closest available family.
+Verify the requested catalog, ratio isolation, native bounds,
+fullscreen mode filtering and 3:2 menu navigation with automated tests.
