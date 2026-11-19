@@ -70,8 +70,15 @@ east lane. Connor took the original Rock from plate four and threw it
 onto the separate plate at (120935,95925), opening portal three. He
 returned by the maze corridor, entered the Scales through the portal
 script and received its one-time 4,000 experience. The ready-state
-save and a mid-boarding save both resume in a fresh process. The Scales
-puzzle outcome remains to be earned on this route.
+save and a mid-boarding save both resume in a fresh process.
+
+The earned Feather then went onto the right dish by a visible click;
+Connor boarded the left dish through turn and Forward input. The
+original completion ran, lowered the five blood areas and spawned a
+world Mold. After Azriel's scene released control, an in-game save and
+fresh-process reload retained the completed puzzle, its terrain
+changes, placed Feather and Mold, and the single reward. Picking up
+the Mold and continuing Dead City remain ahead.
 [Earned skull evidence](skull-river-access.md#earned-good-skull-and-shelf-replacement)
 
 ## Crossing the spike gate

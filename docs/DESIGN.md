@@ -3,6 +3,28 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 earn the Scales outcome from the Feather checkpoint (2026-11-19)
+
+The installed `scale.cs` and dish scripts balance a Feather against
+Connor. Select the earned Feather in the quest strip, place it on the
+right dish through a camera-visible click, then use ordinary turn and
+Forward input to board the left dish. Require the original
+`scalcmpl.cs` completion, one 4,000-point award, five blood-height
+changes and the Mold world item. Save and reload after the scene to
+check that these effects persist without replaying the award. If a
+visible click fails, log the camera ray and collision outcome before
+changing gameplay behavior. Keep normal AI and damage active.
+The first completion run exposed a second internal transition: Connor
+falls onto the dish after boarding, plays `jumpend`, and must return
+from Land to standing inside Scales. Admit only this finished Land
+request alongside the finished Special request; keep unrelated state
+requests blocked. A post-scene save must then be possible.
+The first landing change admitted an old pending Fall instead of the
+current Wait. This was queued while Scales held outside state requests,
+then replayed after landing even though Connor was grounded. Drop that
+stale pending request at the controller's internal completion boundary
+so it cannot override the animation's return to standing.
+
 ## M6 keep Connor on the Scales through a save (2026-11-19)
 
 The earned Feather route reached the Scales through the original
@@ -4577,7 +4599,7 @@ The speech checkpoint uses `talk_checkpoint.rs` to keep queue state without mess
 | M3 · Bring Daventry to life | Implemented for the early scenarios. Interactive objects, scripts, sound, camera and the waterfall puzzle exist. | Replay a door interaction, a pickup and the waterfall puzzle. Assert the resulting state, camera events and sound cues. |
 | M4 · Interface and dialogue | Complete (100%). Grouped interface/dialogue/inventory/graphics checks and the production-default Windows 640/800/640 fullscreen route pass, including submitted-frame acknowledgement. | Retain this evidence during M5/M6 integration; final original-raster and campaign-wide comparison remain M7. |
 | M5 · Combat | Complete (100%) against the grouped combat gate. Melee/ranged weapons, enemy decisions, distinct bosses, deaths, terrain hazards and Rust save continuation have direct automated checks; the final Mandragor source question is resolved. | M6 integrates earned campaign routes. M7 compares original-runtime timing, presentation and native-save behavior. |
-| M6 · The whole game | Partial. Earned saves cover Daventry, Castle Daventry and Dead City through the northwest archers, river crossing and GoodSkull. Scales, interrupted encounters and Temple 4 outcomes have focused checks. | Return with the skull, complete the statue/feather/scales and remaining regional quests in integrated routes; finish missing controller/persistence families and verify one Normal New Game through ending and credits. |
+| M6 · The whole game | Partial. Earned saves cover Daventry, Castle Daventry and Dead City through the skull, Feather and completed Scales. Interrupted encounters and Temple 4 outcomes have focused checks. | Collect the Mold and complete the remaining regional quests in integrated routes; finish missing controller/persistence families and verify one Normal New Game through ending and credits. |
 | M7 · Fidelity | Project-wide verification is pending. | Resolve differences against the original and package the feature-complete Windows build. |
 
 **Starting revision.** This fork incorporates the [October 31 upstream changes](https://github.com/Eric-lz/KQ8R/compare/b6658de39c87b51c41a62f765f08dbf1ee54980c...5ea5a46f791a637b2d2e231e56195726050e57cb), including world persistence and Dead City puzzle work. The remaining implementation starts from those systems and the verified Windows scenarios below.

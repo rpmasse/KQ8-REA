@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-19 M6 completed and saved the Scales puzzle (~67%)
+
+The earned Feather was placed on the right dish with a visible gameplay
+click; normal movement boarded Connor on the left. The original puzzle
+script completed, awarded experience, lowered five blood areas and made
+one Mold item. Scales now lets its finished landing animation return to
+standing without replaying an old refused Fall request. A post-Azriel
+Save menu slot and fresh-process reload retained the result, Mold,
+Feather copy, terrain changes and experience without another award.
+The release build and viewer unit tests passed (81, 54 ignored).
+Earlier save attempts during the scene and the landing stall are
+recorded in STATUS. M6 rises ~63% to ~67%. On-monitor appearance and
+manual playtesting: not tested.
+
 ## 2026-11-19 M6 entered Scales and restored its saved controller (~63%)
 
 The earned Feather route recovered the world Rock from plate four, threw

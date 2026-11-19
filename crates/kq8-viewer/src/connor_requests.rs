@@ -259,12 +259,18 @@ impl ConnorSim {
             Some(active) => kq8_core::connor_update::tick_with_requests(mover, walker, intent, jump, &loops, world, &mut |mover, walker, next| {
                 let mut dispatch = dispatcher.borrow_mut();
                 // The Scales controller owns input state changes, but its
-                // completed Special list must return to standing so the
-                // controller can advance from Onto or Off on the next tick.
+                // completed Special or landing animation must return to
+                // standing so the controller can advance on the next tick.
                 let internal_scales_end = scales_active && next == StateRequest::Wait
-                    && walker.mode == Mode::Special && walker.special.is_empty();
+                    && (walker.mode == Mode::Special && walker.special.is_empty()
+                        || walker.mode == Mode::Land && walker.phase >= 1.0);
                 let held = dispatch.held;
-                if internal_scales_end { dispatch.held = false; }
+                if internal_scales_end {
+                    // Scales refused these older requests. In particular, an
+                    // airborne Fall must not run after the dish landing.
+                    *dispatch.pending = None;
+                    dispatch.held = false;
+                }
                 dispatch.request(mover, walker, active, Request::ConnorTransition(next));
                 dispatch.held = held;
             }),

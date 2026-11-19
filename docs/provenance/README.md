@@ -1,5 +1,20 @@
 # Provenance
 
+**Earned Scales completion and reload (2026-11-19, M6).**
+The installed `scalert.cs`, `scalelt.cs`, `scalcmpl.cs` and `scale.cs`
+define the Feather/right-dish and Connor/left-dish solution, one-time
+reward, blood changes and Mold spawn. From an earned Feather save, the
+Rust viewer's visible right-dish click and ordinary movement triggered
+those scripts. `scale.cs` changed five terrain rectangles and created
+one Mold. Azriel's installed script released `handsOff` after its
+sequence. The Rust Scales controller now accepts its own finished
+landing request and discards older state requests it had refused;
+otherwise a pending Fall replaced Wait after Connor landed. An in-game
+slot made after Azriel left, followed by a fresh-process load/save,
+kept `Scales::Complete=true`, one Mold, a placed Feather, five height
+changes and the same level, health and experience. No running-original
+or on-monitor comparison was performed.
+
 **Earned Scales entry and saved controller (2026-11-19, M6).**
 The installed `triptrp3.kq` and `triptrp3.cs` place the plate at
 (120935,95925) and add portal mask bit 4 while it is held. The

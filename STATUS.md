@@ -1,5 +1,32 @@
 # STATUS
 
+## 2026-11-19 M6 earned and saved Scales completion (~67%)
+
+From the earned Feather/Scales checkpoint, Connor selected the carried
+Feather in the quest strip and clicked the camera-visible right dish.
+The original `scalert.cs` placed a world Feather copy. Ordinary turn and
+Forward input boarded the left dish. `scalcmpl.cs` marked the puzzle
+complete; `scale.cs` awarded its 4,000 experience once, changed five
+blood-height areas (39,704 surface vertices), switched five blood
+animations and spawned one Mold item. Normal AI and damage remained on.
+Azriel's scene returned control at update 740. The Save menu wrote
+`ScalesSolved` at update 760. A fresh process loaded it and saved again:
+both slots have 130 health, level 13, 1,250 experience toward the next
+level, one Mold world item, the placed Feather copy, and identical five
+height changes. `DeadCity::Scales::Complete=true` survived reload. The
+canonical ignored slot is
+`kq8-artifacts/earned-deadcity-scales-solved/slots/slot-1.json`.
+
+The first save attempt at update 290 was correctly blocked by the scene;
+the second at 700 was still before Azriel released control. A save at
+760 initially failed because Connor was stuck on the dish's landing
+frame. Allowing the controller's internal Land completion first replayed
+an older pending Fall. Clearing requests refused during Scales at that
+internal boundary let Land return to standing. A short run confirmed
+Land -> Free at update 147 before the full replay and fresh load passed.
+Collecting the Mold and the later campaign remain open. M6 rises from
+~63% to ~67%. On-monitor appearance and manual playtesting: not tested.
+
 ## 2026-11-19 M6 earned Scales entry and saved movement (~63%)
 
 From the earned Feather return, the verified northern ridge route reached
