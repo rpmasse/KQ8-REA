@@ -12,8 +12,8 @@ Use the verified northern ridge and eastern maze routes to reach the
 Rock on plate three. Pick up that original world Rock through a visible
 gameplay click, carry it down the known plate corridor and throw it
 onto plate four. Require the plate-four On event and both portal-four
-trigger masks gaining bit 4. Return to the hub, enter portal four and
-continue from its eastern exit to the Mold created by the Scales.
+trigger masks gaining bit 4. Return to the hub and verify portal four.
+Then approach the Mold from the central maze's connected ground.
 Keep AI and damage active; checkpoint and reload at route boundaries.
 Do not treat the saved `FourOn` flag alone as evidence of an open
 portal.
@@ -21,9 +21,24 @@ portal.
 The earned route now picked up the plate-three Rock, threw it onto
 plate four and crossed the opened portal. The saved arrival reloaded
 at (218304,192412,864) with the world Mold still present. Two direct
-approaches to Mold stopped at steep ground around y190500. Study the
-original terrain and collision corridor before choosing another route;
-do not assume a straight line across that boundary is traversable.
+approaches to Mold stopped at steep ground around y190500. A numeric
+read of the original floor grid shows that portal four's arrival is
+isolated from the Mold by that ridge. The Mold shares the central
+maze's connected ground instead. Continue from the earned central
+return lane, turn south around (124416,133632), follow the original
+terrain corridor toward (141312,175104), then approach the Mold along
+y176128. Check each part through ordinary movement, collisions and
+fresh-process saves; the terrain-only route does not prove that
+buildings and hazards allow passage.
+
+The live passage succeeded after defeating skeleton54 and using
+Connor's actual 0.8 slope limit for the ridge. A continuous run picked
+up the Mold and saved before the next guard reached Connor. The next
+stage is to collect local healing, carry Mold back through the maze
+and give it to Sylph through her original item interaction. Her
+installed script requires a second item, the Rusted Broken Shield,
+before the final spell. Keep the 31-health Mold save as the source and
+save/reload after each earned handoff.
 
 ## M6 earn the Scales outcome from the Feather checkpoint (2026-11-19)
 

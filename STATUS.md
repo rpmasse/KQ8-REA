@@ -1,5 +1,33 @@
 # STATUS
 
+## 2026-11-19 M6 earned the Dead City Mold (~74%)
+
+The original Dead City floor grid separates portal four's eastern
+arrival from the Mold by a steep ridge. A terrain-only path from the
+central maze reaches it through the southern passage. The first live
+route reached that passage but idled under fire; the extended route
+arrived with 123 health. Skeleton54 physically blocked the ridge and
+was defeated with the earned Small Crossbow. Its original 500
+experience was awarded once. A second terrain scan used Connor's
+actual 0.8 walkable-normal limit and found the eastward ridge passage.
+
+The continuous route from that guard victory reached the Mold without
+pausing near the other guards. At update 610 a camera-visible click
+hit the Scales-created `NoName113`; the normal pickup put one Mold in
+Connor's inventory, removed its world copy and awarded 6,000
+experience. Saving at update 620, before skeleton49 arrived, retained
+31 health, level 13 and 7,750 experience. A fresh process loaded and
+saved the same item, position, health and experience without repeating
+the award. The ignored checkpoint is
+`kq8-artifacts/earned-deadcity-mold-picked/slots/slot-1.json`.
+
+Exploratory runs that idled at the south entry, ridge or Mold died to
+guards; the 4-health eastbound save also died to a pursuing archer.
+Those saves are not the canonical continuation. Returning the Mold to
+Sylph, obtaining the other quest item and later campaign remain open.
+M6 rises from ~70% to ~74%. On-monitor appearance and manual
+playtesting: not tested.
+
 ## 2026-11-19 M6 reopened portal four after Scales (~70%)
 
 From the earned Scales save, Connor stepped off the left dish, left the

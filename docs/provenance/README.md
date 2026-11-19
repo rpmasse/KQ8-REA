@@ -1,5 +1,17 @@
 # Provenance
 
+**Earned Scales Mold pickup and reload (2026-11-19, M6).**
+The original Dead City floor image `terrh2.dib` and Connor's 0.8
+walkable-normal limit guided an offline route from the central maze;
+the portal-four arrival is a separate connected region. The live
+route crossed the southern passage under normal AI and damage,
+defeated skeleton54 with the earned crossbow, and reached the Mold.
+A camera-visible click picked up the `NoName113` world item created
+by `scale.cs`; the normal inventory path awarded 6,000 experience.
+An in-game save and fresh-process reload retained one carried Mold,
+no world Mold, 31 health and unchanged experience. No running-original
+or on-monitor comparison was performed.
+
 **Earned post-Scales portal-four return (2026-11-19, M6).**
 The installed `triptrp3.cs`, `triptrp4.cs`, `portrap4.cs` and
 `portrap7.cs` define the Rock-held portal masks and travel between the

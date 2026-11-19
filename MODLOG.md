@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-19 M6 collected and reloaded the Mold (~74%)
+
+A numeric read of the original terrain corrected the route from the
+central maze to the Mold. Connor defeated the ridge guard and ran the
+southern passage continuously. A visible click collected the Mold and
+its original 6,000 experience award. The in-game save and fresh-process
+reload retain one carried Mold and 31 health. Failed idle and low-health
+routes are recorded in STATUS. No game code changed. M6 rises ~70% to
+~74%. On-monitor appearance and manual playtesting: not tested.
+
 ## 2026-11-19 M6 reopened portal four after Scales (~70%)
 
 The earned route returned from Scales, recovered the original Rock from
