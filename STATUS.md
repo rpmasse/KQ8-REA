@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-19 M6 Feather earned and reloaded (~43%)
+
+The statue's spawned Feather remained in its `fall` movement after
+the first save. On a fresh reload, `feather.cs` changed its collision
+type to clickable at EndLoop fall, update 43. A camera-visible click
+at update 50 hit `feather` first and ran its original ConnorAction:
+the world object was deleted, Connor received exactly one
+`INVITEM_Feather`, and pickup awarded 1,000 experience.
+
+`kq8-artifacts/earned-deadcity-feather/slots/slot-1.json` reloaded
+in a fresh process at (217153,205942,891) with health 23,
+experience 13,330, one carried Feather, no carried Good Skull,
+the statue flag true and no second pickup award. The world Feather
+copy is gone. Scales and later campaign remain unfinished.
+M6 rises from ~41% to ~43%. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 Good Skull statue and Feather spawn (~41%)
 
 From the earned south-bank save, Connor followed supported ground

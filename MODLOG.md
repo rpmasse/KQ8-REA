@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-19 M6 picked up the original Feather (~43%)
+
+After its saved fall animation ended, the Feather became clickable.
+A visible world click ran `feather.cs`, removed the world object,
+gave one carried Feather and awarded 1,000 experience. A fresh
+process restored the earned save with 23 health, 13,330 experience
+and the Feather, without a second award. Scales remain ahead.
+M6 rises from ~41% to ~43%. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 statue accepted the earned Good Skull (~41%)
 
 A supported south-bank route cleared the pedestal base. A normal

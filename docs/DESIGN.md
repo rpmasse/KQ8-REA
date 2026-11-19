@@ -5890,6 +5890,14 @@ re-awarding them. Next collect the original Feather through normal
 input, then address the scales; do not infer an inventory pickup from
 the world spawn alone.
 
+The saved Feather's `fall` movement needed to finish after reload
+before it became clickable. `feather.cs` enabled its click collision
+at update 43. A visible click at update 50 deleted that object,
+carried one `INVITEM_Feather` and applied its one-time 1,000-point
+pickup award. A fresh process restored 13,330 experience and the
+carried Feather without repeating the pickup. Use this earned save
+for the scales interaction; keep the original item identity.
+
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
 The separate earned-supplies guard route now passes from a Windmill
