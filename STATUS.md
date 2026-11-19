@@ -1,5 +1,34 @@
 # STATUS
 
+## 2026-11-20 M6 fight-room key chain and reload (~91%)
+
+From the saved Square Key diagnostic, an isolated automated run cleared
+the two skeletons blocking the westbound exit, crossed Dead City through
+ordinary terrain and building collisions, and reached the fight-room
+door. The run used the test-only invulnerability switch during combat;
+that protection is not evidence of a normal-damage campaign victory.
+One intermediate leg accidentally turned the switch off and still
+reached the northern corridor alive with 35 health.
+
+Connor selected the carried Square Key through the normal quest strip.
+A ray hit `doornw3a` from the loaded campaign state. `doornew3.cs`
+consumed the key, opened all four door leaves, awarded 2,000 experience,
+and completed its scripted camera, walk and speech scene before handing
+control back at update 292. The in-game save after the scene retained
+35 health, 17,450 experience, and no Square Key.
+
+From that save, the normal hand-weapon input defeated `Skfight1` at
+update 68. Its original death dropped a Round Key, which settled after
+24 updates. An aim ray picked it up at update 12 of the next run. An
+in-game save and fresh-process reload retained one Round Key, 35
+health, 17,950 experience and the fight-room position. The key pickup
+probe bypassed the gameplay viewport check. The ignored diagnostic
+checkpoint is `target/m6-roundkey-earned-reload/slots/slot-2.json`.
+M6 rises ~89% to ~91% for the verified door, scene, fight, drop and
+save chain. The Round Key door, jail controls, Skeleton King and later
+campaign remain open. Manual playtesting and on-monitor appearance:
+not tested.
+
 ## 2026-11-20 M6 Square Key route and collider audit (~89%)
 
 The original Dead City scripts establish the key order: the

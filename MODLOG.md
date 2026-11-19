@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-20: M6 fight-room key chain and reload (~91%)
+
+The saved Square Key diagnostic crossed the original northern terrain
+route after test-only invulnerability helped clear two blocking
+skeletons. The loaded quest strip selected the carried key; an aim ray
+opened `doornw3a` through `doornew3.cs`. The script consumed the key,
+opened four door leaves, awarded 2,000 experience and finished its
+scene with control returned. A saved continuation defeated `Skfight1`
+with normal weapon input under the invulnerability switch. Its original
+drop settled, the Round Key was picked up, and an in-game save plus
+fresh-process reload retained one Round Key, 35 health and 17,950
+experience. The pickup probe bypassed the viewport check. No game code
+changed. M6 rises ~89% to ~91%; normal-damage victory and later
+campaign remain open. Manual playtesting and on-monitor appearance:
+not tested.
+
 ## 2026-11-20: M6 Square Key route and collider audit (~89%)
 
 Installed scripts show the earned gate order: Square Key chest,

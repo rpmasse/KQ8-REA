@@ -43,6 +43,18 @@ Square Key and 54 health. This probe can target outside the gameplay
 viewport; obtain a visible view for the canonical route. Keep slope
 and collision rules.
 
+The isolated Square Key continuation cleared the chest-side guards
+with the test-only invulnerability switch, then walked through the
+northern corridor to `doornw3a`. The saved key was selected through the
+quest strip. Its original door script consumed it, opened four leaves,
+awarded experience and ran the full fight-room scene. The next saved
+continuation defeated `Skfight1`; its original Round Key drop was
+collected and survived a fresh-process reload. The diagnostic key
+pickup aimed outside the gameplay viewport, and invulnerability was
+active in the combat legs. Continue through `doorway2` and the jail
+controls without treating those diagnostic protections as normal
+campaign proof.
+
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
 Continue from the earned Sylph Mold handoff. The installed Dead City
