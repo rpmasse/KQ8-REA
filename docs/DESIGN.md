@@ -5878,6 +5878,18 @@ normal AI and damage. Continue toward the installed statue at
 (217250,204900), accounting for `skeleton18` and its arrows before
 claiming any skull or Feather script event.
 
+The pedestal `skstatbs` box reaches x216780..217740 and
+y204300..205480 before Connor's radius. The first statue approach
+ran into its west and south faces. Staying south of y205900 reached
+the visible `skstattp` click ray. A normal quest-bar selection of the
+Good Skull followed by that visible click ran `skstat.cs`: it
+consumed the original item, set `StatHasGoodSkull`, spawned one
+Feather and awarded 4,000 experience at Cue 4. A fresh reload kept
+the flag, the one Feather copy and 12,330 experience without
+re-awarding them. Next collect the original Feather through normal
+input, then address the scales; do not infer an inventory pickup from
+the world spawn alone.
+
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
 The separate earned-supplies guard route now passes from a Windmill

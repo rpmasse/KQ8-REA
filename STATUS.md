@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-19 M6 Good Skull statue and Feather spawn (~41%)
+
+From the earned south-bank save, Connor followed supported ground
+south of the pedestal's original box. A normal quest-bar click held
+the carried Good Skull; a camera-visible aim hit `skstattp` first at
+update 51. `skstat.cs` deleted that exact skull, set
+`DeadCity::Skulls::StatHasGoodSkull=true`, played the statue sequence,
+loaded one `feather` object and awarded 4,000 experience at Cue 4.
+One `skeleton18` arrow reduced Connor from 36 to 23 health; AI and
+damage stayed active. A previous route that aimed through the
+pedestal's solid base is retained as a failed approach.
+
+A fresh process reloaded
+`kq8-artifacts/earned-deadcity-statue/slots/slot-1.json` at
+(217153,205942,891), health 23, experience 12,330 and the statue
+flag true. It restored one Feather object copy and gave no second
+4,000-point award. The Feather has not been picked up, and the
+scales remain ahead. An archer's projectile delivered a Die event to
+the zero-statue object before the skull offer; the object persisted
+and accepted the skull. Review that object-hit behavior for original
+parity separately. M6 rises from ~39% to ~41%.
+On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 earned eastern bone-bridge crossing (~39%)
 
 The original `bonebrdg.dig` has broken deck intervals. The authored

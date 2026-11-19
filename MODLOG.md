@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-19 M6 statue accepted the earned Good Skull (~41%)
+
+A supported south-bank route cleared the pedestal base. A normal
+inventory selection and visible statue click consumed the carried
+Good Skull, set the original statue flag, spawned one Feather and
+awarded 4,000 experience. A fresh process restored the earned save
+with 23 health and 12,330 experience, retained the Feather object,
+and did not repeat the award. The Feather is not yet in inventory.
+M6 rises from ~39% to ~41%. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 crossed the eastern bone bridge (~39%)
 
 Original bridge geometry showed gaps and a low lethal trap. One
