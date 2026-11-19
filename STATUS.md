@@ -1,5 +1,40 @@
 # STATUS
 
+## 2026-11-19 M6 north archer defeated, portal return saved (~47%)
+
+Starting from the earlier genuine 72-health `HealedBoneBridge` save,
+Connor approached skeleton19 with normal AI and damage. The route
+selected his carried Mace through the ordinary short-weapon HUD slot
+at update 27. One original heavy swing killed skeleton19 at update
+86; its death ended at update 101 and awarded 400 experience. Connor
+kept 20 health. The first approach used an unreachable 180-unit fight
+radius and never attacked; selecting the saved Crossbow also produced
+no valid heavy swing. An earlier Mace selection delayed the kill until
+after Connor had taken fatal damage. These failed runs are preserved
+under ignored `target/m6-bonebridge-archer19-*`.
+
+From the earned archer-clear save, ordinary movement and portal nine's
+original script returned Connor to the central chamber with normal AI.
+The in-game Save menu wrote `NorthArcherReturned`; a fresh process
+restored the corpse and the checkpoint at
+`kq8-artifacts/earned-deadcity-northarcher-returned/slots/slot-1.json`.
+Its facts are health 20, experience 8,730, one carried Good Skull,
+**no Feather**, `FourOn=true`, `NineOn=false`, `ThreeOn=true`, god mode
+false and AI-off false. The preceding exploratory save had the
+misleading label `FeatherReturnPortal`; it is not the canonical
+checkpoint and no Feather was claimed. M6 rises from ~44% to ~47%.
+On-monitor appearance: not tested.
+
+The no-AI corridor map reached Sylph's well through a west detour.
+Two normal-AI runs reached the well's vicinity but their automatic
+camera aim could not see `well2` after a full turn; no healing event
+fired and the later exploratory save still had 20 health despite its
+`NorthArcherHealed` label. The old successful well route approached
+from the east and its gameplay camera saw `well2` at update 351.
+The portal-nine checkpoint's camera starts on the opposite side.
+Stop blind route variants here; compare camera placement/occlusion
+and plan a visible original input before attempting another click.
+
 ## 2026-11-19 M6 Feather return reaches north bridge (~44%)
 
 Repeating the measured two-jump reverse crossing with ordinary movement,

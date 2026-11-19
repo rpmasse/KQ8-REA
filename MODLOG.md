@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-19 M6 cleared north archer and returned through portal nine (~47%)
+
+A normal Mace swing defeated skeleton19 from an earned bridge save.
+Its original death gave 400 experience. Ordinary movement crossed
+return portal nine, and a fresh process restored the archer's corpse,
+the carried Good Skull and the central-room save with 20 health.
+The Feather and well healing are still open on this branch. M6 rises
+from ~44% to ~47%. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 earned Feather north-bridge checkpoint (~44%)
 
 Two ordinary running jumps returned Connor from the Feather statue

@@ -61,10 +61,11 @@ the first hall with the key. The eight-process regression from
 `FirstHallReload` completed in 740.44 seconds. The final fresh
 load recorded one key, 80 health and 1,197 experience at level eight.
 
-The earned good skull and its shelf replacement now survive reload
-after the original two-block river crossing. The statue that produces
-the feather and the scales still need verification in this campaign.
-The existing focused scales test starts with a supplied feather.
+The earned good skull and its shelf replacement survive reload after
+the original two-block river crossing. A later earned branch placed
+that skull at the statue and picked up its Feather. The scales remain
+unreached on that branch; the existing focused scales test starts
+with a supplied feather.
 [Earned skull evidence](skull-river-access.md#earned-good-skull-and-shelf-replacement)
 
 ## Crossing the spike gate
@@ -100,7 +101,7 @@ guards award 300, 300 and 200 experience. A third process restores
 the cleared area and the same level-nine stats, 80 health and 717
 experience toward the next level. This release check passed in
 84.55 seconds. The two earlier defeats used the axe and lacked the
-crystal. The northern maze and the campaign route to the scales remain open.
+crystal. The later campaign route to the scales remains open.
 
 Connor then collects both Mushrooms dropped by the east swordsman,
 runs west through the passage and saves at its northwest turn. A
