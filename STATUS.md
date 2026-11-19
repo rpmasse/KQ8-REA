@@ -1,6 +1,6 @@
 # STATUS
 
-## 2026-11-19 M6 campaign walking and new Dead City checkpoint (~29%)
+## 2026-11-19 M6 campaign walking and Dead City checkpoints (~30%)
 
 The three-process cottage → CastleD → cottage save test passed in
 202.60 seconds, preserving mushrooms, the cottage door, chest and portal
@@ -25,9 +25,16 @@ walking, reaching the northern passage at update 525. The run saved
 `target/m6-west-block/slots/slot-1.json` at (94786,128185,864) with 120
 health. A fresh process loaded slot 1 in Dead City at the same position;
 the replay used no forced travel, invulnerability or disabled AI. The
-current M6 estimate rises to ~29% for this earned and reloaded campaign
-checkpoint. Portal four's floor plate, transfer and statue/feather remain
-unverified. No manual gameplay test occurred.
+next ordinary walk reached the eastern bend at update 689.
+It saved at (143311,129165,867) with 120 health and reloaded there in a
+fresh process. The next southbound segment reached (145314,108796,864)
+at update 351. BowGuys9 and BowGuys10 began hitting Connor on that
+segment. A late save left him at 27 health, so a replay saved at update
+355 instead: (145402,108478,864), 82 health, restored at the same spot
+in a fresh process. These runs used normal AI and damage. The M6 estimate
+rises to ~30% for the new earned and reloaded campaign route, while
+portal four's floor plate, transfer and statue/feather remain unverified.
+No manual gameplay test occurred.
 
 ## 2026-11-19 M8 anisotropic Off choice
 

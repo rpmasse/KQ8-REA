@@ -5566,6 +5566,25 @@ ordinary-control replay with AI and damage active, and save only after
 it reaches a new verified point. Record any further blocker by its
 detailed contact event before changing the route again.
 
+From the reloaded northern checkpoint at (94786,128185,864), the
+original floor grid has a level eastbound lane near y=129136 toward
+x=143264. No installed building bounding box crosses that lane, but
+object colliders, creatures and scripts still need an integrated check.
+Follow the lane using ordinary movement and retain a new checkpoint
+only if Connor remains alive and the reached position reloads.
+The integrated lane replay reached (143137,129113,866) at update 689
+and saved at (143311,129165,867) with 120 health. A fresh process
+reloaded this position. From this eastern bend, the original floor
+route runs south near x=143264 toward y=116848, then angles to
+(145312,108656). Check this next segment with ordinary movement before
+relying on the more distant terrain-only route to the plate.
+The southbound run reached its final waypoint at update 351. Arrows
+from BowGuys9 and BowGuys10 continued while Connor waited; the late
+save had 27 health. A repeat saved at update 355 and reloaded at
+(145402,108478,864) with 82 health. Continue from that earlier slot.
+Any route toward the portal-four plate must account for these live
+archers and keep normal health and AI rules enabled.
+
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
 The separate earned-supplies guard route now passes from a Windmill

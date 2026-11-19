@@ -1,6 +1,6 @@
 # MODLOG
 
-## 2026-11-19 M6 Dead City west detour and saved checkpoint (~29%)
+## 2026-11-19 M6 Dead City detour and southeastern checkpoints (~30%)
 
 The prior northward route struck `block.08b`, not terrain. Its detailed
 collision event named the building; the terrain column only reported
@@ -8,20 +8,26 @@ Connor's footing. A west detour based on the installed building's bounds
 reached the northern passage at update 525 using ordinary walking with
 AI and damage enabled. The run saved Dead City at
 (94786,128185,864), 120 health; a new process reloaded that exact
-position. M6 rises from ~28% to ~29% for the new earned checkpoint.
+position. A second route crossed the level eastern lane and reloaded
+at (143311,129165,867), 120 health. A third route reached the lower
+eastern lane. BowGuys9 and BowGuys10 hit Connor repeatedly; a late
+save held only 27 health, so the replay saved promptly and reloaded
+at (145402,108478,864), 82 health. M6 rises from ~28% to ~30% for
+these earned ordinary-control checkpoints.
 Added exceptional terrain-contact detail to `connor.log` for future
 route diagnosis without changing movement. The release build and both
-automated runs passed. Portal four is still unfinished; on-monitor
-appearance was not tested.
+automated walking runs and fresh reloads passed. Portal four remains
+unfinished; on-monitor appearance was not tested.
 
 ## 2026-11-19 M6 northward Dead City route study
 
 An unattended ordinary-walking replay from the earned central-chamber
-save reached the north corridor at (93807,123866,864). It stopped at a
-head-on terrain contact on update 436, before the floor plate that
-enables portal four. The terrain-only height-grid path lacks collision
-clearance and is not campaign proof. Recorded this second failed route
-in STATUS and DESIGN; no gameplay code or progress percentage changed.
+save reached the north corridor at (93807,123866,864). It stopped before
+the floor plate that enables portal four. The initial diagnosis called
+this a terrain contact from the footing column; the later detailed-event
+review identified `block.08b` as the forward obstacle. The terrain-only
+height-grid path omitted this building. This failed route changed no
+gameplay code or progress percentage.
 
 ## 2026-11-19 M6 walking replay with modern bindings
 
