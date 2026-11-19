@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-19 M6 Feather return route study (~43%)
+
+The earned Feather save has `NineOn=true` and `ThreeOn=true`. Original
+Dead City scripts place return portal nine at (220728,192412); it leads
+back to (77549,110436), near enabled portal three at (79676,92402),
+which enters the Scales state. This is the scripted campaign route to
+the scales; no teleport or inventory grant is needed.
+
+Two automated normal-AI attempts walked from the statue to the bone
+bridge. The first crossed both spans, landed on the north bridge at
+update 185, then skeleton19 arrows reduced health 23 to 15 at update
+194 and killed Connor at update 228 before the return portal. The
+second tried to jump immediately from the middle landing. The
+`jumpstop` animation carried him off the narrow bridge at update 102;
+`bbdgtrap` killed him at update 107. Both failures are in ignored
+`target/m6-feather-return-probe` and `target/m6-feather-return-fast`
+logs. No save or percentage gain is claimed. The next route must
+account for the landing animation and archer exposure using original
+timing and geometry before another live attempt. On-monitor appearance:
+not tested.
+
 ## 2026-11-19 M6 Feather earned and reloaded (~43%)
 
 The statue's spawned Feather remained in its `fall` movement after
