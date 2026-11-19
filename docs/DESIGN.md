@@ -3,7 +3,7 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
-## M6 post-Sylph jail gate route (2026-11-19)
+## M6 post-Sylph jail gate route (2026-11-20)
 
 Continue from the earned completed Sylph spell. Heal at her well through
 ordinary visible clicks, walk east while staying north of Portal 4's
@@ -25,11 +25,19 @@ Portal 4 and was discarded. The first southbound route reached
 Connor. A route west reached the jail's northern edge, but both a
 direct and a farther-north approach met the same steep terrain near
 y131000 (normal Z 0.599, below Connor's 0.8 walking limit). These are
-route failures, not evidence that the gate is impassable. Before another
-live route, locate the original `DeadHall` building floor and an
-ordinary entrance from its `.dig` geometry; then approach `MSwitch2`
-and `CSwitch4` from the supported side. Do not change slope or collision
-rules to make the route pass.
+route failures, not evidence that the gate is impassable. The steep
+surface is terrain; a separate southern level corridor reaches
+`doorway2`, whose original script requires the Round Key. The installed
+item chain starts at `chstskey` (Square Key), continues through
+`doorway3` and `Skfight1` (Round Key), then returns through `doorway2`
+to `MSwitch2` and `CSwitch4`. The earned eastern approach reached
+(163804,113824) with 94 health. A southern detour passed `Obalisk0`
+but stopped at `crate.10`, `crate.08` and `Obalisk1` near
+(183143,110087), saved with 94 health. A live route along y107000
+passed the cluster and reached the chest approach. Skeletons killed
+Connor while the camera-visible chest click was being lined up; the
+dead save is not a checkpoint. The next attempt needs a view and
+interaction before those attacks land. Keep slope and collision rules.
 
 ## M6 recover and rust the Broken Shield (2026-11-19)
 

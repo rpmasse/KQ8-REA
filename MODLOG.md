@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-20: M6 Square Key route and collider audit (~88%)
+
+Installed scripts show the earned gate order: Square Key chest,
+`doorway3`, `Skfight1` and Round Key, `doorway2`, jail switches, then
+`spmove2`. The west jail obstruction is original steep terrain; a
+southern level corridor reaches the Round Key door. The eastbound
+Square Key route from the central checkpoint reached (163804,113824)
+and saved 94 health. A first chest approach hit `Obalisk0`. A southern
+detour cleared it and saved at (183143,110087) with 94 health, where
+`crate.10`, `crate.08` and `Obalisk1` stopped forward movement. These
+are route diagnostics. A second run used the level southern lane at
+y107000 and reached the chest approach, but nearby skeletons killed
+Connor before a camera-visible chest click. The dead save was
+discarded. No game code changed; M6 stays ~88%. Manual playtesting
+and on-monitor appearance: not tested.
+
 ## 2026-11-19: M6 post-Sylph central checkpoint and jail gate audit (~88%)
 
 The earned post-Sylph save returned to her well and healed from 49 to
@@ -14,8 +30,8 @@ The southbound route stopped at the closed `spmove2` gate. Installed
 `KSwitch.cs`, `CSwitch4.cs` and `MSwitch2.cs` establish the switch
 dependency. Two westbound routes reached the jail's northern edge but
 could not climb the original steep terrain (normal Z 0.599). The
-46-health north-approach save was discarded. The next step is a
-read-only `DeadHall` floor/entrance audit before another live route.
+46-health north-approach save was discarded. A later read-only terrain
+audit found a southern level corridor and its locked `doorway2`.
 No game code changed. M6 rises ~87% to ~88%; gate operation and later
 campaign stages remain open. Manual playtesting and on-monitor
 appearance: not tested.

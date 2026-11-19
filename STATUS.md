@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-20 M6 Square Key route and collider audit (~88%)
+
+The original Dead City scripts establish the key order: the
+`chstskey` chest creates the Square Key, which opens `doorway3` to
+`Skfight1`; that skeleton drops the Round Key, which opens `doorway2`
+on the way to the jail switches. The earlier west approach was steep
+terrain, not a `DeadHall` building floor. The southern level corridor
+reaches `doorway2`, where the original Round Key check stops Connor.
+
+From the earned post-Sylph central checkpoint, ordinary movement under
+active AI reached (163804,113824,864) and saved 94 health. The first
+eastbound chest route stopped at the original `Obalisk0` collider near
+(178650,112168). A southern detour passed it, then stopped at
+`crate.10`, `crate.08` and `Obalisk1` near (183143,110087). The latter
+position was saved with 94 health; the Square Key is not yet collected.
+Original placements show `Obalisk1` at (185499,111790), and the two
+crates shifted during the blocked attempt. A live southern lane at
+y107000 passed the whole cluster and reached (198484,107800), near the
+chest. Skeleton archers and two melee skeletons then killed Connor at
+update 196; that dead save was discarded. A camera-visible chest click
+from the southern approach still needs an unoccluded view. M6 remains
+~88%. Manual playtesting and on-monitor appearance: not tested.
+
 ## 2026-11-19 M6 post-Sylph central checkpoint and jail gate audit (~88%)
 
 Connor returned from Sylph to her well through ordinary movement.
@@ -22,9 +45,10 @@ changed. The first route to the western jail controls stopped at a
 steep terrain face near (80000,131000); a second route reached its
 northern side but stopped at the same face near (77000,131000). The
 measured normal Z is 0.599, below Connor's 0.8 walking limit. Further
-route variations are paused until the original `DeadHall` building
-floor and entrance are audited. An exposed north-approach checkpoint
-had only 46 health after archer hits and was discarded.
+route variations were paused for an original terrain and entrance
+audit. An exposed north-approach checkpoint had only 46 health after
+archer hits and was discarded. The subsequent audit found a level
+southern corridor and the locked `doorway2` instead.
 
 M6 rises from ~87% to ~88% for the earned healed return, fresh-reloaded
 central checkpoint and identified gate dependency. The jail controls,
