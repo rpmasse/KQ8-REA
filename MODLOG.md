@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-20: M6 Round Key doorway building state (~92%)
+
+**Changed:** `KQObject::collisionType` now handles `KQInterior`
+buildings. Their collision types are saved and restored, including
+buildings loaded later by a script. The Round Key script changes
+`doorway2` from `0x28` to `0x08` after opening its four leaves.
+
+**Why:** `doornew2.cs` and `doornew3.cs` remove the clickable bit from
+their doorway buildings. The command had logged “object kind not tracked
+yet,” leaving the opened doorway clickable.
+
+**Checked:** The core save/reload check passed; `cargo check -p
+kq8-viewer` and release build passed. A fresh automated release run
+from the saved Round Key checkpoint logged `collisionType doorway2 -32:
+0x28 -> 0x8` and `RESULT: PASS`. The actual opening crossing and
+on-monitor appearance are not tested. The previous eastbound path hit
+the solid west wall; this bit change does not remove solid geometry.
+
+**Next:** Route through the doorway's real opening, then continue the
+jail controls and Skeleton King sequence.
+
 ## 2026-11-20: M6 fight-room key chain and reload (~91%)
 
 The saved Square Key diagnostic crossed the original northern terrain

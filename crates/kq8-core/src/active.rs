@@ -740,6 +740,8 @@ pub struct WorldState {
     pub clickables: Vec<Clickable>,
     /// The buildings, in the caller's order (3g-2).
     pub buildings: Vec<ActiveBuilding>,
+    /// Saved collision types also apply to buildings loaded later by script.
+    pub(crate) retained_building_types: BTreeMap<String, u32>,
     /// Interior lighting choices (object-lighting.md rule 12), by lower-case name.
     pub interior_lighting: BTreeMap<String, bool>,
     /// Every loaded object's name, lower case (for "unknown object").
@@ -1915,6 +1917,10 @@ impl WorldState {
             let old = c.collision_type;
             c.collision_type = change(old);
             (old, c.collision_type)
+        } else if let Some(b) = self.buildings.iter_mut().find(|b| b.name.eq_ignore_ascii_case(name)) {
+            let old = b.collision_type;
+            b.collision_type = change(old);
+            (old, b.collision_type)
         } else {
             let why = if self.known.contains(&name.to_ascii_lowercase()) { "object kind not tracked yet" } else { "unknown object" };
             self.note(format!("{at}: collisionType {name} {bits}: {why}; not changed"));
@@ -3956,6 +3962,7 @@ impl WorldState {
             return Some(self.chests[i].collision_type);
         }
         self.live_clickable(name).map(|i| self.clickables[i].collision_type)
+            .or_else(|| self.buildings.iter().find(|b| b.name.eq_ignore_ascii_case(name)).map(|b| b.collision_type))
     }
 
     /// The movement player of the door, chest or scripted object `name`
@@ -5146,6 +5153,7 @@ impl Active {
                 item_collider_states: BTreeMap::new(),
                 clickables,
                 buildings: Vec::new(),
+                retained_building_types: BTreeMap::new(),
                 interior_lighting: BTreeMap::new(),
                 known,
                 sources,
@@ -5323,7 +5331,10 @@ impl Active {
     /// Adds the buildings (before [`Active::start`]), in the order the
     /// caller's [`ClickWalls`] uses.
     pub fn add_buildings(&mut self, buildings: impl IntoIterator<Item = ActiveBuilding>) {
-        for b in buildings {
+        for mut b in buildings {
+            if let Some(&saved) = self.world.retained_building_types.get(&b.name.to_ascii_lowercase()) {
+                b.collision_type = saved;
+            }
             self.world.register_event_receiver(&b.name);
             self.world.known.insert(b.name.to_ascii_lowercase());
             self.world.buildings.push(b);
@@ -8860,6 +8871,25 @@ endif
         let mut a = Active::new(Vars::default(), vec![], vec![], ["Connor".to_string()], [("b.cs".to_string(), b"set B::Got $2 $3\n".to_vec())]);
         a.add_buildings([building(script, collision_type)]);
         a
+    }
+
+    #[test]
+    fn building_click_bit_change_survives_save_and_late_load() {
+        let mut a = with_building(Some("b.cs"), 0x28);
+        assert!(a.clickable_building(0));
+        a.console_command("KQObject::collisionType Pub -32", "doornew2.cs");
+        assert_eq!(a.world.collision_type_of("Pub"), Some(0x08));
+        assert!(!a.clickable_building(0));
+        let saved = crate::kept_interactions::KeptInteractions::take(&a.world);
+        assert!(saved.valid_building_types());
+        let saved: crate::kept_interactions::KeptInteractions =
+            serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();
+        let mut reloaded = Active::new(Vars::default(), vec![], vec![], ["Connor".to_string()], Vec::<(String, Vec<u8>)>::new());
+        saved.restore_building_types(&mut reloaded.world);
+        reloaded.add_buildings([building(Some("b.cs"), 0x28)]);
+        assert_eq!(reloaded.world.collision_type_of("Pub"), Some(0x08));
+        assert!(!reloaded.clickable_building(0));
+        assert_eq!(reloaded.world.buildings[0].collision_type & 0x08, 0x08);
     }
 
     #[test]

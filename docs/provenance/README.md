@@ -5779,3 +5779,16 @@ Lookup posting with callback-only delivery, and unresolved names retained
 across saves. Rust preserves their unique union with live names instead of
 the original duplicate-accumulation defect. Production ordered loading
 remains unfinished. [Evidence](../saved-trap-contacts.md).
+
+# Dead City doorway building collision state (M6, 2026-11-20)
+
+`crates/kq8-core/src/active.rs` applies `KQObject::collisionType` to
+`KQInterior` buildings; `kept_interactions.rs` retains the result for
+save/reload and later `loadKQ` registration. Source: `doors.md` command
+table (positive bits add, negative bits remove), `clicking.md` rules 2–4
+(bit 0x20 is clickable; default building type 0x28), and the installed
+`doornew2.cs` and `doornew3.cs` scripts (`-32` on each doorway). The
+change retains bit 0x8 and does not alter the building's wall geometry.
+The core save/reload test passed; the release viewer logged `doorway2`
+changing from `0x28` to `0x08` during the earned Round Key interaction.
+Crossing the actual opening remains unverified.

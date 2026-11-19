@@ -31,6 +31,8 @@ pub struct KeptInteractions {
     swamp_tiles: BTreeMap<String,crate::tile_objects::SwampTile>,
     #[serde(default)]
     lava_tiles: BTreeMap<String,KeptLava>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    building_types: BTreeMap<String, u32>,
 }
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
@@ -198,6 +200,24 @@ impl Playback {
 }
 
 impl KeptInteractions {
+    pub fn valid_building_types(&self) -> bool {
+        self.building_types.len() <= 16384 && self.building_types.keys().all(|name| {
+            !name.is_empty() && name.len() <= 1024 && name == &name.to_ascii_lowercase()
+                && !name.chars().any(char::is_control)
+        })
+    }
+
+    /// Restore the saved type before registering a building, including one
+    /// brought in later by a script's loadKQ command.
+    pub fn restore_building_types(&self, w: &mut WorldState) {
+        w.retained_building_types.clone_from(&self.building_types);
+        for b in &mut w.buildings {
+            if let Some(&saved) = self.building_types.get(&b.name.to_ascii_lowercase()) {
+                b.collision_type = saved;
+            }
+        }
+    }
+
     pub fn valid_animations(&self) -> bool {
         self.swamp_tiles.len()<=16384 && self.swamp_tiles.iter().all(|(name,t)|!name.is_empty() && name.len()<1024 && t.damage_factor.is_finite())
         && self.lava_tiles.len()<=16384 && self.lava_tiles.iter().all(|(name,t)|!name.is_empty() && name.len()<1024 && t.tile.valid() && t.animation.valid())
@@ -359,7 +379,8 @@ impl KeptInteractions {
             Some((name.clone(),KeptLava {tile:t.clone(),animation,hidden:w.plain_hidden.get(name).copied().unwrap_or(true)}))
         }).collect();
         let on_fire = Some(w.on_fire.iter().filter(|name| name.as_str() != "connor" && w.known.contains(*name) && !w.is_gone(name)).cloned().collect());
-        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats, animations,on_fire,swamp_tiles,lava_tiles }
+        let building_types = w.buildings.iter().map(|b| (b.name.to_ascii_lowercase(), b.collision_type)).collect();
+        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats, animations,on_fire,swamp_tiles,lava_tiles,building_types }
     }
 
     pub fn restore_special_actors(&self, w: &mut WorldState) {

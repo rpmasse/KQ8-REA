@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-20 M6 Round Key doorway and building state (~92%)
+
+From the earned, freshly reloaded Round Key checkpoint, the automated
+walker crossed Dead City's southern corridor and reached `doorway2`
+with the key still in its quest inventory. Selecting that key and
+clicking the doorway ran `doornew2.cs`: all four leaves opened, the
+key was consumed, and Connor gained 2,000 experience. The resulting
+save retained 35 health and 19,950 experience. This is a scripted
+interaction check using a diagnostic click; it does not prove the
+door is visible to the player or that Connor has crossed it.
+
+The script's `KQObject::collisionType doorway2 -32` had been ignored
+because the runtime omitted buildings from that command. It now changes
+the active building's type from `0x28` to `0x08`, removing clickability
+while keeping its solid bit. An automated check covers saving and
+restoring the building type. The release viewer ran the saved Round Key
+script and logged the expected bit change. The earlier attempt to walk
+east into the building hit its solid west wall; route through the
+actual opening remains to be verified. M6 rises ~91% to ~92% for the
+Round Key script and building state fix. Manual playtesting and
+on-monitor appearance: not tested.
+
 ## 2026-11-20 M6 fight-room key chain and reload (~91%)
 
 From the saved Square Key diagnostic, an isolated automated run cleared

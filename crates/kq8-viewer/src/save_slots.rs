@@ -325,7 +325,8 @@ impl Snapshot {
             if !kept.interactions.valid_on_fire() {
                 return Err("save has invalid on-fire object state".into());
             }
-            if !kept.interactions.valid_animations() || !kq8_core::object_checkpoint::valid_copies(&kept.object_copies) {
+            if !kept.interactions.valid_animations() || !kept.interactions.valid_building_types()
+                || !kq8_core::object_checkpoint::valid_copies(&kept.object_copies) {
                 return Err("save has invalid ordinary-object identity or animation state".into());
             }
             if kept.spawned_monsters.iter().any(|monster| !monster.valid()) {

@@ -10500,3 +10500,14 @@ selects one. If the fallback also fails, report failure as before.
 Keep the explicit legacy fullscreen diagnostic strict. Verify the
 retry state, preference handling and a real Windows launch using the
 saved unsupported fullscreen setting without manual gameplay testing.
+
+### M6 Dead City doorway collision state (2026-11-20)
+
+The Round Key and Square Key scripts remove the clickable bit from their
+`KQInterior` doorway after opening the four door leaves. Apply
+`KQObject::collisionType` to an active building, then retain its changed
+collision type in a saved or departed world. Restore it before the first
+click after reload. This command removes bit 0x20; it does not remove the
+building's wall geometry or its bit 0x8 collision with Connor. Verify
+the script command and save/reload with automated state checks, then
+route through the actual opening rather than across the solid side wall.

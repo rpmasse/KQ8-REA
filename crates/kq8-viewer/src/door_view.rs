@@ -930,6 +930,7 @@ pub fn spawn_doors(
         buildings.len() - not_clickable.len(),
         buildings.len()
     ));
+    objects.kept_interactions.restore_building_types(&mut active.world);
     active.add_buildings(buildings);
     // Items (3e-3): those the start-up scripts made, and the ground for
     // z -1 / -2 of items made while playing.
