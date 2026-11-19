@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-19: M6 earned Sylph's rusted-shield spell (~87%)
+
+The earned rusted-shield save returned from the river through original
+terrain and collider detours around `Obalisk3`, `flametow.08` and
+`block.08b`. A normal quest-bar selection and camera-visible Sylph
+click ran the original handoff. Her spell consumed the item, set
+`hasRustyShield` and `castSpell`, added five protection and 5,000
+experience, and returned control. An in-game save and fresh-process
+reload retain 49 health, protection 17, 14,750 experience and both
+flags, with no rusted shield carried. The ignored earned checkpoint is
+`kq8-artifacts/earned-deadcity-sylph-rusted/`. No game code changed.
+M6 rises ~85% to ~87%; later campaign stages remain open. Manual
+playtesting and on-monitor appearance: not tested.
+
 ## 2026-11-19: M6 earned and reloaded the Rusted Broken Shield (~85%)
 
 - `connor_view/route.rs`: the unattended melee driver now selects the

@@ -32,18 +32,23 @@ loads Connor's two river dipping movements from the installed data. The
 core now stages the accepted held item through speech, camera movement,
 the Special animation, conversion and the once-per-box experience award.
 Focused core and original-asset loader checks pass. The river result
-now passes on an earned campaign route and fresh reload; Sylph's
-handoff still needs the earned return route.
+and Sylph's handoff now pass on an earned campaign route with fresh
+reloads.
 
 The first east-to-west route pushed `crate.07` into `crate.05` and then
 lost health under skeleton attacks. A collision-led route north of the
 crate avoided this. The terrain-only route then hit `Pillar.ma01` and
 `Pillar.ma07a`; detours around their original boxes reached the bank.
 The earned river dip saved and reloaded with 75 health, the rusted
-shield and the once-per-control experience flag. Next trace the return
-to Sylph using original terrain and colliders, then run her visible
-handoff from this earned save. The earlier relocated Sylph fixture
-proves the interaction logic only, not the return route.
+shield and the once-per-control experience flag. The return route went
+west along the bank, south through the ridge, north of `Obalisk3`, east
+of `flametow.08`, then west of `block.08b`. A visible click gave Sylph
+the rusted shield; her original spell raised protection by five and
+awarded 5,000 experience. An in-game save and fresh reload retain its
+flags, stats and consumed item. Next identify the original post-Sylph
+campaign path from the installed scripts and data, then continue from
+this earned checkpoint. The earlier relocated Sylph fixture remains a
+separate interaction check.
 
 ## M6 move the portal Rock and recover Mold (2026-11-19)
 

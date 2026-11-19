@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-19 M6 earned Sylph's completed shield spell (~87%)
+
+From the earned rusted-shield save at the river, Connor followed the
+original floor west across the bank and south through the central ridge.
+The first direct routes stopped at the original `Obalisk3` and
+`flametow.08` colliders. Measured detours north of the obelisk and east
+of the tower passed under normal AI and damage. The route then crossed
+west of `block.08b` and reached Sylph's approach with 49 health.
+
+Ordinary movement reached Sylph at update 21. The quest bar selected
+the **earned** Rusted Broken Shield and a camera-visible click at update
+60 ran `sylph.cs`. The script consumed the shield, set
+`hasRustyShield=true`, completed its spell, added five protection and
+5,000 experience, set `castSpell=true`, and returned control at update
+379. An in-game save and fresh-process reload both retain 49 health,
+protection 17, 14,750 experience, both Sylph flags and no carried
+rusted shield. The canonical ignored checkpoint is
+`kq8-artifacts/earned-deadcity-sylph-rusted/slots/slot-1.json`.
+
+The Sylph shield quest is now complete on an earned route. M6 rises
+~85% to ~87%; later campaign stages and overall recreation remain
+unfinished. Manual playtesting and on-monitor appearance: not tested.
+
 ## 2026-11-19 M6 earned the Rusted Broken Shield (~85%)
 
 From the earned Broken Shield save, Connor crossed the spike gate and
