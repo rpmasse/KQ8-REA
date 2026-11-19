@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-20 M6 Azriel Hammer and King bridge return (~95%)
+
+The automated continuation found the original `doorway1` opening, crossed
+the altar's lower ramp with an ordinary run jump, and reached `altar_a1`.
+A diagnostic named click within reach ran its original script: Connor
+received Azriel's Hammer and 4,000 experience, while the four altar
+spirit traps were removed. Original trap damage reduced his health to 28
+on the approach. A fresh-process reload retained the Hammer and altar
+state. Ordinary King Sword swings defeated the altar guard `Skelhamr`;
+its death awarded 10,000 experience. Test-only invulnerability remained
+active for that fight.
+
+Connor then walked out through the real ramp and opening, crossed the
+opened jail and King gate, and saved near the drawbridge at
+(123048,189811,864). A fresh-process reload and in-game save retained
+the carried Hammer, defeated King and guard, and opened gate. The
+drawbridge remains closed; its lever and the later campaign are next.
+This raises M6 from ~94% to ~95%. Camera-visible altar interaction,
+normal-damage combat and on-monitor appearance are not tested.
+
 ## 2026-11-20 M6 jail, Skeleton King and sword checkpoint (~94%)
 
 From the earned Round Key save, an unattended route crossed the actual

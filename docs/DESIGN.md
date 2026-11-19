@@ -87,6 +87,19 @@ altar interior; that cause needs collision-level verification. Find the
 authored `altar.dig` entrance before another live attempt. Neither
 route obtained the Hammer.
 
+The next automated route found `doorway1` near y143000 and crossed it
+through the original opening. A run jump from its east side climbed the
+altar ramp, with original spirit-trap damage. A named click of
+`altar_a1` within reach awarded Azriel's Hammer; the saved result
+survived a fresh-process reload. King Sword swings defeated the altar
+guard with test-only invulnerability. Connor exited through the same
+ramp, walked back across the open jail and gate, and saved at
+(123048,189811,864). Another fresh-process reload retained the Hammer
+and gate state. Next map supported ground near the bridge and use the
+Hammer on `lever1` through its ordinary attack cue; do not infer lever
+access from a planar route that falls to z0. The drawbridge remains
+closed in this checkpoint.
+
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
 Continue from the earned Sylph Mold handoff. The installed Dead City

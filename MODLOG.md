@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-20: M6 Azriel Hammer checkpoint (~95%)
+
+The automated campaign route crossed `doorway1` through its original
+opening and jumped up the altar ramp. A diagnostic named click triggered
+`altar_a1.cs`, adding Azriel's Hammer and clearing the spirit traps.
+Connor defeated the altar guard with ordinary King Sword swings, then
+walked back through the opened jail and King gate. Fresh-process reloads
+retained the Hammer, defeated enemies and gate state. No game code
+changed. The approach took original trap damage; the guard fight used
+test-only invulnerability. The drawbridge is still closed. M6 rises
+from ~94% to ~95%.
+
 ## 2026-11-20: M6 Dead City jail and Skeleton King checkpoint (~94%)
 
 An unattended continuation from the earned Round Key save crossed
