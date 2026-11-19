@@ -4663,6 +4663,7 @@ Replaces 5c fixes 2–3 and 5d fixes 9–10's stand-ins (Q138) where the note di
 | --- | --- | --- |
 | Three modes, hand 0, ranged 1, none 4; start none | Rule 1, "Words used here" | Unit tests |
 | A weapon slot asks for its item's mode column (`SwordMode` hand, `BowMode` ranged, `HandMode` none, `NoModeChange` nothing); Delete = `Draw`, Alt = `Away` (keys from `Connor.sae`); all ignored under `handsOff` | Rule 1 | Unit tests; viewer `--key delete,N`, `--key alt,N`, `--key left:IDCTL_INVBAR_SHORT,N` |
+| The unattended melee route presses the hand-weapon bar control before asking for a swing, so a saved ranged selection does not produce an invalid hand attack | Rule 1's normal slot control; route-driver test input, not a game rule | Dead City live replay: hand slot selected, two mace hits killed skeleton25 |
 | Delete: hand → ranged only with a real ranged weapon; ranged → hand; none → the one put away last (hand at the start) | Rule 2 | Unit tests; viewer: update 60, "nothing" |
 | Alt: put away, remembering if it was the ranged one; nothing ready: nothing. Any change to none remembers the same | Rule 3; "rule 6's putting away" in rule 2 | Unit tests |
 | The mode already ready asked again → none | Rule 4 | Unit test (slots) |

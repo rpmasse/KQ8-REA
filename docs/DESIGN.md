@@ -15,38 +15,35 @@ camera ray, collect the item, and save/reload before the river.
 The original `RiverControl` boxes accept the Broken Shield near the
 River of Death and turn it into a Rusted Broken Shield. `objects.md`
 records the click, reach, speech, animation, experience and item-swap
-rules. The current loader skips these invisible controls, so add them
-as interactive world objects from their `.kq` data, reproduce their
-timed interaction and save its state. Verify it in a normal AI/damage
-run and fresh-process reload, then give the rusted item to Sylph
-through her original script and save/reload that result. Each step
-must preserve the preceding earned checkpoint.
+rules. Load them from their original `.kq` data, verify the timed dip
+in a normal AI/damage run and fresh-process reload, then give the
+rusted item to Sylph through her original script and save/reload that
+result. Preserve the preceding earned checkpoint at each step.
 
 The earned route reached the warrior through the southern corridor
 around closed Cell03 and the narrow east side of Cell04. Clicking him
 made the original Broken Shield drop. A crate blocked two direct pickup
 rays; normal movement to its north cleared the line. The in-game save
 and fresh-process reload retain the shield in Connor's inventory with
-118 health. Continue from this checkpoint to implement and exercise
-the `RiverControl` interaction.
+118 health.
 
 The loader now retains all four invisible RiverControl click boxes and
 loads Connor's two river dipping movements from the installed data. The
 core now stages the accepted held item through speech, camera movement,
 the Special animation, conversion and the once-per-box experience award.
 Focused core and original-asset loader checks pass. The river result
-and Sylph handoff still need verification on an earned campaign route
-before this step is complete.
+now passes on an earned campaign route and fresh reload; Sylph's
+handoff still needs the earned return route.
 
-The earned route now reaches an eastern-lane save with 106 health, but
-two skeletons converge on the west bend. Two movement variants and a
-stationary fight fail there; record that boundary rather than tuning
-waypoints blindly. Inspect available healing and enemy positions, then
-plan a deliberate combat or avoidance route from the earned checkpoint.
-Separately, a relocated copy of that checkpoint proves the original
-river dip and Sylph handoff through visible clicks, with both results
-surviving in-game save and fresh reload. These fixtures validate the
-interaction code but do not complete the earned campaign route.
+The first east-to-west route pushed `crate.07` into `crate.05` and then
+lost health under skeleton attacks. A collision-led route north of the
+crate avoided this. The terrain-only route then hit `Pillar.ma01` and
+`Pillar.ma07a`; detours around their original boxes reached the bank.
+The earned river dip saved and reloaded with 75 health, the rusted
+shield and the once-per-control experience flag. Next trace the return
+to Sylph using original terrain and colliders, then run her visible
+handoff from this earned save. The earlier relocated Sylph fixture
+proves the interaction logic only, not the return route.
 
 ## M6 move the portal Rock and recover Mold (2026-11-19)
 

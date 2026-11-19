@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-19 M6 earned the Rusted Broken Shield (~85%)
+
+From the earned Broken Shield save, Connor crossed the spike gate and
+reached the eastern lane with 106 health. The west-bend slowdown was a
+pushable `crate.07` driven into `crate.05`; a route north of the first
+crate reached (187694,150046) with all 106 health. Two later routes
+crashed into `Pillar.ma01` and `Pillar.ma07a`; measured floor detours
+south and east of those pillars passed them. Connor took 31 damage
+from skeleton57 but reached the final bank approach with 75 health.
+
+Normal movement reached `rivercn2`'s bank at update 64. The quest bar
+selected the earned Broken Shield and a camera-visible click at update
+80 started its original dip. The scene returned control at update 162.
+The in-game `EarnedRiverRust` save and a fresh-process reload both show
+one carried Rusted Broken Shield, no carried Broken Shield, 9,750
+experience, 75 health and `rivercn2::Used=true`. The canonical ignored
+checkpoint is `kq8-artifacts/earned-deadcity-rusted-shield/slots/slot-1.json`.
+The prior relocated fixture remains an isolated integration check; this
+run completes the **earned** river step. Returning the rusted shield to
+Sylph and the later campaign remain open. M6 rises ~83% to ~85%.
+Manual playtesting and on-monitor appearance: not tested.
+
 ## 2026-11-19 M6 river and Sylph integration checked (~83%)
 
 The earned Broken Shield checkpoint crossed the spike gate and reached

@@ -338,6 +338,18 @@ pub fn steer(
                 return;
             }
             if alive {
+                if !ranged && world.weapon_mode != kq8_core::weapons::WeaponMode::Hand {
+                    // A saved route may enter this fight with its ranged slot selected.
+                    // Use the same bar control as a player before requesting a swing.
+                    if (tick - began) % 20 == 0 {
+                        gui_keys.0.push(("left:IDCTL_INVBAR_SHORT".into(), tick));
+                        shared.log.lock().unwrap().summary(format!(
+                            "walk-route selects the hand weapon slot for {name} on update {tick}"
+                        ));
+                    }
+                    replay.keys(&mut keys, &[]);
+                    return;
+                }
                 if retreat {
                     let guard = world.character_index(&name).and_then(|i| {
                         let target = &world.anims[i];

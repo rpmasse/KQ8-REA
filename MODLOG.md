@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-19: M6 earned and reloaded the Rusted Broken Shield (~85%)
+
+- `connor_view/route.rs`: the unattended melee driver now selects the
+  normal hand-weapon bar slot before swinging. A replay confirmed two
+  mace hits and skeleton25's death; Connor also died in that crowded
+  encounter, so it was not used as a campaign checkpoint.
+- Original collider logs identified `crate.07`, `Pillar.ma01` and
+  `Pillar.ma07a` as the three route stalls. Deliberate detours passed
+  each with normal AI and damage. The earned bank run selected the
+  Broken Shield, aimed a visible ray at `rivercn2`, completed the dip
+  and saved the Rusted Broken Shield with 75 health and 9,750 experience.
+- Fresh-process reload retained the rusted item, no broken item and
+  `rivercn2::Used=true`. The earned checkpoint is in ignored
+  `kq8-artifacts/earned-deadcity-rusted-shield/`. The Sylph return and
+  later campaign remain open. M6 rises ~83% to ~85%.
+  `cargo build --release -p kq8-viewer` passed. Manual playtesting and
+  on-monitor appearance: not tested.
+
 ## 2026-11-19: M6 river and Sylph integration (~83%)
 
 - Saved and reloaded the earned eastern river lane with 106 health and
