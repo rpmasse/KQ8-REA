@@ -5694,6 +5694,96 @@ Connor died at update 99 before the next waypoint. Keep the earned
 east-lane checkpoint with 28 health. The next attempt needs ordinary
 combat or a measured route between these two live enemies; do not
 claim that the portal-four plate has been reached.
+The preserved east-lane save places `zombie7` 3,591 units from Connor
+with 310 health and a 6,000-unit chase radius. The original Small
+Crossbow is still carried. Before another traversal, use ordinary
+ranged selection and clicks from this safe position, confirm damage
+and death in the fight log, and save only after a fresh replay clears
+the enemy. Inspect nearby original monsters before choosing the next
+approach. No debug attack or enemy suppression is permitted.
+The ordinary crossbow replay killed `zombie7`; its Die completed at
+update 234 in the saved repeat run. A fresh process restored the
+corpse, 252 earned experience, and Connor at (119677,94313,0) with
+28 health, normal AI and damage. From that save, `zombie8` has 410
+health at (118186,98349), 4,302 units away; `zombie9` has 410 health
+at (121306,102296), 8,147 units away. Clear `zombie8` using the
+same ordinary ranged controls before following the south corridor;
+then re-evaluate `zombie9` from an earned checkpoint.
+The first stationary ranged attempt at `zombie8` failed at update 36:
+the target was outside the camera's gameplay area or occluded, and a
+full camera turn never exposed it. No shot or save was credited. The
+floor at (120000,96000) is level z0 and places Connor about 3,000
+units from `zombie8` while keeping `zombie9` more than 6,000 units
+away. Walk there through ordinary controls, then try the same ranged
+engagement. If it still cannot see the target, inspect the logged
+occlusion and switch to a measured approach; do not add a synthetic
+hit or turn off AI.
+At (120000,96000), the second `zombie8` run achieved 17 ordinary
+crossbow hits, zero hits on Connor, and a completed death at update
+319. The repeat save reloaded at (119930,95961,0), 28 health and
+3,928 experience, with both `zombie7` and `zombie8` corpses. Preserve
+this checkpoint. `zombie9` remains alive at (121306,102296), about
+6,500 units away. Approach to (120000,99200) on the flat original
+floor, about 3,360 units from `zombie9` and with no other live fighter
+within 9,000 units, then test ordinary ranged fire before continuing
+to the plate.
+The first `zombie9` attempt reached (119970,99096,0) at update 69,
+but its target stayed outside the clickable gameplay view through a
+full camera turn. It stopped without a shot or save. On the same
+level floor, (120000,100500) is about 2,200 units from the saved
+monster position. Approach there and try normal crossbow aiming once
+more; if the live enemy cannot be clicked, inspect its obstruction or
+change tactic rather than inventing a hit.
+At (120000,100500), 15 original crossbow hits killed `zombie9` with
+no hits on Connor; its Die completed at update 320. A repeat save
+reloaded at (119970,100486,0), 28 health and 4,330 experience, with
+corpses for `zombie7`, `zombie8` and `zombie9`. Preserve this save and
+walk the flat lane south to the plate at (120935,108676), checking
+the original plate's On event and the portal collision mask. The
+saved `DeadCity::Portal::FourOn=true` variable alone is not proof of
+plate activation: it was already true in the earlier northern save
+because the installed return-portal script rearmed outward portals.
+The first west-side run toward `zombie5` hit the installed `Dedtower`
+building at (119499,102902), then blocked at update 226; it never
+reached fighting range. The earlier route on x=120736 already passed
+that latitude before `zombie9` attacked, and `zombie9` is now dead.
+Use that verified eastern lane from the new 28-health save, walking
+to (120736,103024), then (120736,108144) and the authored plate
+point. Check the actual trap On cue and active collision mask; avoid
+using `FourOn` alone as a success condition. Stop on a live enemy or
+building contact and record it before changing the route.
+The eastern-lane run reached the authored plate point at update 129.
+`triptrp4` fired On at update 124 and changed both `portrap4` and
+`portrp4b` masks from 0 to 4. After Connor walked beyond the plate,
+its Off fired at update 137 and returned both masks to zero. Replay
+the same ordinary route but save around update 130 while Connor is
+still inside the plate box. A fresh process must restore the position
+and active portal masks; a mere `FourOn` variable is insufficient.
+The update-130 save reloaded in a fresh process with Connor inside
+`triptrp4`, 28 health and `portrap4` mask 4. The enabled portal sits
+far away at x≈79,676, y≈110,436, z≈1,584, so Connor cannot hold the
+plate while crossing it. The carried original Rock can occupy a
+pressure plate after a normal throw, as the earlier earned
+`triptrp5` route proves. From this held-plate checkpoint, walk east
+off the plate, turn west at a safe point about 1,900 units beyond its
+centre, select the normal Rock HUD slot and use a visible ground click
+on the plate. Require a real Rock landing and `triptrp4` On with
+Connor outside; then save and reload before walking to the portal.
+The first ordinary throw from the east mark succeeded: Connor stepped
+off at update 36, selected the original Rock, aimed at the visible
+ground (120935,108676,0) and threw. `rockHit.cs` placed a fresh
+recoverable Rock at (121049,108667,0) at update 133. `triptrp4` fired
+On for that Rock and changed both portal masks 0→4 with Connor outside.
+Replay this same route, save after the Rock settles, and require a
+fresh-process reload to retain the world Rock identity, plate
+occupancy, both masks, Connor's health, and original quest state.
+The repeat route saved after update 133. A fresh process loaded it
+and saved again with Connor at (122752,108627,0), 28 health, no
+carried Rock, world Rock `NoName108` at (121049,108667,0) as the sole
+plate occupant, and both portal masks 4. The named portal trap is at
+x≈79,676, y≈110,436, z≈1,584. Return through the already traversed
+safe corridor with ordinary controls, retaining the Rock and masks;
+then trigger the authored portal and save/reload its destination.
 
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 

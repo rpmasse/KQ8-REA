@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-19 M6 Dead City portal-four plate held by Rock (~34%)
+
+The earned route cleared `zombie7`, `zombie8` and `zombie9` with
+ordinary crossbow shots; fresh saves restored all three corpses,
+4,330 experience, 28 health, and normal AI and damage. The next
+ordinary walking run reached `triptrp4` at update 124. Its On script
+enabled both portal-four collision masks; walking off disabled them.
+An active-plate save reloaded with Connor inside and the mask still 4.
+
+From that save, Connor walked east off the plate and threw his carried
+original Rock at its visible ground. `rockHit.cs` placed Rock
+`NoName108` at (121049,108667,0), and `triptrp4` fired On for the Rock
+at update 133. A fresh process reloaded the Rock as the plate's sole
+occupant, with Connor outside, both portal masks 4, health 28,
+`god_mode=false` and `ai_off=false`. This earned checkpoint is
+`kq8-artifacts/earned-deadcity-rockplate/slots/slot-1.json`.
+M6 rises from ~33% to ~34%. Portal-four crossing, statue/feather,
+later campaign and original-executable parity remain unverified.
+On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 Dead City plate approach (~33%)
 
 From the earned western-turn save, ordinary movement with AI and

@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-19 M6 Dead City Rock holds portal-four plate (~34%)
+
+Ordinary crossbow fights killed `zombie7`, `zombie8` and `zombie9`
+without hits on Connor; fresh saves retained their corpses and earned
+experience. The ordinary route then pressed `triptrp4`. A normal HUD
+Rock selection and visible ground click dropped the carried Rock onto
+the plate after Connor stepped off. Its On event enabled both portal
+masks; a fresh process restored the Rock occupant, both masks 4, and
+28 health. The checkpoint is preserved under ignored
+`kq8-artifacts/earned-deadcity-rockplate`. The failed initial view
+attempts against zombies 8 and 9 and the `Dedtower` collision are
+recorded in DESIGN. M6 rises from ~33% to ~34%; portal crossing is
+unfinished. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 Dead City plate approach (~33%)
 
 Ordinary walking and fresh-process reloads advanced the earned route
