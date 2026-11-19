@@ -69,13 +69,23 @@ through the remaining Dead City story and later regions. Obtain
 camera-visible targeting and normal-damage campaign evidence before
 claiming a faithful boss encounter.
 
-The next story step uses the Hammer from `altar_a1` near
-(60582,141322,2425), then the lever by the King's bridge. The first
+The next story step uses the Hammer from `altar_a1` at
+(59108,141322,2300), inside the `altar.dig` interior centred at
+(60582,141322,889), then the lever by the King's bridge. The first
 direct south approach from the arena dropped Connor from z864 to z0
 near `skwltrap.02`, so its planar waypoint is not proof of supported
 lever access. Keep that failed route separate from the saved King sword
 checkpoint. Reach the altar through the opened jail, then map solid
 footing and normal Hammer throw range around the lever.
+The return through the open gate and jail passed. A direct westward
+route met `doorway1`; the south perimeter route crossed around it and
+saved south of the altar at (60999,151607,864). The attempted north
+climb stopped near y151607, where the installed terrain has a steep
+face (normal z0.599). A farther-west north route reached (49339,147821)
+on flat sampled ground but stopped at another boundary, likely the
+altar interior; that cause needs collision-level verification. Find the
+authored `altar.dig` entrance before another live attempt. Neither
+route obtained the Hammer.
 
 ## M6 recover and rust the Broken Shield (2026-11-19)
 

@@ -27,6 +27,13 @@ waypoint but fell from z864 to z0 near `skwltrap.02`. It was not used as
 an earned lever interaction. The installed script shows that the Hammer
 is obtained at `altar_a1` in the western jail area; the next route must
 reach that altar and then approach the lever from supported ground.
+The King sword continuation returned through the open gate and cell
+lane, then reached the west side of the jail. A direct approach stopped
+at `doorway1`; a southern detour passed around it. Two approaches to
+the altar then stopped at its surrounding steep terrain or interior
+boundary. Neither reached the Hammer. The latest successful ignored
+save is `target/m6-hammer-doorway1-bypass/slots/slot-2.json`; its
+position is (60999,151607,864), south of the altar.
 
 ## 2026-11-20 M6 Round Key doorway and building state (~92%)
 

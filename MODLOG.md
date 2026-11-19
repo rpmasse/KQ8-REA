@@ -14,6 +14,10 @@ visibility. M6 rises from ~92% to ~94%; the later campaign remains.
 An exploratory southward walk toward the arena lever fell to the lower
 z0 floor before reaching it; no lever interaction or bridge claim came
 from that run.
+The next saved continuation returned through the open gate and jail,
+then passed around `doorway1` on its south side. Northward altar routes
+hit steep terrain or the original altar interior; no Hammer pickup is
+claimed. The saved state remains south of the altar.
 
 ## 2026-11-20: M6 Round Key doorway building state (~92%)
 
