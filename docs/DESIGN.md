@@ -40,6 +40,15 @@ installed script requires a second item, the Rusted Broken Shield,
 before the final spell. Keep the 31-health Mold save as the source and
 save/reload after each earned handoff.
 
+The return crossed the maze and ridge with normal AI and damage. A
+direct well approach met the well-cover building; the western route
+reached the well and its visible interaction restored health to 130.
+The first Sylph click held a different quest item. Selecting quest
+slot two held the Mold; a camera-visible click then ran Sylph's
+original handoff and conversation. The in-game save and fresh-process
+reload retain `hasMold=true`, `metConnor=2`, the Mold gone and 130
+health. Continue toward the Rusted Broken Shield from this checkpoint.
+
 ## M6 earn the Scales outcome from the Feather checkpoint (2026-11-19)
 
 The installed `scale.cs` and dish scripts balance a Feather against

@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-19 M6 returned Mold to Sylph (~77%)
+
+The earned route carried the Mold back through the maze, healed at
+Sylph's well and gave her the Mold through a visible gameplay click.
+The original script consumed it and advanced Sylph's quest state. An
+in-game save and fresh-process reload retained that state and 130
+health. A direct well route was blocked by its building; a paused
+Mold-area route died. No game code changed. M6 rises ~74% to ~77%.
+On-monitor appearance and manual playtesting: not tested.
+
 ## 2026-11-19 M6 collected and reloaded the Mold (~74%)
 
 A numeric read of the original terrain corrected the route from the

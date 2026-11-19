@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-19 M6 returned the Mold to Sylph (~77%)
+
+From the earned Mold pickup, Connor collected and used three original
+Mushrooms, then returned through the southern maze and northern ridge
+under normal AI and damage. A direct approach to the well met the
+`wellcovr` building; the western approach succeeded. Twenty-four
+camera-visible well clicks restored health to 130 without changing
+texture quality or granting items. A previous route that paused near
+the Mold died to skeleton49 and was not used.
+
+Connor walked to Sylph, selected the Mold in quest slot two and used
+a camera-visible click. The original `sylph.cs` took `NoName113`,
+played its conversation and set `DeadCity::Sylph::hasMold=true` and
+`metConnor=2`. An in-game save and fresh-process reload retain 130
+health, the Mold gone, `hasMold=true`, and `hasRustyShield=false`.
+The ignored checkpoint is
+`kq8-artifacts/earned-deadcity-mold-sylph/slots/slot-1.json`.
+The Rusted Broken Shield and later campaign remain open. M6 rises
+from ~74% to ~77%. On-monitor appearance and manual playtesting:
+not tested.
+
 ## 2026-11-19 M6 earned the Dead City Mold (~74%)
 
 The original Dead City floor grid separates portal four's eastern

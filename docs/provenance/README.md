@@ -1,5 +1,16 @@
 # Provenance
 
+**Earned Sylph Mold handoff and reload (2026-11-19, M6).**
+The installed `sylph.cs` accepts `INVITEM_Mold`, deletes its item
+object, sets `DeadCity::Sylph::hasMold=true` and starts the original
+conversation. From the earned Mold save, normal movement returned
+through the maze; the installed well interaction healed Connor. A
+visible click on Sylph with the Mold in hand ran that script. An
+in-game save and fresh-process reload retain the consumed item,
+Sylph's `hasMold=true` and `metConnor=2`, and 130 health. Her
+`hasRustyShield` flag remains false. No running-original or
+on-monitor comparison was performed.
+
 **Earned Scales Mold pickup and reload (2026-11-19, M6).**
 The original Dead City floor image `terrh2.dib` and Connor's 0.8
 walkable-normal limit guided an offline route from the central maze;
