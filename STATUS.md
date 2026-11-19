@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-20 M6 jail, Skeleton King and sword checkpoint (~94%)
+
+From the earned Round Key save, an unattended route crossed the actual
+`doorway2` opening. A fresh-process reload kept its four leaves open and
+its building non-clickable. Connor reached `MSwitch2`, lowered `Cell24`
+through `CSwitch4`, opened `Cell01`-`Cell04` through their switches, and
+used `KSwitch` to lower `spmove2`. The saved gate state survived the
+return route. Crossing the open gate fired the Skeleton King introduction;
+the scene completed, returned control and awarded its 3,000 experience.
+
+The continuation reached the King arena through ordinary walking and
+used Mace swings with enemy AI active. The King's death completed its
+script, spawned its corpse and drops, and awarded 20,000 experience;
+Connor reached level 14. An in-game save and fresh-process reload kept
+the King gone, the gate open and the corpse present. A diagnostic named
+click picked up the dropped King sword within normal reach, and its new
+save reloaded in a fresh process. The combat route used test-only
+invulnerability, while named switch and sword clicks bypassed the
+gameplay viewport. Normal-damage victory, camera-visible targeting and
+on-monitor appearance are not tested. M6 rises from ~92% to ~94%; the
+later campaign and full save audit remain unfinished.
+
 ## 2026-11-20 M6 Round Key doorway and building state (~92%)
 
 From the earned, freshly reloaded Round Key checkpoint, the automated

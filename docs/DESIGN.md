@@ -55,6 +55,20 @@ active in the combat legs. Continue through `doorway2` and the jail
 controls without treating those diagnostic protections as normal
 campaign proof.
 
+The continuation crossed the real `doorway2` opening and reloaded its
+non-clickable opened state. `MSwitch2` selected jail row 2; `CSwitch4`
+lowered Cell24. The four west-row cell switches opened Cell01-04, and
+`KSwitch` lowered `spmove2`. A route back across the open gate fired the
+Skeleton King introduction and returned control. Normal Mace swing cues
+defeated the King with test-only invulnerability active. The original
+death callback left a corpse and sword, and level 14 followed the
+20,000-experience award. The sword was picked up by a diagnostic named
+click at normal reach. Fresh-process reloads retained the gate, corpse,
+King removal and carried sword. Next, continue from this ignored save
+through the remaining Dead City story and later regions. Obtain
+camera-visible targeting and normal-damage campaign evidence before
+claiming a faithful boss encounter.
+
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
 Continue from the earned Sylph Mold handoff. The installed Dead City

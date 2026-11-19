@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-20: M6 Dead City jail and Skeleton King checkpoint (~94%)
+
+An unattended continuation from the earned Round Key save crossed
+`doorway2`, operated the jail switches, opened the bridge gate, completed
+the Skeleton King introduction and defeated him with Mace swing inputs.
+His Die script awarded 20,000 experience and left the original corpse and
+drops. A fresh-process reload kept the King gone and the gate open. A
+diagnostic named click collected his sword within normal reach; the new
+save also reloaded successfully. No game code changed. The route used
+test-only invulnerability, and named clicks did not prove viewport
+visibility. M6 rises from ~92% to ~94%; the later campaign remains.
+
 ## 2026-11-20: M6 Round Key doorway building state (~92%)
 
 **Changed:** `KQObject::collisionType` now handles `KQInterior`
