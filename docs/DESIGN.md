@@ -5584,6 +5584,29 @@ save had 27 health. A repeat saved at update 355 and reloaded at
 (145402,108478,864) with 82 health. Continue from that earlier slot.
 Any route toward the portal-four plate must account for these live
 archers and keep normal health and AI rules enabled.
+The saved lower eastern lane contains a carried Small Crossbow and one
+original Invulnerable potion, with `god_mode=false` and `ai_off=false`.
+BowGuys9 and BowGuys10 stand near (144944,105771) and
+(146511,105869). First test the ordinary ranged-weapon HUD choice and
+visible click against BowGuys9 from a copy of the 82-health save. Use
+normal enemy AI and damage; do not consume the potion or assume either
+archer died until a live combat log and a saved/reloaded checkpoint
+prove it.
+The first isolated ranged replay killed BowGuys9: two ordinary crossbow
+hits at updates 54 and 78 reduced its 45 health to zero, and its Die
+script finished by update 94. Connor had about 51 health near that
+point, under fire from both archers. Next try both archers in the same
+ordinary-control replay, keeping the crossbow drawn between targets;
+save promptly if Connor survives both and confirm the kills persist
+after reloading. Do not turn off AI, damage or the original potion rules.
+The combined replay killed BowGuys9 and BowGuys10 by updates 94 and
+118, respectively. A normal save at update 190 held 38 health at
+(145492,108508,864), both corpses and the unspent potion; a fresh
+process restored those exact facts with AI and damage enabled. Continue
+from the ignored `earned-deadcity-bowguys` checkpoint toward the
+western turn in the original floor path. Do not claim the portal-four
+plate, transfer or statue/feather until their scripts fire in the
+integrated campaign.
 
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 

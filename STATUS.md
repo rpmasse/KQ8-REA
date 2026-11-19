@@ -1,6 +1,6 @@
 # STATUS
 
-## 2026-11-19 M6 campaign walking and Dead City checkpoints (~30%)
+## 2026-11-19 M6 campaign walking and Dead City archer clearance (~31%)
 
 The three-process cottage → CastleD → cottage save test passed in
 202.60 seconds, preserving mushrooms, the cottage door, chest and portal
@@ -23,8 +23,8 @@ event identified the building. Its box occupies x=92353..94913 and
 y=124066..126370. A measured west detour passed it through ordinary
 walking, reaching the northern passage at update 525. The run saved
 `kq8-artifacts/earned-deadcity-north/slots/slot-1.json` at
-(94786,128185,864) with 120
-health. A fresh process loaded slot 1 in Dead City at the same position;
+(94786,128185,864) with 120 health. A fresh process loaded slot 1 in
+Dead City at the same position;
 the replay used no forced travel, invulnerability or disabled AI. The
 next ordinary walk reached the eastern bend at update 689.
 It saved at (143311,129165,867) with 120 health and reloaded there in a
@@ -33,8 +33,16 @@ at update 351. BowGuys9 and BowGuys10 began hitting Connor on that
 segment. A late save left him at 27 health, so a replay saved at update
 355 instead: (145402,108478,864), 82 health, restored at the same spot
 in a fresh process. These runs used normal AI and damage. The M6 estimate
-rises to ~30% for the new earned and reloaded campaign route, while
+rose to ~30% for the new earned and reloaded campaign route, while
 portal four's floor plate, transfer and statue/feather remain unverified.
+From the 82-health south bend save, ordinary crossbow controls hit
+BowGuys9 twice (updates 54 and 78) and killed it. A combined replay
+killed BowGuys9 by update 94 and BowGuys10 by update 118, then saved at
+(145492,108508,864) with 38 health. A fresh process reloaded that slot
+with both archers gone, both corpses present, `god_mode=false`,
+`ai_off=false`, and the original Invulnerable potion unspent. The new
+ignored checkpoint is `kq8-artifacts/earned-deadcity-bowguys`; M6 is
+now estimated at ~31%. The floor plate for portal four remains ahead.
 The east bend and south bend saves are preserved in the ignored
 `kq8-artifacts/earned-deadcity-eastbend` and
 `kq8-artifacts/earned-deadcity-southbend` directories.

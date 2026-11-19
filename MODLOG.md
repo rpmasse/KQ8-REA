@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-19 M6 Dead City eastern archers (~31%)
+
+From the earned 82-health south bend save, the unattended route used
+the normal crossbow HUD selection and visible shot clicks. Two hits
+killed BowGuys9; a combined replay killed BowGuys9 at update 94 and
+BowGuys10 at update 118, with normal AI and damage active. A normal save
+at (145492,108508,864) held 38 health, both corpses and the unspent
+Invulnerable potion. A fresh process restored the position and both
+archer deaths. The save is preserved locally under the ignored
+`kq8-artifacts/earned-deadcity-bowguys` directory. M6 rises from ~30%
+to ~31%; portal four remains unfinished. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 Dead City detour and southeastern checkpoints (~30%)
 
 The prior northward route struck `block.08b`, not terrain. Its detailed
