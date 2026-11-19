@@ -1,6 +1,6 @@
 # MODLOG
 
-## 2026-11-20: M6 Square Key route and collider audit (~88%)
+## 2026-11-20: M6 Square Key route and collider audit (~89%)
 
 Installed scripts show the earned gate order: Square Key chest,
 `doorway3`, `Skfight1` and Round Key, `doorway2`, jail switches, then
@@ -13,8 +13,13 @@ detour cleared it and saved at (183143,110087) with 94 health, where
 are route diagnostics. A second run used the level southern lane at
 y107000 and reached the chest approach, but nearby skeletons killed
 Connor before a camera-visible chest click. The dead save was
-discarded. No game code changed; M6 stays ~88%. Manual playtesting
-and on-monitor appearance: not tested.
+discarded. A separate normal-ray diagnostic clicked `chstskey`,
+collected its spawned Square Key and saved with 54 health. A fresh
+process reloaded and saved the same key and health. The probe bypasses
+the gameplay viewport check, so a visible click remains open. No game
+code changed; M6 rises ~88% to ~89% for verified script execution and
+save persistence. Manual playtesting and on-monitor appearance: not
+tested.
 
 ## 2026-11-19: M6 post-Sylph central checkpoint and jail gate audit (~88%)
 

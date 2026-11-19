@@ -1,6 +1,6 @@
 # STATUS
 
-## 2026-11-20 M6 Square Key route and collider audit (~88%)
+## 2026-11-20 M6 Square Key route and collider audit (~89%)
 
 The original Dead City scripts establish the key order: the
 `chstskey` chest creates the Square Key, which opens `doorway3` to
@@ -19,9 +19,15 @@ Original placements show `Obalisk1` at (185499,111790), and the two
 crates shifted during the blocked attempt. A live southern lane at
 y107000 passed the whole cluster and reached (198484,107800), near the
 chest. Skeleton archers and two melee skeletons then killed Connor at
-update 196; that dead save was discarded. A camera-visible chest click
-from the southern approach still needs an unoccluded view. M6 remains
-~88%. Manual playtesting and on-monitor appearance: not tested.
+update 196; that dead save was discarded. A separate normal-ray
+diagnostic reached the chest from the same route at update 138. The
+original `chstskey.cs` spawned the Square Key, and `sqrekey.cs` gave
+Connor one key at update 154. An in-game save and fresh-process reload
+preserved the key, position and 54 health. This probe did not require
+the target to be inside the gameplay viewport, so the camera-visible
+interaction remains to be checked. M6 rises ~88% to ~89% for verified
+key-script and save persistence; later campaign stages remain open.
+Manual playtesting and on-monitor appearance: not tested.
 
 ## 2026-11-19 M6 post-Sylph central checkpoint and jail gate audit (~88%)
 

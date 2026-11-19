@@ -36,8 +36,12 @@ but stopped at `crate.10`, `crate.08` and `Obalisk1` near
 (183143,110087), saved with 94 health. A live route along y107000
 passed the cluster and reached the chest approach. Skeletons killed
 Connor while the camera-visible chest click was being lined up; the
-dead save is not a checkpoint. The next attempt needs a view and
-interaction before those attacks land. Keep slope and collision rules.
+dead save is not a checkpoint. A separate normal-ray probe hit the
+chest and spawned Square Key, then picked it up through the original
+item script. Its in-game save and fresh-process reload retained one
+Square Key and 54 health. This probe can target outside the gameplay
+viewport; obtain a visible view for the canonical route. Keep slope
+and collision rules.
 
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
