@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-19 M6 earned the Broken Shield (~80%)
+
+From the reloaded Sylph Mold handoff, Connor followed the verified
+northern ridge and eastern corridor with normal AI and damage. The
+short approach to the fallen warrior stopped against terrain near
+x147,240. An offline floor route exposed a southern path, but the first
+live attempt met closed Cell03. The established corridor around its
+south end reached the far side, then the narrow passage east of Cell04
+led north to the original `Deadwr1` at (171306,84104).
+
+A camera-visible click ran `deadwr1.cs`, played `deadwr1x`, and made
+one Broken Shield world item. The first two pickup rays hit `crate.03`.
+Normal first-person input and movement around the crate reached a clear
+northern view. A visible click picked up `NoName121` at update 85.
+The in-game save and fresh-process reload retain the shield carried,
+its world copy gone and 118 health. The ignored checkpoint is
+`kq8-artifacts/earned-deadcity-broken-shield/slots/slot-1.json`.
+
+The original RiverControl boxes are not yet loaded by Rust; their
+scriptless item-dipping interaction, the return to Sylph and later
+campaign remain open. M6 rises from ~77% to ~80%. On-monitor
+appearance and manual playtesting: not tested.
+
 ## 2026-11-19 M6 returned the Mold to Sylph (~77%)
 
 From the earned Mold pickup, Connor collected and used three original

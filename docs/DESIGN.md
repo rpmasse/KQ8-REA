@@ -3,6 +3,33 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 recover and rust the Broken Shield (2026-11-19)
+
+Continue from the earned Sylph Mold handoff. The installed Dead City
+`newWorld.cs` places `Deadwr1` at (171306,84104). Its `deadwr1.cs`
+turns an ordinary click into the falling `deadwr1x` animation; that
+animation's `Die` script creates the Broken Shield world item. Reach it
+through live terrain and building collisions, click it with the normal
+camera ray, collect the item, and save/reload before the river.
+
+The original `RiverControl` boxes accept the Broken Shield near the
+River of Death and turn it into a Rusted Broken Shield. `objects.md`
+records the click, reach, speech, animation, experience and item-swap
+rules. The current loader skips these invisible controls, so add them
+as interactive world objects from their `.kq` data, reproduce their
+timed interaction and save its state. Verify it in a normal AI/damage
+run and fresh-process reload, then give the rusted item to Sylph
+through her original script and save/reload that result. Each step
+must preserve the preceding earned checkpoint.
+
+The earned route reached the warrior through the southern corridor
+around closed Cell03 and the narrow east side of Cell04. Clicking him
+made the original Broken Shield drop. A crate blocked two direct pickup
+rays; normal movement to its north cleared the line. The in-game save
+and fresh-process reload retain the shield in Connor's inventory with
+118 health. Continue from this checkpoint to implement and exercise
+the `RiverControl` interaction.
+
 ## M6 move the portal Rock and recover Mold (2026-11-19)
 
 The Scales return script places Connor at the central hub and leaves

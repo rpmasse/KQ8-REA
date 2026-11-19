@@ -1,5 +1,16 @@
 # Provenance
 
+**Earned Broken Shield pickup and reload (2026-11-19, M6).**
+The installed `newWorld.cs` places `Deadwr1`; `deadwr1.cs` replaces it
+with `deadwr1x`, whose `Die` script makes a Broken Shield item in the
+world. Normal movement crossed the southern corridor around closed
+Cell03 and east of Cell04. A camera-visible click ran the warrior
+script; another visible click from north of `crate.03` picked up the
+drop. The in-game save and fresh-process reload retain the carried
+item, its world copy gone and 118 health. `objects.md` describes the
+RiverControl step still needed to rust it. No running-original or
+on-monitor comparison was performed.
+
 **Earned Sylph Mold handoff and reload (2026-11-19, M6).**
 The installed `sylph.cs` accepts `INVITEM_Mold`, deletes its item
 object, sets `DeadCity::Sylph::hasMold=true` and starts the original

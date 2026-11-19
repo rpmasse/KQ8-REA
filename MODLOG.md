@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-19 M6 earned and reloaded the Broken Shield (~80%)
+
+The normal-gameplay route crossed the closed cell gates by the southern
+passage, clicked the fallen warrior and collected his original Broken
+Shield after moving around a crate. An in-game save and fresh-process
+reload retained the shield and 118 health. Failed direct terrain and
+crate-blocked approaches are recorded in STATUS. No game code changed.
+M6 rises ~77% to ~80%. On-monitor appearance and manual playtesting:
+not tested.
+
 ## 2026-11-19 M6 returned Mold to Sylph (~77%)
 
 The earned route carried the Mold back through the maze, healed at
