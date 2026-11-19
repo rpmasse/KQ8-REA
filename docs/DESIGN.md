@@ -34,9 +34,19 @@ The loader now retains all four invisible RiverControl click boxes and
 loads Connor's two river dipping movements from the installed data. The
 core now stages the accepted held item through speech, camera movement,
 the Special animation, conversion and the once-per-box experience award.
-Focused core and original-asset loader checks pass. The earned campaign
-route to the river, save/reload of its result, and Sylph handoff still
-need verification before this step is complete.
+Focused core and original-asset loader checks pass. The river result
+and Sylph handoff still need verification on an earned campaign route
+before this step is complete.
+
+The earned route now reaches an eastern-lane save with 106 health, but
+two skeletons converge on the west bend. Two movement variants and a
+stationary fight fail there; record that boundary rather than tuning
+waypoints blindly. Inspect available healing and enemy positions, then
+plan a deliberate combat or avoidance route from the earned checkpoint.
+Separately, a relocated copy of that checkpoint proves the original
+river dip and Sylph handoff through visible clicks, with both results
+surviving in-game save and fresh reload. These fixtures validate the
+interaction code but do not complete the earned campaign route.
 
 ## M6 move the portal Rock and recover Mold (2026-11-19)
 

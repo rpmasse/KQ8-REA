@@ -1,5 +1,34 @@
 # STATUS
 
+## 2026-11-19 M6 river and Sylph integration checked (~83%)
+
+The earned Broken Shield checkpoint crossed the spike gate and reached
+Dead City's eastern river lane with 106 health. Its in-game save and a
+fresh-process reload preserve the carried shield and the moved crate.
+The ignored checkpoint is `target/m6-river-continue/slots/slot-2.json`.
+Two west-bend routes lost health rapidly to skeleton25 and skeleton58
+(50 and 36 health at update 145); stopping to fight died at update 101
+as skeleton23 joined. Further waypoint variations are paused. The earned
+route has **not** reached the river bank.
+
+An isolated integration fixture copied that earned save and relocated
+Connor, his camera and trap sweep position to the bank. A normal quest
+bar click selected the Broken Shield. A camera-visible ray hit
+`rivercn2`; the full dip consumed the shield, created one Rusted Broken
+Shield, awarded 2,000 experience and returned control at update 127.
+An in-game save and fresh-process reload retain the rusted item, 9,750
+experience and the `rivercn2::Used=true` award flag. The fixture is
+ignored at `target/m6-river-bank-fixture/`; it is **not** an earned walk.
+
+A second isolated fixture relocated that saved result to Sylph while
+retaining the earned quest flags. A camera-visible click ran her original
+script, consumed the rusted item and set `hasRustyShield=true`. Her
+scene returned control at update 364. The in-game save and fresh-process
+reload retain that flag, no carried rusted shield and 14,750 experience.
+The ignored fixture is `target/m6-rusted-sylph-fixture/`. The interaction
+and persistence checks raise M6 from ~81% to ~83%; the earned river
+approach and later campaign remain open. No manual playtest was done.
+
 ## 2026-11-19 M6 RiverControl implementation started (~81%)
 
 The four invisible Dead City river controls now load as clickable boxes

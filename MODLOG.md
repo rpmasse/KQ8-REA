@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-19: M6 river and Sylph integration (~83%)
+
+- Saved and reloaded the earned eastern river lane with 106 health and
+  the Broken Shield. Two west-bend movement routes and a stationary
+  fight failed under normal enemy damage; STATUS records the numbers.
+- Relocated a **copy** of that save for an isolated bank check. A normal
+  quest-bar selection and camera-visible river ray accepted the shield.
+  The dip created the rusted item, awarded 2,000 experience once and
+  returned control. In-game save/reload retained the item, experience
+  and used-control flag.
+- Relocated a copy of the rusted save to Sylph. A visible click ran her
+  original script; after her scene, in-game save/reload retained
+  `hasRustyShield=true`, 14,750 experience and no carried rusted shield.
+  This verifies the interaction chain, **not** the earned walking route.
+  No game code or original asset changed. M6 rises ~81% to ~83%.
+  Manual playtesting and on-monitor appearance: not tested.
+
 ## 2026-11-19: River of Death control groundwork
 
 - Loaded the original Dead City RiverControl boxes and Connor dipping
