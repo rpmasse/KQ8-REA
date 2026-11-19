@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-19 M6 healed eastern bone-bridge checkpoint (~37%)
+
+From the earned `ReturnCentral` save, ordinary movement followed the
+verified western corridor to Sylph's well. Nineteen visible `well2`
+interactions fired nineteen original +5 health events and raised Connor
+from 28 to his level-12 maximum of 120. A fresh process reloaded that
+state with the Good Skull, the original Rock still on the portal-four
+plate and portal mask 4. The reverse corridor needed the exact
+`ReturnCentral` approach at (85170,109959) to clear `portsa4`;
+the original `portrp4b` script then transferred Connor east and gave
+the 4,000 experience award once. A fresh save reloaded in the eastern
+room with 120 health, 8,330 experience and no repeated award.
+
+From that earned eastern save, the measured west-then-north route
+reached the bone bridge at update 129. Two ordinary `skeleton19`
+arrows took 28 and 20 health. A normal save at
+`kq8-artifacts/earned-deadcity-bonebridge/slots/slot-1.json`
+reloaded in a fresh process at (212744,193519,1559) with 72 health,
+8,330 experience, the carried Good Skull, `god_mode=false`,
+`ai_off=false`, and `bonebrdg` as Connor's supporting surface.
+The river crossing, statue, Feather and later quests remain ahead.
+M6 rises from ~35% to ~37%. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 measured bone-bridge approach, ranged guard blocker (~35%)
 
 The earned portal-four save remains the continuation. A sampled north

@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-19 M6 healed return and bridge checkpoint (~37%)
+
+An ordinary route from the earned central save reached Sylph's well;
+nineteen visible interactions healed Connor from 28 to 120. The
+return route crossed the already enabled portal four, then the
+measured eastern path reached the bone bridge despite two guard
+arrows. Fresh reloads verified both the healed eastern state and a
+new bridge checkpoint at (212744,193519,1559), 72 health, with the
+Good Skull and normal AI/damage. The statue remains unfinished.
+M6 rises from ~35% to ~37%. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 bone-bridge route measured (~35%)
 
 The original terrain and collision bounds exposed a westward exit

@@ -5855,6 +5855,18 @@ died to two arrows. Stop live variants; derive guard cover or earned
 healing before attempting a saved crossing. The earned portal-four
 save remains untouched.
 
+The survivable continuation returned from the earned central save to
+Sylph's well using ordinary movement and nineteen visible well clicks,
+then retraced the corridor through the exact central approach before
+crossing the enabled portal four. The fresh-reloaded eastern save has
+120 health and the original Good Skull. Replaying the measured
+west-then-north route from it reached `bonebrdg` at
+(212744,193519,1559). Two `skeleton19` arrows left 72 health.
+The bridge save reloaded with `bonebrdg` supporting Connor and normal
+AI and damage. Continue south on the authored bridge, checking the
+low trap and river edges before the statue interaction; keep the
+earned bridge save as the source. This does not prove a river crossing.
+
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
 The separate earned-supplies guard route now passes from a Windmill
