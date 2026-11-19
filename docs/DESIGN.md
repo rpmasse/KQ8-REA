@@ -3,6 +3,16 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M8 modern keyboard defaults (2026-11-19)
+
+Keep the original GOG key file as the gameplay action map. When there is no
+saved local key file, show and use W/S/D/A for movement, R for walk/run,
+Space for jump, Q for weapon switching, C for centering the camera, E for
+the cursor, and Z for the interface. Keep Tab, Shift, and Alt for the three
+other actions. Translate those physical keys to the original action keys
+before gameplay reads them, and leave a player's saved remaps untouched.
+Check the default set for duplicates and exercise translation automatically.
+
 ## M5 finish audit correction (2026-11-17)
 
 The previous Q141 controller check put the automatic walk in place before

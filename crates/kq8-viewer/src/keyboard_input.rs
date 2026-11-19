@@ -95,7 +95,7 @@ impl Keyboard {
         let active = fs::read("kq8-artifacts/movekeys.kq")
             .ok()
             .and_then(|b| Bindings::read(&b))
-            .unwrap_or(installed);
+            .unwrap_or_else(Bindings::modern_default);
         Self {
             installed,
             active,
@@ -248,6 +248,23 @@ fn scripted_key(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn modern_physical_keys_translate_to_original_game_actions() {
+        let installed = Bindings::default();
+        let active = Bindings::modern_default();
+        let keyboard = Keyboard {
+            installed,
+            saved: active,
+            active,
+            template: String::new(),
+        };
+        for (source, target) in active.0.into_iter().zip(installed.0) {
+            assert_eq!(keyboard.logical(physical(source).unwrap()), physical(target));
+        }
+        assert_eq!(keyboard.logical(KeyCode::ArrowUp), None);
+        assert_eq!(keyboard.logical(KeyCode::KeyF), Some(KeyCode::KeyF));
+    }
 
     #[test]
     fn all_thirteen_actions_receive_only_the_assigned_press_and_release() {

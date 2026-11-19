@@ -32,6 +32,16 @@ impl Default for Bindings {
     }
 }
 
+impl Bindings {
+    /// Viewer defaults. The original key order remains in `Default` for
+    /// translating each action back to the GOG game's logical key.
+    pub fn modern_default() -> Self {
+        Self([
+            b'W', b'S', b'D', b'A', b'R', 32, b'Q', b'C', 9, 16, b'E', 18, b'Z',
+        ])
+    }
+}
+
 // Special keys use the localized names in 500.MSG. Printable keys have
 // their own key name, as distinct from a numbered message in KeyName<n>.
 fn special(v: u8) -> Option<(u8, &'static str)> {
@@ -290,6 +300,23 @@ impl Screen {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn modern_defaults_cover_all_actions_without_duplicate_keys() {
+        let keys = Bindings::modern_default().0;
+        assert_eq!(
+            keys,
+            [b'W', b'S', b'D', b'A', b'R', 32, b'Q', b'C', 9, 16, b'E', 18, b'Z']
+        );
+        for (row, key) in keys.iter().enumerate() {
+            assert!(keyword(*key).is_some(), "row {row} has an invalid key");
+            assert_eq!(
+                keys.iter().filter(|other| *other == key).count(),
+                1,
+                "row {row} duplicates a key"
+            );
+        }
+    }
 
     #[test]
     fn named_and_printable_keys_have_distinct_numbers() {

@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-19 M8 modern keyboard defaults
+
+The viewer now starts without a saved key file using W/S/D/A for movement,
+R for walk/run, Space for jump, Q for weapon switching, C for camera center,
+E for cursor toggle, and Z for interface toggle. Map, Modify, and Put Away
+remain Tab, Shift, and Alt. Existing saved remaps still win. The original
+GOG key file remains the translation target and was not edited. Focused
+core and viewer tests passed, as did the Windows release build. A
+repository-wide `cargo fmt --check` reported pre-existing formatting
+differences across many files; no global reformat was applied. On-monitor
+gameplay and menu appearance are not tested.
+
 ## 2026-11-19 M8 startup recovery for unavailable fullscreen
 
 Diagnosed the immediate exit from the viewer log: DISPLAY17 did not

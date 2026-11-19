@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-19 M8 keyboard defaults
+
+With no saved local keyboard file, the viewer now shows and uses W/S/D/A,
+R, Space, Q, C, E, and Z for the ten requested actions. Tab, Shift, and Alt
+remain assigned to Map, Modify, and Put Away. A saved custom map still takes
+precedence, and the original game files are unchanged. The default-key and
+gameplay-translation checks passed, and the Windows release build passed.
+On-monitor gameplay and menu appearance: not tested.
+
 ## 2026-11-19 M8 unavailable fullscreen startup
 
 The saved 3440×1440 exclusive mode failed on DISPLAY17 because that
