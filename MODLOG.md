@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-19 M6 Skeleton51 and western turn (~32%)
+
+The first westward walk from the late archer save died under four
+Skeleton51 melee hits; that save had trapped the enemy within 939
+units. Replayed the archer fight and saved earlier with 54 health and
+2,962 units of separation. Connor used the original health-bar slot 5
+Invulnerable potion, with debug god mode and AI disable both false.
+The first melee attempt failed because Draw selected the Crossbow.
+A normal HUD Mace selection then landed two hits (80 and 269 damage)
+and killed Skeleton51. A fresh process restored the death. An early
+post-kill save supported ordinary walking to the western turn at
+update 155; a fresh process reloaded (136513,106308,864) with 28
+health. The shield has expired. The checkpoint is preserved under
+ignored `kq8-artifacts/earned-deadcity-westturn`. M6 rises from ~31%
+to ~32%; the portal-four plate remains unfinished. On-monitor
+appearance: not tested.
+
 ## 2026-11-19 M6 Dead City eastern archers (~31%)
 
 From the earned 82-health south bend save, the unattended route used

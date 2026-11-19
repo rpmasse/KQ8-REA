@@ -1,6 +1,6 @@
 # STATUS
 
-## 2026-11-19 M6 campaign walking and Dead City archer clearance (~31%)
+## 2026-11-19 M6 campaign walking and Dead City western turn (~32%)
 
 The three-process cottage → CastleD → cottage save test passed in
 202.60 seconds, preserving mushrooms, the cottage door, chest and portal
@@ -43,6 +43,20 @@ with both archers gone, both corpses present, `god_mode=false`,
 `ai_off=false`, and the original Invulnerable potion unspent. The new
 ignored checkpoint is `kq8-artifacts/earned-deadcity-bowguys`; M6 is
 now estimated at ~31%. The floor plate for portal four remains ahead.
+The first walk west from the late archer save died at update 57:
+`skeleton51` was already attacking 939 units away. Repeating the
+archer fight and saving just after BowGuys10's death left 54 health
+and 2,962 units of separation. An ordinary health-bar slot 5 key used
+the original Invulnerable potion (protection 50); the first melee
+attempt then failed because Draw selected the previous Crossbow and
+never hit the skeleton. Selecting the Mace with the normal HUD click
+landed two hits (80 and 269 damage), killed `skeleton51`, and saved at
+28 health. A fresh process restored its death. From a save made soon
+after that kill, ordinary walking reached the western turn at update
+155, and a fresh process reloaded (136513,106308,864) with 28 health.
+The potion has expired; `god_mode=false` and `ai_off=false`. The new
+ignored checkpoint is `kq8-artifacts/earned-deadcity-westturn`; M6 is
+now estimated at ~32%. Portal four's plate and transfer remain ahead.
 The east bend and south bend saves are preserved in the ignored
 `kq8-artifacts/earned-deadcity-eastbend` and
 `kq8-artifacts/earned-deadcity-southbend` directories.

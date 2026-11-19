@@ -5608,6 +5608,48 @@ western turn in the original floor path. Do not claim the portal-four
 plate, transfer or statue/feather until their scripts fire in the
 integrated campaign.
 
+The original floor path from the cleared archer checkpoint bends
+northwest via (144544,107376) to (143520,106352), then heads west to
+(137376,106352). Test these as ordinary walking landmarks from a copy
+of the 38-health save. Keep the unspent original potion available, and
+save only if Connor reaches the western turn alive; inspect any live
+collision or combat event before revising the route.
+
+The first western-turn replay died at update 57 under four melee hits
+from `skeleton51`. In the update-190 archer-clearance save, that skeleton
+is already attacking only about 939 units from Connor, so the
+checkpoint timing is the limiting factor. Repeat the same archer fight
+and save immediately after BowGuys10's death (after update 118), then
+inspect Skeleton51's saved distance before another westward walk. Keep
+the prior 38-health checkpoint as a record of the failed continuation.
+
+The repeated archer fight saved at update 125 with both archers dead,
+54 health, and Skeleton51 about 2,962 units away rather than already
+attacking. The original Invulnerable potion occupies health-bar slot 5
+(`interface.md` rules 38–40) and is still carried. Use that normal
+inventory key at the first free update, then use an ordinary melee
+weapon against Skeleton51 before walking into its chase path. This
+consumes an original item, not the debug `god_mode` flag; AI and damage
+stay enabled. Verify the potion count, combat hits, survival, enemy
+death and save/reload before treating this encounter as cleared.
+
+The first potion-and-melee replay failed at update 170. The potion
+correctly raised protection to 50, but Connor's last selected weapon
+remained the Small Crossbow; the route's ordinary Draw key never
+selected the Mace and no hit reached Skeleton51. Repeat once with a
+normal left click on `IDCTL_INVBAR_SHORT` before Draw. Require actual
+Mace hits and a surviving save; if that fails, record the blocker
+instead of varying the fight blindly.
+
+The corrected replay selected the Mace and landed two real hits, 80
+and 269 damage, killing Skeleton51 by update 130. A fresh process
+restored its death. A save made soon after the kill retained more of
+the original shield effect. Ordinary walking then reached the western
+turn at update 155 and reloaded at (136513,106308,864), 28 health.
+The shield has expired and no original Invulnerable potion remains.
+Continue from this saved point; do not use debug travel or damage
+suppression to bypass the remaining Dead City route.
+
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
 The separate earned-supplies guard route now passes from a Windmill
