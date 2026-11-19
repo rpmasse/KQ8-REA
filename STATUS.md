@@ -16,8 +16,15 @@ to enable portal four; the existing route tried the inactive portal.
 The earned windmill replay passed again with modern bindings: cutscene
 ended at update 598, outward crossing at 608, live guard attack at 633.
 The current M6 estimate remains ~28% because no new campaign checkpoint
-was earned. Next: find the authored path to the portal-four plate and
-continue toward the statue/feather. No manual gameplay test occurred.
+was earned. A second, northward walking attempt passed the central east
+waypoint at update 127, the ridge foot at 228, and the north turn at 284.
+It reached (93807,123866,864) at update 435 and stopped on a head-on
+terrain contact at update 436, still 2143 units from its next waypoint.
+The static height grid offered a nearby narrow corridor but did not
+establish clearance for Connor's collision shape. Both direct east and
+northward routes failed before the original floor plate. Next: identify
+the authored passage and clearance before attempting another route to
+the plate and statue/feather. No manual gameplay test occurred.
 
 ## 2026-11-19 M8 anisotropic Off choice
 

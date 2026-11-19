@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-19 M6 northward Dead City route study
+
+An unattended ordinary-walking replay from the earned central-chamber
+save reached the north corridor at (93807,123866,864). It stopped at a
+head-on terrain contact on update 436, before the floor plate that
+enables portal four. The terrain-only height-grid path lacks collision
+clearance and is not campaign proof. Recorded this second failed route
+in STATUS and DESIGN; no gameplay code or progress percentage changed.
+
 ## 2026-11-19 M6 walking replay with modern bindings
 
 Changed the unattended route runner to feed Connor's logical game keys

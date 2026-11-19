@@ -5553,6 +5553,15 @@ path to the plate through the existing world, then verify its On cue,
 the portal-four transfer and a fresh saved checkpoint. Preserve AI,
 damage, movement and the original plate script.
 
+The original height grid offers a narrow northward corridor west of this
+ridge. An integrated ordinary-walking replay reached (93807,123866,864)
+at update 435, then stopped on a head-on terrain contact at update 436.
+The terrain-only route had passed through nearby (94112,123760), but
+it did not account for Connor's collision width or live world geometry.
+Both the direct east route and this north route failed before the plate.
+Trace the authored passage and its clearance before another integrated
+route; do not infer a reachable checkpoint from the height grid alone.
+
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
 The separate earned-supplies guard route now passes from a Windmill
