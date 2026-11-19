@@ -243,6 +243,7 @@ impl ConnorSim {
     }
 
     pub(super) fn tick_with_state_requests(&mut self, active: Option<&mut Active>, intent: Intent, jump: bool, world: &dyn MoverWorld) -> kq8_core::connor_update::Tick {
+        let scales_active = self.scales.is_some();
         if let Some(active) = active.as_deref() { self.prepare_pending_weapon_list(&active.world); }
         self.walker.restore_swap_owner(self.readying);
         let (mover, walker, dispatcher) = self.request_parts();
@@ -256,7 +257,16 @@ impl ConnorSim {
         };
         match active {
             Some(active) => kq8_core::connor_update::tick_with_requests(mover, walker, intent, jump, &loops, world, &mut |mover, walker, next| {
-                dispatcher.borrow_mut().request(mover, walker, active, Request::ConnorTransition(next));
+                let mut dispatch = dispatcher.borrow_mut();
+                // The Scales controller owns input state changes, but its
+                // completed Special list must return to standing so the
+                // controller can advance from Onto or Off on the next tick.
+                let internal_scales_end = scales_active && next == StateRequest::Wait
+                    && walker.mode == Mode::Special && walker.special.is_empty();
+                let held = dispatch.held;
+                if internal_scales_end { dispatch.held = false; }
+                dispatch.request(mover, walker, active, Request::ConnorTransition(next));
+                dispatch.held = held;
             }),
             None => kq8_core::connor_update::tick(mover, walker, intent, jump, &loops, world),
         }

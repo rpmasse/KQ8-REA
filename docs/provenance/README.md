@@ -1,5 +1,21 @@
 # Provenance
 
+**Earned Scales entry and saved controller (2026-11-19, M6).**
+The installed `triptrp3.kq` and `triptrp3.cs` place the plate at
+(120935,95925) and add portal mask bit 4 while it is held. The
+normal-gameplay route picked up the original Rock from plate four,
+threw it onto plate three, and entered `portrap3`; the one-time script
+award raised experience from 13,730 to 17,730. [Scales rules 23–27](../behaviour/tile-puzzle.md#the-scales-connors-scales-state-traced-2026-10-28)
+and installed `conscale.anm` describe its ready, boarding and departure
+movements. The Rust slot now saves that controller and its active
+Special animation. Fresh-process automated loads resumed a ready step
+and a saved `onscale1` phase 0.416667, then reached the next ready step.
+The internal Special completion admits its own Wait while Scales keeps
+external state requests held. No running-original or on-monitor
+comparison was performed. A distant saved `triptrp3` occupancy list is
+empty although its Rock and portal masks persist; later return behavior
+is not established.
+
 **Animated Feather copy and portal three plate (2026-11-19, M6).**
 The installed Dead City `skstat.cs` creates `feather.kq`, and
 `feather.cs` adds click bit 32 when its fall ends. Its original object
@@ -8,8 +24,8 @@ that box through `loadKQ`, scripted movement and saves; an earned
 statue-to-pickup route and a fresh-process reload verified one carried
 Feather. The installed `triptrp3.cs` and `triptrp3.kq` show that the
 separate pressure plate at (120935,95925) opens portal three. The
-scales route has not yet held that plate. No running-original or
-on-monitor comparison was performed.
+scales route subsequently held that plate as recorded above. No
+running-original or on-monitor comparison was performed.
 
 **Scripted walk held through a weapon checkpoint (2026-11-17, M5).**
 [Ranged-weapon rule 9](../behaviour/ranged-weapons.md) and Q141 require

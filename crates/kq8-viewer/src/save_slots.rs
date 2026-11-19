@@ -80,6 +80,8 @@ pub(super) struct Snapshot {
     tile: Option<connor_view::SavedTile>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     secondary_tile: Option<connor_view::SavedSecondaryTile>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    scales: Option<connor_view::SavedScales>,
     /// Recreation bridge effects may remain after their controller exits.
     #[serde(default,skip_serializing_if="Vec::is_empty")]
     pending_secondary_calls: Vec<connor_view::SecondaryTileCall>,
@@ -150,6 +152,14 @@ impl Snapshot {
         }
         if self.secondary_tile.as_ref().is_some_and(|t|!t.valid()) || self.secondary_tile.is_some() && (self.tile.is_some() || self.rope_climb.is_some() || self.choice.is_some() || self.swing.is_some() || self.shot.is_some() || self.talk_pose.is_some() || self.combat_death.is_some()) {
             return Err("invalid secondary tile continuation or competing controller".into());
+        }
+        if self.scales.as_ref().is_some_and(|s| !s.valid(self.special.is_some()))
+            || self.scales.is_some() && (!self.world.eq_ignore_ascii_case("DeadCity") || self.camera.is_none()
+                || self.tile.is_some() || self.secondary_tile.is_some() || self.rope_climb.is_some()
+                || self.choice.is_some() || self.swing.is_some() || self.shot.is_some()
+                || self.talk_pose.is_some() || self.combat_death.is_some()
+                || self.hit_timing.as_ref().is_some_and(|t| t.has_reaction_pose())) {
+            return Err("invalid Scales continuation or competing controller".into());
         }
         if !self.journey.terrain_hazards.valid() {
             return Err("save has invalid terrain sound continuation".into());
@@ -528,6 +538,7 @@ impl Snapshot {
             if let Some(pose) = &self.talk_pose { connor.restore_talk_pose(pose)?; }
             if let Some(choice) = &self.choice { connor.restore_choice(choice)?; }
             if let Some(tile) = &self.secondary_tile {connor.restore_secondary_tile(tile)?;}
+            if let Some(scales) = &self.scales { connor.restore_scales(scales)?; }
             self.restore_secondary_calls(&mut connor.secondary_calls);
             if let Some(climb) = &self.rope_climb { connor.restore_climb(climb)?; }
             if let Some((stones, found)) = tile_stones {
@@ -545,7 +556,7 @@ impl Snapshot {
             return Err("Connor is unavailable while restoring his attack".into());
         } else if self.rope_climb.is_some() {
             return Err("Connor is unavailable while restoring his rope climb".into());
-        } else if self.tile.is_some() || self.secondary_tile.is_some() || !self.pending_secondary_calls.is_empty() {
+        } else if self.tile.is_some() || self.secondary_tile.is_some() || self.scales.is_some() || !self.pending_secondary_calls.is_empty() {
             return Err("Connor is unavailable while restoring the Tile puzzle".into());
         }
         if let Some(saved) = &self.camera {
@@ -718,6 +729,13 @@ pub fn save_slot_with_thumbnail(
     let shot_timing = connor.saved_shot_timing().ok_or("Connor's moving-shot timing cannot be saved")?;
     let hit_timing = connor.saved_hit_timing().ok_or("Connor's hit timing cannot be saved")?;
     let special = connor.saved_special();
+    if connor.walker.mode == kq8_core::connor::Mode::Special && connor.scales.is_some() && special.is_none() {
+        return Err("Connor's Scales animation cannot be saved".into());
+    }
+    let scales = connor.saved_scales();
+    if connor.scales.is_some() && scales.is_none() {
+        return Err("Connor's Scales controller cannot be saved".into());
+    }
     let choice = connor.saved_choice();
     if connor.choice.is_some() && choice.is_none() { return Err("Connor's Choice state cannot be saved".into()); }
     let weapon_state = connor.saved_weapon_state(special.as_ref()).ok_or("Connor's weapon state cannot be saved")?;
@@ -760,6 +778,7 @@ pub fn save_slot_with_thumbnail(
         rope_climb: connor.saved_climb()?,
         tile: connor.saved_tile(),
         secondary_tile: connor.saved_secondary_tile(),
+        scales,
         pending_secondary_calls: connor.secondary_calls.clone(),
         rope_camera_locked: Some(sim.active.world.rope_first_person_lock),
         speech: Some(sim.active.world.talk.saved(sim.active.world.now())),
@@ -1386,6 +1405,7 @@ mod tests {
             rope_climb: None,
             tile: None,
             secondary_tile: None,
+            scales: None,
             pending_secondary_calls: Vec::new(),
             rope_camera_locked: None,
             speech: None,

@@ -1,5 +1,50 @@
 # STATUS
 
+## 2026-11-19 M6 earned Scales entry and saved movement (~63%)
+
+From the earned Feather return, the verified northern ridge route reached
+Dead City's east lane. Connor collected the actual Rock holding plate four,
+then selected and threw it through normal gameplay onto `triptrp3` at
+(120935,95925). Its On event added bit 4 to both portal-three masks. The
+ordinary maze return and portal entry ran `portrap3.cs`, entered Scales,
+and awarded 4,000 experience once. The earned save has 65 health, 17,730
+experience, and one carried Feather. No god mode, debug teleport or
+inventory grant was used. The save and route logs are in ignored
+`target/m6-feather-*` and `target/m6-scales-*` folders.
+
+The first Scales save restored the position but lost its movement controller:
+Forward became an ordinary walk. The slot now retains the Scales step,
+held-key edge, pose and current Special animation. A fresh process loaded
+the earned ready save and started `conscale.anm/onscale1` with Forward. A
+separate save at phase 0.416667 of `onscale1` restored at that phase,
+finished `onscale2`, returned to standing, and reached Scales ready. The
+last Special-to-Wait transition needed to pass the controller's own
+state gate; the first implementation stayed on the last frame and
+repeated its end request. The corrected automated reload passed. The
+canonical ignored checkpoint is
+`kq8-artifacts/earned-deadcity-feather-scales/slots/slot-1.json`.
+
+At the distant central checkpoint, the saved Rock remains in the world and
+both portal masks remain 4, but `triptrp3`'s saved `inside` list is empty.
+The portal did work; whether that distant occupancy state affects a later
+return is unresolved. The Scales puzzle and later campaign remain open.
+M6 rises from ~58% to ~63%. On-monitor appearance and manual playtesting:
+not tested.
+
+## 2026-11-19 M6 portal-three access route, direct approaches blocked (~58%)
+
+Two unattended normal-gameplay walks from the earned Feather return
+reached the central Dead City lane. Both stopped at a solid boundary
+near x94,000: one at (94038,109521,864) while aiming for the eastern
+corridor, the second at (94191,99885,864) on the southern lane. Neither
+reached the pressure plate; neither changed the earned save. The logs
+are in ignored `target/m6-feather-east-rock-approach` and
+`target/m6-feather-east-southlane`. Existing verified routes show the
+northern ridge passage around this boundary to the east lane. Use
+that passage, checkpoint it, then recover the actual world Rock from
+plate four for the portal-three plate. M6 remains ~58%; on-monitor
+appearance and manual gameplay are not tested.
+
 ## 2026-11-19 M6 Feather pickup and return on archer-clear branch (~58%)
 
 An animated `loadKQ` copy now receives its original click box. The

@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-19 M6 entered Scales and restored its saved controller (~63%)
+
+The earned Feather route recovered the world Rock from plate four, threw
+it onto plate three, walked back to portal three and entered the Scales
+through the original script. Saved Connor's Scales stage, movement pose
+and Special animation. A fresh ready-state load boards on Forward; a
+mid-animation save resumes `onscale1`, finishes `onscale2` and returns
+to Scales ready. The first mid-animation reload exposed a repeated
+end-of-Special request; the controller now admits that internal Wait.
+Viewer unit tests passed (81, with 54 ignored); release build and
+automated original-data reloads passed. The earned slot retains 65
+health, 17,730 experience and one Feather. M6 rises ~58% to ~63%.
+The Scales puzzle, later campaign and on-monitor appearance remain
+untested.
+
 ## 2026-11-19 M6 animated Feather click box and return portal (~58%)
 
 Animated copies made by `loadKQ` now carry their original click box and

@@ -2,7 +2,7 @@
 //! Crossing the dish and touching it are separate: the latter runs the
 //! installed object's collision script, which decides the puzzle outcome.
 
-use super::{ConnorSim, TileCall};
+use super::{ConnorSim, SavedControllerPose, TileCall};
 use kq8_core::{
     connor::{Intent, Mode},
     connor_auto::{AutoKind, AutoMove, wrap},
@@ -11,7 +11,7 @@ use kq8_core::{
 
 const START: [f32; 3] = [217450., 49140., 2900.];
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 enum Step {
     Ready,
     Onto,
@@ -24,6 +24,22 @@ pub struct Scales {
     forward_held: bool,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SavedScales {
+    step: Step,
+    forward_held: bool,
+    mode: Mode,
+    pose: SavedControllerPose,
+}
+
+impl SavedScales {
+    pub fn valid(&self, has_special: bool) -> bool {
+        self.pose.valid()
+            && matches!(self.mode, Mode::Free | Mode::Special)
+            && (self.mode == Mode::Special) == has_special
+    }
+}
+
 fn floor_heading(heading: f32) -> f32 {
     [-1.57_f32, 2.207, 0.933]
         .into_iter()
@@ -32,6 +48,33 @@ fn floor_heading(heading: f32) -> f32 {
 }
 
 impl ConnorSim {
+    pub fn saved_scales(&self) -> Option<SavedScales> {
+        let scales = self.scales.as_ref()?;
+        let saved = SavedScales {
+            step: scales.step,
+            forward_held: scales.forward_held,
+            mode: self.walker.mode,
+            pose: self.capture_controller_pose(),
+        };
+        saved.valid(self.saved_special().is_some()).then_some(saved)
+    }
+
+    pub fn restore_scales(&mut self, saved: &SavedScales) -> Result<(), String> {
+        if !saved.valid(self.walker.mode == Mode::Special) {
+            return Err("invalid Scales controller or movement".into());
+        }
+        self.restore_controller_pose(&saved.pose, saved.mode, "Scales")?;
+        self.scales = Some(Scales {
+            step: saved.step,
+            forward_held: saved.forward_held,
+        });
+        self.log.detail(format!(
+            "connor update {}: Scales controller restored at {:?}, forward held {}",
+            self.updates, saved.step, saved.forward_held
+        ));
+        Ok(())
+    }
+
     pub fn enter_scales(&mut self) {
         self.walker.auto = None;
         self.intent.forward = 0;

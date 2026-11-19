@@ -42,6 +42,7 @@ mod secondary_tiles;
 pub use secondary_tiles::{Call as SecondaryTileCall,SavedSecondaryTile};
 #[path = "connor_scales.rs"]
 mod scales;
+pub use scales::SavedScales;
 pub use tile::{unlit_step, SavedTile, TileCall};
 
 /// One drawable movement: its loop for the walker and its number of frames.
@@ -856,8 +857,7 @@ impl ConnorSim {
         use kq8_core::connor::SpecialStep;
         let walker = &self.walker;
         if walker.mode != Mode::Special || self.swing.is_some() || self.shot.is_some()
-            || self.throw.is_some() || self.rock.is_some() || self.rope.is_some()
-            || self.scales.is_some() {
+            || self.throw.is_some() || self.rock.is_some() || self.rope.is_some() {
             return None;
         }
         let steps = walker.special.iter().map(|step| match step {

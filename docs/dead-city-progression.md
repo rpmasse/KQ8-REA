@@ -65,9 +65,13 @@ The earned good skull and its shelf replacement survive reload after
 the original two-block river crossing. An archer-clear branch placed
 that skull at the statue, picked up its Feather, crossed back over
 the bone bridge, and returned through portal nine with ordinary
-gameplay. The scales remain unreached: the separate pressure plate
-at (120935,95925) must hold portal three open. The existing focused
-scales test starts with a supplied feather.
+gameplay. The earned route continued through the northern ridge to the
+east lane. Connor took the original Rock from plate four and threw it
+onto the separate plate at (120935,95925), opening portal three. He
+returned by the maze corridor, entered the Scales through the portal
+script and received its one-time 4,000 experience. The ready-state
+save and a mid-boarding save both resume in a fresh process. The Scales
+puzzle outcome remains to be earned on this route.
 [Earned skull evidence](skull-river-access.md#earned-good-skull-and-shelf-replacement)
 
 ## Crossing the spike gate

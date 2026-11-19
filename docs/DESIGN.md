@@ -3,6 +3,26 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 keep Connor on the Scales through a save (2026-11-19)
+
+The earned Feather route reached the Scales through the original
+pressure plate and portal three. Its in-game save reloads at the right
+place with the Feather and experience, but Forward starts an ordinary
+walk instead of a Scales step. The Scales controller is absent from the
+slot. Save its ready/boarding/stepping-off/leaving stage, held-key edge,
+movement pose and current special animation, using the existing Tile
+and Special checkpoint patterns. Restore it after Connor's weapon and
+special movement, without replaying the portal entry or reward. Reject
+competing puzzle controllers and invalid movement ownership. Check a
+fresh-process save from the earned entry: Forward must begin the
+original `conscale.anm/onscale1` sequence, with no second 4,000-point
+award. Then check a save partway through boarding and its continuation.
+The mid-boarding reload exposed an additional transition: after the
+last Special animation, Scales must allow that animation's own Wait
+request back to standing while still refusing unrelated external state
+requests. Otherwise `onscale2` stays at its last frame and retries the
+same request every update. Verify the reload reaches the ready step.
+
 ## M6 animated copies become clickable after scripted changes (2026-11-19)
 
 An animated object created by `loadKQ` needs its original box and
@@ -19,6 +39,15 @@ Keep the box aligned when a script moves the animated copy. For the
 Scales route, the installed `triptrp3.cs` pressure plate at
 (120935,95925) enables portal three only while held; the saved
 `ThreeOn` flag by itself does not open the portal.
+Two direct eastbound walks from the portal-nine return stopped at the
+same solid boundary near x94,000 (y99,885 and y109,521). Do not keep
+trying nearby straight lines. Use the already verified northern ridge
+passage through (92500,110000), (94000,120000), (91800,127300) and
+(97000,129136), then the verified east lane and tower route to the
+original Rock on plate four. Pick up that Rock through the camera,
+carry it to plate three, and throw it onto the plate. Require its
+actual On event, both portal masks gaining bit 4, and a fresh-process
+save before claiming entry to the Scales.
 
 ## M6 walking replay after modern keyboard mapping (2026-11-19)
 
