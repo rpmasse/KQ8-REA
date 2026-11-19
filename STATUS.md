@@ -1,6 +1,6 @@
 # STATUS
 
-## 2026-11-19 M6 campaign walking and portal-four boundary (~28%)
+## 2026-11-19 M6 campaign walking and new Dead City checkpoint (~29%)
 
 The three-process cottage → CastleD → cottage save test passed in
 202.60 seconds, preserving mushrooms, the cottage door, chest and portal
@@ -15,16 +15,19 @@ steep terrain ridge. The original TRIPTRP4.CS requires its floor plate
 to enable portal four; the existing route tried the inactive portal.
 The earned windmill replay passed again with modern bindings: cutscene
 ended at update 598, outward crossing at 608, live guard attack at 633.
-The current M6 estimate remains ~28% because no new campaign checkpoint
-was earned. A second, northward walking attempt passed the central east
-waypoint at update 127, the ridge foot at 228, and the north turn at 284.
-It reached (93807,123866,864) at update 435 and stopped on a head-on
-terrain contact at update 436, still 2143 units from its next waypoint.
-The static height grid offered a nearby narrow corridor but did not
-establish clearance for Connor's collision shape. Both direct east and
-northward routes failed before the original floor plate. Next: identify
-the authored passage and clearance before attempting another route to
-the plate and statue/feather. No manual gameplay test occurred.
+The second, northward attempt reached (93807,123866,864) at update 435
+and stopped against the south face of the installed `block.08b` building
+at update 436. The earlier "terrain contact" diagnosis was wrong: the
+`down_what=terrain` column described Connor's footing, while the detailed
+event identified the building. Its box occupies x=92353..94913 and
+y=124066..126370. A measured west detour passed it through ordinary
+walking, reaching the northern passage at update 525. The run saved
+`target/m6-west-block/slots/slot-1.json` at (94786,128185,864) with 120
+health. A fresh process loaded slot 1 in Dead City at the same position;
+the replay used no forced travel, invulnerability or disabled AI. The
+current M6 estimate rises to ~29% for this earned and reloaded campaign
+checkpoint. Portal four's floor plate, transfer and statue/feather remain
+unverified. No manual gameplay test occurred.
 
 ## 2026-11-19 M8 anisotropic Off choice
 

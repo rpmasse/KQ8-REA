@@ -5553,14 +5553,18 @@ path to the plate through the existing world, then verify its On cue,
 the portal-four transfer and a fresh saved checkpoint. Preserve AI,
 damage, movement and the original plate script.
 
-The original height grid offers a narrow northward corridor west of this
-ridge. An integrated ordinary-walking replay reached (93807,123866,864)
-at update 435, then stopped on a head-on terrain contact at update 436.
-The terrain-only route had passed through nearby (94112,123760), but
-it did not account for Connor's collision width or live world geometry.
-Both the direct east route and this north route failed before the plate.
-Trace the authored passage and its clearance before another integrated
-route; do not infer a reachable checkpoint from the height grid alone.
+The northward replay reached (93807,123866,864) at update 435, then hit
+the south face of `block.08b` at update 436. The `down_what=terrain`
+column described his footing, not the forward collision; the detailed
+event already identified the building. The installed building's world
+box is (92353,124066)..(94913,126370), and the original floor grid is
+flat at z=864 west of it. The terrain-only path omitted this building.
+Trace a west detour around its box: turn west before y=124066, pass its
+west edge beyond Connor's 200-unit collision radius, head north beyond
+y=126370, then turn east at y=128000 where the floor is level. Check the
+ordinary-control replay with AI and damage active, and save only after
+it reaches a new verified point. Record any further blocker by its
+detailed contact event before changing the route again.
 
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 

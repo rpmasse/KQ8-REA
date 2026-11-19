@@ -3489,9 +3489,11 @@ pub fn connor_step(
         sim.last_down = down_now;
     }
     for h in &report.hits {
-        // Floor landings are in the columns; log the other building and
-        // object hits.
-        if h.hit.what != "terrain" && h.result != "landing" {
+        // Floor landings are in the columns. Log exceptional terrain
+        // stops too, so a campaign route can distinguish a steep slope
+        // from an object or a changed ground tile.
+        if (h.hit.what != "terrain" && h.result != "landing")
+            || (h.hit.what == "terrain" && matches!(h.result, "head-on" | "3 hits")) {
             events.push(format!(
                 "{} pass hit {} ({}): normal ({:.3}, {:.3}, {:.3}), angle {}, put at ({:.1}, {:.1}, {:.1}), touched at ({:.1}, {:.1}, {:.1})",
                 h.pass,
