@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-19 M8 anisotropic Off choice
+
+Added Off before 4x, 8x, and 16x in the Graphics choice. Off restores
+the original non-anisotropic linear sampler, including after switching
+from 16x during play. The existing 4x default remains. Choice, menu,
+sampler restoration, and local preference checks passed. Original
+texture pixels and game files are unchanged. The Windows release build
+and a 35-frame DX12 Daventry run with Off passed. An automated menu
+route saved Off after starting at 16x. On-monitor appearance: not tested.
+
 ## 2026-11-19 M8 anisotropic filtering
 
 Added an Anisotropic row to Graphics with 4x, 8x, and 16x choices.

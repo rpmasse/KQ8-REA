@@ -10,7 +10,11 @@ use crate::{building_light::BuildingMaterial, ground_haze::GroundMaterial,
 
 fn filtered_sampler(original: &ImageSampler, level: u16) -> ImageSampler {
     let mut sampler = original.clone();
-    sampler.get_or_init_descriptor().set_anisotropic_filter(level);
+    if level == 1 {
+        sampler.get_or_init_descriptor().anisotropy_clamp = 1;
+    } else {
+        sampler.get_or_init_descriptor().set_anisotropic_filter(level);
+    }
     sampler
 }
 
@@ -60,7 +64,7 @@ mod tests {
     fn filtering_preserves_texture_pixels_and_addressing() {
         let image = crate::object_light::texture_image(2, 2, vec![17; 16], ImageAddressMode::Repeat);
         let pixels = image.data.clone();
-        for level in [4, 8, 16] {
+        for level in [1, 4, 8, 16] {
             let sampler = filtered_sampler(&image.sampler, level);
             let ImageSampler::Descriptor(descriptor) = sampler else { panic!("expected descriptor") };
             assert_eq!(descriptor.anisotropy_clamp, level);
@@ -70,6 +74,9 @@ mod tests {
             assert_eq!(descriptor.min_filter, ImageFilterMode::Linear);
             assert_eq!(descriptor.mipmap_filter, ImageFilterMode::Linear);
         }
+        let enabled = filtered_sampler(&image.sampler, 16);
+        let disabled = filtered_sampler(&enabled, 1);
+        assert_eq!(disabled, image.sampler);
         assert_eq!(image.data, pixels);
     }
 }

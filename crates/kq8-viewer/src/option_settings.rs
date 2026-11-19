@@ -320,6 +320,9 @@ mod tests {
     #[test]
     fn anisotropic_preference_saves_separately_and_rejects_unknown_levels() {
         let mut preferences = Preferences::isolated_for_test(Path::new("."),Settings::default());
+        preferences.anisotropic = Anisotropic { level: 1 };
+        preferences.store().unwrap();
+        assert_eq!(read_anisotropic(&preferences.anisotropic_path),Anisotropic { level: 1 });
         preferences.anisotropic = Anisotropic { level: 16 };
         preferences.store().unwrap();
         assert!(!preferences.path.exists());

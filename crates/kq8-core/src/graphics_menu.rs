@@ -957,7 +957,7 @@ mod tests {
                 assert_eq!(screen.take_anti_aliasing_request(),Some(expected));
                 assert_eq!(screen.take_modern_request(),None);
             }
-            for expected in [8,16,4] {
+            for expected in [8,16,1,4] {
                 screen.input(click(&screen,ModernRow::Anisotropic),&mut graphics);
                 assert_eq!(screen.take_anisotropic_request(),Some(modern_display::Anisotropic { level: expected }));
                 assert_eq!(screen.take_modern_request(),None);

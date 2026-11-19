@@ -11,9 +11,12 @@ impl Default for Anisotropic {
 }
 
 impl Anisotropic {
-    pub const CHOICES: [u16; 3] = [4, 8, 16];
+    // A clamp of 1 is wgpu's ordinary, non-anisotropic sampling mode.
+    pub const CHOICES: [u16; 4] = [1, 4, 8, 16];
     pub fn valid(self) -> bool { Self::CHOICES.contains(&self.level) }
-    pub fn label(self) -> String { format!("{}x", self.level) }
+    pub fn label(self) -> String {
+        if self.level == 1 { "Off".to_owned() } else { format!("{}x", self.level) }
+    }
     pub fn step(self, direction: i32) -> Self {
         let index = Self::CHOICES.iter().position(|&level| level == self.level).unwrap_or(0) as i32;
         Self { level: Self::CHOICES[(index + direction).rem_euclid(Self::CHOICES.len() as i32) as usize] }
@@ -210,8 +213,11 @@ mod tests {
         assert_eq!(Anisotropic::default(), Anisotropic { level: 4 });
         assert_eq!(Anisotropic::default().step(1), Anisotropic { level: 8 });
         assert_eq!(Anisotropic { level: 8 }.step(1), Anisotropic { level: 16 });
-        assert_eq!(Anisotropic { level: 16 }.step(1), Anisotropic { level: 4 });
-        assert_eq!(Anisotropic { level: 4 }.step(-1), Anisotropic { level: 16 });
+        assert_eq!(Anisotropic { level: 16 }.step(1), Anisotropic { level: 1 });
+        assert_eq!(Anisotropic { level: 1 }.step(1), Anisotropic { level: 4 });
+        assert_eq!(Anisotropic { level: 4 }.step(-1), Anisotropic { level: 1 });
+        assert!(Anisotropic { level: 1 }.valid());
+        assert_eq!(Anisotropic { level: 1 }.label(), "Off");
         assert!(!Anisotropic { level: 2 }.valid());
     }
 

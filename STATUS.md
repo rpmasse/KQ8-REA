@@ -1,5 +1,13 @@
 # STATUS
 
+## 2026-11-19 M8 anisotropic Off choice
+
+Graphics now cycles Off, 4x, 8x, and 16x, with 4x still the default.
+Off selects ordinary non-anisotropic sampling. Focused choice, menu,
+sampler, and save checks passed, along with the Windows release build
+and a 35-frame DX12 Daventry run. A menu route saved Off from 16x.
+On-monitor appearance: not tested.
+
 ## 2026-11-19 M8 anisotropic filtering
 
 Graphics now offers 4x, 8x, and 16x anisotropic filtering for 3D
