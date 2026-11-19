@@ -1,5 +1,31 @@
 # STATUS
 
+## 2026-11-19 M6 archer-clear branch crossed bridge and placed skull (~53%)
+
+From the earned full-health eastern portal-four checkpoint, Connor
+crossed the bone bridge with two ordinary running jumps under normal
+AI and damage. The in-game save at the dry south bank retained 81
+health and 8,730 experience:
+`kq8-artifacts/earned-deadcity-archerclear-southbank/slots/slot-1.json`.
+The next ordinary route selected his carried Good Skull through the
+quest inventory bar, clicked `skstattp` through the gameplay camera,
+and ran the original statue scene. After the scene completed, the
+Good Skull was consumed, a world Feather spawned, and 4,000
+experience was awarded. The in-game save retained 65 health and
+12,730 experience. A fresh process restored the Feather world copy:
+`kq8-artifacts/earned-deadcity-archerclear-statue/slots/slot-1.json`.
+The Feather is **not yet carried** on this branch.
+
+An `--aim feather` pickup from the restored statue position met no
+clickable object. A first-person, camera-visible route also failed
+after a full turn; its initial ray met nothing, although the Feather
+object and box were loaded. Stop blind pickup variants. Compare the
+saved animation/collider state and click ray with the earlier earned
+Feather pickup, where the ray did hit. The exploratory save named
+`FeatherArcherClear` has no Feather and is not canonical. M6 rises
+from ~50% to ~53% for the earned bridge and statue checkpoints.
+On-monitor appearance: not tested; no manual gameplay testing was done.
+
 ## 2026-11-19 M6 archer-clear branch healed and returned east (~50%)
 
 The earned `NorthArcherReturned` checkpoint reached Sylph's well with

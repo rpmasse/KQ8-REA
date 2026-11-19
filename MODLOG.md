@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-19 M6 crossed bridge and spawned Feather on archer-clear branch (~53%)
+
+The full-health eastern checkpoint crossed both measured bridge gaps
+with ordinary jumps. An in-game south-bank save retained 81 health.
+The Good Skull inventory click and visible statue click ran the
+original scene; a later in-game save had 65 health, 12,730 experience,
+no Good Skull, and a spawned world Feather. A fresh process restored
+that Feather copy. Two ordinary pickup rays from this saved position
+missed its click box, so no Feather pickup is claimed. M6 rises from
+~50% to ~53%. The original installation remained read-only; no manual
+playtesting was performed. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 healed archer-clear branch and crossed portal four (~50%)
 
 Changed the unattended first-person aim route to turn Connor with his
