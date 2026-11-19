@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-19 M8 selectable anti-aliasing
+
+Added Off, SMAA, and FXAA to the Graphics page. The choice is saved in
+the viewer's own anti-aliasing.json and applied to the 3D camera at once
+and after a new camera is created. Off now disables Bevy's default 4x
+MSAA; the other modes enable only their selected pass. The original
+textures and game files are unchanged. The menu layout and cycling test
+passed at 640x480 and 800x600, and the camera and persistence tests passed.
+The release build passed. Separate 35-frame Daventry launches with all
+three modes passed on DX12, and an automated menu route saved SMAA then
+FXAA across two processes. On-monitor visual quality is not tested.
+
 ## 2026-11-19 M8 modern keyboard defaults
 
 The viewer now starts without a saved key file using W/S/D/A for movement,

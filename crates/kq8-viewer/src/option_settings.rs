@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::winit::{UpdateMode, WinitSettings};
 use kq8_core::options_menu::Settings;
 use kq8_core::mouse_menu::MouseSettings;
-use kq8_core::modern_display::{Choice as DisplayChoice, DrawFps};
+use kq8_core::modern_display::{AntiAliasing, Choice as DisplayChoice, DrawFps};
 use kq8_data::GameDir;
 use std::{
     fs,
@@ -19,14 +19,17 @@ pub struct Preferences {
     pub display: Option<DisplayChoice>,
     pub mouse: MouseSettings,
     pub draw_fps: DrawFps,
+    pub anti_aliasing: AntiAliasing,
     saved: Settings,
     saved_display: Option<DisplayChoice>,
     saved_mouse: MouseSettings,
     saved_draw_fps: DrawFps,
+    saved_anti_aliasing: AntiAliasing,
     path: PathBuf,
     display_path: PathBuf,
     mouse_path: PathBuf,
     draw_fps_path: PathBuf,
+    anti_aliasing_path: PathBuf,
     other_lines: Vec<Vec<u8>>,
 }
 
@@ -42,6 +45,7 @@ impl Preferences {
         preferences.display_path = preferences.path.with_file_name("display.json");
         preferences.mouse_path = preferences.path.with_file_name("mouse.json");
         preferences.draw_fps_path = preferences.path.with_file_name("draw-fps.json");
+        preferences.anti_aliasing_path = preferences.path.with_file_name("anti-aliasing.json");
         preferences.settings = settings.clone();
         preferences.saved = settings;
         preferences.display = None;
@@ -50,6 +54,8 @@ impl Preferences {
         preferences.saved_mouse = preferences.mouse;
         preferences.draw_fps = DrawFps::default();
         preferences.saved_draw_fps = preferences.draw_fps;
+        preferences.anti_aliasing = AntiAliasing::default();
+        preferences.saved_anti_aliasing = preferences.anti_aliasing;
         preferences
     }
 
@@ -58,11 +64,13 @@ impl Preferences {
         let display_path = PathBuf::from("kq8-artifacts/display.json");
         let mouse_path = PathBuf::from("kq8-artifacts/mouse.json");
         let draw_fps_path = PathBuf::from("kq8-artifacts/draw-fps.json");
+        let anti_aliasing_path = PathBuf::from("kq8-artifacts/anti-aliasing.json");
         let display = fs::read(&display_path).ok()
             .and_then(|bytes| serde_json::from_slice::<Option<DisplayChoice>>(&bytes).ok())
             .flatten().filter(|choice|choice.valid());
         let mouse = read_mouse(&mouse_path);
         let draw_fps = read_draw_fps(&draw_fps_path);
+        let anti_aliasing = read_anti_aliasing(&anti_aliasing_path);
         let original = GameDir::open(game)
             .ok()
             .and_then(|g| g.find("Options.cs"))
@@ -77,14 +85,17 @@ impl Preferences {
             display,
             mouse,
             draw_fps,
+            anti_aliasing,
             saved: settings,
             saved_display: display,
             saved_mouse: mouse,
             saved_draw_fps: draw_fps,
+            saved_anti_aliasing: anti_aliasing,
             path,
             display_path,
             mouse_path,
             draw_fps_path,
+            anti_aliasing_path,
             other_lines: retained_lines(local.as_deref(), original.as_deref()),
         }
     }
@@ -117,6 +128,12 @@ impl Preferences {
             write_preferences(&self.draw_fps_path,&contents)?;
             self.saved_draw_fps = self.draw_fps;
         }
+        if self.anti_aliasing != self.saved_anti_aliasing {
+            let contents = serde_json::to_vec_pretty(&self.anti_aliasing)
+                .map_err(|error| format!("anti-aliasing preference: {error}"))?;
+            write_preferences(&self.anti_aliasing_path, &contents)?;
+            self.saved_anti_aliasing = self.anti_aliasing;
+        }
         Ok(())
     }
 }
@@ -131,6 +148,12 @@ fn read_draw_fps(path: &Path) -> DrawFps {
     fs::read(path).ok()
         .and_then(|bytes|serde_json::from_slice::<DrawFps>(&bytes).ok())
         .filter(|setting|setting.valid()).unwrap_or_default()
+}
+
+fn read_anti_aliasing(path: &Path) -> AntiAliasing {
+    fs::read(path).ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or_default()
 }
 
 pub fn draw_fps_settings(draw_fps: DrawFps) -> WinitSettings {
@@ -209,10 +232,10 @@ fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>>
 
 #[cfg(test)]
 mod tests {
-    use super::{read_draw_fps,read_mouse,retained_lines,Preferences};
+    use super::{read_anti_aliasing,read_draw_fps,read_mouse,retained_lines,Preferences};
     use kq8_core::mouse_menu::MouseSettings;
     use kq8_core::options_menu::Settings;
-    use kq8_core::modern_display::{Choice,DrawFps,Ratio,ViewMode};
+    use kq8_core::modern_display::{AntiAliasing,Choice,DrawFps,Ratio,ViewMode};
     use std::path::Path;
 
     #[test]
@@ -256,6 +279,18 @@ mod tests {
         std::fs::write(&preferences.draw_fps_path,b"{\"fps\":144}").unwrap();
         assert_eq!(read_draw_fps(&preferences.draw_fps_path),DrawFps::default());
         std::fs::remove_file(&preferences.draw_fps_path).unwrap();
+    }
+
+    #[test]
+    fn anti_aliasing_preference_saves_separately_and_rejects_unknown_values() {
+        let mut preferences = Preferences::isolated_for_test(Path::new("."),Settings::default());
+        preferences.anti_aliasing = AntiAliasing::Smaa;
+        preferences.store().unwrap();
+        assert!(!preferences.path.exists());
+        assert_eq!(read_anti_aliasing(&preferences.anti_aliasing_path),AntiAliasing::Smaa);
+        std::fs::write(&preferences.anti_aliasing_path,b"\"Unknown\"").unwrap();
+        assert_eq!(read_anti_aliasing(&preferences.anti_aliasing_path),AntiAliasing::Off);
+        std::fs::remove_file(&preferences.anti_aliasing_path).unwrap();
     }
 
     #[test]

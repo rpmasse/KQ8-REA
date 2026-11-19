@@ -1,6 +1,25 @@
 //! Modern viewer display choices, independent of the original Options.cs.
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+pub enum AntiAliasing {
+    #[default]
+    Off,
+    Smaa,
+    Fxaa,
+}
+
+impl AntiAliasing {
+    pub const ALL: [Self; 3] = [Self::Off, Self::Smaa, Self::Fxaa];
+    pub fn label(self) -> &'static str {
+        match self { Self::Off => "Off", Self::Smaa => "SMAA", Self::Fxaa => "FXAA" }
+    }
+    pub fn step(self, direction: i32) -> Self {
+        let index = Self::ALL.iter().position(|&choice| choice == self).unwrap() as i32;
+        Self::ALL[(index + direction).rem_euclid(Self::ALL.len() as i32) as usize]
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DrawFps {
     pub fps: u16,
@@ -166,6 +185,14 @@ pub fn choices(native: [u32; 2], fullscreen_modes: &[[u32; 2]], mode: ViewMode, 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn anti_aliasing_cycles_in_graphics_order() {
+        assert_eq!(AntiAliasing::Off.step(1), AntiAliasing::Smaa);
+        assert_eq!(AntiAliasing::Smaa.step(1), AntiAliasing::Fxaa);
+        assert_eq!(AntiAliasing::Fxaa.step(1), AntiAliasing::Off);
+        assert_eq!(AntiAliasing::Off.step(-1), AntiAliasing::Fxaa);
+    }
 
     #[test]
     fn modern_catalog_respects_ratio_native_and_exclusive_modes() {

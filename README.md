@@ -22,6 +22,8 @@ These percentages describe individual phases, not overall game completion. All 1
 
 M8 is being done early: Graphics offers windowed/fullscreen modes, seven aspect ratios including 3:2, standard resolution presets and a 15–120 Draw FPS cap. Options → Mouse offers camera sensitivity; brightness, sensitivity and volume bars support clicking and show percentages. Drawing can run faster than the game's unchanged 15 updates per second. If a saved fullscreen mode disappears, startup opens a temporary 640×480 window. Fullscreen resolutions depend on the monitor's available modes; native ultrawide output and the new cap's visual feel are not tested.
 
+Graphics also offers Off, SMAA, and FXAA anti-aliasing for the 3D view; its selection is saved locally without changing game assets.
+
 The default keyboard layout is W/S/D/A to move, R to walk or run, Space to jump, Q to switch weapons, C to center the camera, E to toggle the cursor, and Z to toggle the interface; saved custom bindings take precedence.
 
 Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.

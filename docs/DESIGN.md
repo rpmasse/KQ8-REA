@@ -3,6 +3,17 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M8 selectable anti-aliasing (2026-11-19)
+
+Add an Anti-Aliasing row to Graphics with Off, SMAA, and FXAA. Save its
+selection in the recreation's local settings, separate from the original
+game files. Off is the default and turns off Bevy's 4x camera MSAA;
+SMAA and FXAA each enable only their own post-processing pass. Apply
+changes to the active 3D camera without rebuilding the world, including
+after loading another region. Keep the bitmap menu and interface art
+unsmoothed. Check the row's layout, cycling, persistence, and live camera
+components automatically at both menu sizes.
+
 ## M8 modern keyboard defaults (2026-11-19)
 
 Keep the original GOG key file as the gameplay action map. When there is no

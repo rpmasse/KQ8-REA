@@ -1048,6 +1048,7 @@ fn option_key(world: &mut World, key: Key) {
                 screen.set_modern_host(native,modes);
                 screen.set_modern_choice(choice);
                 screen.set_draw_fps(world.resource::<Preferences>().draw_fps);
+                screen.set_anti_aliasing(world.resource::<Preferences>().anti_aliasing);
                 if let Some(runtime) = world.get_resource::<crate::graphics_runtime::Runtime>() {
                     if let Some(active) = runtime.active() {
                         screen.set_device_inventory(runtime.inventory(),active.device.clone(),active.high);
@@ -1116,7 +1117,7 @@ fn graphics_key(world: &mut World, key: Key) {
     let (native,modes) = modern_host_modes(world);
     let mut graphics = old.clone();
     let profile = world.contains_resource::<crate::graphics_runtime::Runtime>();
-    let (action, device, display, draw_fps) = {
+    let (action, device, display, draw_fps, anti_aliasing) = {
         let mut menu = world.resource_mut::<Menu>();
         menu.graphics.as_mut().unwrap().set_modern_host(native,modes);
         let cue = menu.graphics.as_ref().unwrap().sound(key);
@@ -1124,14 +1125,19 @@ fn graphics_key(world: &mut World, key: Key) {
         let device = profile.then(||menu.graphics.as_mut().unwrap().take_device_selection()).flatten();
         let display = menu.graphics.as_mut().unwrap().take_modern_request();
         let draw_fps = menu.graphics.as_mut().unwrap().take_draw_fps_request();
+        let anti_aliasing = menu.graphics.as_mut().unwrap().take_anti_aliasing_request();
         if let Some(cue) = cue { menu.audio.play(cue); }
-        (action, device, display, draw_fps)
+        (action, device, display, draw_fps, anti_aliasing)
     };
     if let Some(draw_fps) = draw_fps {
         world.resource_mut::<Preferences>().draw_fps = draw_fps;
         world.resource_mut::<bevy::winit::WinitSettings>().focused_mode =
             crate::option_settings::draw_fps_settings(draw_fps).focused_mode;
         log.lock().unwrap().summary(format!("graphics: draw FPS cap set to {}",draw_fps.label()));
+    }
+    if let Some(anti_aliasing) = anti_aliasing {
+        world.resource_mut::<Preferences>().anti_aliasing = anti_aliasing;
+        log.lock().unwrap().summary(format!("graphics: anti-aliasing set to {}",anti_aliasing.label()));
     }
     if graphics.high_resolution != old.high_resolution {
         let requested = crate::display_mode::Size::from_high(graphics.high_resolution);

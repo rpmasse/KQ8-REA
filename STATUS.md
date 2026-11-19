@@ -1,5 +1,13 @@
 # STATUS
 
+## 2026-11-19 M8 anti-aliasing
+
+Graphics now has Off, SMAA, and FXAA. The selection persists locally and
+changes the active 3D camera without a world reload. Off disables MSAA.
+Automated menu, persistence, and camera checks passed; each mode also
+completed a 35-frame DX12 Daventry run. An automated menu route saved
+SMAA and then FXAA on the next run. On-monitor appearance: not tested.
+
 ## 2026-11-19 M8 keyboard defaults
 
 With no saved local keyboard file, the viewer now shows and uses W/S/D/A,
