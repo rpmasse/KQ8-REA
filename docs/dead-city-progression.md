@@ -62,10 +62,12 @@ the first hall with the key. The eight-process regression from
 load recorded one key, 80 health and 1,197 experience at level eight.
 
 The earned good skull and its shelf replacement survive reload after
-the original two-block river crossing. A later earned branch placed
-that skull at the statue and picked up its Feather. The scales remain
-unreached on that branch; the existing focused scales test starts
-with a supplied feather.
+the original two-block river crossing. An archer-clear branch placed
+that skull at the statue, picked up its Feather, crossed back over
+the bone bridge, and returned through portal nine with ordinary
+gameplay. The scales remain unreached: the separate pressure plate
+at (120935,95925) must hold portal three open. The existing focused
+scales test starts with a supplied feather.
 [Earned skull evidence](skull-river-access.md#earned-good-skull-and-shelf-replacement)
 
 ## Crossing the spike gate

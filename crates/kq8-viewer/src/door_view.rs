@@ -835,7 +835,17 @@ pub fn spawn_doors(
                     .iter()
                     .find(|o| o.name.eq_ignore_ascii_case(&t.name))
                     .or_else(|| active.world.anims.iter().map(|a| &a.player).find(|o| o.name.eq_ignore_ascii_case(&t.name)))?;
-                kq8_core::active::TemplateKind::Anim(Box::new(player.clone()))
+                let clickable = active.world.clickables.iter().find(|c| c.name.eq_ignore_ascii_case(&t.name)).cloned()
+                    .or_else(|| t.bounds.map(|(min, max)| {
+                        // An unused animated template has no live click box
+                        // yet. Its original box is still needed by copies.
+                        let mut c = kq8_core::active::Clickable::plain(
+                            &t.name, p.class.as_deref().unwrap_or("KQAnimObject"),
+                            min, max, placement, t.collider_type);
+                        c.script = t.script.clone();
+                        c
+                    }));
+                kq8_core::active::TemplateKind::Anim(Box::new(player.clone()), clickable)
             } else {
                 kq8_core::active::TemplateKind::Still { bounds: t.bounds, collision_type: t.collider_type }
             };
@@ -855,7 +865,7 @@ pub fn spawn_doors(
             dithered: 0, class: "KQEmitter".into(),
         })
     }));
-    let animated = templates.iter().filter(|(_, t)| matches!(t.kind, kq8_core::active::TemplateKind::Anim(_))).count();
+    let animated = templates.iter().filter(|(_, t)| matches!(t.kind, kq8_core::active::TemplateKind::Anim(..))).count();
     main_log.summary(format!("templates: {} for loadKQ while playing ({animated} animated; M5 5d-3, 5d-4)", templates.len()));
     active.world.set_templates(templates);
     // Stats (3i-6, anim-scripts.md rule 19): doors without a line have

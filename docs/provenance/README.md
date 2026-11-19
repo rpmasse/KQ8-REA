@@ -1,5 +1,16 @@
 # Provenance
 
+**Animated Feather copy and portal three plate (2026-11-19, M6).**
+The installed Dead City `skstat.cs` creates `feather.kq`, and
+`feather.cs` adds click bit 32 when its fall ends. Its original object
+file supplies the box and initial collision type. Rust now carries
+that box through `loadKQ`, scripted movement and saves; an earned
+statue-to-pickup route and a fresh-process reload verified one carried
+Feather. The installed `triptrp3.cs` and `triptrp3.kq` show that the
+separate pressure plate at (120935,95925) opens portal three. The
+scales route has not yet held that plate. No running-original or
+on-monitor comparison was performed.
+
 **Scripted walk held through a weapon checkpoint (2026-11-17, M5).**
 [Ranged-weapon rule 9](../behaviour/ranged-weapons.md) and Q141 require
 a scripted walk to wait while Connor changes weapons. The Rust slot

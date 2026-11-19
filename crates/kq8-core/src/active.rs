@@ -602,7 +602,7 @@ pub struct Template {
 #[derive(Debug, Clone)]
 pub enum TemplateKind {
     /// An animated object (`KQAnimOnce`, `KQAnimObject`): its player.
-    Anim(Box<NamedAnimPlayer>),
+    Anim(Box<NamedAnimPlayer>, Option<Clickable>),
     /// A still model: its `BOUNDS.KQ` box, if any, and collision type.
     Still { bounds: Option<([f32; 3], [f32; 3])>, collision_type: u32 },
 }
@@ -1188,7 +1188,12 @@ impl WorldState {
     /// An object restored on a prior visit started this visit in its
     /// modified state. Keep tracking it even if its movement stays there.
     pub fn kept_states_including(&self, previously_kept: &BTreeSet<String>) -> Vec<KeptState> {
-        let anims = self.anims.iter().filter(|a| !a.gone && a.character.is_none()).map(|a| (&a.player, None));
+        let anims = self.anims.iter().filter(|a| !a.gone && a.character.is_none()).map(|a| {
+            let copy = self.object_copies.iter().any(|c| c.name.eq_ignore_ascii_case(&a.player.name));
+            let kind = copy.then(|| self.clickables.iter().find(|c| !c.gone && c.name.eq_ignore_ascii_case(&a.player.name)))
+                .flatten().map(|c| c.collision_type);
+            (&a.player, kind)
+        });
         let objects = self.objects.iter().filter(|o| !o.gone).map(|o| (&o.player, Some(o.collision_type)));
         anims
             .chain(objects)
@@ -3091,11 +3096,22 @@ impl WorldState {
         self.register_event_receiver(&name);
         self.known.insert(lower);
         let what = match &t.kind {
-            TemplateKind::Anim(p) => {
+            TemplateKind::Anim(p, clickable) => {
                 let mut player = (**p).clone();
                 player.name = name.clone();
                 player.base = placement;
                 self.anims.push(AnimObject { player, script: t.script.clone(), gone: false, character: None, translucency: None });
+                let kind = clickable.as_ref().map(|source| {
+                    let mut c = source.clone();
+                    c.name = name.clone();
+                    c.placement = placement;
+                    c.gone = false;
+                    let initial = c.collision_type;
+                    self.clickables.push(c);
+                    initial
+                });
+                let player = &self.anims.last().unwrap().player;
+                self.start_states.insert(name.to_ascii_lowercase(), (player.movement_name().to_string(), placement, kind));
                 "animated"
             }
             TemplateKind::Still { bounds: Some((min, max)), collision_type } => {
@@ -3535,6 +3551,9 @@ impl WorldState {
             let old = base.position;
             let (new, note) = moved_placement(*base, flags, position, turn);
             *base = new;
+            for click in self.clickables.iter_mut().filter(|c| !c.gone && c.name.eq_ignore_ascii_case(&who)) {
+                click.placement = new;
+            }
             if self.traps.iter().any(|t| t.inside.iter().any(|name| name.eq_ignore_ascii_case(&who))) {
                 if let Some(i) = self.anim_index(&who).filter(|&i| self.anims[i].character.is_some()) {
                     self.placed_in_trap.push((i, new.position));
@@ -4106,7 +4125,7 @@ impl WorldState {
             let o = &mut self.objects[i];
             (o.gone, o.hidden) = (true, true);
             "scripted object"
-        } else if let Some(c) = self.clickables.iter_mut().find(|c| same(&c.name)) {
+        } else if let Some(c) = self.clickables.iter_mut().find(|c| !c.gone && same(&c.name)) {
             c.gone = true;
             "clickable object"
         } else if let Some(i) = self.door_index(name) {
@@ -8860,7 +8879,7 @@ endif
         let player = crate::named_anim::tests::still_then_open("barrelsm");
         let at = Placement::at([0.0; 3]);
         a.world.set_templates([
-            ("BURST.KQ".to_string(), Template { name: "barrelsm".into(), script: None, placement: at, kind: TemplateKind::Anim(Box::new(player)), dithered: 2, class: "KQAnimOnce".into() }),
+            ("BURST.KQ".to_string(), Template { name: "barrelsm".into(), script: None, placement: at, kind: TemplateKind::Anim(Box::new(player), None), dithered: 2, class: "KQAnimOnce".into() }),
             ("wreck.kq".to_string(), Template { name: "barelded".into(), script: None, placement: Placement::at([7.0, 8.0, 9.0]), kind: TemplateKind::Still { bounds: Some(([-1.0; 3], [1.0; 3])), collision_type: 0x41 }, dithered: 0, class: "KQObject".into() }),
         ]);
         a.click("basket1", [0.0, -1000.0, 0.0], 2350.0, None);
@@ -11620,7 +11639,7 @@ deleteObject waterfall2
         let model = &a.world.anims[0].player;
         let template = Template {
             name: "link".into(), script: None, placement: model.base,
-            kind: TemplateKind::Anim(Box::new(model.clone())), dithered: 0, class: "KQAnimObject".into(),
+            kind: TemplateKind::Anim(Box::new(model.clone()), None), dithered: 0, class: "KQAnimObject".into(),
         };
         a.world.set_templates([("beam.kq".into(), template.clone()), ("end.kq".into(), template)]);
         let shoot = |a: &mut Active| {
@@ -13021,10 +13040,43 @@ mod loaded_stats_tests {
     }
 
     #[test]
+    fn animated_load_copy_gains_click_bit_and_keeps_it_for_disk() {
+        let mut a = world();
+        let at = Placement::at([100.0, 200.0, 300.0]);
+        let click = Clickable::plain("feather", "KQAnimObject", [-10.0; 3], [10.0; 3], at, 1);
+        a.world.set_templates([("feather.kq".into(), Template {
+            name: "feather".into(), script: None, placement: at,
+            kind: TemplateKind::Anim(Box::new(crate::named_anim::tests::still_then_open("feather")), Some(click)),
+            dithered: 0, class: "KQAnimObject".into(),
+        })]);
+        a.console_command("loadKQ feather.kq", "test");
+        assert_eq!(a.world.collision_type_of("feather"), Some(1));
+        assert!(a.pick([100.0, 200.0, 500.0], [0.0, 0.0, -1.0]).is_none());
+        a.console_command("KQObject::collisionType feather 32", "EndLoop fall");
+        assert_eq!(a.world.collision_type_of("feather"), Some(0x21));
+        assert_eq!(a.pick([100.0, 200.0, 500.0], [0.0, 0.0, -1.0]).unwrap().0, "feather");
+        a.console_command("move feather 0 200 300 400", "script move");
+        assert_eq!(a.target_point("feather"), Some([200.0, 300.0, 400.0]));
+        assert!(a.pick([100.0, 200.0, 500.0], [0.0, 0.0, -1.0]).is_none());
+        assert_eq!(a.pick([200.0, 300.0, 500.0], [0.0, 0.0, -1.0]).unwrap().0, "feather");
+        let kept = a.world.kept_states_including(&Default::default());
+        assert_eq!(kept.iter().find(|s| s.name == "feather").unwrap().collision_type, Some(0x21));
+        a.console_command("deleteObject feather", "test");
+        assert!(a.pick([200.0, 300.0, 500.0], [0.0, 0.0, -1.0]).is_none());
+        a.console_command("loadKQ feather.kq", "later event");
+        assert_eq!(a.world.clickables.iter().filter(|c| !c.gone && c.name == "feather").count(), 1);
+        assert_eq!(a.world.collision_type_of("feather"), Some(1));
+        a.console_command("KQObject::collisionType feather 32", "later fall");
+        a.console_command("deleteObject feather", "later pickup");
+        assert!(a.pick([100.0, 200.0, 500.0], [0.0, 0.0, -1.0]).is_none());
+        assert_eq!(a.world.clickables.iter().filter(|c| !c.gone && c.name == "feather").count(), 0);
+    }
+
+    #[test]
     fn a_live_reused_name_is_not_saved_gone_by_its_deleted_predecessor() {
         let mut a = world();
         a.world.set_templates([("a.kq".into(), Template { name: "copy".into(), script: None,
-            placement: Placement::at([0.0; 3]), kind: TemplateKind::Anim(Box::new(crate::named_anim::tests::still_then_open("copy"))),
+            placement: Placement::at([0.0; 3]), kind: TemplateKind::Anim(Box::new(crate::named_anim::tests::still_then_open("copy")), None),
             dithered: 0, class: "KQAnimObject".into() })]);
         a.console_command("loadKQ a.kq", "test");
         a.console_command("deleteObject copy", "test");
@@ -13038,7 +13090,7 @@ mod loaded_stats_tests {
     fn copy_identity_keeps_aliases_order_current_places_and_only_the_live_replacement() {
         let mut a = world();
         a.world.set_templates(["a.kq", "b.kq"].map(|file| (file.into(), Template { name: "original".into(), script: None,
-            placement: Placement::at([1.0, 2.0, 3.0]), kind: TemplateKind::Anim(Box::new(crate::named_anim::tests::still_then_open("original"))),
+            placement: Placement::at([1.0, 2.0, 3.0]), kind: TemplateKind::Anim(Box::new(crate::named_anim::tests::still_then_open("original")), None),
             dithered: 0, class: "KQAnimObject".into() })));
         a.console_command("loadKQ a.kq Zed 10 20 30", "test");
         a.console_command("loadKQ a.kq Alpha 40 50 60", "test");

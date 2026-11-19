@@ -1,5 +1,31 @@
 # STATUS
 
+## 2026-11-19 M6 Feather pickup and return on archer-clear branch (~58%)
+
+An animated `loadKQ` copy now receives its original click box. The
+Feather's `EndLoop fall` changes its collision type from 1 to 33, making
+an ordinary visible click possible. The box follows a scripted move,
+and its type survives a save and fresh-process reload. A focused core
+test covers the click, movement, disk state, deletion and name reuse.
+
+From the earned archer-clear statue save, a normal click picked up the
+Feather. The in-game save and fresh-process reload retained one carried
+Feather, 65 health and 13,730 experience:
+`kq8-artifacts/earned-deadcity-feather-archerclear/slots/slot-1.json`.
+Two ordinary running jumps returned across the bone bridge. Normal
+movement then crossed portal nine, with skeleton19 still dead. The
+fresh-process checkpoint at (77549,110436,1584) is
+`kq8-artifacts/earned-deadcity-feather-portal-return/slots/slot-1.json`.
+
+The first route to portal three reached its box but did not trigger it.
+The installed `triptrp3.cs` shows why: its distant pressure plate at
+(120935,95925) must add bit 4 to `portrap3` and `portrp3b`; both saved
+masks are zero, even though `ThreeOn=true`. The earlier claim below
+that portal three was already enabled was incorrect. Next: reach and
+hold that original plate through gameplay, enter the Scales, and
+continue the campaign. M6 rises from ~53% to ~58%. On-monitor
+appearance: not tested; no manual gameplay testing was done.
+
 ## 2026-11-19 M6 archer-clear branch crossed bridge and placed skull (~53%)
 
 From the earned full-health eastern portal-four checkpoint, Connor
@@ -14,7 +40,7 @@ Good Skull was consumed, a world Feather spawned, and 4,000
 experience was awarded. The in-game save retained 65 health and
 12,730 experience. A fresh process restored the Feather world copy:
 `kq8-artifacts/earned-deadcity-archerclear-statue/slots/slot-1.json`.
-The Feather is **not yet carried** on this branch.
+This was the state before the animated-copy fix and later earned pickup.
 
 An `--aim feather` pickup from the restored statue position met no
 clickable object. A first-person, camera-visible route also failed
@@ -132,9 +158,9 @@ another normal-AI attempt.
 
 The earned Feather save has `NineOn=true` and `ThreeOn=true`. Original
 Dead City scripts place return portal nine at (220728,192412); it leads
-back to (77549,110436), near enabled portal three at (79676,92402),
+back to (77549,110436), near portal three at (79676,92402),
 which enters the Scales state. This is the scripted campaign route to
-the scales; no teleport or inventory grant is needed.
+the scales after `triptrp3` is held; no teleport or inventory grant is needed.
 
 Two automated normal-AI attempts walked from the statue to the bone
 bridge. The first crossed both spans, landed on the north bridge at

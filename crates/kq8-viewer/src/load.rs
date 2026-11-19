@@ -6275,7 +6275,7 @@ mod campaign_tests {
         let placement = Placement { position: p.position, rotation: kq8_data::objects::rotation(p.angles) };
         let player = world_player(actor, &objects.object_animations, &t.name, placement);
         let template = Template { name: t.name.clone(), script: t.script.clone(), placement,
-            kind: TemplateKind::Anim(Box::new(player)), dithered: p.dithered,
+            kind: TemplateKind::Anim(Box::new(player), None), dithered: p.dithered,
             class: p.class.clone().unwrap() };
         let mut active = Active::new(objects.vars, vec![], vec![], objects.known, objects.scripts);
         active.world.set_templates([("pushbk2.kq".into(), template)]);

@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-19 M6 animated Feather click box and return portal (~58%)
+
+Animated copies made by `loadKQ` now carry their original click box and
+type, follow scripted moves, and save changed collision type. Deletion
+and name reuse select the live box. The original statue Feather became
+clickable when its fall ended, was collected by an ordinary gameplay
+click, and survived a fresh-process load. The archer-clear branch then
+crossed the bone bridge and return portal nine under normal AI and
+damage. Its new earned checkpoint has 65 health, 13,730 experience and
+one carried Feather. A route to portal three failed because its distant
+`triptrp3` plate is not held; both portal masks were zero. M6 rises from
+~53% to ~58%. The focused animated-copy test and full core/viewer unit
+suites passed (796 core and 81 viewer; 30 and 54 ignored). The original
+installation remained read-only; no manual
+playtesting was performed. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 crossed bridge and spawned Feather on archer-clear branch (~53%)
 
 The full-health eastern checkpoint crossed both measured bridge gaps

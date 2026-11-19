@@ -3,6 +3,23 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 animated copies become clickable after scripted changes (2026-11-19)
+
+An animated object created by `loadKQ` needs its original box and
+collision type in the live world, alongside its animation. Dead City's
+Feather starts with type 1 and its `EndLoop fall` script adds the click
+bit 32. The current copy has an animation but no core click box, so
+that command cannot find it. Carry the box and type in the prepared
+template, register a matching live clickable when the copy is made,
+and keep its changed type with the object on disk. Remove both animation
+and box when the object is deleted or its name is reused. Check this
+first with a small core test, then replay the original statue, Feather
+pickup, save and fresh-process return under normal AI and damage.
+Keep the box aligned when a script moves the animated copy. For the
+Scales route, the installed `triptrp3.cs` pressure plate at
+(120935,95925) enables portal three only while held; the saved
+`ThreeOn` flag by itself does not open the portal.
+
 ## M6 walking replay after modern keyboard mapping (2026-11-19)
 
 The unattended route runner steers Connor during Update, after physical

@@ -154,7 +154,7 @@ impl WorldState {
             return Some(i);
         }
         let file = file.to_ascii_lowercase();
-        let TemplateKind::Anim(model) = &self.templates.get(&file)?.kind else { return None };
+        let TemplateKind::Anim(model, _) = &self.templates.get(&file)?.kind else { return None };
         let mut player = (**model).clone();
         player.name = name.clone();
         player.base.position = position;
