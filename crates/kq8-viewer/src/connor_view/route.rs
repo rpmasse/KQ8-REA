@@ -152,15 +152,9 @@ impl Replay {
         Ok(replay)
     }
 
-    fn keys(&mut self, input: &mut ButtonInput<KeyCode>, wanted: &[KeyCode]) {
-        for key in self.held.drain(..) {
-            if !wanted.contains(&key) {
-                input.release(key);
-            }
-        }
-        for &key in wanted {
-            input.press(key);
-        }
+    fn keys(&mut self, input: &mut crate::keyboard_input::GameKeys, wanted: &[KeyCode]) {
+        input.set_route_keys(wanted);
+        self.held.clear();
         self.held.extend_from_slice(wanted);
     }
 }
@@ -168,7 +162,7 @@ impl Replay {
 pub fn steer(
     mut replay: ResMut<Replay>,
     sim: Option<Res<ConnorSim>>,
-    mut keys: ResMut<ButtonInput<KeyCode>>,
+    mut keys: ResMut<crate::keyboard_input::GameKeys>,
     mut clicks: ResMut<ClickAt>,
     mut aims: ResMut<AimAt>,
     doors: Option<Res<DoorSim>>,
@@ -542,7 +536,7 @@ pub fn steer(
 fn steer_tile(
     replay: &mut Replay,
     sim: &ConnorSim,
-    keys: &mut ButtonInput<KeyCode>,
+    keys: &mut crate::keyboard_input::GameKeys,
     shared: &Shared,
 ) -> Result<(), String> {
     use kq8_core::tile_puzzle::{jump_target, where_is, Where};

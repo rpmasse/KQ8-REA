@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-19 M6 walking replay with modern bindings
+
+Changed the unattended route runner to feed Connor's logical game keys
+after physical keyboard translation and retain their press/release state
+across updates. The modern W/A/S/D bindings no longer discard route
+movement. A focused key-state test and the release build passed. The
+earned windmill replay again reached the real Henchman attack at update
+633. In Dead City, Connor moved from (77701,110158) to (94200,109463),
+then ordinary walking stopped at the original steep terrain ridge.
+The direct portal-four route was also wrong: original TRIPTRP4.CS
+enables its inactive mask only while the floor plate is pressed.
+The earlier first replay accidentally opened Options because the isolated
+save directory was not set; the corrected replay loaded the slot.
+The first code approach changed scheduling without translating the
+old action key and still stood still; the final game-key approach passed.
+The three-process cottage/CastleD round-trip test passed before the fix
+and retains its diagnostic-move limitation. M6 stays ~28% until a new
+earned checkpoint is verified. On-monitor appearance: not tested.
+
 ## 2026-11-19 M8 anisotropic Off choice
 
 Added Off before 4x, 8x, and 16x in the Graphics choice. Off restores

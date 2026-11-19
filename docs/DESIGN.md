@@ -3,6 +3,18 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 walking replay after modern keyboard mapping (2026-11-19)
+
+The unattended route runner steers Connor during Update, after physical
+keys are translated to game actions in PreUpdate. Send the route's
+original game actions directly into the game-key state and retain those
+presses through the next translation, so an earned campaign save can
+move again with the modern default bindings. Keep the
+normal movement, collision, hazards and scripts active. Verify the
+previous stuck Dead City checkpoint moves, then resume its route to the
+original floor plate that enables portal four. Do not claim a portal or
+statue crossing until a saved checkpoint proves it.
+
 ## M8 anisotropic texture filtering (2026-11-19)
 
 Add an Anisotropic Graphics choice with Off, 4x, 8x, and 16x; start at 4x and
@@ -5524,13 +5536,22 @@ second run it accepted the doorway while running east and hit the windmill
 wall. The earlier retreat produced a real spear miss and an axe hit. The
 later timing experiment did not reach combat. Those duel attempts are closed.
 
-**Next replay check.** Track Henchtp's original activation and the end of
-the scene when `ax.cs` returns control and removes its scene object. Walk
-outward through the actual doorway, recording an outside position and
-westward progress before proceeding. Replay from the same genuinely earned
-Small Axe save in two independent processes and verify arrival at the first
-live guard attack. Preserve the measured retreat tactic, ordinary player
-controls, AI and damage. Record the continuation's actual stopping point.
+**Completed replay check.** Two independent processes loaded the earned
+Small Axe save, observed Henchtp and the end of `ax.cs`, walked outward
+through the doorway, and reached the first live guard attack. The
+2026-11-19 release replay with modern keyboard defaults again reached
+the attack at update 633. This checks the approach, not the duel.
+
+**Dead City portal-four continuation.** The earned
+`SkullReturnMetalRoom` slot is actually in the central chamber. Its
+portal-four collision mask is zero. The original `TRIPTRP4.CS` enables
+that portal only while its floor plate is pressed; the direct portal
+route cannot advance. The repaired route driver moved Connor from
+(77701,110158) to (94200,109463), where the original terrain has a
+steep east-facing ridge and ordinary walking stopped. Find the authored
+path to the plate through the existing world, then verify its On cue,
+the portal-four transfer and a fresh saved checkpoint. Preserve AI,
+damage, movement and the original plate script.
 
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 

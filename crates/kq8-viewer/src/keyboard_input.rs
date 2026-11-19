@@ -135,9 +135,23 @@ pub struct GameKeys {
     #[deref]
     buttons: ButtonInput<KeyCode>,
     original: Bindings,
+    route_held: Vec<KeyCode>,
 }
 
 impl GameKeys {
+    /// Keep unattended route actions pressed across physical-key translation.
+    pub fn set_route_keys(&mut self, wanted: &[KeyCode]) {
+        for key in self.route_held.drain(..) {
+            if !wanted.contains(&key) {
+                self.buttons.release(key);
+            }
+        }
+        for &key in wanted {
+            self.buttons.press(key);
+        }
+        self.route_held.extend_from_slice(wanted);
+    }
+
     pub fn modify_held(&self) -> bool {
         physical(self.original.0[9]).is_some_and(|k| self.pressed(k))
     }
@@ -161,7 +175,8 @@ pub fn register(app: &mut App, game: &Path) {
 fn translate(raw: Res<ButtonInput<KeyCode>>, map: Res<Keyboard>, mut keys: ResMut<GameKeys>) {
     // Retain the make/break semantics when both left and right modifiers
     // map to the same control, or a complete tap happens within one frame.
-    let pressed: Vec<_> = raw.get_pressed().filter_map(|k| map.logical(*k)).collect();
+    let mut pressed: Vec<_> = raw.get_pressed().filter_map(|k| map.logical(*k)).collect();
+    pressed.extend(keys.route_held.iter().copied());
     let old: Vec<_> = keys.get_pressed().copied().collect();
     keys.original = map.installed;
     keys.buttons.clear();
@@ -264,6 +279,28 @@ mod tests {
         }
         assert_eq!(keyboard.logical(KeyCode::ArrowUp), None);
         assert_eq!(keyboard.logical(KeyCode::KeyF), Some(KeyCode::KeyF));
+    }
+
+    #[test]
+    fn route_game_action_remains_held_until_the_route_releases_it() {
+        let installed = Bindings::default();
+        let active = Bindings::modern_default();
+        let mut app = App::new();
+        app.insert_resource(Keyboard { installed, saved: active, active, template: String::new() })
+            .init_resource::<ButtonInput<KeyCode>>()
+            .init_resource::<GameKeys>()
+            .add_systems(Update, translate);
+        app.world_mut().run_schedule(Update);
+        app.world_mut().resource_mut::<GameKeys>().set_route_keys(&[KeyCode::ArrowRight]);
+        assert!(app.world().resource::<GameKeys>().just_pressed(KeyCode::ArrowRight));
+        app.world_mut().run_schedule(Update);
+        let keys = app.world().resource::<GameKeys>();
+        assert!(keys.pressed(KeyCode::ArrowRight));
+        assert!(!keys.just_pressed(KeyCode::ArrowRight));
+        app.world_mut().resource_mut::<GameKeys>().set_route_keys(&[]);
+        assert!(app.world().resource::<GameKeys>().just_released(KeyCode::ArrowRight));
+        app.world_mut().run_schedule(Update);
+        assert!(!app.world().resource::<GameKeys>().pressed(KeyCode::ArrowRight));
     }
 
     #[test]

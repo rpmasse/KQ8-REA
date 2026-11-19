@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-19 M6 campaign walking and portal-four boundary (~28%)
+
+The three-process cottage → CastleD → cottage save test passed in
+202.60 seconds, preserving mushrooms, the cottage door, chest and portal
+state. It uses diagnostic moves and is not a full ordinary-control route.
+The modern keyboard map had silently stopped unattended walking routes:
+the runner sent old logical keys to the physical-key translator after it
+ran. Route actions now enter the game-key state and remain held across
+updates. A focused press/hold/release check and Windows release build
+passed. From the genuine Dead City central-chamber save, Connor now
+walks from (77701,110158) to (94200,109463), then stops at an original
+steep terrain ridge. The original TRIPTRP4.CS requires its floor plate
+to enable portal four; the existing route tried the inactive portal.
+The earned windmill replay passed again with modern bindings: cutscene
+ended at update 598, outward crossing at 608, live guard attack at 633.
+The current M6 estimate remains ~28% because no new campaign checkpoint
+was earned. Next: find the authored path to the portal-four plate and
+continue toward the statue/feather. No manual gameplay test occurred.
+
 ## 2026-11-19 M8 anisotropic Off choice
 
 Graphics now cycles Off, 4x, 8x, and 16x, with 4x still the default.
