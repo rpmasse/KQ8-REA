@@ -38,6 +38,7 @@ struct Driver {
     issued: Option<HostRequest>,
     restoring: Option<Restoration>,
     last_observation: Option<String>,
+    startup_fallback_serial: Option<u64>,
 }
 
 pub(crate) fn register(app: &mut App, runtime: Runtime) {
@@ -141,6 +142,8 @@ fn cameras_match(world: &mut World, pixels: [u32; 2]) -> bool {
 /// The production driver additionally requires the issued render epoch to
 /// have submitted an acquired surface texture before calling this boundary.
 pub(crate) fn accept_host(world: &mut World, serial: u64, host: HostState) -> Result<bool, String> {
+    let startup_fallback = world.get_resource::<Driver>()
+        .is_some_and(|driver|driver.startup_fallback_serial == Some(serial));
     let request = world
         .resource::<Runtime>()
         .pending()
@@ -171,13 +174,18 @@ pub(crate) fn accept_host(world: &mut World, serial: u64, host: HostState) -> Re
         let mut preferences = world.resource_mut::<Preferences>();
         preferences.settings.graphics.mode = mode;
         preferences.settings.graphics.high_resolution = surface.high;
-        if let Some(choice) = surface.modern_choice { preferences.display = Some(choice); }
+        if !startup_fallback {
+            if let Some(choice) = surface.modern_choice { preferences.display = Some(choice); }
+        }
     }
     crate::display_mode::accept_profile(world, surface.high, surface.device.supports_800());
     crate::startup_menu::refresh_graphics_device(world);
     if let Some(choice) = surface.modern_choice {
         crate::startup_menu::refresh_modern_display(world, choice);
-        if let Err(error) = world.resource_mut::<Preferences>().store() {
+        if startup_fallback {
+            world.resource_mut::<Driver>().startup_fallback_serial = None;
+            note(world,"temporary startup window accepted; stored fullscreen choice retained until the user selects a new display mode");
+        } else if let Err(error) = world.resource_mut::<Preferences>().store() {
             note(world,format!("accepted display {:?} could not be saved: {error}",choice));
         }
     }
@@ -220,6 +228,10 @@ fn observe_transition(world: &mut World, window: Entity, phase: &str, since: Ins
 
 fn fail(world: &mut World, serial: u64, error: String) {
     let initial = world.resource::<Runtime>().active().is_none();
+    let modern_fullscreen = initial && world.resource::<Runtime>().pending()
+        .is_some_and(|request|request.serial == serial
+            && request.surface.modern_choice.is_some()
+            && request.surface.presentation == Presentation::Fullscreen);
     if !world
         .resource_mut::<Runtime>()
         .reject(serial, error.clone())
@@ -236,6 +248,14 @@ fn fail(world: &mut World, serial: u64, error: String) {
         present::complete(world, issued.frame);
     }
     if initial {
+        if modern_fullscreen {
+            if let Some(fallback) = world.resource_mut::<Runtime>().retry_initial_windowed() {
+                world.resource_mut::<Driver>().startup_fallback_serial = Some(fallback.serial);
+                note(world,format!("initial fullscreen unavailable; retrying temporary {:?} {:?} window without changing saved display preference",
+                    fallback.surface.presentation,fallback.surface.pixels()));
+                return;
+            }
+        }
         note(
             world,
             "initial presentation could not be created; exiting with failure",
@@ -413,4 +433,43 @@ fn drive(world: &mut World) {
         issued: Instant::now(),
     });
     note(world,format!("requested exact host {mode:?}, {:?} pixels for {:?}; render epoch {}; awaiting frame submission and actual Winit, camera and palette acceptance",request.surface.pixels(),request.surface.device.name,frame.epoch));
+}
+
+#[cfg(test)]
+mod startup_recovery_tests {
+    use super::*;
+    use kq8_core::modern_display::Ratio;
+
+    #[test]
+    fn unavailable_initial_modern_fullscreen_retries_windowed_once() {
+        let choice = DisplayChoice { mode: ViewMode::Fullscreen,
+            ratio: Ratio::TwentyOneNine, pixels: [3440,1440] };
+        let (runtime,_) = Runtime::startup_modern(Profile::Direct3D,choice,&Graphics::default());
+        let mut app = App::new();
+        app.add_message::<AppExit>();
+        app.insert_resource(runtime).init_resource::<Driver>();
+        fail(app.world_mut(),1,"monitor has no exclusive mode".into());
+        let request = app.world().resource::<Runtime>().pending().unwrap();
+        assert_eq!(request.serial,2);
+        assert_eq!(request.surface.presentation,Presentation::Windowed);
+        assert_eq!(request.surface.pixels(),[640,480]);
+        assert_eq!(request.surface.output(None).unwrap(),Output::Direct3D);
+        assert_eq!(app.world().resource::<Driver>().startup_fallback_serial,Some(2));
+        fail(app.world_mut(),2,"windowed presentation failed".into());
+        assert!(app.world().resource::<Runtime>().pending().is_none(),
+            "a failed fallback must not start a retry loop");
+        assert_eq!(app.world().resource::<Runtime>().failure(),Some("windowed presentation failed"));
+    }
+
+    #[test]
+    fn explicit_legacy_fullscreen_failure_does_not_fallback() {
+        let (runtime,_) = Runtime::startup(Profile::Direct3D,Presentation::Fullscreen,
+            &Graphics { mode: "D3D-display".into(), ..Graphics::default() }).unwrap();
+        let mut app = App::new();
+        app.add_message::<AppExit>();
+        app.insert_resource(runtime).init_resource::<Driver>();
+        fail(app.world_mut(),1,"monitor has no exclusive mode".into());
+        assert!(app.world().resource::<Runtime>().pending().is_none());
+        assert_eq!(app.world().resource::<Driver>().startup_fallback_serial,None);
+    }
 }

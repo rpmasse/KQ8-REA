@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-19 M8 startup recovery for unavailable fullscreen
+
+Diagnosed the immediate exit from the viewer log: DISPLAY17 did not
+advertise the saved 3440×1440 exclusive mode. A `--windowed` diagnostic
+run passed on the same host. Added one automatic 640×480 hardware-color
+window retry for failed initial modern fullscreen requests. The active
+Graphics page reflects the temporary window, while the saved display
+choice remains untouched until a later explicit selection. A failed
+retry still exits; the original fullscreen diagnostic remains strict.
+The `--windowed` diagnostic also wrote a temporary Windowed choice to
+the local display file; I restored the original Fullscreen choice from
+the captured file contents before final verification. Two focused
+recovery checks and the Windows release build passed. A 40-frame
+startup on DISPLAY17 logged the unavailable mode, accepted the 640×480
+window, exited successfully, and left the saved display file unchanged.
+Monitor appearance is not tested.
+
 ## 2026-11-18 M8 resolution families
 
 Added the user's listed resolution presets and 3:2 aspect ratio.

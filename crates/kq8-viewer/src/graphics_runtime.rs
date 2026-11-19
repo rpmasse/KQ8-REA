@@ -21,7 +21,7 @@ use bevy::{
 };
 use kq8_core::{
     graphics_devices::{Device, Family, GlideBoard, Inventory},
-    modern_display::{Choice as DisplayChoice, ViewMode},
+    modern_display::{Choice as DisplayChoice, Ratio, ViewMode},
     options_menu::Graphics,
 };
 use kq8_data::palette::{Output, Rgb};
@@ -221,6 +221,18 @@ impl Runtime {
         let surface = Surface { device: self.profile.hardware(), presentation,
             high: choice.pixels[0] >= 800, modern_choice: Some(choice) };
         Ok(Some(self.stage(surface)))
+    }
+
+    /// One safe retry when the first modern exclusive mode cannot be made.
+    /// The driver keeps the stored display preference until a later explicit
+    /// menu choice is accepted.
+    pub(crate) fn retry_initial_windowed(&mut self) -> Option<Request> {
+        if self.active.is_some() || self.pending.is_some() || self.failure.is_none() { return None; }
+        let choice = DisplayChoice { mode: ViewMode::Windowed, ratio: Ratio::FourThree,
+            pixels: [640,480] };
+        Some(self.stage(Surface { device: self.profile.hardware(),
+            presentation: Presentation::Windowed, high: false,
+            modern_choice: Some(choice) }))
     }
 
     pub(crate) fn profile(&self) -> Profile {

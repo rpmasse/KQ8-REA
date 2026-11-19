@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-19 M8 unavailable fullscreen startup
+
+The saved 3440×1440 exclusive mode failed on DISPLAY17 because that
+monitor did not advertise it, causing an immediate exit. A modern
+fullscreen startup failure now retries once in a temporary 640×480
+hardware-color window and retains the saved fullscreen preference.
+The explicit original fullscreen diagnostic still fails when its mode
+is unavailable. Two focused recovery checks, the Windows release build,
+and a 40-frame startup on DISPLAY17 passed. The 640×480 host window
+was accepted and the saved display file was unchanged. Monitor
+appearance: not tested.
+
 ## 2026-11-18 M8 resolution presets
 
 Graphics now includes the requested standard sizes for 4:3, 5:4,

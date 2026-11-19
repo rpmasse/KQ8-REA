@@ -9873,3 +9873,17 @@ Append a native pixel size only if its shape actually matches the
 selected family, rather than merely being the closest available family.
 Verify the requested catalog, ratio isolation, native bounds,
 fullscreen mode filtering and 3:2 menu navigation with automated tests.
+
+### M8 startup recovery from unavailable fullscreen (2026-11-19)
+
+The saved 3440×1440 exclusive mode can disappear when Windows changes
+monitors or remote sessions. The viewer currently rejects that initial
+request and exits after one frame, although the same host accepts a
+windowed presentation. On a failed initial modern fullscreen request,
+retry once in a 640×480 hardware-color window. Keep the stored
+fullscreen preference intact, show the temporary windowed mode in the
+live Graphics menu, and save a new display choice only after the user
+selects one. If the fallback also fails, report failure as before.
+Keep the explicit legacy fullscreen diagnostic strict. Verify the
+retry state, preference handling and a real Windows launch using the
+saved unsupported fullscreen setting without manual gameplay testing.
