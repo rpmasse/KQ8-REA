@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-19 M6 Dead City portal-four crossing (~35%)
+
+From the earned Rock-backed plate save, Connor retraced the original
+floor corridor with ordinary movement, normal AI and damage. Fresh
+processes reloaded each return leg with health 28 and portal mask 4.
+The enabled `portrp4b` trap fired On at update 100. Its authored script
+moved Connor to (218304,192412,864), set `FirstFour=true` at update
+185, and awarded 4,000 experience once. A repeat run saved after the
+transfer; a fresh process reloaded Dead City at the exact destination
+with health 28, experience 8,330, `FirstFour=true`,
+`god_mode=false`, `ai_off=false`, and no second award. The earned
+checkpoint is `kq8-artifacts/earned-deadcity-portalfour/slots/slot-1.json`.
+
+The original Rock remains a world item at its plate coordinates.
+The distant plate's saved occupant list sometimes becomes empty after
+the long return, although the enabled portal mask persisted and the
+crossing worked. Track that persistence detail during the next route.
+M6 rises from ~34% to ~35%. Statue/feather/scales and the later
+campaign remain unfinished. On-monitor appearance and
+original-executable parity: not tested.
+
 ## 2026-11-19 M6 Dead City portal-four plate held by Rock (~34%)
 
 The earned route cleared `zombie7`, `zombie8` and `zombie9` with

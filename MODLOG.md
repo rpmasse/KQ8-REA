@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-19 M6 Dead City portal-four crossing (~35%)
+
+Ordinary movement returned Connor from the earned Rock-held plate to
+the central chamber through the previously measured corridor.
+`portrp4b` fired On and its authored transfer reached
+(218304,192412,864), set `FirstFour=true`, and awarded 4,000
+experience once. A fresh process restored the destination and 8,330
+experience without a second award; health stayed 28 and normal AI
+and damage remained enabled. The Rock remains at the plate position,
+though distant saved occupancy is inconsistent; the active portal
+mask persisted through crossing. M6 rises from ~34% to ~35%.
+Statue/feather/scales remain ahead. On-monitor appearance: not
+tested.
+
 ## 2026-11-19 M6 Dead City Rock holds portal-four plate (~34%)
 
 Ordinary crossbow fights killed `zombie7`, `zombie8` and `zombie9`

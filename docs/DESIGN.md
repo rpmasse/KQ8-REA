@@ -5784,6 +5784,32 @@ plate occupant, and both portal masks 4. The named portal trap is at
 x≈79,676, y≈110,436, z≈1,584. Return through the already traversed
 safe corridor with ordinary controls, retaining the Rock and masks;
 then trigger the authored portal and save/reload its destination.
+The return journey reloaded at (85170,109959,1162), 28 health, with
+the `portrap4` mask still 4 and `FirstFour=false`. It retraced the
+same original floor corridor, including the west detour around
+`block.08b`, using ordinary movement with live AI and damage. The
+saved Rock remains at its plate coordinates. Test the enabled portal
+trap near (79676,110436) by walking through its box and waiting for
+the authored `FirstFour=true` transition. Require the trap On event,
+normal portal script, destination coordinates, and a fresh reload
+before counting the crossing.
+The first normal crossing hit `portrp4b` On at update 100. Its authored
+script moved Connor to (218304,192412,864), set `FirstFour=true` at
+update 185, and awarded exactly 4,000 experience, reaching 8,330 at
+level 12. A diagnostic route observed the flag at update 186. Replay
+the same earned Rock-backed route, save after Cue 5, and require a
+fresh process to restore the destination, quest flag, reward total,
+Rock-held plate and portal masks without repeating the award.
+The repeat saved after Cue 5, and a fresh process restored the exact
+destination (218304,192412,864), 28 health, 8,330 experience and
+`FirstFour=true` without another award. The original Rock remains at
+(121049,108667,0). During the distant return, some saves omitted its
+name from the plate's `inside` list while retaining portal mask 4;
+the crossing was still successful. The portal script itself sets
+`FourOn=false` when Connor enters and re-enables the portal masks at
+Cue 5. Continue the earned eastern-chamber route to the good-skull
+statue, feather and scales; keep the distant occupancy discrepancy
+visible until its save/lifecycle rule is settled.
 
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
