@@ -49,6 +49,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 mod actor_recipes;
 mod anim_gpu;
 mod anti_alias;
+mod anisotropic;
 mod anim_view;
 mod building_light;
 mod alternate_lighting;
@@ -611,6 +612,7 @@ fn main() -> ExitCode {
     }
     let mut preferences = option_settings::Preferences::load(&opts.game);
     log.summary(format!("anti-aliasing: saved {}", preferences.anti_aliasing.label()));
+    log.summary(format!("anisotropic: saved {}", preferences.anisotropic.label()));
     let interactive_draw_cap = args.frames.is_none() && args.updates.is_none();
     log.summary(format!("draw FPS: saved cap {}; {} (game update rate remains 15 Hz)",
         preferences.draw_fps.label(),if interactive_draw_cap { "active" } else { "diagnostic frame/update limit bypasses pacing" }));
@@ -716,6 +718,7 @@ fn main() -> ExitCode {
         else { bevy::winit::WinitSettings::game() })
     .add_systems(Update, renderer::report_renderer)
     .add_systems(PostUpdate, anti_alias::sync)
+    .add_systems(PostUpdate, anisotropic::sync)
     .insert_resource(ClearColor(Color::srgb(0.18, 0.2, 0.24)))
     .insert_resource(shared.clone());
     if let Some(runtime) = runtime {

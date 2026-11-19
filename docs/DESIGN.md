@@ -3,6 +3,18 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M8 anisotropic texture filtering (2026-11-19)
+
+Add an Anisotropic Graphics choice with 4x, 8x, and 16x; start at 4x and
+save it in the viewer's own settings file. Apply it to texture samplers
+used by 3D object, building, and ground materials, including textures
+introduced after a region change. Keep the source pixels, dimensions,
+light maps, and menu/interface images unchanged. Update live materials
+without rewriting game assets, and log how many texture samplers changed.
+Check menu spacing at 640x480 and 800x600, cycling, persistence, sampler
+selection, and three short DX12 rendering runs. The existing textures have
+one mip level; this change does not generate additional mipmaps.
+
 ## M8 selectable anti-aliasing (2026-11-19)
 
 Add an Anti-Aliasing row to Graphics with Off, SMAA, and FXAA. Save its

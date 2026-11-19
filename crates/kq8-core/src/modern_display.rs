@@ -1,6 +1,25 @@
 //! Modern viewer display choices, independent of the original Options.cs.
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Anisotropic {
+    pub level: u16,
+}
+
+impl Default for Anisotropic {
+    fn default() -> Self { Self { level: 4 } }
+}
+
+impl Anisotropic {
+    pub const CHOICES: [u16; 3] = [4, 8, 16];
+    pub fn valid(self) -> bool { Self::CHOICES.contains(&self.level) }
+    pub fn label(self) -> String { format!("{}x", self.level) }
+    pub fn step(self, direction: i32) -> Self {
+        let index = Self::CHOICES.iter().position(|&level| level == self.level).unwrap_or(0) as i32;
+        Self { level: Self::CHOICES[(index + direction).rem_euclid(Self::CHOICES.len() as i32) as usize] }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub enum AntiAliasing {
     #[default]
@@ -185,6 +204,16 @@ pub fn choices(native: [u32; 2], fullscreen_modes: &[[u32; 2]], mode: ViewMode, 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn anisotropic_choices_cycle_and_reject_other_levels() {
+        assert_eq!(Anisotropic::default(), Anisotropic { level: 4 });
+        assert_eq!(Anisotropic::default().step(1), Anisotropic { level: 8 });
+        assert_eq!(Anisotropic { level: 8 }.step(1), Anisotropic { level: 16 });
+        assert_eq!(Anisotropic { level: 16 }.step(1), Anisotropic { level: 4 });
+        assert_eq!(Anisotropic { level: 4 }.step(-1), Anisotropic { level: 16 });
+        assert!(!Anisotropic { level: 2 }.valid());
+    }
 
     #[test]
     fn anti_aliasing_cycles_in_graphics_order() {

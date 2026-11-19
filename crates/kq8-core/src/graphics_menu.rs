@@ -111,9 +111,9 @@ pub struct Screen {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ModernRow { View, Ratio, Resolution, DrawFps, AntiAliasing, Lights, Connor, Monster, Character, Object, Brightness, Back }
+enum ModernRow { View, Ratio, Resolution, DrawFps, AntiAliasing, Anisotropic, Lights, Connor, Monster, Character, Object, Brightness, Back }
 
-const MODERN_ROWS: [ModernRow; 12] = [ModernRow::View, ModernRow::Ratio, ModernRow::Resolution, ModernRow::DrawFps, ModernRow::AntiAliasing,
+const MODERN_ROWS: [ModernRow; 13] = [ModernRow::View, ModernRow::Ratio, ModernRow::Resolution, ModernRow::DrawFps, ModernRow::AntiAliasing, ModernRow::Anisotropic,
     ModernRow::Lights, ModernRow::Connor, ModernRow::Monster, ModernRow::Character,
     ModernRow::Object, ModernRow::Brightness, ModernRow::Back];
 
@@ -127,6 +127,8 @@ struct Modern {
     requested_draw_fps: Option<modern_display::DrawFps>,
     anti_aliasing: modern_display::AntiAliasing,
     requested_anti_aliasing: Option<modern_display::AntiAliasing>,
+    anisotropic: modern_display::Anisotropic,
+    requested_anisotropic: Option<modern_display::Anisotropic>,
 }
 
 impl ModernRow {
@@ -140,6 +142,11 @@ impl ModernRow {
     }
     fn rect(self, layout: &Layout) -> [i32; 4] {
         match self {
+            Self::Anisotropic => {
+                let [l, _, r, bottom] = Self::AntiAliasing.rect(layout);
+                let [_, top, _, end] = layout.controls["800X600"].rect;
+                [l, bottom, r, bottom + end - top]
+            }
             Self::View | Self::Ratio | Self::Resolution | Self::DrawFps | Self::AntiAliasing => {
                 let (label,value,position) = match self {
                     Self::View => ("MODE","DIRECTDRAW","DIRECTDRAW"),
@@ -160,10 +167,10 @@ impl ModernRow {
 }
 
 fn modern_lower_rect(layout: &Layout, key: &str) -> [i32; 4] {
-    // Place Dynamic Lighting after the five consecutive display rows;
+    // Place Dynamic Lighting after the six consecutive display rows;
     // preserve the original spacing among the lower graphics settings.
     let mut rect = layout.controls[key].rect;
-    let shift = layout.controls["800X600"].rect[3]-layout.controls["DYNAMIC_LIGHTS"].rect[1];
+    let shift = ModernRow::Anisotropic.rect(layout)[3]-layout.controls["DYNAMIC_LIGHTS"].rect[1];
     rect[1] += shift;
     rect[3] += shift;
     rect
@@ -248,7 +255,8 @@ impl Screen {
         let mut screen = Self::open(game, art)?;
         screen.modern = Some(Modern { row: ModernRow::View, choice, native, modes, requested: None,
             draw_fps: modern_display::DrawFps::default(), requested_draw_fps: None,
-            anti_aliasing: modern_display::AntiAliasing::default(), requested_anti_aliasing: None });
+            anti_aliasing: modern_display::AntiAliasing::default(), requested_anti_aliasing: None,
+            anisotropic: modern_display::Anisotropic::default(), requested_anisotropic: None });
         screen.background = Self::modern_backdrop(&screen.layout, art);
         Ok(screen)
     }
@@ -291,6 +299,17 @@ impl Screen {
 
     pub fn take_anti_aliasing_request(&mut self) -> Option<modern_display::AntiAliasing> {
         self.modern.as_mut().and_then(|modern|modern.requested_anti_aliasing.take())
+    }
+
+    pub fn set_anisotropic(&mut self, choice: modern_display::Anisotropic) {
+        if let Some(modern) = &mut self.modern {
+            modern.anisotropic = choice;
+            modern.requested_anisotropic = None;
+        }
+    }
+
+    pub fn take_anisotropic_request(&mut self) -> Option<modern_display::Anisotropic> {
+        self.modern.as_mut().and_then(|modern|modern.requested_anisotropic.take())
     }
 
     pub fn resize(&mut self, art: &Art) {
@@ -464,7 +483,7 @@ impl Screen {
         } else { self.layout.controls[key].rect }).collect();
         dynamic.extend([Row::DirectDraw, Row::Direct3D, Row::Glide, Row::Low, Row::High].map(|row| self.layout.controls[row.key()].rect));
         if self.modern.is_some() {
-            dynamic.extend([ModernRow::View,ModernRow::Ratio,ModernRow::Resolution,ModernRow::DrawFps,ModernRow::AntiAliasing]
+            dynamic.extend([ModernRow::View,ModernRow::Ratio,ModernRow::Resolution,ModernRow::DrawFps,ModernRow::AntiAliasing,ModernRow::Anisotropic]
                 .map(|row|row.rect(&self.layout)));
         }
         for key in ["CURSOR1","CURSOR2"] {
@@ -623,6 +642,10 @@ impl Screen {
                 modern.anti_aliasing = modern.anti_aliasing.step(direction);
                 modern.requested_anti_aliasing = Some(modern.anti_aliasing);
             }
+            ModernRow::Anisotropic => {
+                modern.anisotropic = modern.anisotropic.step(direction);
+                modern.requested_anisotropic = Some(modern.anisotropic);
+            }
             ModernRow::View | ModernRow::Ratio | ModernRow::Resolution => {
                 let old = modern.choice;
                 let mut next = old;
@@ -697,6 +720,7 @@ impl Screen {
                 else { format!("{}x{}",modern.choice.pixels[0],modern.choice.pixels[1]) },"RESOLUTION","640X480"),
             (ModernRow::DrawFps,"Draw FPS",modern.draw_fps.label(),"RESOLUTION","640X480"),
             (ModernRow::AntiAliasing,"Anti-Aliasing",modern.anti_aliasing.label().to_owned(),"RESOLUTION","640X480"),
+            (ModernRow::Anisotropic,"Anisotropic",modern.anisotropic.label(),"RESOLUTION","640X480"),
         ] {
             let [_,t,_,b] = row.rect(&self.layout);
             let [l,_,r,_] = self.layout.controls[label_key].rect;
@@ -841,13 +865,15 @@ mod tests {
             let resolution = ModernRow::Resolution.rect(&screen.layout);
             let draw_fps = ModernRow::DrawFps.rect(&screen.layout);
             let anti_aliasing = ModernRow::AntiAliasing.rect(&screen.layout);
+            let anisotropic = ModernRow::Anisotropic.rect(&screen.layout);
             let lights = ModernRow::Lights.rect(&screen.layout);
             assert_eq!(view[1],screen.layout.controls["TITLE"].rect[3]);
             assert_eq!(ratio[1],view[3]);
             assert_eq!(resolution[1],ratio[3]);
             assert!((0..=13).contains(&(draw_fps[1]-resolution[3])));
             assert_eq!(anti_aliasing[1],draw_fps[3]);
-            assert_eq!(lights[1],anti_aliasing[3]);
+            assert_eq!(anisotropic[1],anti_aliasing[3]);
+            assert_eq!(lights[1],anisotropic[3]);
             assert_eq!(ModernRow::Connor.rect(&screen.layout)[1],lights[3]);
             assert!(ModernRow::Brightness.rect(&screen.layout)[3] < ModernRow::Back.rect(&screen.layout)[1]);
             let mut graphics = Graphics::default();
@@ -871,7 +897,8 @@ mod tests {
                 (ModernRow::Ratio,"MODE","Aspect Ratio"),
                 (ModernRow::Resolution,"RESOLUTION","Resolution"),
                 (ModernRow::DrawFps,"RESOLUTION","Draw FPS"),
-                (ModernRow::AntiAliasing,"RESOLUTION","Anti-Aliasing")] {
+                (ModernRow::AntiAliasing,"RESOLUTION","Anti-Aliasing"),
+                (ModernRow::Anisotropic,"RESOLUTION","Anisotropic")] {
                 let [l,t,_,b] = row.rect(&screen.layout);
                 let right = screen.layout.controls[key].rect[2];
                 let rect = [l,t,right,b];
@@ -928,6 +955,11 @@ mod tests {
                 modern_display::AntiAliasing::Fxaa,modern_display::AntiAliasing::Off] {
                 screen.input(click(&screen,ModernRow::AntiAliasing),&mut graphics);
                 assert_eq!(screen.take_anti_aliasing_request(),Some(expected));
+                assert_eq!(screen.take_modern_request(),None);
+            }
+            for expected in [8,16,4] {
+                screen.input(click(&screen,ModernRow::Anisotropic),&mut graphics);
+                assert_eq!(screen.take_anisotropic_request(),Some(modern_display::Anisotropic { level: expected }));
                 assert_eq!(screen.take_modern_request(),None);
             }
             screen.input(click(&screen,ModernRow::Back),&mut graphics);

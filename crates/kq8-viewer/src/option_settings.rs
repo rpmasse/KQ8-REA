@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::winit::{UpdateMode, WinitSettings};
 use kq8_core::options_menu::Settings;
 use kq8_core::mouse_menu::MouseSettings;
-use kq8_core::modern_display::{AntiAliasing, Choice as DisplayChoice, DrawFps};
+use kq8_core::modern_display::{Anisotropic, AntiAliasing, Choice as DisplayChoice, DrawFps};
 use kq8_data::GameDir;
 use std::{
     fs,
@@ -20,16 +20,19 @@ pub struct Preferences {
     pub mouse: MouseSettings,
     pub draw_fps: DrawFps,
     pub anti_aliasing: AntiAliasing,
+    pub anisotropic: Anisotropic,
     saved: Settings,
     saved_display: Option<DisplayChoice>,
     saved_mouse: MouseSettings,
     saved_draw_fps: DrawFps,
     saved_anti_aliasing: AntiAliasing,
+    saved_anisotropic: Anisotropic,
     path: PathBuf,
     display_path: PathBuf,
     mouse_path: PathBuf,
     draw_fps_path: PathBuf,
     anti_aliasing_path: PathBuf,
+    anisotropic_path: PathBuf,
     other_lines: Vec<Vec<u8>>,
 }
 
@@ -46,6 +49,7 @@ impl Preferences {
         preferences.mouse_path = preferences.path.with_file_name("mouse.json");
         preferences.draw_fps_path = preferences.path.with_file_name("draw-fps.json");
         preferences.anti_aliasing_path = preferences.path.with_file_name("anti-aliasing.json");
+        preferences.anisotropic_path = preferences.path.with_file_name("anisotropic.json");
         preferences.settings = settings.clone();
         preferences.saved = settings;
         preferences.display = None;
@@ -56,6 +60,8 @@ impl Preferences {
         preferences.saved_draw_fps = preferences.draw_fps;
         preferences.anti_aliasing = AntiAliasing::default();
         preferences.saved_anti_aliasing = preferences.anti_aliasing;
+        preferences.anisotropic = Anisotropic::default();
+        preferences.saved_anisotropic = preferences.anisotropic;
         preferences
     }
 
@@ -65,12 +71,14 @@ impl Preferences {
         let mouse_path = PathBuf::from("kq8-artifacts/mouse.json");
         let draw_fps_path = PathBuf::from("kq8-artifacts/draw-fps.json");
         let anti_aliasing_path = PathBuf::from("kq8-artifacts/anti-aliasing.json");
+        let anisotropic_path = PathBuf::from("kq8-artifacts/anisotropic.json");
         let display = fs::read(&display_path).ok()
             .and_then(|bytes| serde_json::from_slice::<Option<DisplayChoice>>(&bytes).ok())
             .flatten().filter(|choice|choice.valid());
         let mouse = read_mouse(&mouse_path);
         let draw_fps = read_draw_fps(&draw_fps_path);
         let anti_aliasing = read_anti_aliasing(&anti_aliasing_path);
+        let anisotropic = read_anisotropic(&anisotropic_path);
         let original = GameDir::open(game)
             .ok()
             .and_then(|g| g.find("Options.cs"))
@@ -86,16 +94,19 @@ impl Preferences {
             mouse,
             draw_fps,
             anti_aliasing,
+            anisotropic,
             saved: settings,
             saved_display: display,
             saved_mouse: mouse,
             saved_draw_fps: draw_fps,
             saved_anti_aliasing: anti_aliasing,
+            saved_anisotropic: anisotropic,
             path,
             display_path,
             mouse_path,
             draw_fps_path,
             anti_aliasing_path,
+            anisotropic_path,
             other_lines: retained_lines(local.as_deref(), original.as_deref()),
         }
     }
@@ -134,6 +145,12 @@ impl Preferences {
             write_preferences(&self.anti_aliasing_path, &contents)?;
             self.saved_anti_aliasing = self.anti_aliasing;
         }
+        if self.anisotropic != self.saved_anisotropic {
+            let contents = serde_json::to_vec_pretty(&self.anisotropic)
+                .map_err(|error| format!("anisotropic preference: {error}"))?;
+            write_preferences(&self.anisotropic_path, &contents)?;
+            self.saved_anisotropic = self.anisotropic;
+        }
         Ok(())
     }
 }
@@ -153,6 +170,13 @@ fn read_draw_fps(path: &Path) -> DrawFps {
 fn read_anti_aliasing(path: &Path) -> AntiAliasing {
     fs::read(path).ok()
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or_default()
+}
+
+fn read_anisotropic(path: &Path) -> Anisotropic {
+    fs::read(path).ok()
+        .and_then(|bytes| serde_json::from_slice::<Anisotropic>(&bytes).ok())
+        .filter(|choice| choice.valid())
         .unwrap_or_default()
 }
 
@@ -232,10 +256,10 @@ fn retained_lines(local: Option<&[u8]>, original: Option<&[u8]>) -> Vec<Vec<u8>>
 
 #[cfg(test)]
 mod tests {
-    use super::{read_anti_aliasing,read_draw_fps,read_mouse,retained_lines,Preferences};
+    use super::{read_anisotropic,read_anti_aliasing,read_draw_fps,read_mouse,retained_lines,Preferences};
     use kq8_core::mouse_menu::MouseSettings;
     use kq8_core::options_menu::Settings;
-    use kq8_core::modern_display::{AntiAliasing,Choice,DrawFps,Ratio,ViewMode};
+    use kq8_core::modern_display::{Anisotropic,AntiAliasing,Choice,DrawFps,Ratio,ViewMode};
     use std::path::Path;
 
     #[test]
@@ -291,6 +315,18 @@ mod tests {
         std::fs::write(&preferences.anti_aliasing_path,b"\"Unknown\"").unwrap();
         assert_eq!(read_anti_aliasing(&preferences.anti_aliasing_path),AntiAliasing::Off);
         std::fs::remove_file(&preferences.anti_aliasing_path).unwrap();
+    }
+
+    #[test]
+    fn anisotropic_preference_saves_separately_and_rejects_unknown_levels() {
+        let mut preferences = Preferences::isolated_for_test(Path::new("."),Settings::default());
+        preferences.anisotropic = Anisotropic { level: 16 };
+        preferences.store().unwrap();
+        assert!(!preferences.path.exists());
+        assert_eq!(read_anisotropic(&preferences.anisotropic_path),Anisotropic { level: 16 });
+        std::fs::write(&preferences.anisotropic_path,b"{\"level\":32}").unwrap();
+        assert_eq!(read_anisotropic(&preferences.anisotropic_path),Anisotropic::default());
+        std::fs::remove_file(&preferences.anisotropic_path).unwrap();
     }
 
     #[test]

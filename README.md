@@ -24,6 +24,8 @@ M8 is being done early: Graphics offers windowed/fullscreen modes, seven aspect 
 
 Graphics also offers Off, SMAA, and FXAA anti-aliasing for the 3D view; its selection is saved locally without changing game assets.
 
+Graphics offers 4x, 8x, and 16x anisotropic filtering for 3D surface textures; 4x is the default and original texture files are unchanged.
+
 The default keyboard layout is W/S/D/A to move, R to walk or run, Space to jump, Q to switch weapons, C to center the camera, E to toggle the cursor, and Z to toggle the interface; saved custom bindings take precedence.
 
 Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.

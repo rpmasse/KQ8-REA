@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-19 M8 anisotropic filtering
+
+Added an Anisotropic row to Graphics with 4x, 8x, and 16x choices.
+The default is 4x; the selection is saved in the viewer's own
+anisotropic.json and applied to 3D surface texture samplers at runtime.
+The original texture pixels, light maps, menu images, and game files are
+unchanged. The choice, menu layout, sampler, and persistence checks passed.
+The Windows release build passed. Separate 35-frame DX12 Daventry runs
+passed at all three levels, changing 412 surface texture samplers on the
+initial load. An automated menu route saved 8x and then 16x across two
+processes. On-monitor visual quality: not tested.
+
 ## 2026-11-19 M8 selectable anti-aliasing
 
 Added Off, SMAA, and FXAA to the Graphics page. The choice is saved in

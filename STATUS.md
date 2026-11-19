@@ -1,5 +1,15 @@
 # STATUS
 
+## 2026-11-19 M8 anisotropic filtering
+
+Graphics now offers 4x, 8x, and 16x anisotropic filtering for 3D
+surface textures, with 4x as the default. The setting persists in a
+local viewer file and applies during play. Original game files and
+image pixels are unchanged. Focused checks, the Windows release build,
+35-frame DX12 Daventry runs at each level, and menu save/reload checks
+passed. Current 3D textures have one mip level, so the visible benefit
+may be limited. On-monitor appearance: not tested.
+
 ## 2026-11-19 M8 anti-aliasing
 
 Graphics now has Off, SMAA, and FXAA. The selection persists locally and
