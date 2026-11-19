@@ -1,5 +1,44 @@
 # STATUS
 
+## 2026-11-19 M6 Feather return reaches north bridge (~44%)
+
+Repeating the measured two-jump reverse crossing with ordinary movement,
+normal AI and damage reached grounded north-bridge support at update 185.
+The in-game Save menu wrote `FeatherNorthBridge` at update 186. A fresh
+process restored the identical ignored checkpoint at
+`kq8-artifacts/earned-deadcity-feather-north/slots/slot-1.json`:
+(211870,192887,1371), health 23, experience 13,330, one carried
+Feather, `NineOn=true`, `ThreeOn=true`, god mode false and AI-off false.
+The earlier 43% Feather save remains available. M6 rises to ~44% for
+this earned and reloaded return checkpoint. On-monitor appearance: not
+tested. One earlier save attempt took a lethal skeleton18 arrow at
+update 38; another reached the bridge but selected Load instead of
+Save in the menu, producing no new checkpoint. The corrected save
+sequence is the one reported above.
+
+Original terrain measurements ruled out the apparent eastern ridge:
+its uphill normal is 0.738, classified steep by Connor's movement.
+The diagnostic route stopped at x221,074; no safe river bypass was
+claimed. A no-AI geometry map from the north checkpoint reached return
+portal nine via (211870,191400), (217800,191400), and
+(217800,192412), then returned to (77549,110436). That map does not
+count as earned campaign progress. With normal AI, skeleton19's shot
+hit at update 7 (health 23 to 15), and another killed Connor at update
+52 before the portal.
+
+An earlier genuine bridge save has health 72. A normal-AI branch moved
+within roughly 600 units of skeleton19, but the automatic fight point
+kept a 180-unit arrival radius despite physical collision preventing
+Connor from getting closer than about 230 units to its target. He
+never drew the weapon and died under repeated arrows. Changing only
+the approach radius was insufficient; the fight landmark needs a
+reachable radius too. No archer defeat or portal crossing is claimed.
+Evidence is in ignored `target/m6-feather-north-save-corrected`,
+`target/m6-feather-north-reload`, `target/m6-east-ridge-map`,
+`target/m6-north-portal-map`, `target/m6-north-portal-earned`, and
+`target/m6-bonebridge-archer19-reach`. Plan the combat input before
+another normal-AI attempt.
+
 ## 2026-11-19 M6 Feather return route study (~43%)
 
 The earned Feather save has `NineOn=true` and `ThreeOn=true`. Original

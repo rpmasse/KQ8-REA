@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-19 M6 earned Feather north-bridge checkpoint (~44%)
+
+Two ordinary running jumps returned Connor from the Feather statue
+side to grounded north-bridge support. The in-game Save menu wrote an
+earned checkpoint with 23 health, the Feather, normal AI and damage;
+a fresh process restored it. A normal-AI route to return portal nine
+remains exposed to skeleton19. M6 rises from ~43% to ~44%.
+On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 picked up the original Feather (~43%)
 
 After its saved fall animation ended, the Feather became clickable.
