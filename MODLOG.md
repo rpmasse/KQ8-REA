@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-19 M6 reopened portal four after Scales (~70%)
+
+The earned route returned from Scales, recovered the original Rock from
+plate three, threw it onto plate four and crossed the newly enabled
+portal. A fresh-process load/save retained the eastern arrival, puzzle
+state and world Mold. A narrow maze bend needed an extra waypoint; two
+direct Mold approaches met steep terrain and stopped for route study.
+No game code changed. M6 rises ~67% to ~70%. On-monitor appearance and
+manual playtesting: not tested.
+
 ## 2026-11-19 M6 completed and saved the Scales puzzle (~67%)
 
 The earned Feather was placed on the right dish with a visible gameplay

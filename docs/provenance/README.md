@@ -1,5 +1,18 @@
 # Provenance
 
+**Earned post-Scales portal-four return (2026-11-19, M6).**
+The installed `triptrp3.cs`, `triptrp4.cs`, `portrap4.cs` and
+`portrap7.cs` define the Rock-held portal masks and travel between the
+Scales, central hub and eastern region. From the earned Scales save,
+ordinary movement and a camera-visible click removed the original Rock
+from plate three; the Off event closed portal three. A normal throw
+placed that Rock on plate four; its On event enabled both portal-four
+triggers. The portal script carried Connor east. An in-game save and
+fresh-process reload retained the Rock on plate four, world Mold,
+position, health and experience. Two later approach routes met steep
+terrain and do not establish Mold access. No running-original or
+on-monitor comparison was performed.
+
 **Earned Scales completion and reload (2026-11-19, M6).**
 The installed `scalert.cs`, `scalelt.cs`, `scalcmpl.cs` and `scale.cs`
 define the Feather/right-dish and Connor/left-dish solution, one-time

@@ -1,5 +1,31 @@
 # STATUS
 
+## 2026-11-19 M6 reopened portal four after Scales (~70%)
+
+From the earned Scales save, Connor stepped off the left dish, left the
+Scales through portal seven and saved/reloaded at the central hub. Portal
+four was closed despite its script flag: its plate lacked the Rock.
+Ordinary movement crossed the verified maze to the Rock on plate three.
+A camera-visible click picked up that original world item and its Off
+event removed bit 4 from both portal-three triggers. Connor carried it
+to plate four and threw it onto its centre. The On event added bit 4 to
+both portal-four triggers. Normal AI and damage remained enabled.
+
+The return route reached the hub and crossed open portal four. The
+installed `portrap4.cs` moved Connor to (218304,192412,864). A second
+portal route stopped on its `NineOn` result, avoiding movement toward
+an obsolete waypoint after the transfer. The in-game save and fresh
+process reload both retain 130 health, level 13, 1,250 experience, the
+plate-four Rock and the Scales-created Mold in the world. The ignored
+checkpoint is `kq8-artifacts/earned-deadcity-postscales-portal4/slots/slot-1.json`.
+
+The first uphill maze return caught on a narrow entrance; adding its
+measured entrance waypoint passed. Two eastern Mold approaches from
+the portal reached steep ground around y190,500 and stopped. The
+original terrain and collision route need study before another live
+attempt. Mold pickup and the later campaign remain open. M6 rises from
+~67% to ~70%. On-monitor appearance and manual playtesting: not tested.
+
 ## 2026-11-19 M6 earned and saved Scales completion (~67%)
 
 From the earned Feather/Scales checkpoint, Connor selected the carried

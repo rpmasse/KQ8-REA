@@ -3,6 +3,28 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 move the portal Rock and recover Mold (2026-11-19)
+
+The Scales return script places Connor at the central hub and leaves
+the Rock on plate three. Portal four's script flag is true, but its
+actual trigger mask is zero because plate four is no longer held.
+Use the verified northern ridge and eastern maze routes to reach the
+Rock on plate three. Pick up that original world Rock through a visible
+gameplay click, carry it down the known plate corridor and throw it
+onto plate four. Require the plate-four On event and both portal-four
+trigger masks gaining bit 4. Return to the hub, enter portal four and
+continue from its eastern exit to the Mold created by the Scales.
+Keep AI and damage active; checkpoint and reload at route boundaries.
+Do not treat the saved `FourOn` flag alone as evidence of an open
+portal.
+
+The earned route now picked up the plate-three Rock, threw it onto
+plate four and crossed the opened portal. The saved arrival reloaded
+at (218304,192412,864) with the world Mold still present. Two direct
+approaches to Mold stopped at steep ground around y190500. Study the
+original terrain and collision corridor before choosing another route;
+do not assume a straight line across that boundary is traversable.
+
 ## M6 earn the Scales outcome from the Feather checkpoint (2026-11-19)
 
 The installed `scale.cs` and dish scripts balance a Feather against
