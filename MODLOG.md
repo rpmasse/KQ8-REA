@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-19 M6 eastern statue approach failure (~35%)
+
+The installed Good Skull statue was located at (217250,204900).
+Three attempted approach legs produced no new save: straight south
+crossed fast poison after an archer hit; direct west hit the solid
+portal tower; a south-side tower detour died to `skeleton18`'s arrow
+while turning. The authored bone bridge is farther west. The failed
+routes and exact contacts are recorded in DESIGN and STATUS. The
+earned portal-four save remains the continuation; M6 stays ~35%.
+On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 Dead City portal-four crossing (~35%)
 
 Ordinary movement returned Connor from the earned Rock-held plate to

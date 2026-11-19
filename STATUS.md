@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-19 M6 eastern statue approach blocked (~35%)
+
+The portal-four destination save remains valid at
+`kq8-artifacts/earned-deadcity-portalfour/slots/slot-1.json`:
+(218304,192412,864), 28 health, one earned Good Skull and
+`FirstFour=true`. The installed statue interaction is at
+(217250,204900), guarded by `skeleton18` with 160 health. A straight
+south route failed when the guard's arrow took 22 health and the
+poisonous river dealt a fatal 1,000-point world hit. A westward route
+stopped at the solid `porttow4.02` tower (x=215482..216502,
+y=191892..192932). A measured south-side detour reached its first
+waypoint, then an arrow hit Connor for 29 while he turned west and
+ended that run. No statue or Feather event is claimed.
+
+Live variations have stopped after these failures. The next candidate
+passes north of the tower at y≈191400 before reaching the bone bridge
+at x≈212714; its original floor and projectile clearance need a
+numerical check before another run. M6 stays at ~35%.
+
 ## 2026-11-19 M6 Dead City portal-four crossing (~35%)
 
 From the earned Rock-backed plate save, Connor retraced the original

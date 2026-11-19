@@ -5810,6 +5810,41 @@ the crossing was still successful. The portal script itself sets
 Cue 5. Continue the earned eastern-chamber route to the good-skull
 statue, feather and scales; keep the distant occupancy discrepancy
 visible until its save/lifecycle rule is settled.
+The installed `SKSTATTP.KQ` places the Good Skull statue interaction
+at (217250,204900), using `skstat.cs` and accepting the carried
+GoodSkull. The new portal save carries one GoodSkull and has
+`StatHasGoodSkull=false`. Its nearby live guard is `skeleton18` at
+(217447,202850), 160 health. The original floor descends from z864
+near the portal to z0 at (218000,199500), then rises to the statue.
+First use normal movement to reach that lower approach and ordinary
+Small Crossbow shots to clear the guard. Save/reload an earned result
+before clicking the statue; do not grant the Feather from a test flag.
+The first straight south run failed. `skeleton18` hit Connor with a
+projectile at update 90 for 22 damage; at update 116 the river's fast
+poison dealt a 1,000-point world hit on the descent near
+(217928,195344), killing him. It never reached the guard waypoint.
+The installed `bonebrdg.dig` building spans x=211690..213738 and
+y=192276..204564, above the poisonous river. From the preserved
+portal destination, first move west along the north bank toward its
+centre x≈212714, then test the original bridge's supported corridor
+southward. Require live footing, hazard and combat logs; the terrain
+height alone cannot prove bridge support.
+The first westbound bridge approach did not reach its first waypoint:
+`porttow4.02` blocked Connor head-on at x≈216727. Its installed box
+is x=215482..216502, y=191892..192932, with Connor's 200-unit
+collision radius. A measured south detour at y=193500 clears that
+box while staying on the north bank's z864 floor. Go south to that
+latitude before moving west to the bridge's x≈212714 centre; verify
+real movement and save only after reaching the support.
+The south detour reached (217978,193445,864) at update 39, then
+Connor stopped to turn west. `skeleton18` had fired from the far bank;
+its arrow touched Connor at update 48 for 29 damage and he died at
+update 49. The prior west attempt reached only x≈216727 before the
+portal tower blocked it. Stop live variations after these failed
+approaches. A candidate route north of the tower would clear its
+y=191892..192932 box by taking y≈191400 first, then heading west;
+check original floor and projectile clearance numerically before
+another live run. The earned portal-four save remains untouched.
 
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
