@@ -3,6 +3,34 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 post-Sylph jail gate route (2026-11-19)
+
+Continue from the earned completed Sylph spell. Heal at her well through
+ordinary visible clicks, walk east while staying north of Portal 4's
+trigger, and save/reload on the central corridor before entering the
+jail. The installed scripts show that the Skeleton King approach is
+blocked by `spmove2`. Its switch `KSwitch` only opens it after Cell24
+is lowered. `CSwitch4` lowers Cell24 when the jail's main switch is
+set to row 2; `MSwitch2` selects that row. Use those controls through
+ordinary walking and camera-visible clicks, then cross the opened
+gate and verify the encounter and its save state. Keep AI, damage and
+collisions active.
+
+The earned well interaction restored 49 to 130 health, with no item or
+quest change. The northern Portal 4 detour reached (113299,130472,864)
+with 130 health; a fresh process reloaded and saved the same stats,
+position, inventory and Dead City flags. A direct route east crossed
+Portal 4 and was discarded. The first southbound route reached
+`spmove2` at (122943,166961), whose original closed collision stops
+Connor. A route west reached the jail's northern edge, but both a
+direct and a farther-north approach met the same steep terrain near
+y131000 (normal Z 0.599, below Connor's 0.8 walking limit). These are
+route failures, not evidence that the gate is impassable. Before another
+live route, locate the original `DeadHall` building floor and an
+ordinary entrance from its `.dig` geometry; then approach `MSwitch2`
+and `CSwitch4` from the supported side. Do not change slope or collision
+rules to make the route pass.
+
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
 Continue from the earned Sylph Mold handoff. The installed Dead City

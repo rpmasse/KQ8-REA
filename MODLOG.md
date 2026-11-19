@@ -1,5 +1,25 @@
 # MODLOG
 
+## 2026-11-19: M6 post-Sylph central checkpoint and jail gate audit (~88%)
+
+The earned post-Sylph save returned to her well and healed from 49 to
+130 through nineteen visible clicks. A direct eastbound route crossed
+Portal 4; the rerun passed north of the trigger and saved in the
+central corridor with 130 health and unchanged quest state. Fresh
+processes reloaded both the well and central saves without changing
+stats, inventory or Dead City flags. The canonical central checkpoint
+is ignored under `kq8-artifacts/earned-deadcity-postsylph-central/`.
+
+The southbound route stopped at the closed `spmove2` gate. Installed
+`KSwitch.cs`, `CSwitch4.cs` and `MSwitch2.cs` establish the switch
+dependency. Two westbound routes reached the jail's northern edge but
+could not climb the original steep terrain (normal Z 0.599). The
+46-health north-approach save was discarded. The next step is a
+read-only `DeadHall` floor/entrance audit before another live route.
+No game code changed. M6 rises ~87% to ~88%; gate operation and later
+campaign stages remain open. Manual playtesting and on-monitor
+appearance: not tested.
+
 ## 2026-11-19: M6 earned Sylph's rusted-shield spell (~87%)
 
 The earned rusted-shield save returned from the river through original

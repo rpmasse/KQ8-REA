@@ -1,5 +1,36 @@
 # STATUS
 
+## 2026-11-19 M6 post-Sylph central checkpoint and jail gate audit (~88%)
+
+Connor returned from Sylph to her well through ordinary movement.
+Nineteen camera-visible `well2` clicks restored 49 health to the
+level-thirteen maximum of 130. The in-game save and fresh-process
+reload kept the same position, stats, inventory and Dead City flags.
+An initial eastbound route crossed Portal 4 and returned Connor to the
+entrance; a waypoint north of its logged trigger bounds passed. The
+earned route then reached (113299,130472,864) with 130 health. Its
+in-game save and fresh reload retained 130 health, protection 17,
+14,750 experience, items and quest flags. The canonical ignored
+checkpoint is `kq8-artifacts/earned-deadcity-postsylph-central/slots/slot-1.json`.
+
+The next southbound route met the original closed `spmove2` gate near
+(123608,166356). The installed `KSwitch.cs` requires Cell24 down to
+open that gate. `CSwitch4.cs` lowers Cell24 with main switch row 2, and
+`MSwitch2.cs` selects row 2. The corresponding switches are at
+(72982,148929), (77010,134338) and (155702,148300). No gate flag was
+changed. The first route to the western jail controls stopped at a
+steep terrain face near (80000,131000); a second route reached its
+northern side but stopped at the same face near (77000,131000). The
+measured normal Z is 0.599, below Connor's 0.8 walking limit. Further
+route variations are paused until the original `DeadHall` building
+floor and entrance are audited. An exposed north-approach checkpoint
+had only 46 health after archer hits and was discarded.
+
+M6 rises from ~87% to ~88% for the earned healed return, fresh-reloaded
+central checkpoint and identified gate dependency. The jail controls,
+Skeleton King, later campaign stages and full recreation remain open.
+Manual playtesting and on-monitor appearance: not tested.
+
 ## 2026-11-19 M6 earned Sylph's completed shield spell (~87%)
 
 From the earned rusted-shield save at the river, Connor followed the
