@@ -14,6 +14,8 @@ eastern lane. BowGuys9 and BowGuys10 hit Connor repeatedly; a late
 save held only 27 health, so the replay saved promptly and reloaded
 at (145402,108478,864), 82 health. M6 rises from ~28% to ~30% for
 these earned ordinary-control checkpoints.
+Copied all three verified saves into ignored `kq8-artifacts/earned-deadcity-*`
+folders so build cleanup will not remove them.
 Added exceptional terrain-contact detail to `connor.log` for future
 route diagnosis without changing movement. The release build and both
 automated walking runs and fresh reloads passed. Portal four remains

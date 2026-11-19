@@ -22,7 +22,8 @@ at update 436. The earlier "terrain contact" diagnosis was wrong: the
 event identified the building. Its box occupies x=92353..94913 and
 y=124066..126370. A measured west detour passed it through ordinary
 walking, reaching the northern passage at update 525. The run saved
-`target/m6-west-block/slots/slot-1.json` at (94786,128185,864) with 120
+`kq8-artifacts/earned-deadcity-north/slots/slot-1.json` at
+(94786,128185,864) with 120
 health. A fresh process loaded slot 1 in Dead City at the same position;
 the replay used no forced travel, invulnerability or disabled AI. The
 next ordinary walk reached the eastern bend at update 689.
@@ -34,6 +35,9 @@ segment. A late save left him at 27 health, so a replay saved at update
 in a fresh process. These runs used normal AI and damage. The M6 estimate
 rises to ~30% for the new earned and reloaded campaign route, while
 portal four's floor plate, transfer and statue/feather remain unverified.
+The east bend and south bend saves are preserved in the ignored
+`kq8-artifacts/earned-deadcity-eastbend` and
+`kq8-artifacts/earned-deadcity-southbend` directories.
 No manual gameplay test occurred.
 
 ## 2026-11-19 M8 anisotropic Off choice
