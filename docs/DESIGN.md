@@ -5867,6 +5867,17 @@ AI and damage. Continue south on the authored bridge, checking the
 low trap and river edges before the statue interaction; keep the
 earned bridge save as the source. This does not prove a river crossing.
 
+The original `bonebrdg.dig` deck has gaps. A running jump from
+y193738 struck its steep face at y194124; the fall triggered the
+low `bbdgtrap` death event. An earlier takeoff at y193074 cleared
+that face and landed on the middle platform at y199505. A second
+running jump from y199714 landed on the dry south bank at y206424.
+The bridge and river-edge traps stayed quiet in that run. A fresh
+save reloaded there with 36 health and the carried Good Skull under
+normal AI and damage. Continue toward the installed statue at
+(217250,204900), accounting for `skeleton18` and its arrows before
+claiming any skull or Feather script event.
+
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 
 The separate earned-supplies guard route now passes from a Windmill

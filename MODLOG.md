@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-19 M6 crossed the eastern bone bridge (~39%)
+
+Original bridge geometry showed gaps and a low lethal trap. One
+takeoff hit a bridge face and died; an earlier takeoff cleared it.
+Two ordinary running jumps then reached the dry south bank. A fresh
+process reloaded the earned save at (213089,206424,902) with 36
+health, the Good Skull and normal AI/damage. No trap fired in the
+successful crossing. Statue and Feather remain ahead. M6 rises from
+~37% to ~39%. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 healed return and bridge checkpoint (~37%)
 
 An ordinary route from the earned central save reached Sylph's well;

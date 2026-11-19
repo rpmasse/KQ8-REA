@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-19 M6 earned eastern bone-bridge crossing (~39%)
+
+The original `bonebrdg.dig` has broken deck intervals. The authored
+`bbdgtrap` covers x211714..213714, y194670..202170 and z889..1014,
+below the raised deck; its On script deals a lethal 5,000-point hit.
+A first running jump from y193738 hit a steep bridge face at y194124,
+then Connor fell into the trap at update 81. That failed run is kept.
+
+Moving the first takeoff back to (212722,193074,1337) cleared the
+face. Connor landed on the middle platform at
+(212475,199505,1938) on update 99. A second ordinary running jump
+from (212561,199714,1938) landed on dry south-bank terrain at
+(213089,206424,902) on update 131. No `bbdgtrap` or river-edge trap
+On event fired in the successful run. Three original archer hits
+reduced health from 72 to 36; AI and damage stayed enabled.
+
+A fresh process reloaded the genuine save at
+`kq8-artifacts/earned-deadcity-southbank/slots/slot-1.json` with
+position (213089,206424,902), health 36, experience 8,330, the
+carried Good Skull and supported terrain footing. The statue and
+Feather have not fired. M6 rises from ~37% to ~39%.
+On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 healed eastern bone-bridge checkpoint (~37%)
 
 From the earned `ReturnCentral` save, ordinary movement followed the
