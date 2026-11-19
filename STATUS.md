@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-19 M6 measured bone-bridge approach, ranged guard blocker (~35%)
+
+The earned portal-four save remains the continuation. A sampled north
+detour has flat floor z864, normal z1 and no water depth on all five
+legs. The first live test hit `portsb9` at y191925: the original
+`hafprite.kqs` box, placed at (220678,192412) and turned -1.57,
+blocks x218248..221148 and y190882..191702 before Connor's radius.
+`portsa9` blocks the opposite side of the arrival corridor. Moving
+west first to (217800,192412), then north to y191400, cleared both
+and the portal tower with ordinary movement.
+
+That route reached the bone bridge's north landing at update 107 and
+(212708,193498,1549) on the bridge at update 132. `skeleton19` hit
+Connor for 28 at update 88, leaving health zero, then killed him with
+another arrow at update 146. Starting the same route at update 1
+instead of 25 still took two arrows and died at update 119, before
+the bridge crossing. These are navigation evidence, not an earned
+checkpoint. Stop live variants until the guard's line of fire and
+survivable route or earned healing are planned from original data.
+No new save was made; M6 remains ~35%. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 eastern statue approach blocked (~35%)
 
 The portal-four destination save remains valid at

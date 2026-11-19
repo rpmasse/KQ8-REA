@@ -5841,10 +5841,19 @@ Connor stopped to turn west. `skeleton18` had fired from the far bank;
 its arrow touched Connor at update 48 for 29 damage and he died at
 update 49. The prior west attempt reached only x≈216727 before the
 portal tower blocked it. Stop live variations after these failed
-approaches. A candidate route north of the tower would clear its
-y=191892..192932 box by taking y≈191400 first, then heading west;
-check original floor and projectile clearance numerically before
-another live run. The earned portal-four save remains untouched.
+approaches. The first north candidate at x218304 hit `portsb9` at
+y191925. Original `hafprite.kqs` bounds place that wall across
+x218248..221148 and y190882..191702; Connor's radius requires
+x<218048 to pass west of it. `portsa9` forms the southern side of
+the arrival corridor. The revised route first moves west to x217800,
+then north to y191400 and west to the bone bridge. Each of its five
+terrain segments samples floor z864, upright normal and no water
+depth. Ordinary movement reached the bridge at (212708,193498,1549),
+but `skeleton19` took Connor from 28 to zero health on the approach
+and killed him with a second arrow. Starting 24 updates earlier also
+died to two arrows. Stop live variants; derive guard cover or earned
+healing before attempting a saved crossing. The earned portal-four
+save remains untouched.
 
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 

@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-19 M6 bone-bridge route measured (~35%)
+
+The original terrain and collision bounds exposed a westward exit
+from the portal corridor around `portsb9`. Ordinary automated
+movement reached the bone bridge at (212708,193498,1549), proving
+the route, but `skeleton19` arrows killed Connor in both timed runs.
+No save or campaign flag was gained; M6 remains ~35%. The exact
+route, hits and next combat blocker are in STATUS and DESIGN.
+On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 eastern statue approach failure (~35%)
 
 The installed Good Skull statue was located at (217250,204900).

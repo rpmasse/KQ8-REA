@@ -29,7 +29,7 @@ Graphics offers Off, 4x, 8x, and 16x anisotropic filtering for 3D surface textur
 The default keyboard layout is W/S/D/A to move, R to walk or run, Space to jump, Q to switch weapons, C to center the camera, E to toggle the cursor, and Z to toggle the interface; saved custom bindings take precedence.
 
 Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.
-The automated campaign walker has crossed Dead City's portal four using an earned Rock; the statue and later quests remain unfinished.
+The automated campaign walker has crossed Dead City's portal four using an earned Rock; it reached the bone bridge approach, but a ranged guard prevents a saved crossing to the statue.
 The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.
 
 ## Bring your own game
