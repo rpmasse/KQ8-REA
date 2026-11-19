@@ -5649,6 +5649,51 @@ turn at update 155 and reloaded at (136513,106308,864), 28 health.
 The shield has expired and no original Invulnerable potion remains.
 Continue from this saved point; do not use debug travel or damage
 suppression to bypass the remaining Dead City route.
+From the western-turn save, the original floor stays level at z=864
+through (137120,106352), (137120,103536) and (137120,101488).
+Check this northward segment with ordinary walking and normal AI and
+damage. Save only after reaching the latter position alive.
+The integrated run reached (137103,101585,864) at update 127 and a
+fresh process reloaded (137196,100841,864) with 28 health. The
+installed floor path next turns east at (137120,100208), crosses
+(140960,100208), and bends north near (145312,99440). Test these
+landmarks with normal movement before using the farther terrain-only
+path; save only on a verified live arrival.
+The eastbound replay reached (145361,99502,864) at update 179 and
+reloaded a save at (145319,99439,864) with 28 health. The floor path
+next goes north to (145312,96880), bends through (144544,95088) and
+(143008,94064), then heads west. Check through (139168,94064) before
+approaching the remaining archers farther west; keep AI and damage on.
+The upper-west replay reached (139240,94044,864) at update 178, saved
+at update 205, and a fresh process reloaded (138740,94126,864) with 28
+health. The next terrain-supported corridor runs west through
+(135328,94064) and (130208,94064), then bends south near
+(129184,94320). Replay this with ordinary movement and live damage;
+verify the save and fresh reload before continuing to the southern
+lane. The floor-only path is a guide, not proof against building
+collision or enemy attacks.
+The west-bend replay reached (130335,94036,864) at update 144 and
+reloaded (129913,94104,864). The southern corridor reached
+(129038,103013,864) at update 166 and reloaded
+(129070,103692,864). A lower-lane replay reached (127531,116865,730)
+at update 258 and reloaded (127008,116902,683); the original floor
+slopes down, and Connor kept 28 health. The lower west lane then
+reloaded at (116889,116847,155), and its western edge reloaded at
+(106683,116861,192). Ordinary walking reached (106378,102132,0) at
+update 232, and the saved run reloaded (106419,101756,0). The north
+turn reloaded (109207,94215,7), and the east lane reloaded
+(119823,94420,0), still with 28 health, normal AI and damage.
+
+The first approach south from (119823,94420) reached the waypoint
+near (120736,103024), but `zombie9` attacked before the save and
+reduced health to 19. A fresh process reloaded (120757,103423,0),
+showing that the zombie was still close. A second approach from the
+safer east-lane checkpoint stepped west to avoid `zombie9`, but
+`zombie7` hit Connor for 21 and then 9 damage at updates 70 and 98;
+Connor died at update 99 before the next waypoint. Keep the earned
+east-lane checkpoint with 28 health. The next attempt needs ordinary
+combat or a measured route between these two live enemies; do not
+claim that the portal-four plate has been reached.
 
 **Henchman retreat and return.** Continue from the axe actually earned in the windmill. Let the original encounter return control to Connor. Use his bound movement keys to draw a standing spear attack near its outer reach, retreat before its hit, and return for a normal axe swing. Confirm that the combat log records a real missed attack followed by damage from Connor. Repeat only while this tactic is viable, retaining normal AI, health and damage. If he wins, continue the candidate route to the tomb door, guard, coffin and ring reload. Record the first remaining obstacle and stop after two unsuccessful attempts at the same obstacle.
 

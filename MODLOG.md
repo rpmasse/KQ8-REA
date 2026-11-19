@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-19 M6 Dead City plate approach (~33%)
+
+Ordinary walking and fresh-process reloads advanced the earned route
+from the western turn through the north and west lanes, down the
+original floor slope, around the western edge, and east toward the
+portal-four floor plate. The best preserved save has 28 health at
+(119823,94420,0) with normal AI and damage. The direct plate approach
+lost health to `zombie9`; a west detour died to two `zombie7` hits.
+Both failures are recorded in DESIGN and STATUS. M6 rises from ~32%
+to ~33% for the longer verified route, not for a plate trigger. The
+plate and portal are still unfinished. On-monitor appearance: not
+tested.
+
 ## 2026-11-19 M6 Skeleton51 and western turn (~32%)
 
 The first westward walk from the late archer save died under four

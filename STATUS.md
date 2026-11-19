@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-19 M6 Dead City plate approach (~33%)
+
+From the earned western-turn save, ordinary movement with AI and
+damage enabled crossed the northern, western and southern floor
+corridors. Each segment reached its logged landmark and a fresh process
+reloaded its save. The best preserved checkpoint is
+`kq8-artifacts/earned-deadcity-northeast/slots/slot-1.json` at
+(119823,94420,0), 28 health, `god_mode=false`, `ai_off=false`.
+The earlier west-bend, south-corridor, lower-turn, lower-west,
+western-edge, western-north and northwest-turn checkpoints are also
+preserved in ignored `kq8-artifacts/earned-deadcity-*` folders.
+The route went down the original floor slope from z864 to z0 without
+losing health. M6 rises from ~32% to ~33% for the longer earned and
+reloaded route; the portal-four floor plate remains unpressed.
+
+Two plate approaches failed. The direct south approach reached
+(120736,103024) but `zombie9` hit Connor before the save, leaving
+19 health; a reload showed it still attacking. A west detour from the
+28-health checkpoint encountered `zombie7`, whose normal hits of 21
+and 9 damage killed Connor at update 99. Continue from the preserved
+28-health east-lane save with an ordinary combat or avoidance plan.
+On-monitor appearance and original-executable parity: not tested.
+
 ## 2026-11-19 M6 campaign walking and Dead City western turn (~32%)
 
 The three-process cottage → CastleD → cottage save test passed in
