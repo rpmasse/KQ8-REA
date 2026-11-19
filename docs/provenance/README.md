@@ -1,5 +1,12 @@
 # Provenance
 
+**RiverControl interaction implementation (2026-11-19, M6).**
+The four click boxes, acceptance list and river animation are loaded
+from the user's GOG Dead City data. The interaction timing and 2,000
+experience rule follow `docs/behaviour/objects.md`. The asset loader
+and core conversion tests pass. An earned river click and fresh-process
+reload are still pending.
+
 **Earned Broken Shield pickup and reload (2026-11-19, M6).**
 The installed `newWorld.cs` places `Deadwr1`; `deadwr1.cs` replaces it
 with `deadwr1x`, whose `Die` script makes a Broken Shield item in the

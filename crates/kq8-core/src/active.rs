@@ -5090,6 +5090,21 @@ impl ScriptHost for WorldState {
 pub struct Active {
     pub scripts: Scripts,
     pub world: WorldState,
+    river_dip: Option<RiverDip>,
+}
+
+struct RiverDip {
+    control: String,
+    item: String,
+    rusted_kind: &'static str,
+    feet: [f32; 3],
+    phase: RiverPhase,
+}
+
+enum RiverPhase {
+    WaitingForSpeech,
+    Preparing { at: f64 },
+    Playing { convert_at: f64, entered: bool, converted: bool },
 }
 
 impl Active {
@@ -5110,6 +5125,7 @@ impl Active {
         let swamp_power = crate::tile_objects::SwampPower::from_vars(&vars);
         let mut active = Active {
             scripts: Scripts::new(vars),
+            river_dip: None,
             world: WorldState {
                 doors,
                 chests: Vec::new(),
@@ -6386,6 +6402,9 @@ impl Active {
         }
         let Some(i) = self.world.door_index(name) else {
             let found = self.world.clickables.iter().position(|c| c.name.eq_ignore_ascii_case(name));
+            if let Some(i) = found.filter(|&i| self.world.clickables[i].class.eq_ignore_ascii_case("RiverControl")) {
+                return self.click_river(i, feet, item);
+            }
             // conversation.md rule 5: a character with an info object.
             if let Some(i) = found.filter(|&i| self.world.clickables[i].script.is_some()) {
                 if let Some(info) = self.world.conv_infos.iter().find(|f| f.partner().eq_ignore_ascii_case(name)).cloned() {
@@ -6439,6 +6458,35 @@ impl Active {
         let mut full = vec![d.door.name.clone()];
         full.extend(args);
         ClickResult::Script(full)
+    }
+
+    fn click_river(&mut self, i: usize, feet: [f32; 3], item: Option<&Item>) -> ClickResult {
+        let control = self.world.clickables[i].clone();
+        let distance = distance_to_box(feet, &control.placement, control.min, control.max);
+        if distance >= 1300.0 {
+            let line = self.world.connor_remark(TOO_FAR, "too far from river");
+            self.world.note(format!("river {}: {distance:.0} from box: {line}", control.name));
+            return ClickResult::TooFar;
+        }
+        let Some(item) = item else {
+            let line = self.world.connor_remark(Tuple::new(2000, 13, 14, 0, 1), "river without an item");
+            self.world.note(format!("river {}: {line}", control.name));
+            return ClickResult::Swallowed;
+        };
+        let kind = self.world.items.kind(&item.kind).map_or(item.kind.as_str(), |k| k.name.as_str());
+        let rusted_kind = if kind.eq_ignore_ascii_case("INVITEM_BrokenShield") {
+            "INVITEM_RustedBrokenShield"
+        } else if kind.eq_ignore_ascii_case("INVITEM_IronLock") {
+            "INVITEM_RustedLock"
+        } else {
+            self.world.note(format!("river {}: {} is not accepted; nothing", control.name, item.kind));
+            return ClickResult::Nothing;
+        };
+        if self.river_dip.is_some() { return ClickResult::Nothing; }
+        let line = self.world.connor_remark(Tuple::new(2000, 8, 7, 16, 1), "river dip part 1");
+        self.world.note(format!("river {}: {} accepted; {line}", control.name, item.kind));
+        self.river_dip = Some(RiverDip { control: control.name, item: item.object.clone(), rusted_kind, feet, phase: RiverPhase::WaitingForSpeech });
+        ClickResult::Swallowed
     }
 
     /// The turn after a click (`clicking.md` rules 25–33, M4 4a-8): after
@@ -6877,6 +6925,7 @@ impl Active {
         self.world.help_prompts.service_at(now as f32, false);
         self.world.characters_due(now);
         self.talk_step(now);
+        self.river_step(now);
         // M5 5g-2: the potions' whole seconds (potions.md rule 33).
         crate::connor_inventory::timers(&mut self.world);
         // M5 5g-9: what the characters are told (potions.md rule 26).
@@ -7149,6 +7198,61 @@ impl Active {
         self.world.simulation_time += (1.0 / crate::UPDATES_PER_SECOND) as f32;
     }
 
+    fn river_step(&mut self, now: f64) {
+        let Some(mut dip) = self.river_dip.take() else { return };
+        let mut finished = false;
+        match &mut dip.phase {
+            RiverPhase::WaitingForSpeech => {}
+            RiverPhase::Preparing { at } if now >= *at => {
+                let movement = if dip.rusted_kind == "INVITEM_RustedBrokenShield" { "dipShield" } else { "dipLock" };
+                self.world.requests.push(Request::ConnorSpecial {
+                    items: format!("away,AnimList=river.anm,AnimListOn,{movement},AnimListOff,out"),
+                    at: format!("RiverControl {}", dip.control),
+                });
+                self.world.note(format!("river {}: Connor starts {movement}", dip.control));
+                dip.phase = RiverPhase::Playing { convert_at: now + 3.0, entered: false, converted: false };
+            }
+            RiverPhase::Playing { convert_at, entered, converted } => {
+                if self.world.connor_state == Some(crate::character::state_number::SPECIAL) {
+                    *entered = true;
+                }
+                if !*converted && now >= *convert_at {
+                    let at = format!("RiverControl {}", dip.control);
+                    if self.world.request_item_deletion(&dip.item, &at) {
+                        match self.world.items.make(dip.rusted_kind, 1, Place::Carried(CONNOR.into())) {
+                            Ok(item) => {
+                                let name = item.name.clone();
+                                self.world.known.insert(name.to_ascii_lowercase());
+                                self.world.register_event_receiver(&name);
+                                crate::connor_inventory::receive(&mut self.world, &name, None, &at);
+                                self.world.item_note(format!("{at}: {} became {name} ({})", dip.item, dip.rusted_kind));
+                            }
+                            Err(problem) => self.world.item_note(format!("{at}: could not make {}: {problem}", dip.rusted_kind)),
+                        }
+                        self.finish_item_events();
+                        let key = format!("DeadCity::RiverControl::{}::Used", dip.control);
+                        if self.scripts.vars.get(&key) != Some("true") {
+                            self.scripts.vars.set(&key, "true".into());
+                            self.world.queue.send(now, 0.0, CONNOR, "KQStatsChangeRequestEvent", &["0".into(),"0".into(),"0".into(),"0".into(),"2000".into()], &at);
+                            self.handle_due(now);
+                        }
+                        let line = self.world.connor_remark(Tuple::new(2000, 8, 7, 16, 2), "river dip part 2");
+                        self.world.note(format!("{at}: {line}"));
+                    }
+                    *converted = true;
+                }
+                if *entered && *converted && self.world.connor_state != Some(crate::character::state_number::SPECIAL) {
+                    self.world.requests.push(Request::HandsOff { on: false, at: format!("RiverControl {} out ended", dip.control) });
+                    self.world.requests.push(Request::CameraFollow { connor: true, at: format!("RiverControl {} out ended", dip.control) });
+                    self.world.note(format!("river {}: out ended; controls restored", dip.control));
+                    finished = true;
+                }
+            }
+            RiverPhase::Preparing { .. } => {}
+        }
+        if !finished { self.river_dip = Some(dip); }
+    }
+
     /// Remarks and speech, once per update after the events (M4 4a-2,
     /// `talking.md` rules 7, 10-11): waits after a turn, lines ending and
     /// starting, mouth changes; then each finished line's `TalkComplete`.
@@ -7209,6 +7313,20 @@ impl Active {
             self.conversation_camera(&partner, n, id);
         }
         for f in finished {
+            if f.issuer == CONNOR && f.tuple == Tuple::new(2000, 8, 7, 16, 1) {
+                if let Some(dip) = self.river_dip.as_mut().filter(|dip| matches!(dip.phase, RiverPhase::WaitingForSpeech)) {
+                    let feet = dip.feet;
+                    let at = format!("RiverControl {}", dip.control);
+                    let spot = [feet[0] + 200.0, feet[1] + 3700.0, feet[2] + 1400.0];
+                    let aim = [feet[0] - spot[0], feet[1] - spot[1], feet[2] - spot[2]];
+                    let (tilt, heading) = crate::camera::view_angles(aim);
+                    self.world.requests.push(Request::ClickTurn { name: dip.control.clone(), target: [feet[0], feet[1] + 1300.0], at: at.clone() });
+                    self.world.requests.push(Request::HandsOff { on: true, at: at.clone() });
+                    self.world.requests.push(Request::CameraFollow { connor: false, at: at.clone() });
+                    self.world.requests.push(Request::Move { who: "KQCamera".into(), flags: 0, position: spot, turn: [tilt, 0.0, heading], at });
+                    dip.phase = RiverPhase::Preparing { at: now + 0.5 };
+                }
+            }
             // conversation.md rule 15: the conversation's last line ends
             // Connor's talk state, TalkExit before its TalkComplete.
             let ends = f.conv && f.conv_end && self.world.conversation.as_ref().is_some_and(|c| c.entered() && c.partner.eq_ignore_ascii_case(&f.issuer));
@@ -8130,6 +8248,45 @@ endif
         a.world.heights = Some(Box::new(|_, _, floor| Some(if floor { 100.0 } else { 800.0 })));
         a.scripts.call("s.cs", &[], &mut a.world);
         a
+    }
+
+    #[test]
+    fn river_control_converts_the_held_shield_after_the_dip_and_awards_once() {
+        let control = Clickable::plain("rivercn2", "RiverControl", [-100.0, -100.0, -100.0], [100.0, 100.0, 100.0], Placement::at([0.0; 3]), CLICKABLE);
+        let mut a = Active::new(Vars::default(), vec![], vec![control], [CONNOR.into()], []);
+        a.world.items = crate::item::tests::items();
+        a.set_connor_stats(ConnorStats { level: 10, stats: Stats([100, 10, 0, 0, 0]) });
+        for kind in ["INVITEM_BrokenShield", "INVITEM_RustedBrokenShield"] {
+            let mut item_type = a.world.items.types.types[0].clone();
+            item_type.name = kind.into();
+            item_type.category = "QuestItem".into();
+            a.world.items.types.types.push(item_type);
+        }
+        let shield = a.world.items.make("INVITEM_BrokenShield", 1, Place::Carried(CONNOR.into())).unwrap().name.clone();
+        let held = Item { object: shield.clone(), kind: "INVITEM_BrokenShield".into() };
+        assert_eq!(a.click("rivercn2", [0.0; 3], 10.0, Some(&held)), ClickResult::Swallowed);
+        assert!(matches!(a.river_dip.as_ref().unwrap().phase, RiverPhase::WaitingForSpeech));
+        a.river_dip.as_mut().unwrap().phase = RiverPhase::Preparing { at: 0.0 };
+        a.update();
+        assert!(a.world.requests.iter().any(|r| matches!(r, Request::ConnorSpecial { items, .. } if items.contains("dipShield"))));
+        a.world.connor_state = Some(crate::character::state_number::SPECIAL);
+        for _ in 0..48 { a.update(); }
+        assert!(a.world.items.get(&shield).is_some_and(|item| item.place == Place::Gone));
+        assert!(a.world.items.find(CONNOR, "INVITEM_RustedBrokenShield").is_some());
+        assert_eq!(a.world.connor_stats.unwrap().stats.0[4], 2000);
+        assert_eq!(a.scripts.vars.get("DeadCity::RiverControl::rivercn2::Used"), Some("true"));
+        a.world.connor_state = Some(crate::character::state_number::WAIT);
+        a.update();
+        assert!(a.river_dip.is_none());
+        assert!(a.world.requests.iter().any(|r| matches!(r, Request::HandsOff { on: false, .. })));
+        let next = a.world.items.make("INVITEM_BrokenShield", 1, Place::Carried(CONNOR.into())).unwrap().name.clone();
+        let held = Item { object: next, kind: "INVITEM_BrokenShield".into() };
+        assert_eq!(a.click("rivercn2", [0.0; 3], 10.0, Some(&held)), ClickResult::Swallowed);
+        a.river_dip.as_mut().unwrap().phase = RiverPhase::Preparing { at: 0.0 };
+        a.update();
+        a.world.connor_state = Some(crate::character::state_number::SPECIAL);
+        for _ in 0..48 { a.update(); }
+        assert_eq!(a.world.connor_stats.unwrap().stats.0[4], 2000, "each river box awards experience only once");
     }
 
     #[test]

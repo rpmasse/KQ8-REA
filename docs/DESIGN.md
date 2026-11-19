@@ -30,6 +30,14 @@ and fresh-process reload retain the shield in Connor's inventory with
 118 health. Continue from this checkpoint to implement and exercise
 the `RiverControl` interaction.
 
+The loader now retains all four invisible RiverControl click boxes and
+loads Connor's two river dipping movements from the installed data. The
+core now stages the accepted held item through speech, camera movement,
+the Special animation, conversion and the once-per-box experience award.
+Focused core and original-asset loader checks pass. The earned campaign
+route to the river, save/reload of its result, and Sylph handoff still
+need verification before this step is complete.
+
 ## M6 move the portal Rock and recover Mold (2026-11-19)
 
 The Scales return script places Connor at the central hub and leaves

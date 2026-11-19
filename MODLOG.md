@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-19: River of Death control groundwork
+
+- Loaded the original Dead City RiverControl boxes and Connor dipping
+  movements into the Rust world.
+- Added the timed Broken Shield and Iron Lock rusting interaction, with
+  the original speech and once-per-control experience award.
+- Verified the core conversion and all four original data boxes with
+  focused automated tests. The earned campaign river checkpoint remains
+  to be run.
+
 ## 2026-11-19 M6 earned and reloaded the Broken Shield (~80%)
 
 The normal-gameplay route crossed the closed cell gates by the southern

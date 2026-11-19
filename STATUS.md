@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-19 M6 RiverControl implementation started (~81%)
+
+The four invisible Dead City river controls now load as clickable boxes
+from their original `.kq` files. Connor's `river.anm` shield and lock
+movements load with the world. A valid held item starts the staged river
+interaction: speech, turn and camera, animation, rusted item creation,
+and a once-per-box 2,000 experience event. The core conversion test and
+the focused loader test against the installed GOG assets pass; `cargo
+check -p kq8-viewer` also passes.
+
+The existing earned Broken Shield save remains the campaign checkpoint.
+An earned walk to the river, live click, and fresh-process save/reload
+have not been completed yet. M6 rises from ~80% to ~81% for the verified
+loader and core work; its full campaign remains open. No manual playtest
+was performed.
+
 ## 2026-11-19 M6 earned the Broken Shield (~80%)
 
 From the reloaded Sylph Mold handoff, Connor followed the verified

@@ -2244,6 +2244,7 @@ pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, 
         placed: Vec::new(),
         collision: Vec::new(),
         markers: Vec::new(),
+        river_controls: Vec::new(),
         connor: None,
         attack_dist: None,
         connor_stats: None,
@@ -2672,6 +2673,7 @@ struct Placer<'a> {
     /// One for each entry of `placed`.
     collision: Vec<CollisionInfo>,
     markers: Vec<Marker>,
+    river_controls: Vec<kq8_core::active::Clickable>,
     connor: Option<(kq8_data::objects::Placement, ConnorAssets)>,
     attack_dist: Option<f32>,
     connor_stats: Option<(String, Option<String>)>,
@@ -3980,6 +3982,25 @@ impl Placer<'_> {
                 ));
             }
         }
+        // RiverControl has no model or script. Its .kq box is still a
+        // clickable part of the original Dead City world.
+        if !unused && p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("RiverControl")) {
+            let number = |key: &str| s.number(key).and_then(Result::ok).map(|n| n as f32).unwrap_or(0.0);
+            let min = [number("BBMinX"), number("BBMinY"), number("BBMinZ")];
+            let max = [number("BBMaxX"), number("BBMaxY"), number("BBMaxZ")];
+            let placement = kq8_core::collide::Placement {
+                position: p.position,
+                rotation: kq8_data::objects::rotation(p.angles),
+            };
+            let mut control = kq8_core::active::Clickable::plain(
+                &p.name, "RiverControl", min, max, placement, kq8_core::click::CLICKABLE,
+            );
+            control.accepts_inventory = s.get("acceptsInventory").map(str::trim).map(str::to_string);
+            self.log.detail(format!("river control [{}]: clickable box {:?}..{:?}, accepts {:?}",
+                p.name, min, max, control.accepts_inventory));
+            self.river_controls.push(control);
+            return;
+        }
 
         // Animated objects name their model through their current
         // animation, shown at its start frame (objects.md "Animated
@@ -4300,6 +4321,9 @@ impl Placer<'_> {
         if self.world.name.eq_ignore_ascii_case("DeadCity") {
             for m in ["onscale1", "onscale2", "offscale1", "offscale2"] {
                 wanted.insert((Some("conscale.anm".into()), m.into()));
+            }
+            for m in ["dipShield", "dipLock"] {
+                wanted.insert((Some("river.anm".into()), m.into()));
             }
         }
         if let Some(Ok((_, bytes))) = self.world.load("PRweeper.kq") {
@@ -5426,7 +5450,8 @@ impl Placer<'_> {
             building_types.push(info.collider_type);
         }
         log.summary(format!("collision: {} building colliders", buildings.len()));
-        let (objects, clickables, view_boxes) = object_colliders(self.game, &self.shapes, &self.placed, &self.collision, &self.markers, (&self.dormant_monsters, &self.dormant), &mut waiting_collision, log);
+        let (objects, mut clickables, view_boxes) = object_colliders(self.game, &self.shapes, &self.placed, &self.collision, &self.markers, (&self.dormant_monsters, &self.dormant), &mut waiting_collision, log);
+        clickables.extend(self.river_controls);
         // M5 5d-3: the templates, with their boxes from BOUNDS.KQ.
         let table = self.game.find("GAME/patch/BOUNDS.KQ").and_then(|p| std::fs::read(p).ok()).map(|b| kq8_data::bounds::BoundingBoxes::parse(&b).0);
         let templates: Vec<TemplateAssets> = self
@@ -6609,6 +6634,22 @@ mod campaign_tests {
             }
         }
         assert!(changed > 0, "expected a change on the actual river grid");
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn deadcity_loads_four_river_controls_and_shield_animation() {
+        let game = game_install();
+        let world = World::open(&game, "DeadCity").unwrap();
+        let mut log = Log::create("deadcity-river-control-test").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let controls: Vec<_> = objects.clickables.iter().filter(|c| c.class == "RiverControl").collect();
+        assert_eq!(controls.len(), 4);
+        assert!(controls.iter().all(|c| c.collision_type & kq8_core::click::CLICKABLE != 0));
+        assert!(controls.iter().all(|c| c.accepts_inventory.as_deref() == Some("INVITEM_BrokenShield,INVITEM_IronLock")));
+        let connor = objects.connor.as_ref().expect("Dead City Connor");
+        assert!(connor.1.movements.iter().any(|m| m.name.eq_ignore_ascii_case("river.anm/dipShield")));
     }
 
     /// Uses the same world scripts, monster list and model loader as a new
