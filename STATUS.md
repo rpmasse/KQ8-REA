@@ -22,6 +22,12 @@ gameplay viewport. Normal-damage victory, camera-visible targeting and
 on-monitor appearance are not tested. M6 rises from ~92% to ~94%; the
 later campaign and full save audit remain unfinished.
 
+The first southward route toward the arena lever reached its planar
+waypoint but fell from z864 to z0 near `skwltrap.02`. It was not used as
+an earned lever interaction. The installed script shows that the Hammer
+is obtained at `altar_a1` in the western jail area; the next route must
+reach that altar and then approach the lever from supported ground.
+
 ## 2026-11-20 M6 Round Key doorway and building state (~92%)
 
 From the earned, freshly reloaded Round Key checkpoint, the automated

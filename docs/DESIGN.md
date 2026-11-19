@@ -69,6 +69,14 @@ through the remaining Dead City story and later regions. Obtain
 camera-visible targeting and normal-damage campaign evidence before
 claiming a faithful boss encounter.
 
+The next story step uses the Hammer from `altar_a1` near
+(60582,141322,2425), then the lever by the King's bridge. The first
+direct south approach from the arena dropped Connor from z864 to z0
+near `skwltrap.02`, so its planar waypoint is not proof of supported
+lever access. Keep that failed route separate from the saved King sword
+checkpoint. Reach the altar through the opened jail, then map solid
+footing and normal Hammer throw range around the lever.
+
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
 Continue from the earned Sylph Mold handoff. The installed Dead City
