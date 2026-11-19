@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-19 M6 healed archer-clear branch and crossed portal four (~50%)
+
+Changed the unattended first-person aim route to turn Connor with his
+bound keys; the third-person camera drag cannot turn the first-person
+view. A focused route test and release build passed. From the earned
+archer-clear return, ordinary F2 view input and visible well clicks
+ran `sylphwel.cs`, restoring health 20 to 120. The in-game save and a
+fresh-process load retained health, Good Skull and skeleton19's death.
+Ordinary walking crossed portal four; another in-game save and fresh
+process retained 120 health at its eastern exit. One direct east route
+entered portal four accidentally, and an initial return route used a
+flag already true before entering; neither was counted. The corrected
+return watched `DeadCity::Portal::NineOn`. M6 rises from ~47% to ~50%.
+The original installation remained read-only, and no manual playtesting
+was performed. On-monitor appearance: not tested.
+
 ## 2026-11-19 M6 cleared north archer and returned through portal nine (~47%)
 
 A normal Mace swing defeated skeleton19 from an earned bridge save.

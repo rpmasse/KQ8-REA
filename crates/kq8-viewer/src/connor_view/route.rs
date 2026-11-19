@@ -173,7 +173,18 @@ pub fn steer(
     mut exit: MessageWriter<AppExit>,
 ) {
     let Some(sim) = sim else { return };
-    if aims.landmark.is_some() {
+    if let Some((name, _)) = aims.landmark.as_ref() {
+        // First-person view follows Connor's facing, so a mouse orbit of the
+        // third-person camera cannot bring a target into the gameplay view.
+        if sim.first_person && aims.orbit {
+            if let Some(target) = doors.as_ref().and_then(|d| d.active.target_point(name)) {
+                let error = wrap(heading_towards(sim.mover.position, [target[0], target[1]])
+                    - sim.walker.heading);
+                let turn = turn_key(&sim, error);
+                replay.keys(&mut keys, &turn.into_iter().collect::<Vec<_>>());
+                return;
+            }
+        }
         replay.keys(&mut keys, &[]);
         return;
     }

@@ -973,7 +973,8 @@ pub fn camera_step(
     let held = |k: Option<KeyCode>| choice.game && g.key_held(k, &keys);
     // A walking route can orbit from the player's current position until
     // its intended click is visible. Use the normal bound drag input.
-    let orbit = route_aim.orbit && choice.game && !sim.hands_off && g.keys.mouse.is_some();
+    let orbit = route_aim.orbit && g.first_person.is_none()
+        && choice.game && !sim.hands_off && g.keys.mouse.is_some();
     let input = Input {
         mouse_held: orbit || (choice.game && !sim.hands_off && g.mouse_held(&buttons)),
         mouse_x: -g.mouse.x + if orbit { 0.02 } else { 0.0 },

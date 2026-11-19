@@ -1,5 +1,33 @@
 # STATUS
 
+## 2026-11-19 M6 archer-clear branch healed and returned east (~50%)
+
+The earned `NorthArcherReturned` checkpoint reached Sylph's well with
+normal AI and damage, but its third-person camera settled behind
+`building_wellcovr`. Repeating the old eastern approach did not make
+the well visible, and a direct trip east crossed portal four instead.
+The first-person diagnostic revealed a route-input bug: its automatic
+orbit moved the third-person camera while the first-person view followed
+Connor's facing. The route now uses his ordinary turn keys in first
+person. An automated run from the earned checkpoint switched view with
+F2, aimed through visible gameplay pixels, hit `well2` first, and ran
+the original well script. Health rose from 20 to 120. An in-game save
+and fresh-process load retained 120 health, the Good Skull and
+skeleton19's corpse. The ignored checkpoint is
+`kq8-artifacts/earned-deadcity-northarcher-healed/slots/slot-1.json`.
+
+The proven return path then crossed enabled portal four with normal
+AI and damage. A first route incorrectly watched `FirstFour`, which
+was already true and stopped before the portal; its exploratory save
+does not count. The corrected route watched `NineOn`, which became
+true at the portal's exit. The in-game save and a fresh process
+restored Connor at (218304,192412,864), health 120, experience 8,730,
+Good Skull carried, skeleton19 dead, and no Feather. The ignored
+checkpoint is `kq8-artifacts/earned-deadcity-archerclear-portal4/slots/slot-1.json`.
+M6 rises from ~47% to ~50%. Next: cross the bone bridge on this branch,
+place the skull, take the Feather, return, and enter the Scales.
+On-monitor appearance: not tested; no manual gameplay testing was done.
+
 ## 2026-11-19 M6 north archer defeated, portal return saved (~47%)
 
 Starting from the earlier genuine 72-health `HealedBoneBridge` save,
