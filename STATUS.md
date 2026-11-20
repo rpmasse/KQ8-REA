@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-21 M6 Black Diamond offered in Barren (~78%)
+
+The earned Barren save retained the Dragon's Black Diamond and 25
+Silver Coins. With Connor inside the tradepost, the ordinary quest bar
+selected the Black Diamond and a camera ray hit Weirdling first.
+`tw_weird.cs` accepted the item, played its two-line exchange and
+removed the diamond. The in-game save at
+`target/m6-barren-live/20-diamond-offer/slots/slot-2.json` records
+`Barren::Seller::puzzleState=diamondonly`; a fresh process loaded the
+save in Barren (`RESULT: PASS`). The authored Barren script scan also
+passed and established the remaining chain: the seven-gong puzzle
+awards the Stone of Order, returning it to the hill altar sets
+`Barren::Stone::Returned=True`, and Shaftman then gives the Metal Shaft.
+None of those three later steps has been earned yet. This branch still
+inherits diagnostic god mode. M6 is estimated at ~78%; no manual
+gameplay test or original-file edit occurred.
+
 ## 2026-11-21 M6 Barren Weirdling reached (~77%)
 
 From the earned post-Sage Barren save, ordinary movement with AI and

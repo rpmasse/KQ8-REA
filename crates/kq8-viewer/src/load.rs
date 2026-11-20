@@ -6717,6 +6717,27 @@ mod campaign_tests {
         println!("tradepost building-only route: expanded {expanded}; {route:?}");
     }
 
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn barren_stone_order_script_writers() {
+        let game = game_install();
+        let world = World::open(&game, "Barren").unwrap();
+        let mut hits = 0;
+        for (name, _, bytes) in world.entries_ending(".cs").into_iter()
+            .chain(world.entries_ending(".kq")) {
+            let Ok(bytes) = bytes else { continue };
+            for (index, line) in String::from_utf8_lossy(&bytes).lines().enumerate() {
+                let lower = line.to_ascii_lowercase();
+                if ["stone::returned", "stoneorder", "metalshaft"].iter()
+                    .any(|needle| lower.contains(needle)) {
+                    println!("Barren {name}:{}: {}", index + 1, line.trim());
+                    hits += 1;
+                }
+            }
+        }
+        assert!(hits > 0, "the installed Barren archive had no Stone of Order references");
+    }
+
     /// Diagnostic only: find possible turns through the installed interior
     /// collision data. The live route still has to walk and encounter objects.
     fn gnome_building_route(

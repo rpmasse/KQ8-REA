@@ -3,6 +3,30 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 Barren diamond and shaft route (2026-11-21)
+
+The post-Sage save already carries the Black Diamond earned from the
+Gnome Dragon. At the met-Weirdling checkpoint, select it in the quest
+bar and aim at Weirdling from inside the tradepost. Verify the original
+`tw_weird.cs` consumes it and sets `diamondonly`, then save and reload.
+The Metal Shaft requires `Barren::Stone::Returned=True` before
+`Shaftman.cs` will run its reward sequence. Search the installed Barren
+scripts for every writer of that flag and the Stone of Order's placement.
+Use those authorship and collision findings to plan an earned route to
+Frghillman. Do not insert the shaft or flip the flag diagnostically.
+
+The visible Black Diamond offer was accepted: `tw_weird.cs` removed the
+item and saved `Barren::Seller::puzzleState=diamondonly`, which survived
+a fresh-process reload. An installed-script scan found the only Stone
+of Order `give` in `dockup.cs` Cue 300 `seven`, after the seven-gong
+bridge puzzle and Razetta interaction near (185090, 253000).
+`Altar1.cs` accepts the carried Stone at (64100, 95935), removes it and
+sets `Barren::Stone::Returned=True`; `Shaftman.cs` can then reward the
+Metal Shaft through Frghillman near (75858, 90167). Next measure a
+supported route from the tradepost save to the gong puzzle and replay
+its original interactions. The script scan proves dependencies, not
+that the route or puzzle is solved.
+
 ## M6 Barren tradepost route check (2026-11-21)
 
 The earned post-Sage Barren save reached the crystal trail and carried two

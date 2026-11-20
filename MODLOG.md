@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-21: M6 Black Diamond handoff (~78%)
+
+**Changed:** Added an ignored installed-script diagnostic for the
+Barren Stone of Order chain and recorded a new earned save; no gameplay
+rule changed. **Why:** Weirdling needed the Black Diamond before the
+Metal Shaft branch. **Tested:** A quest-bar selection and visible
+camera click gave him the already-earned diamond. His original script
+removed it and saved `diamondonly`; a fresh viewer loaded that save.
+The focused installed-script scan passed. **Limit:** The seven-gong
+sequence, altar return, Shaftman reward, and later campaign are open;
+the route inherited diagnostic god mode. No manual gameplay test or
+original-file edit occurred.
+
 ## 2026-11-21: M6 Barren Weirdling checkpoint (~77%)
 
 **Changed:** Added an ignored installed-data tradepost collision

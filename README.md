@@ -14,7 +14,7 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M3 · Recreate Daventry gameplay | Complete · 100% |
 | M4 · Recreate menus, inventory and dialogue | Complete · 100% |
 | M5 · Recreate combat | Complete · 100% |
-| M6 · Recreate the full campaign and saves | In progress · ~77% |
+| M6 · Recreate the full campaign and saves | In progress · ~78% |
 | M7 · Verify and release the Windows recreation | Planned · 0% |
 | M8 · Modern Improvements | In progress · ~90% |
 
@@ -33,7 +33,7 @@ The automated campaign walker has completed Dead City's key quests, cleared the 
 The Gnome Dragon has been defeated in an automated earned-save replay; its Black Diamond, the Crystal Pyramid, and a Lodestone were collected. Later campaign quests remain unfinished.
 Sage has received the Lodestone in an automated replay, unlocking Barren's teleporter; the remaining campaign is unfinished.
 The open-wall return and Sage handoff now pass with normal damage and enemy AI enabled; the complete campaign remains unverified.
-The post-Sage replay reached Barren, met Weirdling in the tradepost, and reloaded its in-game save in a fresh process. The later campaign remains unfinished.
+The post-Sage replay reached Barren and gave Weirdling the earned Black Diamond; the in-game save reloads in a fresh process. The later campaign remains unfinished.
 The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.
 
 ## Bring your own game
