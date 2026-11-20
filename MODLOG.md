@@ -14,6 +14,11 @@ failures and the successful diagnostic are retained under ignored
 `target/m6-gnome-*`. No game behavior or original asset changed. The
 M6 percentage stays ~98.3%; no manual test.
 
+The follow-up east-side walking case under ignored
+`target/m6-gnome-first-plate-east/` reached `(104718, 52672)` and then
+hit the same building on a northward approach. This narrows the next
+diagnostic to locating the actual doorway in `gnome05`'s boundary.
+
 ## 2026-11-20: M6 Swamp portal to Gnome (~98.3%)
 
 The cleared-poison Swamp save walked into `skport4`; its collision

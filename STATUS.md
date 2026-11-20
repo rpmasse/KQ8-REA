@@ -16,6 +16,12 @@ to map the adjoining opening from that point, then continue the normal
 Rock/plate/door route. This diagnostic changes no gameplay; M6 stays
 at ~98.3%. The save still inherits diagnostic god mode. No manual test.
 
+An additional original-movement probe followed the clear east side of
+the north wall. It reached `(104718, 52672)` and also stopped against
+`gnome05` when heading north. Both lateral approaches are now measured;
+the next diagnostic should scan the building's collision boundary for
+the authored doorway instead of trying more direct waypoints.
+
 ## 2026-11-20 M6 Swamp to Gnome transition (~98.3%)
 
 From the earned post-kettle save, Connor walked into `skport4` and its
