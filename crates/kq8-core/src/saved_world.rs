@@ -22,6 +22,8 @@ impl WorldState {
         self.queue.remove_receiver(name);
         self.held_for_load
             .retain(|e| !e.target.eq_ignore_ascii_case(name));
+        self.deferred_character_states
+            .retain(|(who, _, _, _)| !who.eq_ignore_ascii_case(name));
         self.pending_end_loop_listeners.remove(&key);
         self.end_loop_listeners
             .retain(|from, to| from != &key && !to.eq_ignore_ascii_case(name));

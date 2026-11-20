@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-20: M6 Witch kettle and Snail scene (~98.1%)
+
+Retained `KQMonster::setState` requests for a newly loaded character
+until its animated actor enters the world, then applied them before
+held events. This repairs `kettle.cs` loading Snail and immediately
+setting `Birthx`. The release build passed. From the earned Ladle save,
+an on-screen kettle ray accepted the item after the camera turned;
+Snail's animation, seven dialogue lines and exit completed. An in-game
+save and fresh-process reload retained `poisonOff=1`, `ToldSecret=2`
+and the consumed Ladle. The initial outside/south rays hit `wtower`,
+and the pre-fix run stopped after Snail loaded; both failures remain in
+ignored `target/m6-swamp-ladle-kettle-*` and
+`target/m6-swamp-kettle-script-probe/` logs. The successful logs are in
+ignored `target/m6-swamp-kettle-{scene-complete,reload}/`. This route
+inherits diagnostic god mode. No manual gameplay test or original-game
+file change occurred; later campaign work remains.
+
 ## 2026-11-20: M6 Golden Ladle return to Witch tower (~97.9%)
 
 Returned with the earned Ladle by two normal rope descents, the Prophet

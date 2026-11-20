@@ -1,5 +1,15 @@
 # Provenance
 
+**Swamp kettle loaded-character handoff (2026-11-20, M6).**
+`docs/behaviour/objects.md` scripted `loadKQ` rule 6 says the loaded
+object enters the logical world at once; `docs/behaviour/characters.md`
+rule 22 defines the named character state command. The installed
+`kettle.cs` lines 110–112 load Snail, set `Birthx` and unhide it in the
+same cue. The Rust loader defers that state until Snail's animated actor
+arrives, before held events. An ordinary camera-visible kettle click,
+the complete Snail scene, in-game save and fresh reload verified the
+Swamp poison flag and consumed Ladle. No original asset was changed.
+
 **Swamp Fiend lever return (2026-11-20, M6).**
 The installed `pulchain.cs` sets the two chain flags and opens
 `levrdor.01`; `fienlevr.cs` cues `fiendoor.cs` to return Connor to

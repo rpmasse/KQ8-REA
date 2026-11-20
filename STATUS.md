@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-20 M6 Swamp poison cleared (~98.1%)
+
+The earned Golden Ladle checkpoint reached the Witch tower kettle. A
+normal camera-visible click became possible after turning the camera
+inside the tower. `kettle.cs` accepted the Ladle and ran Connor's stir,
+but the first replay stopped because `loadKQ snail.kq` and the following
+`KQMonster::setState Snail special Birthx` occurred before Rust handed
+the animated Snail to the world. The loader now retains state requests
+during that short handoff and applies them when the character arrives.
+In the fixed replay, `Birthx` ended at update 371; King Mudge's seven
+dialogue lines and exit animation completed; control returned at update
+1698. The in-game save under `target/m6-swamp-kettle-scene-complete/`
+records `Swamp::Tower::poisonOff=1`, `ToldSecret=2` and the Ladle gone.
+The fresh-process save under `target/m6-swamp-kettle-reload/` retains
+those values. This checkpoint inherits the diagnostic god mode used
+earlier in the route; it does not prove an unprotected full campaign.
+Later regions, the ending and broader save audit remain. On-monitor
+appearance and manual gameplay: not tested.
+
 ## 2026-11-20 M6 Golden Ladle returned to Witch tower (~97.9%)
 
 From the earned Swamp east checkpoint, Connor climbed down both Fiend

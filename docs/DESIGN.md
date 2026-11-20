@@ -10670,3 +10670,18 @@ directly or change the game's puzzle rules. Replay a path through the
 safe tiles named by the installed `newWorld.cs`, verify the west exit and
 save the resulting campaign state. Log accepted jumps and landings.
 Keep the existing Death Hall route behavior and reject malformed targets.
+
+### M6 character state during scripted load (2026-11-20)
+
+Swamp `kettle.cs` calls `loadKQ snail.kq` and then immediately asks Snail
+for its `Birthx` state. The logical object is registered at once, but
+the viewer hands over its animated actor after the script update; the
+current state command is lost before that handoff. Retain state commands
+addressed to a character in this short load interval, then apply them
+in order when its actor arrives, before held events for that object.
+Do not defer commands for an unknown or already deleted name. Log the
+queued and applied state and verify the real kettle route, Snail's
+subsequent scene, an in-game save and a fresh-process reload. Source:
+`docs/behaviour/objects.md` scripted `loadKQ` rule 6 and
+`docs/behaviour/characters.md` state rule 22; original Swamp
+`kettle.cs` lines 110–112.

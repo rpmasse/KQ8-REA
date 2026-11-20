@@ -823,6 +823,9 @@ pub struct WorldState {
     /// update (the Wizard's `magicmap` and its `Map1`).
     loading: BTreeSet<String>,
     held_for_load: Vec<Pending>,
+    /// A script can set a newly loaded character's state before the
+    /// viewer hands over its animated actor (objects.md rule 6).
+    deferred_character_states: Vec<(String, String, Vec<String>, String)>,
     /// The files scripts may load while playing, by lower-case base name
     /// (M5 5d-2).
     pub(crate) templates: BTreeMap<String, Template>,
@@ -3859,6 +3862,11 @@ impl WorldState {
                 let name = a.player.name.clone();
                 self.character_note(&name, format!("{at}: KQMonster::setState {state} {}: {line}", rest.join(" ")));
             }
+            [_, who, state, rest @ ..] if self.loading.contains(&who.to_ascii_lowercase())
+                && self.monsters.iter().any(|m| m.name.eq_ignore_ascii_case(who)) => {
+                self.deferred_character_states.push((who.clone(), state.clone(), rest.to_vec(), at.to_string()));
+                self.note(format!("{at}: KQMonster::setState {who} {state} {}: held until the loaded character arrives (objects.md rule 6)", rest.join(" ")));
+            }
             _ => self.note(format!("{at}: stub (later milestone, nothing done): {}", words.join(" "))),
         }
         "0".into()
@@ -5236,6 +5244,7 @@ impl Active {
                 deleted_this_event: BTreeSet::new(),
                 loading: BTreeSet::new(),
                 held_for_load: Vec::new(),
+                deferred_character_states: Vec::new(),
                 calls_out: Vec::new(),
                 templates: BTreeMap::new(),
                 monster_templates: BTreeMap::new(),
@@ -6914,6 +6923,19 @@ impl Active {
         let lower = name.to_ascii_lowercase();
         if !self.world.loading.remove(&lower) {
             return;
+        }
+        let (states, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut self.world.deferred_character_states)
+            .into_iter().partition(|(who, _, _, _)| who.eq_ignore_ascii_case(name));
+        self.world.deferred_character_states = rest;
+        for (_, state, words, at) in states {
+            if let Some(i) = self.world.character_index(name) {
+                let now = self.world.now();
+                let actor = &mut self.world.anims[i];
+                let line = actor.character.as_mut().unwrap().set_state(&mut actor.player, &state, &words, now);
+                self.world.character_note(name, format!("{at}: deferred KQMonster::setState {state} {}: {line}", words.join(" ")));
+            } else {
+                self.world.note(format!("{at}: deferred KQMonster::setState {name} {state}: loaded character absent; dropped"));
+            }
         }
         let (held, rest): (Vec<Pending>, Vec<Pending>) = std::mem::take(&mut self.world.held_for_load).into_iter().partition(|e| e.target.eq_ignore_ascii_case(name));
         self.world.held_for_load = rest;
