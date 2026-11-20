@@ -10685,3 +10685,14 @@ subsequent scene, an in-game save and a fresh-process reload. Source:
 `docs/behaviour/objects.md` scripted `loadKQ` rule 6 and
 `docs/behaviour/characters.md` state rule 22; original Swamp
 `kettle.cs` lines 110–112.
+
+### M6 Gnome start-room route diagnosis (2026-11-20)
+
+The saved Swamp-to-Gnome arrival reaches playable Gnome, but direct
+unattended routes to the first Rock and pressure plate stop against the
+authored `gnome05` interior. Before changing the route or collision rules,
+probe the loaded Gnome building collider from the recorded stop points in
+eight short directions. Record which movements are blocked and the hit
+normal, then choose a route through an actual opening. Keep this as an
+ignored, original-data diagnostic; it must not change gameplay or use a
+direct placement in a campaign acceptance run.

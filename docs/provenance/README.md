@@ -1,5 +1,12 @@
 # Provenance
 
+**Gnome start-room route diagnostic (2026-11-20, M6).**
+The ignored original-data probe in `load.rs` uses the installed
+`Gnome/gnome05.dig` collider, the existing Connor ball stack and the
+`docs/behaviour/connor-physics.md` collision rules. It reports the
+directions blocked at recorded route stop points. It introduces no
+gameplay behavior or published original data.
+
 **Swamp to Gnome portal (2026-11-20, M6).**
 The installed `snail.cs` loads `swpgate5.kq` at the end of the King
 Mudge scene. Its original data targets Gnome, and `swpgate5.cs` starts

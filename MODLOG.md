@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome start-room collision probe (~98.3%)
+
+Added an ignored original-data probe of the `gnome05` interior at four
+positions recorded by the unattended route. It reports eight Connor
+collision sweeps at each point and identifies the actual blocked and
+clear directions. Automated Gnome routes reached the north doorway and
+turned west near `(103693, 52671)`, but the Rock and first plate are not
+yet reached. `cargo test -p kq8-viewer --bin kq8-viewer
+original_gnome_start_room_collision_directions --release -- --ignored
+--nocapture` passed with the GOG install set in `KQ8_GAME_DIR`; route
+failures and the successful diagnostic are retained under ignored
+`target/m6-gnome-*`. No game behavior or original asset changed. The
+M6 percentage stays ~98.3%; no manual test.
+
 ## 2026-11-20: M6 Swamp portal to Gnome (~98.3%)
 
 The cleared-poison Swamp save walked into `skport4`; its collision

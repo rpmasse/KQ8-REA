@@ -6139,6 +6139,38 @@ mod campaign_tests {
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn original_gnome_start_room_collision_directions() {
+        use kq8_core::{collide::BallStack, connor_mover::CONNOR_BOX};
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-start-collision-directions").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let interior = objects.buildings.iter().find(|b| b.name.eq_ignore_ascii_case("gnome05")).unwrap();
+        let balls = BallStack::from_box(CONNOR_BOX.0, CONNOR_BOX.1);
+        let directions = [("N", 0.0, 1.0), ("NE", 0.7071, 0.7071), ("E", 1.0, 0.0),
+            ("SE", 0.7071, -0.7071), ("S", 0.0, -1.0), ("SW", -0.7071, -0.7071),
+            ("W", -1.0, 0.0), ("NW", -0.7071, 0.7071)];
+        for (label, from) in [
+            ("rock approach", [105425.3, 37580.1, 17475.0]),
+            ("north doorway", [103272.0, 44365.0, 17475.0]),
+            ("west wall", [102516.9, 47444.1, 17475.0]),
+            ("north wall", [103692.6, 52671.0, 17475.0]),
+        ] {
+            let probes: Vec<_> = directions.iter().map(|(name, dx, dy)| {
+                let to = [from[0] + 900.0 * dx, from[1] + 900.0 * dy, from[2]];
+                match interior.sweep(&balls, from, to) {
+                    Some(hit) => format!("{name}: hit at ({:.0},{:.0}) normal ({:.2},{:.2},{:.2})",
+                        hit.position[0], hit.position[1], hit.normal[0], hit.normal[1], hit.normal[2]),
+                    None => format!("{name}: clear"),
+                }
+            }).collect();
+            println!("{label} ({:.0},{:.0}): {}", from[0], from[1], probes.join("; "));
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn original_bossprig_corpse_uses_authored_skin_source() {
         let game = game_install();
         let world = World::open(&game, "Daventry").unwrap();

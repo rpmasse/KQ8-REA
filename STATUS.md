@@ -1,5 +1,21 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome first-room navigation (~98.3%)
+
+The earned Gnome arrival reload remains playable. Unattended normal
+movement toward the nearby Rock and first pressure plate stopped at
+`gnome05`, the original start-room interior collider, without reaching
+either objective. The route logs are in the ignored
+`target/m6-gnome-first-rock/` and `target/m6-gnome-first-plate*/` cases.
+A new ignored original-data collision probe samples Connor's actual
+ball stack at four recorded stop points. It found the north doorway
+clear, a west wall near `(102517, 47444)`, and a north wall near
+`(103693, 52671)` with a clear first 900 units west. Following that
+opening reached `(102785, 52678)` before the next wall. The next step is
+to map the adjoining opening from that point, then continue the normal
+Rock/plate/door route. This diagnostic changes no gameplay; M6 stays
+at ~98.3%. The save still inherits diagnostic god mode. No manual test.
+
 ## 2026-11-20 M6 Swamp to Gnome transition (~98.3%)
 
 From the earned post-kettle save, Connor walked into `skport4` and its
