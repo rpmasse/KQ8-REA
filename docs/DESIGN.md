@@ -10800,3 +10800,47 @@ reload retained his west-side position and the open door states. This
 proves that particular passage, not that the whole bridge puzzle is
 optional. Continue from the earned west-side checkpoint toward the
 next authored Gnome quest objective.
+
+The installed `door05.cs` opens the Sage room on a plain click. The
+nearby `door04.cs` instead refuses while `Gnome::Lock::Locked=1`, which
+is still true in the earned save. From west of door 2, search the
+installed same-height building collision toward the east side of door 5
+near `(40000, 101535)`. Replay any path with ordinary movement and stop
+at the first authored obstacle. If the locked door 4 gates this route,
+do not force it; identify its original unlock condition.
+
+The same-floor search from west of door 2 found no route to door 5.
+The installed `irnlck.cs`/`irnlckx.cs` chain clears
+`Gnome::Lock::Locked` only after `ironlock` is broken and its spawned
+replacement dies. The installed world places that lock beside door 4
+at `(78241, 99050)`. Probe a same-floor path from the earned bridge
+approach to the south side of door 4. If a path exists, replay normal
+movement and use the ordinary weapon path on the installed lock;
+verify both deaths and the unlock variable before clicking door 4.
+
+The building search proposed a route to the iron lock through the
+bridge, but normal walking fell from z=17475 to the lower floor by the
+first bridge approach and stopped there. The upper passage therefore
+still needs the authored bridge state. Test whether Connor can reclaim
+the first Rock from the north side of the already-open `door01a/b`:
+load the earned post-batmanta hallway save, walk to the north edge of
+the doorway, and click the Rock normally through the visible gap. Log
+whether the item enters inventory, the plate empties, the doors close,
+and Connor stays on the north side. Do not inject a Rock or move Connor.
+
+The first north-edge attempt reached `(100787, 59161)` but the Rock was
+outside the gameplay view, and walking inertia carried Connor south
+after the failed camera turn. Make one controlled second attempt: walk
+just south of the open doorway, visibly click the Rock within normal
+reach, and immediately return north using the normal Run key before
+the door finishes closing. Require inventory, trap, door and position
+logs to establish whether the Rock can be reclaimed on the north side.
+
+That second visible-click attempt also left the Rock outside the
+gameplay view; stop varying this approach. The original-data search
+found no same-floor route from west of door 2 to Sage. It proposed a
+building-only path from the bridge toward the iron lock, but normal
+walking fell to the lower floor before the upper bridge passage.
+Future Gnome work must establish the authored Rock-access and bridge
+sequence from earned items; no direct movement or item injection may
+stand in for it.

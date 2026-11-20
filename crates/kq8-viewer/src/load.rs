@@ -6271,6 +6271,21 @@ mod campaign_tests {
         let center_plate_save = [84399.1, 64216.0, 17475.0];
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, center_plate_save, [70000.0, 60556.0]);
         println!("center plate to door02 east approach: expanded {expanded} cells; building-only route: {route:?}");
+        let door02_west = [64680.5, 60579.0, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, door02_west, [40000.0, 101535.0]);
+        println!("door02 west to Sage-room door approach: expanded {expanded} cells; building-only route: {route:?}");
+        for (name, start) in [("bridge east", bridge_east), ("door02 west", door02_west)] {
+            let (expanded, route) = gnome_building_route(&objects.buildings, &balls, start, [78241.0, 96000.0]);
+            println!("{name} to ironlock south approach: expanded {expanded} cells; building-only route: {route:?}");
+        }
+        for (name, _, bytes) in world.entries_ending(".cs") {
+            let Ok(bytes) = bytes else { continue };
+            for (index, line) in String::from_utf8_lossy(&bytes).lines().enumerate() {
+                if line.to_ascii_lowercase().contains("gnome::lock::locked") {
+                    println!("Gnome lock script {name}:{}: {}", index + 1, line.trim());
+                }
+            }
+        }
         for (label, from, to) in [
             ("planned turn to next", [108559.0, 65480.0, 17475.0], [112309.0, 65730.0, 17475.0]),
             ("live early turn to next", [108485.4, 65473.6, 17475.0], [112309.0, 65730.0, 17475.0]),

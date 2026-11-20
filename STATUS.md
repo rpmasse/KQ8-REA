@@ -1,5 +1,30 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome Sage-route and Rock-access diagnosis (~98.8%)
+
+The installed Sage-room `door05.cs` opens on a plain click, but the
+earned save still has `Gnome::Lock::Locked=1` for middle `door04`.
+Original-data script search found its unlock chain: `ironlock` dies,
+loads `irnlckx`, and `irnlckx` dies to set the lock flag to 0. The
+sampled same-floor building search found no path from west of door 2
+to the Sage-room approach. It proposed a path from the bridge area
+toward the iron lock, but normal movement fell from z=17475 to z=5187
+before the upper bridge passage and stopped near `(83775, 76479, 5187)`.
+The building-only path was therefore insufficient; no lock was hit or
+Sage event earned.
+
+Two ordinary camera-visible attempts to reclaim `NoName279` from the
+first pressure plate stopped because the Rock was outside the gameplay
+view: one from north of the open first door at `(100787, 59161)`, one
+from just south at `(100777, 58510)`. The Rock remains on `triptrp1`;
+neither attempt saved an altered campaign state. Logs are under
+ignored `target/m6-gnome-reclaim-*` and
+`target/m6-gnome-ironlock-first-leg/`. Stop this Rock approach after
+two failed tries. Next identify an authored item-access and bridge
+route without injecting items or moving Connor. Diagnostic god mode
+remains in the earned saves. No manual gameplay test occurred; M6
+stays ~98.8%.
+
 ## 2026-11-20 M6 Gnome western doorway reached (~98.8%)
 
 From the rotating-bridge save, ordinary walking touched the west

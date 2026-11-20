@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome Sage-route diagnosis (~98.8%)
+
+Extended the ignored sampled Gnome collision probe toward the Sage
+room and iron lock, and searched the installed `.cs` data for the lock
+variable. The test passed; it found no same-floor route from the
+door-2 west save to Sage and identified `irnlckx.cs` as the script
+that clears the lock after `irnlck.cs` creates the replacement.
+Normal walking toward the iron lock from the bridge save fell to the
+lower floor and stopped. Two normal visible-click approaches to the
+first plate Rock failed because it stayed outside the gameplay view.
+The failed automated logs are retained under ignored `target/m6-gnome-*`.
+No original data was changed and no manual gameplay test occurred.
+The earned quest did not advance, so M6 stays ~98.8%.
+
 ## 2026-11-20: M6 west of Gnome door02 (~98.8%)
 
 Extended the ignored sampled building search from the bridge center
