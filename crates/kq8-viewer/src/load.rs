@@ -6137,6 +6137,28 @@ mod campaign_tests {
         GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap()
     }
 
+    fn gnome_segment_hit(
+        buildings: &[kq8_core::collide::BuildingCollider],
+        balls: &kq8_core::collide::BallStack,
+        from: [f32; 3],
+        to: [f32; 3],
+    ) -> Option<(String, [f32; 3])> {
+        let length = ((0..3).map(|axis| (to[axis] - from[axis]).powi(2)).sum::<f32>()).sqrt();
+        let steps = (length / 50.0).ceil().max(1.0) as usize;
+        for index in 0..steps {
+            let point = |fraction: f32| std::array::from_fn(|axis| from[axis] + (to[axis] - from[axis]) * fraction);
+            let a = point(index as f32 / steps as f32);
+            let b = point((index + 1) as f32 / steps as f32);
+            let (low, high) = balls.reach(a, b);
+            if let Some((name, at)) = buildings.iter().filter(|building| building.overlaps(low, high))
+                .find_map(|building| building.sweep(balls, a, b)
+                    .map(|hit| (building.name.clone(), hit.position))) {
+                return Some((name, at));
+            }
+        }
+        None
+    }
+
     /// Diagnostic only: find possible turns through the installed interior
     /// collision data. The live route still has to walk and encounter objects.
     fn gnome_building_route(
@@ -6150,10 +6172,7 @@ mod campaign_tests {
         let spot = |i: i32, j: i32| [start[0] + i as f32 * STEP, start[1] + j as f32 * STEP, start[2]];
         let goal = (((target[0] - start[0]) / STEP).round() as i32,
             ((target[1] - start[1]) / STEP).round() as i32);
-        let clear = |from: [f32; 3], to: [f32; 3]| {
-            let (low, high) = balls.reach(from, to);
-            !buildings.iter().any(|b| b.overlaps(low, high) && b.sweep(balls, from, to).is_some())
-        };
+        let clear = |from: [f32; 3], to: [f32; 3]| gnome_segment_hit(buildings, balls, from, to).is_none();
         let estimate = |i: i32, j: i32| {
             (((goal.0 - i).pow(2) + (goal.1 - j).pow(2)) as f32).sqrt().mul_add(1000.0, 0.0) as i32
         };
@@ -6229,6 +6248,37 @@ mod campaign_tests {
         let hall = [100809.0, 61730.0, 17475.0];
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, hall, [113327.0, 60324.0]);
         println!("first hallway Gnome: expanded {expanded} cells; building-only floor-height route: {route:?}");
+        assert!(route.is_some(), "the installed building search lost its hallway path");
+        let live_stop = [108485.4, 65473.6, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, live_stop, [112309.0, 65730.0]);
+        println!("live hallway stop to north corridor: expanded {expanded} cells; building-only route: {route:?}");
+        let npc_stop = [112804.4, 60750.9, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, npc_stop, [113327.0, 60324.0]);
+        println!("live first Gnome stop to NPC: expanded {expanded} cells; building-only route: {route:?}");
+        for (label, from, to) in [
+            ("planned turn to next", [108559.0, 65480.0, 17475.0], [112309.0, 65730.0, 17475.0]),
+            ("live early turn to next", [108485.4, 65473.6, 17475.0], [112309.0, 65730.0, 17475.0]),
+            ("live early turn to planned turn", [108485.4, 65473.6, 17475.0], [108559.0, 65480.0, 17475.0]),
+            ("last free step to planned turn", [108406.1, 65349.1, 17475.0], [108559.0, 65480.0, 17475.0]),
+            ("north corridor turn to NPC", [112608.0, 65707.0, 17475.0], [113309.0, 60230.0, 17475.0]),
+            ("live first Gnome stop to NPC", [112804.4, 60750.9, 17475.0], [113327.0, 60324.0, 17475.0]),
+        ] {
+            let (low, high) = balls.reach(from, to);
+            let hits: Vec<_> = objects.buildings.iter().filter(|building| building.overlaps(low, high))
+                .filter_map(|building| building.sweep(&balls, from, to)
+                    .map(|hit| format!("{} at ({:.1},{:.1}) normal ({:.2},{:.2},{:.2})",
+                        building.name, hit.position[0], hit.position[1],
+                        hit.normal[0], hit.normal[1], hit.normal[2])))
+                .collect();
+            println!("{label}: {}", if hits.is_empty() { "clear".to_owned() } else { hits.join("; ") });
+            println!("{label} sampled: {:?}", gnome_segment_hit(&objects.buildings, &balls, from, to));
+        }
+        assert!(gnome_segment_hit(&objects.buildings, &balls,
+            [108485.4, 65473.6, 17475.0], [112309.0, 65730.0, 17475.0]).is_some(),
+            "the early turn must show the live wall contact");
+        assert!(gnome_segment_hit(&objects.buildings, &balls,
+            [104809.0, 61480.0, 17475.0], [108559.0, 65730.0, 17475.0]).is_none(),
+            "the sampled north-opening segment must stay clear");
     }
 
     #[test]

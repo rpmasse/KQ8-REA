@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome north corridor checkpoint (~98.6%)
+
+Made the ignored Gnome building-route diagnostic check segments in
+50-unit steps. The previous long sweep missed `gnome05` at Connor's
+early turn; the sampled sweep catches it and finds a clear route through
+the north opening. Normal movement reached that corridor, then an
+in-game save and fresh-process reload/save retained Connor's position,
+the earlier batmanta reward and corpse, and the Rock-held door. An
+attempt to approach the nearby Gnome stopped at another `gnome05`
+surface, so the NPC conversation remains unverified. The original-data
+diagnostic passed with the GOG install read only; both save runs passed.
+No manual gameplay test. M6 estimate: ~98.6%.
+
 ## 2026-11-20: M6 first Gnome hallway combat and route diagnostic (~98.5%)
 
 The earned hallway route defeated `batmanta1` with ordinary sword input.

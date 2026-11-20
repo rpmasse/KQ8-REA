@@ -10726,3 +10726,18 @@ turn 129 units short. After two failed live approaches, pause this route
 and compare an exact sweep from the reached point to the next waypoint.
 Only replay a corrected route if the sweep shows a clear segment; retain
 the failed logs as evidence.
+
+The exact sweep from the live stop reports the long east segment clear,
+while Connor's per-update log shows repeated `gnome05` contact at the
+same spot. Before replaying, subdivide each diagnostic building sweep
+into short movement-sized steps so a long segment cannot skip a narrow
+solid interval. Use the same sampled check for grid edges and route
+compression, then print the resulting turns and replay them with normal
+movement. This changes only the ignored route diagnostic.
+
+That short-step search found the north opening. Ordinary movement
+reached it and then the north corridor; a fresh-process reload retained
+the new in-game save. The next approach to the nearby Gnome still hit
+`gnome05` near `(112804, 60751)`. The NPC is not part of the verified
+route yet. Compare the actual turning and wall-slide path there with
+the installed collision before changing an alcove waypoint.

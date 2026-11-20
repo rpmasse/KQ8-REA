@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome north corridor checkpoint (~98.6%)
+
+The prior building search let a long sweep skip the wall that stopped
+Connor. Its ignored diagnostic now checks each proposed segment in
+50-unit pieces. The short sweeps report the early turn blocked by
+`gnome05` and a clear north-opening route. Ordinary movement followed
+that route through the corridor. An in-game save and fresh-process
+reload/save retained Gnome position `(113221, 65603, 17475)`, 100,575
+experience, the first hallway batmanta's corpse, and `NoName279` on
+`triptrp1`. Both runs passed without manual gameplay. The checkpoint
+still inherits diagnostic god mode.
+
+The next normal approach stopped at `(112804, 60751)`, 725 units from
+the nearby Gnome, against `gnome05`; the NPC was not clicked. The
+sampled straight sweep to the NPC reports clear, but the live per-update
+movement includes turns and wall slides. The next step is to compare
+that actual motion with the alcove geometry before choosing a new route.
+Gnome's quest, later regions, ending, and broad save audit remain;
+M6 estimate advances to ~98.6% for the verified north-corridor save.
+
 ## 2026-11-20 M6 Gnome first hallway combat and next-route limit (~98.5%)
 
 From the earned first-hallway save, ordinary hand-weapon attacks killed
