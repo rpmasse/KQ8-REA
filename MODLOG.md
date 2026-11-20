@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-20: M6 rotating-bridge east plate checkpoint (~98.7%)
+
+Extended the ignored sampled Gnome collision search to the rotating
+bridge's east plate. Its ten-turn route was replayed with ordinary
+movement from the saved first-Gnome conversation. `triptrp3` opened
+`rbridge3` while Connor stood on it and closed the bridge side after
+he left. An in-game save and fresh-process reload/save retained the
+bridge-area position and closed state. The original-data diagnostic
+test and both automated viewer runs passed with the GOG install read
+only. The route still inherits diagnostic god mode; no manual test.
+M6 estimate: ~98.7%.
+
 ## 2026-11-20: M6 first Gnome conversation (~98.6%)
 
 The earned north-corridor save reached `Gnome` through ordinary walking

@@ -10756,3 +10756,18 @@ bounded same-floor building search returned no route. Do not use an
 injected item or placement in the campaign run. Examine the authored
 door and floor route before trying this Rock again, or advance a
 separate quest-critical path first.
+
+The installed Gnome layout puts the rotating-bridge plates around
+`(83806, 64502)` to `(86303, 66502)`, west of the saved conversation.
+Use the saved dialogue checkpoint to seek the east plate with ordinary
+movement. First extend the ignored sampled building search bounds only
+as far as this target requires and report a path or no path at Connor's
+current height. Replay any proposed turns with normal keys; building
+clearance alone does not prove the terrain or bridge passable.
+
+The ten-turn route reached `triptrp3` by ordinary movement. Its On
+opened `rbridge3`; Connor then stepped off and its Off/door-completion
+sequence closed that side. The saved bridge-area state survived a
+fresh-process reload. This does not solve the rotating bridge; next
+read its authored plate and rotation scripts before arranging a held
+plate, using only items earned by the campaign route.

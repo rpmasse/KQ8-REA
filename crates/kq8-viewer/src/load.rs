@@ -6172,6 +6172,8 @@ mod campaign_tests {
         let spot = |i: i32, j: i32| [start[0] + i as f32 * STEP, start[1] + j as f32 * STEP, start[2]];
         let goal = (((target[0] - start[0]) / STEP).round() as i32,
             ((target[1] - start[1]) / STEP).round() as i32);
+        let x_range = (goal.0.min(0) - 40)..=(goal.0.max(0) + 40);
+        let y_range = (goal.1.min(0) - 40)..=(goal.1.max(0) + 40);
         let clear = |from: [f32; 3], to: [f32; 3]| gnome_segment_hit(buildings, balls, from, to).is_none();
         let estimate = |i: i32, j: i32| {
             (((goal.0 - i).pow(2) + (goal.1 - j).pow(2)) as f32).sqrt().mul_add(1000.0, 0.0) as i32
@@ -6198,7 +6200,7 @@ mod campaign_tests {
             }
             for (di, dj) in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)] {
                 let (ni, nj) = (i + di, j + dj);
-                if !(-60..=60).contains(&ni) || !(-20..=120).contains(&nj) || closed.contains(&(ni, nj)) { continue; }
+                if !x_range.contains(&ni) || !y_range.contains(&nj) || closed.contains(&(ni, nj)) { continue; }
                 let proposed = cost[&(i, j)] + if di == 0 || dj == 0 { 1000 } else { 1414 };
                 if proposed >= *cost.get(&(ni, nj)).unwrap_or(&i32::MAX) { continue; }
                 if !clear(spot(i, j), spot(ni, nj)) { continue; }
@@ -6258,6 +6260,9 @@ mod campaign_tests {
         let talk_save = [113217.7, 62000.4, 17475.0];
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [114861.0, 60965.0]);
         println!("Gnome talk save to second Rock: expanded {expanded} cells; building-only route: {route:?}");
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [86303.0, 66502.0]);
+        println!("Gnome talk save to bridge east plate: expanded {expanded} cells; building-only route: {route:?}");
+        assert!(route.is_some(), "the installed building search lost the east-plate route");
         for (label, from, to) in [
             ("planned turn to next", [108559.0, 65480.0, 17475.0], [112309.0, 65730.0, 17475.0]),
             ("live early turn to next", [108485.4, 65473.6, 17475.0], [112309.0, 65730.0, 17475.0]),

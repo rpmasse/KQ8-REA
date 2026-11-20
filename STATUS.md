@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome rotating-bridge east plate (~98.7%)
+
+The ignored sampled building search found ten turns from the saved
+first-Gnome conversation toward `triptrp3`. Ordinary walking replayed
+them through the installed terrain, interiors, actors, and scripts.
+Connor entered the east plate at update 581, which ran `triptrp3.cs`
+and opened `rbridge3`. He stepped off at update 596; the door finished
+opening, then its script started closing, and it was closed by update
+613. This verifies the plate's transient behavior, not the solved
+bridge. An in-game save and fresh-process reload/save retained position
+`(86402, 67074, 17475)`, the first Gnome dialogue flag, and closed
+bridge state. The route inherits diagnostic god mode. No manual
+gameplay occurred.
+
+The bridge still needs its authored plate and rotation sequence. The
+nearby second Rock remains without a verified access route. The later
+Gnome quest, other regions, ending, and broad save audit remain. M6
+estimate: ~98.7%.
+
 ## 2026-11-20 M6 first Gnome conversation saved (~98.6%)
 
 From the earned north-corridor checkpoint, Connor walked to within
