@@ -6529,6 +6529,60 @@ mod campaign_tests {
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_open_wall_to_teleport_pad_route() {
+        use kq8_core::{collide::BallStack, connor_mover::CONNOR_BOX};
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-open-wall-teleport-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let balls = BallStack::from_box(CONNOR_BOX.0, CONNOR_BOX.1);
+        let start = [99749.75, 109403.58, 17475.0];
+        let pad = [127324.0, 108705.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, start, pad);
+        println!("Gnome open wall to pad: expanded {expanded} cells; turns {route:?}");
+        for (name, from) in [
+            ("arrival", [105233.555, 36429.613, 17475.0]),
+            ("conversation hall", [113217.7, 62000.4, 17475.0]),
+        ] {
+            let (expanded, route) = gnome_building_route(&objects.buildings, &balls, from, pad);
+            println!("Gnome {name} to pad: expanded {expanded} cells; turns {route:?}");
+        }
+        let floor = ground.terrain.floor_at(pad[0], pad[1]).map(|sample| sample.height);
+        println!("Gnome pad terrain floor: {floor:?}; trap starts at z17600");
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+            start, pad, 18000.0, 600.0);
+        println!("Gnome open wall to pad with floor changes: expanded {expanded} states; path length {:?}; sampled {:?}",
+            route.as_ref().map(Vec::len),
+            route.as_ref().map(|path| path.iter().step_by(8).copied().collect::<Vec<_>>()));
+        let third_rock_floor = [137311.0, 70325.0, 12355.0];
+        for (name, target, upper_height) in [
+            ("ShardFuse gem", [139835.0, 106405.0], 13000.0),
+            ("teleport pad", pad, 18000.0),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                third_rock_floor, target, upper_height, 700.0);
+            println!("Gnome third Rock to {name}: expanded {expanded} states; path length {:?}; sampled {:?}",
+                route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(8).copied().collect::<Vec<_>>()));
+            if name == "teleport pad" {
+                let path = route.as_ref().expect("installed floor route to Gnome pad");
+                let end = path.last().unwrap();
+                assert!((end[0] - pad[0]).hypot(end[1] - pad[1]) <= 700.0);
+                assert!(end[2] >= 17000.0, "pad approach should regain the upper floor: {end:?}");
+                let mut sampled: Vec<_> = path.iter().step_by(4).copied().collect();
+                if sampled.last() != Some(end) { sampled.push(*end); }
+                let landmarks: Vec<_> = sampled.iter().enumerate().map(|(i, point)| serde_json::json!({
+                    "name": format!("pad route {i}"), "xy": [point[0], point[1]],
+                    "radius": 120, "run": true,
+                })).collect();
+                println!("GNOME_PAD_ROUTE_JSON={}", serde_json::json!({"start": 5, "landmarks": landmarks}));
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn gnome_shard_fuse_script_sources() {
         let game = game_install();
         let archive = kq8_data::VolArchive::open(&game.volume_path("Gnome", "kq").unwrap()).unwrap();

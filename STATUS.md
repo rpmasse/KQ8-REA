@@ -1,5 +1,44 @@
 # STATUS
 
+## 2026-11-21 M6 Gnome teleport pad reached (~74%)
+
+From the earned third-Rock checkpoint, an installed floor and building
+search found a lower-to-upper ramp route to Gnome's teleport pad. The
+search's 397 short steps were sampled into ordinary movement landmarks.
+Live replay climbed from z=12355 to z=17475, defeated one SprigDude and
+two Manta enemies that physically blocked narrow halls, earned Gnome's
+own teleport mark by entering its original trap, and reached the pad.
+`Teletrap.cs` ran `onTeleport` at update 77. The in-game save at
+`target/m6-barren-pad-live/16-pad-on/slots/slot-2.json` stands on the
+pad at (127044, 108949, 17475); enemy AI and building collision stayed
+active. This older branch had inherited diagnostic god mode and predates
+Sage's Lodestone handoff, so Barren is not earned in that save and no
+Barren transfer has occurred.
+
+Separately, the post-Sage save was replayed back through the three
+rolling-rock lanes, middle buildings and opened brick wall to an in-game
+save at (99750, 109404, 17475):
+`target/m6-barren-teleport-return/12-open-wall/slots/slot-2.json`.
+This exploration copy turned on diagnostic god mode; the normal-damage
+Sage proof remains untouched. Both same-height and floor-aware searches
+from the opened wall stopped around x=109750, short of the pad. A direct
+eastward live try struck `gnome01`. The next route must return across
+the solved bridge and join the lower eastern ramp; copying Barren flags
+into the older pad save would not prove campaign progression.
+
+The ignored installed-data diagnostic
+`gnome_open_wall_to_teleport_pad_route` now asserts that the lower
+third-Rock branch regains the upper floor and reaches the pad. It passed.
+The first fresh-process pad load exposed that saved trap occupancy
+prevented another On event while the map's temporary `on_pad` bit reset.
+The loader now derives that bit from a restored live teleporter trap
+holding Connor. A focused test passed, and a new release viewer loaded
+the earned pad slot with `disk restore: Connor remains on the
+teleporter pad` in `map.log` (`RESULT: PASS`). This preserves the saved
+trap membership and applies to other teleporter-pad scripts too.
+M6 is estimated at ~74%; full Barren travel, later regions and ending
+remain open. No manual gameplay test or original-file edit occurred.
+
 ## 2026-11-21 M6 normal-damage Sage return (~73%)
 
 An automated replay switched diagnostic god mode off before the Gnome

@@ -17,6 +17,18 @@ const VERSION: u32 = 2;
 const MAX_BYTES: usize = 32 * 1024 * 1024;
 const THUMB_BYTES: usize = 160 * 120 * 4;
 
+/// The map's on-pad bit is transient, while a saved trap keeps Connor in
+/// its `inside` list. Reconcile the two before the first post-load update.
+fn saved_teleport_pad_occupied(traps: &[kq8_core::trap::Trap]) -> bool {
+    traps.iter().any(|trap| {
+        !trap.gone
+            && trap.settings.script.as_deref().is_some_and(|script| {
+                script.eq_ignore_ascii_case("teletrap.cs") || script.eq_ignore_ascii_case("telepad.cs")
+            })
+            && trap.inside.iter().any(|name| name.eq_ignore_ascii_case("Connor"))
+    })
+}
+
 #[derive(Serialize, Deserialize)]
 pub(super) struct Snapshot {
     version: u32,
@@ -488,6 +500,13 @@ impl Snapshot {
                 } else {
                     traps.restore(&mut w.traps, &w.known)?;
                 }
+                if saved_teleport_pad_occupied(&w.traps) {
+                    if let Some(map) = w.map.as_mut() {
+                        map.on_pad = true;
+                        w.map_go_refresh("disk restore: occupied teleporter pad");
+                        w.map_log.push("disk restore: Connor remains on the teleporter pad".into());
+                    }
+                }
                 sim.connor_checked_at = self.trap_checked_at;
             }
             if let Some(drains) = &self.drains {
@@ -854,6 +873,27 @@ mod tests {
     use super::*;
     use kq8_core::item::Place;
     use std::process::Command;
+
+    #[test]
+    fn saved_pad_membership_ignores_other_traps_and_departed_visitors() {
+        use kq8_core::trap::{Trap, TrapSettings};
+        let mut trap = Trap {
+            settings: TrapSettings { name: "Pad".into(), position: [0.; 3], min: [0.; 3],
+                max: [1.; 3], script: Some("Teletrap.cs".into()), lookup_call: false,
+                mask: 4, trap_type: 0, inner_percent: None, spirit: None },
+            inside: vec!["Connor".into()], pending_occupants: Vec::new(), shrunk: false,
+            gone: false,
+        };
+        assert!(saved_teleport_pad_occupied(&[trap.clone()]));
+        trap.settings.script = Some("OtherTrap.cs".into());
+        assert!(!saved_teleport_pad_occupied(&[trap.clone()]));
+        trap.settings.script = Some("telepad.cs".into());
+        trap.inside = vec!["Other".into()];
+        assert!(!saved_teleport_pad_occupied(&[trap.clone()]));
+        trap.inside = vec!["cOnNoR".into()];
+        trap.gone = true;
+        assert!(!saved_teleport_pad_occupied(&[trap]));
+    }
 
     fn active() -> Active {
         Active::new(Default::default(), vec![], vec![], [], [])

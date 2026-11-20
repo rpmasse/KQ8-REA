@@ -3,6 +3,57 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 Gnome Sage-to-Barren continuation (2026-11-21)
+
+Start with the earned normal-damage Sage handoff. Keep that proof intact.
+For route exploration, a copied save may enable diagnostic invulnerability
+while enemy AI and all collision remain active. Return through Sage's door,
+the three rolling-rock lanes, the central buildings, and the opened brick
+wall using ordinary movement. The Gnome pad trap is centered at
+(127324, 108705, 17600), while the earned Barren teleport mark is already
+in the Sage save. Search installed Gnome floor and building collision for
+the supported passage from the opened wall to the pad; any numeric route is
+only a candidate. Replay it with ordinary movement, confirm the pad's On
+trap, select Barren on the magic map, accept the original Portal prompt,
+save in Barren, and reload in a fresh process. Record where diagnostic
+invulnerability was used. Do not bypass walls, insert items, or alter
+original game files.
+
+The post-Sage exploratory copy returned to the opened wall at (99750,
+109404, 17475). A direct eastward walk struck `gnome01`; same-height
+and floor-aware installed-collision searches stopped near x109750 and
+found no passage to the pad. The older earned third-Rock save at
+(137129, 70102, 12355) is on the lower eastern branch. Its floor-aware
+search found a 397-step route up the eastern ramp and around the upper
+halls to the pad. Live movement followed that route. A SprigDude blocked
+the westbound upper hall; two Manta enemies blocked the later east
+bend. Normal King Sword swings removed all three. The Gnome EarnTeleport
+trap fired near (130247, 102730), and the pad's `Teletrap.cs` ran
+`onTeleport` at update 77. The in-game pad save is
+`target/m6-barren-pad-live/16-pad-on/slots/slot-2.json`.
+That older save has no Barren mark because it predates Sage's handoff.
+Next carry the post-Sage save from the opened wall back across the
+solved bridge and into the lower eastern ramp, then follow the proven
+pad route. The two saves must not be spliced or have their flags copied.
+
+The first fresh-process pad reload exposed a save gap. The restored
+`GnomeTeleport` trap keeps Connor in its saved `inside` list, so it does
+not send another On message. The map's temporary `on_pad` bit starts
+false on load, leaving the Go button unusable. After restoring traps,
+derive the bit from a live teleporter trap whose saved occupants include
+Connor, and refresh the Go button. This changes only the transient map
+state; keep saved trap membership and other trap events intact. Verify
+with a focused restore test and a fresh viewer load of the earned pad
+save. Reaching Barren still requires the post-Sage route.
+
+Implemented in `save_slots.rs`: restored, non-gone teleporter traps
+whose live `inside` list contains Connor set the current map's
+temporary `on_pad` bit before normal updates, then refresh the Go
+button. The focused membership test passed. A new release viewer
+loaded the earned pad save in a fresh process and logged the restored
+pad state. The earlier load had no `onTeleport` event and no restored
+map bit. The Barren transfer itself remains untested.
+
 ## M6 path from the completed Gnome bridge to the iron lock (2026-11-20)
 
 The completed bridge save places Connor on the north bank with

@@ -1,5 +1,32 @@
 # MODLOG
 
+## 2026-11-21: M6 Gnome pad route and live arrival (~74%)
+
+**Changed:** Added an ignored installed-data route diagnostic and
+documented two earned-save replays; no gameplay rule changed. **Why:**
+The Sage handoff earned Barren, but interworld travel needs Connor on a
+pad. **Tested:** The post-Sage exploratory copy returned through the
+rolling rocks and opened wall. Direct wall-to-pad searches found no
+supported route, and a live eastward attempt hit `gnome01`. A separate
+earned third-Rock save followed the lower eastern ramp to the upper
+floor. One SprigDude and two Manta corridor blockers died from ordinary
+King Sword swings. Gnome's EarnTeleport trap fired, then the pad's On
+trap ran `onTeleport`; an in-game slot saved Connor on the pad. The
+diagnostic test passed. **Limit:** Both exploratory replays used
+inherited or toggled diagnostic god mode, and the pad save is older
+than Sage's handoff, so Barren remains unearned in that slot. The
+post-Sage save still needs the bridge detour to this route. No manual
+gameplay test or original-file edit occurred.
+
+**Save fix:** Restored teleporter traps keep Connor inside, so they do
+not fire On again after loading. The map's unsaved `on_pad` bit had
+reset to false. `save_slots.rs` now reconstructs it from an occupied,
+live teleporter trap and refreshes the Go button. The focused test
+passed; the rebuilt release viewer loaded the earned pad save with the
+restored-pad line in `map.log` and `RESULT: PASS`. An initial compile
+failed on a mutable borrow spanning the old `connor_checked_at` write;
+moving that write after the map reconciliation fixed it.
+
 ## 2026-11-21: M6 normal-damage Sage return (~73%)
 
 **Changed:** Recorded a normal-damage replay of the earned open-wall to
