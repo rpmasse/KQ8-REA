@@ -201,6 +201,19 @@ Boulder flags set to 1 and the wall hidden. Next walk through the new
 opening from this earned save, study the light-crystal and Dragon Wyrm
 scripts, and continue toward the pyramid device and Lodestone. Keep
 all transitions on their authored controls and triggers.
+Connor walked through the opened wall and down to the Dragon chamber's
+lower floor, then followed the east and north bends to an in-game save
+at (105088, 133647, 14915):
+`target/m6-gnome-dragon-west-turn-save/slots/slot-2.json`. The Dragon
+is still alive with 1100 health; no combat has begun. The installed
+`fusebox.cs` requires `INVITEM_ShardFuse` to turn on the chamber lights.
+That item is produced by `gem.cs` after `gemclmp` at (139835, 106405,
+12354) dies, and is not in the earned inventory. A height-aware
+walk-only search from both the wall opening and Dragon west turn to
+the gem found no route; the same search from the earlier original-entry
+checkpoint also found none. Identify the authored transition to that
+lower eastern room before continuing the fuse and Dragon sequence.
+Do not supply the ShardFuse through a diagnostic item injection.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

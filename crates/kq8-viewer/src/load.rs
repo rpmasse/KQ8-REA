@@ -6457,6 +6457,69 @@ mod campaign_tests {
             route.as_ref().map(|path| path.iter().step_by(10).copied().collect::<Vec<_>>()));
     }
 
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_open_wall_dragon_approach_route() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-open-wall-dragon-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let start = [99676.125, 109332.945, 17475.0];
+        for (name, target, height) in [
+            ("north opening", [100000.0, 115000.0], 19000.0),
+            ("chamber approach", [100000.0, 130000.0], 19000.0),
+            ("dragon", [100117.0, 138250.0], 20000.0),
+            ("lodestone", [81791.0, 145754.0], 20000.0),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, target, height, 800.0);
+            println!("{name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(15).copied().collect::<Vec<_>>()));
+            if name == "dragon" {
+                println!("dragon bend cells: {:?}", route.as_ref().map(|path| path.iter().skip(72).take(65).copied().collect::<Vec<_>>()));
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_shard_fuse_script_sources() {
+        let game = game_install();
+        let archive = kq8_data::VolArchive::open(&game.volume_path("Gnome", "kq").unwrap()).unwrap();
+        for entry in archive.entries() {
+            if !entry.name.to_ascii_lowercase().ends_with(".cs") { continue; }
+            let bytes = archive.unpack(entry).unwrap().data;
+            let contents = String::from_utf8_lossy(&bytes);
+            let lower = contents.to_ascii_lowercase();
+            if lower.contains("shardfuse") || lower.contains("gem.kq") || lower.contains("gempiece") {
+                println!("ShardFuse/gem source: {}", entry.name);
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_dragon_to_fuse_source_route() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-dragon-fuse-source-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        for (name, start) in [
+            ("from Dragon west turn", [105087.83, 133646.52, 14915.0]),
+            ("from open wall", [99676.125, 109332.945, 17475.0]),
+            ("from original entry", [88624.0, 62661.0, 17475.0]),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, [139835.0, 106405.0], 19000.0, 800.0);
+            println!("fuse source {name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(20).copied().collect::<Vec<_>>()));
+        }
+    }
+
     /// Diagnostic only: find possible turns through the installed interior
     /// collision data. The live route still has to walk and encounter objects.
     fn gnome_building_route(

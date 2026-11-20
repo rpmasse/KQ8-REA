@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-20: M6 reached Dragon approach and located fuse source (~99.8%)
+
+Replayed the open-wall passage and east/north chamber bends through
+normal movement, preserving an in-game save near the living Dragon.
+Read the installed fusebox, gem and gem-clump scripts without copying
+them into the repository. The ShardFuse comes from the gem clump in
+Gnome's eastern lower room; no direct walk-only route from the current
+checkpoint or earlier entry was found. Added ignored installed-data
+route and script-name diagnostics. No manual gameplay test or
+original-file edit occurred.
+
 ## 2026-11-20: M6 opened Gnome brick wall (~99.8%)
 
 Used a height-aware installed-data diagnostic to identify the lower

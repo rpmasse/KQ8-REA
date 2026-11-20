@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-20 M6 Dragon approach reached; fuse source identified (~99.8%)
+
+From the earned broken-wall save, ordinary walking crossed the new
+opening, descended to the lower chamber floor, and followed the east
+and north bends. The in-game checkpoint at
+`target/m6-gnome-dragon-west-turn-save/slots/slot-2.json` is near the
+Dragon, which remains alive. Installed scripts show that breaking
+`gemclmp` at (139835, 106405, 12354) produces the ShardFuse used by
+the Dragon chamber's fusebox. It is not yet carried. The height-aware
+walk-only search from the current chamber and prior entry checkpoints
+does not reach that gem room, so its authored route must be identified.
+M6 remains ~99.8%; the fuse, Dragon, Lodestone, later campaign, ending,
+and broad save audit are unfinished. No manual gameplay test or
+original-file edit was used.
+
 ## 2026-11-20 M6 Gnome brick wall opened (~99.8%)
 
 Starting from the earned dropped-boulder save, Connor used normal
