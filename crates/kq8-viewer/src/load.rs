@@ -6547,6 +6547,13 @@ mod campaign_tests {
         }
         println!("Gnome final west setup: {:?}", gnome_segment_hit(&objects.buildings, &balls,
             [141547.0, 60218.0, 12680.0], [141006.0, 60218.0, 12680.0]));
+        println!("Gnome uphill mid-ramp west: {:?}", gnome_segment_hit(&objects.buildings, &balls,
+            [93442.0, 53704.0, 16396.0], [93050.0, 53704.0, 16396.0]));
+        for x in [93050.0, 93100.0, 93150.0, 93215.0, 93250.0, 93300.0, 93442.0] {
+            println!("Gnome uphill mid-ramp north at x{x:.0}: {:?}",
+                gnome_segment_hit(&objects.buildings, &balls,
+                    [x, 53704.0, 16396.0], [x, 58343.0, 17800.0]));
+        }
         assert!(gnome_segment_hit(&objects.buildings, &balls,
             [108485.4, 65473.6, 17475.0], [112309.0, 65730.0, 17475.0]).is_some(),
             "the early turn must show the live wall contact");

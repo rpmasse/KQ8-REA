@@ -11047,3 +11047,31 @@ reload retained the carried `INVITEM_Rock`. Next reverse the earned
 lower-floor route and ascend the western ramp, keeping this Rock
 carried, before testing its authored bridge use. Do not infer a solved
 bridge from the pickup alone.
+
+The first return replay from that save stopped at (137164, 70102)
+while heading diagonally east. A simplified height-aware search from
+the saved position proposed an east-first exit, but an ordinary
+straight-east replay stopped at (137139, 70102). The detailed live
+contact log identifies both the `gnome07a` wall and a `Swsprig`
+creature at the slide contact. The diagnostic scene omitted creatures;
+that explains why its east route was not valid in the live world.
+Stop waypoint variants here. Use normal weapon combat against the
+blocking Swsprig, verify its actual defeated state, then retry the
+measured exit only from an earned save with the Rock still carried.
+
+Normal sword combat defeated Swsprig; its corpse and the carried Rock
+survived reload. The measured east-first exit then passed. Ordinary
+walking reversed the lower corridors and climbed toward the western
+ramp, with in-game saves and fresh-process reloads along the way.
+`SWHallManta1` blocked the uphill approach and was defeated by normal
+sword combat; its death survived reload. The first northbound ramp
+climb met `gnome06` at (93442, 53705). A focused probe showed x93250
+clear and x93300 blocked at that height. Moving west first let Connor
+climb to z17475. He returned through the upper west hall to an earned
+bridge-approach save at (88624, 62661, 17475), still carrying the
+third Rock. This save has the second Rock at its authored world spot
+and all bridge plates, sides, and rotation closed. Next use ordinary
+item selection, visible throws, movement and clicks to establish a
+rotated bridge with two side plates held, click the bridge side to set
+`Solved`, and cross. The earlier reward save is a separate state and
+must not be combined with this Rock-carrying save by editing either.

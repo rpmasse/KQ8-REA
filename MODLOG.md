@@ -1,5 +1,35 @@
 # MODLOG
 
+## 2026-11-20: M6 third Rock returned to bridge (~99.4%)
+
+The live return was blocked by Swsprig, which the diagnostic route
+omitted. Normal sword swings defeated it; the saved corpse persisted
+after reload. Ordinary movement reversed the lower Gnome passages
+while carrying the third Rock. Another live creature, SWHallManta1,
+blocked the uphill ramp approach; normal combat defeated it and its
+saved death persisted. A focused `gnome06` collision test identified
+the clear westward ramp line after the first climb met a wall. The
+corrected route ascended to z17475 and continued to the bridge
+approach. In-game saves and fresh-process reloads retained Connor's
+position, both creature deaths and the carried Rock. The latest save
+is (88624, 62661, 17475), with the bridge still unsolved and the
+second Rock still at its original world position. The focused test and
+successful viewer replays passed; the blocked runs remain logged.
+No original files changed and no manual gameplay test occurred.
+
+## 2026-11-20: M6 third-Rock return mismatch (~99.3%)
+
+Two ordinary viewer return attempts from the earned third-Rock save
+stopped within 35 units. The second used a straight eastward waypoint
+after the first diagonal failed. The detailed viewer contact log
+identified a `gnome07a` wall and blocking `Swsprig` creature. The
+height-aware diagnostic omitted creatures, explaining its false
+positive eastward route. Recorded both failed runs and retained the
+safe Rock-carrying save. No further waypoint variant was run; normal
+combat against Swsprig is the next step.
+No source behavior changed, no original files changed, and no manual
+gameplay test occurred. M6 stays ~99.3%.
+
 ## 2026-11-20: M6 third Gnome Rock earned (~99.3%)
 
 Extended the ignored Gnome collision diagnostic to check the north

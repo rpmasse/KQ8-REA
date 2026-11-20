@@ -1,5 +1,45 @@
 # STATUS
 
+## 2026-11-20 M6 third Rock returned to bridge approach (~99.4%)
+
+The return from the lower Rock room initially stopped at a live
+`Swsprig`. The detailed contact log showed the creature blocking the
+exit beside `gnome07a`; the simplified route search omitted creatures.
+Normal sword combat defeated Swsprig, and a fresh-process reload kept
+its corpse and `NoName271` carried by Connor. Ordinary walking then
+reversed the lower corridors, saving and reloading at each major turn.
+`SWHallManta1` blocked the uphill ramp approach; normal sword combat
+defeated it and a reload kept that death. The first ramp climb met a
+`gnome06` wall at (93442, 53705). A focused collision probe measured a
+clear line west of x93250; the corrected replay climbed to z17475.
+Normal walking continued through the upper west hall to the bridge
+approach. The latest earned save and fresh-process reload are at
+(88624, 62661, 17475), with `NoName271` still carried. Bridge plate
+2/3/4, sides 1/2, and rotation are all closed; `Solved=false`.
+`NoName270`, the second Rock, remains in the world at (114861, 60965).
+Ignored logs and saves are under `target/m6-gnome-third-rock-return-*`,
+`target/m6-gnome-swsprig-combat-*`, and
+`target/m6-gnome-hall-manta-combat-*`. Diagnostic god mode is inherited.
+No original files changed and no manual gameplay test occurred.
+The bridge puzzle and later campaign remain unfinished. M6 estimate:
+~99.4%.
+
+## 2026-11-20 M6 third-Rock return blocked (~99.3%)
+
+The earned save still has `NoName271` carried by Connor at
+(137129, 70102, 12355). Two normal return replays stopped almost
+immediately: the first diagonal toward the room exit at (137164,
+70102), then a corrected straight-east attempt at (137139, 70102).
+The detailed contact log identifies the `gnome07a` wall and a
+`Swsprig` creature at the slide contact. A diagnostic using the
+simplified Connor mover found an eastward route because it omitted
+creatures; that route is not accepted as campaign progress. Stop
+waypoint variants until normal combat clears the blocking creature.
+The original earned save is intact. Ignored evidence is under
+`target/m6-gnome-third-rock-return-*`. No original files changed and
+no manual gameplay test occurred. M6 remains ~99.3%; the Rock has not
+returned to the bridge.
+
 ## 2026-11-20 M6 Gnome third Rock earned (~99.3%)
 
 From the verified lower-corridor save, ordinary walking reached the
