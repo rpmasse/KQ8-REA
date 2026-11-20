@@ -14,11 +14,11 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M3 · Recreate Daventry gameplay | Complete · 100% |
 | M4 · Recreate menus, inventory and dialogue | Complete · 100% |
 | M5 · Recreate combat | Complete · 100% |
-| M6 · Recreate the full campaign and saves | In progress · ~99.8% |
+| M6 · Recreate the full campaign and saves | In progress · ~70% |
 | M7 · Verify and release the Windows recreation | Planned · 0% |
 | M8 · Modern Improvements | In progress · ~90% |
 
-These percentages describe individual phases, not overall game completion. All 12 regions load; campaign progression and final fidelity checks still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
+These percentages describe individual phases, not overall game completion. M6 was recalibrated from an overstated ~99.8% because the full 12-region campaign and ending are still unfinished. All 12 regions load; campaign progression and final fidelity checks still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
 
 M8 is being done early: Graphics offers windowed/fullscreen modes, seven aspect ratios including 3:2, standard resolution presets and a 15–120 Draw FPS cap. Options → Mouse offers camera sensitivity; brightness, sensitivity and volume bars support clicking and show percentages. Drawing can run faster than the game's unchanged 15 updates per second. If a saved fullscreen mode disappears, startup opens a temporary 640×480 window. Fullscreen resolutions depend on the monitor's available modes; native ultrawide output and the new cap's visual feel are not tested.
 
@@ -30,7 +30,7 @@ The default keyboard layout is W/S/D/A to move, R to walk or run, Space to jump,
 
 Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.
 The automated campaign walker has completed Dead City's key quests, cleared the Swamp poison with the Golden Ladle, met Gnome's Sage, and opened Gnome's brick wall with its original boulder puzzle. Later campaign routes remain unfinished.
-The Gnome Dragon has been defeated in an automated earned-save replay, and its Black Diamond was collected; later campaign quests remain unfinished.
+The Gnome Dragon has been defeated in an automated earned-save replay; its Black Diamond, the Crystal Pyramid, and a Lodestone were collected. Later campaign quests remain unfinished.
 The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.
 
 ## Bring your own game

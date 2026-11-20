@@ -1,5 +1,24 @@
 # MODLOG
 
+## 2026-11-20: M6 earned Gnome altar and Lodestone (~70% recalibrated)
+
+**Changed:** Added an ignored installed-data navigation diagnostic for
+the post-Young-Man chamber. It finds the crystal altar but no
+building-and-terrain-only path to the separate western Lodestone.
+No gameplay rule changed. **Why:** The direct west route hit a real
+wall. The first north route hit the placed `gemlite2.11` wall light,
+which the building-only search omits. A second route cut an early
+corner into `gnome14`; the full grid path fixed the turn.
+**Tested:** The ignored navigation test passed against the read-only
+GOG data. An automated live route using the measured east lane and
+the precise turn reached the altar. Three camera-visible clicks gave
+the Crystal Pyramid and Lodestone through `templode.cs`; an in-game
+save and fresh-process reload passed. **Still open:** Sage handoff,
+ShardFuse, later campaign, ending and full fidelity. M6 is now
+estimated ~70% because its prior ~99.8% figure understated the
+remaining 12-region campaign and ending work. No manual gameplay or
+original-file edit occurred.
+
 ## 2026-11-20: M6 Dragon route, combat and Black Diamond (~99.8%)
 
 **Changed:** The previous placed-origin-only distance fix failed on

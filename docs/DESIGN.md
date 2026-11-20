@@ -261,6 +261,39 @@ sword combat defeats Dragon, and an unarmed visible click picks up its
 Black Diamond. This validates the Gnome route but does not establish
 the original building activation exception; Q223 asks the study
 session to resolve that rule before claiming exact parity.
+From the Black Diamond checkpoint, ordinary westward movement fired
+the Young Man's authored spirit scene. The in-game save records
+`Gnome::Youngguy::metConnor=1` and his removal. A continuation reached
+the west chamber but stopped at (97152, 144399, 14915), still 7,178
+units from the next hallway waypoint. Before another live movement
+attempt, search the installed building and terrain collision from this
+earned post-scene position toward the Lodestone, then replay the
+supported turns with the original scene and quest state intact.
+The first northbound replay followed the building-only search but
+stopped at (97130, 145484): its collision log identifies the placed
+`gemlite2.11` wall light at (96937, 145919), which the building-only
+search omitted. Its original shape and rotation put it across the
+west edge of that lane. Continue north at x97800, east of the light's
+collision box, before turning toward the altar. This is a route
+correction from the measured object contact, not a collision change.
+The east lane passed the light, but the route driver accepted its east
+turn 459 units early and then walked diagonally into `gnome14` at
+(98715, 148544). The full installed building path travels east along
+y≈148565 until x≈99152 before going north. Place a tight waypoint at
+that turn so the live route cannot cut its corner.
+The tight turn at (99152, 148300) reached the altar corridor through
+ordinary movement. The original `templode.cs` then accepted three
+separate camera-visible clicks: the first cleared `FirstClick`, the
+second removed `cp1` and gave the Crystal Pyramid, and the third
+removed `gcplode1`, cleared `FirstLode` and `LodeStone`, and gave a
+Lodestone. The in-game checkpoint is
+`target/m6-gnome-altar-lodestone-save/slots/slot-2.json`; a new process
+loaded it. The separately placed Lodestone at (81791, 145754) remains
+in the original world inventory data, but this route acquired the
+authored altar Lodestone without crossing the west wall or inserting
+an item. Return to Sage through the earned route and hand it to him
+through `sagegnm.cs`'s accepted inventory action. Preserve the Gnome
+Sage, Dragon, boulder and altar flags in disk saves.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

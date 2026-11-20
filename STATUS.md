@@ -1,5 +1,29 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome Lodestone obtained; estimate recalibrated (~70%)
+
+An earned post-Dragon save triggered the Young Man's original spirit
+scene and kept his quest flag through an in-game save. A first direct
+walk toward the separately placed Lodestone stopped on the chamber
+wall. The installed building search found an altar route; live logs
+then exposed a wall light omitted by that search and a turn accepted
+too early by the route driver. A measured east lane and tight turn
+reached the crystal altar with normal movement. Three separate
+camera-visible clicks ran the original `templode.cs`: introductory
+remark, Crystal Pyramid pickup, then Lodestone pickup. The checkpoint
+`target/m6-gnome-altar-lodestone-save/slots/slot-2.json` has both items
+carried, the Dragon and Young Man gone, and `FirstClick=false`,
+`Pyramid=none`, `LodeStone=false`, `FirstLode=false`. A fresh viewer
+process loaded it. Returning to Sage, the ShardFuse branch, later
+regions, ending, exact building activation and broad save audit remain.
+
+M6's previous ~99.8% estimate was too high for a phase defined as the
+complete 12-region campaign and saves. The current coarse estimate is
+~70%: core world/save systems and several earned regions work, but
+most of the later integrated campaign and ending are not verified.
+This percentage correction does not undo completed work. No manual
+gameplay test or original-file edit occurred.
+
 ## 2026-11-20 M6 Gnome Dragon defeated and Black Diamond saved (~99.8%)
 
 The prior placed-origin-only building fix was incomplete. On a longer

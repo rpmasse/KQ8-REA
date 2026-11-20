@@ -6486,6 +6486,28 @@ mod campaign_tests {
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_dragon_to_lodestone_route_after_young_man() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-dragon-lodestone-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let start = [97152.0, 144399.0, 14915.0];
+        for (name, target) in [
+            ("crystal altar", [99844.0, 152716.0]),
+            ("Lodestone", [81791.0, 145754.0]),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, target, 20000.0, 800.0);
+            println!("post-Young-Man to {name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().copied().collect::<Vec<_>>()));
+            if name == "crystal altar" { assert!(route.is_some()); }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn gnome_shard_fuse_script_sources() {
         let game = game_install();
         let archive = kq8_data::VolArchive::open(&game.volume_path("Gnome", "kq").unwrap()).unwrap();

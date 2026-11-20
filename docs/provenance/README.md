@@ -1,5 +1,16 @@
 # Provenance
 
+**Gnome crystal altar and Lodestone (2026-11-20, M6).** The installed
+`newWorld.cs` places `gcpdish1` at (99844, 152716); its `templode.cs`
+reads `Gnome::Crystal` flags and gives the Crystal Pyramid and
+Lodestone on separate clicks. The original `gcpdish1.kq` supplies its
+click box. An installed-data building search guided an earned route;
+live collision logs identified the additional `gemlite2.11` obstacle
+and the `gnome14` turn. Normal movement, visible clicks, an in-game
+save and fresh reload verified this quest branch. The western loose
+Lodestone in `worldinv.cs` was not picked up. No original asset was
+published or modified.
+
 **Gnome first Rock and plate (2026-11-20, M6).**
 The installed `worldinv.cs` places the nearby Rock; `trip1.kq` and
 `rockme.cs` accept it and request `ThrowRock`; `rockHit.cs` drops the
