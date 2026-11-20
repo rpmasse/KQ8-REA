@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-20: M6 west of Gnome door02 (~98.8%)
+
+Extended the ignored sampled building search from the bridge center
+plate toward `door02a/b`. Normal movement reached it along the south
+corridor with the rotating bridge still unsolved. The installed
+`door02.cs` opened both halves after a visible click; Connor crossed
+and an in-game save plus fresh-process reload/save retained the west
+position, open door states and disabled blocking collision. Separate
+normal routes exercised bridge plates 4 and 2, including their On,
+Off, rotation/opening, closing and save/reload behavior. The focused
+original-data diagnostic and automated viewer runs passed. Original
+files were read only; diagnostic god mode remains; no manual test.
+M6 estimate: ~98.8%.
+
 ## 2026-11-20: M6 rotating-bridge east plate checkpoint (~98.7%)
 
 Extended the ignored sampled Gnome collision search to the rotating

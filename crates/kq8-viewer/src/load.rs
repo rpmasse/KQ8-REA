@@ -6263,6 +6263,14 @@ mod campaign_tests {
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [86303.0, 66502.0]);
         println!("Gnome talk save to bridge east plate: expanded {expanded} cells; building-only route: {route:?}");
         assert!(route.is_some(), "the installed building search lost the east-plate route");
+        let bridge_east = [86402.3, 67073.8, 17475.0];
+        for (name, target) in [("center plate", [83806.0, 64502.0]), ("west rotation plate", [81690.0, 66502.0])] {
+            let (expanded, route) = gnome_building_route(&objects.buildings, &balls, bridge_east, target);
+            println!("bridge east to {name}: expanded {expanded} cells; building-only route: {route:?}");
+        }
+        let center_plate_save = [84399.1, 64216.0, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, center_plate_save, [70000.0, 60556.0]);
+        println!("center plate to door02 east approach: expanded {expanded} cells; building-only route: {route:?}");
         for (label, from, to) in [
             ("planned turn to next", [108559.0, 65480.0, 17475.0], [112309.0, 65730.0, 17475.0]),
             ("live early turn to next", [108485.4, 65473.6, 17475.0], [112309.0, 65730.0, 17475.0]),

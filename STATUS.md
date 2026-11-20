@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome western doorway reached (~98.8%)
+
+From the rotating-bridge save, ordinary walking touched the west
+rotation plate (`triptrp4`) and center plate (`triptrp2`) in separate
+runs. Each opened or rotated its bridge part while occupied and
+returned it to closed after Connor stepped off; both resulting saves
+survived fresh-process reloads. The ignored building search then found
+a south corridor toward `door02a/b`, and normal movement followed it
+to the east side of that doorway while the bridge remained unsolved.
+
+A camera-visible click on `door02a` ran the installed `door02.cs`,
+opened both halves and removed their blocking collision. Connor walked
+through to the west side. An in-game save and fresh-process reload/save
+retained position `(64680, 60579, 17475)` and both door halves opened
+with collision type `0x9001` (from `0x9021`). The bridge remains
+unsolved; this route establishes passage through the south corridor,
+not completion of its puzzle. All runs inherited diagnostic god mode;
+no manual gameplay test occurred. The western Gnome quest, later
+regions, ending and broad save audit remain. M6 estimate: ~98.8%.
+
 ## 2026-11-20 M6 Gnome rotating-bridge east plate (~98.7%)
 
 The ignored sampled building search found ten turns from the saved

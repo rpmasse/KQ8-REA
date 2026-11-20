@@ -10771,3 +10771,32 @@ sequence closed that side. The saved bridge-area state survived a
 fresh-process reload. This does not solve the rotating bridge; next
 read its authored plate and rotation scripts before arranging a held
 plate, using only items earned by the campaign route.
+
+The installed `rotbrdg.cs` and `brigtest.cs` require the bridge turned
+and both sides opened before `Solved` becomes true. `triptrp4` rotates
+the bridge only while both sides are closed; `triptrp2` and `triptrp3`
+open the two sides while occupied. From the saved east-plate checkpoint,
+probe normal-height building routes to the center and west plates. If a
+route exists, replay ordinary walking onto plate 4 and record the On,
+rotation, Off and return sequence, then save/reload the resulting state.
+This is a movement and scripted-state check; it must not set `Solved`
+directly or create a Rock.
+
+Normal walking from the east saved checkpoint reached plate 4 and then,
+from its new save, plate 2. Each On event opened or rotated its part;
+each Off event returned the part to closed before the save. Both
+resulting saves survived fresh-process reloads. The bridge remains
+unsolved. Before assuming it gates the west quest, probe the installed
+building route from the center-plate save toward the east approach of
+`door02a/b` at `(67475, 60556)`. If the geometry allows a same-floor
+path, replay it through normal terrain and scripts; the probe alone
+does not establish that the bridge can be bypassed.
+
+The sampled search found a south corridor to `door02a/b`, and normal
+movement followed it with the rotating bridge unsolved. A visible
+click ran the installed door script, opening both halves and removing
+blocking collision. Connor crossed; an in-game save and fresh-process
+reload retained his west-side position and the open door states. This
+proves that particular passage, not that the whole bridge puzzle is
+optional. Continue from the earned west-side checkpoint toward the
+next authored Gnome quest objective.
