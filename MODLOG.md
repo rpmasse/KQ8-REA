@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-20: M6 Golden Ladle return to Witch tower (~97.9%)
+
+Returned with the earned Ladle by two normal rope descents, the Prophet
+Tree passage, the west tower approach and the opened north gate. An
+in-game save inside the tower retains the Ladle. The direct south route
+stopped at terrain, and camera-visible kettle clicks hit `wtower` from
+both outside and the original south test position. A diagnostic direct
+object click started `kettle.cs` stirring, but bypassed line of sight;
+the real click and completed scene remain open. Logs and saves are in
+ignored `target/m6-swamp-ladle-*` cases. No source code or original
+game files changed. No manual gameplay test occurred.
+
 ## 2026-11-20: M6 Fiend lever and return crossing (~97.8%)
 
 Followed the original two-chain prerequisite to open the lever panel,

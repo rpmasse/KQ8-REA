@@ -14,7 +14,7 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M3 · Recreate Daventry gameplay | Complete · 100% |
 | M4 · Recreate menus, inventory and dialogue | Complete · 100% |
 | M5 · Recreate combat | Complete · 100% |
-| M6 · Recreate the full campaign and saves | In progress · ~97.8% |
+| M6 · Recreate the full campaign and saves | In progress · ~97.9% |
 | M7 · Verify and release the Windows recreation | Planned · 0% |
 | M8 · Modern Improvements | In progress · ~90% |
 
@@ -29,7 +29,7 @@ Graphics offers Off, 4x, 8x, and 16x anisotropic filtering for 3D surface textur
 The default keyboard layout is W/S/D/A to move, R to walk or run, Space to jump, Q to switch weapons, C to center the camera, E to toggle the cursor, and Z to toggle the interface; saved custom bindings take precedence.
 
 Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.
-The automated campaign walker has completed Dead City's key quests, crossed into Swamp, defeated the Witch and Henchman, acquired the Golden Ladle, and returned through the tile floor; later routes remain unfinished.
+The automated campaign walker has completed Dead City's key quests, crossed into Swamp, defeated the Witch and Henchman, acquired the Golden Ladle, and returned to the Witch tower; later routes remain unfinished.
 The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.
 
 ## Bring your own game

@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-20 M6 Golden Ladle returned to Witch tower (~97.9%)
+
+From the earned Swamp east checkpoint, Connor climbed down both Fiend
+ropes with the normal inventory and movement controls, walked past the
+Prophet Tree, and reached the Witch tower with the Golden Ladle. The
+direct south approach stopped at terrain; the verified west-side route
+and opened north gate reached the kettle's original test position. The
+save `target/m6-swamp-ladle-kettle-use-inside/slots/slot-2.json` retains
+the Ladle inside the tower. A camera click still selects the `wtower`
+building ahead of the kettle. A diagnostic direct-object click proves
+`kettle.cs` accepts the Ladle and starts the stirring sequence, but it
+bypasses the visibility test and is not campaign acceptance. The kettle
+click, completed scene/save, later regions and ending remain. No manual
+gameplay testing occurred.
+
 ## 2026-11-20 M6 Fiend chains, lever and Swamp return (~97.8%)
 
 The installed `pulchain.cs` requires both pull chains before it opens
