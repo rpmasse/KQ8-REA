@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome west-ramp checkpoint (~99.1%)
+
+A bounded search using Connor's existing mover and the installed
+Gnome terrain/building colliders found a supported descent through
+the western hall. The search simulated ordinary-sized walking steps,
+gravity and fatal falls; it omitted dynamic doors and creatures, so
+its route was diagnostic only. A normal-control replay from the earned
+Gnome conversation save reached the proven west hall. The first
+diagonal to the ramp met `gnome05` at (93646, 62588); a corrected
+corner reached the ramp top, then stopped at (93385, 58888) before
+descending. A shorter replay saved at (93453, 58984, 17475). A fresh
+process loaded and saved the same Gnome position, 170 health and
+inherited diagnostic god mode. The lower floor and third Rock remain
+unreached. Ignored logs and saves are under
+`target/m6-gnome-height-route-*`,
+`target/m6-gnome-lower-west-ramp-*`, and
+`target/m6-gnome-ramp-top-*`. No original files changed and no manual
+gameplay test occurred. M6 stays ~99.1%; the earned checkpoint
+advanced, but no new quest or bridge state was completed.
+
 ## 2026-11-20 M6 Gnome third Rock lower entrance diagnosis (~99.1%)
 
 The installed Gnome `WorldInv.cs` places lower-floor mushrooms near

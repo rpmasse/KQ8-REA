@@ -77,6 +77,42 @@ Next locate the actual lower-level entrance using a height-aware
 collision route or authored transfer, rather than assuming a vertical
 floor contact means Connor can reach it from above.
 
+For the next diagnostic, search short north/south/east/west moves with
+the existing Connor mover on the installed Gnome terrain and building
+colliders. Keep each simulated move below an ordinary walking update,
+let gravity settle it, and reject death, falling without support, or a
+wall stop. Use the upper arrival as the start and a bounded area around
+the first and second mushroom clusters; stop at the first supported
+lower-floor point. This is only a numeric route candidate. A real
+save advances only after the viewer follows the candidate with normal
+keys, keeps Connor alive, and reloads it in a new process.
+Both first-area searches stayed at z17475. Their lowest X coordinate
+reached the diagnostic's x98000 boundary, so the result does not rule
+out a western detour. Expand the height-aware search to the existing
+bridge and west corridor while retaining the fatal-fall and support
+checks, then replay only an actually found route.
+The expanded mover search found a supported descent from both earned
+starts through the proven west hall at (94218, 62750), then south along
+x93465 to the ramp near (93215, 58343). It followed the slope to
+(93215, 49593) and turned east toward (97000, 49093), where the floor
+fell below 14000 without a fatal drop. Replay that route with the
+viewer's ordinary controls; the diagnostic omitted dynamic doors and
+creatures, so it is not itself campaign progress.
+The first normal replay reached the proven west hall turn, but the
+direct diagonal toward the ramp met `gnome05` at (93646, 62588): the
+wall normal points north and Connor was still east of the opening.
+Replay once with an explicit waypoint west of that corner before
+turning south. If it blocks again, record the exact collider rather
+than moving the wall or repeating arbitrary offsets.
+The second normal replay used the measured corner and reached the ramp
+top, but its next diagonal stopped against the interior at
+(93385, 58888, 17511). Stop route variants here. A shorter ordinary
+replay saved at (93453, 58984, 17475) after reaching the top, and a
+fresh process reloaded and saved that position with 170 health. This
+is an earned upper-ramp checkpoint, not a lower-floor or third-Rock
+checkpoint. The next action is to sample the exact wall/floor boundary
+from this saved point before trying a new descent.
+
 ## M6 Gnome alternate-floor route probe (2026-11-20)
 
 The earned Gnome route now has a Rock held on the first door plate and a

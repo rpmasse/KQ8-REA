@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome western ramp reached (~99.1%)
+
+Added an ignored height-aware route diagnostic using the existing
+Connor mover, Gnome terrain and installed building collision. Its
+expanded search found a nonfatal western ramp from both the arrival
+and conversation starts. Two normal viewer replays identified the
+required west corner and the next ramp-edge collision. A shorter
+ordinary route saved the reached ramp top; a fresh process reloaded
+the same position and health. The focused diagnostic test and viewer
+runs passed where expected, with both blocked routes retained. The
+third Rock was not reached, so M6 remains ~99.1%. No original files
+were changed and no manual gameplay test occurred.
+
 ## 2026-11-20: M6 Gnome lower-level access diagnosis (~99.1%)
 
 Extended the ignored original-data collision diagnostic with lower

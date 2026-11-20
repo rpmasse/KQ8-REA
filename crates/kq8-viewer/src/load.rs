@@ -6219,6 +6219,76 @@ mod campaign_tests {
         (closed.len(), None)
     }
 
+    /// Diagnostic only: use Connor's existing mover to include floor changes
+    /// while searching. The result still needs an ordinary viewer replay.
+    fn gnome_height_route(
+        ground: &kq8_data::Terrain,
+        buildings: &[kq8_core::collide::BuildingCollider],
+        start: [f32; 3],
+    ) -> (usize, Option<Vec<[f32; 3]>>) {
+        use kq8_core::connor_mover::{Mover, Scene, State};
+        use std::{cmp::Reverse, collections::{BinaryHeap, HashMap, HashSet}};
+        type Cell = (i32, i32, i32);
+        const STEP: f32 = 250.0;
+        const LIMIT: usize = 30000;
+        let spot = |i: i32, j: i32| [start[0] + i as f32 * STEP, start[1] + j as f32 * STEP];
+        let key = |i: i32, j: i32, z: f32| (i, j, (z / STEP).round() as i32);
+        let priority = |i: i32, j: i32, cost: i32| {
+            let [x, y] = spot(i, j);
+            cost + (((x - 103355.0).hypot(y - 51576.0) / STEP) * 1000.0) as i32
+        };
+        let scene = Scene::new(ground, buildings, &[]);
+        let initial = Mover::new(start, true);
+        let first = key(0, 0, start[2]);
+        let mut pending = BinaryHeap::from([Reverse((priority(0, 0, 0), 0, first))]);
+        let mut movers = HashMap::from([(first, initial)]);
+        let mut parents = HashMap::<Cell, Cell>::new();
+        let mut closed = HashSet::new();
+        while let Some(Reverse((_, cost, current))) = pending.pop() {
+            if !closed.insert(current) { continue; }
+            let mover = movers[&current].clone();
+            let at = mover.position;
+            if (12000.0..=14000.0).contains(&at[2]) && at[1] >= 45000.0 && mover.on_ground {
+                let mut cells = vec![current];
+                while let Some(&previous) = parents.get(cells.last().unwrap()) { cells.push(previous); }
+                cells.reverse();
+                return (closed.len(), Some(cells.into_iter().map(|cell| movers[&cell].position).collect()));
+            }
+            if closed.len() >= LIMIT { break; }
+            for (di, dj) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                let (i, j) = (current.0 + di, current.1 + dj);
+                let [x, y] = spot(i, j);
+                if !(60000.0..=155000.0).contains(&x) || !(25000.0..=120000.0).contains(&y) { continue; }
+                let mut next = mover.clone();
+                for _ in 0..3 {
+                    next.update([di as f32 * STEP / 3.0, dj as f32 * STEP / 3.0, 0.0], &scene);
+                    if next.state == State::Dead { break; }
+                }
+                if next.state == State::Dead { continue; }
+                for _ in 0..20 {
+                    if next.on_ground { break; }
+                    next.update([0.0; 3], &scene);
+                    if next.state == State::Dead { break; }
+                }
+                if next.state == State::Dead || !next.on_ground || next.position[2] < 11500.0
+                    || (next.position[0] - x).hypot(next.position[1] - y) > STEP * 0.4 { continue; }
+                let neighbor = key(i, j, next.position[2]);
+                if closed.contains(&neighbor) || movers.contains_key(&neighbor) { continue; }
+                movers.insert(neighbor, next);
+                parents.insert(neighbor, current);
+                pending.push(Reverse((priority(i, j, cost + 1000), cost + 1000, neighbor)));
+            }
+        }
+        let min_z = closed.iter().map(|cell| movers[cell].position[2]).fold(f32::INFINITY, f32::min);
+        let (low, high) = closed.iter().fold(([f32::INFINITY; 2], [f32::NEG_INFINITY; 2]), |(mut low, mut high), cell| {
+            let at = movers[cell].position;
+            for axis in 0..2 { low[axis] = low[axis].min(at[axis]); high[axis] = high[axis].max(at[axis]); }
+            (low, high)
+        });
+        println!("Gnome height route bound: searched {} states, XY {low:?}..{high:?}, lowest supported z {min_z:.0}", closed.len());
+        (closed.len(), None)
+    }
+
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn original_gnome_start_room_collision_directions() {
@@ -6250,6 +6320,9 @@ mod campaign_tests {
             println!("{label} ({:.0},{:.0}): {}", from[0], from[1], probes.join("; "));
         }
         let start = [105233.555, 36429.613, 17475.0];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, start);
+        println!("Gnome arrival height-changing route: expanded {expanded} states; route length {:?}; sampled points {:?}",
+            route.as_ref().map(Vec::len), route.as_ref().map(|path| path.iter().step_by(5).copied().collect::<Vec<_>>()));
         for (name, target) in [("first Rock", [108476.0, 38521.0]), ("first plate", [100768.0, 54307.0])] {
             let (expanded, route) = gnome_building_route(&objects.buildings, &balls, start, target);
             println!("{name}: expanded {expanded} cells; building-only floor-height route: {route:?}");
@@ -6265,6 +6338,9 @@ mod campaign_tests {
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, npc_stop, [113327.0, 60324.0]);
         println!("live first Gnome stop to NPC: expanded {expanded} cells; building-only route: {route:?}");
         let talk_save = [113217.7, 62000.4, 17475.0];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, talk_save);
+        println!("Gnome conversation height-changing route: expanded {expanded} states; route length {:?}; sampled points {:?}",
+            route.as_ref().map(Vec::len), route.as_ref().map(|path| path.iter().step_by(5).copied().collect::<Vec<_>>()));
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [114861.0, 60965.0]);
         println!("Gnome talk save to second Rock: expanded {expanded} cells; building-only route: {route:?}");
         for (name, [x, y, authored_z]) in [
