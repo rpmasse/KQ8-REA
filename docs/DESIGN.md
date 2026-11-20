@@ -11033,3 +11033,17 @@ turn and saved at (122272, 49116, 12355). Fresh-process reloads retained
 both saves. Continue along the measured lower passage with ordinary
 movement, then obtain the third Rock by a visible click before relying
 on it for the bridge. The path search by itself proves no quest state.
+
+The next live west setup from (122272, 49116) met `gnome06` at
+(121971, 49161). A focused probe showed the direct north line clear,
+and ordinary walking then reached the east hallway, southeast bends,
+long north corridor, and Rock-room approach. Each intermediate in-game
+save survived a fresh-process reload. A final bounded height-aware
+search from (141488, 66346) reached within 750 units of the Rock;
+ordinary walking replayed its turns to (137129, 70102, 12355).
+`NoName271` was first in the normal camera click ray and within reach.
+The visible click picked it up; an in-game save and fresh-process
+reload retained the carried `INVITEM_Rock`. Next reverse the earned
+lower-floor route and ascend the western ramp, keeping this Rock
+carried, before testing its authored bridge use. Do not infer a solved
+bridge from the pickup alone.

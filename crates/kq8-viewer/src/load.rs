@@ -6358,6 +6358,11 @@ mod campaign_tests {
             [137311.0, 70325.0], 13000.0, 1800.0);
         println!("Gnome lower floor to third Rock route: expanded {expanded} states; route length {:?}; sampled points {:?}",
             route.as_ref().map(Vec::len), route.as_ref().map(|path| path.iter().step_by(5).copied().collect::<Vec<_>>()));
+        let rock_approach = [141488.45, 66345.79, 12355.0];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, rock_approach,
+            [137311.0, 70325.0], 13000.0, 750.0);
+        println!("Gnome final third Rock approach: expanded {expanded} states; route length {:?}; points {route:?}",
+            route.as_ref().map(Vec::len));
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [114861.0, 60965.0]);
         println!("Gnome talk save to second Rock: expanded {expanded} cells; building-only route: {route:?}");
         for (name, [x, y, authored_z]) in [
@@ -6518,6 +6523,30 @@ mod campaign_tests {
                 gnome_segment_hit(&objects.buildings, &balls,
                     [x, 48805.0, 12680.0], [x, 53322.0, 12680.0]));
         }
+        for (name, from, to) in [
+            ("third corridor direct west", [122272.0, 49116.0, 12680.0], [121850.0, 49116.0, 12680.0]),
+            ("third corridor direct north", [122272.0, 49116.0, 12680.0], [122272.0, 53322.0, 12680.0]),
+            ("third corridor south setup", [122272.0, 49116.0, 12680.0], [122272.0, 48800.0, 12680.0]),
+            ("third corridor west after south", [122272.0, 48800.0, 12680.0], [121850.0, 48800.0, 12680.0]),
+            ("third corridor north at center", [122099.0, 49116.0, 12680.0], [122099.0, 53322.0, 12680.0]),
+            ("third corridor north west", [121971.0, 49161.0, 12680.0], [121971.0, 53322.0, 12680.0]),
+        ] {
+            println!("Gnome {name}: {:?}", gnome_segment_hit(&objects.buildings, &balls, from, to));
+        }
+        for x in [135006.0, 135200.0, 135394.0, 135600.0] {
+            println!("Gnome third Rock north at x{x:.0}: {:?}",
+                gnome_segment_hit(&objects.buildings, &balls,
+                    [x, 50953.0, 12680.0], [x, 60289.0, 12680.0]));
+        }
+        println!("Gnome third Rock west setup: {:?}", gnome_segment_hit(&objects.buildings, &balls,
+            [135394.0, 50953.0, 12680.0], [135006.0, 50953.0, 12680.0]));
+        for x in [141006.0, 141250.0, 141547.0, 141750.0] {
+            println!("Gnome final north at x{x:.0}: {:?}",
+                gnome_segment_hit(&objects.buildings, &balls,
+                    [x, 60218.0, 12680.0], [x, 68039.0, 12680.0]));
+        }
+        println!("Gnome final west setup: {:?}", gnome_segment_hit(&objects.buildings, &balls,
+            [141547.0, 60218.0, 12680.0], [141006.0, 60218.0, 12680.0]));
         assert!(gnome_segment_hit(&objects.buildings, &balls,
             [108485.4, 65473.6, 17475.0], [112309.0, 65730.0, 17475.0]).is_some(),
             "the early turn must show the live wall contact");

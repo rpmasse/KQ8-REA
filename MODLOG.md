@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-20: M6 third Gnome Rock earned (~99.3%)
+
+Extended the ignored Gnome collision diagnostic to check the north
+corridors and a final height-aware route near the third authored Rock.
+Normal viewer movement reached the lower Rock room through the measured
+passages. The first west setup at x121971 failed against `gnome06`;
+the measured direct north turn passed. A camera-visible click picked
+up `NoName271` as `INVITEM_Rock`. An in-game save and fresh-process
+reload retained it carried by Connor. The focused test and successful
+viewer runs passed; ignored logs retain the failed turn. Bridge use,
+Sage and later campaign remain unfinished. No original files were
+changed and no manual gameplay test occurred.
+
 ## 2026-11-20: M6 Gnome lower corridor reached (~99.2%)
 
 Generalized the ignored height-aware Gnome route diagnostic to search

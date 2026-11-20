@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome third Rock earned (~99.3%)
+
+From the verified lower-corridor save, ordinary walking reached the
+third Rock's lower room. The first west setup from (122272, 49116)
+stopped against `gnome06` at (121971, 49161); a focused collision probe
+found the direct north path clear, and the corrected replay passed.
+Further ordinary routes reached the eastern bend, north approach and
+Rock room, saving and fresh-process reloading each reached position.
+At (137129, 70102, 12355), a camera-visible click picked up authored
+`NoName271` at update 30. An in-game save and fresh-process reload
+retained `INVITEM_Rock` carried by Connor, with the Rock gone from the
+world. Ignored logs and saves are under `target/m6-gnome-third-rock-*`.
+The Rock has not yet been returned to the bridge; bridge crossing,
+Sage, later regions, ending, and broad save audit remain unfinished.
+This route still inherits diagnostic god mode. No original files
+changed and no manual gameplay test occurred. M6 estimate: ~99.3%.
+
 ## 2026-11-20 M6 Gnome lower corridor checkpoint (~99.2%)
 
 Normal movement descended the western ramp from the earned ramp-top
