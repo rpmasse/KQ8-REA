@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome bridge sides opened and reward saved (~99.1%)
+
+The installed plate-4 script permits its Rock to leave while another
+bridge side stays open. From the earned plate-2 hold, a camera-visible
+click reclaimed the second Rock and left the bridge turned. Connor
+selected that same carried Rock and visibly threw it onto plate 3.
+The new world Rock pressed `triptrp3`; side two opened while Connor
+held side one. The original side-two script granted the bridge map
+icon and its first-time 50,000 experience. An in-game save and
+fresh-process reload retained `Turned=opened`, `SideOne=opened`,
+`SideTwo=opened`, `Plate2=opened`, `Plate3=opened`, `FirstTime=1`,
+and level 18. `Solved=false`: the installed `brigtest.cs` sets it only
+when Connor clicks a bridge side. Two normal camera-visible click
+attempts from plate 2 hit other bridge geometry, so that approach is
+paused. The third Rock's separate lower-floor area was sampled but
+not entered. Ignored automated runs are under
+`target/m6-gnome-bridge-*`; no original files changed and no manual
+gameplay test occurred. M6 is estimated at ~99.1%; the explicit
+bridge click, Sage, later regions, ending, and broad save audit remain.
+Diagnostic god mode is still inherited by this route.
+
 ## 2026-11-20 M6 Gnome second Rock and bridge side one (~99.0%)
 
 An upper-floor collision probe corrected the earlier no-path result:

@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome bridge reward checkpoint (~99.1%)
+
+Extended the ignored Gnome collision diagnostic to locate the third
+Rock's separate lower interior. Then used the installed plate scripts
+to reuse the second earned Rock: a visible pickup from plate 4 left
+rotation held by Connor on plate 2; a visible throw put the Rock on
+plate 3 and opened side two. An in-game save and fresh-process reload
+retained both opened sides, the turned bridge, `FirstTime=1`, and the
+50,000-experience reward. The bridge's `Solved` variable remains false
+until its scripted side click; two visible clicks were occluded. The
+focused collision test and automated viewer runs passed. No original
+files were written and no manual gameplay test occurred. M6 estimate:
+~99.1%.
+
 ## 2026-11-20: M6 Gnome second Rock and rotating bridge (~99.0%)
 
 Added terrain heights and lower-floor route probes to the ignored

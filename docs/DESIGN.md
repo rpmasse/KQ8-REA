@@ -3,6 +3,35 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 Gnome third-Rock access probe (2026-11-20)
+
+The earned bridge checkpoint has the second Rock holding rotation plate 4
+and Connor holding side-one plate 2. The third authored Rock remains at
+(137311, 70325, 12350). Sample short building-collision segments and
+vertical floor contacts between the Gnome conversation corridor and the
+third Rock. Search a bounded upper-floor route to the Rock's eastern
+area, then replay only viable turns with ordinary movement. Keep the
+held bridge save intact as a fallback. Do not alter item placement,
+collision, game variables, or the original GOG files. The diagnostic
+may guide a route but does not count as earned campaign progress.
+
+The probe found no upper-floor building route east from the arrival or
+conversation corridor. At the third Rock's own height, a sampled route
+toward door 7 nearly reached its rounded endpoint; the Rock is in a
+separate lower interior. This route is deferred. The installed
+`triptrp4.cs` allows rotation plate 4 to release without turning the
+bridge back while either side is open. From the saved plate-2 hold,
+Connor visibly reclaimed the second Rock from plate 4, selected it in
+the inventory bar, and visibly threw it onto plate 3. Side two opened
+while Connor held side one. The original side-two script awarded the
+bridge map icon and first-time 50,000 experience; an in-game save and
+fresh-process reload retained `Turned`, `SideOne`, `SideTwo`, `Plate2`,
+and `Plate3` as opened and `FirstTime=1`. `Solved` remains false because
+`brigtest.cs` runs only on a Connor click of a bridge side. Two
+camera-visible clicks from the held plate were blocked by other bridge
+geometry. Stop varying that click angle without a new route. The
+unspent experience rolled into level 18 on the saved checkpoint.
+
 ## M6 Gnome alternate-floor route probe (2026-11-20)
 
 The earned Gnome route now has a Rock held on the first door plate and a

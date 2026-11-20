@@ -6209,6 +6209,13 @@ mod campaign_tests {
                 pending.push(Reverse((proposed + estimate(ni, nj), ni, nj)));
             }
         }
+        if let Some(&(closest_i, closest_j)) = closed.iter().min_by_key(|&&(i, j)|
+            (goal.0 - i).pow(2) + (goal.1 - j).pow(2)) {
+            let (min_i, max_i) = closed.iter().map(|&(i, _)| i).fold((i32::MAX, i32::MIN), |(lo, hi), value| (lo.min(value), hi.max(value)));
+            let (min_j, max_j) = closed.iter().map(|&(_, j)| j).fold((i32::MAX, i32::MIN), |(lo, hi), value| (lo.min(value), hi.max(value)));
+            println!("Gnome blocked building search from {start:?} toward {target:?}: reachable XY [{:?}]..[{:?}], nearest {:?}",
+                spot(min_i, min_j), spot(max_i, max_j), spot(closest_i, closest_j));
+        }
         (closed.len(), None)
     }
 
@@ -6278,6 +6285,31 @@ mod campaign_tests {
             let (expanded, route) = gnome_building_route(&objects.buildings, &balls,
                 [talk_save[0], talk_save[1], z], [114861.0, 60965.0]);
             println!("Gnome hypothetical height {z:.0} from talk XY to second Rock XY: expanded {expanded} cells; building-only route: {route:?}");
+        }
+        for (name, target) in [
+            ("third Rock west approach", [130000.0, 70000.0]),
+            ("third Rock near approach", [135000.0, 70000.0]),
+        ] {
+            let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, target);
+            println!("Gnome talk to {name}: expanded {expanded} cells; upper-height building-only route: {route:?}");
+        }
+        for (name, from, target) in [
+            ("arrival to east corridor", start, [125000.0, 45000.0]),
+            ("arrival to door 7 west", start, [146000.0, 52754.0]),
+            ("third Rock to door 7", [137311.0, 70325.0, 12375.0], [146000.0, 52754.0]),
+        ] {
+            let (expanded, route) = gnome_building_route(&objects.buildings, &balls, from, target);
+            println!("Gnome {name} at height {:.0}: expanded {expanded} cells; building-only route: {route:?}", from[2]);
+        }
+        for (name, [x, y]) in [
+            ("conversation east", [120000.0, 66000.0]),
+            ("third Rock west", [125000.0, 70000.0]),
+            ("third Rock midpoint", [130000.0, 70000.0]),
+            ("third Rock near", [135000.0, 70000.0]),
+            ("third Rock", [137311.0, 70325.0]),
+        ] {
+            println!("Gnome {name} upper-floor vertical contact: {:?}",
+                gnome_segment_hit(&objects.buildings, &balls, [x, y, 20000.0], [x, y, 0.0]));
         }
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [86303.0, 66502.0]);
         println!("Gnome talk save to bridge east plate: expanded {expanded} cells; building-only route: {route:?}");
