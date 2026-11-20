@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-20: M6 Swamp portal to Gnome (~98.3%)
+
+The cleared-poison Swamp save walked into `skport4`; its collision
+script opened the region-change popup. An automated Yes input drove
+the normal `conspin` exit and `outgnmpool` Gnome arrival. The in-game
+Gnome save and fresh-process reload retained the world and prior Swamp
+poison flag. The first prompt-only probe stopped as intended; the next
+attempt placed Yes after the paused update and could not progress.
+Supplying Yes on the collision update passed. No code or original-game
+file changed in this step. The checkpoint inherits diagnostic god
+mode; the Gnome quest and later campaign remain. No manual test.
+
 ## 2026-11-20: M6 Witch kettle and Snail scene (~98.1%)
 
 Retained `KQMonster::setState` requests for a newly loaded character

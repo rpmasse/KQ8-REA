@@ -1,5 +1,20 @@
 # STATUS
 
+## 2026-11-20 M6 Swamp to Gnome transition (~98.3%)
+
+From the earned post-kettle save, Connor walked into `skport4` and its
+`swpgate5.cs` collision opened the original region-change question.
+The automated Yes input played `Snail.anm/conspin`, handed control to
+Gnome, played `poolport.anm/outgnmpool`, and returned control. The
+in-game save `target/m6-swamp-to-gnome-accept/slots/slot-2.json` has
+world `Gnome` and the prior Swamp `poisonOff=1`. A fresh-process reload
+and new in-game save under `target/m6-gnome-arrival-reload/` retained
+world `Gnome` and the Swamp flag. The initial prompt-only probe and an
+accept attempt scheduled after the paused update made no transition;
+the successful run supplies Yes on the collision update. The route
+inherits earlier diagnostic god mode. Gnome's quest, later regions,
+ending and broad save audit remain. No manual gameplay test occurred.
+
 ## 2026-11-20 M6 Swamp poison cleared (~98.1%)
 
 The earned Golden Ladle checkpoint reached the Witch tower kettle. A

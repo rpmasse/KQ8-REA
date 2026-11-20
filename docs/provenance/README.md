@@ -1,5 +1,13 @@
 # Provenance
 
+**Swamp to Gnome portal (2026-11-20, M6).**
+The installed `snail.cs` loads `swpgate5.kq` at the end of the King
+Mudge scene. Its original data targets Gnome, and `swpgate5.cs` starts
+the Portal state on ConnorCollision. `docs/behaviour/world-change.md`
+rules 1–6 describe the Yes prompt, departure and arrival animations.
+An automated walk, normal popup acceptance, in-game Gnome save and
+fresh reload passed. No original asset or gameplay code changed.
+
 **Swamp kettle loaded-character handoff (2026-11-20, M6).**
 `docs/behaviour/objects.md` scripted `loadKQ` rule 6 says the loaded
 object enters the logical world at once; `docs/behaviour/characters.md`
