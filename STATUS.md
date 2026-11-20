@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome bridge solved and crossed (~99.6%)
+
+The earlier plate-2 throw had struck a live bridge Manta. Normal bow
+combat cleared it. Connor then threw the carried second Rock onto
+plate 2, reclaimed the third Rock from plate 4, and threw it onto
+plate 3 before the rotation reset. Both bridge sides and the turned
+deck were open. In-game saves and fresh-process reloads retained these
+states. A visible click on the bridge side set `Solved=true`.
+
+The first crossing exposed a save bug: script `setHidden` changes to
+the bridge deck were lost on load, leaving its collision absent. The
+Rust save now retains visibility overrides, and older turned-bridge
+slots recover the authored deck visibility. A focused test, viewer
+replay from the older slot, full walk to the far bank, save, fresh
+reload, and return walk onto the deck passed. The latest far-bank save
+is `target/m6-gnome-bridge-cross-complete/slots/slot-2.json`; a later
+reload proof is in `target/m6-gnome-bridge-cross-reload`. No original
+files changed and no manual gameplay test occurred. These campaign
+runs inherit diagnostic god mode. Later routes, ending, and broad
+save audit remain unfinished. M6 estimate: ~99.6%.
+
 ## 2026-11-20 M6 Gnome bridge rotated; second Rock recovered (~99.5%)
 
 From the earned third-Rock bridge-approach save, ordinary movement

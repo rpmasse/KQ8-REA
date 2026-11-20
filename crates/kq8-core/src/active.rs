@@ -2279,6 +2279,7 @@ impl WorldState {
         if let (Some(o), "KQObject::setHidden") = (self.object_index(name), command) {
             let hidden = words.get(2).is_some_and(|v| looks_like_number(v) && number_value(v) != 0.0);
             self.objects[o].hidden = hidden;
+            self.plain_hidden.insert(name.to_ascii_lowercase(), hidden);
             self.note(format!("{at}: setHidden {name}: object hidden {hidden}"));
             return "0".into();
         }

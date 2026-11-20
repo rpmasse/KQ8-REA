@@ -3,6 +3,33 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 Gnome bridge visibility across saves (2026-11-20)
+
+The earned two-Rock checkpoint keeps both side plates open and the bridge
+turned, but a fresh load still lets Connor fall through the approach.
+`rotbrdg.cs` hides the turning piece and reveals the completed deck pieces
+when the rotation ends. The current save keeps the variables and door
+movements but loses those `setHidden` changes. The measured bank floor ends
+near y67654; a running jump crossed the deck's coordinates while falling,
+which makes the missing visibility and collision state the next fault to fix.
+
+Persist the visibility overrides made by `setHidden` with each kept world.
+Restore them before the first game update and collision check, including
+scripted objects and doors. For older Gnome saves lacking that field, derive
+the completed bridge pieces from the authored `Turned=opened` state and
+record the repaired flags on the next save. Verify a generic object toggle
+and an older bridge checkpoint in focused tests, then reload the earned
+two-Rock save and cross using normal movement. Do not move Connor or alter
+the bridge variables directly to make the crossing pass.
+
+Implemented: kept interactions now save script visibility changes and
+restore them before the first collision pass. An older Gnome slot with
+`Turned=opened` recovers the authored bridge part visibility. A focused
+save test passed. The old earned checkpoint then stayed supported on the
+bridge; Connor clicked its side to set `Solved=true`, walked to the far
+bank, saved, reloaded in a fresh process, and walked back onto the deck.
+Both new saves retained the visible and collidable bridge parts.
+
 ## M6 Gnome third-Rock access probe (2026-11-20)
 
 The earned bridge checkpoint has the second Rock holding rotation plate 4

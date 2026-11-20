@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome bridge solved, crossed, and saved (~99.6%)
+
+Cleared the live bridge Manta with normal bow combat after its collision
+explained a failed Rock throw. Normal inventory selection, throws and
+movement put Rock occupants on plates 2 and 3, opened both sides, and
+left the bridge turned. Connor clicked its side to set `Solved=true`.
+The first crossing revealed that script visibility changes were absent
+from saves. Kept world interactions now retain and validate those
+changes; older turned-bridge saves restore the authored deck flags.
+A focused test passed, and real viewer movement crossed to the far bank.
+An in-game save and fresh-process reload kept the deck solid for a
+return walk. Evidence and saves remain under ignored
+`target/m6-gnome-bridge-*`. These runs inherit diagnostic god mode.
+No original files changed or manual gameplay test occurred. M6 moves
+from ~99.5% to ~99.6%; later campaign work remains.
+
 ## 2026-11-20: M6 bridge rotation and second Rock recovered (~99.5%)
 
 Ordinary movement carried the earned third Rock to rotation plate 4;

@@ -18,6 +18,9 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct KeptInteractions {
     doors: BTreeMap<String, KeptDoor>,
     chests: BTreeMap<String, KeptChest>,
+    /// Script changes to a placed object's visible and collidable state.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    visibility: BTreeMap<String, bool>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     special_actors: BTreeMap<String, SpecialActor>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -87,6 +90,30 @@ mod object_stats_tests {
         let mut invalid = KeptInteractions::default();
         invalid.object_stats.insert("Door\n".into(), ObjectCombat { stats: Stats::default(), last_hit: None });
         assert!(!invalid.valid_object_stats());
+    }
+
+    #[test]
+    fn script_visibility_survives_a_save_and_older_turned_bridge_slots_recover() {
+        let mut a = world();
+        a.world.plain_hidden.insert("door".into(), true);
+        let saved: KeptInteractions = serde_json::from_slice(
+            &serde_json::to_vec(&KeptInteractions::take(&a.world)).unwrap()
+        ).unwrap();
+        let mut b = world();
+        assert!(!saved.restore_visibility(&mut b.world, false));
+        assert!(b.world.hidden_now("door", false));
+        assert!(KeptInteractions::take(&b.world).valid_visibility());
+
+        let old: KeptInteractions = serde_json::from_str("{\"doors\":{},\"chests\":{}}").unwrap();
+        let names = ["rotbrdg", "rbridge1", "rbridge2", "rbridge3", "rbridge7", "rbridge8",
+            "obridge1", "obridge2", "obridge3", "obridge7", "obridge8"];
+        let mut bridge = Active::new(Default::default(), vec![], vec![], names.map(str::to_owned), Vec::<(String, Vec<u8>)>::new());
+        assert!(old.restore_visibility(&mut bridge.world, true));
+        assert!(bridge.world.hidden_now("rotbrdg", false));
+        assert!(bridge.world.hidden_now("rbridge1", false));
+        assert!(!bridge.world.hidden_now("obridge1", true));
+        assert!(!bridge.world.hidden_now("obridge2", true));
+        assert!(!old.restore_visibility(&mut bridge.world, false));
     }
 
     #[test]
@@ -200,6 +227,36 @@ impl Playback {
 }
 
 impl KeptInteractions {
+    pub fn valid_visibility(&self) -> bool {
+        self.visibility.len() <= 16384 && self.visibility.keys().all(|name| {
+            !name.is_empty() && name.len() <= 1024 && name == &name.to_ascii_lowercase()
+                && !name.chars().any(char::is_control)
+        })
+    }
+
+    /// Restore script visibility before the first distance and collision pass.
+    /// Older Gnome slots lack this field; their turned bridge still needs the
+    /// exact parts shown by rotbrdg.cs's Open branch.
+    pub fn restore_visibility(&self, w: &mut WorldState, legacy_gnome_open: bool) -> bool {
+        let mut apply = |name: &str, hidden: bool| {
+            let key = name.to_ascii_lowercase();
+            if !w.known.contains(&key) || w.is_deleted(&key) { return; }
+            if let Some(index) = w.object_index(&key) { w.objects[index].hidden = hidden; }
+            w.plain_hidden.insert(key, hidden);
+        };
+        for (name, &hidden) in &self.visibility { apply(name, hidden); }
+        let legacy = legacy_gnome_open && !self.visibility.contains_key("obridge1");
+        if legacy {
+            for name in ["rotbrdg", "rbridge1", "rbridge2", "rbridge3", "rbridge7", "rbridge8"] {
+                apply(name, true);
+            }
+            for name in ["obridge1", "obridge2", "obridge3", "obridge7", "obridge8"] {
+                apply(name, false);
+            }
+        }
+        legacy
+    }
+
     pub fn valid_building_types(&self) -> bool {
         self.building_types.len() <= 16384 && self.building_types.keys().all(|name| {
             !name.is_empty() && name.len() <= 1024 && name == &name.to_ascii_lowercase()
@@ -313,6 +370,9 @@ impl KeptInteractions {
     }
 
     pub fn take(w: &WorldState) -> Self {
+        let visibility = w.plain_hidden.iter().filter(|(name, _)|
+            w.known.contains(*name) && !w.is_deleted(name)
+        ).map(|(name, hidden)| (name.clone(), *hidden)).collect();
         let doors = w
             .doors
             .iter()
@@ -380,7 +440,7 @@ impl KeptInteractions {
         }).collect();
         let on_fire = Some(w.on_fire.iter().filter(|name| name.as_str() != "connor" && w.known.contains(*name) && !w.is_gone(name)).cloned().collect());
         let building_types = w.buildings.iter().map(|b| (b.name.to_ascii_lowercase(), b.collision_type)).collect();
-        Self { doors, chests, special_actors: SpecialActor::capture_world(w), object_stats, animations,on_fire,swamp_tiles,lava_tiles,building_types }
+        Self { doors, chests, visibility, special_actors: SpecialActor::capture_world(w), object_stats, animations,on_fire,swamp_tiles,lava_tiles,building_types }
     }
 
     pub fn restore_special_actors(&self, w: &mut WorldState) {

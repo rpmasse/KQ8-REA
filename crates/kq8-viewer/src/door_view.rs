@@ -885,6 +885,11 @@ pub fn spawn_doors(
     active.world.object_copies = std::mem::take(&mut objects.object_copies);
     objects.kept_interactions.restore_object_stats(&mut active.world);
     objects.kept_interactions.restore_animations(&mut active.world);
+    let legacy_gnome_open = objects.realm.eq_ignore_ascii_case("Gnome")
+        && active.scripts.vars.get("Gnome::RotatingBridge::Turned") == Some("opened");
+    if objects.kept_interactions.restore_visibility(&mut active.world, legacy_gnome_open) {
+        main_log.summary("world change: restored legacy Gnome bridge visibility from Turned=opened");
+    }
     objects.kept_interactions.restore_on_fire(&mut active.world);
     // fighting.md (M5 5c-4): what Connor.kq gives the fight.
     if let Some(f) = &objects.connor_fight {
