@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-20: M6 Fiend room Golden Ladle (~97.6%)
+
+The earned Fiend room route used normal camera-visible clicks to open
+`fienchst` and pick up the Golden Ladle. An in-game save and fresh
+reload retained the item, its experience and empty chest. No code or
+original asset changed in this step. The Fiend lever is above or behind
+hut geometry from the lower-floor approach; two attempted approaches
+failed, so its authored route remains to be mapped. M6 is ~97.6%.
+No manual gameplay test occurred.
+
 ## 2026-11-20: M6 Swamp Tile2 campaign route (~97.5%)
 
 Extended only the unattended tile-jump driver to use the Swamp Tile2

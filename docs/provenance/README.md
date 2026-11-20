@@ -1,5 +1,14 @@
 # Provenance
 
+**Fiend room Golden Ladle (2026-11-20, M6).**
+The installed Swamp `newWorld.cs` places `fienchst` and the installed
+chest data gives it `INVITEM_Ladle`. Normal camera-visible clicks from
+the south aisle opened the chest and collected its item. The in-game
+save and fresh reload retained a carried ladle and an empty chest.
+The installed `fienlevr.cs` cues the return door, but hut geometry
+blocked the attempted lower-floor route and ray; no lever outcome is
+claimed.
+
 **Swamp Tile2 campaign replay (2026-11-20, M6).**
 The installed Swamp `newWorld.cs` names the safe `fiensafe.cs` tiles;
 `docs/behaviour/secondary-tile-puzzles.md` rules 9–17 describe the

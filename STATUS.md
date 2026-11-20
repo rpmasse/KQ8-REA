@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-20 M6 Golden Ladle earned and Fiend lever route (~97.6%)
+
+From the earned Fiend room checkpoint, Connor approached `fienchst`
+from its south aisle with his sword put away. A camera ray hit the
+chest; the original chest interaction spawned `NoName217`, and a second
+visible click moved `INVITEM_Ladle` into Connor's inventory. The in-game
+`target/m6-swamp-ladle-save/slots/slot-2.json` has one carried ladle,
+127,575 experience and an empty chest. A fresh-process reload retained
+all three. Two ordinary lower-floor approaches toward `fienlvr.01`
+stopped around (41812,100563,16530), and the hut intercepted a ray to
+the lever. The next route requires analysis of the authored Fiend hut
+geometry rather than more blind waypoint changes. The diagnostic logs
+are `target/m6-swamp-ladle-pickup/output.log`,
+`target/m6-swamp-ladle-reload/output.log` and
+`target/m6-swamp-fiend-lever-aim/output.log`. M6 is ~97.6%; the Fiend
+lever return, later regions, ending and save audit remain. No manual
+gameplay testing occurred.
+
 ## 2026-11-20 M6 Swamp tile floor and Fiend room (~97.5%)
 
 An earned save from the Witch and Henchman route carried the hand through
