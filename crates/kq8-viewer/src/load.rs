@@ -6696,6 +6696,27 @@ mod campaign_tests {
         }
     }
 
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn barren_tradepost_east_to_weirdling_collision_route() {
+        use kq8_core::{collide::BallStack, connor_mover::CONNOR_BOX};
+        let game = game_install();
+        let world = World::open(&game, "Barren").unwrap();
+        let mut log = Log::create("barren-tradepost-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let tradepost = objects.buildings.iter()
+            .find(|building| building.name.eq_ignore_ascii_case("tradpost")).unwrap();
+        println!("tradpost world bounds {:?}..{:?}", tradepost.world_min, tradepost.world_max);
+        let balls = BallStack::from_box(CONNOR_BOX.0, CONNOR_BOX.1);
+        let start = [147438.0, 131239.0, 1742.0];
+        let target = [144476.0, 131239.0];
+        println!("direct eastern approach: {:?}",
+            gnome_segment_hit(&objects.buildings, &balls, start, [target[0], target[1], start[2]]));
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, start, target);
+        println!("tradepost building-only route: expanded {expanded}; {route:?}");
+    }
+
     /// Diagnostic only: find possible turns through the installed interior
     /// collision data. The live route still has to walk and encounter objects.
     fn gnome_building_route(

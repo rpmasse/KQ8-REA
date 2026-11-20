@@ -3,6 +3,19 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 Barren tradepost route check (2026-11-21)
+
+The earned post-Sage Barren save reached the crystal trail and carried two
+Crystal items through ordinary walking and visible pickups. The next
+candidate gate is the Weirdling seller in `tradpost`. Direct south and west
+approaches stopped on the installed geyser, steep ground, and the tradepost
+wall; a camera ray from the eastern save hit that wall before Weirdling.
+Stop trying guessed live waypoints. Measure the installed tradepost bounds
+and probe a floor-height collision route from the earned eastern save to
+Weirdling. Treat the route as a candidate until ordinary movement reaches
+the seller and a visible click runs its original script. Keep AI and
+collision on, and record the inherited diagnostic invulnerability.
+
 ## M6 Gnome Sage-to-Barren continuation (2026-11-21)
 
 Start with the earned normal-damage Sage handoff. Keep that proof intact.

@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-21: M6 Barren Weirdling checkpoint (~77%)
+
+**Changed:** Added an ignored installed-data tradepost collision
+diagnostic and recorded the earned Barren route. No gameplay rule
+changed. **Why:** Direct approaches stopped at a geyser, steep terrain,
+and the tradepost wall. **Tested:** The diagnostic passed; ordinary
+movement reached the tradepost via its south and west sides. The
+original Weirdling trap played its ten-line opening talk, returned
+control, and an in-game save reloaded in a fresh process with
+`Barren::Seller::metConnor=1`. Two Crystal pickups carried forward.
+**Limit:** The exploration save inherited diagnostic god mode. The
+seller's Pike materials, Basilisk, and later campaign remain. No
+manual gameplay test or original-file edit occurred.
+
 ## 2026-11-21: M6 earned Gnome-to-Barren transfer (~76%)
 
 **Changed:** `map_install` now restores the transient on-pad map bit

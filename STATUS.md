@@ -1,5 +1,29 @@
 # STATUS
 
+## 2026-11-21 M6 Barren Weirdling reached (~77%)
+
+From the earned post-Sage Barren save, ordinary movement with AI and
+collision active reached the two Crystal pickups on the trail. Both
+were selected by visible camera rays and carried into the next saves.
+Guessed approaches to Weirdling stopped at a geyser, steep terrain,
+and the tradepost wall. The installed tradepost collision diagnostic
+then measured a route around its south and west sides. A live replay
+entered the building; its authored trap ran `tw_weird.cs`, took control
+of Connor, and played all ten opening conversation lines. Control
+returned at update 1263. Earlier timed save attempts at updates 270,
+720, and 1180 were blocked by `handsOff`, as intended.
+
+An in-game save at
+`target/m6-barren-live/18-weirdling-route/slots/slot-2.json` records
+`Barren::Seller::metConnor=1`, position (142465, 131366, 1745), and
+two carried Crystal items. A fresh viewer process loaded that slot in
+Barren (`RESULT: PASS`). The ignored installed-data route diagnostic
+passed. This exploratory chain inherited diagnostic god mode, so it
+does not establish normal-damage survival. The Black Diamond and Metal
+Shaft have not been acquired, the Pike has not been forged, and the
+Basilisk and later campaign remain. M6 is estimated at ~77%. No manual
+gameplay test or original-file edit occurred.
+
 ## 2026-11-21 M6 post-Sage Gnome-to-Barren transfer (~76%)
 
 The earned post-Sage exploration save was replayed through the solved
