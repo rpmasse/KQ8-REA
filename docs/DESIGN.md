@@ -131,6 +131,15 @@ Fresh-process reload retained the stage and 36,990 experience. The
 next route should follow the Swamp puzzle dependencies from that save;
 do not count the introductory conversation as region completion.
 
+The Tree's optional paid branch was then completed from the earned
+save: select the Silver Coins in the ordinary gold bar, aim at
+`Protree`, and allow each conversation to finish before repeating.
+Eleven payments advanced `metConnor` from 1 to 12, consumed eleven
+coins and granted 5,500 experience. The final no-more-prophecies
+response charged nothing. A fresh process retained stage 12, 14
+coins and 42,490 experience. Continue the main Swamp objectives from
+that checkpoint; this dialogue branch does not complete the region.
+
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
 Continue from the earned Sylph Mold handoff. The installed Dead City

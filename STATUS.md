@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-20 M6 Prophet Tree paid dialogue complete (~97%)
+
+From the earned first-conversation save, ordinary gold-bar selections
+and camera-visible Tree aims completed all eleven paid follow-up
+conversations. Each payment consumed one silver coin and awarded 500
+experience, advancing `Swamp::Protree::metConnor` from 1 to 12.
+The final unpaid click produced the Tree's no-more-prophecies line
+without changing the stage, coins or experience. An in-game save and
+fresh-process reload retained stage 12, 14 silver coins and 42,490
+experience at (128800,91400,6654). The ignored checkpoint is
+`target/m6-swamp-protree-complete-reload/slots/slot-2.json`.
+
+M6 remains ~97% because this closes one optional Swamp dialogue branch;
+the region's main puzzles and exit, later worlds and full save audit
+remain. Test-only invulnerability is still enabled in the campaign
+save. Manual play and normal-damage completion are not tested.
+
 ## 2026-11-20 M6 Swamp Prophet Tree introduction (~97%)
 
 From the earned Swamp arrival, the automated walker descended the

@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-20: M6 Prophet Tree paid dialogue (~97%)
+
+From the earned Swamp save, eleven ordinary gold-bar selections and
+camera-visible aims completed the Tree's paid prophecies. Its stage
+advanced from 1 to 12; coins fell from 25 to 14 and experience rose
+from 36,990 to 42,490. A final unpaid click gave the closing line
+without a further charge. Fresh-process reload retained those values.
+No game code changed. Test-only invulnerability remains enabled, and
+the main Swamp campaign is unfinished. M6 stays ~97%.
+
 ## 2026-11-20: M6 Prophet Tree introduction (~97%)
 
 The earned Swamp route descended from the portal, avoided a blocking
