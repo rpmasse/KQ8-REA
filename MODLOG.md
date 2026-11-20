@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-20: M6 Swamp tower chest and rise animation (~97%)
+
+Automated movement crossed both tower ramps. A normal Short Bow shot
+disabled the upper plate trap, and a camera-visible chest interaction
+awarded Mask2, Piece2 and 50,000 experience. The chest sequence then
+stalled because late-loaded weapon banks lacked the original `rise`
+movement. Added that authored clip to the late load list. The same
+replay now receives `Cue 300 rise`, starts the Henchman handoff and
+returns control. An in-game save and fresh reload retained the reward
+and quest flags. The Henchman fight remains; M6 stays ~97%. No manual
+gameplay test occurred and no original game asset was modified.
+
 ## 2026-11-20: M6 Swamp Witch and keep gate (~97%)
 
 The earned Short Bow route reached the tower's north side around its

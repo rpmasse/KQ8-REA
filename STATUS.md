@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-20 M6 Swamp tower chest reward and reload (~97%)
+
+From the earned open-gate checkpoint, ordinary movement climbed both
+tower ramps. A Short Bow shot hit `clicker2`, dropping the original
+plate trap. Fresh-process reloads retained the trap removal and the
+upper-floor route. Connor reached `Chest1` and opened it with a normal
+camera-visible interaction. Its original script granted Mask2, Piece2
+and 50,000 experience, then revealed the Henchman.
+
+The first replay stalled at the chest's scripted weapon movement:
+`ConKng.ANM` contains `rise`, but late-loaded weapon banks omitted it.
+The loader now includes `rise`. The replay recorded `Cue 300 rise`,
+`Cue 4`, Connor's scripted walk and the return of player control at
+update 407. An in-game save and fresh-process reload retained one
+Mask2, one Piece2, `Swamp::Henchman::metConnor=1`, the open tower gate,
+level 15 and 87,570 experience. The ignored checkpoint is
+`target/m6-swamp-chest-reward-save/slots/slot-2.json`; the replay is
+`target/m6-swamp-chest-rise-fix/output.log`. The Henchman fight and
+later regions remain. AI and collision stayed active; test-only
+invulnerability remains in the checkpoint. M6 stays ~97% until more
+of the campaign and save audit passes. No manual gameplay testing occurred.
+
 ## 2026-11-20 M6 Swamp Witch and keep gate (~97%)
 
 From the earned Short Bow checkpoint, ordinary movement passed the

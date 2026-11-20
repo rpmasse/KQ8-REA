@@ -1,5 +1,14 @@
 # Provenance
 
+**Swamp chest rise movement (2026-11-20, M6).**
+The installed `CHEST1.CS` asks `KQConner::setDoMode 0 rise` and waits
+for Connor's `Cue 300 rise` before its Henchman handoff. The installed
+`ConKng.ANM` has that movement. `docs/behaviour/ranged-weapons.md`
+rule 9 describes the optional scripted movement and
+`docs/behaviour/anim-scripts.md` rule 16 describes its end callback.
+The viewer's late weapon-bank load list now includes `rise`; the
+unattended chest replay and fresh-process reward reload passed.
+
 **RiverControl interaction implementation (2026-11-19, M6).**
 The four click boxes, acceptance list and river animation are loaded
 from the user's GOG Dead City data. The interaction timing and 2,000

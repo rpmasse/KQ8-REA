@@ -5123,6 +5123,10 @@ complete bank, leaving the installed `walk` unused. Every real hand and
 ranged bank named by `Connor.kq` has a `walk` entry. Use that core
 movement as the loaded-bank marker, then check each selected drawn clip
 after enough held updates for the `stopwalk` transition to finish.
+The Swamp chest also asks `setDoMode 0 rise` after revealing the Henchman.
+`ConKng.ANM` has `rise`, but the late weapon bank selection omits it. Add
+that authored movement to the late load list, then require the chest's
+`Cue 300 rise` and combat handoff in an unattended checkpoint replay.
 The combined route passed for all 22 banks in 54.17 seconds. It starts
 at an open Dead City position outside the `introtp` scripted trigger;
 an earlier route entered that scene and lost ordinary movement control

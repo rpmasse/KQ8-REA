@@ -461,8 +461,8 @@ pub const CONNOR_MOVEMENTS: [&str; 61] = [
 /// Weapon lists loaded after a pickup need their own attack and swap
 /// movements as well as Connor's common movement set. Missing names are
 /// skipped by `connor_set` for a weapon file; the base list stays strict.
-const LATE_WEAPON_MOVEMENTS: [&str; 8] = [
-    "attack", "attack2", "attackb", "attack3", "away", "away2", "wait", "catch",
+const LATE_WEAPON_MOVEMENTS: [&str; 9] = [
+    "attack", "attack2", "attackb", "attack3", "away", "away2", "wait", "catch", "rise",
 ];
 
 /// One of Connor's movements: its animation and playback speed.
