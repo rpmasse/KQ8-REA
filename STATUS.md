@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-20 M6 Swamp Prophet Tree introduction (~97%)
+
+From the earned Swamp arrival, the automated walker descended the
+arrival ridge and crossed the central low ground. A direct route
+stopped at the original `swmp.280` mushroom collider; a south-side
+detour passed it and reached the Prophet Tree's eastern approach.
+With the Hammer put away, a camera ray hit `Protree` and started its
+original ten-line conversation. Its final TalkComplete callback set
+`Swamp::Protree::metConnor=1` and awarded 10,000 experience. An
+in-game save and fresh-process reload retained that stage, 36,990
+experience and Connor at (129236,91460,6630). The ignored checkpoint
+is `target/m6-swamp-protree-reload/slots/slot-2.json`.
+
+M6 remains ~97%: this verifies the first Swamp conversation and its
+save boundary, while the region's puzzles, exits, later worlds and
+full save audit remain. Test-only invulnerability remains enabled in
+the campaign save; manual play and normal-damage completion are not
+tested.
+
 ## 2026-11-20 M6 earned Dead City to Swamp handoff (~97%)
 
 From the south-bank drawbridge save, Connor walked into the original

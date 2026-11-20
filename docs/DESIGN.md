@@ -120,6 +120,17 @@ follow Swamp's required quest and exit route from this checkpoint.
 Keep the diagnostic aim and
 test-only invulnerability limits explicit when evaluating fidelity.
 
+The first earned Swamp leg crossed from (177501,85956) to the Prophet
+Tree. The direct low-ground line hit `swmp.280`, a small original
+mushroom prop near (147829,89985); a south detour around its box
+reached the tree's eastern approach. Put the carried Hammer away
+before a camera-visible aim at `Protree`. Its scripted move placed
+Connor for the ten-line introduction; the final TalkComplete gave
+10,000 experience and advanced `Swamp::Protree::metConnor` to 1.
+Fresh-process reload retained the stage and 36,990 experience. The
+next route should follow the Swamp puzzle dependencies from that save;
+do not count the introductory conversation as region completion.
+
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
 Continue from the earned Sylph Mold handoff. The installed Dead City

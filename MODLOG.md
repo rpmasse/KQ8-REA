@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-20: M6 Prophet Tree introduction (~97%)
+
+The earned Swamp route descended from the portal, avoided a blocking
+mushroom prop and reached the Prophet Tree. A camera-visible aim with
+the weapon away started its ten-line introduction. The final callback
+awarded 10,000 experience and set its conversation stage to 1; an
+in-game save and fresh-process reload retained both. No game code
+changed. Test-only invulnerability remained enabled, and the rest of
+Swamp is unfinished. The M6 estimate remains ~97%.
+
 ## 2026-11-20: M6 earned Swamp arrival (~97%)
 
 The automated continuation walked from the opened Dead City bridge
