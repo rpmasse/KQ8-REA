@@ -1,5 +1,14 @@
 # Provenance
 
+**Older Swamp gate save migration (2026-11-20, M6).**
+The installed `switch01.cs` sends the gate its open movement, removes
+collision bits 9312 and sets `Swamp::Tower::gateOpen=1`. The installed
+`KEEPGATE.KQ` has authored collider 8224, so the resulting collider is
+zero. The migration applies only when an older Swamp checkpoint has
+that flag and a completed open movement but no collision value. A
+focused original-data check, an earned hand checkpoint reload, new
+in-game save and tower-exit route passed without modifying game files.
+
 **Swamp keepgate saved collider (2026-11-20, M6).**
 The earned open-gate save has `keepgate` movement `open`, phase 1 and
 `collision_type=0`; the installed `KEEPGATE.KQ` provides the scripted

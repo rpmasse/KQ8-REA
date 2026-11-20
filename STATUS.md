@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-20 M6 older Swamp gate saves and hand return (~97%)
+
+Older earned Swamp saves could have an open gate animation and the
+`gateOpen=1` quest flag while missing the gate's zero collision override.
+The loader now restores that exact state from the installed switch
+script's result. Focused ordinary and original-data tests passed. The
+earned Henchman-hand checkpoint then reloaded, saved with the gate at
+zero collision, and Connor walked out of the tower and west of the
+Prophet Tree. A fresh in-game save at (89416,94071,5900) retains one
+carried hand and the open gate. The tile doors lie across an elevated
+Fiend tower; a direct line reaches a steep cliff near x73700. The tower
+route and tile-door interaction remain. M6 stays ~97%; no manual
+gameplay testing occurred.
+
 ## 2026-11-20 M6 Swamp keep gate save continuity (~97%)
 
 An earned open-gate save recorded `keepgate` with no collision, but a

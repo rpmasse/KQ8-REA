@@ -2083,6 +2083,26 @@ pub struct Arrival {
     pub kept_maps: BTreeMap<usize, (String, kq8_data::magic_map::MapKeys, String)>,
 }
 
+/// Recover the open gate's collider in saves written after an older loader
+/// dropped its zero override. The installed `switch01.cs` removes bits 9312
+/// from `keepgate` when it sets `Swamp::Tower::gateOpen` to 1; its authored
+/// collider 8224 consequently becomes zero.
+fn restore_legacy_swamp_keepgate(world_name: &str, arrival: &mut Option<Arrival>) -> bool {
+    if !world_name.eq_ignore_ascii_case("Swamp") { return false; }
+    let Some(arrival) = arrival else { return false };
+    if !arrival.kept_vars.iter().any(|(name, value)|
+        name.eq_ignore_ascii_case("Swamp::Tower::gateOpen") && value == "1") {
+        return false;
+    }
+    let Some(gate) = arrival.states.get_mut("keepgate") else { return false };
+    if gate.collision_type.is_some() || !gate.movement.eq_ignore_ascii_case("open")
+        || gate.phase < 1.0 || gate.waiting.is_some() {
+        return false;
+    }
+    gate.collision_type = Some(0);
+    true
+}
+
 /// `arrival`: `Some` for a world change: `conStart.cs` is not run (rule
 /// 21: only a developer start sets `$Testing`; Connor brings his own
 /// things), and the `NoName` counter goes on from the carried one.
@@ -2090,6 +2110,9 @@ pub struct Arrival {
 /// screen (M6 6e-4a, `world-change.md` rule 24).
 pub fn load_objects(game: &GameDir, world: &World, terrain: &kq8_data::Terrain, log: &mut Log, mut arrival: Option<Arrival>, progress: Option<std::sync::Arc<std::sync::atomic::AtomicU32>>) -> Objects {
     use kq8_data::world_script::{LoadKq, LoadName};
+    if restore_legacy_swamp_keepgate(&world.name, &mut arrival) {
+        log.summary("world change: recovered open Swamp keepgate collider from an older save");
+    }
     // Where the time goes (the user's question, 2026-10-23).
     crate::timeline::reset();
     let mut phases: Vec<(&str, u128)> = Vec::new();
@@ -7404,6 +7427,48 @@ mod regional_item_checks {
             .expect("saved keepgate must remain a scripted object");
         assert!(gate.object);
         assert_eq!(gate.collider_type, 0);
+    }
+
+    #[test]
+    #[ignore = "reads the installed Swamp world"]
+    fn older_open_keepgate_save_recovers_its_missing_collider() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let world = World::open(&game, "Swamp").unwrap();
+        let mut log = Log::create("swamp-legacy-gate-collision").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let mut saved = arrival(0, None);
+        saved.kept_vars.push(("Swamp::Tower::gateOpen".into(), "1".into()));
+        saved.states.insert("keepgate".into(), kq8_core::active::KeptState {
+            name: "keepgate".into(), movement: "open".into(), phase: 1.0,
+            waiting: None,
+            placement: kq8_core::collide::Placement::at([159632.0, 24700.0, 6380.0]),
+            collision_type: None,
+        });
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, Some(saved), None);
+        let gate = objects.doors.iter().find(|door| door.placement.name.eq_ignore_ascii_case("keepgate"))
+            .expect("open keepgate must recover its scripted role");
+        assert!(gate.object);
+        assert_eq!(gate.collider_type, 0);
+    }
+
+    #[test]
+    fn legacy_gate_migration_requires_matching_world_flag_and_animation() {
+        let mut saved = arrival(0, None);
+        saved.kept_vars.push(("Swamp::Tower::gateOpen".into(), "1".into()));
+        saved.states.insert("keepgate".into(), kq8_core::active::KeptState {
+            name: "keepgate".into(), movement: "open".into(), phase: 1.0,
+            waiting: None, placement: kq8_core::collide::Placement::at([0.0; 3]),
+            collision_type: None,
+        });
+        let mut arrival = Some(saved);
+        assert!(!super::restore_legacy_swamp_keepgate("Daventry", &mut arrival));
+        assert_eq!(arrival.as_ref().unwrap().states["keepgate"].collision_type, None);
+        arrival.as_mut().unwrap().states.get_mut("keepgate").unwrap().movement = "closed".into();
+        assert!(!super::restore_legacy_swamp_keepgate("Swamp", &mut arrival));
+        arrival.as_mut().unwrap().states.get_mut("keepgate").unwrap().movement = "open".into();
+        assert!(super::restore_legacy_swamp_keepgate("Swamp", &mut arrival));
+        assert_eq!(arrival.as_ref().unwrap().states["keepgate"].collision_type, Some(0));
+        assert!(!super::restore_legacy_swamp_keepgate("Swamp", &mut arrival));
     }
 
     #[test]

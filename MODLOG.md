@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-20: M6 repair for older Swamp gate saves (~97%)
+
+The installed `switch01.cs` makes the open `keepgate` nonblocking.
+Older checkpoints that saved its open animation and quest flag but
+lost the collider value now recover zero on load. A focused data check
+and a new in-game save from the earned Henchman-hand checkpoint passed.
+Connor crossed the gate and walked west to (89416,94071,5900) with the
+hand still carried. The elevated Fiend tower route to the tile doors
+remains. No original asset changed; M6 stays ~97%. No manual gameplay
+test occurred.
+
 ## 2026-11-20: M6 open gate save continuity (~97%)
 
 Fixed a reload path that changed the open Swamp `keepgate` into a plain

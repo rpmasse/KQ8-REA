@@ -10647,3 +10647,15 @@ when that value is zero. Verify the restored object and collider in a
 focused data test, then save, reload and walk back out through the gate
 using ordinary movement. This is a save continuity fix, not a new door
 rule or an asset change.
+
+### M6 migration for Swamp saves made before the keepgate fix (2026-11-20)
+
+Some earned Swamp checkpoints saved by the old loader have `keepgate`
+movement `open` at phase 1 and `Swamp::Tower::gateOpen=1`, but a missing
+collision override. The installed `switch01.cs` removes bits 9312 from
+the authored gate collider 8224 when it opens, leaving zero. On loading
+this specific old state, reconstruct `collision_type=0` before placing
+objects. Leave every other saved state unchanged. Check the narrow
+migration in an original-data test, then reload the earned hand save,
+save it anew and walk back out of the tower through the gate. Continue
+the ordinary route toward `Rtswdoor` with the carried hand.
