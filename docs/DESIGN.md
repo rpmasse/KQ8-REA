@@ -294,6 +294,26 @@ authored altar Lodestone without crossing the west wall or inserting
 an item. Return to Sage through the earned route and hand it to him
 through `sagegnm.cs`'s accepted inventory action. Preserve the Gnome
 Sage, Dragon, boulder and altar flags in disk saves.
+The earned return now reaches the former boulder's lower north
+passage at (106214, 93927, 17475). The reverse Dragon bend required
+an east-side turn around `gnome13`; otherwise a direct diagonal hit
+its south-facing wall. From the lower passage, search the installed
+floor and building collision to the rope 3 bottom and to the turned
+bridge's south bank. Use the results to reconnect to the earlier
+earned Sage route without moving Connor by a diagnostic command.
+The return replay passed the Dragon room, broken wall and former
+boulder route using normal controls, preserving an in-game save at
+`target/m6-gnome-lodestone-return-lower-north-save/slots/slot-2.json`
+(106214, 93927, 17475). It carries the Lodestone, Crystal Pyramid and
+Black Diamond, with Dragon and Young Man gone and both boulder flags
+set. The installed floor/building search from that exact point covered
+2,558 states without reaching rope 3 bottom and 2,571 without reaching
+the turned bridge's south bank. The search omits live objects, narrow
+openings and scripted transitions, so this does not prove those exits
+impossible. Inspect the west boundary around x90000 and any authored
+transition from this lower section, then replay it before Sage's
+Lodestone handoff. Preserve the checkpoint; do not move Connor or
+insert an item through a diagnostic override.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-21: M6 Lodestone return through lower Gnome (~70%)
+
+**Changed:** Added an ignored installed-data route diagnostic from the
+earned lower boulder checkpoint. No gameplay rule changed. **Why:** The
+reverse Dragon bend hit `gnome13` when a waypoint cut its corner; the
+measured east-side turn restored the ordinary route through the Dragon
+chamber, broken wall and former boulder passage. **Tested:** Live
+route checkpoints passed, ending at (106214, 93927, 17475) with the
+Lodestone, Crystal Pyramid and Black Diamond carried, Dragon and Young
+Man gone, and the Sage quest still at Met=1. The ignored installed-data
+search passed and reported no path to rope 3 bottom in 2,558 states or
+the bridge south bank in 2,571. This search omits live objects and
+transitions; Sage handoff remains unverified. **Next:** identify this
+lower section's authored exit, return to Sage, and continue the full
+campaign. No manual gameplay or original-file edit occurred.
+
 ## 2026-11-20: M6 earned Gnome altar and Lodestone (~70% recalibrated)
 
 **Changed:** Added an ignored installed-data navigation diagnostic for

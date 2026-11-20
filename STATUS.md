@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-21 M6 Lodestone return reached lower passage (~70%)
+
+The earned altar save returned through the Dragon chamber, crossed the
+broken wall, and followed the former boulder passage using ordinary
+movement. The in-game checkpoint at
+`target/m6-gnome-lodestone-return-lower-north-save/slots/slot-2.json`
+is at (106214, 93927, 17475). It still carries the Lodestone, Crystal
+Pyramid and Black Diamond, with Dragon and Young Man gone and both
+boulder flags set. A direct reverse Dragon bend initially hit
+`gnome13`; the measured east-side turn passed it without a collision
+rule change.
+
+An installed floor/building search from this lower passage found no
+route to rope 3 bottom (2,558 states) or the bridge's south bank (2,571
+states). It omits live objects and scripted transitions, so the exit
+remains to be found. Sage has not received the Lodestone. M6 stays
+~70% under the recalibrated estimate; later regions, ending, exact
+building activation and broad save audit are still open. No manual
+gameplay test or original-file edit occurred.
+
 ## 2026-11-20 M6 Gnome Lodestone obtained; estimate recalibrated (~70%)
 
 An earned post-Dragon save triggered the Young Man's original spirit

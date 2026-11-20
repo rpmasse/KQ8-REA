@@ -6508,6 +6508,27 @@ mod campaign_tests {
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_lodestone_return_from_lower_boulder_route() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-lodestone-return-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let start = [106214.0, 93927.0, 17475.0];
+        for (name, target) in [
+            ("rope 3 bottom", [117247.0, 107784.0]),
+            ("turned bridge south bank", [83731.0, 67517.0]),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, target, 19000.0, 650.0);
+            println!("Lodestone return to {name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(15).copied().collect::<Vec<_>>()));
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn gnome_shard_fuse_script_sources() {
         let game = game_install();
         let archive = kq8_data::VolArchive::open(&game.volume_path("Gnome", "kq").unwrap()).unwrap();
