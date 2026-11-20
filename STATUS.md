@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-20 M6 Dragon floor activation corrected (~99.8%)
+
+The building distance test now matches the traced original: a `.dig`
+building keeps its box-derived radius but measures from its placed
+origin. `gnome14` therefore remains solid when Dragon starts moving.
+An automated replay loaded the earned pre-fall Gnome save, followed
+its ordinary movement route, and reached Dragon's first mover update
+at update 30. Dragon remained at z=14915 through update 180, where
+the old build had fallen to terrain z=0. Shadow receiver bounds still
+use the geometry's box middle. All 83 non-ignored viewer unit tests
+passed. The previous saves in which Dragon already fell remain
+historical records; the quest must continue from an earned pre-fall
+save. The ShardFuse route, Dragon fight, Lodestone, later campaign,
+ending, and broad save audit remain unfinished. M6 stays ~99.8%
+pending a new quest checkpoint. No manual gameplay test or original
+file edit occurred.
+
 ## 2026-11-20 M6 Dragon floor activation diagnosed (~99.8%)
 
 Ordinary movement reached an earned in-game save beside the living

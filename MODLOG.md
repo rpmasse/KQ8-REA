@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-20: M6 corrected Dragon floor activation (~99.8%)
+
+Changed building distance balls to use the original placed origin
+while retaining the `.dig` box radius. Kept the box middle for shadow
+receiver bounds. A focused unit test verifies both centres; 83
+non-ignored viewer unit tests pass. The automated earned-save replay
+reached Dragon's first movement and kept it at z=14915 through update
+180, rather than falling to terrain z=0. No manual gameplay test or
+original-file edit occurred. The Dragon fight remains unverified.
+
 ## 2026-11-20: M6 diagnosed Dragon floor activation (~99.8%)
 
 Replayed the earned Gnome corridor by normal movement to an in-game

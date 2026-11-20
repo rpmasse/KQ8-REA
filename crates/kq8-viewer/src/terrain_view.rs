@@ -536,10 +536,10 @@ pub fn setup_objects(
         // A building's draw-distance ball (rule 40, M1 7h).
         if let (false, Some(t)) = (built_walls[*i].is_empty(), &test) {
             log.detail(format!(
-                "draw distance: building [{}] ball radius {:.0} (half the .dig box diagonal), centre = box middle {:.0} from its position, turned with it (the original: at its position)",
+                "draw distance: building [{}] ball radius {:.0} (half the .dig box diagonal), centre = placed origin; box middle {:.0} away, retained for shadows",
                 p.name,
                 t.radius,
-                t.centre.length() * UNITS_PER_METRE
+                balls.building_box_centre(*i).map_or(0.0, |c| Vec3::from(to_bevy(c, [0.0; 3])).length() * UNITS_PER_METRE)
             ));
         }
         // Shadows on buildings (M4 4d-7b-3, `characters.md` rule 37 (2)):
@@ -547,7 +547,9 @@ pub fn setup_objects(
         if let (false, Some(t)) = (built_walls[*i].is_empty(), &test) {
             let place = p.transform();
             let surfaces = shadow_surfaces[*i].iter().filter_map(|s| kq8_core::shadow::ReceivingSurface::new(s.iter().map(|tri| tri.map(|c| place.apply(c))).collect())).collect();
-            let c = transform.transform_point(t.centre) * UNITS_PER_METRE;
+            let box_centre = balls.building_box_centre(*i)
+                .map_or(t.centre, |c| Vec3::from(to_bevy(c, [0.0; 3])));
+            let c = transform.transform_point(box_centre) * UNITS_PER_METRE;
             shadow_receivers.push((t.object, kq8_core::shadow::ReceivingBuilding { name: p.name.clone(), centre: [c.x, -c.z, c.y], radius: t.radius, surfaces }));
         }
         // Point lights (M1 7d): this copy's own light picture and haze

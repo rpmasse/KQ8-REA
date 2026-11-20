@@ -6516,7 +6516,7 @@ mod campaign_tests {
         for b in &objects.buildings {
             if let Some(hit) = b.sweep(&ball, from, to) {
                 if hit.normal[2] > 0.7 {
-                    println!("building support {}: {:?}", b.name, hit.touch);
+                    println!("building support {}: {:?}; origin {:?}; bounds {:?}..{:?}", b.name, hit.touch, b.placement.position, b.world_min, b.world_max);
                     support.push((b.name.as_str(), hit.touch[2]));
                 }
             }

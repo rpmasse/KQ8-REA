@@ -21,9 +21,8 @@
 //!   out once, when the object is spawned. Centre turned with the object
 //!   (our choice, the note's "Do not reproduce"). Buildings (rule 40,
 //!   Q76; M1 7h): never `BOUNDS.KQ`; radius = half the diagonal of the
-//!   `.dig` header box, centre = that box's middle turned with the building
-//!   (the note's "Do not reproduce" recommendation; the original centres it
-//!   on the building's position).
+//!   `.dig` header box, centre = the building's placed origin. The box
+//!   middle is retained separately for shadow receiver bounds.
 //! - Items (rule 43, Q71): their type's shape in `BOUNDS.KQ`, else 100;
 //!   `tooFar` 0.83, `groupsAlways` 0x2, near 0x448, **far 0** (not drawn
 //!   when far).
@@ -208,10 +207,16 @@ impl ShapeBalls {
     /// (its collision shape: an animated object's current movement's).
     pub fn test_at(&self, placement: &Placement, shape_index: usize) -> DistanceTest {
         match self.shapes.get(shape_index) {
-            Some((_, Some(building))) => DistanceTest { shadow_mask: 0, ..DistanceTest::new(placement, Some(*building), "building .dig box (rule 40)") },
+            Some((_, Some((_, radius)))) => DistanceTest { shadow_mask: 0, ..DistanceTest::new(placement, Some(([0.0; 3], *radius)), "building .dig box (rule 40)") },
             Some((name, None)) => self.test_shape(placement, name),
             None => self.test(placement),
         }
+    }
+
+    /// The `.dig` box middle is used by the shadow receiver's spatial
+    /// bounds, independently of the original draw-distance centre.
+    pub fn building_box_centre(&self, shape_index: usize) -> Option<[f32; 3]> {
+        self.shapes.get(shape_index)?.1.map(|(centre, _)| centre)
     }
 
     /// The test for an object whose collision shape is `shape`.
@@ -575,5 +580,21 @@ fn describe(o: &Option<(f32, f32, String)>) -> String {
     match o {
         Some((ball, position, name)) => format!("[{name}] ball centre {ball:.0}, position {position:.0}"),
         None => "none".into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn building_distance_uses_origin_but_keeps_box_middle_for_shadows() {
+        let shape = ShapeBalls::new(None, [("room.dig", [0.0, 0.0, 0.0], [100.0, 200.0, 300.0])].into_iter());
+        let mut placement = Placement::from_section(&kq8_data::kq_text::parse(b"[room]\n")[0]);
+        placement.name = "room".into();
+        let test = shape.test_at(&placement, 0);
+        assert_eq!(test.centre, Vec3::ZERO);
+        assert!((test.radius - 187.08287).abs() < 0.01);
+        assert_eq!(shape.building_box_centre(0), Some([50.0, 100.0, 150.0]));
     }
 }

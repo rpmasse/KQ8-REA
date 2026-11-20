@@ -237,14 +237,16 @@ at different heights, so the 250-unit walk-only grid does not prove
 an impassable route.
 The earned Dragon contact save exposed a collision timing fault:
 Dragon begins its first gravity update while far from Connor, before
-the nearby building and object colliders have entered the active
-collision world. It falls from the installed z=14901 to terrain z=0,
-which prevents normal combat. First identify the supporting geometry
-from installed data and compare its activation distance against
-Dragon's first update. Then correct character collision so it sees
-its own active physical neighborhood while preserving Connor's
-distance-switched collisions. Verify a far-start replay and the
-earned Dragon approach by logs and save state before resuming combat.
+its supporting `gnome14` collider has entered the collision world.
+It falls from the installed z=14901 to terrain z=0, which prevents
+normal combat. An installed-geometry test found the `gnome14` floor at
+z=14890. The cause is the building distance ball: this recreation
+centres it on the `.dig` geometry's box middle, while the traced
+original centres it on the building's placed origin (object-lighting
+rule 40). For `gnome14`, the box middle lies 46,977 units from that
+origin, causing the collider to activate too late. Restore the
+original origin centre with the same `.dig` radius. Verify a far-start
+replay and earned Dragon approach by logs and save state before combat.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

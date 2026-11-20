@@ -2888,12 +2888,14 @@ Replaces the M1 7c stand-in (the light's position, radius 100, default masks).
 
 ## A building's draw-distance ball (M1 step 7h) — `crates/kq8-viewer/src/{draw_distance,terrain_view}.rs`
 
-The code was already this way (a building `Model`'s box is the `.dig` header box); relabelled from "Q76 stand-in".
+The building radius comes from the `.dig` header box. The distance
+centre now follows the traced original after the Gnome Dragon floor
+activation check; shadow receiver bounds still use the box middle.
 
 | What | Source | Check |
 | --- | --- | --- |
 | Buildings never use `BOUNDS.KQ`; radius = half the `.dig` header box's diagonal | `object-lighting.md` rule 40 (traced, Q76) | Log: Daventry `csbridge` 4,398, `Church` (`nchurch.dig`) 18,990 (note: 4,400, 19,000) |
-| Centre = the box middle turned with the building | Rule 40 "Do not reproduce" recommendation; **the original uses the building's position** | Log: `csbridge`'s box middle 13,992 from its position (note: 14,000) |
+| Draw-distance centre = the building's placed origin | `object-lighting.md` rule 40 (traced) | Automated Gnome replay: `gnome14` supports Dragon at z=14915 through update 180; its box middle is 46,977 units from the origin |
 
 ## Reach to a clicked building (M1 step 7i) — `crates/kq8-core/src/active.rs` (`ActiveBuilding::bounds`, `placement`, `click_building`), `crates/kq8-viewer/src/load.rs`
 
