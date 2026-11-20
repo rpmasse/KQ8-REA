@@ -19,6 +19,11 @@ nearby second Rock remains without a verified access route. The later
 Gnome quest, other regions, ending, and broad save audit remain. M6
 estimate: ~98.7%.
 
+A follow-up visible-click check after 130 simulation updates still saw
+`gnome05` between the camera and `NoName270`; the camera origin remained
+`(109000, 59380, 18389)`. Waiting did not expose this Rock. Its failed
+log is under ignored `target/m6-gnome-second-rock-settled/`.
+
 ## 2026-11-20 M6 first Gnome conversation saved (~98.6%)
 
 From the earned north-corridor checkpoint, Connor walked to within

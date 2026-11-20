@@ -12,6 +12,10 @@ test and both automated viewer runs passed with the GOG install read
 only. The route still inherits diagnostic god mode; no manual test.
 M6 estimate: ~98.7%.
 
+An additional click on `NoName270` after 130 updates remained occluded
+by `gnome05`; waiting did not change the camera origin. The failed
+automated log is retained under `target/m6-gnome-second-rock-settled/`.
+
 ## 2026-11-20: M6 first Gnome conversation (~98.6%)
 
 The earned north-corridor save reached `Gnome` through ordinary walking
