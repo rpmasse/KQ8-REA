@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-20 M6 Swamp tile floor and Fiend room (~97.5%)
+
+An earned save from the Witch and Henchman route carried the hand through
+both Fiend tower rope climbs, across the upper bridge, and into the Swamp
+tile doors. The hand was consumed by the original door interaction and
+the Tile2 controller started. Its fresh-process reload retained the
+floor state. The unattended `tile_jump` diagnostic now uses Tile2's
+own grid and bound turn/Jump keys. All ten safe-tile jumps landed at
+their named targets; the west exit fired `fiendoor.cs`, ended Tile2 and
+returned control in the Fiend room. The in-game checkpoint
+`target/m6-swamp-fiend-room-save/slots/slot-2.json` reloaded at
+(40774,98560,16530) with no tile controller. The route and process
+logs are under `target/m6-swamp-tile-floor/` and
+`target/m6-swamp-fiend-room-reload/`. Viewer tests passed (82 unit
+tests, 57 ignored). M6 is ~97.5%; the Fiend room quest, later regions,
+ending and full save audit remain. No manual gameplay testing occurred.
+
 ## 2026-11-20 M6 older Swamp gate saves and hand return (~97%)
 
 Older earned Swamp saves could have an open gate animation and the

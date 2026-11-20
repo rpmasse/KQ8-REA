@@ -10659,3 +10659,14 @@ objects. Leave every other saved state unchanged. Check the narrow
 migration in an original-data test, then reload the earned hand save,
 save it anew and walk back out of the tower through the gate. Continue
 the ordinary route toward `Rtswdoor` with the carried hand.
+
+## M6 Swamp tile-floor campaign replay (2026-11-20)
+
+The earned hand opened the Swamp tile doors, and a fresh-process reload
+retained the Tile2 controller. Extend the unattended `tile_jump` route
+driver to recognize Tile2's own grid, destination chooser and busy state.
+Use only Connor's bound turn and Jump keys; do not move him to a tile
+directly or change the game's puzzle rules. Replay a path through the
+safe tiles named by the installed `newWorld.cs`, verify the west exit and
+save the resulting campaign state. Log accepted jumps and landings.
+Keep the existing Death Hall route behavior and reject malformed targets.

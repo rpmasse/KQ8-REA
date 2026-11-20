@@ -69,6 +69,13 @@ pub struct Run {
 impl Run {
     pub fn lit_name(&self)->Option<String> {self.lit.map(|c|self.kind.name(c))}
     fn light(&mut self,next:Option<Cell>) {if self.highlighted!=next {self.highlighted=next;self.lit=next;}}
+    pub(super) fn accepts_jump_key(&self)->bool {matches!(self.stage,Stage::Keys)}
+    pub(super) fn jumping_to(&self)->Option<Cell> {
+        match self.stage {Stage::Turning(choice)|Stage::Pending {choice,..}|Stage::Jumping {choice,..}=>choice.cell,_=>None}
+    }
+    pub(super) fn jump_target(&self,position:[f32;3],heading:f32)->Option<Cell> {
+        self.grid.as_ref()?.choose(position,heading,false,self.solved,false)?.cell
+    }
 }
 
 impl ConnorSim {

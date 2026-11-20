@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-20: M6 Swamp Tile2 campaign route (~97.5%)
+
+Extended only the unattended tile-jump driver to use the Swamp Tile2
+grid and destination choice. It still presses Connor's bound turn and
+Jump keys and leaves original puzzle physics, hazards and scripts in
+place. From an earned hand checkpoint, both Fiend tower rope climbs,
+the hand door, ten safe-tile jumps and the west Fiend door completed.
+The Fiend room save and fresh-process reload passed. No original asset
+or gameplay rule changed. The Fiend room quest and later campaign
+remain; M6 is ~97.5%. No manual gameplay test occurred.
+
 ## 2026-11-20: M6 repair for older Swamp gate saves (~97%)
 
 The installed `switch01.cs` makes the open `keepgate` nonblocking.

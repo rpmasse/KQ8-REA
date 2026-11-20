@@ -142,7 +142,8 @@ impl Replay {
                     || (l.tile_jump && (l.jump_toward.is_some() || l.scene.is_some() || l.until_var.is_some()
                         || l.fight.is_some() || l.break_object.is_some() || l.aim.is_some() || l.click.is_some() || l.aim_ground.is_some()
                         || l.inventory_slot.is_some() || l.run.is_some() || l.direction.is_some()
-                        || !matches!(kq8_core::tile_puzzle::where_is(l.xy[0], l.xy[1]), kq8_core::tile_puzzle::Where::Spot(_))))
+                        || !(matches!(kq8_core::tile_puzzle::where_is(l.xy[0], l.xy[1]), kq8_core::tile_puzzle::Where::Spot(_))
+                            || matches!(kq8_core::secondary_tiles::Kind::Swamp.where_is([l.xy[0], l.xy[1], 0.]), kq8_core::secondary_tiles::Where::Cell(_)))))
                     || !l.radius.is_finite()
                     || l.radius <= 0.
             })
@@ -566,6 +567,43 @@ fn steer_tile(
     keys: &mut crate::keyboard_input::GameKeys,
     shared: &Shared,
 ) -> Result<(), String> {
+    if let Some(tile) = sim.secondary_tile.as_ref() {
+        use kq8_core::secondary_tiles::{Kind, Where};
+        if tile.kind != Kind::Swamp { return Err("tile route only supports the Swamp secondary floor".into()); }
+        let point = replay.landmarks.front().unwrap();
+        let xy = point.xy;
+        let Where::Cell(target) = tile.kind.where_is([xy[0], xy[1], 0.]) else {
+            return Err("tile route target outside the Swamp floor".into());
+        };
+        if tile.jumping_to() == Some(target) {
+            let point = replay.landmarks.pop_front().unwrap();
+            replay.keys(keys, &[]);
+            shared.log.lock().unwrap().summary(format!(
+                "walk-route: Swamp Tile2 accepted {} toward {target:?} on update {}",
+                point.name, sim.updates
+            ));
+            return Ok(());
+        }
+        if !tile.accepts_jump_key() {
+            replay.keys(keys, &[]);
+            return Ok(());
+        }
+        let pos = sim.mover.position;
+        let Where::Cell(from) = tile.kind.where_is(pos) else {
+            return Err(format!("outside the Swamp tile floor at {}", point.name));
+        };
+        if from == target || (from.row - target.row).abs() > 1 || (from.col - target.col).abs() > 1 {
+            return Err(format!("{} requests {target:?} from {from:?}, which is not a neighboring tile", point.name));
+        }
+        let key = if tile.jump_target(pos, sim.walker.heading) == Some(target) {
+            sim.controls.jump.ok_or("Jump has no key binding")?
+        } else {
+            let error = wrap(heading_towards(pos, xy) - sim.walker.heading);
+            turn_key(sim, error).ok_or("no bound turn toward the requested tile")?
+        };
+        replay.keys(keys, &[key]);
+        return Ok(());
+    }
     use kq8_core::tile_puzzle::{jump_target, where_is, Where};
     let point = replay.landmarks.front().unwrap();
     let xy = point.xy;

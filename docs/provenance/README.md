@@ -1,5 +1,13 @@
 # Provenance
 
+**Swamp Tile2 campaign replay (2026-11-20, M6).**
+The installed Swamp `newWorld.cs` names the safe `fiensafe.cs` tiles;
+`docs/behaviour/secondary-tile-puzzles.md` rules 9–17 describe the
+grid, jumps, landings and west `fiendoor` handoff. The unattended route
+driver uses the existing controller's grid choice and ordinary keys.
+Ten landed jumps, the original door script, an in-game save and a
+fresh-process Fiend room reload passed. No game asset was changed.
+
 **Older Swamp gate save migration (2026-11-20, M6).**
 The installed `switch01.cs` sends the gate its open movement, removes
 collision bits 9312 and sets `Swamp::Tower::gateOpen=1`. The installed
