@@ -3,6 +3,76 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 path from the completed Gnome bridge to the iron lock (2026-11-20)
+
+The completed bridge save places Connor on the north bank with
+`Solved=true`. The authored `irnlck.cs` and `irnlckx.cs` scripts require
+breaking the iron lock at (78241, 99050) before door 4 unlocks. Use
+ordinary movement from the earned save and keep the original lock and
+door collision intact. A route replay reached the north passage, and
+an in-game save at (82608, 82114, 17475) survived a fresh-process
+reload with both bridge sides, the turned deck, and `Solved=true`.
+
+Two attempts toward the lock stopped on `gnome02`: the direct route at
+(82280, 83904), and the earlier sampled building route at (80142,
+91340), about 780 units short of its next waypoint. The second run
+reached the northwest corridor, so the earlier same-floor search is
+partly useful, but its final straight segment is not a proven walkable
+line. The local `gnome02` contact needed measurement before another
+movement replay. The north-passage save remained the safe checkpoint.
+
+The local probe identified an east lane that the ordinary route then
+followed to the lock. Arrows struck the lock but caused no damage
+because its authored collision type is projectile-immune. A normal
+King Sword swing killed it; the original scripts spawned and removed
+the replacement animation, dropped the Iron Lock item, and set
+`Gnome::Lock::Locked=0`. A visible click opened both door 4 leaves,
+and a second click picked up the dropped item. Their in-game save is
+`target/m6-gnome-door04-open-save/slots/slot-2.json`.
+Two northbound routes stopped on opposite sides of the open doorway.
+The static probe and standalone Connor mover predicted a clear line,
+which conflicted with those live runs. The detailed per-update hit
+records resolved the discrepancy: `gnome02` was the floor Connor stood
+on, while the actual sideways contact was the live `sprigsurprise`
+creature. Normal sword combat defeated it; Connor then walked through
+door 4 and saved at (78291, 100355, 17475). A fresh process restored
+that position and the corpse. From this earned checkpoint, search the
+installed same-floor building route toward Sage-room door 5 near
+(40000, 101535), then replay its viable turns through ordinary movement.
+The first direct north continuation met a real `gnome02` wall at
+(78387, 102359); do not repeat that straight line.
+The installed building-collision search found an alternate same-floor
+route: first east around the north wall via (80291, 102605), then west
+through the northern corridor via (69791, 103605), south and east around
+the middle building at (62541, 106605), and finally west to the Sage
+approach near (40041, 101605). Replay it in sections with ordinary
+movement, record any live creature or door contact, and save each
+reached section before continuing.
+The live route defeated both Sage Mantas by ordinary sword combat and
+saved at (69358, 103592). The first west turn stopped against
+`gnome03` because its arrival radius accepted a point too far north;
+a precise turn crossed the passage and saved at (64137, 102673).
+Connor then went around the middle building and saved in the upper
+hall at (59521, 106507). A straight west replay struck `gnome03`
+immediately. A corrected north alignment moved west until the authored
+rolling rock `rrock1` repeatedly triggered `rollside.cs` and knocked
+Connor backward. The safe upper-hall save is
+`target/m6-gnome-sage-upper-save/slots/slot-2.json`. Before another
+route replay, measure the rock's moving box and cycle from the installed
+data and the per-update logs, then plan a crossing that uses the normal
+movement and trap response.
+The measured `rrock1` collider stays on x57500, sweeps roughly
+y102272–111805, and repeats every 54 updates. Connor's horizontal
+contact reach adds about 200 to its 900-unit radius. The previous
+walking route remained in that 2200-unit-wide x band for too long.
+From the safe upper-hall save, a north alignment and ordinary Run key
+reached the rock's contact band on update 47. The rock was approaching
+Connor's y coordinate, so the original collision script fired and
+knocked him back. Retain this failed timing run; the next study must
+compare per-update positions of both moving boxes over the full cycle
+and pick a crossing window with clearance until Connor leaves the
+2200-unit-wide x band. Keep the trap and collision unchanged.
+
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 
 The earned two-Rock checkpoint keeps both side plates open and the bridge

@@ -1,5 +1,76 @@
 # STATUS
 
+## 2026-11-20 M6 Sage upper-corridor checkpoint (~99.7%)
+
+From the crossed door-4 save, ordinary movement followed the measured
+north and west Gnome passages. The two live Sage Mantas blocked the
+route; normal King Sword combat defeated them, and an in-game save at
+(69358, 103592, 17475) retained the result. A broad west turn stopped
+against `gnome03`; a measured tighter arrival radius passed it. Connor
+then went around the middle building and saved at (59521, 106507,
+17475). The latest safe checkpoint is
+`target/m6-gnome-sage-upper-save/slots/slot-2.json`.
+
+Two attempts to continue west failed. The first encountered the
+`gnome03` wall immediately; the corrected north alignment reached
+the authored `rrock1` rolling trap, whose `rollside.cs` repeatedly
+played Connor's knockback animation. A measured Run-key crossing also
+met the moving rock on update 47. The three logs are retained under
+`target/m6-gnome-sage-long-hall*` and
+`target/m6-gnome-sage-rock-sprint`. The next step is to compare both
+moving boxes through a complete 54-update rock cycle before another
+ordinary crossing attempt.
+The latest checkpoint inherits diagnostic god mode. No original
+files changed or manual gameplay test occurred. M6 remains ~99.7%;
+the Sage encounter, later campaign, ending, and broad save audit
+remain unfinished.
+
+## 2026-11-20 M6 Gnome iron lock cleared; door 4 opened (~99.7%)
+
+The measured east corridor carried Connor from the north bridge
+passage to the iron lock. A saved approach survived reload. The lock's
+projectile-immune flag correctly rejected a Short Bow arrow. From
+melee range, a normal King Sword swing broke it; the original scripts
+spawned and removed the replacement animation, dropped the Iron Lock
+item, and set `Gnome::Lock::Locked=0`. Connor visibly clicked door 4
+to open both leaves and picked up the dropped item. An in-game save at
+`target/m6-gnome-door04-open-save/slots/slot-2.json` retains the open
+doors, carried Iron Lock and unlocked flag; a fresh-process run loaded
+it without replaying Gnome Begin.
+
+Two live crossing attempts slid to opposite sides of the doorway. The
+detailed collision log identified the moving `sprigsurprise` creature
+as the contact; `gnome02` in the summary was the floor. Normal King
+Sword combat defeated the creature, after which Connor walked through
+door 4. An in-game save at (78291, 100355, 17475) and fresh-process
+reload retained the crossed doorway and defeated creature:
+`target/m6-gnome-door04-cross-save/slots/slot-2.json`. A direct north
+continuation then met a real `gnome02` wall at (78387, 102359); the
+Sage route must turn around it. Ignored evidence is under
+`target/m6-gnome-door04-*`. No original files changed and no manual
+gameplay test occurred. Diagnostic god mode remains inherited. M6
+rises to ~99.7%; Sage, later campaign, ending, and broad save audit
+remain unfinished.
+
+## 2026-11-20 M6 north Gnome passage checkpoint (~99.6%)
+
+From the solved bridge save, ordinary movement reached the north
+passage. An in-game save at (82608, 82114, 17475) and fresh-process
+reload retained solid footing, `Turned=opened`, both side plates open,
+and `Solved=true`. The checkpoint is
+`target/m6-gnome-north-passage-save/slots/slot-2.json`.
+
+The direct route toward the authored iron lock hit the `gnome02` wall
+at (82280, 83904). Replaying the earlier sampled corridor went through
+its first northwest turn, then met `gnome02` again at (80142, 91340),
+about 780 units before the next waypoint. These are two failed lock
+routes; neither damaged the checkpoint or advanced the lock quest.
+Logs are under ignored `target/m6-gnome-ironlock-route-*`. A focused
+local collision study is needed before another route attempt. No Rust
+or original files changed, and no manual gameplay test occurred.
+Diagnostic god mode remains inherited. M6 stays ~99.6%; the lock,
+Sage, later campaign, ending, and broad save audit remain unfinished.
+
 ## 2026-11-20 M6 Gnome bridge solved and crossed (~99.6%)
 
 The earlier plate-2 throw had struck a live bridge Manta. Normal bow

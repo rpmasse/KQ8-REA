@@ -1,5 +1,45 @@
 # MODLOG
 
+## 2026-11-20: M6 Sage upper corridor saved (~99.7%)
+
+Followed the route beyond Gnome door 4, defeated both live Sage Mantas
+with normal sword attacks, and saved their cleared corridor. A tighter
+west-turn waypoint passed `gnome03`; Connor reached and saved the upper
+hall beyond the middle building. Two farther west attempts identified
+a wall alignment and then the authored rolling-rock trap, whose script
+caused repeated knockback. An ordinary Run-key crossing also met the
+rock on update 47. The failures and latest safe save are retained under
+ignored `target/m6-gnome-sage-*`. The rolling cycle and Connor's
+crossing positions need comparison before continuing. No original
+files changed or manual gameplay test occurred. M6 remains ~99.7%.
+
+## 2026-11-20: M6 Gnome iron lock and door 4 (~99.7%)
+
+Followed a locally measured corridor from the completed bridge to the
+iron lock. Its projectile-immune flag rejected an ordinary arrow; a
+normal King Sword swing broke it and ran the authored unlock and item
+drop chain. Visible clicks opened both door 4 leaves and picked up
+the Iron Lock quest item. The result was saved in-game and loaded in
+a fresh process. Two crossing routes slid aside when the moving
+`sprigsurprise` blocked Connor. Normal sword combat defeated it;
+Connor crossed door 4, then saved and reloaded on the far side. A
+straight north continuation met the real `gnome02` wall. The
+diagnostic source and ignored logs retain both successes and failures.
+No original files changed or manual gameplay test occurred. M6 moves
+from ~99.6% to ~99.7%.
+
+## 2026-11-20: M6 north Gnome passage saved (~99.6%)
+
+Ordinary movement from the completed bridge reached the north
+passage. Saved there in-game and reloaded in a fresh process; the deck
+and bridge quest state persisted. The direct iron-lock route stopped
+on `gnome02`. The measured corridor reached farther but stopped on
+the same building before the next turn. Both failed logs and the safe
+checkpoint are retained under ignored `target/m6-gnome-*`. A local
+collision study is required before another lock approach. No Rust or
+original files changed and no manual gameplay test occurred. M6
+remains ~99.6%.
+
 ## 2026-11-20: M6 Gnome bridge solved, crossed, and saved (~99.6%)
 
 Cleared the live bridge Manta with normal bow combat after its collision

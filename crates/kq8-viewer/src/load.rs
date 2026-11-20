@@ -6159,6 +6159,49 @@ mod campaign_tests {
         None
     }
 
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_iron_lock_live_stop_collision_directions() {
+        use kq8_core::{collide::BallStack, connor_mover::CONNOR_BOX};
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-iron-lock-local-collision").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let balls = BallStack::from_box(CONNOR_BOX.0, CONNOR_BOX.1);
+        let stop = [80141.8, 91340.1, 17475.0];
+        let goal = [78152.0, 96074.0];
+        println!("live stop to old next waypoint: {:?}",
+            gnome_segment_hit(&objects.buildings, &balls, stop, [80402.3, 92073.8, 17475.0]));
+        for dx in [-1500.0, -1000.0, -750.0, -500.0, -250.0, 0.0, 250.0, 500.0, 750.0, 1000.0, 1500.0] {
+            let side = [stop[0] + dx, stop[1], stop[2]];
+            let north = [side[0], side[1] + 1000.0, side[2]];
+            println!("from stop dx {dx:+.0}: lateral {:?}; north {:?}",
+                gnome_segment_hit(&objects.buildings, &balls, stop, side),
+                gnome_segment_hit(&objects.buildings, &balls, side, north));
+        }
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, stop, [goal[0], goal[1]]);
+        println!("live stop to iron lock south: expanded {expanded}; building-only route {route:?}");
+
+        let door_start = [78333.36, 97712.84, 17475.0];
+        for dx in [-1750.0, -1250.0, -750.0, -250.0, 0.0, 250.0, 750.0, 1250.0, 1750.0] {
+            let lane = [door_start[0] + dx, door_start[1], door_start[2]];
+            let across = [lane[0], 100600.0, lane[2]];
+            println!("door four dx {dx:+.0}: lateral {:?}; north {:?}",
+                gnome_segment_hit(&objects.buildings, &balls, door_start, lane),
+                gnome_segment_hit(&objects.buildings, &balls, lane, across));
+        }
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, door_start, [78241.0, 100600.0]);
+        println!("door four saved position to north side: expanded {expanded}; building-only route {route:?}");
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+            door_start, [78241.0, 100600.0], 17500.0, 300.0);
+        println!("door four Connor-mover route: expanded {expanded}; route {route:?}");
+        let crossed_door = [78291.38, 100354.86, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls,
+            crossed_door, [40000.0, 101535.0]);
+        println!("crossed door four to Sage-room door: expanded {expanded}; building-only route {route:?}");
+    }
+
     /// Diagnostic only: find possible turns through the installed interior
     /// collision data. The live route still has to walk and encounter objects.
     fn gnome_building_route(
