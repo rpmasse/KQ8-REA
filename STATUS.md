@@ -1,5 +1,17 @@
 # STATUS
 
+## 2026-11-20 M6 Swamp keep gate save continuity (~97%)
+
+An earned open-gate save recorded `keepgate` with no collision, but a
+later reload and save lost that override. The gate then looked open yet
+blocked Connor's return from the tower. Restored scripted animated
+objects now retain their saved collision type, including zero. A focused
+Swamp data check passed; two successive fresh-process saves kept zero,
+and unattended movement crossed the gate in both directions after the
+second reload. Earlier hand checkpoints made before this fix remain
+diagnostic snapshots; the Swamp tile-door route and later regions still
+need completion. M6 stays ~97%. No manual gameplay testing occurred.
+
 ## 2026-11-20 M6 Swamp Henchman and hand item (~97%)
 
 From the earned chest reward, ordinary movement approached the stationary

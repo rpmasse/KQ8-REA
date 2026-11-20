@@ -1,5 +1,13 @@
 # Provenance
 
+**Swamp keepgate saved collider (2026-11-20, M6).**
+The earned open-gate save has `keepgate` movement `open`, phase 1 and
+`collision_type=0`; the installed `KEEPGATE.KQ` provides the scripted
+animated model and its original solid collider. A fresh reload must keep
+the saved zero and the object's scripted role. A focused original-data
+check, two successive fresh-process saves and an unattended route through
+the gate in both directions passed. The original asset was not changed.
+
 **Swamp Henchman route completion (2026-11-20, M6).**
 The installed `CHEST1.CS` death cue places `INVITEM_hmhand` and returns
 control. `docs/behaviour/fighting.md` rule 32 describes the death

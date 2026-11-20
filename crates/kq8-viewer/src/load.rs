@@ -4075,13 +4075,17 @@ impl Placer<'_> {
         }
         // A clickable animated object with a script, still when loaded
         // (3e-5: `smlchst1`, `jar1`, the baskets): its script may play
-        // another movement. One that already plays stays with `anim_view`.
+        // another movement. A restored scripted object keeps that role even
+        // if its saved movement has a nonzero playback speed.
+        let kept_collider = self.kept_states.get(&p.name.to_ascii_lowercase())
+            .is_some_and(|state| state.collision_type.is_some());
         let scripted = p.class.as_deref().is_some_and(|c| c.eq_ignore_ascii_case("KQAnimObject"))
             && s.get("script").is_some_and(|v| !v.trim().is_empty())
-            && collider_value(s, "colliderType", kq8_core::collide::DEFAULT_TYPE).0 & kq8_core::click::CLICKABLE != 0;
+            && (collider_value(s, "colliderType", kq8_core::collide::DEFAULT_TYPE).0
+                & kq8_core::click::CLICKABLE != 0 || kept_collider);
         if !unused && scripted {
             match &animation {
-                Some(c) if c.speed == 0.0 => {
+                Some(c) if c.speed == 0.0 || kept_collider => {
                     self.place_door(&label, &file, p, Mover::Object);
                     return;
                 }
@@ -7379,6 +7383,27 @@ mod regional_item_checks {
         Arrival { no_name_from, items, third_person_lists: None, exit_movement: None, kept_vars: vec![],
             gone: Default::default(), corpse_skins: vec![], came_in: vec![], object_copies: vec![],
             states: Default::default(), prop_placements: Default::default(), kept_maps: Default::default() }
+    }
+
+    #[test]
+    #[ignore = "reads the installed Swamp world"]
+    fn saved_open_keepgate_remains_a_scripted_object_with_zero_collision() {
+        let game = GameDir::open(std::env::var_os("KQ8_GAME_DIR").unwrap()).unwrap();
+        let world = World::open(&game, "Swamp").unwrap();
+        let mut log = Log::create("swamp-kept-gate-collision").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let mut saved = arrival(0, None);
+        saved.states.insert("keepgate".into(), kq8_core::active::KeptState {
+            name: "keepgate".into(), movement: "open".into(), phase: 1.0,
+            waiting: None,
+            placement: kq8_core::collide::Placement::at([159632.0, 24700.0, 6380.0]),
+            collision_type: Some(0),
+        });
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, Some(saved), None);
+        let gate = objects.doors.iter().find(|door| door.placement.name.eq_ignore_ascii_case("keepgate"))
+            .expect("saved keepgate must remain a scripted object");
+        assert!(gate.object);
+        assert_eq!(gate.collider_type, 0);
     }
 
     #[test]

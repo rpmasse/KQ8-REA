@@ -1,5 +1,14 @@
 # MODLOG
 
+## 2026-11-20: M6 open gate save continuity (~97%)
+
+Fixed a reload path that changed the open Swamp `keepgate` into a plain
+animated model, losing its saved zero collision type on the next save.
+The gate now remains a scripted object with the saved collider. A focused
+data check, two successive fresh-process saves and an unattended walk
+through the gate in both directions passed. The fix changes no original
+asset. M6 remains ~97%; no manual gameplay test occurred.
+
 ## 2026-11-20: M6 earned Swamp Henchman defeat (~97%)
 
 The earned chest checkpoint led to normal melee combat with the

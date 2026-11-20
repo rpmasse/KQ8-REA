@@ -10634,3 +10634,16 @@ click after reload. This command removes bit 0x20; it does not remove the
 building's wall geometry or its bit 0x8 collision with Connor. Verify
 the script command and save/reload with automated state checks, then
 route through the actual opening rather than across the solid side wall.
+
+### M6 Swamp keepgate zero-collider reload (2026-11-20)
+
+The earned open `keepgate` saves `colliderType=0`. On its next load,
+the viewer currently treats that scripted `KQAnimObject` as a plain
+animation because it no longer has a clickable bit. The next save then
+loses the zero collision type, and a later load restores the authored
+blocking gate. Keep a scripted animated object in the scripted-object
+path when a saved state explicitly supplies its collision type, even
+when that value is zero. Verify the restored object and collider in a
+focused data test, then save, reload and walk back out through the gate
+using ordinary movement. This is a save continuity fix, not a new door
+rule or an asset change.
