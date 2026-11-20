@@ -359,15 +359,20 @@ teleporter. The post-scene in-game slot at
 a fresh-process load. Continue the remaining Gnome branch and later
 regions from that checkpoint; do not count the Sage handoff as full M6
 completion.
-The route's inherited Gnome arrival save had the viewer's diagnostic
-god mode on throughout; enemy AI was on. The puzzle and script path is
-proven, but survival with ordinary damage through the whole route is
-not. A separate full Sage handoff replay switched god mode off before
-the item click and saved at
-`target/m6-gnome-lodestone-sage-handoff-normal-save/slots/slot-2.json`.
-That slot has `god_mode=false`, `ai_off=false`, and `Met=2`; a fresh
-process loaded it. Use this slot for subsequent campaign work, and
-retain a normal-damage replay of the earlier route as an M6 gate.
+The first return inherited diagnostic god mode. A later automated
+replay disabled god mode before leaving the earned open-wall checkpoint
+and kept enemy AI on. Short saves avoided idle exposure in the middle
+buildings. Each rolling-rock track was crossed while running, without a
+rock hit in the successful checkpoints. After the third track, Connor
+ran continuously down the x≈39947 side lane and through Sage's open
+door, surviving SageRock's ranged fire with 53 health. The ordinary
+quest-bar Lodestone click completed Sage's scene. The in-game save at
+`target/m6-normal-return-efficient/sage-handoff-save/slots/slot-2.json`
+has `god_mode=false`, `ai_off=false`, `Gnome::Sage::Met=2`, the Lodestone
+gone and Barren's teleport mark earned. A fresh process loaded it.
+Use this slot for subsequent campaign work. The earlier Gnome
+arrival-to-altar segment and full campaign still need normal-damage
+verification.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

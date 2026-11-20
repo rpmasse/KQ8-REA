@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-21: M6 normal-damage Sage return (~73%)
+
+**Changed:** Recorded a normal-damage replay of the earned open-wall to
+Sage route; no gameplay code changed. **Why:** The earlier successful
+return inherited diagnostic invulnerability. **Tested:** Automated
+movement with `god_mode=false` and enemy AI on reached Sage's room at
+53 health after the three moving-rock crossings. The ordinary quest-bar
+Lodestone click completed Sage's handoff; the in-game save retained
+`Gnome::Sage::Met=2`, consumed the Lodestone and earned Barren's teleport
+mark. A fresh process loaded the slot (`RESULT: PASS`). **Failures:**
+Long idle waits invited MantaFoder and SageRock hits; early rock timing
+and a building corner blocked other attempts. Shorter checkpoints and
+a continuous final sprint passed. **Limit:** This begins from an earned
+open-wall checkpoint after the earlier Gnome tasks; the whole Gnome
+route and 12-region campaign are not yet proven under normal damage.
+No manual gameplay test or original-file edit occurred.
+
 ## 2026-11-21: M6 Sage Lodestone handoff (~72%)
 
 **Changed:** Replayed and documented the return from the Gnome altar

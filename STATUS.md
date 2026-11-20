@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-21 M6 normal-damage Sage return (~73%)
+
+An automated replay switched diagnostic god mode off before the Gnome
+open-wall return and left enemy AI enabled. Connor followed the measured
+middle-building turns, crossed all three rolling-rock tracks, and ran
+continuously past the Sage-side ranged enemy into Sage's room. He arrived
+with 53 health and the earned Lodestone. The ordinary quest bar and Sage
+click completed the original handoff; the in-game save at
+`target/m6-normal-return-efficient/sage-handoff-save/slots/slot-2.json`
+has `god_mode=false`, `ai_off=false`, `Gnome::Sage::Met=2`, the Lodestone
+gone, and Barren's teleport mark earned. A separate viewer process
+loaded that save successfully (`RESULT: PASS`). Earlier replay attempts
+lost health during idle waits, struck a rock on mistimed crossings, or
+died to SageRock while stopping outside the door; the successful route
+used earlier saves and a continuous final sprint.
+
+This verifies the open-wall checkpoint through the Sage handoff under
+normal damage. The earlier Gnome arrival-to-altar segment and complete
+12-region campaign remain unverified with normal damage. M6 is ~73%.
+No manual gameplay test or original-file edit occurred.
+
 ## 2026-11-21 M6 Sage received the Lodestone (~72%)
 
 An automated return from the earned Gnome altar save followed the
