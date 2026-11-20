@@ -112,6 +112,43 @@ fresh process reloaded and saved that position with 170 health. This
 is an earned upper-ramp checkpoint, not a lower-floor or third-Rock
 checkpoint. The next action is to sample the exact wall/floor boundary
 from this saved point before trying a new descent.
+The focused segment probe found the west-then-south move clear. An
+ordinary replay from the saved ramp top reached (93232, 49670, 14937)
+at the slope's base; its next east bend stopped at (93379, 49270,
+14915). A shorter replay saved at (93147, 49089, 14915), and a fresh
+process reloaded the same position and 170 health. From this earned
+base, run the height-aware search again toward a supported floor below
+14000, and sample the exact east contact before another live turn.
+The saved ramp base had a clear straight-east collision segment; the
+earlier diagonal began inside `gnome06`. Normal movement reached
+(96910, 49068, 14074) and the resulting in-game save settled at
+(97788, 49182, 13830) with 170 health. A fresh process reloaded and
+saved the same state. Continue the height-aware search from this earned
+lower-step checkpoint toward the first mushroom cluster's 12350 floor,
+then replay only its supported turns.
+The lower-step search found a supported eastward slope. Normal
+walking reached its 12350 floor and saved at (103599, 48823, 12355)
+with 170 health. A fresh process reloaded and saved that same state.
+Now search a bounded height-aware route from this earned lower-floor
+checkpoint toward the third Rock at (137311, 70325, 12350). Require
+the search to finish near the Rock as well as at its height; the
+earlier threshold-only search would stop immediately at this save.
+The route remains diagnostic until ordinary walking, a visible pickup,
+and save/reload confirm the Rock was earned.
+The new height-aware search found a supported 12350-floor route toward
+the third Rock, looping through the lower Gnome corridors near
+(105600, 53300), (114850, 53300), (122100, 49070), (129350, 53300),
+(135000, 51040), and (141000, 68040). Its goal is within 1800 of
+the Rock, but the search omits creatures and dynamic doors. Replay
+the corridor in short earned segments with normal walking and
+save/reload at each verified reach point; stop at any authored door
+or collision and inspect it before changing the route.
+The first normal lower-corridor replay reached (105540, 48805,
+12355), but Connor's stop/turn placed him at x105712. He met
+`gnome06` head-on at (105712, 52159) while heading north. The
+diagnostic path had x105599 through this passage. Probe nearby
+short northbound segments at the mover's raised height, then make
+one evidence-based correction that enters the opening farther west.
 
 ## M6 Gnome alternate-floor route probe (2026-11-20)
 
@@ -10982,3 +11019,17 @@ walking fell to the lower floor before the upper bridge passage.
 Future Gnome work must establish the authored Rock-access and bridge
 sequence from earned items; no direct movement or item injection may
 stand in for it.
+
+The height-aware diagnostic then found a nonfatal western ramp from the
+earned Gnome conversation checkpoint. Ordinary movement reached its
+top and descended via a west-first turn, saving the ramp base and then
+the mushroom floor at z=12355. A fresh-process reload retained each
+checkpoint. The same diagnostic found a connected lower passage toward
+the third Rock. Its first live corridor replay drifted into the east
+wall; turning north earlier reached the second mushroom approach and
+saved at (115159, 53212, 12355). The next south turn hit `gnome06` at
+(115159, 53121); moving west before turning south reached the eastern
+turn and saved at (122272, 49116, 12355). Fresh-process reloads retained
+both saves. Continue along the measured lower passage with ordinary
+movement, then obtain the third Rock by a visible click before relying
+on it for the bridge. The path search by itself proves no quest state.

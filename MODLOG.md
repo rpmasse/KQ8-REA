@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome lower corridor reached (~99.2%)
+
+Generalized the ignored height-aware Gnome route diagnostic to search
+from earned ramp and lower-floor checkpoints toward the third Rock.
+Normal viewer walking descended the ramp and reached the mushroom floor,
+then two lower-corridor sections. The first north turn and later south
+turn stopped against `gnome06`; measured earlier turns passed both.
+In-game saves and fresh-process reloads confirmed the ramp base, lower
+step, mushroom floor, second mushroom approach, and (122272, 49116,
+12355) corridor checkpoint. The focused diagnostic test and successful
+viewer routes passed; failures remain in ignored logs. The third Rock,
+bridge crossing and later campaign remain unfinished. No original files
+were changed and no manual gameplay test occurred.
+
 ## 2026-11-20: M6 Gnome western ramp reached (~99.1%)
 
 Added an ignored height-aware route diagnostic using the existing

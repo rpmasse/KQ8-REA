@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome lower corridor checkpoint (~99.2%)
+
+Normal movement descended the western ramp from the earned ramp-top
+save to Gnome's lower floor at z=12355. A height-aware collision search
+using Connor's mover found a route toward the third Rock; the search
+excluded dynamic doors and creatures and remains diagnostic only.
+Ordinary viewer replays reached the lower-floor mushroom corridor,
+corrected two wall contacts, and saved at (122272, 49116, 12355).
+A fresh process loaded and saved that same position. The previous
+blocked routes at (105712, 52159) and (115159, 53121) remain logged.
+The third Rock has not been picked up, the bridge has not been crossed,
+and later campaign regions remain unfinished. These saves inherit
+diagnostic god mode. Ignored logs and saves are under
+`target/m6-gnome-ramp-*`, `target/m6-gnome-lower-*`, and
+`target/m6-gnome-third-rock-*`. No original files changed and no manual
+gameplay test occurred. The earned lower-floor checkpoint moves M6 to
+~99.2%; this is an estimate, not a completeness claim.
+
 ## 2026-11-20 M6 Gnome west-ramp checkpoint (~99.1%)
 
 A bounded search using Connor's existing mover and the installed

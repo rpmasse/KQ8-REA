@@ -6225,6 +6225,9 @@ mod campaign_tests {
         ground: &kq8_data::Terrain,
         buildings: &[kq8_core::collide::BuildingCollider],
         start: [f32; 3],
+        target: [f32; 2],
+        goal_height: f32,
+        goal_radius: f32,
     ) -> (usize, Option<Vec<[f32; 3]>>) {
         use kq8_core::connor_mover::{Mover, Scene, State};
         use std::{cmp::Reverse, collections::{BinaryHeap, HashMap, HashSet}};
@@ -6235,7 +6238,7 @@ mod campaign_tests {
         let key = |i: i32, j: i32, z: f32| (i, j, (z / STEP).round() as i32);
         let priority = |i: i32, j: i32, cost: i32| {
             let [x, y] = spot(i, j);
-            cost + (((x - 103355.0).hypot(y - 51576.0) / STEP) * 1000.0) as i32
+            cost + (((x - target[0]).hypot(y - target[1]) / STEP) * 1000.0) as i32
         };
         let scene = Scene::new(ground, buildings, &[]);
         let initial = Mover::new(start, true);
@@ -6248,7 +6251,8 @@ mod campaign_tests {
             if !closed.insert(current) { continue; }
             let mover = movers[&current].clone();
             let at = mover.position;
-            if (12000.0..=14000.0).contains(&at[2]) && at[1] >= 45000.0 && mover.on_ground {
+            if (12000.0..=goal_height).contains(&at[2]) && at[1] >= 45000.0 && mover.on_ground
+                && (at[0] - target[0]).hypot(at[1] - target[1]) <= goal_radius {
                 let mut cells = vec![current];
                 while let Some(&previous) = parents.get(cells.last().unwrap()) { cells.push(previous); }
                 cells.reverse();
@@ -6320,7 +6324,7 @@ mod campaign_tests {
             println!("{label} ({:.0},{:.0}): {}", from[0], from[1], probes.join("; "));
         }
         let start = [105233.555, 36429.613, 17475.0];
-        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, start);
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, start, [103355.0, 51576.0], 14000.0, f32::INFINITY);
         println!("Gnome arrival height-changing route: expanded {expanded} states; route length {:?}; sampled points {:?}",
             route.as_ref().map(Vec::len), route.as_ref().map(|path| path.iter().step_by(5).copied().collect::<Vec<_>>()));
         for (name, target) in [("first Rock", [108476.0, 38521.0]), ("first plate", [100768.0, 54307.0])] {
@@ -6338,8 +6342,21 @@ mod campaign_tests {
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, npc_stop, [113327.0, 60324.0]);
         println!("live first Gnome stop to NPC: expanded {expanded} cells; building-only route: {route:?}");
         let talk_save = [113217.7, 62000.4, 17475.0];
-        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, talk_save);
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, talk_save, [103355.0, 51576.0], 14000.0, f32::INFINITY);
         println!("Gnome conversation height-changing route: expanded {expanded} states; route length {:?}; sampled points {:?}",
+            route.as_ref().map(Vec::len), route.as_ref().map(|path| path.iter().step_by(5).copied().collect::<Vec<_>>()));
+        let ramp_base = [93147.34, 49088.938, 14915.0];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, ramp_base, [103355.0, 51576.0], 14000.0, f32::INFINITY);
+        println!("Gnome ramp-base height-changing route: expanded {expanded} states; route length {:?}; sampled points {:?}",
+            route.as_ref().map(Vec::len), route.as_ref().map(|path| path.iter().step_by(3).copied().collect::<Vec<_>>()));
+        let lower_step = [97788.1, 49181.79, 13830.186];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, lower_step, [103355.0, 51576.0], 12500.0, f32::INFINITY);
+        println!("Gnome lower-step to lower floor route: expanded {expanded} states; route length {:?}; sampled points {:?}",
+            route.as_ref().map(Vec::len), route.as_ref().map(|path| path.iter().step_by(3).copied().collect::<Vec<_>>()));
+        let lower_floor = [103598.84, 48822.62, 12355.0];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings, lower_floor,
+            [137311.0, 70325.0], 13000.0, 1800.0);
+        println!("Gnome lower floor to third Rock route: expanded {expanded} states; route length {:?}; sampled points {:?}",
             route.as_ref().map(Vec::len), route.as_ref().map(|path| path.iter().step_by(5).copied().collect::<Vec<_>>()));
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [114861.0, 60965.0]);
         println!("Gnome talk save to second Rock: expanded {expanded} cells; building-only route: {route:?}");
@@ -6476,6 +6493,30 @@ mod campaign_tests {
                 .collect();
             println!("{label}: {}", if hits.is_empty() { "clear".to_owned() } else { hits.join("; ") });
             println!("{label} sampled: {:?}", gnome_segment_hit(&objects.buildings, &balls, from, to));
+        }
+        for (label, from, to) in [
+            ("ramp top direct", [93453.07, 58983.73, 17800.0], [93215.0, 58343.0, 17800.0]),
+            ("ramp top west first", [93453.07, 58983.73, 17800.0], [93215.0, 58983.73, 17800.0]),
+            ("ramp top south after west", [93215.0, 58983.73, 17800.0], [93215.0, 58343.0, 17800.0]),
+            ("ramp blocked point west", [93385.0, 58888.0, 17836.0], [93215.0, 58888.0, 17836.0]),
+            ("ramp base east", [93147.34, 49088.938, 15240.0], [93965.0, 49093.0, 15240.0]),
+            ("ramp east blocked point", [93379.0, 49270.0, 15240.0], [93965.0, 49093.0, 15240.0]),
+        ] {
+            println!("Gnome {label}: {:?}", gnome_segment_hit(&objects.buildings, &balls, from, to));
+        }
+        for (name, [x, y]) in [
+            ("ramp top", [93453.0, 58984.0]),
+            ("ramp west turn", [93215.0, 58984.0]),
+            ("ramp slope entry", [93215.0, 58343.0]),
+            ("ramp blocked point", [93385.0, 58888.0]),
+        ] {
+            println!("Gnome {name} downward contact: {:?}",
+                gnome_segment_hit(&objects.buildings, &balls, [x, y, 18000.0], [x, y, 14000.0]));
+        }
+        for x in [105250.0, 105350.0, 105450.0, 105550.0, 105650.0, 105712.0] {
+            println!("Gnome lower corridor north at x{x:.0}: {:?}",
+                gnome_segment_hit(&objects.buildings, &balls,
+                    [x, 48805.0, 12680.0], [x, 53322.0, 12680.0]));
         }
         assert!(gnome_segment_hit(&objects.buildings, &balls,
             [108485.4, 65473.6, 17475.0], [112309.0, 65730.0, 17475.0]).is_some(),
