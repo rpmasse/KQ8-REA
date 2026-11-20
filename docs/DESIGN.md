@@ -39,6 +39,44 @@ checkpoint. A separate occupant must hold plate 2 while Connor leaves;
 the third authored Rock or another original item route remains to be
 earned. Do not change the falling or door collision to force passage.
 
+`WorldInv.cs` also places lower-floor mushrooms near (103355, 51576),
+(121701, 55094), and (131562, 69088), all at the third Rock's
+12350 height. Probe those authored points as a possible lower-floor
+chain. Search sampled building collision from the first cluster to
+the Rock, and measure vertical contacts at the clusters. Only use the
+result to guide normal walking from the earned Gnome save; do not put
+Connor onto the lower floor through a diagnostic placement.
+The first cluster stands on `gnome06` at 12350 beneath `gnome05`;
+the second stands on the same lower interior. The third cluster is
+separated by `gnome07a` walls. The first-to-second search reached a
+cell only about 155 units from its target, so that no-path result may
+again be endpoint rounding. Sample downward contacts on a coarse
+numeric grid around the first doorway to find where the upper floor
+has a real opening to `gnome06`, then test a normal fall and save from
+the earned route. Keep the lower-area route diagnostic separate from
+the live movement proof.
+The first normal east-edge attempt reached (113939, 67401, 17475)
+but stopped against an interior at (114893, 67440, 17475), before any
+drop. Probe that exact short segment and the nearby floor levels north
+and south before a second movement attempt. Do not infer an opening
+from the first area's lower mushrooms alone.
+The second normal approach from the conversation save stopped at
+(113791, 59264, 17475) before its southern floor bend. Stop this
+conversation-side route after the two blocked attempts. As a separate
+authored access hypothesis, sample the lower floor below the gaps
+around the first doorway (x100000–108000, y44000–52000), where the
+upper floor's numeric grid changes from `gnome05` to void or `gnome06`.
+Only try a live drop where the lower `gnome06` floor lies beneath it.
+The lower contact grid found `gnome06` under x100000–106000 at y48000–50000,
+with heights 13200 down to 12350, but the reachable upper corridor did
+not have a clear descent there. Normal walking from the earned arrival
+save stopped at (102512, 47857, 17475) on the direct approach and at
+(102744, 49343, 17475) through the previously sampled corridor turn.
+Neither route reached the lower floor. Stop these first-doorway variants.
+Next locate the actual lower-level entrance using a height-aware
+collision route or authored transfer, rather than assuming a vertical
+floor contact means Connor can reach it from above.
+
 ## M6 Gnome alternate-floor route probe (2026-11-20)
 
 The earned Gnome route now has a Rock held on the first door plate and a

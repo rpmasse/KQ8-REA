@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome third Rock lower entrance diagnosis (~99.1%)
+
+The installed Gnome `WorldInv.cs` places lower-floor mushrooms near
+the first doorway, in the eastern corridor, and near the third Rock.
+An ignored collision probe found `gnome06` floors at 12350–13200
+beneath parts of the first doorway and `gnome07a` around the third
+Rock. Bounded constant-height searches did not connect them; rounded
+endpoints may obscure short final segments. Two normal attempts
+from the earned Gnome conversation stopped at upper-floor walls near
+(114893, 67440) and (113791, 59264). Two separate attempts from the
+earned arrival stopped near (102512, 47857) and (102744, 49343), both
+still at z17475. None reached the lower level; the bridge save remains
+intact. The diagnostic test passed, with ignored logs under
+`target/m6-gnome-lower-*`, `target/m6-gnome-first-lower-*`, and
+`target/m6-gnome-east-boundary-probe.log`. Next find an actual
+height-changing entrance before a third live route. No original files
+were written and no manual gameplay test occurred. M6 remains ~99.1%;
+the bridge crossing and full campaign remain unfinished.
+
 ## 2026-11-20 M6 Gnome bridge sides opened and reward saved (~99.1%)
 
 The installed plate-4 script permits its Rock to leave while another

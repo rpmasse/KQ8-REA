@@ -6297,6 +6297,9 @@ mod campaign_tests {
             ("arrival to east corridor", start, [125000.0, 45000.0]),
             ("arrival to door 7 west", start, [146000.0, 52754.0]),
             ("third Rock to door 7", [137311.0, 70325.0, 12375.0], [146000.0, 52754.0]),
+            ("lower mushrooms 1 to 2", [103355.0, 51576.0, 12375.0], [121701.0, 55094.0]),
+            ("lower mushrooms 2 to 3", [121701.0, 55094.0, 12375.0], [131562.0, 69088.0]),
+            ("lower mushrooms 3 to Rock", [131562.0, 69088.0, 12375.0], [137311.0, 70325.0]),
         ] {
             let (expanded, route) = gnome_building_route(&objects.buildings, &balls, from, target);
             println!("Gnome {name} at height {:.0}: expanded {expanded} cells; building-only route: {route:?}", from[2]);
@@ -6307,9 +6310,52 @@ mod campaign_tests {
             ("third Rock midpoint", [130000.0, 70000.0]),
             ("third Rock near", [135000.0, 70000.0]),
             ("third Rock", [137311.0, 70325.0]),
+            ("lower mushrooms 1", [103355.0, 51576.0]),
+            ("lower mushrooms 2", [121701.0, 55094.0]),
+            ("lower mushrooms 3", [131562.0, 69088.0]),
         ] {
             println!("Gnome {name} upper-floor vertical contact: {:?}",
                 gnome_segment_hit(&objects.buildings, &balls, [x, y, 20000.0], [x, y, 0.0]));
+            println!("Gnome {name} lower-floor vertical contact: {:?}",
+                gnome_segment_hit(&objects.buildings, &balls, [x, y, 13500.0], [x, y, 0.0]));
+        }
+        for y in (42000..=62000).step_by(2000) {
+            let row: Vec<_> = (100000..=112000).step_by(2000).map(|x| {
+                let hit = gnome_segment_hit(&objects.buildings, &balls,
+                    [x as f32, y as f32, 18000.0], [x as f32, y as f32, 0.0]);
+                match hit {
+                    Some((name, at)) => format!("{x}:{:.0}:{name}", at[2]),
+                    None => format!("{x}:void"),
+                }
+            }).collect();
+            println!("Gnome entry vertical section y={y}: {}", row.join(" "));
+        }
+        for y in (50000..=72000).step_by(2000) {
+            let row: Vec<_> = (112000..=120000).step_by(2000).map(|x| {
+                let hit = gnome_segment_hit(&objects.buildings, &balls,
+                    [x as f32, y as f32, 18000.0], [x as f32, y as f32, 0.0]);
+                match hit {
+                    Some((name, at)) => format!("{x}:{:.0}:{name}", at[2]),
+                    None => format!("{x}:void"),
+                }
+            }).collect();
+            println!("Gnome east vertical section y={y}: {}", row.join(" "));
+        }
+        for y in (44000..=52000).step_by(2000) {
+            let row: Vec<_> = (100000..=108000).step_by(2000).map(|x| {
+                let hit = gnome_segment_hit(&objects.buildings, &balls,
+                    [x as f32, y as f32, 13500.0], [x as f32, y as f32, 0.0]);
+                match hit {
+                    Some((name, at)) => format!("{x}:{:.0}:{name}", at[2]),
+                    None => format!("{x}:void"),
+                }
+            }).collect();
+            println!("Gnome entry lower section y={y}: {}", row.join(" "));
+        }
+        for y in [63000.0, 65000.0, 67440.0, 69000.0] {
+            println!("Gnome east edge from live stop to x116000 y{y:.0}: {:?}",
+                gnome_segment_hit(&objects.buildings, &balls,
+                    [114893.0, 67440.0, 17475.0], [116000.0, y, 17475.0]));
         }
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [86303.0, 66502.0]);
         println!("Gnome talk save to bridge east plate: expanded {expanded} cells; building-only route: {route:?}");

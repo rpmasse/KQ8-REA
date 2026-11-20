@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome lower-level access diagnosis (~99.1%)
+
+Extended the ignored original-data collision diagnostic with lower
+mushroom routes and vertical floor sections around the first doorway
+and eastern corridor. The test passed and identified lower interior
+surfaces, but four normal movement attempts from two earned saves
+stopped on the upper floor. No new campaign checkpoint was claimed;
+the next route needs a real level-changing entrance. All failures and
+their final positions are recorded in ignored logs. No original files
+were changed and no manual gameplay test occurred. M6 remains ~99.1%.
+
 ## 2026-11-20: M6 Gnome bridge reward checkpoint (~99.1%)
 
 Extended the ignored Gnome collision diagnostic to locate the third
