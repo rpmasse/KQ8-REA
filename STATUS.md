@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-20 M6 Swamp Henchman and hand item (~97%)
+
+From the earned chest reward, ordinary movement approached the stationary
+Henchman guard. Normal King Sword hits defeated him with AI and collision
+active. His death awarded 50,005 experience, reaching level 16, then the
+authored death scene placed `INVITEM_hmhand` and returned control.
+The unattended route originally reported failure after his scripted
+deletion because it expected a corpse; it now accepts a deleted combat
+target only after observing that target alive in the same fight.
+
+A camera-visible click in third person picked up the hand. An in-game
+save and fresh-process reload retained one carried hand, both Mask
+items, Henchman's absence, the open tower gate and level 16 with 27,575
+experience. The ignored save is
+`target/m6-swamp-hmhand-save/slots/slot-2.json`. The hand opens the
+authored Swamp tile doors at approximately (65290,98300); the route to
+them, later regions and full save audit remain. Test-only invulnerability
+remains enabled. M6 stays ~97%. No manual gameplay testing occurred.
+
 ## 2026-11-20 M6 Swamp tower chest reward and reload (~97%)
 
 From the earned open-gate checkpoint, ordinary movement climbed both

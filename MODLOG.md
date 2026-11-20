@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-20: M6 earned Swamp Henchman defeat (~97%)
+
+The earned chest checkpoint led to normal melee combat with the
+stationary Henchman. He died, granted 50,005 experience and completed
+his authored death scene. The unattended route now recognizes a
+script-deleted opponent without a corpse after it has seen that
+opponent alive; this changes no gameplay behavior. Connor picked up
+the dropped hand through a visible third-person click. An in-game save
+and fresh reload retained the hand, both Mask items, level 16 and the
+Henchman's absence. The Swamp tile doors and later regions remain;
+M6 stays ~97%. No manual gameplay test occurred.
+
 ## 2026-11-20: M6 Swamp tower chest and rise animation (~97%)
 
 Automated movement crossed both tower ramps. A normal Short Bow shot

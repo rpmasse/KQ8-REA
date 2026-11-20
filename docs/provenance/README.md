@@ -1,5 +1,13 @@
 # Provenance
 
+**Swamp Henchman route completion (2026-11-20, M6).**
+The installed `CHEST1.CS` death cue places `INVITEM_hmhand` and returns
+control. `docs/behaviour/fighting.md` rule 32 describes the death
+callback. The unattended route accepts a combat target's deletion only
+after seeing it alive during the current fight; this covers the
+no-corpse Henchman. Normal combat, pickup, save and fresh reload passed
+without changing original assets or gameplay code.
+
 **Swamp chest rise movement (2026-11-20, M6).**
 The installed `CHEST1.CS` asks `KQConner::setDoMode 0 rise` and waits
 for Connor's `Cue 300 rise` before its Henchman handoff. The installed

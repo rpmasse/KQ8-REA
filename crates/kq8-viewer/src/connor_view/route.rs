@@ -316,6 +316,10 @@ pub fn steer(
                         world.corpses.get(before..)?.iter()
                             .any(|corpse| corpse.name.eq_ignore_ascii_case(&name)).then_some(false)
                     })
+                    // Some authored death scripts remove the enemy without
+                    // leaving a corpse (Swamp's Henchman). Only accept that
+                    // after this route observed the living combat target.
+                    .or_else(|| replay.fight_start.filter(|_| world.is_deleted(&name)).map(|_| false))
             };
             let Some(alive) = alive else {
                 shared
