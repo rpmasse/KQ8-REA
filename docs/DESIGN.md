@@ -15,7 +15,7 @@ held bridge save intact as a fallback. Do not alter item placement,
 collision, game variables, or the original GOG files. The diagnostic
 may guide a route but does not count as earned campaign progress.
 
-The probe found no upper-floor building route east from the arrival or
+The bounded probe found no upper-floor building route east from the arrival or
 conversation corridor. At the third Rock's own height, a sampled route
 toward door 7 nearly reached its rounded endpoint; the Rock is in a
 separate lower interior. This route is deferred. The installed
@@ -31,6 +31,13 @@ and `Plate3` as opened and `FirstTime=1`. `Solved` remains false because
 camera-visible clicks from the held plate were blocked by other bridge
 geometry. Stop varying that click angle without a new route. The
 unspent experience rolled into level 18 on the saved checkpoint.
+The first normal northbound crossing from that checkpoint released
+Connor's plate 2 at update 18. Side one closed at update 34, and Connor
+fell from the upper floor by update 58 before reaching the rotated
+bridge. Thus the simultaneous reward state is not a traversable bridge
+checkpoint. A separate occupant must hold plate 2 while Connor leaves;
+the third authored Rock or another original item route remains to be
+earned. Do not change the falling or door collision to force passage.
 
 ## M6 Gnome alternate-floor route probe (2026-11-20)
 

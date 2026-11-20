@@ -10,6 +10,9 @@ plate 3 and opened side two. An in-game save and fresh-process reload
 retained both opened sides, the turned bridge, `FirstTime=1`, and the
 50,000-experience reward. The bridge's `Solved` variable remains false
 until its scripted side click; two visible clicks were occluded. The
+first attempted northbound crossing released Connor's plate, closed
+side one, and dropped him below the bridge. It is not yet a traversable
+bridge checkpoint; a separate plate occupant must be earned. The
 focused collision test and automated viewer runs passed. No original
 files were written and no manual gameplay test occurred. M6 estimate:
 ~99.1%.

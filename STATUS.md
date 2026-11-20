@@ -14,11 +14,13 @@ fresh-process reload retained `Turned=opened`, `SideOne=opened`,
 and level 18. `Solved=false`: the installed `brigtest.cs` sets it only
 when Connor clicks a bridge side. Two normal camera-visible click
 attempts from plate 2 hit other bridge geometry, so that approach is
-paused. The third Rock's separate lower-floor area was sampled but
-not entered. Ignored automated runs are under
+paused. An ordinary northbound attempt released plate 2, closed side
+one, and dropped Connor below the bridge before he could cross. A
+separate plate-2 occupant is needed for traversal. The third Rock's
+lower-floor area was sampled but not entered. Ignored automated runs are under
 `target/m6-gnome-bridge-*`; no original files changed and no manual
 gameplay test occurred. M6 is estimated at ~99.1%; the explicit
-bridge click, Sage, later regions, ending, and broad save audit remain.
+bridge click and traversal, Sage, later regions, ending, and broad save audit remain.
 Diagnostic god mode is still inherited by this route.
 
 ## 2026-11-20 M6 Gnome second Rock and bridge side one (~99.0%)
