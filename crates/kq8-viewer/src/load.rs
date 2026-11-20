@@ -6202,6 +6202,84 @@ mod campaign_tests {
         println!("crossed door four to Sage-room door: expanded {expanded}; building-only route {route:?}");
     }
 
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_rolling_rock_cycle_positions() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-rolling-rock-cycle").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let rock = objects.animated.iter().find(|actor|
+            objects.placed[actor.placed].0.name.eq_ignore_ascii_case("rrock1")).unwrap();
+        let start = &objects.placed[rock.placed].0;
+        let animation = &objects.object_animations[rock.movements[rock.current].2];
+        println!("rock start {:?} angles {:?} frames {}", start.position, start.angles,
+            animation.frame_transforms.len());
+        for frame in 0..animation.frame_transforms.len() {
+            let pose = kq8_core::anim::pose_at_frame(&animation.frame_transforms, frame);
+            println!("rock frame {frame}: relative {:?}, world y {:.1}", pose.p,
+                start.position[1] + pose.p[1]);
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_sage_to_lodestone_height_route() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-sage-lodestone-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let start = [33151.0, 101665.0, 17475.0];
+        let target = [81791.0, 145754.0];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+            start, target, 15150.0, 500.0);
+        println!("Sage to authored Lodestone: expanded {expanded} states; route length {:?}; sampled {:?}",
+            route.as_ref().map(Vec::len), route.as_ref().map(|path| path.iter().step_by(15).copied().collect::<Vec<_>>()));
+        let balls = kq8_core::collide::BallStack::from_box(
+            kq8_core::connor_mover::CONNOR_BOX.0, kq8_core::connor_mover::CONNOR_BOX.1);
+        let south = [81901.0, 131842.0, 15427.0];
+        println!("south ledge direct hit: {:?}", gnome_segment_hit(&objects.buildings, &balls,
+            south, [target[0], target[1], south[2]]));
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, south, target);
+        println!("south ledge to Lodestone building-only: expanded {expanded}; route {route:?}");
+        for (name, start, goal, height) in [
+            ("Sage to upper boulder", [33151.0, 101665.0, 17475.0], [103894.0, 90758.0], 22000.0),
+            ("Sage to brick wall south", [33151.0, 101665.0, 17475.0], [101000.0, 109050.0], 19000.0),
+            ("Sage to rope", [33151.0, 101665.0, 17475.0], [61153.0, 145462.0], 19000.0),
+            ("rope bottom to Lodestone", [61153.0, 145462.0, 13525.0], target, 15150.0),
+            ("rope top to Lodestone", [61153.0, 145462.0, 18525.0], target, 15150.0),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, goal, height, 500.0);
+            println!("{name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(20).copied().collect::<Vec<_>>()));
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_boulder_rope_approach_route() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-boulder-rope-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        for (name, start, goal, height) in [
+            ("entry to rope 2 bottom", [105233.555, 36429.613, 17475.0], [119669.0, 95692.0], 19000.0),
+            ("rope 2 top to boulder", [119669.0, 95692.0, 22475.0], [103894.0, 90758.0], 23500.0),
+            ("rope 3 top to boulder", [117247.0, 107784.0, 22475.0], [103894.0, 90758.0], 23500.0),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, goal, height, 600.0);
+            println!("{name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(15).copied().collect::<Vec<_>>()));
+        }
+    }
+
     /// Diagnostic only: find possible turns through the installed interior
     /// collision data. The live route still has to walk and encounter objects.
     fn gnome_building_route(
@@ -6278,6 +6356,10 @@ mod campaign_tests {
         const STEP: f32 = 250.0;
         const LIMIT: usize = 30000;
         let spot = |i: i32, j: i32| [start[0] + i as f32 * STEP, start[1] + j as f32 * STEP];
+        let x_bounds = (60000.0_f32.min(start[0].min(target[0]) - 10000.0),
+            155000.0_f32.max(start[0].max(target[0]) + 10000.0));
+        let y_bounds = (25000.0_f32.min(start[1].min(target[1]) - 10000.0),
+            120000.0_f32.max(start[1].max(target[1]) + 10000.0));
         let key = |i: i32, j: i32, z: f32| (i, j, (z / STEP).round() as i32);
         let priority = |i: i32, j: i32, cost: i32| {
             let [x, y] = spot(i, j);
@@ -6305,7 +6387,7 @@ mod campaign_tests {
             for (di, dj) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
                 let (i, j) = (current.0 + di, current.1 + dj);
                 let [x, y] = spot(i, j);
-                if !(60000.0..=155000.0).contains(&x) || !(25000.0..=120000.0).contains(&y) { continue; }
+                if !(x_bounds.0..=x_bounds.1).contains(&x) || !(y_bounds.0..=y_bounds.1).contains(&y) { continue; }
                 let mut next = mover.clone();
                 for _ in 0..3 {
                     next.update([di as f32 * STEP / 3.0, dj as f32 * STEP / 3.0, 0.0], &scene);
@@ -6327,6 +6409,13 @@ mod campaign_tests {
             }
         }
         let min_z = closed.iter().map(|cell| movers[cell].position[2]).fold(f32::INFINITY, f32::min);
+        let mut nearest: Vec<_> = closed.iter().map(|cell| movers[cell].position).collect();
+        nearest.sort_by(|a, b| (a[0] - target[0]).hypot(a[1] - target[1])
+            .total_cmp(&(b[0] - target[0]).hypot(b[1] - target[1])));
+        println!("Gnome height route closest to {target:?}: {:?}", nearest.iter().take(8).collect::<Vec<_>>());
+        let mut north: Vec<_> = nearest.iter().copied().filter(|at| at[1] >= target[1] - 1000.0).collect();
+        north.sort_by(|a, b| (a[0] - target[0]).abs().total_cmp(&(b[0] - target[0]).abs()));
+        println!("Gnome height route north side closest in x to {target:?}: {:?}", north.iter().take(8).collect::<Vec<_>>());
         let (low, high) = closed.iter().fold(([f32::INFINITY; 2], [f32::NEG_INFINITY; 2]), |(mut low, mut high), cell| {
             let at = movers[cell].position;
             for axis in 0..2 { low[axis] = low[axis].min(at[axis]); high[axis] = high[axis].max(at[axis]); }

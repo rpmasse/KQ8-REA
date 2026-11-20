@@ -72,6 +72,86 @@ knocked him back. Retain this failed timing run; the next study must
 compare per-update positions of both moving boxes over the full cycle
 and pick a crossing window with clearance until Connor leaves the
 2200-unit-wide x band. Keep the trap and collision unchanged.
+The frame-by-frame data shows the three parallel rocks share a phase,
+with centers at x57500, 51375, and 45250. One uninterrupted run at
+y106975 cannot clear all three at any single starting phase in the
+measured constant-speed model. It can clear the first: delaying the
+same route by about nine updates makes Connor enter its x band while
+`rrock1` is near the south end. Replay to a stop safely west of that
+first track, then separately time the next track from that checkpoint.
+The first crossing passed without `rollside.cs` and saved at
+(54848, 106784). A fresh process restored that position and showed
+rock frame 8 at update 15, so its restored phase differs from the
+earlier checkpoint. At that phase, immediate normal running west
+should meet the second x band while `rrock2` travels south; verify the
+actual collision and save again only beyond its western edge.
+The second track also passed without contact and saved at
+(48661, 106806). Its restored phase is frame 19 at update 15. The
+measured running path from the previous crossing, shifted to this
+start, predicts that a 13-update wait gives over 2600 units of center
+separation from `rrock3` throughout its x band. Replay that delayed
+normal run to the safe west side and check the actual trap log.
+The delayed third crossing succeeded without `rollside.cs`, and the
+in-game save stands at (41248, 106656). A first Sage-door approach
+replay followed the corridor, but its save replay hit `gnome03` at
+(41089, 106595) because a slightly different initial turn entered
+the west wall. A waypoint above the wall at y106800 produced a repeat
+approach save at (40008, 101141). The authored `door05.cs` accepts a
+plain visible click and opens both leaves. Use that normal interaction
+from the earned approach, then walk into Sage's room.
+The click opened both leaves and an in-game save retained their state.
+Normal movement crossed the open door and triggered the authored
+`sageout` and `sagein` music traps. Connor saved inside Sage's room at
+(32752, 101513), near Sage. A visible click started the original
+first conversation and set `Gnome::Sage::Met=1`. Let the conversation
+run to its natural end before saving the quest result.
+The first conversation finished at update 1297 and asked Connor to
+bring a new lodestone. The installed `worldinv.cs` places that item at
+(81791, 145754, 14920), beyond the Sage room's current floor. After
+the post-conversation save, search the installed multi-height terrain
+and building collision from Sage's room toward that point. Use the
+result only to plan normal movement and handle any authored doors,
+creatures, and traps encountered in the live replay.
+The first multi-height search explored 23,540 supported positions but
+found no walk-only path. Its closest point to the item was (81901,
+131842, 15427), roughly 13,900 units south, while other reachable
+positions extended north beyond the item's y coordinate. Measure the
+local barrier and compare same-height routes from each side; identify
+any authored rope, stair, door, or script transition before replaying
+movement toward the item.
+The closest south line hits the installed `gnome11` interior at
+(81899, 132041, 15427), and a same-height building search stops there.
+The reachable northern area closest to the item is near (97163,
+145844, 14915). The installed `ropetp1a.cs` and `ropetp1b.cs` mark a
+rope transition at (61153, 145462) between roughly z13525 and z18525.
+The supported route reaches both rope ends, but neither end has a
+walk-only path to the Lodestone. This disproves the rope shortcut.
+The authored quest sequence instead returns east through the rolling
+rocks, breaks the brick wall with a boulder, enters the newly opened
+passage, defeats the Dragon Wyrm, uses the pyramid device, and takes
+the Lodestone from its chamber. Locate the wall and boulder triggers
+in the installed scripts and data, then replay those interactions with
+ordinary movement from the earned Sage save. Keep the wall closed
+until the authored boulder action occurs.
+The installed `boulder.kq` starts at (103894, 90758, 20540).
+`bouldtrp.kq` at (100000, 91250, 20700) invokes `bouldtrp.cs`, which
+moves Connor and the boulder into the lower passage and marks
+`Gnome::Boulder::Dropped=1`. The second `bouldtp2.kq` at (100100,
+109250, 17470) invokes `bouldtp2.cs`; it sends `brikwall` Cue 1 and
+marks `Gnome::Boulder::Pushed=1`. The wall script hides the original
+wall, plays the break scene, then places Connor at (101000, 109050,
+17475). Search a supported path to the upper boulder approach and
+replay both physical pushes in that order. The collision-only search
+cannot replace either trigger.
+The first height-only search from Sage cannot reach the boulder: it
+stops on the west side of the earlier bridge and does not model that
+bridge's script-turned deck. A separate supported route from Gnome's
+original entry reaches the bottom of rope 2 at (119669, 95692, 17475).
+From the rope's top at z22475, a 112-cell supported route descends to
+the boulder's upper approach near (104245, 90442, 20547). Rope 3's
+top also connects in 120 cells. Use the existing crossed bridge save
+and live state to reconnect these route sections; do not treat the
+height-only search's bridge gap as an engine fault.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

@@ -1,5 +1,29 @@
 # MODLOG
 
+## 2026-11-20: M6 identified the authored Lodestone route (~99.8%)
+
+Read the installed Gnome boulder, trap and wall scripts, then ran
+ignored height-route diagnostics against installed collision data.
+Rope 1 cannot bypass the `gnome11` wall. From Gnome's original entry,
+rope 2's bottom is reachable; from its top, the boulder approach is
+reachable. The Sage-side static search omits the already turned
+bridge, so the live replay must use the earned bridge state. Logs are
+under ignored `target/m6-gnome-*-route-probe.log`. No quest state was
+fabricated, no original files changed, and no manual gameplay test
+occurred. M6 remains ~99.8%.
+
+## 2026-11-20: M6 crossed Sage rocks and met Sage (~99.8%)
+
+Measured the rolling rocks' 54-frame path and timed three normal
+Run-key crossings from saved checkpoints without trap contact. Opened
+door 5 through its visible click, entered Sage's room, and ran the
+complete first conversation. Saved `Gnome::Sage::Met=1` in-game and
+restored it in a fresh process with both door leaves open. The
+Lodestone objective is now active; its authored item is in Gnome's
+northeast. Ignored route and save evidence is under
+`target/m6-gnome-sage-*`. No original files changed or manual gameplay
+test occurred. M6 moves from ~99.7% to ~99.8%.
+
 ## 2026-11-20: M6 Sage upper corridor saved (~99.7%)
 
 Followed the route beyond Gnome door 4, defeated both live Sage Mantas

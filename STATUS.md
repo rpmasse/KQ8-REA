@@ -1,5 +1,41 @@
 # STATUS
 
+## 2026-11-20 M6 Lodestone route identified (~99.8%)
+
+Installed Gnome scripts show the Lodestone lies beyond the breakable
+wall and Dragon Wyrm, not behind the nearby `gnome11` wall. The
+boulder must enter `bouldtrp` to drop, then `bouldtp2` to start the
+wall scene. A supported route from Gnome's original entry reaches
+rope 2's lower end; from its upper end, a route reaches the boulder
+approach. The Sage-to-boulder static search cannot cross the
+previously turned bridge because it omits live script state. These
+are route diagnostics, not completed quest interactions. The earned
+Sage checkpoint is intact. M6 remains ~99.8%; the boulder, wall,
+Dragon Wyrm, Lodestone, later campaign, and ending remain unfinished.
+No manual gameplay test was used.
+
+## 2026-11-20 M6 Gnome Sage met and saved (~99.8%)
+
+The installed rolling-rock animation and live movement logs identified
+safe crossing windows for all three tracks. Connor crossed each using
+ordinary movement and the Run key, with in-game saves after each one;
+none invoked `rollside.cs`. The final rock save is
+`target/m6-gnome-sage-rock3-save/slots/slot-2.json`.
+
+Connor reached door 5, clicked it through the visible camera ray, and
+both leaves opened through `door05.cs`. Normal movement crossed the
+door and triggered its music traps. Connor saved inside Sage's room,
+then a visible click started the full first Sage conversation. All
+nine authored lines ran through its natural finish at update 1297;
+the post-conversation in-game save at
+`target/m6-gnome-sage-met-save/slots/slot-2.json` has
+`Gnome::Sage::Met=1`. A fresh process restored that checkpoint, the
+opened door, and no active conversation. The next authored objective
+is the Lodestone at (81791, 145754, 14920). The saved campaign still
+inherits diagnostic god mode. No original files changed and no manual
+gameplay test occurred. M6 rises to ~99.8%; the Lodestone, later
+campaign, ending, and broad save audit remain unfinished.
+
 ## 2026-11-20 M6 Sage upper-corridor checkpoint (~99.7%)
 
 From the crossed door-4 save, ordinary movement followed the measured
