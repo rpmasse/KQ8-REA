@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-20: M6 Swamp corridor and Fiend checkpoint (~97%)
+
+The earned Swamp arrival route reached the east-side southern corridor
+through a narrow obstacle gap. An in-game save and fresh-process reload
+retained (168308,99816,5378). Normal King Sword swings then defeated
+`fiend12`; a second in-game save and fresh reload retained the corpse,
+the actor's absence and the 7,500 experience award. No game code
+changed. Direct travel farther south met steep terrain near y110600.
+The paid Prophet Tree save exposed a separate zero-distance collision
+that prevents Connor leaving its scripted talk position, including on
+an outward southwest route. Q222 requests the original rule; no
+unsupported collision change was made. Test-only invulnerability
+remains active.
+M6 stays ~97%; no manual gameplay testing occurred.
+
 ## 2026-11-20: M6 Prophet Tree paid dialogue (~97%)
 
 From the earned Swamp save, eleven ordinary gold-bar selections and

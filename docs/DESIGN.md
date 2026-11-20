@@ -138,7 +138,24 @@ Eleven payments advanced `metConnor` from 1 to 12, consumed eleven
 coins and granted 5,500 experience. The final no-more-prophecies
 response charged nothing. A fresh process retained stage 12, 14
 coins and 42,490 experience. Continue the main Swamp objectives from
-that checkpoint; this dialogue branch does not complete the region.
+that checkpoint after resolving its movement issue; this dialogue
+branch does not complete the region. At the scripted talk position,
+the current Rust mover repeatedly hits `Protree` at zero distance and
+cannot walk away, including along an outward southwest route.
+Original-game behavior there is unverified; Q222 asks for the rule.
+
+Meanwhile, the main route continues from the earned Swamp arrival.
+The original `Skltnbow.kq` places the Short Bow at (173858,163058),
+`chest1.cs` places the next mask piece in the Henchman chest near
+(140666,31229), and `switch01.cs` opens the keep gate only after the
+Witch is absent and Connor has the Short Bow. Preserve these script
+dependencies without claiming the route is complete. The first
+southern leg crossed the original tree and mushroom gap and saved at
+(168308,99816,5378). King Sword swings with active AI defeated
+`fiend12`; a second save and fresh reload retained its absence, corpse
+and 7,500 experience award. Test-only invulnerability is active. The
+direct route south of y110600 meets terrain too steep for Connor; find
+the pass around that ridge before approaching the Bow.
 
 ## M6 recover and rust the Broken Shield (2026-11-19)
 

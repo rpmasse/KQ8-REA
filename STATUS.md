@@ -1,5 +1,33 @@
 # STATUS
 
+## 2026-11-20 M6 southern Swamp checkpoint and Fiend (~97%)
+
+From the earned Swamp arrival, ordinary movement reached the east-side
+low-ground corridor through the narrow gap between original tree and
+mushroom colliders. An in-game save and fresh-process reload retained
+Connor at (168308,99816,5378), the carried Dead City items, and the
+Swamp world. The ignored checkpoint is
+`target/m6-swamp-east-corridor-save/slots/slot-2.json`.
+
+With AI and collision active, the carried Skeleton King Sword defeated
+`fiend12` near (169266,110561). Two later sword hits finished its
+remaining health after a save/reload boundary. The in-game save gained
+7,500 experience (26,990 to 34,490), and a fresh process did not load
+the defeated actor; its corpse was restored. This checkpoint is
+`target/m6-swamp-fiend12-complete/slots/slot-2.json`. Test-only
+invulnerability remains on. The direct south path stops at a steep
+terrain wall near y110600; routing around it toward the Short Bow is
+next. M6 remains ~97% because the main Swamp quests, later regions and
+full save audit are unfinished.
+
+The optional Prophet Tree save is a separate branch. At its scripted
+conversation position (128800,91400,6654), the Rust collision mover
+repeatedly reports a zero-distance hit against `Protree`. An outward
+southwest walk also made no progress. This is a reproducible movement
+issue, not a verified original-game behavior; Q222 asks how the
+original lets Connor leave. The main route continues from the earned
+arrival save while it is investigated.
+
 ## 2026-11-20 M6 Prophet Tree paid dialogue complete (~97%)
 
 From the earned first-conversation save, ordinary gold-bar selections
