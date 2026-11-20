@@ -11,6 +11,10 @@ Dragon, which remains alive. Installed scripts show that breaking
 the Dragon chamber's fusebox. It is not yet carried. The height-aware
 walk-only search from the current chamber and prior entry checkpoints
 does not reach that gem room, so its authored route must be identified.
+The earlier lower Rock-room and east-turn searches also found no
+walk-only connection. Installed scripts require the gem clump's death
+and its spawned piece's normal pickup; the Old Man stands in that
+room and is still unmet in the earned save.
 M6 remains ~99.8%; the fuse, Dragon, Lodestone, later campaign, ending,
 and broad save audit are unfinished. No manual gameplay test or
 original-file edit was used.

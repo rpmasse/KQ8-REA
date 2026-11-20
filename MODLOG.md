@@ -7,7 +7,9 @@ normal movement, preserving an in-game save near the living Dragon.
 Read the installed fusebox, gem and gem-clump scripts without copying
 them into the repository. The ShardFuse comes from the gem clump in
 Gnome's eastern lower room; no direct walk-only route from the current
-checkpoint or earlier entry was found. Added ignored installed-data
+checkpoint, earlier entry, or lower Rock corridor was found. The
+installed gem-clump death script and spawned gem pickup chain were
+identified. Added ignored installed-data
 route and script-name diagnostics. No manual gameplay test or
 original-file edit occurred.
 

@@ -6511,6 +6511,8 @@ mod campaign_tests {
             ("from Dragon west turn", [105087.83, 133646.52, 14915.0]),
             ("from open wall", [99676.125, 109332.945, 17475.0]),
             ("from original entry", [88624.0, 62661.0, 17475.0]),
+            ("from lower Rock room", [137129.0, 70102.0, 12355.0]),
+            ("from lower east turn", [122272.0, 49116.0, 12355.0]),
         ] {
             let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
                 start, [139835.0, 106405.0], 19000.0, 800.0);

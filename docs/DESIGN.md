@@ -214,6 +214,17 @@ the gem found no route; the same search from the earlier original-entry
 checkpoint also found none. Identify the authored transition to that
 lower eastern room before continuing the fuse and Dragon sequence.
 Do not supply the ShardFuse through a diagnostic item injection.
+The installed `gemclmp.cs` spawns `gemclmpx` on Die; that controller
+spawns a clickable `gempiece`, whose `gem.cs` gives the ShardFuse.
+`Old_guy` stands nearby at (141166, 106787, 12355) and has not yet
+been met in the earned save. A further walk-only search from the
+earlier lower Rock-room and east-turn checkpoints also fails to reach
+the gem clump. The original Gnome walkthrough places the Old Man and
+crystal branch before the Sage route
+(https://sierrahelp.com/Walkthroughs/KQMoE/04Gnomes.html).
+Treat that as a route hint, then identify the level's actual climb,
+door, ramp or other transition from installed data. Preserve the
+earned Dragon approach save while backtracking for this prerequisite.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 
