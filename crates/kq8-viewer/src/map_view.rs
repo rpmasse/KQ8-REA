@@ -223,6 +223,16 @@ pub fn map_install(map: Option<ResMut<MapSim>>, sim: Option<ResMut<DoorSim>>) {
         for i in std::mem::take(&mut map.visited) {
             world.map_marks.visited[i] = true;
         }
+        // A disk snapshot restores trap occupancy before this pending map
+        // replaces the map in WorldState. Keep the pad's transient map bit
+        // in sync with the restored trap on the installed map as well.
+        if crate::world_build::save_slots::saved_teleport_pad_occupied(&world.traps) {
+            if let Some(installed) = world.map.as_mut() {
+                installed.on_pad = true;
+            }
+            world.map_go_refresh("map install: occupied teleporter pad");
+            world.map_log.push("map install: Connor remains on the teleporter pad".into());
+        }
     }
 }
 

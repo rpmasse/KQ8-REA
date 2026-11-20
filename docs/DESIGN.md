@@ -54,6 +54,23 @@ loaded the earned pad save in a fresh process and logged the restored
 pad state. The earlier load had no `onTeleport` event and no restored
 map bit. The Barren transfer itself remains untested.
 
+The earned post-Sage replay now reaches Gnome's pad with Barren marked.
+Its first fresh-process map test found a second ordering gap: `Snapshot`
+restores pad occupancy, but `map_install` replaces the pending map on the
+first fixed update. Reconcile occupied teleporter traps again immediately
+after that install, then refresh Go. Verify that paging from Gnome to
+Barren lights Go and that the original Go/Portal sequence transfers to
+Barren; save and reload there before claiming the campaign gate.
+
+The installed-map reconciliation is implemented in `map_view.rs` using
+the same live teleporter-trap membership check as disk restore. The
+post-Sage replay reached the pad with both marks earned. Paging to
+Barren lit Go; Go opened Portal, Yes arrived in Barren, and an in-game
+Barren slot reloaded in a separate viewer process without replaying
+Begin. The route used diagnostic god mode while retaining enemy AI and
+normal collision. Continue Barren's authored quest from this earned
+slot, and keep ordinary-damage completion as a separate verification.
+
 ## M6 path from the completed Gnome bridge to the iron lock (2026-11-20)
 
 The completed bridge save places Connor on the north bank with

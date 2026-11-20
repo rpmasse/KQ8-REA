@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-21: M6 earned Gnome-to-Barren transfer (~76%)
+
+**Changed:** `map_install` now restores the transient on-pad map bit
+from a live occupied teleporter trap after installing the pending map.
+The pad-occupancy helper is shared with disk restore. **Why:** Disk
+restore set the bit, then the first fixed update replaced the map;
+Go stayed unlit despite Connor standing on Gnome's pad with Barren
+earned. **Tested:** The focused trap test passed; the release viewer
+was rebuilt. Automated movement carried the post-Sage save across the
+solved bridge, down the lower ramp and back up to the Gnome pad. Normal
+King Sword swings cleared one SprigDude and two Manta blockers. A fresh
+pad reload paged to Barren and lit Go, then the original Go/Portal Yes
+sequence arrived in Barren. An in-game Barren save reloaded in a fresh
+process with Gnome kept and the Sage mark retained (`RESULT: PASS`).
+**Limit:** This exploratory chain used diagnostic god mode; full-route
+normal-damage survival and later Barren quests remain. No manual
+gameplay test or original-file edit occurred.
+
 ## 2026-11-21: M6 Gnome pad route and live arrival (~74%)
 
 **Changed:** Added an ignored installed-data route diagnostic and

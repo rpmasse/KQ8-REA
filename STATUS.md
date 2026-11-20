@@ -1,5 +1,30 @@
 # STATUS
 
+## 2026-11-21 M6 post-Sage Gnome-to-Barren transfer (~76%)
+
+The earned post-Sage exploration save was replayed through the solved
+bridge, down the lower eastern ramp, through the third-Rock corridor and
+up to Gnome's teleport pad. Ordinary movement and King Sword swings
+defeated the three corridor blockers; enemy AI and collision remained
+active. This branch retained diagnostic god mode, so it does not prove
+full-route survival with normal damage. At the in-game pad save
+`target/m6-barren-post-sage-bridge/34-pad-on/slots/slot-2.json`, both
+Gnome and Barren teleport marks remain earned, and `Teletrap.cs` ran
+`onTeleport`.
+
+A fresh-process load exposed that `map_install` replaced the map after
+the snapshot restored pad occupancy. The installed map now reconciles
+the saved live trap before its first update. The Barren page lit Go;
+clicking Go opened the original Portal prompt, and Yes transferred
+Connor to Barren with `teleportup`. An in-game Barren save at
+`target/m6-barren-post-sage-bridge/39-barren-save/slots/slot-2.json`
+retains the Gnome world and Sage mark. A fresh viewer process loaded
+that slot in Barren without replaying Begin (`RESULT: PASS`). The
+focused trap test passed, and the release viewer was rebuilt. M6 is
+estimated at ~76%; later Barren quests, other regions, ending and
+normal-damage full-route verification remain. No manual gameplay test
+or original-file edit occurred.
+
 ## 2026-11-21 M6 Gnome teleport pad reached (~74%)
 
 From the earned third-Rock checkpoint, an installed floor and building

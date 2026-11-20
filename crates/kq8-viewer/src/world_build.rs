@@ -35,7 +35,7 @@ use kq8_core::journey::{connor_summary, Journey};
 use crate::{connor_view, gui_view, light_view, load, map_view, object_light, sound_view, talk_view, terrain_view, Shared};
 
 #[path = "save_slots.rs"]
-mod save_slots;
+pub(crate) mod save_slots;
 pub use save_slots::{delete_slot, list_slots, load_slot, save_slot_with_thumbnail, scan_slots, thumbnail};
 
 /// The start-up systems that spawn a world (were `Startup` until 6e-1).

@@ -19,7 +19,7 @@ const THUMB_BYTES: usize = 160 * 120 * 4;
 
 /// The map's on-pad bit is transient, while a saved trap keeps Connor in
 /// its `inside` list. Reconcile the two before the first post-load update.
-fn saved_teleport_pad_occupied(traps: &[kq8_core::trap::Trap]) -> bool {
+pub(crate) fn saved_teleport_pad_occupied(traps: &[kq8_core::trap::Trap]) -> bool {
     traps.iter().any(|trap| {
         !trap.gone
             && trap.settings.script.as_deref().is_some_and(|script| {
