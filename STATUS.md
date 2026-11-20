@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-20 M6 first Gnome conversation saved (~98.6%)
+
+From the earned north-corridor checkpoint, Connor walked to within
+735 units of the nearby `Gnome`. A normal camera-visible click invoked
+the installed `gnometlk.cs` Do conversation. Three dialogue lines
+finished, the script returned player control at update 332, and an
+in-game save followed. A fresh-process reload/save retained position
+`(113218, 62000, 17475)`, `Gnome::Dig::One=true`,
+`Gnome::Dig::Conv=100`, 100,575 experience, and the Rock-held first
+door. Both runs passed without manual gameplay. Diagnostic god mode
+still carries through this route.
+
+The installed `WorldInv.cs` places a second Rock (`NoName270`) nearby
+at `(114861, 60965, 17460)`. A direct visible-click attempt from the
+conversation save was hidden by `gnome05`. The sampled, building-only
+grid search found no path within its bounded area at z=17475; it does
+not prove the Rock unreachable by another floor or a door. Stop this
+approach after those two failed checks. Next, use the authored Gnome
+doors and level changes to identify its access route, or continue to a
+quest-critical objective without the Rock if the scripts permit it.
+The Gnome quest and later campaign remain incomplete, so M6 stays
+~98.6% despite the saved dialogue checkpoint.
+
 ## 2026-11-20 M6 Gnome north corridor checkpoint (~98.6%)
 
 The prior building search let a long sweep skip the wall that stopped

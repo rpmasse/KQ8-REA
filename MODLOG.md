@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-20: M6 first Gnome conversation (~98.6%)
+
+The earned north-corridor save reached `Gnome` through ordinary walking
+and a camera-visible click. Its installed dialogue ran three lines and
+returned control; an in-game save and fresh-process reload/save retained
+`Gnome::Dig::One=true`, `Gnome::Dig::Conv=100`, Connor's position and the
+Rock-held door. The original-data route diagnostic now also reports the
+bounded same-floor search toward the nearby second Rock. That search
+found no path, and the direct visible click was occluded by `gnome05`;
+the failed click log remains in ignored `target/m6-gnome-second-rock-click`.
+The diagnostic test passed. No original game files were changed and no
+manual gameplay test occurred. M6 remains ~98.6% because the main
+Gnome quest has not advanced.
+
 ## 2026-11-20: M6 Gnome north corridor checkpoint (~98.6%)
 
 Made the ignored Gnome building-route diagnostic check segments in

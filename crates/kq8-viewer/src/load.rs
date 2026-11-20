@@ -6255,6 +6255,9 @@ mod campaign_tests {
         let npc_stop = [112804.4, 60750.9, 17475.0];
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, npc_stop, [113327.0, 60324.0]);
         println!("live first Gnome stop to NPC: expanded {expanded} cells; building-only route: {route:?}");
+        let talk_save = [113217.7, 62000.4, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [114861.0, 60965.0]);
+        println!("Gnome talk save to second Rock: expanded {expanded} cells; building-only route: {route:?}");
         for (label, from, to) in [
             ("planned turn to next", [108559.0, 65480.0, 17475.0], [112309.0, 65730.0, 17475.0]),
             ("live early turn to next", [108485.4, 65473.6, 17475.0], [112309.0, 65730.0, 17475.0]),

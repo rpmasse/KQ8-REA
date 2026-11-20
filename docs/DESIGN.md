@@ -10741,3 +10741,18 @@ the new in-game save. The next approach to the nearby Gnome still hit
 `gnome05` near `(112804, 60751)`. The NPC is not part of the verified
 route yet. Compare the actual turning and wall-slide path there with
 the installed collision before changing an alcove waypoint.
+
+The Gnome conversation is reachable by a visible click from the nearest
+hallway point; save and reload its completed state. The installed
+`WorldInv.cs` places another Rock (`NoName270`) near this Gnome. A direct
+click from the post-conversation spot is blocked by `gnome05`. Reuse the
+sampled building search from that saved spot to the Rock, then replay
+ordinary walking and a visible item click. Save only if the item is
+actually picked up through the normal path.
+
+The normal Gnome conversation completed and its flag survived a fresh
+reload. The direct second-Rock click was blocked by `gnome05`; the
+bounded same-floor building search returned no route. Do not use an
+injected item or placement in the campaign run. Examine the authored
+door and floor route before trying this Rock again, or advance a
+separate quest-critical path first.
