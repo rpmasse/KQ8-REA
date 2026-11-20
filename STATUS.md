@@ -1,5 +1,34 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome first Rock recovered and door limit (~98.9%)
+
+The prior two third-person reclaim attempts failed because the Rock was
+behind the camera or below the gameplay viewport. A focused projection
+log measured those conditions. From north of the first plate, the
+normal F2 first-person view and ordinary turn keys placed `NoName279`
+under the camera ray. Connor picked it up at update 192; `triptrp1`
+released and `door01a/b` closed. An in-game save and fresh-process
+reload/save retained the Rock carried by Connor at `(100794, 50040,
+17475)`.
+
+The first rethrow from y=50040 landed short at y=52839. Walking to
+y=51275 before a visible click on `trip1` landed `NoName280` at
+`(100758, 54062, 17450)` on `triptrp1` and reopened the doors. An
+in-game save retained that plate occupant; a fresh process loaded it
+and walked back through the first doorway to y=61887, then saved.
+From the hallway, F2 enabled another visible pickup at y=58571, but
+the plate released immediately and the closing door blocked the route
+south. The resulting save holds the Rock on the north side of the door;
+it is not a bridge checkpoint. The ignored logs and saves are under
+`target/m6-gnome-rock-earned-v2/`, `target/m6-gnome-rock-rethrow-v3/`,
+`target/m6-gnome-rock-return-hall/`, and
+`target/m6-gnome-rock-carry-south-v2/`. Continue from the earned hall
+save with the other authored Rocks and bridge controls; do not assume
+the first Rock can be carried through the closing door. Diagnostic god
+mode remains inherited. No manual gameplay test occurred. M6 is
+estimated at ~98.9%; the bridge, Sage, later regions, ending, and broad
+save audit remain.
+
 ## 2026-11-20 M6 Gnome Sage-route and Rock-access diagnosis (~98.8%)
 
 The installed Sage-room `door05.cs` opens on a plain click, but the

@@ -1961,15 +1961,17 @@ pub fn door_click_input(
             };
             if landmark {
                 let world_point = Vec3::new(target[0], target[2], -target[1]) / UNITS_PER_METRE;
-                let pixel = camera.world_to_viewport(at, world_point).ok().filter(|p| {
-                    camera.logical_viewport_rect().is_some_and(|r| r.contains(*p))
-                        && window.single().is_ok_and(|w| panel_at(w, *p).is_none())
-                });
+                let projection = camera.world_to_viewport(at, world_point);
+                let viewport = camera.logical_viewport_rect();
+                let projected = projection.as_ref().ok().copied();
+                let panel = projected.and_then(|p| window.single().ok().and_then(|w| panel_at(w, p)));
+                let pixel = projected.filter(|p| viewport.is_some_and(|r| r.contains(*p)) && panel.is_none());
                 let pixel_ray = pixel.and_then(|p| {
                     camera.viewport_to_world(at, p).ok().map(|ray| (p, ray))
                 });
                 let Some((pixel, ray)) = pixel_ray else {
-                    let reason = format!("update {updates}: walk-route turns the camera for {name}: target outside the gameplay area or covered by a panel");
+                    let reason = format!("update {updates}: walk-route turns the camera for {name}: target {target:?}, projection {projection:?}, viewport {viewport:?}, panel {panel:?}, camera ({:.0},{:.0},{:.0})",
+                        origin[0], origin[1], origin[2]);
                     aim.turn_for_target(&shared, &mut sim, reason);
                     return;
                 };

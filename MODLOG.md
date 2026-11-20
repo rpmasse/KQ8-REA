@@ -1,5 +1,20 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome first Rock recovery (~98.9%)
+
+Added the projected target point, viewport, panel, and camera position
+to the first failed camera-visible route log. This identified why the
+prior third-person attempts could not see the plate Rock. Ordinary F2
+first-person aiming picked up `NoName279`; save and fresh-process reload
+retained it. A closer ordinary throw put `NoName280` back on the plate,
+and the saved state loaded in a new process and allowed Connor to cross
+the first doorway again. A further visible pickup from inside the door
+released the plate, and closing door collision prevented carrying that
+Rock back south. The failed farther throw and blocked return are
+preserved in ignored diagnostics. The Windows release build and
+automated viewer runs passed; no original files were written and no
+manual gameplay test occurred. M6 estimate: ~98.9%.
+
 ## 2026-11-20: M6 Gnome Sage-route diagnosis (~98.8%)
 
 Extended the ignored sampled Gnome collision probe toward the Sage
