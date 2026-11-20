@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-20 M6 Dragon floor activation diagnosed (~99.8%)
+
+Ordinary movement reached an earned in-game save beside the living
+Dragon at `target/m6-gnome-dragon-contact-save/slots/slot-2.json`.
+The Dragon could not engage because it had already fallen from its
+installed z=14901 to terrain z=0. Its first gravity update occurs
+while Connor is still about 27,000 units away; `gnome14`, the actual
+floor beneath the Dragon, has its collider switched out until Connor
+approaches. An installed-geometry diagnostic confirmed that `gnome14`
+supports the Dragon at z=14890. This is a collision timing defect in
+the recreation, not a missing quest flag. The next code step is to
+keep an active character's nearby floor available to its own mover
+while preserving distance-switched collision for Connor. The
+ShardFuse route, Dragon fight, Lodestone, later campaign, ending, and
+broad save audit remain unfinished. M6 stays ~99.8%; no manual
+gameplay test or original-file edit occurred.
+
 ## 2026-11-20 M6 Dragon approach reached; fuse source identified (~99.8%)
 
 From the earned broken-wall save, ordinary walking crossed the new

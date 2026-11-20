@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-20: M6 diagnosed Dragon floor activation (~99.8%)
+
+Replayed the earned Gnome corridor by normal movement to an in-game
+Dragon-contact save. Logs showed Dragon falls from its authored floor
+before the supporting building collider is activated. An ignored
+installed-data diagnostic identified `gnome14` as that support and
+recorded its floor contact. Added the correction plan to DESIGN and
+the result to STATUS. No gameplay behavior changed yet; no manual
+gameplay test or original-file edit occurred.
+
 ## 2026-11-20: M6 reached Dragon approach and located fuse source (~99.8%)
 
 Replayed the open-wall passage and east/north chamber bends through

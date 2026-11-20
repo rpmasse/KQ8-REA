@@ -6479,6 +6479,7 @@ mod campaign_tests {
                 route.as_ref().map(|path| path.iter().step_by(15).copied().collect::<Vec<_>>()));
             if name == "dragon" {
                 println!("dragon bend cells: {:?}", route.as_ref().map(|path| path.iter().skip(72).take(65).copied().collect::<Vec<_>>()));
+                println!("dragon final cells: {:?}", route.as_ref().map(|path| path.iter().skip(130).copied().collect::<Vec<_>>()));
             }
         }
     }
@@ -6501,6 +6502,35 @@ mod campaign_tests {
 
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_dragon_spawn_support_geometry() {
+        use kq8_core::collide::{BallStack, ObjectHit};
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-dragon-spawn-support").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let from = [100117.0, 138250.0, 15200.0];
+        let to = [100117.0, 138250.0, 14000.0];
+        let ball = BallStack::from_box([-100.0, -100.0, 0.0], [100.0, 100.0, 500.0]);
+        let mut support = Vec::new();
+        for b in &objects.buildings {
+            if let Some(hit) = b.sweep(&ball, from, to) {
+                if hit.normal[2] > 0.7 {
+                    println!("building support {}: {:?}", b.name, hit.touch);
+                    support.push((b.name.as_str(), hit.touch[2]));
+                }
+            }
+        }
+        for o in &objects.objects {
+            if let Some(ObjectHit::Contact(hit)) = o.sweep(&ball, from, to) {
+                if hit.normal[2] > 0.7 { println!("object support {}: {:?}", o.name, hit.touch); }
+            }
+        }
+        assert!(support.iter().any(|(name, height)| name.eq_ignore_ascii_case("gnome14") && (*height - 14890.0).abs() < 1.0));
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn gnome_dragon_to_fuse_source_route() {
         let game = game_install();
         let world = World::open(&game, "Gnome").unwrap();
@@ -6519,6 +6549,53 @@ mod campaign_tests {
             println!("fuse source {name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
                 route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
                 route.as_ref().map(|path| path.iter().step_by(20).copied().collect::<Vec<_>>()));
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_fuse_room_exits() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-fuse-room-exits").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let start = [139835.0, 106405.0, 12354.0];
+        for (name, target) in [
+            ("old guy", [141166.0, 106787.0]),
+            ("lower Rock room", [137129.0, 70102.0]),
+            ("south passage", [140000.0, 100000.0]),
+            ("north passage", [140000.0, 115000.0]),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, target, 19000.0, 800.0);
+            println!("fuse room {name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(15).copied().collect::<Vec<_>>()));
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_fuse_room_west_gap_geometry() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-fuse-west-gap").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        for building in &objects.buildings {
+            if building.world_min[0] <= 141000.0 && building.world_max[0] >= 132000.0
+                && building.world_min[1] <= 112000.0 && building.world_max[1] >= 99000.0 {
+                println!("gap building {} {:?}..{:?}", building.name, building.world_min, building.world_max);
+            }
+        }
+        for y in [101500.0, 102500.0, 103500.0, 104500.0, 105500.0, 106500.0, 107500.0, 108500.0, 109500.0] {
+            let samples: Vec<_> = (133000..=140000).step_by(500).map(|x| {
+                let x = x as f32;
+                let height = ground.terrain.floor_at(x, y).map(|g| g.height.round() as i32);
+                format!("{x:.0}:{height:?}")
+            }).collect();
+            println!("gap terrain y{y:.0}: {}", samples.join(" "));
         }
     }
 

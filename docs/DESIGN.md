@@ -225,6 +225,26 @@ crystal branch before the Sage route
 Treat that as a route hint, then identify the level's actual climb,
 door, ramp or other transition from installed data. Preserve the
 earned Dragon approach save while backtracking for this prerequisite.
+The installed `fusebox.cs` changes lighting, Dragon's texture and
+collision type but does not gate Dragon combat. The authored
+`dragworm.cs` makes Connor speak after an attack in darkness but does
+not refuse damage. Preserve the unlit approach save, ready the earned
+hand weapon, and probe ordinary combat at the Dragon without creating
+a fuse. The crystal branch remains unfinished until its actual route
+and pickup are replayed later. The west-gap diagnostic identified
+overlapping `gnome08`, `gnome08a`, `gnome09` and `gnome09b` interiors
+at different heights, so the 250-unit walk-only grid does not prove
+an impassable route.
+The earned Dragon contact save exposed a collision timing fault:
+Dragon begins its first gravity update while far from Connor, before
+the nearby building and object colliders have entered the active
+collision world. It falls from the installed z=14901 to terrain z=0,
+which prevents normal combat. First identify the supporting geometry
+from installed data and compare its activation distance against
+Dragon's first update. Then correct character collision so it sees
+its own active physical neighborhood while preserving Connor's
+distance-switched collisions. Verify a far-start replay and the
+earned Dragon approach by logs and save state before resuming combat.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 
