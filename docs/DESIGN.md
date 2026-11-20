@@ -314,6 +314,51 @@ impossible. Inspect the west boundary around x90000 and any authored
 transition from this lower section, then replay it before Sage's
 Lodestone handoff. Preserve the checkpoint; do not move Connor or
 insert an item through a diagnostic override.
+Before attempting another return route, inspect the west edge of the
+lower passage where the coarse search stopped at x≈90000. Probe short
+westward Connor sweeps at several y positions and the saved floor
+height. Record the actual blocking building or clear openings and
+check installed Gnome scripts for any door or portal there. If no
+supported passage exists, investigate an authored world-travel route
+from a reachable pad rather than bypassing collision.
+The west-edge probe found `gnome01` across the middle crossing, while
+the earlier installed-data route from the Sage side reaches the brick
+wall's north approach by the corridor at y≈120506. The Lodestone
+return's earlier earned open-wall checkpoint at (99760, 109436,
+17475) is still available with the same carried items and flags.
+Replay north up the original broken-wall ramp to the approach around
+(99097, 119006), then turn west onto the route that the Sage-side
+search already reached. Do not continue east into the former boulder
+lower passage for this handoff; that is a separate dead-end detour.
+The ramp replay reached (98942, 119263, 15047). A direct diagonal
+toward the western hall hit `gnome01` at (98912, 119502). The Sage-side
+path's final cells show the required turn: x≈99097 goes north to
+y≈120506 before moving west along that y line. Use a tight waypoint at
+(99097, 119006), then (99097, 120506), before westward movement.
+The corrected ramp route passed to (89994, 120534, 17204), then south
+through the hall to (82785, 117536, 17475). The middle building has a
+short zigzag around x79097–80347/y109506–111006; a straight segment
+hit `gnome02`, while the measured corners passed. The saved return then
+went through (74199, 103772) and (63780, 102471). Near the rolling
+rocks, a diagonal from x64692/y105779 hit `gnome03`; following the
+installed corner at (62791, 106355) and (62541, 106605) reached
+(59393, 106753), east of the first rock.
+Three separately timed westbound Run crossings passed the original
+moving rock boxes. The final crossing needed a north alignment at
+(48333, 107100) to clear `gnome03`; immediate starts were struck by
+`rollside.cs`. Connor reached (41066, 107028), then used the measured
+x39947 side lane and the already open door 5 to return to Sage's room.
+The in-game slot at
+`target/m6-gnome-lodestone-sage-room-save/slots/slot-2.json` keeps the
+Lodestone at (32847, 101542). The ordinary quest bar's sixth slot held
+that item, and a visible Sage click ran `sagegnm.cs` with the held
+`INVITEM_LodeStone`. The full scene finished, deleted the carried item,
+set `Gnome::Sage::Met=2`, added the map icons and earned Barren's
+teleporter. The post-scene in-game slot at
+`target/m6-gnome-lodestone-sage-handoff-save/slots/slot-2.json` survived
+a fresh-process load. Continue the remaining Gnome branch and later
+regions from that checkpoint; do not count the Sage handoff as full M6
+completion.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

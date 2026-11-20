@@ -1,5 +1,22 @@
 # MODLOG
 
+## 2026-11-21: M6 Sage Lodestone handoff (~72%)
+
+**Changed:** Replayed and documented the return from the Gnome altar
+to Sage; no gameplay rule changed. **Why:** The previous lower-passage
+detour had no supported west exit. The earlier open-wall save connects
+to the Sage-side north ramp and corridor. **Tested:** Automated normal
+movement followed the measured turns and crossed all three rolling
+rocks by timed Run, with no rock hit in the successful crossing slots.
+The sixth quest bar slot selected the carried Lodestone; a camera-visible
+Sage click ran the original `sagegnm.cs` handoff. The post-scene in-game
+save has `Gnome::Sage::Met=2`, the Lodestone consumed and Barren's
+teleporter earned. A fresh process loaded it (PASS). Direct routes
+before correction struck `gnome01`, `gnome02` or `gnome03`, and first
+rock-timing attempts triggered `rollside.cs`. **Next:** complete the
+remaining Gnome branch and continue the later campaign. M6 is ~72%;
+no manual gameplay or original-file edit occurred.
+
 ## 2026-11-21: M6 Lodestone return through lower Gnome (~70%)
 
 **Changed:** Added an ignored installed-data route diagnostic from the

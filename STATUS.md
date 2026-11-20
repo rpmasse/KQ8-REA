@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-21 M6 Sage received the Lodestone (~72%)
+
+An automated return from the earned Gnome altar save followed the
+original open-wall ramp, middle-building turns and three timed rolling
+rock crossings. Connor entered Sage's room with the Lodestone carried.
+The normal quest bar selected it, and a camera-visible click on Sage
+completed his original handoff scene. The in-game save at
+`target/m6-gnome-lodestone-sage-handoff-save/slots/slot-2.json` retains
+`Gnome::Sage::Met=2`, the consumed Lodestone and Barren's earned
+teleporter. A fresh viewer process loaded the slot successfully. The
+return needed a precise west corridor turn and a north alignment before
+rock 3; earlier direct routes hit building walls or a moving rock.
+
+M6 is now estimated at ~72%. The remaining Gnome branch, later
+regions, ending, exact building activation and broad save audit remain.
+No manual gameplay test or original-file edit occurred.
+
 ## 2026-11-21 M6 Lodestone return reached lower passage (~70%)
 
 The earned altar save returned through the Dragon chamber, crossed the
