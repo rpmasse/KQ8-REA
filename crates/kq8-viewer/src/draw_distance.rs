@@ -21,8 +21,9 @@
 //!   out once, when the object is spawned. Centre turned with the object
 //!   (our choice, the note's "Do not reproduce"). Buildings (rule 40,
 //!   Q76; M1 7h): never `BOUNDS.KQ`; radius = half the diagonal of the
-//!   `.dig` header box, centre = the building's placed origin. The box
-//!   middle is retained separately for shadow receiver bounds.
+//!   `.dig` header box. The traced original centre is the placed origin,
+//!   but large Gnome interiors need the geometry box middle too to keep
+//!   their floor active across the whole room (DESIGN M6 collision note).
 //! - Items (rule 43, Q71): their type's shape in `BOUNDS.KQ`, else 100;
 //!   `tooFar` 0.83, `groupsAlways` 0x2, near 0x448, **far 0** (not drawn
 //!   when far).
@@ -67,6 +68,9 @@ pub struct DistanceTest {
     /// Ball centre in the entity's own (Bevy model) space; radius in game
     /// units.
     pub centre: Vec3,
+    /// Large building collision coverage: the `.dig` box middle in model
+    /// space. Use the nearer of this and `centre` for its activity.
+    pub alternate_centre: Option<Vec3>,
     pub radius: f32,
     pub too_far: f32,
     /// groupsAlways, groupsActive3D, groupsActive3DFar.
@@ -122,6 +126,14 @@ pub const ITEM_TOO_FAR: f32 = 0.83;
 pub const ITEM_GROUPS: [u32; 3] = [0x2, 0x448, 0];
 
 impl DistanceTest {
+    pub fn distance_to(&self, reference: Vec3, transform: &Transform) -> f32 {
+        let main = (reference - transform.transform_point(self.centre)).length();
+        let distance = self.alternate_centre.map_or(main, |other| {
+            main.min((reference - transform.transform_point(other)).length())
+        });
+        distance * UNITS_PER_METRE
+    }
+
     pub fn activity(&self, distance: f32, limit: f32, hidden: bool, rules: &ActiveRules) -> Activity {
         if hidden {
             Activity::Off
@@ -143,6 +155,7 @@ impl DistanceTest {
             object: NEXT_OBJECT.fetch_add(1, Ordering::Relaxed),
             name: placement.name.clone(),
             centre,
+            alternate_centre: None,
             radius,
             too_far: placement.too_far,
             groups: [placement.groups_always, placement.groups_near, placement.groups_far],
@@ -207,7 +220,11 @@ impl ShapeBalls {
     /// (its collision shape: an animated object's current movement's).
     pub fn test_at(&self, placement: &Placement, shape_index: usize) -> DistanceTest {
         match self.shapes.get(shape_index) {
-            Some((_, Some((_, radius)))) => DistanceTest { shadow_mask: 0, ..DistanceTest::new(placement, Some(([0.0; 3], *radius)), "building .dig box (rule 40)") },
+            Some((_, Some((middle, radius)))) => DistanceTest {
+                alternate_centre: Some(Vec3::from(crate::to_bevy(*middle, [0.0; 3]))),
+                shadow_mask: 0,
+                ..DistanceTest::new(placement, Some(([0.0; 3], *radius)), "building .dig box (rule 40)")
+            },
             Some((name, None)) => self.test_shape(placement, name),
             None => self.test(placement),
         }
@@ -363,8 +380,7 @@ pub fn update_activity(
     let mut nearest_off: Option<(f32, f32, String)> = None;
     let mut farthest_on: Option<(f32, f32, String)> = None;
     for (entity, test, transform, has_layer, visibility, with_h) in &mut tests {
-        let centre = transform.transform_point(test.centre);
-        let mut d = (reference - centre).length() * UNITS_PER_METRE - test.radius;
+        let mut d = test.distance_to(reference, transform) - test.radius;
         // Rule 36: hidden = off; makeActive = near; else by distance.
         let hidden = sim.as_ref().map_or(test.hidden, |s| s.active.world.hidden_now(&test.name, test.hidden));
         // Hidden by its file and shown by a script (objects.md "Hidden
@@ -588,7 +604,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn building_distance_uses_origin_but_keeps_box_middle_for_shadows() {
+    fn building_distance_covers_origin_and_box_middle_for_shadows() {
         let shape = ShapeBalls::new(None, [("room.dig", [0.0, 0.0, 0.0], [100.0, 200.0, 300.0])].into_iter());
         let mut placement = Placement::from_section(&kq8_data::kq_text::parse(b"[room]\n")[0]);
         placement.name = "room".into();
@@ -596,5 +612,9 @@ mod tests {
         assert_eq!(test.centre, Vec3::ZERO);
         assert!((test.radius - 187.08287).abs() < 0.01);
         assert_eq!(shape.building_box_centre(0), Some([50.0, 100.0, 150.0]));
+        let middle = Vec3::from(crate::to_bevy([50.0, 100.0, 150.0], [0.0; 3]));
+        assert_eq!(test.alternate_centre, Some(middle));
+        assert_eq!(test.distance_to(Vec3::ZERO, &Transform::IDENTITY), 0.0);
+        assert_eq!(test.distance_to(middle, &Transform::IDENTITY), 0.0);
     }
 }

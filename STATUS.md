@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome Dragon defeated and Black Diamond saved (~99.8%)
+
+The prior placed-origin-only building fix was incomplete. On a longer
+earned route it switched `gnome13` and `gnome14` floors out, dropping
+Connor and Dragon to terrain z=0. The viewer now keeps a building near
+when either its placed origin or its `.dig` box middle passes the
+distance test. This two-centre coverage is a temporary stand-in:
+`object-lighting.md` rule 40 names the origin, and Q223 asks the study
+session to establish the exact original exception.
+
+The automated replay continued the earned Gnome boulder and broken-wall
+save through the chamber turns, keeping Connor and Dragon at z=14915.
+Normal sword combat defeated Dragon; its death spawned a Black Diamond.
+An unarmed, camera-visible click collected the Diamond, and a fresh
+process loaded the in-game save with Dragon gone and the Diamond carried.
+The checkpoint is
+`target/m6-gnome-diamond-pickup-unarmed-save/slots/slot-2.json`.
+The ShardFuse route, Lodestone, later campaign, ending, exact building
+activation rule and broad save audit remain unfinished. M6 remains
+~99.8% under the existing phase estimate; this checkpoint does not
+establish end-to-end campaign completion. No manual gameplay test or
+original-file edit occurred.
+
 ## 2026-11-20 M6 Dragon floor activation corrected (~99.8%)
 
 The building distance test now matches the traced original: a `.dig`

@@ -1,5 +1,26 @@
 # MODLOG
 
+## 2026-11-20: M6 Dragon route, combat and Black Diamond (~99.8%)
+
+**Changed:** The previous placed-origin-only distance fix failed on
+the full earned Gnome route: `gnome13` switched out under Connor and
+`gnome14` under Dragon. A building's distance test now retains its
+placed origin and also covers its `.dig` box middle. Dynamically loaded
+building collision uses the same test. This is a documented stand-in,
+not established original parity; Q223 requests the missing engine rule.
+**Why:** Both large interiors must retain their authored floors while
+actors traverse them. **Tested:** 83 non-ignored viewer unit tests
+passed; the release viewer built. The earned route from the living
+Dragon through the broken wall reached its chamber with both actors on
+z=14915. Normal sword combat killed Dragon, spawned its Black Diamond,
+and an unarmed camera-visible click picked it up. The in-game save
+recorded Dragon gone and the Diamond carried; a fresh viewer process
+restored it successfully. The first click with the sword still ready
+swung instead of picking up the item, so the successful replay put the
+sword away first. **Still open:** The ShardFuse branch, Lodestone,
+later campaign, ending, exact original distance rule and broad save
+audit. No manual gameplay or original-file edit occurred.
+
 ## 2026-11-20: M6 corrected Dragon floor activation (~99.8%)
 
 Changed building distance balls to use the original placed origin

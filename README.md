@@ -30,7 +30,7 @@ The default keyboard layout is W/S/D/A to move, R to walk or run, Space to jump,
 
 Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.
 The automated campaign walker has completed Dead City's key quests, cleared the Swamp poison with the Golden Ladle, met Gnome's Sage, and opened Gnome's brick wall with its original boulder puzzle. Later campaign routes remain unfinished.
-The Gnome Dragon now stays on its authored floor in an automated pre-fall replay; its fight remains unfinished.
+The Gnome Dragon has been defeated in an automated earned-save replay, and its Black Diamond was collected; later campaign quests remain unfinished.
 The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.
 
 ## Bring your own game

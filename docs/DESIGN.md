@@ -244,9 +244,23 @@ z=14890. The cause is the building distance ball: this recreation
 centres it on the `.dig` geometry's box middle, while the traced
 original centres it on the building's placed origin (object-lighting
 rule 40). For `gnome14`, the box middle lies 46,977 units from that
-origin, causing the collider to activate too late. Restore the
-original origin centre with the same `.dig` radius. Verify a far-start
-replay and earned Dragon approach by logs and save state before combat.
+origin, causing the collider to activate too late. Using only the
+traced original origin with the same `.dig` radius passed the early
+Dragon check but failed the longer earned route: `gnome13` switched
+off at update 355 while Connor was traversing it, and `gnome14`
+switched off at update 370 while Dragon stood on it. Both fell to
+terrain z=0. The static rule 40 trace and the full gameplay behavior
+therefore disagree for these large Gnome interiors. Until the precise
+engine exception is established, make a building Near when either
+its placed origin or geometry box middle passes the existing distance
+test. This is a documented collision coverage stand-in, not proven
+original parity. Keep the same radius and hidden/group rules and leave
+shadow receiver bounds at the geometry middle. The earned replay now
+reaches the Dragon chamber without either floor switching out. Normal
+sword combat defeats Dragon, and an unarmed visible click picks up its
+Black Diamond. This validates the Gnome route but does not establish
+the original building activation exception; Q223 asks the study
+session to resolve that rule before claiming exact parity.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

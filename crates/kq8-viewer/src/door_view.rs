@@ -286,7 +286,7 @@ pub fn apply_loads(
             if let Some(distance) = distance {
                 let test = &distance.0;
                 if let Some(reference) = reference.filter(|_| shown == 0) {
-                    let d = (reference - transform.transform_point(test.centre)).length() * crate::UNITS_PER_METRE;
+                    let d = test.distance_to(reference, transform);
                     let activity = test.activity(d - test.radius, light.haze.visible,
                         sim.active.world.hidden_now(&name, test.hidden), &rules);
                     if activity.groups(test.groups[0], test.groups[1], test.groups[2]) & crate::draw_distance::COLLIDER_BIT == 0 {

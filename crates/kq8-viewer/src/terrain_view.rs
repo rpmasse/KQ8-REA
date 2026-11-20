@@ -536,7 +536,7 @@ pub fn setup_objects(
         // A building's draw-distance ball (rule 40, M1 7h).
         if let (false, Some(t)) = (built_walls[*i].is_empty(), &test) {
             log.detail(format!(
-                "draw distance: building [{}] ball radius {:.0} (half the .dig box diagonal), centre = placed origin; box middle {:.0} away, retained for shadows",
+                "draw distance: building [{}] ball radius {:.0} (half the .dig box diagonal), activity covers placed origin and box middle {:.0} away; shadow bounds use box middle",
                 p.name,
                 t.radius,
                 balls.building_box_centre(*i).map_or(0.0, |c| Vec3::from(to_bevy(c, [0.0; 3])).length() * UNITS_PER_METRE)

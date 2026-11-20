@@ -2888,14 +2888,16 @@ Replaces the M1 7c stand-in (the light's position, radius 100, default masks).
 
 ## A building's draw-distance ball (M1 step 7h) — `crates/kq8-viewer/src/{draw_distance,terrain_view}.rs`
 
-The building radius comes from the `.dig` header box. The distance
-centre now follows the traced original after the Gnome Dragon floor
-activation check; shadow receiver bounds still use the box middle.
+The building radius comes from the `.dig` header box. The original
+distance centre is reported as the placed origin, but that alone makes
+large Gnome floor colliders disappear during an earned route. The Rust
+viewer currently tests both that origin and the box middle as a
+coverage stand-in; shadow receiver bounds still use the box middle.
 
 | What | Source | Check |
 | --- | --- | --- |
 | Buildings never use `BOUNDS.KQ`; radius = half the `.dig` header box's diagonal | `object-lighting.md` rule 40 (traced, Q76) | Log: Daventry `csbridge` 4,398, `Church` (`nchurch.dig`) 18,990 (note: 4,400, 19,000) |
-| Draw-distance centre = the building's placed origin | `object-lighting.md` rule 40 (traced) | Automated Gnome replay: `gnome14` supports Dragon at z=14915 through update 180; its box middle is 46,977 units from the origin |
+| Placed-origin test plus box-middle coverage for Gnome floors | `object-lighting.md` rule 40 gives the origin; Q223 asks how the original keeps both large interiors solid | An earned Gnome route through the broken wall, Dragon fight and Black Diamond pickup preserves floor z=14915; origin alone and box middle alone each failed at different points. Exact original activation is unverified. |
 
 ## Reach to a clicked building (M1 step 7i) — `crates/kq8-core/src/active.rs` (`ActiveBuilding::bounds`, `placement`, `click_building`), `crates/kq8-viewer/src/load.rs`
 
