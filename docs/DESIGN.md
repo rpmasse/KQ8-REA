@@ -152,6 +152,44 @@ the boulder's upper approach near (104245, 90442, 20547). Rope 3's
 top also connects in 120 cells. Use the existing crossed bridge save
 and live state to reconnect these route sections; do not treat the
 height-only search's bridge gap as an engine fault.
+The first live return from Sage passed door 5 but stopped at
+(40197, 104127) against `gnome03` while heading south. The northbound
+approach previously passed near x40066. Measure the installed
+building's reverse corridor at Connor's saved height and choose a
+supported lateral turn before another live attempt. Keep the earned
+Sage save as the starting checkpoint.
+The measured x39947 side lane cleared that wall. Three separately
+timed eastbound Run crossings cleared all rolling rocks, followed by
+normal movement back through door 4 and the turned bridge. The earned
+south-bank checkpoint is at (83731, 67517, 17500). A supported route
+from there to rope 2 exists, but spans about 801 grid cells. Before
+replaying that long circuit, compare the post-rock corridor's branches
+to rope 3 and the brick-wall approach; choose the shorter authored
+route if the installed collision data supports it.
+The shorter branch was live-replayed from the east hall. `gnome02`
+required two measured corner turns, and MantaFoder5, 1, 3, 4, and 2
+were defeated through normal sword combat as they blocked the route.
+The slope and front-wall turns then reached an in-game save at
+(98972, 119103, 15092) with Sage met and the brick wall still intact.
+Study supported movement from this wall-front checkpoint toward the
+boulder's upper passage and its rope or climb connections. Only the
+authored physical boulder pushes may activate the two traps.
+The measured route from the wall front reached rope 3's bottom through
+the east ramp after normal sword combat cleared the remaining Mantas
+and a Rock Demon. Connor selected his carried RopeAndHook, climbed by
+holding forward through the full rope animation, dismounted at its
+upper end, and saved with `ropetp3b` status Top. Normal movement along
+the upper slope reached the boulder approach. With his sword put away,
+Connor approached from the east and physically pushed the boulder into
+`bouldtrp`. Its original cutscene ran, set
+`Gnome::Boulder::Dropped=1`, and left the boulder at
+(101950, 91915, 17470). The earned save is
+`target/m6-gnome-boulder-angled-push-save/slots/slot-2.json`; the
+brick wall remains intact with `Gnome::Boulder::Pushed=0`. Next reach
+the boulder's north side through the lower passage, then push it
+through `bouldtp2` at (100100, 109250, 17470) using empty hands and
+ordinary movement. Require the original wall scene and saved Pushed
+flag before entering the new passage.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

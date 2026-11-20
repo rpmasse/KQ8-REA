@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-20: M6 dropped Gnome boulder through original trigger (~99.8%)
+
+Added ignored installed-data route diagnostics, then used normal
+movement, combat, rope and push controls to replay Sage's return path
+to Gnome's boulder. The complete rope climb and top dismount saved and
+restored. A southeast approach physically pushed the original boulder
+through `bouldtrp`, running its authored drop scene. The resulting
+in-game save has Dropped=1 and Pushed=0; the brick wall has not been
+opened. Diagnostic logs and checkpoints are under ignored
+`target/m6-gnome-*`. No manual test or original-file edit occurred.
+
 ## 2026-11-20: M6 identified the authored Lodestone route (~99.8%)
 
 Read the installed Gnome boulder, trap and wall scripts, then ran

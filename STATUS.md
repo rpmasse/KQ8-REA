@@ -1,5 +1,22 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome boulder dropped (~99.8%)
+
+From the earned Sage save, Connor crossed the three rolling rocks
+eastbound, returned through door 4 and the turned bridge, and took the
+shorter branch to rope 3. Normal sword combat cleared five Mantas and
+the ramp Rock Demon. His carried RopeAndHook completed the full climb;
+the top checkpoint restored with rope status Top. Connor then walked
+the upper passage, put his sword away, and physically pushed the
+boulder into the original `bouldtrp` trigger. The full drop cutscene
+ran and an in-game save at
+`target/m6-gnome-boulder-angled-push-save/slots/slot-2.json` records
+`Gnome::Boulder::Dropped=1`, `Pushed=0`, and the lower boulder at
+(101950, 91915, 17470). The next action is the second physical push
+to break the brick wall. M6 remains ~99.8%; the wall, Dragon Wyrm,
+Lodestone, later campaign, ending, and broad save audit are unfinished.
+No manual gameplay test or original-file edit was used.
+
 ## 2026-11-20 M6 Lodestone route identified (~99.8%)
 
 Installed Gnome scripts show the Lodestone lies beyond the breakable

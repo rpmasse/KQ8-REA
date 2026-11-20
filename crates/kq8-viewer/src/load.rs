@@ -6277,6 +6277,150 @@ mod campaign_tests {
             println!("{name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
                 route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
                 route.as_ref().map(|path| path.iter().step_by(15).copied().collect::<Vec<_>>()));
+            if name == "rope 3 top to boulder" {
+                println!("rope 3 upper first cells: {:?}", route.as_ref().map(|path| path.iter().take(70).copied().collect::<Vec<_>>()));
+                println!("rope 3 upper last cells: {:?}", route.as_ref().map(|path| path.iter().skip(65).copied().collect::<Vec<_>>()));
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_sage_reverse_corridor_collision() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-sage-reverse-corridor").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let balls = kq8_core::collide::BallStack::from_box(
+            kq8_core::connor_mover::CONNOR_BOX.0, kq8_core::connor_mover::CONNOR_BOX.1);
+        let from = [40196.9, 104127.0, 17475.0];
+        let target = [40041.0, 106800.0];
+        for x in [39000.0, 39250.0, 39500.0, 39750.0, 40000.0, 40250.0, 40500.0] {
+            println!("reverse corridor x{x:.0}: {:?}", gnome_segment_hit(&objects.buildings,
+                &balls, [x, 103900.0, 17475.0], [x, 105000.0, 17475.0]));
+        }
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, from, target);
+        println!("reverse corridor from live stop: expanded {expanded}; route {route:?}");
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_bridge_south_to_rope2_route() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-bridge-south-rope2-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let start = [83731.41, 67517.2, 17500.0];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+            start, [119669.0, 95692.0], 19000.0, 600.0);
+        println!("bridge south to rope 2 bottom: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+            route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+            route.as_ref().map(|path| path.iter().step_by(12).copied().collect::<Vec<_>>()));
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_post_rocks_quest_branch_routes() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-post-rocks-quest-branches").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        for (name, start, goal, radius) in [
+            ("post-rocks to rope 3 bottom", [60412.0, 106756.0, 17475.0], [117247.0, 107784.0], 600.0),
+            ("post-rocks to brick wall approach", [60412.0, 106756.0, 17475.0], [100000.0, 118000.0], 1000.0),
+            ("post-rocks to rope 2 bottom", [60412.0, 106756.0, 17475.0], [119669.0, 95692.0], 600.0),
+            ("bridge south to rope 3 bottom", [83731.0, 67517.0, 17500.0], [117247.0, 107784.0], 600.0),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, goal, 19000.0, radius);
+            println!("{name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(20).copied().collect::<Vec<_>>()));
+        }
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_south_quest_branch_local_opening() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-south-quest-branch-opening").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let balls = kq8_core::collide::BallStack::from_box(
+            kq8_core::connor_mover::CONNOR_BOX.0, kq8_core::connor_mover::CONNOR_BOX.1);
+        for x in [79000.0, 79250.0, 79500.0, 79750.0, 80000.0, 80250.0, 80500.0, 80750.0, 81000.0] {
+            println!("south branch x{x:.0}: {:?}", gnome_segment_hit(&objects.buildings,
+                &balls, [x, 103700.0, 17475.0], [x, 108300.0, 17475.0]));
+        }
+        let start = [80624.66, 103650.74, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls,
+            start, [80347.0, 108256.0]);
+        println!("south branch local route: expanded {expanded}; route {route:?}");
+        let second = [80466.54, 109503.39, 17475.0];
+        for x in [79500.0, 79750.0, 80000.0, 80250.0, 80500.0, 80750.0] {
+            println!("south branch second x{x:.0}: {:?}", gnome_segment_hit(&objects.buildings,
+                &balls, [x, 109300.0, 17475.0], [x, 111500.0, 17475.0]));
+        }
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls,
+            second, [80097.0, 111006.0]);
+        println!("south branch second local route: expanded {expanded}; route {route:?}");
+        let third = [82504.586, 116415.11, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls,
+            third, [83597.0, 117506.0]);
+        println!("south branch third local route: expanded {expanded}; route {route:?}");
+        let fourth = [88783.82, 119496.74, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls,
+            fourth, [90597.0, 120506.0]);
+        println!("south branch fourth local route: expanded {expanded}; route {route:?}");
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+            fourth, [90597.0, 120506.0], 18000.0, 600.0);
+        println!("south branch fourth height route: expanded {expanded}; path {route:?}");
+        let wall_front = [97993.28, 120406.01, 14982.216];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+            wall_front, [99097.0, 119006.0], 16000.0, 600.0);
+        println!("brick wall front local height route: expanded {expanded}; path {route:?}");
+        for x in [100500.0, 100750.0, 100900.0, 101000.0, 101100.0] {
+            println!("boulder ramp north at x{x:.0}: {:?}", gnome_segment_hit(&objects.buildings,
+                &balls, [x, 119100.0, 14915.0], [x, 120600.0, 14915.0]));
+        }
+        let ramp_stop = [101094.62, 119487.01, 14984.847];
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+            ramp_stop, [100750.0, 120603.0], 16000.0, 300.0);
+        println!("boulder ramp stop to north turn: expanded {expanded}; path {route:?}");
+        let east_stop = [115135.0, 120386.88, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls,
+            east_stop, [116222.0, 120436.0]);
+        println!("boulder ramp east wall local route: expanded {expanded}; route {route:?}");
+    }
+
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_wall_front_to_boulder_approaches() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-wall-front-boulder-approaches").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let start = [98971.6, 119102.97, 15091.533];
+        for (name, target, height) in [
+            ("wall front to rope 3 bottom", [117247.0, 107784.0], 19000.0),
+            ("wall front to rope 2 bottom", [119669.0, 95692.0], 19000.0),
+            ("wall front to boulder top", [103894.0, 90758.0], 23500.0),
+            ("wall front to boulder drop area", [101000.0, 109050.0], 19000.0),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, target, height, 600.0);
+            println!("{name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(15).copied().collect::<Vec<_>>()));
+            if name == "wall front to rope 3 bottom" {
+                println!("wall front rope 3 first steps: {:?}",
+                    route.as_ref().map(|path| path.iter().take(35).copied().collect::<Vec<_>>()));
+            }
         }
     }
 
@@ -6929,6 +7073,9 @@ mod campaign_tests {
         let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
         let boulder = objects.objects.iter().find(|o| o.name.eq_ignore_ascii_case("boulder")).unwrap().clone();
         let trap = objects.traps.iter().find(|t| t.settings.name.eq_ignore_ascii_case("bouldtrp")).unwrap().clone();
+        println!("Gnome boulder first trap: position {:?}, bounds {:?}..{:?}; boulder {:?}, shape {:?}..{:?}",
+            trap.settings.position, trap.settings.min, trap.settings.max, boulder.placement.position,
+            boulder.min, boulder.max);
         let trap_name = trap.settings.name.clone();
         assert!(boulder.kind.ball_stack && boulder.kind.collision_type & trap.settings.mask != 0);
         let target = trap.settings.position;
