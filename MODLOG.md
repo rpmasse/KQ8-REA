@@ -1,5 +1,18 @@
 # MODLOG
 
+## 2026-11-20: M6 bridge rotation and second Rock recovered (~99.5%)
+
+Ordinary movement carried the earned third Rock to rotation plate 4;
+normal selection and a visible throw turned the bridge. A save and
+fresh-process reload retained the open rotation. Connor returned to
+the original second Rock, put away his ready sword, picked it up with
+a visible click, and saved it carried. A throw at plate 2 landed above
+the pressure box, and a measured alternate approach met a wall before
+throwing. These two failed runs are retained; the safe Rock-carrying
+save is `target/m6-gnome-second-rock-recovery/slots/slot-2.json`.
+No Rust changed, no original files changed, and no manual gameplay
+test occurred. M6 rises from ~99.4% to ~99.5%; crossing remains open.
+
 ## 2026-11-20: M6 third Rock returned to bridge (~99.4%)
 
 The live return was blocked by Swsprig, which the diagnostic route

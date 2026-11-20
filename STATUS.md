@@ -1,5 +1,30 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome bridge rotated; second Rock recovered (~99.5%)
+
+From the earned third-Rock bridge-approach save, ordinary movement
+reached rotation plate 4. A normal inventory selection and visible
+throw placed the third Rock on it. The authored trap turned the bridge;
+an in-game save and fresh-process reload retained `Plate4=opened` and
+`Turned=opened`. Connor then walked back to the original second Rock.
+His first visible click was interpreted as a sword swing because the
+weapon was ready. After putting it away, a fresh-process run picked up
+the Rock normally and saved it carried at (112856, 64081, 17475).
+That save retains the turned bridge and third-Rock occupant. It is the
+latest safe campaign checkpoint:
+`target/m6-gnome-second-rock-recovery/slots/slot-2.json`.
+
+Two plate-2 attempts did not advance the puzzle. A visible throw from
+(84710, 63201, 17475) landed a new Rock at (84061, 64107, 19230),
+above the pressure plate at z17475; `Plate2` and `SideOne` stayed
+closed. A measured approach toward (84000, 65500) was blocked by
+building collision at (84129, 63848), before any throw. Both failed
+runs and their saves remain in ignored `target/m6-gnome-second-rock-*`.
+Further aim or route variants require a collision and landing study.
+No source behavior changed, no original files changed, and no manual
+gameplay test occurred. M6 estimate: ~99.5%; bridge crossing and later
+campaign work remain unfinished.
+
 ## 2026-11-20 M6 third Rock returned to bridge approach (~99.4%)
 
 The return from the lower Rock room initially stopped at a live
