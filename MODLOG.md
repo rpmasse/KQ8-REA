@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-20: M6 Short Bow return checkpoint (~97%)
+
+Automated walking brought the earned Short Bow through the Mandragor
+gap and around solid geometry to a new Swamp checkpoint at
+(165081,100390,5355). In-game saves and fresh-process reloads retained
+the route positions and one Short Bow. A direct continuation north met
+another obstacle near y96500. No game code or original assets changed.
+AI and collisions remained active, with test-only invulnerability.
+M6 stays ~97%; no manual gameplay test occurred.
+
 ## 2026-11-20: M6 earned Swamp Short Bow (~97%)
 
 Automated movement from the saved Fiend defeat passed the western ridge,

@@ -1,5 +1,23 @@
 # STATUS
 
+## 2026-11-20 M6 Short Bow return route (~97%)
+
+Ordinary movement carried the earned Short Bow back through the
+Mandragor gap to (155870,112315,5355). An in-game save and fresh-process
+reload retained the bow, its cleared source and the Swamp state. A
+direct north route met solid world geometry near y102000; shifting to
+x160000 met another wall near y106000. The eastern approach at x165000
+passed that section and reached (165081,100390,5355). A second in-game
+save and fresh-process reload retained one Short Bow there. The ignored
+checkpoints are `target/m6-swamp-bow-return-save/slots/slot-2.json` and
+`target/m6-swamp-bow-north-save/slots/slot-2.json`.
+
+The next direct north route stops near y96500, so the Witch and keep
+approach still need a detour. AI and collisions stayed active; the
+campaign save still has test-only invulnerability. M6 remains ~97%
+because the main Swamp quests, later regions and full save audit are
+unfinished. No manual gameplay testing occurred.
+
 ## 2026-11-20 M6 earned Swamp Short Bow (~97%)
 
 From the saved Fiend defeat, ordinary movement went west around the
