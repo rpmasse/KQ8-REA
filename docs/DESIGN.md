@@ -10717,3 +10717,12 @@ doors. Connor crossed the doorway by ordinary movement and the next
 save/reload retained the hallway position. Continue the Gnome campaign
 from the earned hallway checkpoint; this is a diagnostic-god route and
 does not complete the region or campaign.
+
+The first hallway `batmanta1` now falls to normal hand-weapon input, and
+its corpse and experience persist after an in-game save and fresh-process
+reload. The building-only route search toward the nearby Gnome finds a
+four-turn path, but the live walker stops at `gnome05` after accepting a
+turn 129 units short. After two failed live approaches, pause this route
+and compare an exact sweep from the reached point to the next waypoint.
+Only replay a corrected route if the sweep shows a clear segment; retain
+the failed logs as evidence.

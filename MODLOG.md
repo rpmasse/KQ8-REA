@@ -1,5 +1,21 @@
 # MODLOG
 
+## 2026-11-20: M6 first Gnome hallway combat and route diagnostic (~98.5%)
+
+The earned hallway route defeated `batmanta1` with ordinary sword input.
+An in-game save and fresh-process reload/save kept its corpse, 8,000
+experience award, and the Rock-held first door. This is still a
+diagnostic-god campaign route. Extended the ignored original-data
+building search to the first nearby Gnome. Its four-turn proposal
+passed the building sweep, but ordinary movement stopped against
+`gnome05` after accepting a turn 129 units early. The direct and guided
+attempts both failed; see `STATUS.md` before any further route change.
+`cargo test -p kq8-viewer --bin kq8-viewer
+original_gnome_start_room_collision_directions --release -- --ignored
+--nocapture` passed with `KQ8_GAME_DIR` set to the GOG install. The
+fresh-process save run passed. Original files were read only; no manual
+gameplay test occurred. M6 remains ~98.5%.
+
 ## 2026-11-20: M6 Gnome first door and hallway (~98.5%)
 
 Extended the ignored Gnome collision probe with a bounded building

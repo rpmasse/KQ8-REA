@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome first hallway combat and next-route limit (~98.5%)
+
+From the earned first-hallway save, ordinary hand-weapon attacks killed
+`batmanta1`; its death at update 223 awarded 8,000 experience. An in-game
+save and a fresh-process reload/save retained the corpse, deleted enemy,
+100,575 total experience, and `NoName279` on `triptrp1` holding the first
+door open. The fresh reload passed without manual gameplay. These
+checkpoints still inherit diagnostic god mode, so the fight does not
+establish unprotected campaign survival.
+
+Two ordinary movement attempts toward the first nearby Gnome stopped at
+`gnome05`: the direct eastward route at `(103871, 61783)` and a route
+guided by a building-only collision search at `(108485, 65474)`. The
+search returned turns through the interior, but the live route accepted
+one turn 129 units early; the next segment hit `gnome05`. That early
+acceptance may explain the mismatch, but it is not yet verified. Both
+failed logs remain under ignored `target/m6-gnome-first-gnome*/`.
+Stop this route after the two failures. Next, compare the exact live
+position and next segment with the building sweep, then adjust route
+waypoints only if that sweep proves a clear passage. Gnome quest and
+later worlds remain incomplete; M6 stays ~98.5%.
+
 ## 2026-11-20 M6 Gnome first door and saved hallway (~98.5%)
 
 The original-data building sweep found a start-room route around

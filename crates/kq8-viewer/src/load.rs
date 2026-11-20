@@ -6226,6 +6226,9 @@ mod campaign_tests {
             let (expanded, route) = gnome_building_route(&objects.buildings, &balls, start, target);
             println!("{name}: expanded {expanded} cells; building-only floor-height route: {route:?}");
         }
+        let hall = [100809.0, 61730.0, 17475.0];
+        let (expanded, route) = gnome_building_route(&objects.buildings, &balls, hall, [113327.0, 60324.0]);
+        println!("first hallway Gnome: expanded {expanded} cells; building-only floor-height route: {route:?}");
     }
 
     #[test]
