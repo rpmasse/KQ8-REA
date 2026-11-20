@@ -1,5 +1,24 @@
 # STATUS
 
+## 2026-11-20 M6 earned Dead City to Swamp handoff (~97%)
+
+From the south-bank drawbridge save, Connor walked into the original
+`port10tp` trigger near (123000,208000). The game's region-confirmation
+popup opened, an automated Yes input accepted it, the portal sequence
+completed, and Swamp loaded at its authored arrival. An in-game save
+and fresh-process reload retained the Swamp world and Connor's position
+near (177501,85956,8331), without replaying Swamp's Begin script.
+The carried Azriel Hammer, Skeleton King Sword and Piece1 survived, as
+did Dead City's completed scales quest, Ferryman stage 4 and lowered
+drawbridge. The ignored checkpoint is
+`target/m6-swamp-arrival-reload/slots/slot-2.json`.
+
+This raises M6 from ~96% to ~97% for a verified earned region handoff.
+The earlier route's test-only invulnerability remains in the save;
+normal-damage completion and camera-visible interactions are still
+unverified. Swamp's earned quests, later regions and the full save
+audit remain unfinished.
+
 ## 2026-11-20 M6 drawbridge opened and crossed (~96%)
 
 From the freshly reloaded Hammer checkpoint, Connor reached the north

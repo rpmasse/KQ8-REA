@@ -110,7 +110,14 @@ crossing route hit `bridge.dig`'s west wall. Route north around the
 building, align with x122875, then walk south over the opened deck.
 The automated walker reached (122863,206879,1010), and a fresh-process
 reload kept the bridge lowered and Connor on the south bank. Continue
-the Reaper quest from that saved state. Keep the diagnostic aim and
+the Dead City exit from that saved state. The Ferryman dialogue and
+scales quest were already completed in this earned save. Walking into
+`port10tp` opened the original confirmation popup; an automated Yes
+completed the portal handoff to Swamp. A Swamp in-game save and fresh
+process retained Connor's arrival, the carried Hammer, King Sword and
+Piece1, plus Dead City progress, without replaying Swamp Begin. Next
+follow Swamp's required quest and exit route from this checkpoint.
+Keep the diagnostic aim and
 test-only invulnerability limits explicit when evaluating fidelity.
 
 ## M6 recover and rust the Broken Shield (2026-11-19)

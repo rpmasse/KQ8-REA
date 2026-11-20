@@ -1,5 +1,16 @@
 # MODLOG
 
+## 2026-11-20: M6 earned Swamp arrival (~97%)
+
+The automated continuation walked from the opened Dead City bridge
+through `port10tp`, accepted the original portal confirmation, and
+loaded Swamp. An in-game save and fresh-process reload retained the
+Swamp position, Hammer, King Sword, Piece1, scales completion,
+Ferryman progress and lowered bridge without replaying Swamp Begin.
+No game code changed. Test-only invulnerability from the earlier route
+remains enabled. M6 rises from ~96% to ~97%; Swamp's earned quests and
+the later campaign remain.
+
 ## 2026-11-20: M6 drawbridge checkpoint (~96%)
 
 From the earned Hammer save, a ranged throw physically struck the
