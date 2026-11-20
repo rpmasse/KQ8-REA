@@ -6260,6 +6260,25 @@ mod campaign_tests {
         let talk_save = [113217.7, 62000.4, 17475.0];
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [114861.0, 60965.0]);
         println!("Gnome talk save to second Rock: expanded {expanded} cells; building-only route: {route:?}");
+        for (name, [x, y, authored_z]) in [
+            ("second Rock", [114861.0, 60965.0, 17460.0]),
+            ("third Rock", [137311.0, 70325.0, 12350.0]),
+            ("bridge east", [86402.0, 67074.0, 17475.0]),
+            ("lower doorway", [85582.0, 83095.0, 13916.0]),
+            ("iron lock", [78241.0, 99050.0, 17475.0]),
+            ("bridge fall stop", [83775.0, 76479.0, 5187.0]),
+        ] {
+            let terrain = ground.terrain.floor_at(x, y).map(|sample| sample.height);
+            println!("Gnome {name}: authored height {authored_z:.0}, terrain floor {terrain:?}, difference {:?}",
+                terrain.map(|height| authored_z - height));
+        }
+        println!("Gnome talk to second Rock direct upper-height building hit: {:?}",
+            gnome_segment_hit(&objects.buildings, &balls, talk_save, [114861.0, 60965.0, 17475.0]));
+        for z in [12350.0, 5187.0] {
+            let (expanded, route) = gnome_building_route(&objects.buildings, &balls,
+                [talk_save[0], talk_save[1], z], [114861.0, 60965.0]);
+            println!("Gnome hypothetical height {z:.0} from talk XY to second Rock XY: expanded {expanded} cells; building-only route: {route:?}");
+        }
         let (expanded, route) = gnome_building_route(&objects.buildings, &balls, talk_save, [86303.0, 66502.0]);
         println!("Gnome talk save to bridge east plate: expanded {expanded} cells; building-only route: {route:?}");
         assert!(route.is_some(), "the installed building search lost the east-plate route");

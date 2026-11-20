@@ -1,5 +1,27 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome second Rock and bridge side one (~99.0%)
+
+An upper-floor collision probe corrected the earlier no-path result:
+the direct segment from Gnome's conversation corridor to the second
+Rock is clear, while the rounded grid endpoint was blocked. An
+ordinary camera-visible click from farther down the corridor picked
+up the second Rock. An in-game save and fresh-process reload retained
+it. Connor then walked to the east bridge plate, selected the carried
+Rock, and threw it onto `triptrp4`; the rotating bridge opened. A
+second save/reload retained the Rock on that plate and the turned
+bridge. Measured walking to plate 2 opened side one. Its save and
+fresh-process reload retained `Plate2=opened`, `SideOne=opened`, and
+`Turned=opened`, with `Solved=false`. Two earlier stop points carried
+Connor off plate 2 during the stop animation and closed the side; the
+final stop at (84000, 65500) held it. Ignored automated artifacts are
+under `target/m6-gnome-second-rock-*`,
+`target/m6-gnome-rotation-rock-*`, and
+`target/m6-gnome-held-rotation-side1-*`. No manual gameplay test
+occurred. M6 is estimated at ~99.0%; side two, the bridge solution,
+Sage, later regions, ending, and broad save audit remain. Diagnostic
+god mode is still inherited by this route.
+
 ## 2026-11-20 M6 Gnome first Rock recovered and door limit (~98.9%)
 
 The prior two third-person reclaim attempts failed because the Rock was

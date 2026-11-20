@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome second Rock and rotating bridge (~99.0%)
+
+Added terrain heights and lower-floor route probes to the ignored
+Gnome collision diagnostic. Ordinary walking and camera-visible
+interaction recovered the second Rock; in-game save/reload retained it.
+An ordinary throw placed it on bridge plate 4 and turned the bridge;
+another save/reload retained that state. A measured walk settled Connor
+on plate 2 and opened side one, again surviving fresh-process reload.
+Two earlier stop points overshot the plate. The focused collision test
+and automated viewer runs passed. No original files were changed and
+no manual gameplay test occurred. M6 estimate: ~99.0%.
+
 ## 2026-11-20: M6 Gnome first Rock recovery (~98.9%)
 
 Added the projected target point, viewport, panel, and camera position

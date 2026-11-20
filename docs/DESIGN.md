@@ -3,6 +3,34 @@
 How this project works, in plain language. Updated when the architecture
 changes, not on every commit.
 
+## M6 Gnome alternate-floor route probe (2026-11-20)
+
+The earned Gnome route now has a Rock held on the first door plate and a
+saved Connor position beyond that door. A direct same-height building
+search cannot reach the second Rock from the Gnome conversation, and a
+bridge approach fell to a lower level. Before choosing another route,
+sample the installed terrain height and interior collision around the
+second and third Rocks, bridge, lower doorway, and iron lock. Run the
+existing building-only search at the authored Rock heights to find
+candidate corridors on those levels. Treat every result as diagnostic:
+only ordinary walking, visible clicks, in-game saves, and fresh-process
+reloads can advance the earned campaign. Keep the GOG data read only
+and do not inject an item or a position into an earned checkpoint.
+
+The terrain samples put the second Rock and east bridge plate on the
+upper floor. A direct building-collision check from the Gnome
+conversation to the second Rock was clear; the earlier grid search
+reported no path because its rounded end cell was blocked. Walking
+farther into the corridor made the second Rock camera-visible for an
+ordinary pickup. Connor saved and reloaded it in inventory, then
+walked to the east bridge plate and threw it onto `triptrp4`. The
+rotating bridge opened and retained that state through a fresh-process
+save/reload. From that checkpoint, a measured stop at (84000, 65500)
+settled Connor on `triptrp2`, opened side one, and retained the state
+through another fresh-process save/reload. Earlier stops farther south
+let the stop animation carry Connor off the plate. The bridge remains
+unsolved: side two is closed and the third Rock is on a lower floor.
+
 ## M6 post-Sylph jail gate route (2026-11-20)
 
 Continue from the earned completed Sylph spell. Heal at her well through
