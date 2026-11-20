@@ -1,5 +1,19 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome brick wall opened (~99.8%)
+
+Starting from the earned dropped-boulder save, Connor used normal
+empty-hand pushing to move the lower boulder southeast, south, and
+southwest along the installed collision route. Its final push entered
+`bouldtp2`; the authored `brikwall` cutscene ran to completion, deleted
+the boulder, and restored controls. The in-game save at
+`target/m6-gnome-brickwall-break-save/slots/slot-2.json` has
+`Gnome::Boulder::Dropped=1`, `Pushed=1`, and `brikwall` hidden. The
+next route passes through that opening toward the Dragon Wyrm and
+Lodestone. M6 remains ~99.8%; those encounters, later campaign,
+ending, and broad save audit remain unfinished. No manual gameplay
+test or original-file edit was used.
+
 ## 2026-11-20 M6 Gnome boulder dropped (~99.8%)
 
 From the earned Sage save, Connor crossed the three rolling rocks

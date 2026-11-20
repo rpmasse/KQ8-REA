@@ -190,6 +190,17 @@ the boulder's north side through the lower passage, then push it
 through `bouldtp2` at (100100, 109250, 17470) using empty hands and
 ordinary movement. Require the original wall scene and saved Pushed
 flag before entering the new passage.
+The lower boulder was pushed southeast around `gnome01`, then south
+and southwest through the supported passage. Its final physical push
+entered `bouldtp2` at update 38. The original script set
+`Gnome::Boulder::Pushed=1` and started `brikwall` Cue 1; the wall scene
+ran to completion, deleted the boulder, hid `brikwall`, restored
+Connor's controls, and placed him by the opening. The in-game save is
+`target/m6-gnome-brickwall-break-save/slots/slot-2.json`, with both
+Boulder flags set to 1 and the wall hidden. Next walk through the new
+opening from this earned save, study the light-crystal and Dragon Wyrm
+scripts, and continue toward the pyramid device and Lodestone. Keep
+all transitions on their authored controls and triggers.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 

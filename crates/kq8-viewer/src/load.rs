@@ -6424,6 +6424,39 @@ mod campaign_tests {
         }
     }
 
+    #[test]
+    #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
+    fn gnome_dropped_boulder_north_approach_route() {
+        let game = game_install();
+        let world = World::open(&game, "Gnome").unwrap();
+        let mut log = Log::create("gnome-dropped-boulder-route").unwrap();
+        let ground = load_ground(&game, &world, &mut log).unwrap();
+        let objects = load_objects(&game, &world, &ground.terrain, &mut log, None, None);
+        let start = [99528.94, 91012.6, 17475.0];
+        for (name, target) in [
+            ("north of boulder", [102200.0, 90000.0]),
+            ("west north lane", [100100.0, 90000.0]),
+            ("northwest edge", [100500.0, 90500.0]),
+            ("east of boulder", [103700.0, 91915.0]),
+            ("far east lane", [104500.0, 91000.0]),
+            ("southwest detour", [98500.0, 94500.0]),
+            ("southern east lane", [103700.0, 93700.0]),
+            ("south of boulder", [102200.0, 93700.0]),
+            ("second trap", [100100.0, 109250.0]),
+        ] {
+            let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+                start, target, 19000.0, 550.0);
+            println!("{name}: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+                route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+                route.as_ref().map(|path| path.iter().step_by(12).copied().collect::<Vec<_>>()));
+        }
+        let (expanded, route) = gnome_height_route(&ground.terrain, &objects.buildings,
+            [101950.0, 91915.0, 17470.0], [100100.0, 109250.0], 19000.0, 550.0);
+        println!("boulder to second trap: expanded {expanded}; last {:?}; path len {:?}; sampled {:?}",
+            route.as_ref().and_then(|path| path.last()), route.as_ref().map(Vec::len),
+            route.as_ref().map(|path| path.iter().step_by(10).copied().collect::<Vec<_>>()));
+    }
+
     /// Diagnostic only: find possible turns through the installed interior
     /// collision data. The live route still has to walk and encounter objects.
     fn gnome_building_route(

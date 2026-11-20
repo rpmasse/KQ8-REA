@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-20: M6 opened Gnome brick wall (~99.8%)
+
+Used a height-aware installed-data diagnostic to identify the lower
+boulder passage, then replayed the required pushes with normal
+empty-hand movement from in-game saves. `bouldtp2` fired through real
+physical contact and `brikwall.cs` completed its authored scene. The
+saved campaign has both Boulder flags set and the wall hidden.
+Checkpoint and logs are under ignored `target/m6-gnome-*`. No manual
+test or original-file edit occurred.
+
 ## 2026-11-20: M6 dropped Gnome boulder through original trigger (~99.8%)
 
 Added ignored installed-data route diagnostics, then used normal
