@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-20: M6 Swamp Witch and keep gate (~97%)
+
+The earned Short Bow route reached the tower's north side around its
+west wall. Ordinary King Sword swings defeated `Swmpwich`; her 50,000
+experience award and absence survived an in-game save and fresh reload.
+After Connor selected the carried Short Bow and first person view, a
+camera-visible arrow struck `switch01`. Its original script opened
+`keepgate` and awarded 25,000 experience. A second save/reload retained
+the open gate, quest flag, level 15, one Short Bow and the Witch's
+absence. Connor crossed the open gate. Interior walls now constrain the
+route toward the upper chest. No game code or original assets changed.
+AI and collisions remained active, with test-only invulnerability.
+M6 stays ~97%; no manual gameplay test occurred.
+
 ## 2026-11-20: M6 Short Bow return checkpoint (~97%)
 
 Automated walking brought the earned Short Bow through the Mandragor

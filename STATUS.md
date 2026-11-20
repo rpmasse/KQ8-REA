@@ -1,5 +1,31 @@
 # STATUS
 
+## 2026-11-20 M6 Swamp Witch and keep gate (~97%)
+
+From the earned Short Bow checkpoint, ordinary movement passed the
+mushroom grove, a rock and a tree, reaching the tower's south wall.
+The original `wtower` building blocks a direct north crossing. A west
+detour around it reached the Witch's side. Normal King Sword hits
+defeated `Swmpwich`; her death awarded 50,000 experience and raised
+Connor to level 15. An in-game save and fresh-process reload retained
+her absence and the Short Bow. The ignored fight save is
+`target/m6-swamp-witch-defeat-save/slots/slot-2.json`.
+
+At the tower's north gate, Connor switched to the earned Short Bow and
+first person view. A camera-visible arrow physically struck `switch01`
+inside the tower. With the Witch gone, its original script opened
+`keepgate`, removed `SwitchClick` and awarded 25,000 experience. An
+in-game save and fresh-process reload retained `gateOpen=1`, the open
+gate collider, one Short Bow and level 15 with 37,570 experience toward
+the next level. Connor then walked through the open gate. The ignored
+gate save is `target/m6-swamp-keepgate-open-save/slots/slot-2.json`.
+
+The lower tower interior has walls near x156400 at y27100 and y31500
+near x158000. The upper chest, Henchman sequence, later regions and
+full save audit remain. AI and collision stayed active; the campaign
+save still has test-only invulnerability. M6 remains ~97% until more
+of the full campaign is verified. No manual gameplay testing occurred.
+
 ## 2026-11-20 M6 Short Bow return route (~97%)
 
 Ordinary movement carried the earned Short Bow back through the
