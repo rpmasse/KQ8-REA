@@ -1,5 +1,23 @@
 # MODLOG
 
+## 2026-11-20: M6 Gnome first door and hallway (~98.5%)
+
+Extended the ignored Gnome collision probe with a bounded building
+route search at Connor's arrival height. It found two possible turns
+around `gnome05`; the original-data probe passed, and normal movement
+replayed the route to pick up the first Rock. The first direct approach
+and four exploratory plate approaches stopped against the authored
+building; their failed logs remain under ignored `target/m6-gnome-*`.
+The earned Rock was saved and reloaded. A normal Rock-bar selection and
+visible click on `trip1` ran the installed throw and landing scripts,
+placing `NoName279` inside `triptrp1` and opening `door01a/b`. The held
+plate, two open doors, and later Connor position beyond the door each
+survived an in-game save and fresh-process reload. The focused probe
+command was `cargo test -p kq8-viewer --bin kq8-viewer
+original_gnome_start_room_collision_directions --release -- --ignored
+--nocapture` with `KQ8_GAME_DIR` set. The GOG installation was read
+only. No gameplay rule or original asset changed; no manual test.
+
 ## 2026-11-20: M6 Gnome start-room collision probe (~98.3%)
 
 Added an ignored original-data probe of the `gnome05` interior at four

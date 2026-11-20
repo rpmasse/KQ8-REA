@@ -6137,6 +6137,60 @@ mod campaign_tests {
         GameDir::open(std::env::var_os("KQ8_GAME_DIR").expect("set KQ8_GAME_DIR")).unwrap()
     }
 
+    /// Diagnostic only: find possible turns through the installed interior
+    /// collision data. The live route still has to walk and encounter objects.
+    fn gnome_building_route(
+        buildings: &[kq8_core::collide::BuildingCollider],
+        balls: &kq8_core::collide::BallStack,
+        start: [f32; 3],
+        target: [f32; 2],
+    ) -> (usize, Option<Vec<[f32; 3]>>) {
+        use std::{cmp::Reverse, collections::{BinaryHeap, HashMap, HashSet}};
+        const STEP: f32 = 250.0;
+        let spot = |i: i32, j: i32| [start[0] + i as f32 * STEP, start[1] + j as f32 * STEP, start[2]];
+        let goal = (((target[0] - start[0]) / STEP).round() as i32,
+            ((target[1] - start[1]) / STEP).round() as i32);
+        let clear = |from: [f32; 3], to: [f32; 3]| {
+            let (low, high) = balls.reach(from, to);
+            !buildings.iter().any(|b| b.overlaps(low, high) && b.sweep(balls, from, to).is_some())
+        };
+        let estimate = |i: i32, j: i32| {
+            (((goal.0 - i).pow(2) + (goal.1 - j).pow(2)) as f32).sqrt().mul_add(1000.0, 0.0) as i32
+        };
+        let mut pending = BinaryHeap::from([Reverse((estimate(0, 0), 0, 0))]);
+        let mut cost = HashMap::from([((0, 0), 0_i32)]);
+        let mut parent = HashMap::new();
+        let mut closed = HashSet::new();
+        while let Some(Reverse((_, i, j))) = pending.pop() {
+            if !closed.insert((i, j)) { continue; }
+            if (i, j) == goal {
+                let mut cells = vec![(i, j)];
+                while let Some(&previous) = parent.get(cells.last().unwrap()) { cells.push(previous); }
+                cells.reverse();
+                let path: Vec<_> = cells.into_iter().map(|(x, y)| spot(x, y)).collect();
+                let mut turns = vec![start];
+                let mut at = 0;
+                while at + 1 < path.len() {
+                    let next = ((at + 1)..path.len()).rev().find(|&n| clear(path[at], path[n])).unwrap();
+                    turns.push(path[next]);
+                    at = next;
+                }
+                return (closed.len(), Some(turns));
+            }
+            for (di, dj) in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)] {
+                let (ni, nj) = (i + di, j + dj);
+                if !(-60..=60).contains(&ni) || !(-20..=120).contains(&nj) || closed.contains(&(ni, nj)) { continue; }
+                let proposed = cost[&(i, j)] + if di == 0 || dj == 0 { 1000 } else { 1414 };
+                if proposed >= *cost.get(&(ni, nj)).unwrap_or(&i32::MAX) { continue; }
+                if !clear(spot(i, j), spot(ni, nj)) { continue; }
+                cost.insert((ni, nj), proposed);
+                parent.insert((ni, nj), (i, j));
+                pending.push(Reverse((proposed + estimate(ni, nj), ni, nj)));
+            }
+        }
+        (closed.len(), None)
+    }
+
     #[test]
     #[ignore = "requires KQ8_GAME_DIR pointing to the GOG installation"]
     fn original_gnome_start_room_collision_directions() {
@@ -6166,6 +6220,11 @@ mod campaign_tests {
                 }
             }).collect();
             println!("{label} ({:.0},{:.0}): {}", from[0], from[1], probes.join("; "));
+        }
+        let start = [105233.555, 36429.613, 17475.0];
+        for (name, target) in [("first Rock", [108476.0, 38521.0]), ("first plate", [100768.0, 54307.0])] {
+            let (expanded, route) = gnome_building_route(&objects.buildings, &balls, start, target);
+            println!("{name}: expanded {expanded} cells; building-only floor-height route: {route:?}");
         }
     }
 

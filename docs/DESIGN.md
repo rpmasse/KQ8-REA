@@ -10696,3 +10696,24 @@ eight short directions. Record which movements are blocked and the hit
 normal, then choose a route through an actual opening. Keep this as an
 ignored, original-data diagnostic; it must not change gameplay or use a
 direct placement in a campaign acceptance run.
+
+The directional probe exposed walls on both sides of the north hall.
+Extend the diagnostic with a bounded grid search at the arrival floor
+height. Each proposed step must pass the existing Connor ball-stack
+sweep against every loaded Gnome interior. Report a short route to the
+nearby Rock and first plate, or report that no route exists on that
+floor; a missing route is evidence to examine level changes, not a
+reason to alter a collider. Any proposed path must still be replayed
+through ordinary movement with all game obstacles present.
+
+The probe found a route around the east wall to the first Rock and a
+route toward `triptrp1`. Both were replayed using Connor's ordinary
+keys; the Rock was picked up with a visible click. Connor alone opened
+and then released the plate. Selecting the earned Rock on the inventory
+bar and visibly clicking `trip1` instead ran `rockme.cs` and the normal
+throw/landing chain, leaving a world Rock on the plate. In-game saves
+and fresh-process reloads retained the occupied trap and both open
+doors. Connor crossed the doorway by ordinary movement and the next
+save/reload retained the hallway position. Continue the Gnome campaign
+from the earned hallway checkpoint; this is a diagnostic-god route and
+does not complete the region or campaign.

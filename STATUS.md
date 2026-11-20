@@ -1,5 +1,26 @@
 # STATUS
 
+## 2026-11-20 M6 Gnome first door and saved hallway (~98.5%)
+
+The original-data building sweep found a start-room route around
+`gnome05`. An ordinary camera-visible click picked up `NoName269`, the
+nearby authored Rock, and an in-game save retained it. From that save,
+normal movement reached the first pressure plate. Connor's entry
+opened `door01a/b`, but they closed when he left, confirming the plate
+needs another occupant. A normal left click on the Rock bar and a
+camera-visible click on `trip1` ran `rockme.cs` and `ThrowRock`;
+`rockHit.cs` placed a new world Rock (`NoName279`) in `triptrp1` at
+`(100781, 54283, 17450)`. The trap opened both doors while Connor
+remained outside. An in-game save and fresh-process reload retained the
+Rock, trap occupancy, `Gnome::DoorOne::State=opened`, and both opened
+door states. Connor then walked through the doorway to approximately
+`(100749, 61884, 17475)`; another in-game save and fresh-process
+reload retained that position and the Rock-held plate. Artifacts are
+under ignored `target/m6-gnome-rock-*` and
+`target/m6-gnome-first-hall-*`. This route inherits diagnostic god mode;
+the remaining Gnome quest, later worlds, ending and broad save audit
+remain. M6 estimate: ~98.5%. No manual gameplay test occurred.
+
 ## 2026-11-20 M6 Gnome first-room navigation (~98.3%)
 
 The earned Gnome arrival reload remains playable. Unattended normal

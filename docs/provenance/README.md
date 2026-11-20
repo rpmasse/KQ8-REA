@@ -1,5 +1,15 @@
 # Provenance
 
+**Gnome first Rock and plate (2026-11-20, M6).**
+The installed `worldinv.cs` places the nearby Rock; `trip1.kq` and
+`rockme.cs` accept it and request `ThrowRock`; `rockHit.cs` drops the
+recoverable Rock; `triptrp1.cs` opens and closes `door01a/b`. The
+original-data navigation probe uses existing `connor-physics.md`
+collision sweeps; the campaign replay used ordinary movement and
+camera-visible clicks. The Rock-held plate, open doors and hallway
+position persisted through in-game saves and fresh reloads. No
+original game data was published or modified.
+
 **Gnome start-room route diagnostic (2026-11-20, M6).**
 The ignored original-data probe in `load.rs` uses the installed
 `Gnome/gnome05.dig` collider, the existing Connor ball stack and the
