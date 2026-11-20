@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-20 M6 drawbridge opened and crossed (~96%)
+
+From the freshly reloaded Hammer checkpoint, Connor reached the north
+bank at (119615,193893,864). A normal ranged Hammer throw struck
+`tmblrcyl` after 8,590 units of flight. The original `lever1.cs`
+awarded 10,000 experience, opened `lever1`, and lowered `Drawbg01`.
+Its completion set `DeadCity::Reaper::ConDropedBridge=true` and replaced
+the raised bridge with `drawbg02.kq`. An in-game save and fresh-process
+reload retained the open bridge, Hammer and quest flag.
+
+The first crossing attempt hit the `bridge.dig` west wall. Routing
+around its north edge reached the middle approach. Ordinary movement
+then rose onto the lowered bridge deck, crossed it and descended to
+(122863,206879,1010). A fresh-process reload retained this south-bank
+checkpoint and the bridge state. Enemy AI remained active and the
+earlier test-only invulnerability remained enabled. The lever aim used
+a diagnostic named target; camera-visible aim and normal-damage play
+are not yet verified. M6 rises from ~95% to ~96%; the Reaper sequence,
+later regions and full save audit remain unfinished.
+
 ## 2026-11-20 M6 Azriel Hammer and King bridge return (~95%)
 
 The automated continuation found the original `doorway1` opening, crossed

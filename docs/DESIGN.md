@@ -100,6 +100,19 @@ Hammer on `lever1` through its ordinary attack cue; do not infer lever
 access from a planar route that falls to z0. The drawbridge remains
 closed in this checkpoint.
 
+From that checkpoint, walk to the bridge's north bank and ready the
+carried Hammer. A diagnostic camera aim followed by an ordinary throw
+struck `tmblrcyl` after 8,590 units, within the original Dead City
+Hammer range. `lever1.cs` awarded experience and lowered `Drawbg01`;
+its completion replaced the bridge and set
+`DeadCity::Reaper::ConDropedBridge=true`. The first west-to-east
+crossing route hit `bridge.dig`'s west wall. Route north around the
+building, align with x122875, then walk south over the opened deck.
+The automated walker reached (122863,206879,1010), and a fresh-process
+reload kept the bridge lowered and Connor on the south bank. Continue
+the Reaper quest from that saved state. Keep the diagnostic aim and
+test-only invulnerability limits explicit when evaluating fidelity.
+
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
 Continue from the earned Sylph Mold handoff. The installed Dead City

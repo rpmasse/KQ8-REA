@@ -1,5 +1,17 @@
 # MODLOG
 
+## 2026-11-20: M6 drawbridge checkpoint (~96%)
+
+From the earned Hammer save, a ranged throw physically struck the
+bridge lever's tumbler. Its original scripts awarded experience,
+lowered the drawbridge and set the Reaper bridge flag. The first
+crossing route hit the west wall; a north approach crossed the bridge
+deck and reached the south bank. In-game saves and fresh-process
+reloads retained the open bridge and Connor's south-bank position.
+No game code changed. The diagnostic aim selected the lever target,
+and test-only invulnerability was still enabled. M6 rises from ~95%
+to ~96%; the Reaper sequence and later campaign remain.
+
 ## 2026-11-20: M6 Azriel Hammer checkpoint (~95%)
 
 The automated campaign route crossed `doorway1` through its original
