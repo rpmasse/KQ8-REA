@@ -16,6 +16,11 @@ before correction struck `gnome01`, `gnome02` or `gnome03`, and first
 rock-timing attempts triggered `rollside.cs`. **Next:** complete the
 remaining Gnome branch and continue the later campaign. M6 is ~72%;
 no manual gameplay or original-file edit occurred.
+**Limit:** The earlier arrival slot carried diagnostic god mode, so
+normal-damage survival through that entire Gnome route is unverified.
+A second full Sage handoff replay switched it off before the item click;
+its in-game slot and fresh-process reload passed with `god_mode=false`
+and `ai_off=false`. Use that normal-mode slot for further campaign work.
 
 ## 2026-11-21: M6 Lodestone return through lower Gnome (~70%)
 

@@ -12,6 +12,13 @@ completed his original handoff scene. The in-game save at
 teleporter. A fresh viewer process loaded the slot successfully. The
 return needed a precise west corridor turn and a north alignment before
 rock 3; earlier direct routes hit building walls or a moving rock.
+The route inherited diagnostic god mode from Gnome's arrival save;
+enemy AI was active. Full-route survival with ordinary damage remains
+unverified. A separate handoff replay switched god mode off before
+Sage's interaction, saved the same quest result to
+`target/m6-gnome-lodestone-sage-handoff-normal-save/slots/slot-2.json`,
+and passed a fresh-process load with god mode and AI suppression both
+off. This is the continuation slot for later campaign work.
 
 M6 is now estimated at ~72%. The remaining Gnome branch, later
 regions, ending, exact building activation and broad save audit remain.

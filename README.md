@@ -32,6 +32,7 @@ Automated combat checks cover enemy attacks, both camera views for melee, elemen
 The automated campaign walker has completed Dead City's key quests, cleared the Swamp poison with the Golden Ladle, met Gnome's Sage, and opened Gnome's brick wall with its original boulder puzzle. Later campaign routes remain unfinished.
 The Gnome Dragon has been defeated in an automated earned-save replay; its Black Diamond, the Crystal Pyramid, and a Lodestone were collected. Later campaign quests remain unfinished.
 Sage has received the Lodestone in an automated replay, unlocking Barren's teleporter; the remaining campaign is unfinished.
+That route used an inherited diagnostic invulnerability setting; a post-handoff save with normal damage is available, while full-route survival remains unverified.
 The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.
 
 ## Bring your own game

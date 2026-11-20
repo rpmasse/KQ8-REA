@@ -359,6 +359,15 @@ teleporter. The post-scene in-game slot at
 a fresh-process load. Continue the remaining Gnome branch and later
 regions from that checkpoint; do not count the Sage handoff as full M6
 completion.
+The route's inherited Gnome arrival save had the viewer's diagnostic
+god mode on throughout; enemy AI was on. The puzzle and script path is
+proven, but survival with ordinary damage through the whole route is
+not. A separate full Sage handoff replay switched god mode off before
+the item click and saved at
+`target/m6-gnome-lodestone-sage-handoff-normal-save/slots/slot-2.json`.
+That slot has `god_mode=false`, `ai_off=false`, and `Met=2`; a fresh
+process loaded it. Use this slot for subsequent campaign work, and
+retain a normal-damage replay of the earlier route as an M6 gate.
 
 ## M6 Gnome bridge visibility across saves (2026-11-20)
 
