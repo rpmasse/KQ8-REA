@@ -1,5 +1,28 @@
 # STATUS
 
+## 2026-11-20 M6 earned Swamp Short Bow (~97%)
+
+From the saved Fiend defeat, ordinary movement went west around the
+steep ridge, then south through the gap between the original Mandragor
+groups and moss-tree colliders. In-game checkpoints retained the west
+pass at (156064,124654,5355) and the bow approach near
+(170262,158001,5245). With the weapon put away, a camera-visible click
+hit `skltnbow` at 4,562 units, within the 4,700-unit interaction reach.
+Its original script gave Connor the Short Bow, moved him to
+(175260,162750), and awarded 10,000 experience. An in-game save and
+fresh-process reload retained the bow, the cleared
+`Swamp::skltnbow::full` flag, and 44,490 experience. The ignored save is
+`target/m6-swamp-shortbow-save/slots/slot-2.json`. A repeat click after
+fresh reload ran the script without granting another bow or experience.
+
+The carried Azriel Hammer could be aimed at `mand3t` from outside the
+root range, but its projectile hit dealt zero damage to that tree;
+close sword swings were interrupted by root pushes. The terrain pass
+provided a route to the bow without disabling AI or collision.
+Test-only invulnerability remains enabled in the campaign save.
+M6 stays ~97%: the Witch, keep gate, Henchman chest, later worlds and
+full save audit are unfinished. No manual gameplay testing occurred.
+
 ## 2026-11-20 M6 southern Swamp checkpoint and Fiend (~97%)
 
 From the earned Swamp arrival, ordinary movement reached the east-side

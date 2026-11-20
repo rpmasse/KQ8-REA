@@ -1,5 +1,19 @@
 # MODLOG
 
+## 2026-11-20: M6 earned Swamp Short Bow (~97%)
+
+Automated movement from the saved Fiend defeat passed the western ridge,
+then threaded the Mandragor groups to reach the Short Bow. A
+camera-visible click from 4,562 units used `skltnbow.cs` to grant the
+bow and 10,000 experience. An in-game save and fresh-process reload
+retained the item, quest flag and 44,490 experience. A repeat click
+after reload awarded nothing further. A separate
+camera-visible Hammer hit on `mand3t` dealt zero damage, explaining
+why the root encounter required a route around it. No game code or
+original assets changed. AI and collisions remained active; test-only
+invulnerability remained enabled. The M6 estimate stays ~97%, with no
+manual playtest.
+
 ## 2026-11-20: M6 Swamp corridor and Fiend checkpoint (~97%)
 
 The earned Swamp arrival route reached the east-side southern corridor

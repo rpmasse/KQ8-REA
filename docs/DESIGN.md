@@ -157,6 +157,23 @@ and 7,500 experience award. Test-only invulnerability is active. The
 direct route south of y110600 meets terrain too steep for Connor; find
 the pass around that ridge before approaching the Bow.
 
+The earned route took the flat west-side pass at (156064,124654), then
+crossed between the `mand3`/`mand14` and `mand4`/`mand5` groups and
+went west of `swmp.399`, a moss tree near (163524,154412). It reached
+the Bow's western approach at (170262,158001). A normal camera ray to
+`skltnbow` hit the prop; the first click was 5,904 units from its box
+and correctly failed the 4,700-unit reach check. A shorter approach
+put Connor 4,562 units from the box, where an unarmed camera click ran
+`skltnbow.cs`, gave the Short Bow and 10,000 experience, and moved him
+to (175260,162750). An in-game save and fresh reload retained the
+carried Bow, cleared `Swamp::skltnbow::full`, and 44,490 experience.
+A repeat click after reload awarded no additional bow or experience.
+Continue from this save toward the Witch, projectile-operated keep
+switch and Henchman chest. The earlier optional Prophet Tree save is
+a separate branch until Q222 is answered. A camera-visible Hammer hit
+against `mand3t` dealt zero projectile damage; its roots interrupted
+close sword swings, so no Mandragor defeat is claimed on this route.
+
 ## M6 recover and rust the Broken Shield (2026-11-19)
 
 Continue from the earned Sylph Mold handoff. The installed Dead City
