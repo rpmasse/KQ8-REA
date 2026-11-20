@@ -1,5 +1,13 @@
 # Provenance
 
+**Swamp Fiend lever return (2026-11-20, M6).**
+The installed `pulchain.cs` sets the two chain flags and opens
+`levrdor.01`; `fienlevr.cs` cues `fiendoor.cs` to return Connor to
+Tile2. The installed `swdoor.cs` exits Tile2 on the east approach.
+Unattended normal combat, camera-visible chain and lever clicks, ten
+safe-tile jumps, an in-game save and fresh reload passed. The Ladle
+remained carried; no original asset was changed.
+
 **Fiend room Golden Ladle (2026-11-20, M6).**
 The installed Swamp `newWorld.cs` places `fienchst` and the installed
 chest data gives it `INVITEM_Ladle`. Normal camera-visible clicks from

@@ -1,5 +1,15 @@
 # MODLOG
 
+## 2026-11-20: M6 Fiend lever and return crossing (~97.8%)
+
+Followed the original two-chain prerequisite to open the lever panel,
+defeated both intervening Fiends through normal combat, clicked the
+exposed lever, and crossed the Swamp tile floor back east. An in-game
+save and fresh reload retained the Golden Ladle, chain flags, panel and
+exited tile state. No source code or original asset changed in this
+step. M6 is ~97.8%; the kettle and later campaign remain. No manual
+gameplay test occurred.
+
 ## 2026-11-20: M6 Fiend room Golden Ladle (~97.6%)
 
 The earned Fiend room route used normal camera-visible clicks to open

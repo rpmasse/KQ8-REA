@@ -1,5 +1,25 @@
 # STATUS
 
+## 2026-11-20 M6 Fiend chains, lever and Swamp return (~97.8%)
+
+The installed `pulchain.cs` requires both pull chains before it opens
+the panel that hides `fienlvr.01`. From the earned Golden Ladle save,
+Connor pulled the south chain, defeated `fiend18` and `fiend17` with
+ordinary combat input, and pulled the north chain from within the
+script's 2,000-unit distance. Both flags became 1 and `levrdor.01`
+opened. A camera-visible click on the exposed lever fired the original
+`fiendoor.cs` return scene and placed Connor on the west tile approach.
+He crossed ten safe tiles in reverse; `swdoor.cs` exited Tile2 and
+returned control east of the puzzle. The in-game save
+`target/m6-swamp-return-east-save/slots/slot-2.json` retained one
+Golden Ladle, both chain flags, open lever panel, defeated Fiends,
+`Swamp::Tile::Connor=Out` and `inTileState=false`. A fresh-process
+reload retained the opened panel and Swamp state. The route and reload
+logs are under `target/m6-swamp-return-east-save/` and
+`target/m6-swamp-return-east-reload/`. M6 is ~97.8%; use of the Ladle
+at the Witch tower kettle, later regions, ending and save audit remain.
+No manual gameplay testing occurred.
+
 ## 2026-11-20 M6 Golden Ladle earned and Fiend lever route (~97.6%)
 
 From the earned Fiend room checkpoint, Connor approached `fienchst`
