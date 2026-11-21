@@ -18,23 +18,14 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M7 · Verify and release the Windows recreation | Planned · 0% |
 | M8 · Modern Improvements | In progress · ~90% |
 
-These percentages describe individual phases, not overall game completion. M6 was recalibrated from an overstated ~99.8% because the full 12-region campaign and ending are still unfinished. All 12 regions load; campaign progression and final fidelity checks still need work. See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
-
-M8 is being done early: Graphics offers windowed/fullscreen modes, seven aspect ratios including 3:2, standard resolution presets and a 15–120 Draw FPS cap. Options → Mouse offers camera sensitivity; brightness, sensitivity and volume bars support clicking and show percentages. Drawing can run faster than the game's unchanged 15 updates per second. If a saved fullscreen mode disappears, startup opens a temporary 640×480 window. Fullscreen resolutions depend on the monitor's available modes; native ultrawide output and the new cap's visual feel are not tested.
-
-Graphics also offers Off, SMAA, and FXAA anti-aliasing for the 3D view; its selection is saved locally without changing game assets.
-
-Graphics offers Off, 4x, 8x, and 16x anisotropic filtering for 3D surface textures; 4x is the default and original texture files are unchanged.
-
-The default keyboard layout is W/S/D/A to move, R to walk or run, Space to jump, Q to switch weapons, C to center the camera, E to toggle the cursor, and Z to toggle the interface; saved custom bindings take precedence.
-
-Automated combat checks cover enemy attacks, both camera views for melee, elemental shots, distinct deaths and drops, terrain hazards, and the Ice Dragon's chain appearance; the full campaign remains unfinished.
-The automated campaign walker has completed Dead City's key quests, cleared the Swamp poison with the Golden Ladle, met Gnome's Sage, and opened Gnome's brick wall with its original boulder puzzle. Later campaign routes remain unfinished.
-The Gnome Dragon has been defeated in an automated earned-save replay; its Black Diamond, the Crystal Pyramid, and a Lodestone were collected. Later campaign quests remain unfinished.
-Sage has received the Lodestone in an automated replay, unlocking Barren's teleporter; the remaining campaign is unfinished.
-The open-wall return and Sage handoff now pass with normal damage and enemy AI enabled; the complete campaign remains unverified.
-The post-Sage replay reached Barren and gave Weirdling the earned Black Diamond; the in-game save reloads in a fresh process. The later campaign remains unfinished.
-The [M5 combat audit](docs/m5-combat-completion-audit.md) records the completed phase and its remaining original-game comparison limits.
+- **Phase percentages:** These describe each phase, not overall game completion. M6 was revised from ~99.8% because the full campaign and ending remain unfinished.
+- **Campaign (M6):** All 12 regions load. Automated runs have progressed through Dead City, Swamp and Gnome into Barren, with earned saves reloaded in a fresh process; later quests and final fidelity checks remain.
+- **Combat (M5):** Automated checks cover enemy attacks, elemental shots, deaths, drops and hazards. See the [combat audit](docs/m5-combat-completion-audit.md).
+- **Display (M8):** Windowed and fullscreen modes, seven aspect ratios, standard resolutions and a 15–120 Draw FPS cap are available.
+- **Graphics and controls (M8):** Anti-aliasing, anisotropic filtering, mouse sensitivity and clickable percentage sliders are available.
+- **Keyboard:** W/S/D/A move, R toggles walk/run, Space jumps, Q switches weapons, C centers the camera, E toggles the cursor and Z opens the interface; saved bindings take precedence.
+- **Current limits:** The game still updates at 15 Hz even when drawing faster. Fullscreen modes depend on the monitor; native ultrawide output and the higher drawing caps' visual feel are not tested.
+- **More detail:** See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
 
 ## Bring your own game
 
