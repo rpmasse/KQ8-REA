@@ -14,12 +14,12 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M3 · Recreate Daventry gameplay | Complete · 100% |
 | M4 · Recreate menus, inventory and dialogue | Complete · 100% |
 | M5 · Recreate combat | Complete · 100% |
-| M6 · Recreate the full campaign and saves | In progress · ~78% |
+| M6 · Recreate the full campaign and saves | In progress · ~97% locally |
 | M7 · Verify and release the Windows recreation | Planned · 0% |
 | M8 · Modern Improvements | In progress · ~90% |
 
 - **Phase percentages:** These describe each phase, not overall game completion. M6 was revised from ~99.8% because the full campaign and ending remain unfinished.
-- **Campaign (M6):** All 12 regions load. Automated runs have progressed through Dead City, Swamp and Gnome into Barren, with earned saves reloaded in a fresh process; later quests and final fidelity checks remain.
+- **Campaign (M6):** All 12 regions load. Local automated play earned the Ice Crossbow and Fire Gem and returned to Barren's third bridge. Ice World's remaining puzzles, later quests and the ending are unfinished; the latest M6 code is not yet on GitHub main.
 - **Combat (M5):** Automated checks cover enemy attacks, elemental shots, deaths, drops and hazards. See the [combat audit](docs/m5-combat-completion-audit.md).
 - **Display (M8):** Windowed and fullscreen modes, seven aspect ratios, standard resolutions and a 15–120 Draw FPS cap are available.
 - **Graphics and controls (M8):** Anti-aliasing, anisotropic filtering, mouse sensitivity and clickable percentage sliders are available.
