@@ -19,7 +19,7 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M8 · Modern Improvements | In progress · ~90% |
 
 - **Phase percentages:** These describe each phase, not overall game completion. M6 was revised from ~99.8% because the full campaign and ending remain unfinished.
-- **Campaign (M6):** All 12 regions load. Local automated play earned the Ice Crossbow and Fire Gem and returned to Barren's third bridge. Ice World's remaining puzzles, later quests and the ending are unfinished; the latest M6 code is not yet on GitHub main.
+- **Campaign (M6):** All 12 regions load. Local automated play earned the Fire Gem, Ice Crossbow, Ice Lever and a Rock. One earned branch opened Ice World's Mask Door and completed Lord's Chest; the main continuation has returned to the south gate with the Rock and Fire Gem. The frozen pond, Henchman fight, later quests and ending remain unfinished; the latest M6 code is not yet on GitHub main.
 - **Combat (M5):** Automated checks cover enemy attacks, elemental shots, deaths, drops and hazards. See the [combat audit](docs/m5-combat-completion-audit.md).
 - **Display (M8):** Windowed and fullscreen modes, seven aspect ratios, standard resolutions and a 15–120 Draw FPS cap are available.
 - **Graphics and controls (M8):** Anti-aliasing, anisotropic filtering, mouse sensitivity and clickable percentage sliders are available.
