@@ -19,10 +19,10 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 | M8 · Modern Improvements | In progress · ~90% |
 
 - **Phase percentages:** These describe each phase, not overall game completion. M6 was revised from ~99.8% because the full campaign and ending remain unfinished.
-- **Campaign (M6):** All 12 regions load. Local automated play earned the Flame Sword, opened Ice World's Mask Door, completed Lord's Chest and defeated Henchman. Connor has reached a saved route south of the keep. The SnowExit passage, later quests and ending remain unfinished; the latest M6 gameplay code remains local.
+- **Campaign (M6):** All 12 regions load. Local automated play earned the Flame Sword, opened Ice World's Mask Door, completed Lord's Chest, defeated Henchman and reached the Ice Cave. The Dragon encounter, SnowExit passage, later quests and ending remain unfinished. The latest M6 gameplay code remains local.
 - **Combat (M5):** Automated checks cover enemy attacks, elemental shots, deaths, drops and hazards. See the [combat audit](docs/m5-combat-completion-audit.md).
-- **Display (M8):** Windowed and fullscreen modes, seven aspect ratios, standard resolutions and a 15–120 Draw FPS cap are available.
-- **Graphics and controls (M8):** Anti-aliasing, anisotropic filtering, mouse sensitivity and clickable percentage sliders are available.
+- **Display (M8):** Windowed and fullscreen modes, seven aspect ratios, standard resolutions, a 15–120 Draw FPS cap and a live gameplay FPS counter are available.
+- **Graphics and menus (M8):** Anti-aliasing, anisotropic filtering, mouse sensitivity and clickable percentage sliders are available. Save and Load use their original menu colours.
 - **Keyboard:** W/S/D/A move, R toggles walk/run, Space jumps, Q switches weapons, C centers the camera, E toggles the cursor and Z opens the interface; saved bindings take precedence.
 - **Current limits:** The game still updates at 15 Hz even when drawing faster. Fullscreen modes depend on the monitor; native ultrawide output and the higher drawing caps' visual feel are not tested.
 - **More detail:** See the [current status](STATUS.md) and [completion plan](docs/DESIGN.md#kq8-rea-completion-plan-2026-11-05).
@@ -36,3 +36,4 @@ We aim to use [REA](https://github.com/morluto/rea) to help understand the origi
 After the faithful recreation, we plan to improve animation, movement and camera frame rates and support more platforms, including macOS.
 
 See [credits and sources](CREDITS.md).
+
