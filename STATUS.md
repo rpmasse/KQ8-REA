@@ -1,5 +1,9 @@
 # STATUS
 
+## 2026-11-26 M6 estimate: ~97% in the local working copy
+
+Automated play earned the Ice Crossbow and Fire Gem in one continuing campaign state, completed Archon's scene, returned through solved Barren routes, and saved at bridge 3's south bank with both items. The latest local run reports `RESULT: PASS`. Ice World's remaining puzzles, later quests and the ending remain unfinished, so ~97% is a rough phase estimate, not overall game completion. These latest M6 implementation changes and test artifacts are local and have not been published to GitHub main. The M6 goal is paused at the user's request.
+
 ## 2026-11-21 M6 Black Diamond offered in Barren (~78%)
 
 The earned Barren save retained the Dragon's Black Diamond and 25
